@@ -30,8 +30,10 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-cream: var(--cream);
-  --color-peach: var(--peach);
-  --color-peach-deep: var(--peach-deep);
+  --color-blush: var(--blush);
+  --color-blush-deep: var(--blush-deep);
+  --color-peach: var(--blush);
+  --color-peach-deep: var(--blush-deep);
   --color-forest: var(--forest);
   --color-forest-soft: var(--forest-soft);
   --font-display: var(--font-display);
@@ -39,68 +41,72 @@
 }
 
 :root {
-  --radius: 0.5rem;
+  --radius: 0.75rem;
 
-  /* Brand tokens — Sweetbaby */
-  --forest: oklch(0.28 0.04 155);
-  --forest-soft: oklch(0.42 0.045 155);
-  --peach: oklch(0.87 0.055 55);
-  --peach-deep: oklch(0.78 0.09 45);
-  --cream: oklch(0.975 0.012 80);
+  /* Brand tokens — Sweetbaby (powder blush + deep forest green) */
+  --forest: oklch(0.30 0.045 155);
+  --forest-soft: oklch(0.42 0.05 155);
+  --blush: oklch(0.92 0.03 15);
+  --blush-deep: oklch(0.83 0.06 12);
+  --cream: oklch(0.98 0.012 20);
 
-  --background: oklch(0.975 0.012 80);
-  --foreground: oklch(0.24 0.035 155);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.24 0.035 155);
-  --popover: oklch(0.985 0.008 80);
-  --popover-foreground: oklch(0.24 0.035 155);
-  --primary: oklch(0.28 0.04 155);
-  --primary-foreground: oklch(0.97 0.02 60);
-  --secondary: oklch(0.87 0.055 55);
-  --secondary-foreground: oklch(0.24 0.035 155);
-  --muted: oklch(0.94 0.015 70);
+  --background: oklch(0.965 0.018 15);
+  --foreground: oklch(0.24 0.04 155);
+  --card: oklch(1 0 0 / 0.7);
+  --card-foreground: oklch(0.24 0.04 155);
+  --popover: oklch(0.99 0.008 15);
+  --popover-foreground: oklch(0.24 0.04 155);
+  --primary: oklch(0.30 0.045 155);
+  --primary-foreground: oklch(0.97 0.02 20);
+  --secondary: oklch(0.92 0.03 15);
+  --secondary-foreground: oklch(0.24 0.04 155);
+  --muted: oklch(0.94 0.018 15);
   --muted-foreground: oklch(0.45 0.03 150);
-  --accent: oklch(0.87 0.055 55);
-  --accent-foreground: oklch(0.24 0.035 155);
+  --accent: oklch(0.83 0.06 12);
+  --accent-foreground: oklch(0.24 0.04 155);
   --destructive: oklch(0.55 0.19 25);
   --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.88 0.02 70);
-  --input: oklch(0.9 0.018 70);
-  --ring: oklch(0.28 0.04 155);
+  --border: oklch(0.88 0.025 15);
+  --input: oklch(0.91 0.02 15);
+  --ring: oklch(0.30 0.045 155);
 
   --font-display: "Cormorant Garamond", "Frank Ruhl Libre", ui-serif, Georgia, serif;
   --font-body: "Assistant", "Heebo", ui-sans-serif, system-ui, sans-serif;
 
-  --shadow-soft: 0 20px 50px -30px oklch(0.28 0.04 155 / 0.25);
-  --shadow-card: 0 4px 24px -12px oklch(0.28 0.04 155 / 0.15);
-  --gradient-hero: linear-gradient(135deg, oklch(0.975 0.012 80) 0%, oklch(0.9 0.045 60) 100%);
+  --shadow-soft: 0 30px 60px -30px oklch(0.30 0.045 155 / 0.28);
+  --shadow-card: 0 8px 30px -14px oklch(0.30 0.045 155 / 0.18);
+  --gradient-hero: linear-gradient(135deg, oklch(0.98 0.02 15) 0%, oklch(0.9 0.06 12) 100%);
+  --gradient-blush: linear-gradient(160deg, oklch(0.96 0.025 15) 0%, oklch(0.86 0.05 10) 100%);
 }
 
 .dark {
   --background: oklch(0.22 0.03 155);
-  --foreground: oklch(0.96 0.02 60);
+  --foreground: oklch(0.96 0.02 20);
   --card: oklch(0.27 0.035 155);
-  --card-foreground: oklch(0.96 0.02 60);
+  --card-foreground: oklch(0.96 0.02 20);
   --popover: oklch(0.27 0.035 155);
-  --popover-foreground: oklch(0.96 0.02 60);
-  --primary: oklch(0.87 0.055 55);
-  --primary-foreground: oklch(0.24 0.035 155);
+  --popover-foreground: oklch(0.96 0.02 20);
+  --primary: oklch(0.92 0.03 15);
+  --primary-foreground: oklch(0.24 0.04 155);
   --secondary: oklch(0.34 0.03 155);
-  --secondary-foreground: oklch(0.96 0.02 60);
+  --secondary-foreground: oklch(0.96 0.02 20);
   --muted: oklch(0.3 0.028 155);
-  --muted-foreground: oklch(0.75 0.03 60);
-  --accent: oklch(0.87 0.055 55);
-  --accent-foreground: oklch(0.24 0.035 155);
+  --muted-foreground: oklch(0.75 0.03 20);
+  --accent: oklch(0.83 0.06 12);
+  --accent-foreground: oklch(0.24 0.04 155);
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.87 0.055 55);
+  --ring: oklch(0.83 0.06 12);
 }
 
 @layer base {
   * { border-color: var(--color-border); }
   html { direction: rtl; }
   body {
-    background-color: var(--color-background);
+    background:
+      radial-gradient(1200px 500px at 100% -10%, oklch(0.9 0.06 10 / 0.4), transparent 60%),
+      radial-gradient(900px 500px at 0% 100%, oklch(0.94 0.045 20 / 0.35), transparent 60%),
+      var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-body);
     font-feature-settings: "ss01", "cv11";
@@ -119,15 +125,13 @@
   padding-inline: 1.25rem;
 }
 
-@utility film-frame {
-  position: relative;
-  padding: 0.5rem;
-  background:
-    linear-gradient(var(--color-forest), var(--color-forest)) padding-box,
-    repeating-linear-gradient(90deg, var(--color-forest) 0 6px, transparent 6px 12px) border-box;
+@utility glass-card {
+  background: color-mix(in oklab, white 70%, var(--color-blush) 30%);
+  backdrop-filter: blur(14px);
+  border: 1px solid color-mix(in oklab, white 60%, var(--color-blush-deep) 40%);
+  box-shadow: var(--shadow-card);
 }
 
-/* Decorative sprocket-holes strip inspired by film reels */
 @utility film-strip {
   background-image:
     radial-gradient(circle, var(--color-cream) 3px, transparent 3.5px),
