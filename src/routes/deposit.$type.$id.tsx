@@ -45,9 +45,12 @@ function Deposit() {
 
   useEffect(() => {
     const table = type === "booking" ? "bookings" : "orders";
-    supabase.from(table).select("*").eq("id", id).maybeSingle().then(({ data }) => {
+    (supabase.from(table) as any).select("*").eq("id", id).maybeSingle().then(({ data }: any) => {
       setRecord(data);
-      if (data) setBalanceAmount(String(data.balance_amount ?? Math.max(0, (data.price ?? data.total_amount ?? 0) - (data.deposit_amount ?? 90))));
+      if (data) {
+        const totalVal = data.price ?? data.total ?? 0;
+        setBalanceAmount(String(data.balance_amount ?? Math.max(0, totalVal - (data.deposit_amount ?? 90))));
+      }
     });
   }, [type, id]);
 
@@ -59,8 +62,8 @@ function Deposit() {
       const { error: upErr } = await supabase.storage.from("receipts").upload(path, file, { upsert: false });
       if (upErr) throw upErr;
       const table = type === "booking" ? "bookings" : "orders";
-      const { error: updErr } = await supabase.from(table).update({
-        deposit_receipt_path: path,
+      const { error: updErr } = await (supabase.from(table) as any).update({
+        deposit_receipt_url: path,
         deposit_status: "submitted",
         balance_method: balanceMethod,
         balance_amount: Number(balanceAmount) || 0,
