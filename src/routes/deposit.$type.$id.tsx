@@ -79,7 +79,7 @@ function Deposit() {
   };
 
   const depositAmount = record?.deposit_amount ?? 90;
-  const total = record?.price ?? record?.total_amount ?? 0;
+  const total = record?.price ?? record?.total ?? 0;
 
   return (
     <div className="min-h-screen flex flex-col">
