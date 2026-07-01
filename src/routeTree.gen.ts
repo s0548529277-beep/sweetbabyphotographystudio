@@ -23,6 +23,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as DepositTypeIdRouteImport } from './routes/deposit.$type.$id'
 import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenticated/admin.orders'
 import { Route as AuthenticatedAdminItemsRouteImport } from './routes/_authenticated/admin.items'
 import { Route as AuthenticatedAdminClientsRouteImport } from './routes/_authenticated/admin.clients'
@@ -97,6 +98,11 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const DepositTypeIdRoute = DepositTypeIdRouteImport.update({
+  id: '/deposit/$type/$id',
+  path: '/deposit/$type/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminOrdersRoute =
   AuthenticatedAdminOrdersRouteImport.update({
     id: '/orders',
@@ -138,6 +144,7 @@ export interface FileRoutesByFullPath {
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/admin/items': typeof AuthenticatedAdminItemsRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
+  '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -156,6 +163,7 @@ export interface FileRoutesByTo {
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/admin/items': typeof AuthenticatedAdminItemsRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
+  '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesById {
@@ -177,6 +185,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/_authenticated/admin/items': typeof AuthenticatedAdminItemsRoute
   '/_authenticated/admin/orders': typeof AuthenticatedAdminOrdersRoute
+  '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -198,6 +207,7 @@ export interface FileRouteTypes {
     | '/admin/clients'
     | '/admin/items'
     | '/admin/orders'
+    | '/deposit/$type/$id'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -216,6 +226,7 @@ export interface FileRouteTypes {
     | '/admin/clients'
     | '/admin/items'
     | '/admin/orders'
+    | '/deposit/$type/$id'
     | '/admin'
   id:
     | '__root__'
@@ -236,6 +247,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/clients'
     | '/_authenticated/admin/items'
     | '/_authenticated/admin/orders'
+    | '/deposit/$type/$id'
     | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -251,6 +263,7 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   StartRoute: typeof StartRoute
   TrackRoute: typeof TrackRoute
+  DepositTypeIdRoute: typeof DepositTypeIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -353,6 +366,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/deposit/$type/$id': {
+      id: '/deposit/$type/$id'
+      path: '/deposit/$type/$id'
+      fullPath: '/deposit/$type/$id'
+      preLoaderRoute: typeof DepositTypeIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/admin/orders': {
       id: '/_authenticated/admin/orders'
       path: '/orders'
@@ -428,6 +448,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   StartRoute: StartRoute,
   TrackRoute: TrackRoute,
+  DepositTypeIdRoute: DepositTypeIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
