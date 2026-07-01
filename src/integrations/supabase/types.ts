@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_notifications: {
+        Row: {
+          body: Json
+          created_at: string
+          id: string
+          read_at: string | null
+          title: string
+          type: string
+        }
+        Insert: {
+          body?: Json
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          title: string
+          type: string
+        }
+        Update: {
+          body?: Json
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           balance_amount: number | null

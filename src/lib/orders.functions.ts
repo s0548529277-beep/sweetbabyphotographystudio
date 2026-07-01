@@ -136,12 +136,24 @@ export const placeOrder = createServerFn({ method: "POST" })
     }
 
     try {
-      console.log("[SWEETBABY] New props order", {
-        id: order.id, total, deposit: depositAmount, balance: balanceAmount,
-        contact: data.contact_name, phone: data.contact_phone,
-        camera: data.camera_model, session_date: data.session_date,
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin.from("admin_notifications").insert({
+        type: "order",
+        title: `הזמנת אביזרים חדשה · ₪${total}`,
+        body: {
+          order_id: order.id,
+          total, deposit: depositAmount, balance: balanceAmount,
+          contact_name: data.contact_name,
+          contact_phone: data.contact_phone,
+          camera_model: data.camera_model,
+          session_date: data.session_date,
+          return_date: data.return_date ?? null,
+          items: orderLines.map((l) => ({ sku: l.item_sku, name: l.item_name, qty: l.quantity, price: l.price })),
+          notes: data.notes ?? null,
+        },
       });
-    } catch {}
+      console.log("[SWEETBABY] New props order", { id: order.id, total, deposit: depositAmount });
+    } catch (e) { console.error("[SWEETBABY] admin notify failed", e); }
 
     return { id: order.id, total, deposit: depositAmount, balance: balanceAmount };
   });
