@@ -90,8 +90,25 @@ export const placeBooking = createServerFn({ method: "POST" })
     if (error || !booking) throw new Error(error?.message ?? "יצירת שריון נכשלה");
 
     try {
-      console.log("[SWEETBABY] New booking", { id: booking.id, date: data.session_date, start: data.start_time, end: endTime, price, deposit });
-    } catch {}
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin.from("admin_notifications").insert({
+        type: "booking",
+        title: `שריון סטודיו חדש · ₪${price}`,
+        body: {
+          booking_id: booking.id,
+          session_date: data.session_date,
+          start_time: data.start_time,
+          end_time: endTime,
+          slots: data.slots,
+          package: isMorning ? "morning" : "regular",
+          price, deposit,
+          contact_name: data.contact_name,
+          contact_phone: data.contact_phone,
+          notes: data.notes ?? null,
+        },
+      });
+      console.log("[SWEETBABY] New booking", { id: booking.id, price, deposit });
+    } catch (e) { console.error("[SWEETBABY] admin notify failed", e); }
 
     return { id: booking.id, price, deposit, balance: Math.max(0, price - deposit), end_time: endTime };
   });

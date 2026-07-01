@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Anyone signed in can insert notifications" ON public.admin_notifications;
