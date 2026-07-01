@@ -99,7 +99,7 @@ function Deposit() {
               </div>
               <h2 className="font-display text-3xl text-primary mb-2">קיבלנו את האסמכתא</h2>
               <p className="text-muted-foreground mb-6">נשלח לך אישור סופי במייל. מחכות לפגוש אותך!</p>
-              <Link to="/_authenticated/account"><Button className="rounded-full">לחשבון שלי</Button></Link>
+              <Link to="/account"><Button className="rounded-full">לחשבון שלי</Button></Link>
             </div>
           ) : (
             <div className="grid md:grid-cols-2 gap-6">
