@@ -14,6 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
+      bookings: {
+        Row: {
+          balance_amount: number | null
+          balance_method: string | null
+          cancellation_charge: number | null
+          created_at: string
+          deposit_amount: number
+          deposit_receipt_url: string | null
+          deposit_status: string
+          end_time: string
+          id: string
+          notes: string | null
+          overtime_charge: number | null
+          overtime_minutes: number | null
+          package: string
+          price: number
+          session_date: string
+          slots: number
+          start_time: string
+          status: string
+          terms_accepted_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance_amount?: number | null
+          balance_method?: string | null
+          cancellation_charge?: number | null
+          created_at?: string
+          deposit_amount?: number
+          deposit_receipt_url?: string | null
+          deposit_status?: string
+          end_time: string
+          id?: string
+          notes?: string | null
+          overtime_charge?: number | null
+          overtime_minutes?: number | null
+          package?: string
+          price: number
+          session_date: string
+          slots: number
+          start_time: string
+          status?: string
+          terms_accepted_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance_amount?: number | null
+          balance_method?: string | null
+          cancellation_charge?: number | null
+          created_at?: string
+          deposit_amount?: number
+          deposit_receipt_url?: string | null
+          deposit_status?: string
+          end_time?: string
+          id?: string
+          notes?: string | null
+          overtime_charge?: number | null
+          overtime_minutes?: number | null
+          package?: string
+          price?: number
+          session_date?: string
+          slots?: number
+          start_time?: string
+          status?: string
+          terms_accepted_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -38,6 +110,48 @@ export type Database = {
         }
         Relationships: []
       }
+      item_availability: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          item_id: string
+          order_id: string | null
+          slot_index: number
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          item_id: string
+          order_id?: string | null
+          slot_index?: number
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          item_id?: string
+          order_id?: string | null
+          slot_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_availability_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_availability_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       items: {
         Row: {
           active: boolean
@@ -49,6 +163,7 @@ export type Database = {
           name: string
           price: number
           sku: string
+          stock_quantity: number
           updated_at: string
         }
         Insert: {
@@ -61,6 +176,7 @@ export type Database = {
           name: string
           price?: number
           sku: string
+          stock_quantity?: number
           updated_at?: string
         }
         Update: {
@@ -73,6 +189,7 @@ export type Database = {
           name?: string
           price?: number
           sku?: string
+          stock_quantity?: number
           updated_at?: string
         }
         Relationships: [
@@ -84,6 +201,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      leads: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          phone: string
+          referral_source: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          phone: string
+          referral_source: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          phone?: string
+          referral_source?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       order_items: {
         Row: {
@@ -135,41 +282,77 @@ export type Database = {
       }
       orders: {
         Row: {
+          balance_amount: number | null
+          balance_method: string | null
+          camera_model: string | null
+          cancellation_charge: number | null
           contact_name: string | null
           contact_phone: string | null
           created_at: string
+          deposit_amount: number | null
+          deposit_receipt_url: string | null
+          deposit_status: string | null
           id: string
           notes: string | null
+          overtime_charge: number | null
+          overtime_minutes: number | null
           return_date: string | null
           scheduled_date: string | null
+          session_date: string | null
           status: Database["public"]["Enums"]["order_status"]
+          terms_accepted_at: string | null
           total: number
+          track: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          balance_amount?: number | null
+          balance_method?: string | null
+          camera_model?: string | null
+          cancellation_charge?: number | null
           contact_name?: string | null
           contact_phone?: string | null
           created_at?: string
+          deposit_amount?: number | null
+          deposit_receipt_url?: string | null
+          deposit_status?: string | null
           id?: string
           notes?: string | null
+          overtime_charge?: number | null
+          overtime_minutes?: number | null
           return_date?: string | null
           scheduled_date?: string | null
+          session_date?: string | null
           status?: Database["public"]["Enums"]["order_status"]
+          terms_accepted_at?: string | null
           total?: number
+          track?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          balance_amount?: number | null
+          balance_method?: string | null
+          camera_model?: string | null
+          cancellation_charge?: number | null
           contact_name?: string | null
           contact_phone?: string | null
           created_at?: string
+          deposit_amount?: number | null
+          deposit_receipt_url?: string | null
+          deposit_status?: string | null
           id?: string
           notes?: string | null
+          overtime_charge?: number | null
+          overtime_minutes?: number | null
           return_date?: string | null
           scheduled_date?: string | null
+          session_date?: string | null
           status?: Database["public"]["Enums"]["order_status"]
+          terms_accepted_at?: string | null
           total?: number
+          track?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -202,6 +385,36 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      studio_closures: {
+        Row: {
+          close_time: string | null
+          closed: boolean
+          created_at: string
+          date: string
+          id: string
+          note: string | null
+          open_time: string | null
+        }
+        Insert: {
+          close_time?: string | null
+          closed?: boolean
+          created_at?: string
+          date: string
+          id?: string
+          note?: string | null
+          open_time?: string | null
+        }
+        Update: {
+          close_time?: string | null
+          closed?: boolean
+          created_at?: string
+          date?: string
+          id?: string
+          note?: string | null
+          open_time?: string | null
         }
         Relationships: []
       }

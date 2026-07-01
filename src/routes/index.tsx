@@ -31,9 +31,9 @@ function Home() {
               מבחר אביזרים מעוצבים לצילומי ניוברן, גיל שנה, חלאקה ומשפחה — לוקיישן משלכם, אווירה משלנו.
             </p>
             <div className="flex flex-wrap gap-3 pt-2">
-              <Link to="/catalog">
+              <Link to="/start">
                 <Button size="lg" className="rounded-full gap-2 px-7 h-12 text-base">
-                  לקטלוג המלא <ArrowLeft className="h-4 w-4" />
+                  להתחלת הזמנה <ArrowLeft className="h-4 w-4" />
                 </Button>
               </Link>
               <Link to="/about">

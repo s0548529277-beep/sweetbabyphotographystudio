@@ -12,11 +12,13 @@ const lineSchema = z.object({
 
 const inputSchema = z.object({
   lines: z.array(lineSchema).min(1),
-  scheduled_date: z.string().nullable().optional(),
+  session_date: z.string().min(1), // required "מתי נתראה?"
   return_date: z.string().nullable().optional(),
   contact_name: z.string().min(1).max(120),
   contact_phone: z.string().min(5).max(40),
+  camera_model: z.string().min(1).max(120),
   notes: z.string().max(1000).optional().nullable(),
+  terms_accepted: z.literal(true),
 });
 
 export const placeOrder = createServerFn({ method: "POST" })
@@ -25,11 +27,10 @@ export const placeOrder = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    // Verify items and recompute total server-side
     const ids = data.lines.map((l) => l.id);
     const { data: items, error: itemsErr } = await supabase
       .from("items")
-      .select("id, name, sku, price, active")
+      .select("id, name, sku, price, active, stock_quantity")
       .in("id", ids);
     if (itemsErr) throw new Error(itemsErr.message);
 
@@ -46,22 +47,55 @@ export const placeOrder = createServerFn({ method: "POST" })
         item_sku: server.sku,
         quantity: l.quantity,
         price,
+        stock: Number(server.stock_quantity ?? 1),
       };
     });
 
     if (total < 50) throw new Error("מינימום הזמנה 50 ש״ח");
+
+    // Check availability for session_date
+    const { data: taken, error: takenErr } = await supabase
+      .from("item_availability")
+      .select("item_id, slot_index")
+      .in("item_id", ids)
+      .eq("date", data.session_date);
+    if (takenErr) throw new Error(takenErr.message);
+
+    const takenCount = new Map<string, number>();
+    for (const t of taken ?? []) {
+      takenCount.set(t.item_id, (takenCount.get(t.item_id) ?? 0) + 1);
+    }
+    for (const l of orderLines) {
+      const busy = takenCount.get(l.item_id) ?? 0;
+      if (busy + l.quantity > l.stock) {
+        throw new Error(`הפריט "${l.item_name}" לא זמין בתאריך שנבחר`);
+      }
+    }
+
+    // Same-day → 100% up front; else 90 deposit
+    const today = new Date().toISOString().slice(0, 10);
+    const sameDay = data.session_date === today;
+    const depositAmount = sameDay ? total : 90;
+    const balanceAmount = Math.max(0, total - depositAmount);
 
     const { data: order, error: orderErr } = await supabase
       .from("orders")
       .insert({
         user_id: userId,
         status: "pending",
+        track: "props",
         total,
-        scheduled_date: data.scheduled_date || null,
+        session_date: data.session_date,
+        scheduled_date: data.session_date,
         return_date: data.return_date || null,
         contact_name: data.contact_name,
         contact_phone: data.contact_phone,
+        camera_model: data.camera_model,
         notes: data.notes ?? null,
+        deposit_amount: depositAmount,
+        balance_amount: balanceAmount,
+        deposit_status: "pending",
+        terms_accepted_at: new Date().toISOString(),
       })
       .select("id")
       .single();
@@ -69,21 +103,45 @@ export const placeOrder = createServerFn({ method: "POST" })
 
     const { error: linesErr } = await supabase
       .from("order_items")
-      .insert(orderLines.map((l) => ({ ...l, order_id: order.id })));
+      .insert(orderLines.map((l) => ({
+        order_id: order.id,
+        item_id: l.item_id,
+        item_name: l.item_name,
+        item_sku: l.item_sku,
+        quantity: l.quantity,
+        price: l.price,
+      })));
     if (linesErr) throw new Error(linesErr.message);
 
-    // Admin notification: log to server console + queue-ready payload.
-    // Wire to real email provider by dropping a fetch to Lovable Emails / Resend here.
+    // Lock availability slots (one row per unit)
+    const availabilityRows: { item_id: string; date: string; order_id: string; slot_index: number }[] = [];
+    for (const l of orderLines) {
+      const busy = takenCount.get(l.item_id) ?? 0;
+      for (let i = 0; i < l.quantity; i++) {
+        availabilityRows.push({
+          item_id: l.item_id,
+          date: data.session_date,
+          order_id: order.id,
+          slot_index: busy + i,
+        });
+      }
+    }
+    if (availabilityRows.length) {
+      const { error: availErr } = await supabase.from("item_availability").insert(availabilityRows);
+      if (availErr) {
+        // Rollback order if concurrent booking snuck in
+        await supabase.from("orders").delete().eq("id", order.id);
+        throw new Error("הפריטים נתפסו לתאריך זה. בבקשה נסי שוב.");
+      }
+    }
+
     try {
-      console.log("[SWEETBABY] New order", {
-        id: order.id,
-        total,
-        contact: data.contact_name,
-        phone: data.contact_phone,
-        scheduled: data.scheduled_date,
-        items: orderLines,
+      console.log("[SWEETBABY] New props order", {
+        id: order.id, total, deposit: depositAmount, balance: balanceAmount,
+        contact: data.contact_name, phone: data.contact_phone,
+        camera: data.camera_model, session_date: data.session_date,
       });
     } catch {}
 
-    return { id: order.id, total };
+    return { id: order.id, total, deposit: depositAmount, balance: balanceAmount };
   });
