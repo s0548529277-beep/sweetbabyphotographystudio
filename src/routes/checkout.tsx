@@ -75,7 +75,7 @@ function Checkout() {
       });
       toast.success("ההזמנה נשמרה. ממשיכות לתשלום מקדמה.");
       clear();
-      nav({ to: "/deposit/$type/$id", params: { type: "order", id: res.id } });
+      nav({ to: "/summary/$type/$id", params: { type: "order", id: res.id } });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "שגיאה בשליחת ההזמנה");
     } finally {
