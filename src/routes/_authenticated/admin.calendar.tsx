@@ -45,7 +45,7 @@ function CalendarAdmin() {
       ]);
       const orders: Entry[] = (ordersRes.data ?? []).map((o: any) => ({
         id: o.id,
-        kind: "order",
+        kind: "order" as const,
         date: o.session_date ?? o.scheduled_date ?? (o.created_at ? o.created_at.slice(0, 10) : ""),
         contact_name: o.contact_name,
         contact_phone: o.contact_phone,
@@ -54,7 +54,7 @@ function CalendarAdmin() {
       })).filter((e) => e.date);
       const bookings: Entry[] = (bookingsRes.data ?? []).map((b: any) => ({
         id: b.id,
-        kind: "booking",
+        kind: "booking" as const,
         date: b.session_date ?? (b.created_at ? b.created_at.slice(0, 10) : ""),
         contact_name: b.contact_name,
         contact_phone: b.contact_phone,
