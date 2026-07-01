@@ -115,7 +115,7 @@ function Booking() {
         },
       });
       toast.success("השריון נוצר! ממשיכות לתשלום המקדמה.");
-      nav({ to: "/deposit/$type/$id", params: { type: "booking", id: res.id } });
+      nav({ to: "/summary/$type/$id", params: { type: "booking", id: res.id } });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "שגיאה בשריון");
     } finally {

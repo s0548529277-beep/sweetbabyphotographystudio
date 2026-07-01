@@ -23,6 +23,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as SummaryTypeIdRouteImport } from './routes/summary.$type.$id'
 import { Route as DepositTypeIdRouteImport } from './routes/deposit.$type.$id'
 import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenticated/admin.orders'
 import { Route as AuthenticatedAdminItemsRouteImport } from './routes/_authenticated/admin.items'
@@ -98,6 +99,11 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const SummaryTypeIdRoute = SummaryTypeIdRouteImport.update({
+  id: '/summary/$type/$id',
+  path: '/summary/$type/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DepositTypeIdRoute = DepositTypeIdRouteImport.update({
   id: '/deposit/$type/$id',
   path: '/deposit/$type/$id',
@@ -145,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/admin/items': typeof AuthenticatedAdminItemsRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
+  '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -164,6 +171,7 @@ export interface FileRoutesByTo {
   '/admin/items': typeof AuthenticatedAdminItemsRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
+  '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesById {
@@ -186,6 +194,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/items': typeof AuthenticatedAdminItemsRoute
   '/_authenticated/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
+  '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -208,6 +217,7 @@ export interface FileRouteTypes {
     | '/admin/items'
     | '/admin/orders'
     | '/deposit/$type/$id'
+    | '/summary/$type/$id'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -227,6 +237,7 @@ export interface FileRouteTypes {
     | '/admin/items'
     | '/admin/orders'
     | '/deposit/$type/$id'
+    | '/summary/$type/$id'
     | '/admin'
   id:
     | '__root__'
@@ -248,6 +259,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/items'
     | '/_authenticated/admin/orders'
     | '/deposit/$type/$id'
+    | '/summary/$type/$id'
     | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -264,6 +276,7 @@ export interface RootRouteChildren {
   StartRoute: typeof StartRoute
   TrackRoute: typeof TrackRoute
   DepositTypeIdRoute: typeof DepositTypeIdRoute
+  SummaryTypeIdRoute: typeof SummaryTypeIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -366,6 +379,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/summary/$type/$id': {
+      id: '/summary/$type/$id'
+      path: '/summary/$type/$id'
+      fullPath: '/summary/$type/$id'
+      preLoaderRoute: typeof SummaryTypeIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/deposit/$type/$id': {
       id: '/deposit/$type/$id'
       path: '/deposit/$type/$id'
@@ -449,17 +469,8 @@ const rootRouteChildren: RootRouteChildren = {
   StartRoute: StartRoute,
   TrackRoute: TrackRoute,
   DepositTypeIdRoute: DepositTypeIdRoute,
+  SummaryTypeIdRoute: SummaryTypeIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
