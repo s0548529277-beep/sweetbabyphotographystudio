@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TrackRouteImport } from './routes/track'
 import { Route as StartRouteImport } from './routes/start'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CheckoutRouteImport } from './routes/checkout'
@@ -26,6 +27,11 @@ import { Route as AuthenticatedAdminItemsRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminClientsRouteImport } from './routes/_authenticated/admin.clients'
 import { Route as AuthenticatedAdminCalendarRouteImport } from './routes/_authenticated/admin.calendar'
 
+const TrackRoute = TrackRouteImport.update({
+  id: '/track',
+  path: '/track',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StartRoute = StartRouteImport.update({
   id: '/start',
   path: '/start',
@@ -118,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/start': typeof StartRoute
+  '/track': typeof TrackRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/start': typeof StartRoute
+  '/track': typeof TrackRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
@@ -153,6 +161,7 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/start': typeof StartRoute
+  '/track': typeof TrackRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/admin/calendar': typeof AuthenticatedAdminCalendarRoute
@@ -172,6 +181,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/start'
+    | '/track'
     | '/account'
     | '/admin'
     | '/admin/calendar'
@@ -189,6 +199,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/start'
+    | '/track'
     | '/account'
     | '/admin/calendar'
     | '/admin/clients'
@@ -206,6 +217,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/start'
+    | '/track'
     | '/_authenticated/account'
     | '/_authenticated/admin'
     | '/_authenticated/admin/calendar'
@@ -225,10 +237,18 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRoute
   ContactRoute: typeof ContactRoute
   StartRoute: typeof StartRoute
+  TrackRoute: typeof TrackRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/track': {
+      id: '/track'
+      path: '/track'
+      fullPath: '/track'
+      preLoaderRoute: typeof TrackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/start': {
       id: '/start'
       path: '/start'
@@ -386,6 +406,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRoute,
   ContactRoute: ContactRoute,
   StartRoute: StartRoute,
+  TrackRoute: TrackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
