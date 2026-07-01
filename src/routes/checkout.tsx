@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { useServerFn } from "@tanstack/react-start";
 import { placeOrder } from "@/lib/orders.functions";
 import { toast } from "sonner";
-import { CreditCard, Lock } from "lucide-react";
+import { Lock, Camera } from "lucide-react";
 
 export const Route = createFileRoute("/checkout")({
   component: Checkout,
@@ -27,22 +28,24 @@ function Checkout() {
   const [form, setForm] = useState({
     contact_name: "",
     contact_phone: "",
-    scheduled_date: "",
+    session_date: "",
     return_date: "",
+    camera_model: "",
     notes: "",
+    terms_accepted: false,
   });
 
   const disabled = lines.length === 0 || subtotal < 50;
 
   if (!user) {
     return (
-      <div className="min-h-screen flex flex-col bg-background">
+      <div className="min-h-screen flex flex-col">
         <Header />
         <section className="container-page py-24 flex-1">
-          <div className="max-w-md mx-auto text-center bg-cream/60 rounded-3xl p-10 border border-primary/10">
+          <div className="max-w-md mx-auto text-center glass-card rounded-3xl p-10">
             <Lock className="h-8 w-8 text-primary/40 mx-auto mb-3" />
             <h2 className="font-display text-3xl text-primary mb-2">התחברות נדרשת</h2>
-            <p className="text-muted-foreground text-sm mb-6">כדי לשמור את ההזמנה שלכם, יש להיכנס תחילה.</p>
+            <p className="text-muted-foreground text-sm mb-6">כדי לשמור את ההזמנה שלך, יש להיכנס תחילה.</p>
             <Link to="/auth" search={{ redirect: "/checkout" }}>
               <Button className="rounded-full w-full">התחברות</Button>
             </Link>
@@ -55,7 +58,7 @@ function Checkout() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (disabled) return;
+    if (disabled || !form.terms_accepted) return;
     setBusy(true);
     try {
       const res = await place({
@@ -63,15 +66,16 @@ function Checkout() {
           lines: lines.map((l) => ({ id: l.id, name: l.name, sku: l.sku, price: l.price, quantity: l.quantity })),
           contact_name: form.contact_name,
           contact_phone: form.contact_phone,
-          scheduled_date: form.scheduled_date || null,
+          camera_model: form.camera_model,
+          session_date: form.session_date,
           return_date: form.return_date || null,
           notes: form.notes,
+          terms_accepted: true as const,
         },
       });
-      toast.success("ההזמנה נשמרה. הסטודיו יצור איתכם קשר בהקדם.");
+      toast.success("ההזמנה נשמרה. ממשיכות לתשלום מקדמה.");
       clear();
-      nav({ to: "/account" });
-      void res;
+      nav({ to: "/deposit/$type/$id", params: { type: "order", id: res.id } });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "שגיאה בשליחת ההזמנה");
     } finally {
@@ -80,32 +84,36 @@ function Checkout() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col">
       <Header />
       <section className="container-page py-14 flex-1">
         <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-3">Checkout</div>
-        <h1 className="font-display text-5xl text-primary mb-10">סיכום ותשלום</h1>
+        <h1 className="font-display text-5xl text-primary mb-10">סיכום ההזמנה</h1>
 
         <form onSubmit={submit} className="grid lg:grid-cols-[1fr_400px] gap-10">
-          <div className="space-y-8">
-            <div className="bg-card rounded-3xl p-8 border border-primary/5">
+          <div className="space-y-6">
+            <div className="glass-card rounded-3xl p-8">
               <h2 className="font-display text-2xl text-primary mb-6">פרטי איש קשר</h2>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <Label>שם מלא</Label>
+                  <Label>שם מלא *</Label>
                   <Input required value={form.contact_name} onChange={(e) => setForm({ ...form, contact_name: e.target.value })} className="mt-1" />
                 </div>
                 <div>
-                  <Label>טלפון</Label>
+                  <Label>טלפון *</Label>
                   <Input required type="tel" dir="ltr" value={form.contact_phone} onChange={(e) => setForm({ ...form, contact_phone: e.target.value })} className="mt-1" />
                 </div>
                 <div>
-                  <Label>תאריך צילום</Label>
-                  <Input type="date" value={form.scheduled_date} onChange={(e) => setForm({ ...form, scheduled_date: e.target.value })} className="mt-1" />
+                  <Label>מתי נתראה? *</Label>
+                  <Input required type="date" value={form.session_date} onChange={(e) => setForm({ ...form, session_date: e.target.value })} className="mt-1" />
                 </div>
                 <div>
                   <Label>תאריך החזרה</Label>
                   <Input type="date" value={form.return_date} onChange={(e) => setForm({ ...form, return_date: e.target.value })} className="mt-1" />
+                </div>
+                <div className="md:col-span-2">
+                  <Label className="flex items-center gap-1"><Camera className="h-3 w-3" /> דגם המצלמה שלך *</Label>
+                  <Input required placeholder="Canon R5 / Sony A7IV / ..." value={form.camera_model} onChange={(e) => setForm({ ...form, camera_model: e.target.value })} className="mt-1" />
                 </div>
               </div>
               <div className="mt-4">
@@ -114,24 +122,26 @@ function Checkout() {
               </div>
             </div>
 
-            <div className="bg-card rounded-3xl p-8 border border-primary/5">
-              <h2 className="font-display text-2xl text-primary mb-2">תשלום</h2>
-              <p className="text-sm text-muted-foreground mb-6">
-                החיוב יתבצע דרך שירות סליקה מאובטח (Stripe / משולם) — הכפתור מוכן לחיבור.
-              </p>
-              <div className="rounded-2xl border-2 border-dashed border-primary/25 p-8 flex flex-col items-center text-center">
-                <CreditCard className="h-8 w-8 text-primary/50 mb-3" />
-                <div className="font-display text-lg text-primary">סליקת אשראי</div>
-                <div className="text-xs text-muted-foreground mt-1">Stripe · Meshulam · Apple Pay</div>
-                <Button type="button" variant="outline" className="mt-4 rounded-full" disabled>
-                  ממתין לחיבור סליקה
-                </Button>
-              </div>
+            <div className="glass-card rounded-3xl p-8">
+              <h2 className="font-display text-xl text-primary mb-3">תנאי השכרה</h2>
+              <ul className="text-xs text-muted-foreground space-y-1.5 mb-5 max-h-32 overflow-y-auto pr-2">
+                <li>· חפץ שלא ייאסף תוך 30 יום ייכנס למאגר האביזרים.</li>
+                <li>· ניקיון: השארת מקום מלוכלך – חיוב 150₪.</li>
+                <li>· כיבוי אורות/מזגן: 7₪ לשעה עד השעה 08:00 למחרת.</li>
+                <li>· רקעי נייר לקירות בלבד. שימוש כרצפה – 50₪ מראש. נזק – 100₪ למטר.</li>
+                <li>· נזק לציוד (פלאש, משדרים) – עלות התיקון + 20% דמי טיפול.</li>
+                <li>· חריגה 15-44 דק' = חצי שעת חיוב. 45+ דק' = שעה מלאה.</li>
+                <li>· ביטול עד יום האירוע – מקדמה לא מוחזרת. ביטול ביום עצמו – חיוב 100%.</li>
+              </ul>
+              <label className="flex items-start gap-2 text-sm cursor-pointer">
+                <Checkbox checked={form.terms_accepted} onCheckedChange={(v) => setForm({ ...form, terms_accepted: !!v })} className="mt-0.5" />
+                <span>אני מאשרת את תנאי הסטודיו במלואם *</span>
+              </label>
             </div>
           </div>
 
           <aside className="bg-primary text-primary-foreground rounded-3xl p-8 h-fit lg:sticky lg:top-24">
-            <div className="text-peach text-xs tracking-[0.3em] uppercase mb-2">Order</div>
+            <div className="text-blush text-xs tracking-[0.3em] uppercase mb-2">Order</div>
             <h2 className="font-display text-3xl mb-6">ההזמנה שלי</h2>
             <div className="space-y-2 text-sm max-h-64 overflow-y-auto">
               {lines.map((l) => (
@@ -144,14 +154,12 @@ function Checkout() {
             <div className="h-px bg-primary-foreground/20 my-4" />
             <div className="flex justify-between items-baseline">
               <span className="text-primary-foreground/70">סה״כ</span>
-              <span className="font-display text-3xl text-peach">₪{subtotal.toFixed(0)}</span>
+              <span className="font-display text-3xl text-blush">₪{subtotal.toFixed(0)}</span>
             </div>
-            <Button type="submit" disabled={disabled || busy} className="w-full mt-6 rounded-full h-12 bg-peach text-primary hover:bg-peach-deep">
-              {busy ? "שולח…" : "שלח הזמנה"}
+            <div className="text-[11px] text-primary-foreground/60 mt-2">מינימום 50₪. מקדמה 90₪ תיגבה לפני יום הצילום.</div>
+            <Button type="submit" disabled={disabled || busy || !form.terms_accepted} className="w-full mt-6 rounded-full h-12 bg-blush text-primary hover:bg-blush-deep">
+              {busy ? "שולח…" : "המשך לתשלום מקדמה"}
             </Button>
-            <p className="text-[11px] text-primary-foreground/60 mt-3 text-center">
-              ההזמנה תישלח לאישור הסטודיו. תיצור איתכם קשר לתיאום איסוף.
-            </p>
           </aside>
         </form>
       </section>
