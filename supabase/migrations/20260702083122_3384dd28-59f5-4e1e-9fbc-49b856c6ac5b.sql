@@ -1,0 +1,1 @@
+ALTER VIEW public.booking_busy_slots SET (security_invoker = on);
