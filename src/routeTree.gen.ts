@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrackRouteImport } from './routes/track'
 import { Route as StartRouteImport } from './routes/start'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CatalogRouteImport } from './routes/catalog'
@@ -20,7 +21,6 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as SitemapXmlRouteImport } from './routes/sitemap.xml'
 import { Route as BlogEssentialNewbornPropsRouteImport } from './routes/blog.essential-newborn-props'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
@@ -40,6 +40,11 @@ const TrackRoute = TrackRouteImport.update({
 const StartRoute = StartRouteImport.update({
   id: '/start',
   path: '/start',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -84,11 +89,6 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SitemapXmlRoute = SitemapXmlRouteImport.update({
-  id: '/sitemap/xml',
-  path: '/sitemap/xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlogEssentialNewbornPropsRoute =
@@ -155,12 +155,12 @@ export interface FileRoutesByFullPath {
   '/catalog': typeof CatalogRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/start': typeof StartRoute
   '/track': typeof TrackRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
-  '/sitemap/xml': typeof SitemapXmlRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/admin/items': typeof AuthenticatedAdminItemsRoute
@@ -178,11 +178,11 @@ export interface FileRoutesByTo {
   '/catalog': typeof CatalogRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/start': typeof StartRoute
   '/track': typeof TrackRoute
   '/account': typeof AuthenticatedAccountRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
-  '/sitemap/xml': typeof SitemapXmlRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/admin/items': typeof AuthenticatedAdminItemsRoute
@@ -202,12 +202,12 @@ export interface FileRoutesById {
   '/catalog': typeof CatalogRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/start': typeof StartRoute
   '/track': typeof TrackRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
-  '/sitemap/xml': typeof SitemapXmlRoute
   '/_authenticated/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/_authenticated/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/_authenticated/admin/items': typeof AuthenticatedAdminItemsRoute
@@ -227,12 +227,12 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/checkout'
     | '/contact'
+    | '/sitemap.xml'
     | '/start'
     | '/track'
     | '/account'
     | '/admin'
     | '/blog/essential-newborn-props'
-    | '/sitemap/xml'
     | '/admin/calendar'
     | '/admin/clients'
     | '/admin/items'
@@ -250,11 +250,11 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/checkout'
     | '/contact'
+    | '/sitemap.xml'
     | '/start'
     | '/track'
     | '/account'
     | '/blog/essential-newborn-props'
-    | '/sitemap/xml'
     | '/admin/calendar'
     | '/admin/clients'
     | '/admin/items'
@@ -273,12 +273,12 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/checkout'
     | '/contact'
+    | '/sitemap.xml'
     | '/start'
     | '/track'
     | '/_authenticated/account'
     | '/_authenticated/admin'
     | '/blog/essential-newborn-props'
-    | '/sitemap/xml'
     | '/_authenticated/admin/calendar'
     | '/_authenticated/admin/clients'
     | '/_authenticated/admin/items'
@@ -298,10 +298,10 @@ export interface RootRouteChildren {
   CatalogRoute: typeof CatalogRoute
   CheckoutRoute: typeof CheckoutRoute
   ContactRoute: typeof ContactRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StartRoute: typeof StartRoute
   TrackRoute: typeof TrackRoute
   BlogEssentialNewbornPropsRoute: typeof BlogEssentialNewbornPropsRoute
-  SitemapXmlRoute: typeof SitemapXmlRoute
   DepositTypeIdRoute: typeof DepositTypeIdRoute
   SummaryTypeIdRoute: typeof SummaryTypeIdRoute
 }
@@ -320,6 +320,13 @@ declare module '@tanstack/react-router' {
       path: '/start'
       fullPath: '/start'
       preLoaderRoute: typeof StartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -383,13 +390,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap/xml': {
-      id: '/sitemap/xml'
-      path: '/sitemap/xml'
-      fullPath: '/sitemap/xml'
-      preLoaderRoute: typeof SitemapXmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blog/essential-newborn-props': {
@@ -507,10 +507,10 @@ const rootRouteChildren: RootRouteChildren = {
   CatalogRoute: CatalogRoute,
   CheckoutRoute: CheckoutRoute,
   ContactRoute: ContactRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   StartRoute: StartRoute,
   TrackRoute: TrackRoute,
   BlogEssentialNewbornPropsRoute: BlogEssentialNewbornPropsRoute,
-  SitemapXmlRoute: SitemapXmlRoute,
   DepositTypeIdRoute: DepositTypeIdRoute,
   SummaryTypeIdRoute: SummaryTypeIdRoute,
 }
