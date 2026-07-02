@@ -90,7 +90,7 @@ function Home() {
           <div className="mt-20 grid lg:grid-cols-12 gap-10 border-t border-border pt-10">
             <p className="lg:col-span-6 lg:col-start-1 text-lg md:text-xl leading-relaxed max-w-2xl text-foreground/85 whitespace-pre-line">
               סטודיו בוטיק בבית שמש
-              ומאגר של מעל <span className="italic font-display text-2xl">400</span>אביזרים מעוצבים — 
+              ומאגר של מעל <span className="font-display text-3xl not-italic text-foreground">400+</span> אביזרים מעוצבים — 
               וינטג׳, מקרמה, סרוגים, עץ ורטאן — לצילומי ניוברן, גיל שנה, חלאקה ומשפחה. אתם בוחרים סגנון, אנחנו מכינים את הסט.
             </p>
             <dl className="lg:col-span-5 lg:col-start-8 grid grid-cols-3 gap-6 border-t border-border pt-8 lg:border-t-0 lg:pt-0">
