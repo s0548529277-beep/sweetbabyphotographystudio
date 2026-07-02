@@ -8,7 +8,7 @@ export function Footer() {
           <div className="md:col-span-5">
             <img src={logo} alt="Sweetbaby" className="h-16 w-auto -mr-3 opacity-90" />
             <p className="text-background/70 text-sm mt-4 max-w-sm leading-relaxed">
-              סטודיו Sweetbaby — התמונה הראשונה שלי. השכרת אביזרים מעוצבים לצילומי ניוברן, גיל שנה, חלאקה ומשפחה.
+              סטודיו Sweetbaby — היצירה הראשונה שלי. מעל 400 אביזרים מעוצבים להשכרה לצילומי ניוברן, גיל שנה, חלאקה ומשפחה.
             </p>
           </div>
           <div className="md:col-span-3 text-sm space-y-2">

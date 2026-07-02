@@ -40,7 +40,7 @@ function About() {
         <div className="mt-16 grid md:grid-cols-4 gap-6">
           {[
             { icon: Camera, t: "לכל סגנון", d: "ניו בורן, גיל שנה, חלאקה, משפחה" },
-            { icon: Aperture, t: "300+ אביזרים", d: "מבחר מתעדכן לפי עונות" },
+            { icon: Aperture, t: "400+ אביזרים", d: "מבחר מתעדכן לפי עונות" },
             { icon: Clock, t: "24 שעות", d: "השכרה גמישה, איסוף ידני" },
             { icon: Sparkles, t: "אווירה", d: "פינה קטנה של קסם לצילום" },
           ].map((c) => (
