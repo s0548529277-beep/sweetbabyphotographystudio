@@ -18,7 +18,7 @@ const searchSchema = z.object({
   page: z.coerce.number().int().min(1).catch(1),
 });
 
-export const Route = createFileRoute("/blog")({
+export const Route = createFileRoute("/blog/")({
   validateSearch: searchSchema,
   head: () => ({
     meta: [
@@ -125,22 +125,19 @@ function BlogIndex() {
               aria-label="ניווט בין עמודי הבלוג"
               className="mt-12 flex items-center justify-center gap-2"
             >
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-                disabled={current === 1}
-                aria-label="עמוד קודם"
-              >
-                <Link
-                  to="/blog"
-                  search={{ page: Math.max(1, current - 1) }}
-                  disabled={current === 1}
-                >
+              {current > 1 ? (
+                <Button asChild variant="outline" size="sm">
+                  <Link to="/blog" search={{ page: current - 1 }} aria-label="עמוד קודם">
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                    הקודם
+                  </Link>
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" disabled aria-label="עמוד קודם">
                   <ChevronRight className="w-4 h-4 ml-1" />
                   הקודם
-                </Link>
-              </Button>
+                </Button>
+              )}
 
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
                 <Button
@@ -148,30 +145,26 @@ function BlogIndex() {
                   asChild
                   variant={n === current ? "default" : "outline"}
                   size="sm"
-                  aria-current={n === current ? "page" : undefined}
                 >
-                  <Link to="/blog" search={{ page: n }}>
+                  <Link to="/blog" search={{ page: n }} aria-current={n === current ? "page" : undefined}>
                     {n}
                   </Link>
                 </Button>
               ))}
 
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-                disabled={current === totalPages}
-                aria-label="עמוד הבא"
-              >
-                <Link
-                  to="/blog"
-                  search={{ page: Math.min(totalPages, current + 1) }}
-                  disabled={current === totalPages}
-                >
+              {current < totalPages ? (
+                <Button asChild variant="outline" size="sm">
+                  <Link to="/blog" search={{ page: current + 1 }} aria-label="עמוד הבא">
+                    הבא
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                  </Link>
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" disabled aria-label="עמוד הבא">
                   הבא
                   <ChevronLeft className="w-4 h-4 mr-1" />
-                </Link>
-              </Button>
+                </Button>
+              )}
             </nav>
           )}
         </section>
