@@ -65,7 +65,7 @@ function Start() {
             </p>
             <div className="flex flex-col gap-3 pt-2 text-sm text-forest">
               <div className="flex items-center gap-3"><Camera className="h-4 w-4 text-blush-deep" /> סטודיו ניוברן ולייף סטייל בבית שמש</div>
-              <div className="flex items-center gap-3"><Sparkles className="h-4 w-4 text-blush-deep" /> מאות אביזרים מעוצבים ויומן שריון פתוח</div>
+              <div className="flex items-center gap-3"><Sparkles className="h-4 w-4 text-blush-deep" /> 400+ אביזרים מעוצבים ויומן שריון פתוח</div>
             </div>
           </div>
 
