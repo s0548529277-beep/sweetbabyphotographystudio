@@ -49,10 +49,11 @@ function Home() {
             {/* headline */}
             <div className="lg:col-span-7">
               <h1 className="font-display leading-[0.92] text-foreground tracking-tight text-[clamp(3.5rem,10vw,9rem)]">
-                התמונה
+                היצירה
                 <br />
-                <span className="italic font-normal">הראשונה</span>
-                <span className="text-sand-deep">.</span>
+                <span className="italic font-normal text-sand-deep">הראשונה</span>
+                <br />
+                <span>שלי.</span>
               </h1>
               <div className="mt-8 flex flex-wrap items-center gap-4">
                 <Link to="/start">
@@ -87,8 +88,9 @@ function Home() {
 
           {/* lede + stats */}
           <div className="mt-20 grid lg:grid-cols-12 gap-10 border-t border-border pt-10">
-            <p className="lg:col-span-6 lg:col-start-1 text-lg md:text-xl leading-relaxed max-w-2xl text-foreground/85">
-              סטודיו אינטימי בבית שמש ומאגר של מעל <span className="italic font-display text-2xl">400</span>אביזרים מעוצבים — 
+            <p className="lg:col-span-6 lg:col-start-1 text-lg md:text-xl leading-relaxed max-w-2xl text-foreground/85 whitespace-pre-line">
+              סטודיו בוטיק בבית שמש
+              ומאגר של מעל <span className="italic font-display text-2xl">400</span>אביזרים מעוצבים — 
               וינטג׳, מקרמה, סרוגים, עץ ורטאן — לצילומי ניוברן, גיל שנה, חלאקה ומשפחה. אתם בוחרים סגנון, אנחנו מכינים את הסט.
             </p>
             <dl className="lg:col-span-5 lg:col-start-8 grid grid-cols-3 gap-6 border-t border-border pt-8 lg:border-t-0 lg:pt-0">
