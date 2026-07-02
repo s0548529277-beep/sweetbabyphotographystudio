@@ -71,7 +71,7 @@ function Home() {
             <div className="lg:col-span-5 relative">
               <div className="relative aspect-[4/5] overflow-hidden bg-bone">
                 <img
-                  src={heroImg}
+                  src={heroImg.url}
                   alt="סטודיו Sweetbaby"
                   className="w-full h-full object-cover"
                   width={1200}
