@@ -79,10 +79,6 @@ function Home() {
                 />
                 <div className="absolute inset-0 pointer-events-none ring-1 ring-inset ring-foreground/10" />
               </div>
-              <div className="absolute -bottom-4 -right-4 md:-right-8 bg-background border border-border px-5 py-3 text-xs tracking-[0.28em] uppercase flex items-center gap-3">
-                <Camera className="h-4 w-4" />
-                Studio · Beit Shemesh
-              </div>
             </div>
           </div>
 
