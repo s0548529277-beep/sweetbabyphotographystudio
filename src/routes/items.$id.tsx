@@ -3,10 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { ProductImage } from "@/components/ProductImage";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
+import { absoluteImageUrl, normalizeImageUrl } from "@/lib/images";
 import { toast } from "sonner";
-import { ImageIcon, ChevronRight, ShoppingBag, Plus, Minus } from "lucide-react";
+import { ChevronRight, ShoppingBag, Plus, Minus } from "lucide-react";
 import { useMemo } from "react";
 
 export const Route = createFileRoute("/items/$id")({
@@ -57,7 +59,7 @@ function ItemPage() {
       "@type": "Product",
       name: item.data.name,
       sku: item.data.sku,
-      image: item.data.image_url ? `https://sweetbabyphotographystudio.lovable.app${item.data.image_url}` : undefined,
+      image: absoluteImageUrl(item.data.image_url),
       description: item.data.description ?? undefined,
       offers: {
         "@type": "Offer",
@@ -107,13 +109,7 @@ function ItemPage() {
         <div className="grid md:grid-cols-2 gap-8 md:gap-12">
           {/* Image */}
           <div className="aspect-square rounded-3xl bg-[#efe6df] overflow-hidden border border-black/5">
-            {it.image_url ? (
-              <img src={it.image_url} alt={it.name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-foreground/20">
-                <ImageIcon className="h-16 w-16" />
-              </div>
-            )}
+            <ProductImage imageUrl={it.image_url} alt={it.name} fallbackClassName="h-16 w-16" />
           </div>
 
           {/* Details */}
@@ -159,7 +155,7 @@ function ItemPage() {
               ) : (
                 <Button
                   onClick={() => {
-                    add({ id: it.id, name: it.name, sku: it.sku, price: Number(it.price), image_url: it.image_url });
+                    add({ id: it.id, name: it.name, sku: it.sku, price: Number(it.price), image_url: normalizeImageUrl(it.image_url) });
                     toast.success(`${it.name} נוסף להזמנה`);
                   }}
                   className="h-12 rounded-full bg-[#f3c9bd] hover:bg-[#eab5a4] text-[#4a2a20] text-base font-medium px-8"

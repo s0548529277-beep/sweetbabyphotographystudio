@@ -53,6 +53,24 @@ function Checkout() {
             <Lock className="h-8 w-8 text-primary/40 mx-auto mb-3" />
             <h2 className="font-display text-3xl text-primary mb-2">התחברות נדרשת</h2>
             <p className="text-muted-foreground text-sm mb-6">כדי לשמור את ההזמנה שלך, יש להיכנס תחילה.</p>
+            <div className="mb-6 rounded-2xl border border-blush bg-blush/20 p-4 text-right text-xs text-muted-foreground">
+              <p className="mb-2">
+                מיקום הסטודיו: <span className="font-medium text-primary">תלמוד ירושלמי 24, בית שמש</span>
+              </p>
+              <a
+                href="https://docs.google.com/forms/d/e/1FAIpQLSdVqfjJ53OzK55mXvEeExdHp0lEWFN7RJgwtG7OSqD94KjEhg/viewform"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-forest underline underline-offset-4 hover:text-primary"
+              >
+                לקריאת הכללים המלאים והחתמה בטופס
+              </a>
+              <label className="mt-3 flex items-start gap-2 rounded-xl border border-blush bg-background/70 p-3 text-sm font-medium text-primary">
+                <Checkbox checked={false} disabled className="mt-0.5" />
+                <span>אני מאשר/ת שקראתי את הכללים ואני מסכימה לתנאי ההשכרה *</span>
+              </label>
+              <p className="mt-2">לאחר ההתחברות ניתן יהיה לסמן את הצ׳קבוקס ולהמשיך לשליחת ההזמנה.</p>
+            </div>
             <Link to="/auth" search={{ redirect: "/checkout" }}>
               <Button className="rounded-full w-full">התחברות</Button>
             </Link>

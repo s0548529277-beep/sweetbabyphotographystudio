@@ -23,26 +23,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const applySession = (s: Session | null) => {
       if (!mounted) return;
       setSession(s);
+      setIsAdmin(false);
       if (s?.user) {
-        supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", s.user.id)
-          .then(({ data }) => {
+        void (async () => {
+          try {
+            const { data } = await supabase
+              .from("user_roles")
+              .select("role")
+              .eq("user_id", s.user.id);
             if (!mounted) return;
             setIsAdmin(!!data?.some((r) => r.role === "admin"));
-          });
-      } else {
-        setIsAdmin(false);
+          } catch {
+            if (!mounted) return;
+            setIsAdmin(false);
+          }
+        })();
       }
     };
 
-    supabase.auth.getSession().then(({ data }) => {
-      applySession(data.session);
-      setLoading(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => applySession(data.session))
+      .catch(() => applySession(null))
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => applySession(s));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      applySession(s);
+      if (mounted) setLoading(false);
+    });
     return () => {
       mounted = false;
       sub.subscription.unsubscribe();
@@ -50,6 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    setSession(null);
+    setIsAdmin(false);
     await supabase.auth.signOut();
   };
 
