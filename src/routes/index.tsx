@@ -3,7 +3,7 @@ import { ArrowLeft, Camera, MoveUpRight } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import heroImg from "@/assets/hero-scene.jpg";
+import heroImg from "@/assets/hero-studio.jpg.asset.json";
 
 export const Route = createFileRoute("/")({
   component: Home,
