@@ -17,7 +17,13 @@ const searchSchema = z.object({ redirect: z.string().optional() });
 export const Route = createFileRoute("/auth")({
   validateSearch: searchSchema,
   component: AuthPage,
-  head: () => ({ meta: [{ title: "התחברות | Sweetbaby" }] }),
+  head: () => ({ meta: [
+    { title: "התחברות | Sweetbaby" },
+    { name: "description", content: "התחברו או צרו חשבון ב-Sweetbaby — כניסה מאובטחת לכרטיסיית לקוח, הזמנות ושריון סטודיו בבית שמש." },
+    { property: "og:title", content: "התחברות | Sweetbaby" },
+    { property: "og:description", content: "התחברו או צרו חשבון ב-Sweetbaby — כניסה מאובטחת לכרטיסיית לקוח, הזמנות ושריון סטודיו בבית שמש." },
+    { property: "og:url", content: "https://sweetbabyphotographystudio.lovable.app/auth" },
+  ], links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/auth" }] }),
 });
 
 function AuthPage() {

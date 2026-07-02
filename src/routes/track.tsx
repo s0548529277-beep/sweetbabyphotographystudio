@@ -5,7 +5,13 @@ import { CalendarDays, ShoppingBag, ArrowLeft } from "lucide-react";
 
 export const Route = createFileRoute("/track")({
   component: Track,
-  head: () => ({ meta: [{ title: "בחירת מסלול | Sweetbaby" }] }),
+  head: () => ({ meta: [
+    { title: "בחירת מסלול | Sweetbaby" },
+    { name: "description", content: "בחרו מסלול ב-Sweetbaby — שריון סטודיו צילום או השכרת אביזרי צילום לסשן ניוברן וגיל שנה בבית שמש." },
+    { property: "og:title", content: "בחירת מסלול | Sweetbaby" },
+    { property: "og:description", content: "בחרו מסלול ב-Sweetbaby — שריון סטודיו צילום או השכרת אביזרי צילום לסשן ניוברן וגיל שנה בבית שמש." },
+    { property: "og:url", content: "https://sweetbabyphotographystudio.lovable.app/track" },
+  ], links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/track" }] }),
 });
 
 function Track() {

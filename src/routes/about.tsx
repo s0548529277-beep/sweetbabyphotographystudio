@@ -9,9 +9,9 @@ export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
       { title: "אודות הסטודיו | Sweetbaby" },
-      { name: "description", content: "הסיפור מאחורי סוויט בייבי — סטודיו ומחסן אביזרי צילום מעוצבים בבית שמש, לצילומי ניוברן, גיל שנה ומשפחה." },
+      { name: "description", content: "Sweetbaby — סטודיו ומחסן אביזרי צילום מעוצבים בבית שמש. צילומי ניוברן, גיל שנה, חלאקה ומשפחה." },
       { property: "og:title", content: "אודות הסטודיו | Sweetbaby" },
-      { property: "og:description", content: "הסיפור, החזון ואוסף האביזרים שהופך כל צילום לזיכרון." },
+      { property: "og:description", content: "Sweetbaby — סטודיו ומחסן אביזרי צילום מעוצבים בבית שמש. צילומי ניוברן, גיל שנה, חלאקה ומשפחה." },
       { property: "og:url", content: "https://sweetbabyphotographystudio.lovable.app/about" },
     ],
     links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/about" }],
