@@ -11,7 +11,7 @@ import { Copy, Check, Upload, Banknote, CreditCard } from "lucide-react";
 
 export const Route = createFileRoute("/deposit/$type/$id")({
   component: Deposit,
-  head: () => ({ meta: [{ title: "תשלום מקדמה | Sweetbaby" }] }),
+  head: () => ({ meta: [{ title: "תשלום מקדמה | Sweetbaby" }, { name: "robots", content: "noindex, nofollow" }] }),
 });
 
 const BANK = { bank: "12", branch: "533", account: "648912", name: "מיכל סיבוני" };
