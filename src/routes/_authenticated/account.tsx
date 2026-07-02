@@ -46,6 +46,8 @@ function Account() {
         full_name: profileQ.data.full_name ?? "",
         phone: profileQ.data.phone ?? "",
         address: profileQ.data.address ?? "",
+        city: (profileQ.data as any).city ?? "",
+        discount_code: (profileQ.data as any).discount_code ?? "",
         notes: profileQ.data.notes ?? "",
       });
     }
