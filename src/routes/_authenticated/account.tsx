@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
-import { Package, Calendar as CalIcon, User as UserIcon } from "lucide-react";
+import { Package, Calendar as CalIcon, User as UserIcon, FileText } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/account")({
   component: Account,
@@ -134,6 +134,16 @@ function Account() {
                     {o.order_items?.map((oi: any) => (
                       <span key={oi.id}>{oi.item_name} × {oi.quantity}</span>
                     ))}
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-primary/5 flex justify-end">
+                    <Link
+                      to="/orders/$id/receipt"
+                      params={{ id: o.id }}
+                      className="inline-flex items-center gap-2 text-sm text-forest hover:text-primary"
+                    >
+                      <FileText className="h-4 w-4" />
+                      צפייה / הורדת אישור הזמנה (PDF)
+                    </Link>
                   </div>
                 </div>
               ))
