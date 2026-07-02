@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import heroImg from "@/assets/hero-studio.jpg.asset.json";
+import heroAnimation from "@/assets/hero-animation.gif.asset.json";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -69,8 +70,8 @@ function Home() {
             <div className="lg:col-span-5 relative">
               <div className="relative aspect-[4/5] overflow-hidden bg-bone">
                 <img
-                  src={heroImg.url}
-                  alt="סטודיו Sweetbaby"
+                  src={heroAnimation.url}
+                  alt="סטודיו Sweetbaby - קולקציית אביזרים בתנועה"
                   className="w-full h-full object-cover"
                   width={1200}
                   height={1500}
