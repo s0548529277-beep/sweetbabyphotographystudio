@@ -13,6 +13,7 @@ export const Route = createFileRoute("/cart")({
     { property: "og:title", content: "עגלת קניות | Sweetbaby" },
     { property: "og:description", content: "העגלה שלכם ב-Sweetbaby — סקירת אביזרי צילום נבחרים, שינוי כמויות ומעבר לתשלום מקדמה לסשן הבא." },
     { property: "og:url", content: "https://sweetbabyphotographystudio.lovable.app/cart" },
+    { name: "robots", content: "noindex, follow" },
   ], links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/cart" }] }),
 });
 
