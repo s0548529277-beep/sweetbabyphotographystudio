@@ -58,8 +58,40 @@ function Catalog() {
 
   const activeCat = categories.data?.find((c) => c.id === cat);
 
+  const productLd = useMemo(() => {
+    const list = (filtered ?? []).slice(0, 30);
+    if (!list.length) return null;
+    return {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      itemListElement: list.map((i, idx) => ({
+        "@type": "ListItem",
+        position: idx + 1,
+        item: {
+          "@type": "Product",
+          name: i.name,
+          sku: i.sku,
+          image: i.image_url ? `https://sweetbabyphotographystudio.lovable.app${i.image_url}` : undefined,
+          description: i.description ?? undefined,
+          offers: {
+            "@type": "Offer",
+            price: i.price,
+            priceCurrency: "ILS",
+            availability: "https://schema.org/InStock",
+          },
+        },
+      })),
+    };
+  }, [filtered]);
+
   return (
     <div className="min-h-screen flex flex-col bg-[#f6f1ec]" dir="rtl">
+      {productLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(productLd) }}
+        />
+      )}
       <Header />
 
       {/* Welcome bar */}
