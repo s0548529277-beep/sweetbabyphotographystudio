@@ -14,9 +14,13 @@ export const Route = createFileRoute("/catalog")({
   component: Catalog,
   head: () => ({
     meta: [
-      { title: "קטלוג | Sweetbaby" },
-      { name: "description", content: "עיינו במבחר אביזרי הצילום שלנו ליצירת התמונות המושלמות." },
+      { title: "קטלוג אביזרי צילום | Sweetbaby" },
+      { name: "description", content: "מבחר סלסלות, כריות, שמיכות, כיסויי ראש ואביזרים מעוצבים להשכרה לצילומי ניוברן, סיטר ומשפחה." },
+      { property: "og:title", content: "קטלוג אביזרי צילום | Sweetbaby" },
+      { property: "og:description", content: "עיינו במבחר האביזרים המעוצבים שלנו והזמינו לצילום הבא." },
+      { property: "og:url", content: "https://sweetbabyphotographystudio.lovable.app/catalog" },
     ],
+    links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/catalog" }],
   }),
 });
 

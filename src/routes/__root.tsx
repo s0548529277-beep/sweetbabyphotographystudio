@@ -66,6 +66,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "Sweetbaby — התמונה הראשונה שלי" },
       { property: "og:description", content: "השכרת אביזרים מעוצבים לצילומי ניוברן וגיל שנה." },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "Sweetbaby" },
+      { property: "og:locale", content: "he_IL" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [

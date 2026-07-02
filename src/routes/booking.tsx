@@ -18,7 +18,16 @@ import { Lock, Clock } from "lucide-react";
 
 export const Route = createFileRoute("/booking")({
   component: Booking,
-  head: () => ({ meta: [{ title: "שריון סטודיו | Sweetbaby" }] }),
+  head: () => ({
+    meta: [
+      { title: "שריון סטודיו | Sweetbaby" },
+      { name: "description", content: "בחרו תאריך ושעה לשריון סטודיו הצילום — חבילת בוקר או שעות בודדות, בית שמש." },
+      { property: "og:title", content: "שריון סטודיו | Sweetbaby" },
+      { property: "og:description", content: "יומן שריון סטודיו לצילומי ניוברן, גיל שנה ומשפחה." },
+      { property: "og:url", content: "https://sweetbabyphotographystudio.lovable.app/booking" },
+    ],
+    links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/booking" }],
+  }),
 });
 
 // Half-hour slot generation for a given date, factoring in Fri/Sat rules
