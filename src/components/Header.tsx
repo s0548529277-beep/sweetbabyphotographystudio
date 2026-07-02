@@ -24,19 +24,20 @@ export function Header() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 backdrop-blur-lg bg-background/85 border-b border-border/60">
+    <header className="sticky top-0 z-40 backdrop-blur-xl bg-background/80 border-b border-border">
       <div className="container-page flex items-center justify-between h-20 gap-6">
-        <Link to="/" className="flex items-center gap-2 shrink-0">
-          <img src={logo} alt="Sweetbaby" className="h-11 w-auto" />
+        <Link to="/" className="flex items-center gap-3 shrink-0">
+          <img src={logo} alt="Sweetbaby" className="h-10 w-auto" />
+          <span className="hidden sm:block font-display text-xl tracking-tight italic">Sweetbaby</span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-8 text-sm">
+        <nav className="hidden md:flex items-center gap-10 text-[11px] tracking-[0.28em] uppercase">
           {nav.map((n) => (
             <Link
               key={n.to}
               to={n.to}
-              className="text-foreground/80 hover:text-primary transition-colors relative py-1"
-              activeProps={{ className: "text-primary font-medium" }}
+              className="text-foreground/70 hover:text-foreground transition-colors relative py-1"
+              activeProps={{ className: "text-foreground" }}
             >
               {n.label}
             </Link>
