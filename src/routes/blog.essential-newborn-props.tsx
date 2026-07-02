@@ -3,6 +3,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck, Sparkles, Camera, Feather, Layers, Heart, CheckCircle2 } from "lucide-react";
+import ogImage from "@/assets/blog-newborn-props-og.jpg";
 
 const CANONICAL = "https://sweetbabyphotographystudio.lovable.app/blog/essential-newborn-props";
 const TITLE = "מדריך: אביזרים חיוניים לצילומי ניוברן למתחילים | Sweetbaby";
