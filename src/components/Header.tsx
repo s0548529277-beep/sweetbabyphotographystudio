@@ -85,7 +85,7 @@ export function Header() {
 
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden rounded-full">
+              <Button variant="ghost" size="icon" className="md:hidden rounded-full" aria-label="פתיחת תפריט ניווט">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
