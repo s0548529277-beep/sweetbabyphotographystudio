@@ -9,7 +9,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/summary/$type/$id")({
   component: SummaryPage,
-  head: () => ({ meta: [{ title: "סיכום ותשלום | Sweetbaby" }] }),
+  head: () => ({ meta: [{ title: "סיכום ותשלום | Sweetbaby" }, { name: "robots", content: "noindex, nofollow" }] }),
 });
 
 function SummaryPage() {
