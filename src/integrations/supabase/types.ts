@@ -474,7 +474,24 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      booking_busy_slots: {
+        Row: {
+          end_time: string | null
+          session_date: string | null
+          start_time: string | null
+        }
+        Insert: {
+          end_time?: string | null
+          session_date?: string | null
+          start_time?: string | null
+        }
+        Update: {
+          end_time?: string | null
+          session_date?: string | null
+          start_time?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {

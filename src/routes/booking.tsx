@@ -90,11 +90,10 @@ function Booking() {
     if (!date) return;
     const iso = date.toISOString().slice(0, 10);
     supabase
-      .from("bookings")
+      .from("booking_busy_slots" as any)
       .select("start_time, end_time")
       .eq("session_date", iso)
-      .neq("status", "cancelled")
-      .then(({ data }) => setExisting(data ?? []));
+      .then(({ data }) => setExisting((data as any) ?? []));
     setStartTime(null);
   }, [date]);
 
