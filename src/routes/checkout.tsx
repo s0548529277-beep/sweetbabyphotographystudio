@@ -16,7 +16,13 @@ import { Lock, Camera } from "lucide-react";
 
 export const Route = createFileRoute("/checkout")({
   component: Checkout,
-  head: () => ({ meta: [{ title: "סיכום הזמנה | Sweetbaby" }] }),
+  head: () => ({ meta: [
+    { title: "סיכום הזמנה | Sweetbaby" },
+    { name: "description", content: "סיכום הזמנה והזנת פרטי צילום ב-Sweetbaby — השכרת אביזרים, דגם מצלמה, תאריך ותשלום מקדמה." },
+    { property: "og:title", content: "סיכום הזמנה | Sweetbaby" },
+    { property: "og:description", content: "סיכום הזמנה והזנת פרטי צילום ב-Sweetbaby — השכרת אביזרים, דגם מצלמה, תאריך ותשלום מקדמה." },
+    { property: "og:url", content: "https://sweetbabyphotographystudio.lovable.app/checkout" },
+  ], links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/checkout" }] }),
 });
 
 function Checkout() {

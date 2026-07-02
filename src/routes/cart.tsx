@@ -7,7 +7,13 @@ import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 
 export const Route = createFileRoute("/cart")({
   component: Cart,
-  head: () => ({ meta: [{ title: "עגלת קניות | Sweetbaby" }] }),
+  head: () => ({ meta: [
+    { title: "עגלת קניות | Sweetbaby" },
+    { name: "description", content: "העגלה שלכם ב-Sweetbaby — סקירת אביזרי צילום נבחרים, שינוי כמויות ומעבר לתשלום מקדמה לסשן הבא." },
+    { property: "og:title", content: "עגלת קניות | Sweetbaby" },
+    { property: "og:description", content: "העגלה שלכם ב-Sweetbaby — סקירת אביזרי צילום נבחרים, שינוי כמויות ומעבר לתשלום מקדמה לסשן הבא." },
+    { property: "og:url", content: "https://sweetbabyphotographystudio.lovable.app/cart" },
+  ], links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/cart" }] }),
 });
 
 function Cart() {

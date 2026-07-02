@@ -21,9 +21,9 @@ export const Route = createFileRoute("/booking")({
   head: () => ({
     meta: [
       { title: "שריון סטודיו | Sweetbaby" },
-      { name: "description", content: "בחרו תאריך ושעה לשריון סטודיו הצילום — חבילת בוקר או שעות בודדות, בית שמש." },
+      { name: "description", content: "שריינו סטודיו צילום בבית שמש — Sweetbaby מציעה יומן פתוח, חבילות בוקר ומחירון שקוף לצילומי ניוברן ומשפחה." },
       { property: "og:title", content: "שריון סטודיו | Sweetbaby" },
-      { property: "og:description", content: "יומן שריון סטודיו לצילומי ניוברן, גיל שנה ומשפחה." },
+      { property: "og:description", content: "שריינו סטודיו צילום בבית שמש — Sweetbaby מציעה יומן פתוח, חבילות בוקר ומחירון שקוף לצילומי ניוברן ומשפחה." },
       { property: "og:url", content: "https://sweetbabyphotographystudio.lovable.app/booking" },
     ],
     links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/booking" }],

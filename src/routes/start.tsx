@@ -13,8 +13,11 @@ export const Route = createFileRoute("/start")({
   component: Start,
   head: () => ({ meta: [
     { title: "בואי נכיר | Sweetbaby" },
-    { name: "description", content: "טופס פתיחה קצר לפני שנתחיל לתכנן את הצילום." },
-  ] }),
+    { name: "description", content: "התחילו את החוויה ב-Sweetbaby — טופס פתיחה קצר לתיאום צילומי ניוברן, גיל שנה וסשן סטודיו בבית שמש." },
+    { property: "og:title", content: "בואי נכיר | Sweetbaby" },
+    { property: "og:description", content: "התחילו את החוויה ב-Sweetbaby — טופס פתיחה קצר לתיאום צילומי ניוברן, גיל שנה וסשן סטודיו בבית שמש." },
+    { property: "og:url", content: "https://sweetbabyphotographystudio.lovable.app/start" },
+  ], links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/start" }] }),
 });
 
 const KEY = "sweetbaby.lead.v1";
