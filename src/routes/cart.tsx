@@ -48,15 +48,15 @@ function Cart() {
                     <div className="font-display text-peach-deep text-lg mt-1">₪{l.price.toFixed(0)}</div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => setQty(l.id, l.quantity - 1)}>
+                    <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" aria-label={`הפחת כמות עבור ${l.name}`} onClick={() => setQty(l.id, l.quantity - 1)}>
                       <Minus className="h-3 w-3" />
                     </Button>
                     <span className="w-6 text-center font-medium">{l.quantity}</span>
-                    <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => setQty(l.id, l.quantity + 1)}>
+                    <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" aria-label={`הוסף כמות עבור ${l.name}`} onClick={() => setQty(l.id, l.quantity + 1)}>
                       <Plus className="h-3 w-3" />
                     </Button>
                   </div>
-                  <Button size="icon" variant="ghost" className="text-destructive" onClick={() => remove(l.id)}>
+                  <Button size="icon" variant="ghost" className="text-destructive" aria-label={`הסר את ${l.name} מהעגלה`} onClick={() => remove(l.id)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
