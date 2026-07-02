@@ -28,7 +28,7 @@ const STATUS_HE: Record<string, string> = {
 
 function Account() {
   const { user } = useAuth();
-  const [profile, setProfile] = useState({ full_name: "", phone: "", address: "", notes: "" });
+  const [profile, setProfile] = useState({ full_name: "", phone: "", address: "", city: "", discount_code: "", notes: "" });
   const [busy, setBusy] = useState(false);
 
   const profileQ = useQuery({
