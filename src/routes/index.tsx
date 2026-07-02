@@ -49,11 +49,9 @@ function Home() {
             {/* headline */}
             <div className="lg:col-span-7">
               <h1 className="font-display leading-[0.92] text-foreground tracking-tight text-[clamp(3.5rem,10vw,9rem)]">
-                היצירה
-                <br />
-                <span className="italic font-normal text-sand-deep">הראשונה</span>
-                <br />
-                <span>שלי.</span>
+                <span className="block whitespace-nowrap">היצירה</span>
+                <span className="block whitespace-nowrap italic font-normal text-sand-deep">הראשונה</span>
+                <span className="block whitespace-nowrap">שלי.</span>
               </h1>
               <div className="mt-8 flex flex-wrap items-center gap-4">
                 <Link to="/start">
@@ -84,9 +82,9 @@ function Home() {
 
           {/* lede + stats */}
           <div className="mt-20 grid lg:grid-cols-12 gap-10 border-t border-border pt-10">
-            <p className="lg:col-span-6 lg:col-start-1 text-lg md:text-xl leading-relaxed max-w-2xl text-foreground/85 whitespace-pre-line">
+            <p className="lg:col-span-6 lg:col-start-1 text-lg md:text-xl leading-relaxed max-w-2xl text-foreground/85">
               סטודיו בוטיק בבית שמש
-              ומאגר של מעל <span className="font-display text-3xl not-italic text-foreground">400+</span> אביזרים מעוצבים — 
+              ומאגר של מעל <span dir="ltr" className="inline-block font-display text-3xl not-italic text-foreground align-baseline">400+</span> אביזרים מעוצבים —
               וינטג׳, מקרמה, סרוגים, עץ ורטאן — לצילומי ניוברן, גיל שנה, חלאקה ומשפחה. אתם בוחרים סגנון, אנחנו מכינים את הסט.
             </p>
             <dl className="lg:col-span-5 lg:col-start-8 grid grid-cols-3 gap-6 border-t border-border pt-8 lg:border-t-0 lg:pt-0">
@@ -97,7 +95,7 @@ function Home() {
               ].map((s) => (
                 <div key={s.l}>
                   <dt className="text-[10px] tracking-[0.3em] uppercase text-muted-foreground mb-2">{s.l}</dt>
-                  <dd className="font-display text-4xl md:text-5xl">{s.n}</dd>
+                  <dd dir="ltr" className="font-display text-4xl md:text-5xl text-right">{s.n}</dd>
                 </div>
               ))}
             </dl>
@@ -106,7 +104,7 @@ function Home() {
       </section>
 
       {/* MARQUEE */}
-      <section className="overflow-hidden border-b border-border py-6 bg-foreground text-background">
+      <section className="overflow-hidden border-b border-border py-6 bg-foreground text-background" dir="ltr">
         <div className="marquee-track font-display text-4xl md:text-5xl italic">
           {[...marqueeWords, ...marqueeWords].map((w, i) => (
             <span key={i} className="inline-flex items-center gap-12">
