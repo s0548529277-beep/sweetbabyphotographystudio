@@ -135,6 +135,16 @@ function Account() {
                       <span key={oi.id}>{oi.item_name} × {oi.quantity}</span>
                     ))}
                   </div>
+                  <div className="mt-4 pt-4 border-t border-primary/5 flex justify-end">
+                    <Link
+                      to="/orders/$id/receipt"
+                      params={{ id: o.id }}
+                      className="inline-flex items-center gap-2 text-sm text-forest hover:text-primary"
+                    >
+                      <FileText className="h-4 w-4" />
+                      צפייה / הורדת אישור הזמנה (PDF)
+                    </Link>
+                  </div>
                 </div>
               ))
             )}
