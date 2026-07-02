@@ -75,6 +75,38 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Karla:wght@300;400;500;600;700&family=Assistant:wght@300;400;500;600;700&display=swap" },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "Sweetbaby",
+          url: "https://sweetbabyphotographystudio.lovable.app",
+          logo: "https://sweetbabyphotographystudio.lovable.app/favicon.ico",
+          description: "השכרת אביזרים מעוצבים לצילומי ניוברן, גיל שנה, חלאקה ומשפחה.",
+          telephone: "+972-54-8529277",
+          email: "s0548529277@gmail.com",
+          address: {
+            "@type": "PostalAddress",
+            streetAddress: "תלמוד ירושלמי 24",
+            addressLocality: "בית שמש",
+            addressCountry: "IL",
+          },
+          sameAs: [],
+        }),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "Sweetbaby",
+          url: "https://sweetbabyphotographystudio.lovable.app",
+          inLanguage: "he-IL",
+        }),
+      },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,

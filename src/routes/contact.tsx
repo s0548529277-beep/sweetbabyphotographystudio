@@ -10,6 +10,30 @@ export const Route = createFileRoute("/contact")({
       { title: "יצירת קשר | Sweetbaby" },
       { name: "description", content: "צרו איתנו קשר לתיאום השכרת אביזרי צילום." },
     ],
+    links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/contact" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "LocalBusiness",
+          "@id": "https://sweetbabyphotographystudio.lovable.app/#business",
+          name: "Sweetbaby",
+          image: "https://sweetbabyphotographystudio.lovable.app/favicon.ico",
+          url: "https://sweetbabyphotographystudio.lovable.app",
+          telephone: "+972-54-8529277",
+          email: "s0548529277@gmail.com",
+          priceRange: "₪₪",
+          address: {
+            "@type": "PostalAddress",
+            streetAddress: "תלמוד ירושלמי 24",
+            addressLocality: "בית שמש",
+            addressCountry: "IL",
+          },
+          areaServed: "IL",
+        }),
+      },
+    ],
   }),
 });
 
