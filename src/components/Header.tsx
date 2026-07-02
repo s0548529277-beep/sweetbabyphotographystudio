@@ -58,7 +58,7 @@ export function Header() {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
+                <Button variant="ghost" size="icon" className="rounded-full" aria-label="תפריט משתמש">
                   <UserIcon className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
