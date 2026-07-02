@@ -25,18 +25,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(s);
       setIsAdmin(false);
       if (s?.user) {
-        supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", s.user.id)
-          .then(({ data }) => {
+        void (async () => {
+          try {
+            const { data } = await supabase
+              .from("user_roles")
+              .select("role")
+              .eq("user_id", s.user.id);
             if (!mounted) return;
             setIsAdmin(!!data?.some((r) => r.role === "admin"));
-          })
-          .catch(() => {
+          } catch {
             if (!mounted) return;
             setIsAdmin(false);
-          });
+          }
+        })();
       }
     };
 
