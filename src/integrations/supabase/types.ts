@@ -520,14 +520,6 @@ export type Database = {
       }
     }
     Functions: {
-      get_item_busy_slots: {
-        Args: { _date: string; _item_ids: string[] }
-        Returns: {
-          date: string
-          item_id: string
-          slot_index: number
-        }[]
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
