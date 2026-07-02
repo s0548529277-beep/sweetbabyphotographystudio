@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
-import { Package, Calendar as CalIcon, User as UserIcon } from "lucide-react";
+import { Package, Calendar as CalIcon, User as UserIcon, FileText } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/account")({
   component: Account,
