@@ -201,7 +201,11 @@ function Home() {
               כללי <span className="italic">ההשכרה</span>
             </h2>
             <p className="text-muted-foreground mt-4 max-w-md text-sm leading-relaxed">
-              הזמנת אביזרים נחשבת להסכמה לתנאים. שמרו עליהם — ותעזרו לנו לתת לכם שירות טוב יותר
+              הזמנת אביזרים נחשבת להסכמה ל{" "}
+              <Link to="/terms" className="underline underline-offset-4 text-foreground hover:text-peach-deep">
+                תנאי השימוש
+              </Link>
+              . שמרו עליהם — ותעזרו לנו לתת לכם שירות טוב יותר
             </p>
           </div>
           <ol className="lg:col-span-8 divide-y divide-border border-y border-border">
