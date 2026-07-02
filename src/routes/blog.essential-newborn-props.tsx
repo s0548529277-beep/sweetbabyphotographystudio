@@ -73,7 +73,8 @@ export const Route = createFileRoute("/blog/essential-newborn-props")({
         }),
       },
     ],
-  }),
+    };
+  },
 });
 
 const essentials = [
