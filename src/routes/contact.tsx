@@ -8,7 +8,10 @@ export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
       { title: "יצירת קשר | Sweetbaby" },
-      { name: "description", content: "צרו איתנו קשר לתיאום השכרת אביזרי צילום." },
+      { name: "description", content: "צרו איתנו קשר לתיאום השכרת אביזרי צילום ושריון סטודיו בבית שמש." },
+      { property: "og:title", content: "יצירת קשר | Sweetbaby" },
+      { property: "og:description", content: "טלפון, אימייל וכתובת הסטודיו בבית שמש." },
+      { property: "og:url", content: "https://sweetbabyphotographystudio.lovable.app/contact" },
     ],
     links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/contact" }],
     scripts: [
