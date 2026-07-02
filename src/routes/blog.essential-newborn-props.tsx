@@ -12,7 +12,6 @@ const DESCRIPTION =
 
 export const Route = createFileRoute("/blog/essential-newborn-props")({
   component: EssentialNewbornPropsGuide,
-  head: () => ({
   head: () => {
     const OG_IMAGE = `https://sweetbabyphotographystudio.lovable.app${ogImage}`;
     return {
