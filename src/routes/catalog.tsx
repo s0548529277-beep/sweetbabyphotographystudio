@@ -160,6 +160,7 @@ function Catalog() {
           {/* Products grid */}
           <div>
             <div className="rounded-3xl bg-white/70 backdrop-blur-sm border border-black/5 p-5 md:p-8 shadow-sm">
+              <h2 className="sr-only">קטלוג אביזרי צילום</h2>
               {items.isLoading ? (
                 <GridSkeleton />
               ) : filtered.length === 0 ? (
