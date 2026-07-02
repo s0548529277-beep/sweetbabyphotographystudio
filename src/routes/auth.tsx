@@ -33,6 +33,8 @@ function AuthPage() {
   const { redirect } = useSearch({ from: "/auth" });
   const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [busy, setBusy] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
 
   useEffect(() => {
     if (user) nav({ to: (redirect as any) || "/account" });
@@ -49,6 +51,23 @@ function AuthPage() {
     setBusy(false);
     if (error) toast.error(error.message);
   };
+
+  const sendReset = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const email = forgotEmail.trim();
+    if (!email) return;
+    setBusy(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setBusy(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("שלחנו קישור לאיפוס סיסמה למייל שלך");
+      setForgotOpen(false);
+    }
+  };
+
 
   const signUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
