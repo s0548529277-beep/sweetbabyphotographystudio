@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Camera, MoveUpRight } from "lucide-react";
+import { ArrowLeft, MoveUpRight } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -79,10 +79,6 @@ function Home() {
                 />
                 <div className="absolute inset-0 pointer-events-none ring-1 ring-inset ring-foreground/10" />
               </div>
-              <div className="absolute -bottom-4 -right-4 md:-right-8 bg-background border border-border px-5 py-3 text-xs tracking-[0.28em] uppercase flex items-center gap-3">
-                <Camera className="h-4 w-4" />
-                Studio · Beit Shemesh
-              </div>
             </div>
           </div>
 
@@ -90,7 +86,7 @@ function Home() {
           <div className="mt-20 grid lg:grid-cols-12 gap-10 border-t border-border pt-10">
             <p className="lg:col-span-6 lg:col-start-1 text-lg md:text-xl leading-relaxed max-w-2xl text-foreground/85 whitespace-pre-line">
               סטודיו בוטיק בבית שמש
-              ומאגר של מעל <span className="italic font-display text-2xl">400</span>אביזרים מעוצבים — 
+              ומאגר של מעל <span className="font-display text-3xl not-italic text-foreground">400+</span> אביזרים מעוצבים — 
               וינטג׳, מקרמה, סרוגים, עץ ורטאן — לצילומי ניוברן, גיל שנה, חלאקה ומשפחה. אתם בוחרים סגנון, אנחנו מכינים את הסט.
             </p>
             <dl className="lg:col-span-5 lg:col-start-8 grid grid-cols-3 gap-6 border-t border-border pt-8 lg:border-t-0 lg:pt-0">
