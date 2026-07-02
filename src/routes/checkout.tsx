@@ -65,7 +65,11 @@ function Checkout() {
               >
                 לקריאת הכללים המלאים והחתמה בטופס
               </a>
-              <p className="mt-2">לאחר ההתחברות יופיע צ׳קבוקס חובה לאישור תנאי ההשכרה לפני שליחת ההזמנה.</p>
+              <label className="mt-3 flex items-start gap-2 rounded-xl border border-blush bg-background/70 p-3 text-sm font-medium text-primary">
+                <Checkbox checked={false} disabled className="mt-0.5" />
+                <span>אני מאשר/ת שקראתי את הכללים ואני מסכימה לתנאי ההשכרה *</span>
+              </label>
+              <p className="mt-2">לאחר ההתחברות ניתן יהיה לסמן את הצ׳קבוקס ולהמשיך לשליחת ההזמנה.</p>
             </div>
             <Link to="/auth" search={{ redirect: "/checkout" }}>
               <Button className="rounded-full w-full">התחברות</Button>
