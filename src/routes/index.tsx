@@ -88,12 +88,12 @@ function Home() {
           {/* lede + stats */}
           <div className="mt-20 grid lg:grid-cols-12 gap-10 border-t border-border pt-10">
             <p className="lg:col-span-6 lg:col-start-1 text-lg md:text-xl leading-relaxed max-w-2xl text-foreground/85">
-              סטודיו אינטימי בבית שמש ומאגר של מעל <span className="italic font-display text-2xl">300</span> אביזרים מעוצבים — 
+              סטודיו אינטימי בבית שמש ומאגר של מעל <span className="italic font-display text-2xl">400</span>אביזרים מעוצבים — 
               וינטג׳, מקרמה, סרוגים, עץ ורטאן — לצילומי ניוברן, גיל שנה, חלאקה ומשפחה. אתם בוחרים סגנון, אנחנו מכינים את הסט.
             </p>
             <dl className="lg:col-span-5 lg:col-start-8 grid grid-cols-3 gap-6 border-t border-border pt-8 lg:border-t-0 lg:pt-0">
               {[
-                { n: "300+", l: "פריטים" },
+                { n: "400+", l: "פריטים" },
                 { n: "24h", l: "השכרה" },
                 { n: "₪50", l: "מינימום" },
               ].map((s) => (
@@ -203,7 +203,7 @@ function Home() {
               כללי <span className="italic">ההשכרה</span>
             </h2>
             <p className="text-muted-foreground mt-4 max-w-md text-sm leading-relaxed">
-              הזמנת אביזרים נחשבת להסכמה לתנאים. שמרו עליהם — ותנו לתמונות לדבר.
+              הזמנת אביזרים נחשבת להסכמה לתנאים. שמרו עליהם — ותעזרו לנו לתת לכם שירות טוב יותר
             </p>
           </div>
           <ol className="lg:col-span-8 divide-y divide-border border-y border-border">
