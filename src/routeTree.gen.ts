@@ -20,6 +20,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SitemapXmlRouteImport } from './routes/sitemap.xml'
 import { Route as BlogEssentialNewbornPropsRouteImport } from './routes/blog.essential-newborn-props'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
@@ -83,6 +84,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapXmlRoute = SitemapXmlRouteImport.update({
+  id: '/sitemap/xml',
+  path: '/sitemap/xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlogEssentialNewbornPropsRoute =
@@ -154,6 +160,7 @@ export interface FileRoutesByFullPath {
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
+  '/sitemap/xml': typeof SitemapXmlRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/admin/items': typeof AuthenticatedAdminItemsRoute
@@ -175,6 +182,7 @@ export interface FileRoutesByTo {
   '/track': typeof TrackRoute
   '/account': typeof AuthenticatedAccountRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
+  '/sitemap/xml': typeof SitemapXmlRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/admin/items': typeof AuthenticatedAdminItemsRoute
@@ -199,6 +207,7 @@ export interface FileRoutesById {
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
+  '/sitemap/xml': typeof SitemapXmlRoute
   '/_authenticated/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/_authenticated/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/_authenticated/admin/items': typeof AuthenticatedAdminItemsRoute
@@ -223,6 +232,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/blog/essential-newborn-props'
+    | '/sitemap/xml'
     | '/admin/calendar'
     | '/admin/clients'
     | '/admin/items'
@@ -244,6 +254,7 @@ export interface FileRouteTypes {
     | '/track'
     | '/account'
     | '/blog/essential-newborn-props'
+    | '/sitemap/xml'
     | '/admin/calendar'
     | '/admin/clients'
     | '/admin/items'
@@ -267,6 +278,7 @@ export interface FileRouteTypes {
     | '/_authenticated/account'
     | '/_authenticated/admin'
     | '/blog/essential-newborn-props'
+    | '/sitemap/xml'
     | '/_authenticated/admin/calendar'
     | '/_authenticated/admin/clients'
     | '/_authenticated/admin/items'
@@ -289,6 +301,7 @@ export interface RootRouteChildren {
   StartRoute: typeof StartRoute
   TrackRoute: typeof TrackRoute
   BlogEssentialNewbornPropsRoute: typeof BlogEssentialNewbornPropsRoute
+  SitemapXmlRoute: typeof SitemapXmlRoute
   DepositTypeIdRoute: typeof DepositTypeIdRoute
   SummaryTypeIdRoute: typeof SummaryTypeIdRoute
 }
@@ -370,6 +383,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap/xml': {
+      id: '/sitemap/xml'
+      path: '/sitemap/xml'
+      fullPath: '/sitemap/xml'
+      preLoaderRoute: typeof SitemapXmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blog/essential-newborn-props': {
@@ -490,9 +510,20 @@ const rootRouteChildren: RootRouteChildren = {
   StartRoute: StartRoute,
   TrackRoute: TrackRoute,
   BlogEssentialNewbornPropsRoute: BlogEssentialNewbornPropsRoute,
+  SitemapXmlRoute: SitemapXmlRoute,
   DepositTypeIdRoute: DepositTypeIdRoute,
   SummaryTypeIdRoute: SummaryTypeIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
