@@ -169,7 +169,12 @@ function Catalog() {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-5 md:gap-6">
                   {filtered.map((item) => (
                     <article key={item.id} className="group flex flex-col">
-                      <div className="aspect-square rounded-2xl bg-[#efe6df] relative overflow-hidden">
+                      <Link
+                        to="/items/$id"
+                        params={{ id: item.id }}
+                        className="aspect-square rounded-2xl bg-[#efe6df] relative overflow-hidden block"
+                        aria-label={`צפייה בפריט ${item.name}`}
+                      >
                         {item.image_url ? (
                           <img
                             src={item.image_url}
@@ -182,13 +187,14 @@ function Catalog() {
                             <ImageIcon className="h-10 w-10" />
                           </div>
                         )}
-                      </div>
-                      <div className="pt-3 pb-1 px-1">
+                      </Link>
+                      <Link to="/items/$id" params={{ id: item.id }} className="pt-3 pb-1 px-1 block hover:text-[#b98a7a] transition-colors">
                         <h3 className="font-display text-lg leading-tight line-clamp-1">{item.name}</h3>
                         <div className="text-[11px] text-muted-foreground mt-0.5">
                           מק״ט {item.sku} · ₪{Number(item.price).toFixed(0)}
                         </div>
-                      </div>
+                      </Link>
+
                       <button
                         onClick={() => {
                           add({ id: item.id, name: item.name, sku: item.sku, price: Number(item.price), image_url: item.image_url });
