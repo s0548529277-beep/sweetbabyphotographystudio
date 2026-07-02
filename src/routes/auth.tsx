@@ -33,6 +33,8 @@ function AuthPage() {
   const { redirect } = useSearch({ from: "/auth" });
   const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [busy, setBusy] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
 
   useEffect(() => {
     if (user) nav({ to: (redirect as any) || "/account" });
@@ -49,6 +51,23 @@ function AuthPage() {
     setBusy(false);
     if (error) toast.error(error.message);
   };
+
+  const sendReset = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const email = forgotEmail.trim();
+    if (!email) return;
+    setBusy(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setBusy(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("שלחנו קישור לאיפוס סיסמה למייל שלך");
+      setForgotOpen(false);
+    }
+  };
+
 
   const signUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -105,7 +124,33 @@ function AuthPage() {
                 <Button type="submit" disabled={busy} className="w-full rounded-full h-11">
                   {busy ? "…" : "כניסה"}
                 </Button>
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => setForgotOpen((v) => !v)}
+                    className="text-xs text-forest/80 hover:text-primary underline underline-offset-4"
+                  >
+                    שכחתי סיסמה
+                  </button>
+                </div>
               </form>
+              {forgotOpen && (
+                <form onSubmit={sendReset} className="space-y-3 mt-4 p-4 rounded-2xl bg-cream border border-primary/10">
+                  <p className="text-xs text-muted-foreground">
+                    הזינו את כתובת המייל ונשלח קישור לאיפוס סיסמה.
+                  </p>
+                  <Input
+                    type="email"
+                    required
+                    placeholder="you@example.com"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                  />
+                  <Button type="submit" disabled={busy} className="w-full rounded-full h-10">
+                    {busy ? "שולח…" : "שליחת קישור איפוס"}
+                  </Button>
+                </form>
+              )}
             </TabsContent>
             <TabsContent value="signup">
               <form onSubmit={signUp} className="space-y-4 mt-6">
