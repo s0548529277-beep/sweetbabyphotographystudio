@@ -3,7 +3,7 @@ import { ArrowLeft, Camera, MoveUpRight } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import heroImg from "@/assets/hero-scene.jpg";
+import heroImg from "@/assets/hero-studio.jpg.asset.json";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -71,7 +71,7 @@ function Home() {
             <div className="lg:col-span-5 relative">
               <div className="relative aspect-[4/5] overflow-hidden bg-bone">
                 <img
-                  src={heroImg}
+                  src={heroImg.url}
                   alt="סטודיו Sweetbaby"
                   className="w-full h-full object-cover"
                   width={1200}
@@ -164,7 +164,7 @@ function Home() {
         <div className="grid lg:grid-cols-12 gap-6 md:gap-8">
           {/* feature */}
           <Link to="/catalog" className="lg:col-span-7 group block relative overflow-hidden bg-bone aspect-[4/3]">
-            <img src={heroImg} alt="קולקציית אביזרי צילום ניובורן" className="absolute inset-0 w-full h-full object-cover transition-transform duration-[900ms] group-hover:scale-105" />
+            <img src={heroImg.url} alt="קולקציית אביזרי צילום ניובורן" className="absolute inset-0 w-full h-full object-cover transition-transform duration-[900ms] group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 via-foreground/10 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 p-8 md:p-10 text-background">
               <div className="text-[11px] tracking-[0.35em] uppercase text-sand mb-3">Featured · 01</div>
