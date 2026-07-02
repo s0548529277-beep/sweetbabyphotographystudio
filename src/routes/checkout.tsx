@@ -130,8 +130,11 @@ function Checkout() {
             </div>
 
             <div className="glass-card rounded-3xl p-8">
-              <h2 className="font-display text-xl text-primary mb-3">תנאי השכרה</h2>
-              <ul className="text-xs text-muted-foreground space-y-1.5 mb-5 max-h-32 overflow-y-auto pr-2">
+              <h2 className="font-display text-xl text-primary mb-1">תנאי השכרה</h2>
+              <p className="text-xs text-muted-foreground mb-4">
+                מיקום הסטודיו: <span className="font-medium text-primary">תלמוד ירושלמי 24, בית שמש</span>
+              </p>
+              <ul className="text-xs text-muted-foreground space-y-1.5 mb-4 max-h-32 overflow-y-auto pr-2">
                 <li>· חפץ שלא ייאסף תוך 30 יום ייכנס למאגר האביזרים.</li>
                 <li>· ניקיון: השארת מקום מלוכלך – חיוב 150₪.</li>
                 <li>· כיבוי אורות/מזגן: 7₪ לשעה עד השעה 08:00 למחרת.</li>
@@ -140,9 +143,23 @@ function Checkout() {
                 <li>· חריגה 15-44 דק' = חצי שעת חיוב. 45+ דק' = שעה מלאה.</li>
                 <li>· ביטול עד יום האירוע – מקדמה לא מוחזרת. ביטול ביום עצמו – חיוב 100%.</li>
               </ul>
-              <label className="flex items-start gap-2 text-sm cursor-pointer">
-                <Checkbox checked={form.terms_accepted} onCheckedChange={(v) => setForm({ ...form, terms_accepted: !!v })} className="mt-0.5" />
-                <span>אני מאשרת את תנאי הסטודיו במלואם *</span>
+              <a
+                href="https://docs.google.com/forms/d/e/1FAIpQLSdVqfjJ53OzK55mXvEeExdHp0lEWFN7RJgwtG7OSqD94KjEhg/viewform"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm font-medium text-forest hover:text-primary underline underline-offset-4 mb-4"
+              >
+                לקריאת הכללים המלאים והחתמה בטופס →
+              </a>
+              <label className="flex items-start gap-2 text-sm cursor-pointer bg-blush/30 rounded-2xl p-4 border border-blush mt-2">
+                <Checkbox
+                  checked={form.terms_accepted}
+                  onCheckedChange={(v) => setForm({ ...form, terms_accepted: !!v })}
+                  className="mt-0.5"
+                />
+                <span className="font-medium">
+                  אני מאשר/ת שקראתי את הכללים ואני מסכימה לתנאי ההשכרה *
+                </span>
               </label>
             </div>
           </div>
