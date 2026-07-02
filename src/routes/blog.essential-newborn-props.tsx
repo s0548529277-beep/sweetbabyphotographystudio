@@ -13,18 +13,36 @@ const DESCRIPTION =
 export const Route = createFileRoute("/blog/essential-newborn-props")({
   component: EssentialNewbornPropsGuide,
   head: () => ({
+  head: () => {
+    const OG_IMAGE = `https://sweetbabyphotographystudio.lovable.app${ogImage}`;
+    return {
     meta: [
       { title: TITLE },
       { name: "description", content: DESCRIPTION },
       { name: "keywords", content: "אביזרי ניוברן, ניוברן פרופס, צילומי ניוברן, אביזרי צילום, סלסלות ניוברן, newborn photography props" },
+      { name: "author", content: "Sweetbaby Studio" },
+      { property: "og:site_name", content: "Sweetbaby" },
+      { property: "og:locale", content: "he_IL" },
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESCRIPTION },
       { property: "og:type", content: "article" },
       { property: "og:url", content: CANONICAL },
+      { property: "og:image", content: OG_IMAGE },
+      { property: "og:image:secure_url", content: OG_IMAGE },
+      { property: "og:image:type", content: "image/jpeg" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "640" },
+      { property: "og:image:alt", content: "אביזרי צילומי ניוברן — סלסלה, כובע סרוג ומצעים בסטודיו Sweetbaby" },
       { property: "article:section", content: "Newborn Photography" },
+      { property: "article:author", content: "Sweetbaby" },
+      { property: "article:tag", content: "צילומי ניוברן" },
+      { property: "article:tag", content: "אביזרי צילום" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:site", content: "@sweetbaby" },
       { name: "twitter:title", content: TITLE },
       { name: "twitter:description", content: DESCRIPTION },
+      { name: "twitter:image", content: OG_IMAGE },
+      { name: "twitter:image:alt", content: "אביזרי צילומי ניוברן — סלסלה, כובע סרוג ומצעים בסטודיו Sweetbaby" },
     ],
     links: [{ rel: "canonical", href: CANONICAL }],
     scripts: [
