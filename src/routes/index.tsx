@@ -104,7 +104,7 @@ function Home() {
       </section>
 
       {/* MARQUEE */}
-      <section className="overflow-hidden border-b border-border py-6 bg-foreground text-background">
+      <section className="overflow-hidden border-b border-border py-6 bg-foreground text-background" dir="ltr">
         <div className="marquee-track font-display text-4xl md:text-5xl italic">
           {[...marqueeWords, ...marqueeWords].map((w, i) => (
             <span key={i} className="inline-flex items-center gap-12">
