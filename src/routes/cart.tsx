@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { ProductImage } from "@/components/ProductImage";
 import { useCart } from "@/lib/cart";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
@@ -41,7 +42,7 @@ function Cart() {
               {lines.map((l) => (
                 <div key={l.id} className="flex gap-4 items-center bg-card rounded-2xl p-4 border border-primary/5">
                   <div className="h-24 w-24 rounded-xl overflow-hidden bg-cream shrink-0">
-                    {l.image_url ? <img src={l.image_url} alt={l.name} className="w-full h-full object-cover" /> : null}
+                    <ProductImage imageUrl={l.image_url} alt={l.name} fallbackClassName="h-6 w-6" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-display text-lg text-primary truncate">{l.name}</div>

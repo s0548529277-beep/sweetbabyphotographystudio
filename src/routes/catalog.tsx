@@ -4,11 +4,13 @@ import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { ProductImage } from "@/components/ProductImage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCart } from "@/lib/cart";
+import { absoluteImageUrl, normalizeImageUrl } from "@/lib/images";
 import { toast } from "sonner";
-import { Search, Plus, Minus, ImageIcon, ChevronDown, Trash2 } from "lucide-react";
+import { Search, Plus, Minus, ChevronDown, Trash2, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/catalog")({
   component: Catalog,
@@ -75,7 +77,7 @@ function Catalog() {
           "@type": "Product",
           name: i.name,
           sku: i.sku,
-          image: i.image_url ? `https://sweetbabyphotographystudio.lovable.app${i.image_url}` : undefined,
+          image: absoluteImageUrl(i.image_url),
           description: i.description ?? undefined,
           offers: {
             "@type": "Offer",
@@ -163,6 +165,8 @@ function Catalog() {
               <h2 className="sr-only">קטלוג אביזרי צילום</h2>
               {items.isLoading ? (
                 <GridSkeleton />
+              ) : items.isError ? (
+                <CatalogError onRetry={() => items.refetch()} />
               ) : filtered.length === 0 ? (
                 <EmptyState />
               ) : (
@@ -175,18 +179,11 @@ function Catalog() {
                         className="aspect-square rounded-2xl bg-[#efe6df] relative overflow-hidden block"
                         aria-label={`צפייה בפריט ${item.name}`}
                       >
-                        {item.image_url ? (
-                          <img
-                            src={item.image_url}
-                            alt={item.name}
-                            loading="lazy"
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-foreground/20">
-                            <ImageIcon className="h-10 w-10" />
-                          </div>
-                        )}
+                        <ProductImage
+                          imageUrl={item.image_url}
+                          alt={item.name}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
                       </Link>
                       <Link to="/items/$id" params={{ id: item.id }} className="pt-3 pb-1 px-1 block hover:text-[#b98a7a] transition-colors">
                         <h3 className="font-display text-lg leading-tight line-clamp-1">{item.name}</h3>
@@ -197,7 +194,7 @@ function Catalog() {
 
                       <button
                         onClick={() => {
-                          add({ id: item.id, name: item.name, sku: item.sku, price: Number(item.price), image_url: item.image_url });
+                          add({ id: item.id, name: item.name, sku: item.sku, price: Number(item.price), image_url: normalizeImageUrl(item.image_url) });
                           toast.success(`${item.name} נוסף להזמנה`);
                         }}
                         className="mt-2 h-10 rounded-full bg-[#f3c9bd] hover:bg-[#eab5a4] text-[#4a2a20] text-sm font-medium transition-colors"
@@ -229,9 +226,7 @@ function Catalog() {
                     {lines.map((l) => (
                       <li key={l.id} className="py-3 flex gap-3">
                         <div className="h-14 w-14 rounded-xl bg-[#efe6df] overflow-hidden shrink-0">
-                          {l.image_url ? (
-                            <img src={l.image_url} alt={l.name} className="h-full w-full object-cover" />
-                          ) : null}
+                          <ProductImage imageUrl={l.image_url} alt={l.name} fallbackClassName="h-5 w-5" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium line-clamp-1">{l.name}</div>
@@ -314,6 +309,19 @@ function EmptyState() {
     <div className="py-24 text-center">
       <div className="font-display text-3xl italic mb-2">אין אביזרים להצגה</div>
       <p className="text-muted-foreground text-sm">נסי לנקות את הסינון או לחפש מונח אחר.</p>
+    </div>
+  );
+}
+
+function CatalogError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="py-24 text-center">
+      <div className="font-display text-3xl italic mb-2">הקטלוג לא נטען כרגע</div>
+      <p className="text-muted-foreground text-sm mb-5">יש תקלה זמנית בטעינת האביזרים. נסי לרענן את הרשימה.</p>
+      <Button type="button" onClick={onRetry} className="rounded-full gap-2">
+        <RefreshCw className="h-4 w-4" />
+        טען מחדש
+      </Button>
     </div>
   );
 }
