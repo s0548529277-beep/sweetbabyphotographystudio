@@ -1,4 +1,5 @@
 import logo from "@/assets/logo-peach.png";
+import { Link } from "@tanstack/react-router";
 
 export function Footer() {
   return (
