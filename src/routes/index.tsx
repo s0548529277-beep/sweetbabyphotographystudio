@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import heroImg from "@/assets/hero-studio.jpg.asset.json";
+import heroAnimation from "@/assets/hero-animation.gif.asset.json";
 
 export const Route = createFileRoute("/")({
   component: Home,
