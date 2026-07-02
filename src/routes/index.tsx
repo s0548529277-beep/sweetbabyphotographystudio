@@ -49,11 +49,9 @@ function Home() {
             {/* headline */}
             <div className="lg:col-span-7">
               <h1 className="font-display leading-[0.92] text-foreground tracking-tight text-[clamp(3.5rem,10vw,9rem)]">
-                היצירה
-                <br />
-                <span className="italic font-normal text-sand-deep">הראשונה</span>
-                <br />
-                <span>שלי.</span>
+                <span className="block whitespace-nowrap">היצירה</span>
+                <span className="block whitespace-nowrap italic font-normal text-sand-deep">הראשונה</span>
+                <span className="block whitespace-nowrap">שלי.</span>
               </h1>
               <div className="mt-8 flex flex-wrap items-center gap-4">
                 <Link to="/start">
