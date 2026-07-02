@@ -28,7 +28,6 @@ export function Header() {
       <div className="container-page flex items-center justify-between h-20 gap-6">
         <Link to="/" className="flex items-center gap-3 shrink-0">
           <img src={logo} alt="Sweetbaby" className="h-10 w-auto" />
-          <span className="hidden sm:block font-display text-xl tracking-tight italic">Sweetbaby</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-10 text-[11px] tracking-[0.28em] uppercase">
