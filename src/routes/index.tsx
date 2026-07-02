@@ -1,173 +1,214 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Camera, Sparkles, CalendarDays, ArrowLeft } from "lucide-react";
+import { ArrowLeft, Camera, MoveUpRight } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import heroImg from "@/assets/hero-scene.jpg";
-import logoPeach from "@/assets/logo-peach.png";
 
 export const Route = createFileRoute("/")({
   component: Home,
 });
 
+const marqueeWords = [
+  "Newborn",
+  "Sitter",
+  "Cake Smash",
+  "Family",
+  "Vintage",
+  "Macramé",
+  "Lifestyle",
+  "Studio",
+];
+
 function Home() {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Header />
 
-      {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="container-page grid lg:grid-cols-2 gap-12 items-center py-16 md:py-24">
-          <div className="order-2 lg:order-1 space-y-7">
-            <div className="inline-flex items-center gap-2 text-forest text-xs tracking-[0.25em] uppercase">
-              <span className="h-px w-8 bg-forest/50" /> Studio Sweetbaby
+      {/* HERO — editorial split */}
+      <section className="relative border-b border-border/70">
+        <div className="container-page pt-10 md:pt-16 pb-20 md:pb-28">
+          {/* top meta bar */}
+          <div className="flex items-center justify-between text-[11px] tracking-[0.32em] uppercase text-muted-foreground mb-14">
+            <span>Est. 2020 — Beit Shemesh</span>
+            <span className="hidden md:inline">Catalogue №26 · 2026 Edition</span>
+            <span dir="ltr">SB / 001</span>
+          </div>
+
+          <div className="grid lg:grid-cols-12 gap-10 lg:gap-14 items-end">
+            {/* headline */}
+            <div className="lg:col-span-7">
+              <h1 className="font-display leading-[0.92] text-foreground tracking-tight text-[clamp(3.5rem,10vw,9rem)]">
+                התמונה
+                <br />
+                <span className="italic font-normal">הראשונה</span>
+                <span className="text-sand-deep">.</span>
+              </h1>
+              <div className="mt-8 flex flex-wrap items-center gap-4">
+                <Link to="/start">
+                  <Button size="lg" className="rounded-none h-12 px-8 text-sm tracking-widest uppercase gap-3 bg-foreground text-background hover:bg-foreground/90">
+                    להתחלת הזמנה <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                </Link>
+                <Link to="/catalog" className="text-sm tracking-widest uppercase inline-flex items-center gap-2 border-b border-foreground/40 pb-1 hover:border-foreground transition-colors">
+                  לצפייה בקטלוג <MoveUpRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
             </div>
-            <h1 className="font-display text-5xl md:text-7xl leading-[1.05] text-primary">
-              התמונה
-              <br />
-              <span className="italic text-peach-deep">הראשונה</span> שלי.
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-lg leading-relaxed">
-              מבחר אביזרים מעוצבים לצילומי ניוברן, גיל שנה, חלאקה ומשפחה — לוקיישן משלכם, אווירה משלנו.
+
+            {/* image */}
+            <div className="lg:col-span-5 relative">
+              <div className="relative aspect-[4/5] overflow-hidden bg-bone">
+                <img
+                  src={heroImg}
+                  alt="סטודיו Sweetbaby"
+                  className="w-full h-full object-cover"
+                  width={1200}
+                  height={1500}
+                />
+                <div className="absolute inset-0 pointer-events-none ring-1 ring-inset ring-foreground/10" />
+              </div>
+              <div className="absolute -bottom-4 -right-4 md:-right-8 bg-background border border-border px-5 py-3 text-xs tracking-[0.28em] uppercase flex items-center gap-3">
+                <Camera className="h-4 w-4" />
+                Studio · Beit Shemesh
+              </div>
+            </div>
+          </div>
+
+          {/* lede + stats */}
+          <div className="mt-20 grid lg:grid-cols-12 gap-10 border-t border-border pt-10">
+            <p className="lg:col-span-6 lg:col-start-1 text-lg md:text-xl leading-relaxed max-w-2xl text-foreground/85">
+              סטודיו אינטימי בבית שמש ומאגר של מעל <span className="italic font-display text-2xl">300</span> אביזרים מעוצבים — 
+              וינטג׳, מקרמה, סרוגים, עץ ורטאן — לצילומי ניוברן, גיל שנה, חלאקה ומשפחה. אתם בוחרים סגנון, אנחנו מכינים את הסט.
             </p>
-            <div className="flex flex-wrap gap-3 pt-2">
-              <Link to="/start">
-                <Button size="lg" className="rounded-full gap-2 px-7 h-12 text-base">
-                  להתחלת הזמנה <ArrowLeft className="h-4 w-4" />
-                </Button>
-              </Link>
-              <Link to="/about">
-                <Button size="lg" variant="outline" className="rounded-full px-7 h-12 text-base border-primary/30">
-                  איך זה עובד
-                </Button>
-              </Link>
-            </div>
-            <div className="grid grid-cols-3 gap-6 pt-8 max-w-md">
+            <dl className="lg:col-span-5 lg:col-start-8 grid grid-cols-3 gap-6 border-t border-border pt-8 lg:border-t-0 lg:pt-0">
               {[
-                { n: "300+", l: "אביזרים" },
-                { n: "24ש׳", l: "השכרה" },
-                { n: "50₪", l: "מינימום" },
+                { n: "300+", l: "פריטים" },
+                { n: "24h", l: "השכרה" },
+                { n: "₪50", l: "מינימום" },
               ].map((s) => (
                 <div key={s.l}>
-                  <div className="font-display text-3xl text-primary">{s.n}</div>
-                  <div className="text-xs text-muted-foreground tracking-widest uppercase mt-1">{s.l}</div>
+                  <dt className="text-[10px] tracking-[0.3em] uppercase text-muted-foreground mb-2">{s.l}</dt>
+                  <dd className="font-display text-4xl md:text-5xl">{s.n}</dd>
                 </div>
               ))}
-            </div>
-          </div>
-
-          <div className="order-1 lg:order-2 relative">
-            <div className="absolute -inset-4 bg-peach/30 blur-3xl rounded-full -z-10" />
-            <div className="relative aspect-[4/5] rounded-[2rem] overflow-hidden bg-cream shadow-[var(--shadow-soft)]">
-              <img src={heroImg} alt="סטודיו סוויט בייבי" className="w-full h-full object-cover" width={1600} height={1200} />
-              {/* film corner marks */}
-              <div className="absolute inset-4 border border-cream/40 rounded-[1.6rem] pointer-events-none" />
-              <span className="absolute top-6 left-6 text-cream/80 text-[10px] tracking-[0.3em]">SB · 01</span>
-              <span className="absolute bottom-6 right-6 text-cream/80 text-[10px] tracking-[0.3em]">2026 · ISO 200</span>
-            </div>
-            {/* Floating badge */}
-            <div className="absolute -bottom-6 -left-4 md:-left-10 bg-primary text-primary-foreground rounded-full px-6 py-4 shadow-[var(--shadow-soft)] flex items-center gap-3">
-              <Camera className="h-5 w-5 text-peach" />
-              <div className="text-xs leading-tight">
-                <div className="font-display text-lg text-peach">Newborn</div>
-                <div className="opacity-70">Photography Props</div>
-              </div>
-            </div>
+            </dl>
           </div>
         </div>
       </section>
 
-      {/* Feature strip */}
-      <section className="border-y border-primary/10 bg-cream/70">
-        <div className="container-page grid grid-cols-1 md:grid-cols-3 divide-x divide-x-reverse divide-primary/10">
-          {[
-            { icon: Sparkles, t: "אביזרים מעוצבים", d: "וינטג׳, מקרמה, סרוגים, עץ ורטאן — נבחרו ידנית." },
-            { icon: CalendarDays, t: "איסוף גמיש", d: "השכרת 24 שעות בבית שמש, קרוב אליכם." },
-            { icon: Camera, t: "לכל סגנון", d: "ניו בורן, גיל שנה, חלאקה, משפחה ולוקיישן." },
-          ].map((f) => (
-            <div key={f.t} className="p-8 flex gap-4 items-start">
-              <div className="h-10 w-10 rounded-full bg-primary text-peach flex items-center justify-center shrink-0">
-                <f.icon className="h-4 w-4" />
-              </div>
-              <div>
-                <h3 className="font-display text-xl text-primary">{f.t}</h3>
-                <p className="text-sm text-muted-foreground mt-1">{f.d}</p>
-              </div>
-            </div>
+      {/* MARQUEE */}
+      <section className="overflow-hidden border-b border-border py-6 bg-foreground text-background">
+        <div className="marquee-track font-display text-4xl md:text-5xl italic">
+          {[...marqueeWords, ...marqueeWords].map((w, i) => (
+            <span key={i} className="inline-flex items-center gap-12">
+              {w}
+              <span className="text-sand text-2xl">✦</span>
+            </span>
           ))}
         </div>
       </section>
 
-      {/* Categories teaser */}
-      <section className="container-page py-20">
-        <div className="flex items-end justify-between mb-10">
-          <div>
-            <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-3">Collections</div>
-            <h2 className="font-display text-4xl md:text-5xl text-primary">קולקציות נבחרות</h2>
+      {/* PILLARS */}
+      <section className="container-page py-24 md:py-32">
+        <div className="grid lg:grid-cols-12 gap-10">
+          <div className="lg:col-span-4">
+            <div className="eyebrow mb-4">The Studio</div>
+            <h2 className="font-display text-5xl md:text-6xl leading-[1] tracking-tight">
+              עיצוב <span className="italic">שקט</span>,
+              <br />תמונה שנשארת.
+            </h2>
           </div>
-          <Link to="/catalog" className="text-sm text-primary hover:text-peach-deep flex items-center gap-1">
-            כל הקטלוג <ArrowLeft className="h-3 w-3" />
+          <div className="lg:col-span-8 grid sm:grid-cols-3 gap-px bg-border">
+            {[
+              { n: "01", t: "אביזרים מעוצבים", d: "וינטג׳, מקרמה, סרוגים, עץ ורטאן — נבחרו ידנית." },
+              { n: "02", t: "השכרה גמישה", d: "24 שעות מלאות בבית שמש, איסוף עצמי." },
+              { n: "03", t: "לכל סגנון", d: "ניו בורן, גיל שנה, חלאקה, משפחה ולוקיישן." },
+            ].map((f) => (
+              <div key={f.n} className="bg-background p-8 flex flex-col justify-between min-h-52">
+                <span className="font-display text-2xl text-sand-deep">{f.n}</span>
+                <div>
+                  <h3 className="font-display text-2xl mb-2">{f.t}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{f.d}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* COLLECTIONS — hero-grid */}
+      <section className="container-page pb-24 md:pb-32">
+        <div className="flex items-end justify-between mb-10 border-b border-border pb-6">
+          <div>
+            <div className="eyebrow mb-3">Collections</div>
+            <h2 className="font-display text-5xl md:text-6xl tracking-tight">קולקציות נבחרות</h2>
+          </div>
+          <Link to="/catalog" className="text-sm tracking-widest uppercase inline-flex items-center gap-2 border-b border-foreground/50 pb-1">
+            לכל הקטלוג <ArrowLeft className="h-3.5 w-3.5" />
           </Link>
         </div>
-        <div className="grid md:grid-cols-3 gap-6">
-          {[
-            { t: "Newborn", he: "ניו בורן", d: "עריסות, סלים, כריות פוזינג ועיטופים." },
-            { t: "Vintage", he: "וינטג׳", d: "מצלמות מינולטה, ספרים, טלפון וכובעים." },
-            { t: "Lifestyle", he: "לייף סטייל", d: "מקרמה, סלסלות, כדים ופרטים חמים." },
-          ].map((c, i) => (
-            <Link
-              key={c.t}
-              to="/catalog"
-              className="group relative aspect-[4/5] rounded-3xl overflow-hidden bg-primary/95 flex items-end p-7 shadow-[var(--shadow-card)]"
-            >
-              <div
-                className="absolute inset-0 opacity-40 group-hover:opacity-55 transition-opacity"
-                style={{
-                  background:
-                    i === 0
-                      ? "radial-gradient(circle at 30% 20%, oklch(0.87 0.055 55 / 0.7), transparent 60%)"
-                      : i === 1
-                      ? "radial-gradient(circle at 70% 80%, oklch(0.78 0.09 45 / 0.7), transparent 60%)"
-                      : "radial-gradient(circle at 50% 40%, oklch(0.9 0.045 60 / 0.7), transparent 60%)",
-                }}
-              />
-              <div className="absolute top-6 right-6 text-peach/70 text-[10px] tracking-[0.3em]">0{i + 1}</div>
-              <div className="relative text-primary-foreground">
-                <div className="text-peach text-xs tracking-[0.3em] uppercase mb-2">{c.t}</div>
-                <h3 className="font-display text-3xl mb-2">{c.he}</h3>
-                <p className="text-sm text-primary-foreground/70 max-w-[24ch]">{c.d}</p>
-              </div>
-            </Link>
-          ))}
+
+        <div className="grid lg:grid-cols-12 gap-6 md:gap-8">
+          {/* feature */}
+          <Link to="/catalog" className="lg:col-span-7 group block relative overflow-hidden bg-bone aspect-[4/3]">
+            <img src={heroImg} alt="Newborn" className="absolute inset-0 w-full h-full object-cover transition-transform duration-[900ms] group-hover:scale-105" />
+            <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 via-foreground/10 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-8 md:p-10 text-background">
+              <div className="text-[11px] tracking-[0.35em] uppercase text-sand mb-3">Featured · 01</div>
+              <h3 className="font-display text-5xl md:text-6xl italic">ניו בורן</h3>
+              <p className="mt-3 text-sm text-background/80 max-w-md">עריסות, סלים, כריות פוזינג, עיטופים ורכות שנשארת לדורות.</p>
+            </div>
+          </Link>
+
+          <div className="lg:col-span-5 grid sm:grid-cols-2 lg:grid-cols-1 gap-6 md:gap-8">
+            {[
+              { t: "Vintage", he: "וינטג׳", d: "מצלמות מינולטה, ספרים, טלפון וכובעים." },
+              { t: "Lifestyle", he: "לייף סטייל", d: "מקרמה, סלסלות, כדים ופרטים חמים." },
+            ].map((c, i) => (
+              <Link
+                key={c.t}
+                to="/catalog"
+                className="group relative overflow-hidden aspect-[4/3] lg:aspect-auto lg:h-full border border-border bg-bone flex items-end p-7"
+              >
+                <div className="absolute top-6 right-6 text-[10px] tracking-[0.35em] uppercase text-muted-foreground">0{i + 2}</div>
+                <div className="relative">
+                  <div className="eyebrow mb-2">{c.t}</div>
+                  <h3 className="font-display text-4xl italic">{c.he}</h3>
+                  <p className="text-sm text-muted-foreground mt-2 max-w-[26ch]">{c.d}</p>
+                </div>
+                <MoveUpRight className="absolute bottom-7 left-7 h-5 w-5 text-foreground/60 group-hover:text-foreground transition-colors" />
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Rules card */}
-      <section className="container-page pb-20">
-        <div className="rounded-[2rem] bg-primary text-primary-foreground p-10 md:p-16 relative overflow-hidden">
-          <img src={logoPeach} alt="" className="absolute -top-10 -left-10 opacity-10 w-96 h-auto pointer-events-none" />
-          <div className="grid md:grid-cols-2 gap-10 items-start relative">
-            <div>
-              <div className="text-peach text-xs tracking-[0.3em] uppercase mb-3">Rental Rules</div>
-              <h2 className="font-display text-4xl md:text-5xl">כללי ההשכרה</h2>
-              <p className="text-primary-foreground/70 mt-4 max-w-md">
-                הזמנת אביזרים נחשבת להסכמה לתנאים. שמרו עליהם — ותנו לתמונות לדבר.
-              </p>
-            </div>
-            <ul className="space-y-4 text-sm">
-              {[
-                "מינימום להזמנה 50 ש״ח, התשלום לפני לקיחת האביזרים.",
-                "איסוף והחזרה תוך 24 שעות; כל יום נוסף — חיוב השכרה מלא.",
-                "איחור מעל 3 שעות — חיוב חצי מסכום ההשכרה.",
-                "אחריות מלאה על האביזרים — נזק יחויב במחירם המלא.",
-              ].map((r, i) => (
-                <li key={i} className="flex gap-4">
-                  <span className="text-peach font-display text-lg leading-none pt-0.5">0{i + 1}</span>
-                  <span className="text-primary-foreground/90">{r}</span>
-                </li>
-              ))}
-            </ul>
+      {/* RULES */}
+      <section className="container-page pb-24 md:pb-32">
+        <div className="grid lg:grid-cols-12 gap-10 border-t border-border pt-12">
+          <div className="lg:col-span-4">
+            <div className="eyebrow mb-4">Rental Rules</div>
+            <h2 className="font-display text-4xl md:text-5xl leading-[1.05]">
+              כללי <span className="italic">ההשכרה</span>
+            </h2>
+            <p className="text-muted-foreground mt-4 max-w-md text-sm leading-relaxed">
+              הזמנת אביזרים נחשבת להסכמה לתנאים. שמרו עליהם — ותנו לתמונות לדבר.
+            </p>
           </div>
+          <ol className="lg:col-span-8 divide-y divide-border border-y border-border">
+            {[
+              "מינימום להזמנה 50 ש״ח, התשלום לפני לקיחת האביזרים.",
+              "איסוף והחזרה תוך 24 שעות; כל יום נוסף — חיוב השכרה מלא.",
+              "איחור מעל 3 שעות — חיוב חצי מסכום ההשכרה.",
+              "אחריות מלאה על האביזרים — נזק יחויב במחירם המלא.",
+            ].map((r, i) => (
+              <li key={i} className="py-6 grid grid-cols-[auto_1fr] gap-6 items-baseline">
+                <span className="font-display text-3xl text-sand-deep">0{i + 1}</span>
+                <span className="text-base md:text-lg text-foreground/90">{r}</span>
+              </li>
+            ))}
+          </ol>
         </div>
       </section>
 
