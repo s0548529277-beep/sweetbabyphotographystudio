@@ -21,6 +21,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogEssentialNewbornPropsRouteImport } from './routes/blog.essential-newborn-props'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
@@ -89,6 +90,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlogEssentialNewbornPropsRoute =
@@ -161,6 +167,7 @@ export interface FileRoutesByFullPath {
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
+  '/blog/': typeof BlogIndexRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/admin/items': typeof AuthenticatedAdminItemsRoute
@@ -183,6 +190,7 @@ export interface FileRoutesByTo {
   '/track': typeof TrackRoute
   '/account': typeof AuthenticatedAccountRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
+  '/blog': typeof BlogIndexRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/admin/items': typeof AuthenticatedAdminItemsRoute
@@ -208,6 +216,7 @@ export interface FileRoutesById {
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
+  '/blog/': typeof BlogIndexRoute
   '/_authenticated/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/_authenticated/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/_authenticated/admin/items': typeof AuthenticatedAdminItemsRoute
@@ -233,6 +242,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/blog/essential-newborn-props'
+    | '/blog/'
     | '/admin/calendar'
     | '/admin/clients'
     | '/admin/items'
@@ -255,6 +265,7 @@ export interface FileRouteTypes {
     | '/track'
     | '/account'
     | '/blog/essential-newborn-props'
+    | '/blog'
     | '/admin/calendar'
     | '/admin/clients'
     | '/admin/items'
@@ -279,6 +290,7 @@ export interface FileRouteTypes {
     | '/_authenticated/account'
     | '/_authenticated/admin'
     | '/blog/essential-newborn-props'
+    | '/blog/'
     | '/_authenticated/admin/calendar'
     | '/_authenticated/admin/clients'
     | '/_authenticated/admin/items'
@@ -302,6 +314,7 @@ export interface RootRouteChildren {
   StartRoute: typeof StartRoute
   TrackRoute: typeof TrackRoute
   BlogEssentialNewbornPropsRoute: typeof BlogEssentialNewbornPropsRoute
+  BlogIndexRoute: typeof BlogIndexRoute
   DepositTypeIdRoute: typeof DepositTypeIdRoute
   SummaryTypeIdRoute: typeof SummaryTypeIdRoute
 }
@@ -390,6 +403,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/': {
+      id: '/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blog/essential-newborn-props': {
@@ -511,6 +531,7 @@ const rootRouteChildren: RootRouteChildren = {
   StartRoute: StartRoute,
   TrackRoute: TrackRoute,
   BlogEssentialNewbornPropsRoute: BlogEssentialNewbornPropsRoute,
+  BlogIndexRoute: BlogIndexRoute,
   DepositTypeIdRoute: DepositTypeIdRoute,
   SummaryTypeIdRoute: SummaryTypeIdRoute,
 }
