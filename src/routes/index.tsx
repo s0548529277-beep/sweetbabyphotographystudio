@@ -9,10 +9,10 @@ export const Route = createFileRoute("/")({
   component: Home,
   head: () => ({
     meta: [
-      { title: "Sweetbaby — סטודיו והשכרת אביזרי צילום בבית שמש" },
-      { name: "description", content: "השכרת אביזרים מעוצבים ושכירת סטודיו לצילומי ניוברן, גיל שנה, חלאקה ומשפחה. בבית שמש." },
-      { property: "og:title", content: "Sweetbaby — סטודיו והשכרת אביזרי צילום" },
-      { property: "og:description", content: "אביזרים מעוצבים וסטודיו מוכן לצילומי ניוברן, גיל שנה ומשפחה." },
+      { title: "Sweetbaby — סטודיו בוטיק ומעל 400 אביזרי צילום בבית שמש" },
+      { name: "description", content: "סטודיו בוטיק בבית שמש ומעל 400 אביזרים מעוצבים להשכרה — וינטג׳, מקרמה, סרוגים, עץ ורטאן — לצילומי ניוברן, גיל שנה, חלאקה ומשפחה." },
+      { property: "og:title", content: "Sweetbaby — סטודיו בוטיק ומעל 400 אביזרי צילום" },
+      { property: "og:description", content: "סטודיו בוטיק בבית שמש ומעל 400 אביזרים מעוצבים להשכרה לצילומי ניוברן, גיל שנה, חלאקה ומשפחה." },
       { property: "og:url", content: "https://sweetbabyphotographystudio.lovable.app/" },
     ],
     links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/" }],
