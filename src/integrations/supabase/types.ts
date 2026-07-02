@@ -492,8 +492,42 @@ export type Database = {
         }
         Relationships: []
       }
+      item_busy_slots: {
+        Row: {
+          date: string | null
+          item_id: string | null
+          slot_index: number | null
+        }
+        Insert: {
+          date?: string | null
+          item_id?: string | null
+          slot_index?: number | null
+        }
+        Update: {
+          date?: string | null
+          item_id?: string | null
+          slot_index?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_availability_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      get_item_busy_slots: {
+        Args: { _date: string; _item_ids: string[] }
+        Returns: {
+          date: string
+          item_id: string
+          slot_index: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
