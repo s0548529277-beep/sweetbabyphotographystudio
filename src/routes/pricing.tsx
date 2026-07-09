@@ -420,6 +420,16 @@ const pageCSS = `
 .sb-page .total-price { font-size: 2.5rem; font-weight: 700; margin-top: 10px; }
 .sb-page .submit-btn { display: block; width: 100%; background-color: var(--sb-primary); color: var(--sb-bg); border: none; padding: 15px; font-size: 1.2rem; font-weight: 700; border-radius: 12px; cursor: pointer; margin-top: 20px; transition: opacity .3s; font-family: inherit; }
 .sb-page .submit-btn:hover { opacity: .9; }
+.sb-page .bg-secondary-box { background-color: #fdfaf7; border: 2px solid rgba(22,49,38,.15); }
+.sb-page .catalog-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+.sb-page .catalog-item { position: relative; background: #ffffff; border: 1px solid rgba(22,49,38,.15); border-radius: 15px; overflow: hidden; cursor: pointer; transition: all .3s ease; box-shadow: 0 4px 10px rgba(0,0,0,.02); display: flex; flex-direction: column; margin-bottom: 0; }
+.sb-page .catalog-item input[type=checkbox] { position: absolute; top: 12px; right: 12px; width: 22px; height: 22px; accent-color: var(--sb-primary); z-index: 10; cursor: pointer; opacity: 1; }
+.sb-page .catalog-img { width: 100%; height: 150px; object-fit: cover; background-color: #eaeaea; border-bottom: 1px solid rgba(22,49,38,.08); display: block; }
+.sb-page .catalog-details { padding: 15px; text-align: center; display: flex; flex-direction: column; justify-content: space-between; flex-grow: 1; }
+.sb-page .catalog-name { font-weight: 700; font-size: 1rem; color: var(--sb-primary); }
+.sb-page .catalog-price { font-size: .85rem; color: #666; margin-top: 5px; font-weight: 600; }
+.sb-page .catalog-item.catalog-checked { border: 2.5px solid var(--sb-primary); transform: scale(1.02); }
+.sb-page .catalog-item.catalog-checked .catalog-details { background-color: rgba(22,49,38,.04); }
 @media (max-width: 768px) {
   .sb-page .logo-container h1 { font-size: 3rem; }
   .sb-page .logo-container .subtitle { font-size: 1.2rem; }
