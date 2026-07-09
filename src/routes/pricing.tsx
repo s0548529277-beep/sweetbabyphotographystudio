@@ -66,6 +66,9 @@ function PricingPage() {
     selectedItems: [] as string[],
   });
 
+  const [showCalendar, setShowCalendar] = useState(false);
+
+
   const toggleReportItem = (id: string) =>
     setReportForm((f) => ({
       ...f,
