@@ -319,6 +319,49 @@ function PricingPage() {
               <button type="submit" className="submit-btn">שליחת בקשת קביעת תור בוואטסאפ</button>
             </form>
           </div>
+
+          <div className="booking-box bg-secondary-box">
+            <h2 className="section-title" style={{ marginTop: 0 }}>2. קטלוג דיווח אביזרים (בזמן השהות בסטודיו)</h2>
+            <p style={{ textAlign: "center", marginBottom: 20 }}>סמנו בתוך הקטלוג את הפריטים שלקחתם לשימוש מהמדפים, והזינו שם וטלפון.</p>
+            <form onSubmit={submitReport}>
+              <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+                <div className="form-group">
+                  <label>שם מלא:</label>
+                  <input type="text" required value={reportForm.name} onChange={(e) => setReportForm({ ...reportForm, name: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>מספר טלפון:</label>
+                  <input type="tel" required value={reportForm.phone} onChange={(e) => setReportForm({ ...reportForm, phone: e.target.value })} />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>קטלוג אביזרים ופריטים:</label>
+                <div className="catalog-grid">
+                  {items.map((it) => {
+                    const src = normalizeImageUrl(it.image_url);
+                    const checked = reportForm.selectedItems.includes(it.id);
+                    return (
+                      <label key={it.id} className={`catalog-item ${checked ? "catalog-checked" : ""}`}>
+                        <input type="checkbox" checked={checked} onChange={() => toggleReportItem(it.id)} />
+                        {src ? (
+                          <img src={src} alt={it.name} loading="lazy" className="catalog-img" />
+                        ) : (
+                          <div className="catalog-img" aria-label={it.name} />
+                        )}
+                        <div className="catalog-details">
+                          <span className="catalog-name">{it.name}</span>
+                          <span className="catalog-price">כלול בחבילה / {Number(it.price)} ₪ בודד</span>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <button type="submit" className="submit-btn">שליחת דיווח אביזרים מהקטלוג לוואטסאפ</button>
+            </form>
+          </div>
         </div>
       </div>
       <Footer />
@@ -329,6 +372,7 @@ function PricingPage() {
 const pageCSS = `
 .sb-page {
   --sb-bg: #f5c5b3;
+
   --sb-primary: #163126;
   --sb-white: #ffffff;
   --sb-card-bg: rgba(255, 255, 255, 0.6);
