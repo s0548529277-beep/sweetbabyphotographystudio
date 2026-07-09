@@ -1,229 +1,356 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, MoveUpRight } from "lucide-react";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
-import { Button } from "@/components/ui/button";
-import heroImg from "@/assets/hero-studio.jpg.asset.json";
-import heroAnimation from "@/assets/hero-animation.gif.asset.json";
+import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { normalizeImageUrl } from "@/lib/images";
+
+// ⚠️ עדכני כאן את מספר הוואטסאפ של הסטודיו (פורמט בינ״ל ללא +, לדוגמה 972501234567)
+const WHATSAPP_NUMBER = "972500000000";
+
+type CatalogItem = { id: string; sku: string; name: string; price: number; image_url: string | null; category_id: string | null };
+type Category = { id: string; name: string };
+
+const catalogQuery = queryOptions({
+  queryKey: ["home-catalog"],
+  queryFn: async () => {
+    const [items, cats] = await Promise.all([
+      supabase.from("items").select("id, sku, name, price, image_url, category_id").eq("active", true).order("sku"),
+      supabase.from("categories").select("id, name").order("name"),
+    ]);
+    return {
+      items: (items.data ?? []) as CatalogItem[],
+      categories: (cats.data ?? []) as Category[],
+    };
+  },
+});
 
 export const Route = createFileRoute("/")({
+  loader: ({ context }) => context.queryClient.ensureQueryData(catalogQuery),
   component: Home,
   head: () => ({
     meta: [
-      { title: "Sweetbaby — סטודיו בוטיק ומעל 400 אביזרי צילום בבית שמש" },
-      { name: "description", content: "סטודיו בוטיק בבית שמש ומעל 400 אביזרים מעוצבים להשכרה — וינטג׳, מקרמה, סרוגים, עץ ורטאן — לצילומי ניוברן, גיל שנה, חלאקה ומשפחה." },
-      { property: "og:title", content: "Sweetbaby — סטודיו בוטיק ומעל 400 אביזרי צילום" },
-      { property: "og:description", content: "סטודיו בוטיק בבית שמש ומעל 400 אביזרים מעוצבים להשכרה לצילומי ניוברן, גיל שנה, חלאקה ומשפחה." },
+      { title: "Sweetbaby | השכרת סטודיו ואביזרים לצילום" },
+      { name: "description", content: "סטודיו בוטיק בבית שמש ומעל 400 אביזרים מעוצבים להשכרה — מחירון שקוף, חבילות אביזרים, וקביעת תור בוואטסאפ." },
+      { property: "og:title", content: "Sweetbaby | השכרת סטודיו ואביזרים לצילום" },
+      { property: "og:description", content: "סטודיו בוטיק בבית שמש — מחירון שקוף, חבילות אביזרים, ומחשבון קביעת תור." },
       { property: "og:url", content: "https://sweetbabyphotographystudio.lovable.app/" },
     ],
-    links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/" }],
+    links: [
+      { rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&family=Platypi:ital,wght@0,300..800;1,300..800&display=swap" },
+    ],
   }),
 });
 
-const marqueeWords = [
-  "Newborn",
-  "Sitter",
-  "Cake Smash",
-  "Family",
-  "Vintage",
-  "Macramé",
-  "Lifestyle",
-  "Studio",
-];
+const studioTypePricing = {
+  hourly: { 1: 120, 2: 210, 3: 300, 4: 390, 5: 480 },
+  newborn: { 3: 240 },
+} as const;
+
+const packagePrices = { none: 0, basic: 100, premium: 150, sweet: 350 } as const;
+const guidancePrices = { none: 0, technical: 50, professional: 100, full: 150 } as const;
 
 function Home() {
+  const { data } = useSuspenseQuery(catalogQuery);
+  const featuredItems = useMemo(() => data.items.slice(0, 12), [data.items]);
+
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    date: "",
+    studioType: "hourly" as "hourly" | "newborn",
+    hours: 1 as 1 | 2 | 3 | 4 | 5,
+    propsPackage: "none" as keyof typeof packagePrices,
+    selectedItems: [] as string[],
+    guidance: "none" as keyof typeof guidancePrices,
+  });
+
+  const toggleItem = (id: string) =>
+    setForm((f) => ({
+      ...f,
+      selectedItems: f.selectedItems.includes(id) ? f.selectedItems.filter((x) => x !== id) : [...f.selectedItems, id],
+    }));
+
+  const total = useMemo(() => {
+    let t = 0;
+    if (form.studioType === "hourly") t += studioTypePricing.hourly[form.hours] ?? 0;
+    else t += studioTypePricing.newborn[3];
+    t += packagePrices[form.propsPackage];
+    t += guidancePrices[form.guidance];
+    for (const id of form.selectedItems) {
+      const it = data.items.find((i) => i.id === id);
+      if (it) t += Number(it.price);
+    }
+    return t;
+  }, [form, data.items]);
+
+  const submitWhatsapp = (e: React.FormEvent) => {
+    e.preventDefault();
+    const selectedNames = form.selectedItems
+      .map((id) => data.items.find((i) => i.id === id))
+      .filter(Boolean)
+      .map((i) => `• ${i!.name} (${i!.sku}) — ${i!.price}₪`)
+      .join("\n");
+    const msg = [
+      `שלום, אני מעוניינת לקבוע תור ב-Sweetbaby 🌸`,
+      ``,
+      `שם: ${form.name}`,
+      `טלפון: ${form.phone}`,
+      `תאריך: ${form.date}`,
+      ``,
+      `סוג השכרה: ${form.studioType === "hourly" ? "לפי שעה" : "מבצע בוקר ניו-בורן"}`,
+      form.studioType === "hourly" ? `שעות: ${form.hours}` : `שעות: 3`,
+      `חבילת אביזרים: ${{ none: "ללא", basic: "בסיס", premium: "פרימיום", sweet: "סוויט" }[form.propsPackage]}`,
+      `הדרכה: ${{ none: "ללא", technical: "טכנית", professional: "מקצועית", full: "מעטפת מלאה" }[form.guidance]}`,
+      selectedNames ? `\nמוצרים נבחרים:\n${selectedNames}` : "",
+      ``,
+      `סה"כ משוער: ${total}₪`,
+    ].join("\n");
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
-      <Header />
+    <div className="sb-page">
+      <style>{pageCSS}</style>
 
-      {/* HERO — editorial split */}
-      <section className="relative border-b border-border/70">
-        <div className="container-page pt-10 md:pt-16 pb-20 md:pb-28">
-          {/* top meta bar */}
-          <div className="flex items-center justify-between text-[11px] tracking-[0.32em] uppercase text-muted-foreground mb-14">
-            <span>Est. 2020 — Beit Shemesh</span>
-            <span className="hidden md:inline">Catalogue №26 · 2026 Edition</span>
-            <span dir="ltr">SB / 001</span>
+      <header>
+        <div className="logo-container">
+          <h1>Sweetbaby</h1>
+          <p className="subtitle">התמונה הראשונה שלי</p>
+        </div>
+      </header>
+
+      <div className="container">
+        <h2 className="section-title">השכרת הסטודיו</h2>
+        <div className="grid">
+          <div className="card">
+            <div className="card-header">
+              <h3>שעתי גמיש</h3>
+              <p className="price">120 ₪ <span>/ שעה ראשונה</span></p>
+            </div>
+            <div className="card-body">
+              <ul>
+                <li>כל שעה נוספת ב-90 ₪ בלבד</li>
+                <li>מתאים לצילומי משפחה, היריון וילדים</li>
+                <li>גישה מלאה לחלל הסטודיו והתאורה</li>
+              </ul>
+            </div>
           </div>
+          <div className="card">
+            <div className="card-header">
+              <h3>מבצע בוקר ניו-בורן</h3>
+              <p className="price">240 ₪ <span>/ ל-3 שעות</span></p>
+            </div>
+            <div className="card-body">
+              <ul>
+                <li>תקף בין השעות 8:00 ל-13:00 בלבד</li>
+                <li>הזמן המושלם והשקט ביותר לצילומי ניו-בורן</li>
+                <li>חיסכון משמעותי במחיר לשעה</li>
+              </ul>
+            </div>
+          </div>
+        </div>
 
-          <div className="grid lg:grid-cols-12 gap-10 lg:gap-14 items-end">
-            {/* headline */}
-            <div className="lg:col-span-7">
-              <h1 className="font-display leading-[0.92] text-foreground tracking-tight text-[clamp(3.5rem,10vw,9rem)]">
-                <span className="block whitespace-nowrap">היצירה</span>
-                <span className="block whitespace-nowrap italic font-normal text-sand-deep">הראשונה</span>
-                <span className="block whitespace-nowrap">שלי.</span>
-              </h1>
-              <div className="mt-8 flex flex-wrap items-center gap-4">
-                <Link to="/start">
-                  <Button size="lg" className="rounded-none h-12 px-8 text-sm tracking-widest uppercase gap-3 bg-foreground text-background hover:bg-foreground/90">
-                    להתחלת הזמנה <ArrowLeft className="h-4 w-4" />
-                  </Button>
-                </Link>
-                <Link to="/catalog" className="text-sm tracking-widest uppercase inline-flex items-center gap-2 border-b border-foreground/40 pb-1 hover:border-foreground transition-colors">
-                  לצפייה בקטלוג <MoveUpRight className="h-3.5 w-3.5" />
-                </Link>
+        <h2 className="section-title">חבילות השכרת אביזרים</h2>
+        <p style={{ textAlign: "center", marginBottom: 20 }}>מינימום הזמנת אביזרים בודדים שלא במסגרת חבילה: 50 ₪</p>
+        <div className="grid">
+          <div className="card">
+            <div className="card-header"><h3>חבילת בסיס</h3><p className="price">100 ₪</p></div>
+            <div className="card-body"><ul><li>8 אביזרים לבחירה</li><li>כולל אביזר גדול אחד</li></ul></div>
+          </div>
+          <div className="card">
+            <div className="card-header"><h3>חבילת פרימיום</h3><p className="price">150 ₪</p></div>
+            <div className="card-body"><ul><li>15 אביזרים לבחירה</li><li>כולל 2 אביזרי עץ</li></ul></div>
+          </div>
+          <div className="card">
+            <div className="card-header"><h3>חבילת סוויט (Sweet)</h3><p className="price">350 ₪</p></div>
+            <div className="card-body"><ul><li>אביזרים ללא הגבלה!</li><li>תקף עד ל-12 שעות שימוש</li></ul></div>
+          </div>
+        </div>
+
+        <h2 className="section-title">ליווי והדרכה בסטודיו</h2>
+        <div className="grid">
+          <div className="card">
+            <div className="card-header"><h3>הדרכה טכנית קצרה</h3><p className="price">50 ₪</p></div>
+            <div className="card-body"><ul><li>סידור מהיר של הפלאש והמצלמה בכניסה</li></ul></div>
+          </div>
+          <div className="card">
+            <div className="card-header"><h3>ליווי מקצועי ראשוני</h3><p className="price">100 ₪</p></div>
+            <div className="card-body"><ul><li>התאמה מדויקת של 2 סטים לצילום לפי הצרכים שלך</li></ul></div>
+          </div>
+          <div className="card">
+            <div className="card-header"><h3>מעטפת מלאה</h3><p className="price">150 ₪</p></div>
+            <div className="card-body"><ul><li>הכנת החלל מאפס, הסבר טכני מפורט וזמינות מלאה במהלך השהות</li></ul></div>
+          </div>
+        </div>
+
+        <div className="booking-box">
+          <h2 className="section-title" style={{ marginTop: 0 }}>מערכת קביעת תורים ומחשבון מחיר</h2>
+          <form onSubmit={submitWhatsapp}>
+            <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+              <div className="form-group">
+                <label>שם מלא:</label>
+                <input type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              </div>
+              <div className="form-group">
+                <label>מספר טלפון:</label>
+                <input type="tel" required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              </div>
+              <div className="form-group">
+                <label>תאריך מבוקש:</label>
+                <input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
               </div>
             </div>
 
-            {/* image */}
-            <div className="lg:col-span-5 relative">
-              <div className="relative aspect-[4/5] overflow-hidden bg-bone">
-                <img
-                  src={heroAnimation.url}
-                  alt="סטודיו Sweetbaby - קולקציית אביזרים בתנועה"
-                  className="w-full h-full object-cover"
-                  width={1200}
-                  height={1500}
-                />
-                <div className="absolute inset-0 pointer-events-none ring-1 ring-inset ring-foreground/10" />
+            <div className="form-group">
+              <label>סוג השכרת הסטודיו:</label>
+              <div className="radio-selectors">
+                {[
+                  { v: "hourly", label: "לפי שעה גמיש" },
+                  { v: "newborn", label: "מבצע בוקר ניו-בורן (3 שעות)" },
+                ].map((o) => (
+                  <div className="selector-item" key={o.v}>
+                    <input type="radio" id={`st-${o.v}`} name="studioType" checked={form.studioType === o.v} onChange={() => setForm({ ...form, studioType: o.v as any })} />
+                    <label htmlFor={`st-${o.v}`} className="selector-label">{o.label}</label>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
 
-          {/* lede + stats */}
-          <div className="mt-20 grid lg:grid-cols-12 gap-10 border-t border-border pt-10">
-            <p className="lg:col-span-6 lg:col-start-1 text-lg md:text-xl leading-relaxed max-w-2xl text-foreground/85">
-              סטודיו בוטיק בבית שמש
-              ומאגר של מעל <span dir="ltr" className="inline-block font-display text-3xl not-italic text-foreground align-baseline">400+</span> אביזרים מעוצבים —
-              וינטג׳, מקרמה, סרוגים, עץ ורטאן — לצילומי ניוברן, גיל שנה, חלאקה ומשפחה. אתם בוחרים סגנון, אנחנו מכינים את הסט.
-            </p>
-            <dl className="lg:col-span-5 lg:col-start-8 grid grid-cols-3 gap-6 border-t border-border pt-8 lg:border-t-0 lg:pt-0">
-              {[
-                { n: "400+", l: "פריטים" },
-                { n: "24h", l: "השכרה" },
-                { n: "₪50", l: "מינימום" },
-              ].map((s) => (
-                <div key={s.l}>
-                  <dt className="text-[10px] tracking-[0.3em] uppercase text-muted-foreground mb-2">{s.l}</dt>
-                  <dd dir="ltr" className="font-display text-4xl md:text-5xl text-right">{s.n}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        </div>
-      </section>
-
-      {/* MARQUEE */}
-      <section className="overflow-hidden border-b border-border py-6 bg-foreground text-background" dir="ltr">
-        <div className="marquee-track font-display text-4xl md:text-5xl italic">
-          {[...marqueeWords, ...marqueeWords].map((w, i) => (
-            <span key={i} className="inline-flex items-center gap-12">
-              {w}
-              <span className="text-sand text-2xl">✦</span>
-            </span>
-          ))}
-        </div>
-      </section>
-
-      {/* PILLARS */}
-      <section className="container-page py-24 md:py-32">
-        <div className="grid lg:grid-cols-12 gap-10">
-          <div className="lg:col-span-4">
-            <div className="eyebrow mb-4">The Studio</div>
-            <h2 className="font-display text-5xl md:text-6xl leading-[1] tracking-tight">
-              עיצוב <span className="italic">שקט</span>,
-              <br />תמונה שנשארת.
-            </h2>
-          </div>
-          <div className="lg:col-span-8 grid sm:grid-cols-3 gap-px bg-border">
-            {[
-              { n: "01", t: "אביזרים מעוצבים", d: "וינטג׳, מקרמה, סרוגים, עץ ורטאן — נבחרו ידנית." },
-              { n: "02", t: "השכרה גמישה", d: "24 שעות מלאות בבית שמש, איסוף עצמי." },
-              { n: "03", t: "לכל סגנון", d: "ניו בורן, גיל שנה, חלאקה, משפחה ולוקיישן." },
-            ].map((f) => (
-              <div key={f.n} className="bg-background p-8 flex flex-col justify-between min-h-52">
-                <span className="font-display text-2xl text-sand-deep">{f.n}</span>
-                <div>
-                  <h3 className="font-display text-2xl mb-2">{f.t}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{f.d}</p>
-                </div>
+            {form.studioType === "hourly" && (
+              <div className="form-group">
+                <label>מספר שעות כולל בסטודיו:</label>
+                <select value={form.hours} onChange={(e) => setForm({ ...form, hours: Number(e.target.value) as any })}>
+                  <option value={1}>שעה אחת (120 ₪)</option>
+                  <option value={2}>שעתיים (210 ₪)</option>
+                  <option value={3}>3 שעות (300 ₪)</option>
+                  <option value={4}>4 שעות (390 ₪)</option>
+                  <option value={5}>5 שעות (480 ₪)</option>
+                </select>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
+            )}
 
-      {/* COLLECTIONS — hero-grid */}
-      <section className="container-page pb-24 md:pb-32">
-        <div className="flex items-end justify-between mb-10 border-b border-border pb-6">
-          <div>
-            <div className="eyebrow mb-3">Collections</div>
-            <h2 className="font-display text-5xl md:text-6xl tracking-tight">קולקציות נבחרות</h2>
-          </div>
-          <Link to="/catalog" className="text-sm tracking-widest uppercase inline-flex items-center gap-2 border-b border-foreground/50 pb-1">
-            לכל הקטלוג <ArrowLeft className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-
-        <div className="grid lg:grid-cols-12 gap-6 md:gap-8">
-          {/* feature */}
-          <Link to="/catalog" className="lg:col-span-7 group block relative overflow-hidden bg-bone aspect-[4/3]">
-            <img src={heroImg.url} alt="קולקציית אביזרי צילום ניובורן" className="absolute inset-0 w-full h-full object-cover transition-transform duration-[900ms] group-hover:scale-105" />
-            <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 via-foreground/10 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-8 md:p-10 text-background">
-              <div className="text-[11px] tracking-[0.35em] uppercase text-sand mb-3">Featured · 01</div>
-              <h3 className="font-display text-5xl md:text-6xl italic">ניו בורן</h3>
-              <p className="mt-3 text-sm text-background/80 max-w-md">עריסות, סלים, כריות פוזינג, עיטופים ורכות שנשארת לדורות.</p>
+            <div className="form-group">
+              <label>חבילת אביזרים:</label>
+              <div className="radio-selectors">
+                {[
+                  { v: "none", label: "ללא חבילה (0 ₪)" },
+                  { v: "basic", label: "חבילת בסיס (100 ₪)" },
+                  { v: "premium", label: "חבילת פרימיום (150 ₪)" },
+                  { v: "sweet", label: "חבילת סוויט (350 ₪)" },
+                ].map((o) => (
+                  <div className="selector-item" key={o.v}>
+                    <input type="radio" id={`pk-${o.v}`} name="pk" checked={form.propsPackage === o.v} onChange={() => setForm({ ...form, propsPackage: o.v as any })} />
+                    <label htmlFor={`pk-${o.v}`} className="selector-label">{o.label}</label>
+                  </div>
+                ))}
+              </div>
             </div>
-          </Link>
 
-          <div className="lg:col-span-5 grid sm:grid-cols-2 lg:grid-cols-1 gap-6 md:gap-8">
-            {[
-              { t: "Vintage", he: "וינטג׳", d: "מצלמות מינולטה, ספרים, טלפון וכובעים." },
-              { t: "Lifestyle", he: "לייף סטייל", d: "מקרמה, סלסלות, כדים ופרטים חמים." },
-            ].map((c, i) => (
-              <Link
-                key={c.t}
-                to="/catalog"
-                className="group relative overflow-hidden aspect-[4/3] lg:aspect-auto lg:h-full border border-border bg-bone flex items-end p-7"
-              >
-                <div className="absolute top-6 right-6 text-[10px] tracking-[0.35em] uppercase text-muted-foreground">0{i + 2}</div>
-                <div className="relative">
-                  <div className="eyebrow mb-2">{c.t}</div>
-                  <h3 className="font-display text-4xl italic">{c.he}</h3>
-                  <p className="text-sm text-muted-foreground mt-2 max-w-[26ch]">{c.d}</p>
-                </div>
-                <MoveUpRight className="absolute bottom-7 left-7 h-5 w-5 text-foreground/60 group-hover:text-foreground transition-colors" />
-              </Link>
-            ))}
-          </div>
+            <div className="form-group">
+              <label>הזמנת מוצרים מראש (אופציונלי):</label>
+              <div className="products-grid">
+                {featuredItems.map((it) => {
+                  const src = normalizeImageUrl(it.image_url);
+                  const checked = form.selectedItems.includes(it.id);
+                  return (
+                    <div key={it.id}>
+                      <input type="checkbox" id={`p-${it.id}`} className="product-checkbox" checked={checked} onChange={() => toggleItem(it.id)} />
+                      <label htmlFor={`p-${it.id}`} className="product-label">
+                        {src && <img src={src} alt={it.name} className="prod-img" />}
+                        <span className="prod-name">{it.name}</span>
+                        <span className="prod-price">+{Number(it.price)} ₪</span>
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>תוספת הדרכה וליווי:</label>
+              <div className="radio-selectors">
+                {[
+                  { v: "none", label: "ללא הדרכה (0 ₪)" },
+                  { v: "technical", label: "הדרכה טכנית קצרה (50 ₪)" },
+                  { v: "professional", label: "ליווי מקצועי ראשוני (100 ₪)" },
+                  { v: "full", label: "מעטפת מלאה (150 ₪)" },
+                ].map((o) => (
+                  <div className="selector-item" key={o.v}>
+                    <input type="radio" id={`g-${o.v}`} name="g" checked={form.guidance === o.v} onChange={() => setForm({ ...form, guidance: o.v as any })} />
+                    <label htmlFor={`g-${o.v}`} className="selector-label">{o.label}</label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="total-summary">
+              <p>סה"כ משוער לתשלום:</p>
+              <p className="total-price">{total} ₪</p>
+            </div>
+
+            <button type="submit" className="submit-btn">שליחת בקשת קביעת תור בוואטסאפ</button>
+          </form>
         </div>
-      </section>
-
-      {/* RULES */}
-      <section className="container-page pb-24 md:pb-32">
-        <div className="grid lg:grid-cols-12 gap-10 border-t border-border pt-12">
-          <div className="lg:col-span-4">
-            <div className="eyebrow mb-4">Rental Rules</div>
-            <h2 className="font-display text-4xl md:text-5xl leading-[1.05]">
-              כללי <span className="italic">ההשכרה</span>
-            </h2>
-            <p className="text-muted-foreground mt-4 max-w-md text-sm leading-relaxed">
-              הזמנת אביזרים נחשבת להסכמה ל{" "}
-              <Link to="/terms" className="underline underline-offset-4 text-foreground hover:text-peach-deep">
-                תנאי השימוש
-              </Link>
-              . שמרו עליהם — ותעזרו לנו לתת לכם שירות טוב יותר
-            </p>
-          </div>
-          <ol className="lg:col-span-8 divide-y divide-border border-y border-border">
-            {[
-              "מינימום להזמנה 50 ש״ח, התשלום לפני לקיחת האביזרים.",
-              "איסוף והחזרה תוך 24 שעות; כל יום נוסף — חיוב השכרה מלא.",
-              "איחור מעל 3 שעות — חיוב חצי מסכום ההשכרה.",
-              "אחריות מלאה על האביזרים — נזק יחויב במחירם המלא.",
-            ].map((r, i) => (
-              <li key={i} className="py-6 grid grid-cols-[auto_1fr] gap-6 items-baseline">
-                <span className="font-display text-3xl text-sand-deep">0{i + 1}</span>
-                <span className="text-base md:text-lg text-foreground/90">{r}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-
-      <Footer />
+      </div>
     </div>
   );
 }
+
+const pageCSS = `
+.sb-page {
+  --sb-bg: #f5c5b3;
+  --sb-primary: #163126;
+  --sb-white: #ffffff;
+  --sb-card-bg: rgba(255, 255, 255, 0.6);
+  --sb-shadow: 0 8px 32px 0 rgba(22, 49, 38, 0.08);
+  background-color: var(--sb-bg);
+  color: var(--sb-primary);
+  line-height: 1.6;
+  padding-bottom: 60px;
+  font-family: 'Assistant', sans-serif;
+  min-height: 100vh;
+}
+.sb-page * { box-sizing: border-box; }
+.sb-page header { text-align: center; padding: 50px 20px; }
+.sb-page .logo-container h1 { font-family: 'Platypi', serif; font-size: 4.5rem; font-weight: 600; letter-spacing: -1px; color: var(--sb-primary); line-height: 1; margin: 0; }
+.sb-page .logo-container .subtitle { font-size: 1.5rem; font-weight: 600; margin-top: 10px; letter-spacing: 1px; }
+.sb-page .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+.sb-page .section-title { text-align: center; margin: 40px 0 20px; font-size: 2rem; font-weight: 700; }
+.sb-page .section-title::after { content: ''; display: block; width: 50px; height: 3px; background-color: var(--sb-primary); margin: 8px auto 0; border-radius: 2px; }
+.sb-page .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; margin-bottom: 40px; }
+.sb-page .card { background: var(--sb-card-bg); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.4); border-radius: 20px; padding: 30px; box-shadow: var(--sb-shadow); transition: transform .3s, box-shadow .3s; display: flex; flex-direction: column; justify-content: space-between; }
+.sb-page .card:hover { transform: translateY(-5px); box-shadow: 0 12px 40px 0 rgba(22,49,38,.15); }
+.sb-page .card-header h3 { font-size: 1.6rem; margin-bottom: 10px; }
+.sb-page .price { font-size: 2rem; font-weight: 700; margin-bottom: 15px; }
+.sb-page .price span { font-size: 1rem; font-weight: 400; }
+.sb-page .card-body ul { list-style: none; margin: 0 0 25px; padding: 0; }
+.sb-page .card-body ul li { margin-bottom: 10px; position: relative; padding-right: 20px; }
+.sb-page .card-body ul li::before { content: '✦'; position: absolute; right: 0; color: var(--sb-primary); }
+.sb-page .booking-box { background: var(--sb-white); border-radius: 25px; padding: 40px; box-shadow: var(--sb-shadow); margin-top: 50px; }
+.sb-page .form-group { margin-bottom: 20px; }
+.sb-page label { display: block; font-weight: 600; margin-bottom: 8px; }
+.sb-page input[type=text], .sb-page input[type=tel], .sb-page input[type=date], .sb-page select { width: 100%; padding: 12px 15px; border: 1px solid rgba(22,49,38,.2); border-radius: 10px; background-color: #fafafa; color: var(--sb-primary); font-size: 1rem; outline: none; transition: border-color .3s; font-family: inherit; }
+.sb-page input:focus, .sb-page select:focus { border-color: var(--sb-primary); }
+.sb-page .radio-selectors { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 10px; }
+.sb-page .selector-item { position: relative; }
+.sb-page .selector-item input { position: absolute; opacity: 0; cursor: pointer; }
+.sb-page .selector-label { display: block; padding: 15px; border: 1px solid rgba(22,49,38,.2); border-radius: 12px; text-align: center; cursor: pointer; background-color: var(--sb-white); transition: all .3s; font-weight: 600; }
+.sb-page .selector-item input:checked + .selector-label { background-color: var(--sb-primary); color: var(--sb-bg); border-color: var(--sb-primary); }
+.sb-page .products-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 10px; }
+.sb-page .product-checkbox { display: none; }
+.sb-page .product-label { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 15px; border: 1px dashed rgba(22,49,38,.3); border-radius: 12px; cursor: pointer; background-color: #fdfcfb; transition: all .3s; text-align: center; }
+.sb-page .product-label .prod-img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; margin-bottom: 8px; }
+.sb-page .product-label .prod-name { font-weight: 600; font-size: .95rem; }
+.sb-page .product-label .prod-price { font-size: .85rem; opacity: .8; margin-top: 4px; }
+.sb-page .product-checkbox:checked + .product-label { background-color: rgba(22,49,38,.05); border: 2px solid var(--sb-primary); color: var(--sb-primary); }
+.sb-page .total-summary { background-color: #f7ede9; border-radius: 15px; padding: 25px; margin-top: 30px; text-align: center; border: 2px dashed var(--sb-primary); }
+.sb-page .total-price { font-size: 2.5rem; font-weight: 700; margin-top: 10px; }
+.sb-page .submit-btn { display: block; width: 100%; background-color: var(--sb-primary); color: var(--sb-bg); border: none; padding: 15px; font-size: 1.2rem; font-weight: 700; border-radius: 12px; cursor: pointer; margin-top: 20px; transition: opacity .3s; font-family: inherit; }
+.sb-page .submit-btn:hover { opacity: .9; }
+@media (max-width: 768px) {
+  .sb-page .logo-container h1 { font-size: 3rem; }
+  .sb-page .logo-container .subtitle { font-size: 1.2rem; }
+  .sb-page .booking-box { padding: 25px; }
+}
+`;
