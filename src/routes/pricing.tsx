@@ -319,7 +319,7 @@ function PricingPage() {
                 <p className="total-price">{total} ₪</p>
               </div>
 
-              <button type="submit" className="submit-btn">שליחת בקשת קביעת תור בוואטסאפ</button>
+              <button type="button" className="submit-btn" onClick={() => setShowCalendar(true)}>קביעת תור ביומן</button>
             </form>
           </div>
 
