@@ -1,14 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeImageUrl } from "@/lib/images";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
-const WHATSAPP_NUMBER = "972500000000";
-const CALENDAR_SRC =
-  "https://calendar.google.com/calendar/embed?src=s0548529277%40gmail.com&ctz=Asia%2FJerusalem";
+const STUDIO_EMAIL = "s0548529277@gmail.com";
+const SCHEDULING_URL =
+  "https://calendar.google.com/calendar/appointments/schedules/AcZssZ3s0548529277";
 
 type CatalogItem = { id: string; sku: string; name: string; price: number; image_url: string | null };
 
@@ -30,9 +30,9 @@ export const Route = createFileRoute("/prop-booking")({
   head: () => ({
     meta: [
       { title: "הזמנת אביזרים | Sweetbaby" },
-      { name: "description", content: "בדיקת זמינות ביומן החי של הסטודיו, קביעת תור והזמנת חבילות אביזרים לצילום." },
+      { name: "description", content: "קביעת תור ביומן החי של הסטודיו ודיווח אביזרים במייל." },
       { property: "og:title", content: "הזמנת אביזרים | Sweetbaby" },
-      { property: "og:description", content: "יומן חי לבדיקת זמינות, חבילות אביזרים ומחשבון מחיר." },
+      { property: "og:description", content: "קביעת תור אוטומטית ביומן, חבילות אביזרים ודיווח שימוש במייל." },
       { property: "og:url", content: "https://sweetbabyphotographystudio.lovable.app/prop-booking" },
     ],
     links: [
@@ -42,21 +42,8 @@ export const Route = createFileRoute("/prop-booking")({
   }),
 });
 
-const hourlyPricing = { 1: 120, 2: 210, 3: 300, 4: 390, 5: 480 } as const;
-const packagePrices = { none: 0, basic: 100, premium: 150, sweet: 350 } as const;
-
 function PropBookingPage() {
   const { data: items } = useSuspenseQuery(catalogQuery);
-
-  const [form, setForm] = useState({
-    name: "",
-    phone: "",
-    date: "",
-    startTime: "",
-    studioType: "hourly" as "hourly" | "newborn",
-    hours: 1 as 1 | 2 | 3 | 4 | 5,
-    propsPackage: "none" as keyof typeof packagePrices,
-  });
 
   const [reportForm, setReportForm] = useState({
     name: "",
@@ -72,31 +59,6 @@ function PropBookingPage() {
         : [...f.selectedItems, id],
     }));
 
-  const total = useMemo(() => {
-    let t = form.studioType === "hourly" ? hourlyPricing[form.hours] : 240;
-    t += packagePrices[form.propsPackage];
-    return t;
-  }, [form]);
-
-  const submitBooking = (e: React.FormEvent) => {
-    e.preventDefault();
-    const msg = [
-      `שלום, בקשת שריון תור ב-Sweetbaby 🌸`,
-      ``,
-      `שם: ${form.name}`,
-      `טלפון: ${form.phone}`,
-      `תאריך שנבחר ביומן: ${form.date}`,
-      `שעת התחלה מבוקשת: ${form.startTime}`,
-      ``,
-      `סוג השכרה: ${form.studioType === "hourly" ? "לפי שעה גמיש" : "מבצע בוקר ניו-בורן (3 שעות)"}`,
-      form.studioType === "hourly" ? `שעות: ${form.hours}` : `שעות: 3`,
-      `חבילת אביזרים: ${{ none: "ללא", basic: "בסיס", premium: "פרימיום", sweet: "סוויט" }[form.propsPackage]}`,
-      ``,
-      `סה"כ משוער: ${total}₪`,
-    ].join("\n");
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, "_blank");
-  };
-
   const submitReport = (e: React.FormEvent) => {
     e.preventDefault();
     const list = reportForm.selectedItems
@@ -104,7 +66,8 @@ function PropBookingPage() {
       .filter(Boolean)
       .map((i) => `• ${i!.name} (${i!.sku}) — ${i!.price}₪`)
       .join("\n");
-    const msg = [
+    const subject = `דיווח שימוש באביזרים — ${reportForm.name}`;
+    const body = [
       `דיווח שימוש באביזרים — Sweetbaby 🌸`,
       ``,
       `שם: ${reportForm.name}`,
@@ -113,7 +76,7 @@ function PropBookingPage() {
       `פריטים שנלקחו מהמדפים:`,
       list || "(לא סומנו פריטים)",
     ].join("\n");
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, "_blank");
+    window.location.href = `mailto:${STUDIO_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
   return (
@@ -125,7 +88,7 @@ function PropBookingPage() {
         <header className="sb-hero">
           <div className="logo-container">
             <h1>Sweetbaby</h1>
-            <p className="subtitle">הזמנת אביזרים וקביעת תור</p>
+            <p className="subtitle">התמונה הראשונה שלי</p>
           </div>
         </header>
 
@@ -176,86 +139,25 @@ function PropBookingPage() {
             </div>
           </div>
 
-          <div className="booking-box">
+          <div className="booking-box" style={{ textAlign: "center" }}>
             <h2 className="section-title" style={{ marginTop: 0 }}>1. בדיקת זמינות וקביעת תור בסטודיו</h2>
-            <p style={{ textAlign: "center", marginBottom: 10 }}>בדקו ביומן מתי הסטודיו פנוי, בחרו את השעה ומלאו את פרטי השריון:</p>
-
-            <div className="calendar-wrapper">
-              <iframe src={CALENDAR_SRC} title="יומן זמינות סטודיו" />
-            </div>
-
-            <form onSubmit={submitBooking}>
-              <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
-                <div className="form-group">
-                  <label>שם מלא:</label>
-                  <input type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label>מספר טלפון:</label>
-                  <input type="tel" required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label>התאריך שבחרת ביומן:</label>
-                  <input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label>שעת התחלה מבוקשת:</label>
-                  <input type="time" required value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>סוג השכרת הסטודיו:</label>
-                <div className="radio-selectors">
-                  {[
-                    { v: "hourly", label: "לפי שעה גמיש" },
-                    { v: "newborn", label: "מבצע בוקר ניו-בורן (3 שעות)" },
-                  ].map((o) => (
-                    <div className="selector-item" key={o.v}>
-                      <input type="radio" id={`st-${o.v}`} name="studioType" checked={form.studioType === o.v} onChange={() => setForm({ ...form, studioType: o.v as any })} />
-                      <label htmlFor={`st-${o.v}`} className="selector-label">{o.label}</label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {form.studioType === "hourly" && (
-                <div className="form-group">
-                  <label>מספר שעות מבוקש:</label>
-                  <select value={form.hours} onChange={(e) => setForm({ ...form, hours: Number(e.target.value) as any })}>
-                    <option value={1}>שעה אחת (120 ₪)</option>
-                    <option value={2}>שעתיים (210 ₪)</option>
-                    <option value={3}>3 שעות (300 ₪)</option>
-                    <option value={4}>4 שעות (390 ₪)</option>
-                    <option value={5}>5 שעות (480 ₪)</option>
-                  </select>
-                </div>
-              )}
-
-              <div className="form-group">
-                <label>חבילת אביזרים מועדפת:</label>
-                <div className="radio-selectors">
-                  {[
-                    { v: "none", label: "ללא חבילה (0 ₪)" },
-                    { v: "basic", label: "חבילת בסיס (100 ₪)" },
-                    { v: "premium", label: "חבילת פרימיום (150 ₪)" },
-                    { v: "sweet", label: "חבילת סוויט (350 ₪)" },
-                  ].map((o) => (
-                    <div className="selector-item" key={o.v}>
-                      <input type="radio" id={`pk-${o.v}`} name="pk" checked={form.propsPackage === o.v} onChange={() => setForm({ ...form, propsPackage: o.v as any })} />
-                      <label htmlFor={`pk-${o.v}`} className="selector-label">{o.label}</label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="total-summary">
-                <p>סה"כ משוער לתשלום:</p>
-                <p className="total-price">{total} ₪</p>
-              </div>
-
-              <button type="submit" className="submit-btn">בקשת שריון מועד בוואטסאפ</button>
-            </form>
+            <p className="booking-desc">
+              לוחצים על הכפתור, בוחרים שעה פנויה שמתעדכנת בזמן אמת, וממלאים פרטים – התור נכנס אוטומטית ליומן שלנו.
+            </p>
+            <div className="booking-icon">📅</div>
+            <a
+              href={SCHEDULING_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="submit-btn"
+              style={{ display: "inline-block", width: "auto", padding: "15px 40px", textDecoration: "none" }}
+            >
+              קביעת תור ביומן
+            </a>
+            <p className="info-strip">
+              בכל שאלה לפני קביעת התור אפשר לכתוב לנו למייל:{" "}
+              <a href={`mailto:${STUDIO_EMAIL}`}>{STUDIO_EMAIL}</a>
+            </p>
           </div>
 
           <div className="booking-box bg-secondary-box">
@@ -297,7 +199,7 @@ function PropBookingPage() {
                 </div>
               </div>
 
-              <button type="submit" className="submit-btn">שליחת דיווח אביזרים מהקטלוג לוואטסאפ</button>
+              <button type="submit" className="submit-btn">שליחת דיווח אביזרים במייל</button>
             </form>
           </div>
         </div>
@@ -326,19 +228,14 @@ const pageCSS = `
 .sb-page .card-body ul li { margin-bottom: 10px; position: relative; padding-right: 20px; }
 .sb-page .card-body ul li::before { content: '✦'; position: absolute; right: 0; color: var(--sb-primary); }
 .sb-page .booking-box { background: var(--sb-white); border-radius: 25px; padding: 40px; box-shadow: var(--sb-shadow); margin-top: 50px; }
+.sb-page .booking-desc { margin-bottom: 25px; opacity: 0.8; text-align: center; }
+.sb-page .booking-icon { font-size: 3rem; margin-bottom: 15px; text-align: center; }
+.sb-page .info-strip { margin-top: 25px; text-align: center; font-size: 0.9rem; opacity: 0.75; }
+.sb-page .info-strip a { color: var(--sb-primary); font-weight: 700; }
 .sb-page .form-group { margin-bottom: 20px; }
 .sb-page .booking-box label { display: block; font-weight: 600; margin-bottom: 8px; color: var(--sb-primary); }
-.sb-page input[type=text], .sb-page input[type=tel], .sb-page input[type=date], .sb-page input[type=time], .sb-page select { width: 100%; padding: 12px 15px; border: 1px solid rgba(22,49,38,.2); border-radius: 10px; background-color: #fafafa; color: var(--sb-primary); font-size: 1rem; outline: none; transition: border-color .3s; font-family: inherit; }
-.sb-page input:focus, .sb-page select:focus { border-color: var(--sb-primary); }
-.sb-page .radio-selectors { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 10px; }
-.sb-page .selector-item { position: relative; }
-.sb-page .selector-item input { position: absolute; opacity: 0; cursor: pointer; }
-.sb-page .selector-label { display: block; padding: 15px; border: 1px solid rgba(22,49,38,.2); border-radius: 12px; text-align: center; cursor: pointer; background-color: var(--sb-white); transition: all .3s; font-weight: 600; margin-bottom: 0; }
-.sb-page .selector-item input:checked + .selector-label { background-color: var(--sb-primary); color: var(--sb-bg); border-color: var(--sb-primary); }
-.sb-page .calendar-wrapper { width: 100%; overflow: hidden; border-radius: 15px; border: 2px solid rgba(22,49,38,.15); margin: 15px 0 25px; box-shadow: inset 0 2px 8px rgba(0,0,0,.05); position: relative; padding-bottom: 60%; height: 0; background: #fff; }
-.sb-page .calendar-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
-.sb-page .total-summary { background-color: #f7ede9; border-radius: 15px; padding: 25px; margin-top: 30px; text-align: center; border: 2px dashed var(--sb-primary); }
-.sb-page .total-price { font-size: 2.5rem; font-weight: 700; margin-top: 10px; }
+.sb-page input[type=text], .sb-page input[type=tel] { width: 100%; padding: 12px 15px; border: 1px solid rgba(22,49,38,.2); border-radius: 10px; background-color: #fafafa; color: var(--sb-primary); font-size: 1rem; outline: none; transition: border-color .3s; font-family: inherit; }
+.sb-page input:focus { border-color: var(--sb-primary); }
 .sb-page .submit-btn { display: block; width: 100%; background-color: var(--sb-primary); color: var(--sb-bg); border: none; padding: 15px; font-size: 1.2rem; font-weight: 700; border-radius: 12px; cursor: pointer; margin-top: 20px; transition: opacity .3s; font-family: inherit; }
 .sb-page .submit-btn:hover { opacity: .9; }
 .sb-page .bg-secondary-box { background-color: #fdfaf7; border: 2px solid rgba(22,49,38,.15); }
@@ -355,6 +252,5 @@ const pageCSS = `
   .sb-page .logo-container h1 { font-size: 3rem; }
   .sb-page .logo-container .subtitle { font-size: 1.2rem; }
   .sb-page .booking-box { padding: 25px; }
-  .sb-page .calendar-wrapper { padding-bottom: 100%; }
 }
 `;
