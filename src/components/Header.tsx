@@ -14,6 +14,8 @@ const nav = [
   { to: "/", label: "בית" },
   { to: "/catalog", label: "קטלוג" },
   { to: "/pricing", label: "מחירון והזמנה" },
+  { to: "/prop-booking", label: "הזמנת אביזרים" },
+
   { to: "/about", label: "אודות" },
   { to: "/contact", label: "יצירת קשר" },
 ];
