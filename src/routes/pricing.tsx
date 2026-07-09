@@ -60,6 +60,38 @@ function PricingPage() {
     guidance: "none" as keyof typeof guidancePrices,
   });
 
+  const [reportForm, setReportForm] = useState({
+    name: "",
+    phone: "",
+    selectedItems: [] as string[],
+  });
+
+  const toggleReportItem = (id: string) =>
+    setReportForm((f) => ({
+      ...f,
+      selectedItems: f.selectedItems.includes(id) ? f.selectedItems.filter((x) => x !== id) : [...f.selectedItems, id],
+    }));
+
+  const submitReport = (e: React.FormEvent) => {
+    e.preventDefault();
+    const list = reportForm.selectedItems
+      .map((id) => items.find((i) => i.id === id))
+      .filter(Boolean)
+      .map((i) => `• ${i!.name} (${i!.sku}) — ${i!.price}₪`)
+      .join("\n");
+    const msg = [
+      `דיווח שימוש באביזרים — Sweetbaby 🌸`,
+      ``,
+      `שם: ${reportForm.name}`,
+      `טלפון: ${reportForm.phone}`,
+      ``,
+      `פריטים שנלקחו מהמדפים:`,
+      list || "(לא סומנו פריטים)",
+    ].join("\n");
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
+
   const toggleItem = (id: string) =>
     setForm((f) => ({
       ...f,
