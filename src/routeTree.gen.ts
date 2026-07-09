@@ -14,6 +14,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as StartRouteImport } from './routes/start'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as PropBookingRouteImport } from './routes/prop-booking'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CheckoutRouteImport } from './routes/checkout'
@@ -61,6 +62,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PropBookingRoute = PropBookingRouteImport.update({
+  id: '/prop-booking',
+  path: '/prop-booking',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PricingRoute = PricingRouteImport.update({
@@ -193,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/pricing': typeof PricingRoute
+  '/prop-booking': typeof PropBookingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/start': typeof StartRoute
@@ -222,6 +229,7 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/pricing': typeof PricingRoute
+  '/prop-booking': typeof PropBookingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/start': typeof StartRoute
@@ -252,6 +260,7 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/pricing': typeof PricingRoute
+  '/prop-booking': typeof PropBookingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/start': typeof StartRoute
@@ -283,6 +292,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/pricing'
+    | '/prop-booking'
     | '/reset-password'
     | '/sitemap.xml'
     | '/start'
@@ -312,6 +322,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/pricing'
+    | '/prop-booking'
     | '/reset-password'
     | '/sitemap.xml'
     | '/start'
@@ -341,6 +352,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/pricing'
+    | '/prop-booking'
     | '/reset-password'
     | '/sitemap.xml'
     | '/start'
@@ -372,6 +384,7 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRoute
   ContactRoute: typeof ContactRoute
   PricingRoute: typeof PricingRoute
+  PropBookingRoute: typeof PropBookingRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StartRoute: typeof StartRoute
@@ -419,6 +432,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prop-booking': {
+      id: '/prop-booking'
+      path: '/prop-booking'
+      fullPath: '/prop-booking'
+      preLoaderRoute: typeof PropBookingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pricing': {
@@ -630,6 +650,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRoute,
   ContactRoute: ContactRoute,
   PricingRoute: PricingRoute,
+  PropBookingRoute: PropBookingRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StartRoute: StartRoute,
