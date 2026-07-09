@@ -13,9 +13,11 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 const nav = [
   { to: "/", label: "בית" },
   { to: "/catalog", label: "קטלוג" },
+  { to: "/pricing", label: "מחירון והזמנה" },
   { to: "/about", label: "אודות" },
   { to: "/contact", label: "יצירת קשר" },
 ];
+
 
 export function Header() {
   const { count } = useCart();
