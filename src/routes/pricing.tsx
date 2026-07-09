@@ -66,6 +66,9 @@ function PricingPage() {
     selectedItems: [] as string[],
   });
 
+  const [showCalendar, setShowCalendar] = useState(false);
+
+
   const toggleReportItem = (id: string) =>
     setReportForm((f) => ({
       ...f,
@@ -316,7 +319,7 @@ function PricingPage() {
                 <p className="total-price">{total} ₪</p>
               </div>
 
-              <button type="submit" className="submit-btn">שליחת בקשת קביעת תור בוואטסאפ</button>
+              <button type="button" className="submit-btn" onClick={() => setShowCalendar(true)}>קביעת תור ביומן</button>
             </form>
           </div>
 
@@ -364,10 +367,36 @@ function PricingPage() {
           </div>
         </div>
       </div>
+      {showCalendar && (
+        <div
+          onClick={() => setShowCalendar(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, padding: 16, maxWidth: 880, width: "100%", position: "relative", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+            <button
+              type="button"
+              onClick={() => setShowCalendar(false)}
+              aria-label="סגור"
+              style={{ position: "absolute", top: 8, left: 8, background: "transparent", border: "none", fontSize: 24, cursor: "pointer", lineHeight: 1 }}
+            >
+              ×
+            </button>
+            <h3 style={{ margin: "4px 0 12px", textAlign: "center" }}>קביעת תור ביומן</h3>
+            <iframe
+              src="https://calendar.google.com/calendar/embed?src=s0548529277%40gmail.com&ctz=Asia%2FJerusalem"
+              style={{ border: 0, width: "100%", height: "70vh" }}
+              frameBorder={0}
+              scrolling="no"
+              title="Google Calendar"
+            />
+          </div>
+        </div>
+      )}
       <Footer />
     </>
   );
 }
+
 
 const pageCSS = `
 .sb-page {
