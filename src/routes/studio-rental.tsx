@@ -136,9 +136,15 @@ function StudioRentalPage() {
 
         <div className="sr-box">
           <h2 className="sr-title" style={{ marginTop: 0 }}>1. בדיקת זמינות וקביעת תור בסטודיו</h2>
-          <p>לוחצים על הכפתור, בוחרים שעה פנויה שמתעדכנת בזמן אמת, וממלאים פרטים - התור נכנס אוטומטית ליומן שלנו.</p>
+          <p>בוחרים שעה פנויה שמתעדכנת בזמן אמת, וממלאים פרטים - התור נכנס אוטומטית ליומן שלנו.</p>
           <div className="sr-icon">📅</div>
-          <a href={SCHEDULING_URL} target="_blank" rel="noopener noreferrer" className="sr-btn">קביעת תור ביומן</a>
+          <iframe
+            src="https://calendar.google.com/calendar/appointments/schedules/AcZssZ2J4Zlqx74R4VNrX-c1vMtFEW3R6nu0gtk_pOxYuNiBTAaR47teUZfy1T59zzhkaPB2wB_9ukBE?gv=true"
+            style={{ border: 0, width: "100%", height: 600, borderRadius: 16, marginTop: 16 }}
+            frameBorder={0}
+            scrolling="no"
+            title="קביעת תור בסטודיו"
+          />
           <div className="info-strip">
             בכל שאלה לפני קביעת התור אפשר לכתוב לנו במייל: <a href={`mailto:${EMAIL_TO}`}>{EMAIL_TO}</a>
           </div>
