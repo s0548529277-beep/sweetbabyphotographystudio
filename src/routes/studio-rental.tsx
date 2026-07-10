@@ -11,7 +11,6 @@ export const Route = createFileRoute("/studio-rental")({
   component: StudioRentalPage,
 });
 
-const SCHEDULING_URL = "https://calendar.google.com/calendar/appointments/schedules/AcZssZ0000000000000000"; // TODO: update
 const EMAIL_TO = "s0548529277@gmail.com";
 
 type CatalogItem = { id: string; name: string; price: string };
