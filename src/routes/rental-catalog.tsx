@@ -76,7 +76,9 @@ function RentalCatalogPage() {
   };
 
   return (
-    <div className="sb-rental-cat" dir="rtl">
+    <>
+      <Header />
+      <div className="sb-rental-cat" dir="rtl">
       <style>{css}</style>
 
       <header className="sb-header">
