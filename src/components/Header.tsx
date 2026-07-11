@@ -15,7 +15,10 @@ const nav = [
   { to: "/catalog", label: "קטלוג" },
   { to: "/pricing", label: "מחירון והזמנה" },
   { to: "/prop-booking", label: "הזמנת אביזרים" },
-  { to: "/studio-rental", label: "השכרת סטודיו ואביזרים" },
+  { to: "/studio-rental", label: "השכרת סטודיו" },
+  { to: "/rental-catalog", label: "קטלוג אביזרים להשכרה" },
+
+
 
   { to: "/about", label: "אודות" },
   { to: "/contact", label: "יצירת קשר" },
