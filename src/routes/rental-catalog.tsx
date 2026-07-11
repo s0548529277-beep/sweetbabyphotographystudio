@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { Header } from "@/components/Header";
 import catalogData from "@/data/studio-catalog.json";
 
 export const Route = createFileRoute("/rental-catalog")({
