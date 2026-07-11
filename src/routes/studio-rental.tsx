@@ -20,15 +20,76 @@ const EMAIL_TO = "s0548529277@gmail.com";
 const SCHEDULING_SRC =
   "https://calendar.google.com/calendar/appointments/schedules/AcZssZ2J4Zlqx74R4VNrX-c1vMtFEW3R6nu0gtk_pOxYuNiBTAaR47teUZfy1T59zzhkaPB2wB_9ukBE?gv=true";
 
+type IntakeForm = {
+  clientName: string;
+  phone: string;
+  email: string;
+  sessionType: string;
+  sessionDate: string;
+  peopleCount: string;
+  babyAge: string;
+  cameraBrand: string;
+  flashExperience: string;
+  backdrops: string;
+  floors: string;
+  needProps: string;
+  specialRequests: string;
+  agreed: boolean;
+};
+
+const emptyForm: IntakeForm = {
+  clientName: "", phone: "", email: "", sessionType: "", sessionDate: "",
+  peopleCount: "", babyAge: "", cameraBrand: "", flashExperience: "",
+  backdrops: "", floors: "", needProps: "", specialRequests: "", agreed: false,
+};
+
 function StudioRentalPage() {
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState<IntakeForm>(emptyForm);
+  const upd = <K extends keyof IntakeForm>(k: K, v: IntakeForm[K]) =>
+    setForm((f) => ({ ...f, [k]: v }));
+
+  const sendIntake = () => {
+    if (!form.clientName.trim() || !form.phone.trim() || !form.email.trim()) {
+      alert("נא למלא שם, טלפון ואימייל.");
+      return;
+    }
+    if (!form.agreed) {
+      alert("יש לאשר את הסכם תיאום הציפיות לפני השליחה.");
+      return;
+    }
+    const lines = [
+      `שם מלא: ${form.clientName}`,
+      `טלפון: ${form.phone}`,
+      `אימייל: ${form.email}`,
+      `סוג הצילום: ${form.sessionType}`,
+      `תאריך/שעה מבוקשים: ${form.sessionDate}`,
+      `מספר משתתפים: ${form.peopleCount}`,
+      `גיל התינוק (אם רלוונטי): ${form.babyAge}`,
+      `מותג מצלמה: ${form.cameraBrand}`,
+      `ניסיון בעבודה עם פלאש/סטודיו: ${form.flashExperience}`,
+      `רקעים מבוקשים: ${form.backdrops}`,
+      `רצפות מבוקשות: ${form.floors}`,
+      `זקוקה לאביזרים בהשכרה: ${form.needProps}`,
+      `בקשות מיוחדות: ${form.specialRequests}`,
+      ``,
+      `אישרתי שקראתי והסכמתי להסכם תיאום הציפיות ולכללי הסטודיו.`,
+    ].join("\n");
+    const subject = `הסכם תיאום ציפיות - ${form.clientName}`;
+    window.location.href = `mailto:${EMAIL_TO}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines)}`;
+  };
+
   return (
-    <div className="sb-rental" dir="rtl">
+    <>
+      <Header />
+      <div className="sb-rental" dir="rtl">
       <style>{css}</style>
 
       <header className="sb-header">
         <h1>Sweetbaby</h1>
         <div className="subtitle">התמונה הראשונה שלי</div>
       </header>
+
 
       <div className="sb-container">
         <h2 className="section-title">השכרת הסטודיו</h2>
