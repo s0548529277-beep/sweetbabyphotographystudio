@@ -173,7 +173,8 @@ function RentalCatalogPage() {
           </p>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 
