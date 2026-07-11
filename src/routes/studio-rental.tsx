@@ -242,16 +242,87 @@ function StudioRentalPage() {
             </div>
 
             <div className="info-card cta">
-              <h3>🧺 צריכה גם אביזרים לצילומים?</h3>
+              <h3>🧺 צריכה גם אביזרים לצילומי חוץ?</h3>
               <p>מוזמנת לעבור לקטלוג האביזרים להשכרה ולסמן את הפריטים שתרצי לצלם איתם.</p>
               <Link to="/rental-catalog" className="cta-link">לקטלוג האביזרים ←</Link>
             </div>
           </aside>
         </div>
       </div>
-    </div>
+
+      {showForm && (
+        <div className="sr-modal" onClick={() => setShowForm(false)}>
+          <div className="sr-modal-box" onClick={(e) => e.stopPropagation()}>
+            <button className="sr-modal-close" onClick={() => setShowForm(false)} aria-label="סגירה">×</button>
+            <h2>הסכם תיאום ציפיות</h2>
+            <p className="sr-modal-intro">
+              נא למלא את הפרטים ולשלוח במייל. <strong>שליחת ההסכם היא תנאי לקביעת התור.</strong>
+              קביעת שעה ביומן מהווה הסכמה מלאה לכללי הסטודיו ולתנאים המפורטים בעמוד זה.
+            </p>
+            <div className="sr-form-grid">
+              <label>שם מלא *<input value={form.clientName} onChange={(e) => upd("clientName", e.target.value)} /></label>
+              <label>טלפון *<input type="tel" value={form.phone} onChange={(e) => upd("phone", e.target.value)} /></label>
+              <label>אימייל *<input type="email" value={form.email} onChange={(e) => upd("email", e.target.value)} /></label>
+              <label>סוג הצילום
+                <select value={form.sessionType} onChange={(e) => upd("sessionType", e.target.value)}>
+                  <option value="">בחרי...</option>
+                  <option>ניו-בורן</option>
+                  <option>גיל שנה / חלאקה</option>
+                  <option>היריון</option>
+                  <option>משפחה</option>
+                  <option>ילדים</option>
+                  <option>אחר</option>
+                </select>
+              </label>
+              <label>תאריך ושעה מבוקשים<input value={form.sessionDate} onChange={(e) => upd("sessionDate", e.target.value)} placeholder="לדוגמה: 15.7.26 ב-10:00" /></label>
+              <label>מספר משתתפים<input value={form.peopleCount} onChange={(e) => upd("peopleCount", e.target.value)} /></label>
+              <label>גיל התינוק (אם רלוונטי)<input value={form.babyAge} onChange={(e) => upd("babyAge", e.target.value)} placeholder="לדוגמה: 10 ימים" /></label>
+              <label>מותג מצלמה
+                <select value={form.cameraBrand} onChange={(e) => upd("cameraBrand", e.target.value)}>
+                  <option value="">בחרי...</option>
+                  <option>Canon</option>
+                  <option>Sony</option>
+                  <option>Nikon</option>
+                  <option>אחר</option>
+                </select>
+              </label>
+              <label>ניסיון קודם בפלאש/סטודיו
+                <select value={form.flashExperience} onChange={(e) => upd("flashExperience", e.target.value)}>
+                  <option value="">בחרי...</option>
+                  <option>כן, מנוסה</option>
+                  <option>מעט ניסיון</option>
+                  <option>אין ניסיון - אשתמש באור טבעי</option>
+                </select>
+              </label>
+              <label>רקעים מבוקשים<input value={form.backdrops} onChange={(e) => upd("backdrops", e.target.value)} placeholder="ירוק / לבן / כחול / חום / צהוב" /></label>
+              <label>רצפות מבוקשות<input value={form.floors} onChange={(e) => upd("floors", e.target.value)} placeholder="פורמייקה / עץ לבן / עץ חום / פרקט" /></label>
+              <label>זקוקה גם לאביזרים בהשכרה?
+                <select value={form.needProps} onChange={(e) => upd("needProps", e.target.value)}>
+                  <option value="">בחרי...</option>
+                  <option>כן - אעבור לקטלוג האביזרים</option>
+                  <option>לא</option>
+                </select>
+              </label>
+              <label className="sr-full">בקשות מיוחדות / הערות
+                <textarea rows={3} value={form.specialRequests} onChange={(e) => upd("specialRequests", e.target.value)} />
+              </label>
+              <label className="sr-full sr-agree">
+                <input type="checkbox" checked={form.agreed} onChange={(e) => upd("agreed", e.target.checked)} />
+                קראתי והבנתי את כללי הסטודיו, המחירון, מדיניות הביטולים, האחריות לנזקים וההנחיות לניקיון. ידוע לי כי קביעת מועד ביומן מהווה הסכמה מלאה להסכם זה ולכל הכללים המפורטים בעמוד.
+              </label>
+            </div>
+            <div className="sr-modal-actions">
+              <button type="button" className="sr-send" onClick={sendIntake}>שליחת ההסכם במייל</button>
+              <button type="button" className="sr-cancel" onClick={() => setShowForm(false)}>ביטול</button>
+            </div>
+          </div>
+        </div>
+      )}
+      </div>
+    </>
   );
 }
+
 
 const css = `
 .sb-rental { --bg-color:#f5c5b3; --primary-color:#163126; --white:#fff; --card-bg:rgba(255,255,255,0.6); --shadow:0 8px 32px 0 rgba(22,49,38,0.08); background:var(--bg-color); color:var(--primary-color); font-family:'Assistant',sans-serif; line-height:1.6; padding-bottom:60px; }
