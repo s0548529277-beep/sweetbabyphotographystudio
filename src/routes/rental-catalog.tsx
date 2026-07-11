@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { Header } from "@/components/Header";
 import catalogData from "@/data/studio-catalog.json";
 
 export const Route = createFileRoute("/rental-catalog")({
@@ -75,7 +76,9 @@ function RentalCatalogPage() {
   };
 
   return (
-    <div className="sb-rental-cat" dir="rtl">
+    <>
+      <Header />
+      <div className="sb-rental-cat" dir="rtl">
       <style>{css}</style>
 
       <header className="sb-header">
@@ -170,7 +173,8 @@ function RentalCatalogPage() {
           </p>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 
