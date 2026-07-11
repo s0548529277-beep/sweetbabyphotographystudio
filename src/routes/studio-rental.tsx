@@ -126,8 +126,15 @@ function StudioRentalPage() {
         <div className="two-col">
           <div className="booking-box">
             <h2 style={{ marginBottom: 10 }}>קביעת תור בסטודיו</h2>
+            <div className="agreement-banner">
+              <strong>⚠️ חשוב:</strong> לא ניתן לקבוע תור לפני שליחת <b>הסכם תיאום ציפיות</b> במייל.
+              קביעת שעה ביומן מהווה הסכמה מלאה לכללי הסטודיו וההסכם.
+              <button type="button" className="agreement-btn" onClick={() => setShowForm(true)}>
+                מילוי ושליחת הסכם תיאום ציפיות
+              </button>
+            </div>
             <p className="booking-desc">
-              בוחרים שעה פנויה (מינימום 2 חצאי שעות) - התור נכנס אוטומטית ליומן שלנו.
+              לאחר שליחת ההסכם - בוחרים שעה פנויה (מינימום 2 חצאי שעות) והתור נכנס אוטומטית ליומן שלנו.
             </p>
             <div className="calendar-frame-wrapper">
               <iframe
@@ -143,6 +150,7 @@ function StudioRentalPage() {
               <a href={`mailto:${EMAIL_TO}`}>{EMAIL_TO}</a>
             </p>
           </div>
+
 
           <aside className="info-col">
             <div className="info-card">
