@@ -359,6 +359,25 @@ const css = `
 .sb-rental ul.clean li::before { content:'•'; position:absolute; right:0; color:var(--primary-color); font-weight:700; }
 .sb-rental .info-card.cta { background:var(--primary-color); color:var(--bg-color); }
 .sb-rental .cta-link { display:inline-block; margin-top:8px; background:var(--bg-color); color:var(--primary-color); padding:10px 18px; border-radius:10px; font-weight:700; text-decoration:none; }
+.sb-rental .agreement-banner { background:#fff4e6; border:2px solid #e67e22; border-radius:14px; padding:14px 16px; margin-bottom:16px; text-align:right; font-size:0.95rem; }
+.sb-rental .agreement-btn { display:block; width:100%; margin-top:10px; background:var(--primary-color); color:var(--bg-color); border:none; padding:12px 18px; border-radius:10px; font-weight:700; font-size:1rem; cursor:pointer; font-family:inherit; }
+.sb-rental .agreement-btn:hover { opacity:0.92; }
+.sb-rental .sr-modal { position:fixed; inset:0; background:rgba(0,0,0,0.55); display:flex; align-items:center; justify-content:center; z-index:100; padding:20px; }
+.sb-rental .sr-modal-box { background:var(--white); border-radius:20px; padding:28px; max-width:720px; width:100%; max-height:90vh; overflow-y:auto; position:relative; }
+.sb-rental .sr-modal-box h2 { font-size:1.6rem; margin-bottom:8px; }
+.sb-rental .sr-modal-intro { font-size:0.95rem; margin-bottom:18px; opacity:0.85; }
+.sb-rental .sr-modal-close { position:absolute; top:12px; left:14px; background:none; border:none; font-size:1.8rem; cursor:pointer; color:var(--primary-color); }
+.sb-rental .sr-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.sb-rental .sr-form-grid label { display:flex; flex-direction:column; gap:5px; font-size:0.9rem; font-weight:600; }
+.sb-rental .sr-form-grid input, .sb-rental .sr-form-grid select, .sb-rental .sr-form-grid textarea { padding:10px 12px; border:1px solid rgba(22,49,38,0.2); border-radius:8px; font-family:inherit; font-size:0.95rem; background:#fafafa; outline:none; font-weight:400; }
+.sb-rental .sr-form-grid input:focus, .sb-rental .sr-form-grid select:focus, .sb-rental .sr-form-grid textarea:focus { border-color:var(--primary-color); }
+.sb-rental .sr-full { grid-column:1/-1; }
+.sb-rental .sr-agree { flex-direction:row !important; align-items:flex-start; gap:8px; background:#fff9ec; padding:12px; border-radius:10px; border:1px solid rgba(230,126,34,0.35); font-weight:500 !important; }
+.sb-rental .sr-agree input { flex-shrink:0; margin-top:3px; width:18px; height:18px; }
+.sb-rental .sr-modal-actions { display:flex; gap:10px; margin-top:20px; justify-content:flex-start; }
+.sb-rental .sr-send { background:var(--primary-color); color:var(--bg-color); border:none; padding:12px 24px; border-radius:10px; font-weight:700; cursor:pointer; font-size:1rem; font-family:inherit; }
+.sb-rental .sr-cancel { background:transparent; border:1px solid rgba(22,49,38,0.3); color:var(--primary-color); padding:12px 24px; border-radius:10px; cursor:pointer; font-family:inherit; }
+@media (max-width:600px) { .sb-rental .sr-form-grid { grid-template-columns:1fr; } }
 @media (max-width:900px) {
   .sb-rental .two-col { grid-template-columns: 1fr; }
   .sb-rental .booking-box { position:static; }
