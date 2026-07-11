@@ -1,4 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { Header } from "@/components/Header";
 
 export const Route = createFileRoute("/studio-rental")({
   head: () => ({
