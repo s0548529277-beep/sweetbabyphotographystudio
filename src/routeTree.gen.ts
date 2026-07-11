@@ -15,6 +15,7 @@ import { Route as StudioRentalRouteImport } from './routes/studio-rental'
 import { Route as StartRouteImport } from './routes/start'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as RentalCatalogRouteImport } from './routes/rental-catalog'
 import { Route as PropBookingRouteImport } from './routes/prop-booking'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as ContactRouteImport } from './routes/contact'
@@ -68,6 +69,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RentalCatalogRoute = RentalCatalogRouteImport.update({
+  id: '/rental-catalog',
+  path: '/rental-catalog',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PropBookingRoute = PropBookingRouteImport.update({
@@ -206,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/pricing': typeof PricingRoute
   '/prop-booking': typeof PropBookingRoute
+  '/rental-catalog': typeof RentalCatalogRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/start': typeof StartRoute
@@ -237,6 +244,7 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/pricing': typeof PricingRoute
   '/prop-booking': typeof PropBookingRoute
+  '/rental-catalog': typeof RentalCatalogRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/start': typeof StartRoute
@@ -269,6 +277,7 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/pricing': typeof PricingRoute
   '/prop-booking': typeof PropBookingRoute
+  '/rental-catalog': typeof RentalCatalogRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/start': typeof StartRoute
@@ -302,6 +311,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/pricing'
     | '/prop-booking'
+    | '/rental-catalog'
     | '/reset-password'
     | '/sitemap.xml'
     | '/start'
@@ -333,6 +343,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/pricing'
     | '/prop-booking'
+    | '/rental-catalog'
     | '/reset-password'
     | '/sitemap.xml'
     | '/start'
@@ -364,6 +375,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/pricing'
     | '/prop-booking'
+    | '/rental-catalog'
     | '/reset-password'
     | '/sitemap.xml'
     | '/start'
@@ -397,6 +409,7 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   PricingRoute: typeof PricingRoute
   PropBookingRoute: typeof PropBookingRoute
+  RentalCatalogRoute: typeof RentalCatalogRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StartRoute: typeof StartRoute
@@ -452,6 +465,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rental-catalog': {
+      id: '/rental-catalog'
+      path: '/rental-catalog'
+      fullPath: '/rental-catalog'
+      preLoaderRoute: typeof RentalCatalogRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/prop-booking': {
@@ -671,6 +691,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   PricingRoute: PricingRoute,
   PropBookingRoute: PropBookingRoute,
+  RentalCatalogRoute: RentalCatalogRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StartRoute: StartRoute,
