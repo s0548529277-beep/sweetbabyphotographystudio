@@ -16,8 +16,6 @@ import { Route as StartRouteImport } from './routes/start'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RentalCatalogRouteImport } from './routes/rental-catalog'
-import { Route as PropBookingRouteImport } from './routes/prop-booking'
-import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CatalogRouteImport } from './routes/catalog'
@@ -74,16 +72,6 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const RentalCatalogRoute = RentalCatalogRouteImport.update({
   id: '/rental-catalog',
   path: '/rental-catalog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PropBookingRoute = PropBookingRouteImport.update({
-  id: '/prop-booking',
-  path: '/prop-booking',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PricingRoute = PricingRouteImport.update({
-  id: '/pricing',
-  path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -210,8 +198,6 @@ export interface FileRoutesByFullPath {
   '/catalog': typeof CatalogRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
-  '/pricing': typeof PricingRoute
-  '/prop-booking': typeof PropBookingRoute
   '/rental-catalog': typeof RentalCatalogRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -242,8 +228,6 @@ export interface FileRoutesByTo {
   '/catalog': typeof CatalogRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
-  '/pricing': typeof PricingRoute
-  '/prop-booking': typeof PropBookingRoute
   '/rental-catalog': typeof RentalCatalogRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -275,8 +259,6 @@ export interface FileRoutesById {
   '/catalog': typeof CatalogRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
-  '/pricing': typeof PricingRoute
-  '/prop-booking': typeof PropBookingRoute
   '/rental-catalog': typeof RentalCatalogRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -309,8 +291,6 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/checkout'
     | '/contact'
-    | '/pricing'
-    | '/prop-booking'
     | '/rental-catalog'
     | '/reset-password'
     | '/sitemap.xml'
@@ -341,8 +321,6 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/checkout'
     | '/contact'
-    | '/pricing'
-    | '/prop-booking'
     | '/rental-catalog'
     | '/reset-password'
     | '/sitemap.xml'
@@ -373,8 +351,6 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/checkout'
     | '/contact'
-    | '/pricing'
-    | '/prop-booking'
     | '/rental-catalog'
     | '/reset-password'
     | '/sitemap.xml'
@@ -407,8 +383,6 @@ export interface RootRouteChildren {
   CatalogRoute: typeof CatalogRoute
   CheckoutRoute: typeof CheckoutRoute
   ContactRoute: typeof ContactRoute
-  PricingRoute: typeof PricingRoute
-  PropBookingRoute: typeof PropBookingRoute
   RentalCatalogRoute: typeof RentalCatalogRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -472,20 +446,6 @@ declare module '@tanstack/react-router' {
       path: '/rental-catalog'
       fullPath: '/rental-catalog'
       preLoaderRoute: typeof RentalCatalogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/prop-booking': {
-      id: '/prop-booking'
-      path: '/prop-booking'
-      fullPath: '/prop-booking'
-      preLoaderRoute: typeof PropBookingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pricing': {
-      id: '/pricing'
-      path: '/pricing'
-      fullPath: '/pricing'
-      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -689,8 +649,6 @@ const rootRouteChildren: RootRouteChildren = {
   CatalogRoute: CatalogRoute,
   CheckoutRoute: CheckoutRoute,
   ContactRoute: ContactRoute,
-  PricingRoute: PricingRoute,
-  PropBookingRoute: PropBookingRoute,
   RentalCatalogRoute: RentalCatalogRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
@@ -707,13 +665,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
