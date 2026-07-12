@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrackRouteImport } from './routes/track'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as StudioRentalRouteImport } from './routes/studio-rental'
+import { Route as StudioPhotographyRouteImport } from './routes/studio-photography'
 import { Route as StartRouteImport } from './routes/start'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
@@ -52,6 +53,11 @@ const TermsRoute = TermsRouteImport.update({
 const StudioRentalRoute = StudioRentalRouteImport.update({
   id: '/studio-rental',
   path: '/studio-rental',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StudioPhotographyRoute = StudioPhotographyRouteImport.update({
+  id: '/studio-photography',
+  path: '/studio-photography',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StartRoute = StartRouteImport.update({
@@ -202,6 +208,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/start': typeof StartRoute
+  '/studio-photography': typeof StudioPhotographyRoute
   '/studio-rental': typeof StudioRentalRoute
   '/terms': typeof TermsRoute
   '/track': typeof TrackRoute
@@ -232,6 +239,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/start': typeof StartRoute
+  '/studio-photography': typeof StudioPhotographyRoute
   '/studio-rental': typeof StudioRentalRoute
   '/terms': typeof TermsRoute
   '/track': typeof TrackRoute
@@ -263,6 +271,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/start': typeof StartRoute
+  '/studio-photography': typeof StudioPhotographyRoute
   '/studio-rental': typeof StudioRentalRoute
   '/terms': typeof TermsRoute
   '/track': typeof TrackRoute
@@ -295,6 +304,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sitemap.xml'
     | '/start'
+    | '/studio-photography'
     | '/studio-rental'
     | '/terms'
     | '/track'
@@ -325,6 +335,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sitemap.xml'
     | '/start'
+    | '/studio-photography'
     | '/studio-rental'
     | '/terms'
     | '/track'
@@ -355,6 +366,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sitemap.xml'
     | '/start'
+    | '/studio-photography'
     | '/studio-rental'
     | '/terms'
     | '/track'
@@ -387,6 +399,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StartRoute: typeof StartRoute
+  StudioPhotographyRoute: typeof StudioPhotographyRoute
   StudioRentalRoute: typeof StudioRentalRoute
   TermsRoute: typeof TermsRoute
   TrackRoute: typeof TrackRoute
@@ -418,6 +431,13 @@ declare module '@tanstack/react-router' {
       path: '/studio-rental'
       fullPath: '/studio-rental'
       preLoaderRoute: typeof StudioRentalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/studio-photography': {
+      id: '/studio-photography'
+      path: '/studio-photography'
+      fullPath: '/studio-photography'
+      preLoaderRoute: typeof StudioPhotographyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/start': {
@@ -653,6 +673,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StartRoute: StartRoute,
+  StudioPhotographyRoute: StudioPhotographyRoute,
   StudioRentalRoute: StudioRentalRoute,
   TermsRoute: TermsRoute,
   TrackRoute: TrackRoute,

@@ -30,8 +30,6 @@ type IntakeForm = {
   babyAge: string;
   cameraBrand: string;
   flashExperience: string;
-  backdrops: string;
-  floors: string;
   needProps: string;
   specialRequests: string;
   agreed: boolean;
@@ -40,11 +38,12 @@ type IntakeForm = {
 const emptyForm: IntakeForm = {
   clientName: "", phone: "", email: "", sessionType: "", sessionDate: "",
   peopleCount: "", babyAge: "", cameraBrand: "", flashExperience: "",
-  backdrops: "", floors: "", needProps: "", specialRequests: "", agreed: false,
+  needProps: "", specialRequests: "", agreed: false,
 };
 
 function StudioRentalPage() {
   const [showForm, setShowForm] = useState(false);
+  const [showRules, setShowRules] = useState(false);
   const [form, setForm] = useState<IntakeForm>(emptyForm);
   const upd = <K extends keyof IntakeForm>(k: K, v: IntakeForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -68,8 +67,6 @@ function StudioRentalPage() {
       `גיל התינוק (אם רלוונטי): ${form.babyAge}`,
       `מותג מצלמה: ${form.cameraBrand}`,
       `ניסיון בעבודה עם פלאש/סטודיו: ${form.flashExperience}`,
-      `רקעים מבוקשים: ${form.backdrops}`,
-      `רצפות מבוקשות: ${form.floors}`,
       `זקוקה לאביזרים בהשכרה: ${form.needProps}`,
       `בקשות מיוחדות: ${form.specialRequests}`,
       ``,
