@@ -12,12 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrackRouteImport } from './routes/track'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as StudioRentalRouteImport } from './routes/studio-rental'
+import { Route as StudioPhotographyRouteImport } from './routes/studio-photography'
 import { Route as StartRouteImport } from './routes/start'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RentalCatalogRouteImport } from './routes/rental-catalog'
-import { Route as PropBookingRouteImport } from './routes/prop-booking'
-import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CatalogRouteImport } from './routes/catalog'
@@ -56,6 +55,11 @@ const StudioRentalRoute = StudioRentalRouteImport.update({
   path: '/studio-rental',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StudioPhotographyRoute = StudioPhotographyRouteImport.update({
+  id: '/studio-photography',
+  path: '/studio-photography',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StartRoute = StartRouteImport.update({
   id: '/start',
   path: '/start',
@@ -74,16 +78,6 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const RentalCatalogRoute = RentalCatalogRouteImport.update({
   id: '/rental-catalog',
   path: '/rental-catalog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PropBookingRoute = PropBookingRouteImport.update({
-  id: '/prop-booking',
-  path: '/prop-booking',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PricingRoute = PricingRouteImport.update({
-  id: '/pricing',
-  path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -210,12 +204,11 @@ export interface FileRoutesByFullPath {
   '/catalog': typeof CatalogRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
-  '/pricing': typeof PricingRoute
-  '/prop-booking': typeof PropBookingRoute
   '/rental-catalog': typeof RentalCatalogRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/start': typeof StartRoute
+  '/studio-photography': typeof StudioPhotographyRoute
   '/studio-rental': typeof StudioRentalRoute
   '/terms': typeof TermsRoute
   '/track': typeof TrackRoute
@@ -242,12 +235,11 @@ export interface FileRoutesByTo {
   '/catalog': typeof CatalogRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
-  '/pricing': typeof PricingRoute
-  '/prop-booking': typeof PropBookingRoute
   '/rental-catalog': typeof RentalCatalogRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/start': typeof StartRoute
+  '/studio-photography': typeof StudioPhotographyRoute
   '/studio-rental': typeof StudioRentalRoute
   '/terms': typeof TermsRoute
   '/track': typeof TrackRoute
@@ -275,12 +267,11 @@ export interface FileRoutesById {
   '/catalog': typeof CatalogRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
-  '/pricing': typeof PricingRoute
-  '/prop-booking': typeof PropBookingRoute
   '/rental-catalog': typeof RentalCatalogRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/start': typeof StartRoute
+  '/studio-photography': typeof StudioPhotographyRoute
   '/studio-rental': typeof StudioRentalRoute
   '/terms': typeof TermsRoute
   '/track': typeof TrackRoute
@@ -309,12 +300,11 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/checkout'
     | '/contact'
-    | '/pricing'
-    | '/prop-booking'
     | '/rental-catalog'
     | '/reset-password'
     | '/sitemap.xml'
     | '/start'
+    | '/studio-photography'
     | '/studio-rental'
     | '/terms'
     | '/track'
@@ -341,12 +331,11 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/checkout'
     | '/contact'
-    | '/pricing'
-    | '/prop-booking'
     | '/rental-catalog'
     | '/reset-password'
     | '/sitemap.xml'
     | '/start'
+    | '/studio-photography'
     | '/studio-rental'
     | '/terms'
     | '/track'
@@ -373,12 +362,11 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/checkout'
     | '/contact'
-    | '/pricing'
-    | '/prop-booking'
     | '/rental-catalog'
     | '/reset-password'
     | '/sitemap.xml'
     | '/start'
+    | '/studio-photography'
     | '/studio-rental'
     | '/terms'
     | '/track'
@@ -407,12 +395,11 @@ export interface RootRouteChildren {
   CatalogRoute: typeof CatalogRoute
   CheckoutRoute: typeof CheckoutRoute
   ContactRoute: typeof ContactRoute
-  PricingRoute: typeof PricingRoute
-  PropBookingRoute: typeof PropBookingRoute
   RentalCatalogRoute: typeof RentalCatalogRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StartRoute: typeof StartRoute
+  StudioPhotographyRoute: typeof StudioPhotographyRoute
   StudioRentalRoute: typeof StudioRentalRoute
   TermsRoute: typeof TermsRoute
   TrackRoute: typeof TrackRoute
@@ -446,6 +433,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudioRentalRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/studio-photography': {
+      id: '/studio-photography'
+      path: '/studio-photography'
+      fullPath: '/studio-photography'
+      preLoaderRoute: typeof StudioPhotographyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/start': {
       id: '/start'
       path: '/start'
@@ -472,20 +466,6 @@ declare module '@tanstack/react-router' {
       path: '/rental-catalog'
       fullPath: '/rental-catalog'
       preLoaderRoute: typeof RentalCatalogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/prop-booking': {
-      id: '/prop-booking'
-      path: '/prop-booking'
-      fullPath: '/prop-booking'
-      preLoaderRoute: typeof PropBookingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pricing': {
-      id: '/pricing'
-      path: '/pricing'
-      fullPath: '/pricing'
-      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -689,12 +669,11 @@ const rootRouteChildren: RootRouteChildren = {
   CatalogRoute: CatalogRoute,
   CheckoutRoute: CheckoutRoute,
   ContactRoute: ContactRoute,
-  PricingRoute: PricingRoute,
-  PropBookingRoute: PropBookingRoute,
   RentalCatalogRoute: RentalCatalogRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StartRoute: StartRoute,
+  StudioPhotographyRoute: StudioPhotographyRoute,
   StudioRentalRoute: StudioRentalRoute,
   TermsRoute: TermsRoute,
   TrackRoute: TrackRoute,

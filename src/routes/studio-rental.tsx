@@ -30,8 +30,6 @@ type IntakeForm = {
   babyAge: string;
   cameraBrand: string;
   flashExperience: string;
-  backdrops: string;
-  floors: string;
   needProps: string;
   specialRequests: string;
   agreed: boolean;
@@ -40,11 +38,12 @@ type IntakeForm = {
 const emptyForm: IntakeForm = {
   clientName: "", phone: "", email: "", sessionType: "", sessionDate: "",
   peopleCount: "", babyAge: "", cameraBrand: "", flashExperience: "",
-  backdrops: "", floors: "", needProps: "", specialRequests: "", agreed: false,
+  needProps: "", specialRequests: "", agreed: false,
 };
 
 function StudioRentalPage() {
   const [showForm, setShowForm] = useState(false);
+  const [showRules, setShowRules] = useState(false);
   const [form, setForm] = useState<IntakeForm>(emptyForm);
   const upd = <K extends keyof IntakeForm>(k: K, v: IntakeForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -68,8 +67,6 @@ function StudioRentalPage() {
       `גיל התינוק (אם רלוונטי): ${form.babyAge}`,
       `מותג מצלמה: ${form.cameraBrand}`,
       `ניסיון בעבודה עם פלאש/סטודיו: ${form.flashExperience}`,
-      `רקעים מבוקשים: ${form.backdrops}`,
-      `רצפות מבוקשות: ${form.floors}`,
       `זקוקה לאביזרים בהשכרה: ${form.needProps}`,
       `בקשות מיוחדות: ${form.specialRequests}`,
       ``,
@@ -294,8 +291,6 @@ function StudioRentalPage() {
                   <option>אין ניסיון - אשתמש באור טבעי</option>
                 </select>
               </label>
-              <label>רקעים מבוקשים<input value={form.backdrops} onChange={(e) => upd("backdrops", e.target.value)} placeholder="ירוק / לבן / כחול / חום / צהוב" /></label>
-              <label>רצפות מבוקשות<input value={form.floors} onChange={(e) => upd("floors", e.target.value)} placeholder="פורמייקה / עץ לבן / עץ חום / פרקט" /></label>
               <label>זקוקה גם לאביזרים בהשכרה?
                 <select value={form.needProps} onChange={(e) => upd("needProps", e.target.value)}>
                   <option value="">בחרי...</option>
@@ -306,6 +301,89 @@ function StudioRentalPage() {
               <label className="sr-full">בקשות מיוחדות / הערות
                 <textarea rows={3} value={form.specialRequests} onChange={(e) => upd("specialRequests", e.target.value)} />
               </label>
+
+              <div className="sr-full sr-rules-block">
+                <button
+                  type="button"
+                  className="sr-rules-toggle"
+                  onClick={() => setShowRules((v) => !v)}
+                  aria-expanded={showRules}
+                >
+                  {showRules ? "הסתרת כללי הסטודיו ▲" : "לחצי לצפייה בכללי הסטודיו המלאים לפני האישור ▼"}
+                </button>
+                {showRules && (
+                  <div className="sr-rules">
+                    <h4>🕒 שעות פעילות</h4>
+                    <ul>
+                      <li>ימים א'-ה': 8:00-23:00</li>
+                      <li>יום ו' / ערב חג: 8:00 עד שעתיים לפני כניסת השבת/חג</li>
+                      <li>מוצ"ש / חג: משעה אחרי צאת השבת/חג</li>
+                    </ul>
+
+                    <h4>💳 מחירון וחישוב שעות</h4>
+                    <ul>
+                      <li>שעת השכרה ראשונה: 120 ₪</li>
+                      <li>כל שעה נוספת: 90 ₪</li>
+                      <li>מבצע 8:00-13:00 (ניו-בורן): 3 שעות ב-240 ₪</li>
+                      <li>מינימום הזמנה: שעה (2 חצאי שעות)</li>
+                      <li>עיכוב של 15+ דקות מעבר לשעה - חצי שעה נוספת</li>
+                      <li>עיכוב של 45+ דקות - שעה מלאה נוספת</li>
+                      <li>ספירת הזמן כוללת התארגנות וניקיון בסיום</li>
+                    </ul>
+
+                    <h4>📅 תשלום ומדיניות ביטולים</h4>
+                    <ul>
+                      <li>שריון מועד: מקדמה 90 ₪ בעת ההזמנה (לא מוחזרת בביטול)</li>
+                      <li>העברה בנקאית: בנק 12, סניף 533, חשבון 648912 (מיכל סיבוני)</li>
+                      <li>יש לשלוח צילום אישור העברה למייל הסטודיו</li>
+                      <li>הזמנה ליום ההגעה: תשלום מלא מראש</li>
+                      <li>יתרה: פייבוקס / העברה / מזומן בסיום ההשכרה</li>
+                      <li>ביטול/שינוי עד ליום האירוע: המקדמה לא מוחזרת</li>
+                      <li>ביטול ביום האירוע: חיוב מלא (100%)</li>
+                    </ul>
+
+                    <h4>✨ הציוד בסטודיו</h4>
+                    <ul>
+                      <li>מיזוג אוויר + מפזר חום ייעודי לניו-בורן</li>
+                      <li>שידת החתלה חדשה עם עיטופים ובדים מותאמים</li>
+                      <li>קופסת ציוד: משדר, בטריה לפלאש, שוֶשר, דבקים, אטבים ועטים</li>
+                      <li>שירותים - בקומה 5 דירה 18</li>
+                    </ul>
+
+                    <h4>💡 תאורה וציוד מקצועי</h4>
+                    <ul>
+                      <li>פלאש מקצועי Godox AD200 PRO (סוללה נטענת)</li>
+                      <li>משדרים ל-Canon ול-SONY</li>
+                      <li>סופטבוקס בקוטר 1.65 מטר</li>
+                      <li>השימוש בפלאש דורש ידע מוקדם בתאורת סטודיו</li>
+                    </ul>
+
+                    <h4>🎨 רקעים ורצפות</h4>
+                    <ul>
+                      <li>רקעים זמינים: ירוק, לבן (2.7), כחול, חום בהיר, חום כהה, צהוב (1.5)</li>
+                      <li>רקעי נייר מיועדים לקירות בלבד - אין להניחם על הרצפה</li>
+                      <li>שימוש ברקע נייר גם כרצפה - בתוספת 50 ₪ (בגין הבלאי)</li>
+                      <li>רקע שהתלכלך/נהרס: 100 ₪ לכל מטר שניזוק</li>
+                      <li>רצפות ללא תוספת: פורמייקה לבנה, עץ לבן/חום, פרקט, קורות עץ דו-צדדיות</li>
+                    </ul>
+
+                    <h4>🧹 סדר וניקיון</h4>
+                    <ul>
+                      <li>הסטודיו נמסר נקי ומסודר - יש להחזירו למצבו המקורי</li>
+                      <li>סטודיו שיישאר מבולגן/מלוכלך - חיוב 150 ₪ דמי ניקיון</li>
+                    </ul>
+
+                    <h4>🛡️ אחריות ונזקים</h4>
+                    <ul>
+                      <li>נזק לרכוש/ציוד: השוכר יישא בעלות התיקון/רכישה + 20% דמי טיפול</li>
+                      <li>הבטיחות באחריות השוכר בלבד (לכל צד ומטעמו)</li>
+                      <li>יש לוודא כיבוי אורות ומזגן ביציאה - השארה דולק תגרור 7 ₪ לכל שעה עד 8:00 למחרת</li>
+                      <li>חפצים שיישכחו ולא ייאספו תוך 30 יום - יעברו למאגר האביזרים</li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+
               <label className="sr-full sr-agree">
                 <input type="checkbox" checked={form.agreed} onChange={(e) => upd("agreed", e.target.checked)} />
                 קראתי והבנתי את כללי הסטודיו, המחירון, מדיניות הביטולים, האחריות לנזקים וההנחיות לניקיון. ידוע לי כי קביעת מועד ביומן מהווה הסכמה מלאה להסכם זה ולכל הכללים המפורטים בעמוד.
@@ -374,6 +452,14 @@ const css = `
 .sb-rental .sr-full { grid-column:1/-1; }
 .sb-rental .sr-agree { flex-direction:row !important; align-items:flex-start; gap:8px; background:#fff9ec; padding:12px; border-radius:10px; border:1px solid rgba(230,126,34,0.35); font-weight:500 !important; }
 .sb-rental .sr-agree input { flex-shrink:0; margin-top:3px; width:18px; height:18px; }
+.sb-rental .sr-rules-block { margin-top:6px; }
+.sb-rental .sr-rules-toggle { width:100%; background:#f6e5dd; color:var(--primary-color); border:1px dashed rgba(22,49,38,0.35); border-radius:10px; padding:12px 14px; font-weight:700; font-family:inherit; cursor:pointer; font-size:0.95rem; }
+.sb-rental .sr-rules-toggle:hover { background:#eed4c6; }
+.sb-rental .sr-rules { margin-top:10px; background:#fafafa; border:1px solid rgba(22,49,38,0.12); border-radius:12px; padding:16px 20px; max-height:340px; overflow-y:auto; font-size:0.92rem; line-height:1.55; }
+.sb-rental .sr-rules h4 { font-weight:700; margin:12px 0 6px; font-size:1rem; }
+.sb-rental .sr-rules h4:first-child { margin-top:0; }
+.sb-rental .sr-rules ul { list-style:disc; padding-right:20px; margin:0; }
+.sb-rental .sr-rules li { padding:2px 0; }
 .sb-rental .sr-modal-actions { display:flex; gap:10px; margin-top:20px; justify-content:flex-start; }
 .sb-rental .sr-send { background:var(--primary-color); color:var(--bg-color); border:none; padding:12px 24px; border-radius:10px; font-weight:700; cursor:pointer; font-size:1rem; font-family:inherit; }
 .sb-rental .sr-cancel { background:transparent; border:1px solid rgba(22,49,38,0.3); color:var(--primary-color); padding:12px 24px; border-radius:10px; cursor:pointer; font-family:inherit; }

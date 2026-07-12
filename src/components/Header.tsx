@@ -13,13 +13,9 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 const nav = [
   { to: "/", label: "בית" },
   { to: "/catalog", label: "קטלוג" },
-  { to: "/pricing", label: "מחירון והזמנה" },
-  { to: "/prop-booking", label: "הזמנת אביזרים" },
+  { to: "/studio-photography", label: "צילומים בסטודיו" },
   { to: "/studio-rental", label: "השכרת סטודיו" },
   { to: "/rental-catalog", label: "קטלוג אביזרים להשכרה" },
-
-
-
   { to: "/about", label: "אודות" },
   { to: "/contact", label: "יצירת קשר" },
 ];
