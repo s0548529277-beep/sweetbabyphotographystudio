@@ -452,6 +452,14 @@ const css = `
 .sb-rental .sr-full { grid-column:1/-1; }
 .sb-rental .sr-agree { flex-direction:row !important; align-items:flex-start; gap:8px; background:#fff9ec; padding:12px; border-radius:10px; border:1px solid rgba(230,126,34,0.35); font-weight:500 !important; }
 .sb-rental .sr-agree input { flex-shrink:0; margin-top:3px; width:18px; height:18px; }
+.sb-rental .sr-rules-block { margin-top:6px; }
+.sb-rental .sr-rules-toggle { width:100%; background:#f6e5dd; color:var(--primary-color); border:1px dashed rgba(22,49,38,0.35); border-radius:10px; padding:12px 14px; font-weight:700; font-family:inherit; cursor:pointer; font-size:0.95rem; }
+.sb-rental .sr-rules-toggle:hover { background:#eed4c6; }
+.sb-rental .sr-rules { margin-top:10px; background:#fafafa; border:1px solid rgba(22,49,38,0.12); border-radius:12px; padding:16px 20px; max-height:340px; overflow-y:auto; font-size:0.92rem; line-height:1.55; }
+.sb-rental .sr-rules h4 { font-weight:700; margin:12px 0 6px; font-size:1rem; }
+.sb-rental .sr-rules h4:first-child { margin-top:0; }
+.sb-rental .sr-rules ul { list-style:disc; padding-right:20px; margin:0; }
+.sb-rental .sr-rules li { padding:2px 0; }
 .sb-rental .sr-modal-actions { display:flex; gap:10px; margin-top:20px; justify-content:flex-start; }
 .sb-rental .sr-send { background:var(--primary-color); color:var(--bg-color); border:none; padding:12px 24px; border-radius:10px; font-weight:700; cursor:pointer; font-size:1rem; font-family:inherit; }
 .sb-rental .sr-cancel { background:transparent; border:1px solid rgba(22,49,38,0.3); color:var(--primary-color); padding:12px 24px; border-radius:10px; cursor:pointer; font-family:inherit; }
