@@ -8,15 +8,21 @@ import { CountUp } from "@/components/CountUp";
 import heroImg from "@/assets/hero-studio.jpg.asset.json";
 import studioInterior from "@/assets/studio-interior.jpg";
 import studioProps from "@/assets/studio-props-corner.jpg";
+import hero0 from "@/assets/home-hero-0.png.asset.json";
+import hero1 from "@/assets/home-hero-1.png.asset.json";
+import hero2 from "@/assets/home-hero-2.png.asset.json";
+import hero3 from "@/assets/home-hero-3.jpg.asset.json";
+import hero4 from "@/assets/home-hero-4.jpg.asset.json";
+import hero5 from "@/assets/home-hero-5.jpg.asset.json";
+import hero7 from "@/assets/home-hero-7.png.asset.json";
 const HERO_SLIDES: string[] = [
-  heroImg.url,
-  "/catalog-images/102.jpg",
-  studioInterior,
-  "/catalog-images/109.jpg",
-  "/catalog-images/121.jpg",
-  "/catalog-images/145.jpg",
-  "/catalog-images/202.jpg",
-  "/catalog-images/409.jpg",
+  hero0.url,
+  hero1.url,
+  hero2.url,
+  hero3.url,
+  hero4.url,
+  hero5.url,
+  hero7.url,
 ];
 
 
