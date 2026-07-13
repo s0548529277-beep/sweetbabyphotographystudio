@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { Header } from "@/components/Header";
 import catalogData from "@/data/studio-catalog.json";
+import { smartSearchItems } from "@/lib/ai.functions";
 
 export const Route = createFileRoute("/rental-catalog")({
   head: () => ({
@@ -29,6 +31,10 @@ function RentalCatalogPage() {
   const [phone, setPhone] = useState("");
   const [hours, setHours] = useState("");
   const [query, setQuery] = useState("");
+  const [aiSkus, setAiSkus] = useState<Set<string> | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [lightbox, setLightbox] = useState<Item | null>(null);
+  const runSmartSearch = useServerFn(smartSearchItems);
 
   const toggle = (sku: string) =>
     setSelected((s) => ({ ...s, [sku]: !s[sku] }));
@@ -39,16 +45,33 @@ function RentalCatalogPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim();
-    if (!q) return categories;
+    if (!q && !aiSkus) return categories;
     return categories
       .map((c) => ({
         ...c,
-        items: c.items.filter(
-          (it) => it.sku.includes(q) || it.name.includes(q) || it.alt.includes(q),
-        ),
+        items: c.items.filter((it) => {
+          if (aiSkus) return aiSkus.has(it.sku);
+          return it.sku.includes(q) || it.name.includes(q) || it.alt.includes(q);
+        }),
       }))
       .filter((c) => c.items.length > 0);
-  }, [query]);
+  }, [query, aiSkus]);
+
+  const doAiSearch = async () => {
+    const q = query.trim();
+    if (!q) return;
+    setAiLoading(true);
+    try {
+      const { skus } = await runSmartSearch({ data: { query: q } });
+      setAiSkus(new Set(skus));
+    } catch {
+      setAiSkus(null);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+  const clearAi = () => { setAiSkus(null); setQuery(""); };
+
 
   const submit = () => {
     if (!clientName.trim() || !phone.trim()) {
@@ -98,11 +121,21 @@ function RentalCatalogPage() {
           <div className="search-row">
             <input
               type="search"
-              placeholder="חיפוש לפי מק״ט או שם..."
+              placeholder='חיפוש חכם: "משהו ורוד לניו-בורן", "כובעים סרוגים", מק״ט...'
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => { setQuery(e.target.value); if (aiSkus) setAiSkus(null); }}
+              onKeyDown={(e) => { if (e.key === "Enter") doAiSearch(); }}
             />
+            <button type="button" className="ai-btn" onClick={doAiSearch} disabled={aiLoading || !query.trim()}>
+              {aiLoading ? "מחפשת…" : "✨ חיפוש חכם"}
+            </button>
+            {aiSkus && (
+              <button type="button" className="ai-clear" onClick={clearAi}>נקה</button>
+            )}
           </div>
+          {aiSkus && (
+            <div className="ai-hint">תוצאות חיפוש חכם: {aiSkus.size} פריטים</div>
+          )}
 
           {filtered.map((cat) => (
             <div className="cat-block" key={cat.title}>
@@ -113,25 +146,25 @@ function RentalCatalogPage() {
                 {cat.items.map((it) => {
                   const on = !!selected[it.sku];
                   return (
-                    <label
-                      key={it.sku}
-                      className={`item-card${on ? " checked" : ""}`}
-                    >
+                    <div key={it.sku} className={`item-card${on ? " checked" : ""}`}>
                       <input
                         type="checkbox"
+                        aria-label={`בחר ${it.name || it.sku}`}
                         checked={on}
                         onChange={() => toggle(it.sku)}
                       />
                       {it.img ? (
-                        <img src={it.img} alt={it.alt} loading="lazy" />
+                        <button type="button" className="img-btn" onClick={() => setLightbox(it)} aria-label="הגדל תמונה">
+                          <img src={it.img} alt={it.alt} loading="lazy" />
+                        </button>
                       ) : (
                         <div className="no-img">אין תמונה</div>
                       )}
-                      <div className="item-info">
+                      <div className="item-info" onClick={() => toggle(it.sku)}>
                         <span>#{it.sku}</span>
                         <span>₪{it.price}</span>
                       </div>
-                    </label>
+                    </div>
                   );
                 })}
               </div>
@@ -173,6 +206,18 @@ function RentalCatalogPage() {
           </p>
         </div>
       </div>
+      {lightbox && (
+        <div className="lightbox" onClick={() => setLightbox(null)} role="dialog" aria-modal="true">
+          <div className="lightbox-inner" onClick={(e) => e.stopPropagation()}>
+            <button className="lightbox-close" onClick={() => setLightbox(null)} aria-label="סגור">×</button>
+            <img src={lightbox.img} alt={lightbox.alt} />
+            <div className="lightbox-meta">
+              <div><strong>#{lightbox.sku}</strong> · {lightbox.name || lightbox.alt}</div>
+              <div>₪{lightbox.price}</div>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </>
   );
@@ -216,4 +261,18 @@ const css = `
   .sb-rental-cat .item-card img, .sb-rental-cat .item-card .no-img { height:85px; }
   .sb-rental-cat .cart-bar { flex-direction:column; align-items:stretch; }
 }
+.sb-rental-cat .search-row { display:flex; gap:8px; align-items:center; }
+.sb-rental-cat .search-row input { flex:1; }
+.sb-rental-cat .ai-btn { background:var(--primary-color); color:var(--bg-color); border:none; padding:14px 18px; border-radius:12px; font-weight:700; cursor:pointer; white-space:nowrap; font-family:inherit; }
+.sb-rental-cat .ai-btn:disabled { opacity:0.5; cursor:not-allowed; }
+.sb-rental-cat .ai-clear { background:transparent; color:var(--primary-color); border:1px solid var(--primary-color); padding:12px 14px; border-radius:12px; font-weight:600; cursor:pointer; font-family:inherit; }
+.sb-rental-cat .ai-hint { background:rgba(22,49,38,0.08); padding:8px 14px; border-radius:10px; margin-bottom:18px; font-size:0.9rem; font-weight:600; }
+.sb-rental-cat .item-card { cursor:default; }
+.sb-rental-cat .img-btn { display:block; width:100%; padding:0; border:none; background:none; cursor:zoom-in; }
+.sb-rental-cat .item-info { cursor:pointer; }
+.sb-rental-cat .lightbox { position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; }
+.sb-rental-cat .lightbox-inner { position:relative; max-width:min(90vw,900px); max-height:90vh; background:#fff; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; }
+.sb-rental-cat .lightbox-inner img { max-width:100%; max-height:75vh; object-fit:contain; background:#000; }
+.sb-rental-cat .lightbox-meta { padding:14px 20px; display:flex; justify-content:space-between; font-weight:700; font-size:1.05rem; }
+.sb-rental-cat .lightbox-close { position:absolute; top:8px; left:8px; width:38px; height:38px; border-radius:50%; border:none; background:rgba(0,0,0,0.6); color:#fff; font-size:22px; cursor:pointer; z-index:2; }
 `;
