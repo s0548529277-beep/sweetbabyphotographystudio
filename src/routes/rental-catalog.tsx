@@ -235,32 +235,32 @@ function RentalCatalogPage() {
           </div>
 
           {/* CART SIDEBAR */}
-          <aside className="lg:sticky lg:top-24 bg-primary text-primary-foreground rounded-3xl p-6 shadow-xl">
+          <aside className="lg:sticky lg:top-24 bg-[#f5d5cf] text-[#2d3d2b] rounded-3xl p-6 shadow-xl border border-[#2d3d2b]/10">
             <div className="flex items-center gap-2 mb-1">
-              <ShoppingBag className="h-4 w-4 text-peach" />
-              <div className="text-peach text-[11px] tracking-[0.3em] uppercase">My Order</div>
+              <ShoppingBag className="h-4 w-4 text-[#2d3d2b]/70" />
+              <div className="text-[#2d3d2b]/70 text-[11px] tracking-[0.3em] uppercase">My Order</div>
             </div>
-            <h2 className="font-display text-2xl mb-4">הסל שלי</h2>
+            <h2 className="font-display text-2xl mb-4 text-[#2d3d2b]">הסל שלי</h2>
 
             {lines.length === 0 ? (
-              <div className="text-primary-foreground/70 text-sm py-8 text-center">
+              <div className="text-[#2d3d2b]/60 text-sm py-8 text-center">
                 לחצו על <Plus className="inline h-3 w-3 mx-1" /> ליד פריט כדי להוסיף לסל.
               </div>
             ) : (
               <div className="space-y-3 max-h-[46vh] overflow-y-auto pr-1 -mr-2">
                 {lines.map((l) => (
-                  <div key={l.id} className="flex gap-3 items-center bg-primary-foreground/5 rounded-2xl p-2 pr-3">
-                    <div className="h-12 w-12 rounded-xl overflow-hidden bg-cream shrink-0">
+                  <div key={l.id} className="flex gap-3 items-center bg-white/60 rounded-2xl p-2 pr-3">
+                    <div className="h-12 w-12 rounded-xl overflow-hidden bg-white shrink-0">
                       {l.image_url && <img src={l.image_url} alt={l.name} className="h-full w-full object-cover" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm truncate">{l.name}</div>
-                      <div className="text-[10px] text-primary-foreground/60 tracking-widest">#{l.sku} · ₪{l.price}</div>
+                      <div className="text-sm truncate text-[#2d3d2b]">{l.name}</div>
+                      <div className="text-[10px] text-[#2d3d2b]/60 tracking-widest">#{l.sku} · ₪{l.price}</div>
                     </div>
                     <button
                       type="button"
                       onClick={() => remove(l.id)}
-                      className="h-7 w-7 rounded-full bg-primary-foreground/10 hover:bg-primary-foreground/20 flex items-center justify-center"
+                      className="h-7 w-7 rounded-full bg-white/70 hover:bg-white flex items-center justify-center"
                       aria-label={`הסר את ${l.name}`}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -270,26 +270,50 @@ function RentalCatalogPage() {
               </div>
             )}
 
-            <div className="h-px bg-primary-foreground/15 my-5" />
+            <div className="h-px bg-[#2d3d2b]/15 my-5" />
             <div className="flex items-baseline justify-between">
-              <span className="text-sm text-primary-foreground/80">{count} פריטים</span>
-              <span className="font-display text-3xl text-peach">₪{subtotal.toFixed(0)}</span>
+              <span className="text-sm text-[#2d3d2b]/80">{count} פריטים</span>
+              <span className="font-display text-3xl text-[#2d3d2b]">₪{subtotal.toFixed(0)}</span>
             </div>
             {subtotal > 0 && subtotal < 50 && (
-              <p className="text-peach text-xs mt-2">מינימום 50 ₪ — הוסיפו ₪{(50 - subtotal).toFixed(0)}.</p>
+              <p className="text-[#2d3d2b]/80 text-xs mt-2">מינימום 50 ₪ — הוסיפו ₪{(50 - subtotal).toFixed(0)}.</p>
             )}
             <button
               type="button"
               disabled={subtotal < 50}
               onClick={() => nav({ to: "/checkout" })}
-              className="w-full mt-5 h-12 rounded-full bg-peach text-primary font-medium hover:bg-peach-deep disabled:opacity-40 transition-colors"
+              className="w-full mt-5 h-12 rounded-full bg-[#2d3d2b] text-[#f5d5cf] font-medium hover:bg-[#1f2b1e] disabled:opacity-40 transition-colors"
             >
               המשך לקופה
             </button>
-            <Link to="/cart" className="block text-center text-xs text-primary-foreground/60 mt-3 hover:text-peach">
+            <button
+              type="button"
+              disabled={lines.length === 0}
+              onClick={() => {
+                const body = [
+                  "שלום, אשמח להזמין את הפריטים הבאים:",
+                  "",
+                  ...lines.map((l) => `• ${l.name} (מק״ט ${l.sku}) — ₪${l.price} × ${l.quantity}`),
+                  "",
+                  `סה״כ: ₪${subtotal.toFixed(0)}`,
+                  "",
+                  "פרטי לקוח:",
+                  "שם: ",
+                  "טלפון: ",
+                  "תאריך רצוי: ",
+                ].join("\n");
+                const url = `https://mail.google.com/mail/?view=cm&fs=1&to=s0548529277@gmail.com&su=${encodeURIComponent("הזמנת אביזרים — Sweetbaby")}&body=${encodeURIComponent(body)}`;
+                window.open(url, "_blank", "noopener,noreferrer");
+              }}
+              className="w-full mt-2 h-11 rounded-full bg-white text-[#2d3d2b] font-medium border border-[#2d3d2b]/15 hover:bg-white/80 disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
+            >
+              ✉️ שליחת הסל במייל (Gmail)
+            </button>
+            <Link to="/cart" className="block text-center text-xs text-[#2d3d2b]/60 mt-3 hover:text-[#2d3d2b]">
               צפייה בסל המלא
             </Link>
           </aside>
+
         </div>
       </section>
 

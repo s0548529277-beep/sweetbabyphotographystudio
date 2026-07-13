@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Header } from "@/components/Header";
+import logo from "@/assets/logo-green.png";
+
 
 export const Route = createFileRoute("/studio-rental")({
   head: () => ({
@@ -83,9 +85,10 @@ function StudioRentalPage() {
       <style>{css}</style>
 
       <header className="sb-header">
-        <h1>Sweetbaby</h1>
-        <div className="subtitle">התמונה הראשונה שלי</div>
+        <img src={logo} alt="Sweetbaby" style={{ height: "96px", width: "auto", margin: "0 auto", display: "block" }} />
       </header>
+
+
 
 
       <div className="sb-container">
