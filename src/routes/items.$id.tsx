@@ -27,7 +27,7 @@ export const Route = createFileRoute("/items/$id")({
       <div className="container-page py-24 text-center flex-1">
         <h1 className="font-display text-4xl mb-3">האביזר לא נמצא</h1>
         <p className="text-muted-foreground mb-6">ייתכן שהפריט הוסר מהקטלוג.</p>
-        <Link to="/catalog" className="underline">חזרה לקטלוג</Link>
+        <Link to="/rental-catalog" className="underline">חזרה לקטלוג</Link>
       </div>
       <Footer />
     </div>
@@ -101,7 +101,7 @@ function ItemPage() {
         <nav className="text-xs text-muted-foreground flex items-center gap-1.5 mb-6">
           <Link to="/" className="hover:text-foreground">בית</Link>
           <ChevronRight className="h-3 w-3 rotate-180" />
-          <Link to="/catalog" className="hover:text-foreground">קטלוג</Link>
+          <Link to="/rental-catalog" className="hover:text-foreground">קטלוג</Link>
           <ChevronRight className="h-3 w-3 rotate-180" />
           <span className="text-foreground">{it.name}</span>
         </nav>

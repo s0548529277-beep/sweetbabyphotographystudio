@@ -53,7 +53,7 @@ function About() {
         </div>
 
         <div className="mt-16 flex gap-3">
-          <Link to="/catalog"><Button className="rounded-full px-7 h-12">לקטלוג</Button></Link>
+          <Link to="/rental-catalog"><Button className="rounded-full px-7 h-12">לקטלוג</Button></Link>
           <Link to="/contact"><Button variant="outline" className="rounded-full px-7 h-12">יצירת קשר</Button></Link>
         </div>
       </section>

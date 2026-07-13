@@ -19,7 +19,6 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RentalCatalogRouteImport } from './routes/rental-catalog'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CheckoutRouteImport } from './routes/checkout'
-import { Route as CatalogRouteImport } from './routes/catalog'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as BookingRouteImport } from './routes/booking'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -88,11 +87,6 @@ const ContactRoute = ContactRouteImport.update({
 const CheckoutRoute = CheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CatalogRoute = CatalogRouteImport.update({
-  id: '/catalog',
-  path: '/catalog',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CartRoute = CartRouteImport.update({
@@ -201,7 +195,6 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/booking': typeof BookingRoute
   '/cart': typeof CartRoute
-  '/catalog': typeof CatalogRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/rental-catalog': typeof RentalCatalogRoute
@@ -232,7 +225,6 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/booking': typeof BookingRoute
   '/cart': typeof CartRoute
-  '/catalog': typeof CatalogRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/rental-catalog': typeof RentalCatalogRoute
@@ -264,7 +256,6 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/booking': typeof BookingRoute
   '/cart': typeof CartRoute
-  '/catalog': typeof CatalogRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/rental-catalog': typeof RentalCatalogRoute
@@ -297,7 +288,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/booking'
     | '/cart'
-    | '/catalog'
     | '/checkout'
     | '/contact'
     | '/rental-catalog'
@@ -328,7 +318,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/booking'
     | '/cart'
-    | '/catalog'
     | '/checkout'
     | '/contact'
     | '/rental-catalog'
@@ -359,7 +348,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/booking'
     | '/cart'
-    | '/catalog'
     | '/checkout'
     | '/contact'
     | '/rental-catalog'
@@ -392,7 +380,6 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   BookingRoute: typeof BookingRoute
   CartRoute: typeof CartRoute
-  CatalogRoute: typeof CatalogRoute
   CheckoutRoute: typeof CheckoutRoute
   ContactRoute: typeof ContactRoute
   RentalCatalogRoute: typeof RentalCatalogRoute
@@ -480,13 +467,6 @@ declare module '@tanstack/react-router' {
       path: '/checkout'
       fullPath: '/checkout'
       preLoaderRoute: typeof CheckoutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/catalog': {
-      id: '/catalog'
-      path: '/catalog'
-      fullPath: '/catalog'
-      preLoaderRoute: typeof CatalogRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cart': {
@@ -666,7 +646,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   BookingRoute: BookingRoute,
   CartRoute: CartRoute,
-  CatalogRoute: CatalogRoute,
   CheckoutRoute: CheckoutRoute,
   ContactRoute: ContactRoute,
   RentalCatalogRoute: RentalCatalogRoute,

@@ -55,7 +55,7 @@ function SummaryPage() {
         <Header />
         <div className="container-page py-24 text-center">
           <h1 className="font-display text-3xl text-primary mb-3">לא מצאנו את ההזמנה</h1>
-          <Link to="/catalog"><Button className="rounded-full">חזרה לקטלוג</Button></Link>
+          <Link to="/rental-catalog"><Button className="rounded-full">חזרה לקטלוג</Button></Link>
         </div>
         <Footer />
       </div>

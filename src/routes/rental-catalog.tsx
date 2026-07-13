@@ -1,9 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import catalogData from "@/data/studio-catalog.json";
 import { smartSearchItems } from "@/lib/ai.functions";
+import { useCart } from "@/lib/cart";
+import { Sparkles, Search, X, ShoppingBag, Check, Plus, Trash2, ZoomIn } from "lucide-react";
 
 export const Route = createFileRoute("/rental-catalog")({
   head: () => ({
@@ -12,50 +15,49 @@ export const Route = createFileRoute("/rental-catalog")({
       {
         name: "description",
         content:
-          "קטלוג מלא של אביזרים להשכרה לצילומי ניו-בורן, משפחה וגיל שנה. סימון האביזרים ושליחת בקשה במייל.",
+          "מעל 400 אביזרים להשכרה לצילומי ניו-בורן, גיל שנה ומשפחה. בחירה, סל צד וקופה מאובטחת.",
       },
+      { property: "og:title", content: "קטלוג אביזרים להשכרה | Sweetbaby" },
+      { property: "og:description", content: "מעל 400 אביזרים להשכרה — בחירה, סל וקופה." },
+      { property: "og:url", content: "https://sweetbabyphotographystudio.lovable.app/rental-catalog" },
     ],
+    links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/rental-catalog" }],
   }),
   component: RentalCatalogPage,
 });
-
-const EMAIL_TO = "s0548529277@gmail.com";
 
 type Item = { sku: string; name: string; price: number; img: string; alt: string; hasHand?: boolean };
 type Category = { title: string; items: Item[] };
 const categories = catalogData as Category[];
 
 function RentalCatalogPage() {
-  const [selected, setSelected] = useState<Record<string, boolean>>({});
-  const [clientName, setClientName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [hours, setHours] = useState("");
+  const { lines, add, remove, subtotal, count } = useCart();
+  const nav = useNavigate();
+  const inCart = useMemo(() => new Set(lines.map((l) => l.id)), [lines]);
+
   const [query, setQuery] = useState("");
   const [aiSkus, setAiSkus] = useState<Set<string> | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [lightbox, setLightbox] = useState<Item | null>(null);
+  const [activeCat, setActiveCat] = useState<string>("all");
   const runSmartSearch = useServerFn(smartSearchItems);
 
-  const toggle = (sku: string) =>
-    setSelected((s) => ({ ...s, [sku]: !s[sku] }));
-
   const allItems = useMemo(() => categories.flatMap((c) => c.items), []);
-  const chosen = allItems.filter((i) => selected[i.sku]);
-  const total = chosen.reduce((sum, i) => sum + i.price, 0);
 
   const filtered = useMemo(() => {
     const q = query.trim();
-    if (!q && !aiSkus) return categories;
     return categories
+      .filter((c) => activeCat === "all" || c.title === activeCat)
       .map((c) => ({
         ...c,
         items: c.items.filter((it) => {
           if (aiSkus) return aiSkus.has(it.sku);
+          if (!q) return true;
           return it.sku.includes(q) || it.name.includes(q) || it.alt.includes(q);
         }),
       }))
       .filter((c) => c.items.length > 0);
-  }, [query, aiSkus]);
+  }, [query, aiSkus, activeCat]);
 
   const doAiSearch = async () => {
     const q = query.trim();
@@ -70,220 +72,282 @@ function RentalCatalogPage() {
       setAiLoading(false);
     }
   };
-  const clearAi = () => { setAiSkus(null); setQuery(""); };
+  const clearSearch = () => { setAiSkus(null); setQuery(""); };
 
-
-  const submit = () => {
-    if (!clientName.trim() || !phone.trim()) {
-      alert("נא למלא שם וטלפון לפני השליחה.");
-      return;
+  const toggleCart = (it: Item) => {
+    if (inCart.has(it.sku)) {
+      remove(it.sku);
+    } else {
+      add({ id: it.sku, sku: it.sku, name: it.name || it.alt, price: it.price, image_url: it.img || null });
     }
-    if (chosen.length === 0) {
-      alert("נא לבחור לפחות אביזר אחד מהקטלוג.");
-      return;
-    }
-    if (total < 50) {
-      alert("מינימום הזמנה: 50 ₪.");
-      return;
-    }
-    const lines = chosen
-      .map((i) => `#${i.sku} - ${i.name} - ${i.price} ₪`)
-      .join("\n");
-    const subject = `בקשת השכרת אביזרים - ${clientName}`;
-    let body = `שם מלא: ${clientName}\nטלפון: ${phone}\n`;
-    if (hours) body += `משך ההשכרה המבוקש: ${hours}\n`;
-    body += `\nפריטים נבחרים (${chosen.length}):\n${lines}\n\nסה"כ משוער: ${total} ₪`;
-    window.location.href = `mailto:${EMAIL_TO}?subject=${encodeURIComponent(
-      subject,
-    )}&body=${encodeURIComponent(body)}`;
   };
 
   return (
-    <>
+    <div className="min-h-screen flex flex-col bg-cream">
       <Header />
-      <div className="sb-rental-cat" dir="rtl">
-      <style>{css}</style>
 
-      <header className="sb-header">
-        <h1>קטלוג אביזרים להשכרה</h1>
-        <div className="subtitle">
-          {allItems.length} אביזרים · {categories.length} קטגוריות
-        </div>
-      </header>
-
-      <div className="sb-container">
-        <div className="catalog-box">
-          <p className="booking-desc">
-            סמנו את האביזרים שתרצו לשכור, מלאו פרטים - והבקשה תישלח אלינו במייל.
-            מינימום הזמנה 50 ₪.
+      {/* Hero */}
+      <section className="border-b border-primary/10 bg-gradient-to-b from-blush/40 to-cream">
+        <div className="container-page py-14 text-center">
+          <div className="text-xs tracking-[0.35em] uppercase text-forest/70 mb-3">Rental Catalog</div>
+          <h1 className="font-display text-5xl md:text-6xl text-primary mb-3">קטלוג אביזרים להשכרה</h1>
+          <p className="text-muted-foreground max-w-xl mx-auto">
+            {allItems.length}+ אביזרים · {categories.length} קטגוריות · מינימום הזמנה 50 ₪
           </p>
+        </div>
+      </section>
 
-          <div className="search-row">
-            <input
-              type="search"
-              placeholder='חיפוש חכם: "משהו ורוד לניו-בורן", "כובעים סרוגים", מק״ט...'
-              value={query}
-              onChange={(e) => { setQuery(e.target.value); if (aiSkus) setAiSkus(null); }}
-              onKeyDown={(e) => { if (e.key === "Enter") doAiSearch(); }}
-            />
-            <button type="button" className="ai-btn" onClick={doAiSearch} disabled={aiLoading || !query.trim()}>
-              {aiLoading ? "מחפשת…" : "✨ חיפוש חכם"}
-            </button>
-            {aiSkus && (
-              <button type="button" className="ai-clear" onClick={clearAi}>נקה</button>
-            )}
-          </div>
-          {aiSkus && (
-            <div className="ai-hint">תוצאות חיפוש חכם: {aiSkus.size} פריטים</div>
-          )}
-
-          {filtered.map((cat) => (
-            <div className="cat-block" key={cat.title}>
-              <h3 className="cat-title">
-                {cat.title} <span className="cat-count">({cat.items.length})</span>
-              </h3>
-              <div className="item-grid">
-                {cat.items.map((it) => {
-                  const on = !!selected[it.sku];
-                  const inspiration = !!it.hasHand;
-                  return (
-                    <div key={it.sku} className={`item-card${on ? " checked" : ""}${inspiration ? " inspiration" : ""}`}>
-                      {!inspiration && (
-                        <input
-                          type="checkbox"
-                          aria-label={`בחר ${it.name || it.sku}`}
-                          checked={on}
-                          onChange={() => toggle(it.sku)}
-                        />
-                      )}
-                      {it.img ? (
-                        <button type="button" className="img-btn" onClick={() => setLightbox(it)} aria-label="הגדל תמונה">
-                          <img src={it.img} alt={it.alt} loading="lazy" />
-                          {inspiration && <span className="badge-hand">להשראה בלבד</span>}
-                        </button>
-                      ) : (
-                        <div className="no-img">אין תמונה</div>
-                      )}
-                      {!inspiration && (
-                        <div className="item-info" onClick={() => toggle(it.sku)}>
-                          <span>#{it.sku}</span>
-                          <span>₪{it.price}</span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+      <section className="container-page py-10 flex-1">
+        <div className="grid lg:grid-cols-[1fr_340px] gap-8 items-start">
+          {/* MAIN */}
+          <div className="min-w-0">
+            {/* Search */}
+            <div className="bg-card rounded-3xl border border-primary/10 p-5 mb-6 shadow-sm">
+              <div className="flex gap-2 items-center">
+                <div className="flex-1 relative">
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/50" />
+                  <input
+                    type="search"
+                    className="w-full h-12 pr-10 pl-4 rounded-full bg-cream/60 border border-primary/10 text-sm outline-none focus:border-primary/40"
+                    placeholder='חיפוש חכם: "משהו ורוד לניו-בורן", "כובע סרוג", מק״ט…'
+                    value={query}
+                    onChange={(e) => { setQuery(e.target.value); if (aiSkus) setAiSkus(null); }}
+                    onKeyDown={(e) => { if (e.key === "Enter") doAiSearch(); }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={doAiSearch}
+                  disabled={aiLoading || !query.trim()}
+                  className="h-12 px-5 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-40 flex items-center gap-2"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  {aiLoading ? "מחפשת…" : "חיפוש חכם"}
+                </button>
+                {(aiSkus || query) && (
+                  <button
+                    type="button"
+                    onClick={clearSearch}
+                    className="h-12 w-12 rounded-full border border-primary/15 text-primary/70 hover:bg-cream flex items-center justify-center"
+                    aria-label="נקה חיפוש"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              {aiSkus && (
+                <div className="mt-3 text-xs text-forest/70">
+                  ✨ תוצאות חיפוש חכם: {aiSkus.size} פריטים
+                </div>
+              )}
+              {/* Category chips */}
+              <div className="flex flex-wrap gap-2 mt-4">
+                <Chip active={activeCat === "all"} onClick={() => setActiveCat("all")}>הכל</Chip>
+                {categories.map((c) => (
+                  <Chip key={c.title} active={activeCat === c.title} onClick={() => setActiveCat(c.title)}>
+                    {c.title}
+                  </Chip>
+                ))}
               </div>
             </div>
-          ))}
 
-          <div className="cart-bar">
-            <div>
-              <div className="cart-count">{chosen.length} פריטים נבחרו</div>
-              <div className="cart-total">סה"כ: {total} ₪</div>
-            </div>
-            <div className="cart-form">
-              <input
-                type="text"
-                placeholder="שם מלא"
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-              />
-              <input
-                type="tel"
-                placeholder="טלפון"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-              />
-              <select value={hours} onChange={(e) => setHours(e.target.value)}>
-                <option value="">משך ההשכרה</option>
-                <option value="עד 24 שעות (סטנדרטי)">עד 24 שעות (סטנדרטי)</option>
-                <option value="יומיים">יומיים</option>
-                <option value="3 ימים">3 ימים</option>
-              </select>
-              <button type="button" className="submit-btn" onClick={submit}>
-                שליחת בקשה במייל
-              </button>
-            </div>
+            {/* Grid by category */}
+            {filtered.length === 0 && (
+              <div className="rounded-3xl bg-card border border-primary/10 p-16 text-center text-muted-foreground">
+                לא נמצאו פריטים בחיפוש. נסו ניסוח אחר או נקו את החיפוש.
+              </div>
+            )}
+
+            {filtered.map((cat) => (
+              <div key={cat.title} className="mb-10">
+                <div className="flex items-baseline justify-between mb-4">
+                  <h2 className="font-display text-2xl text-primary">{cat.title}</h2>
+                  <span className="text-xs text-forest/60 tracking-wider">{cat.items.length} פריטים</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {cat.items.map((it) => {
+                    const inspiration = !!it.hasHand;
+                    const selected = inCart.has(it.sku);
+                    return (
+                      <div
+                        key={it.sku}
+                        className={
+                          "group relative rounded-2xl overflow-hidden border bg-card transition-all " +
+                          (inspiration ? "col-span-2 border-dashed border-primary/25" : selected ? "border-primary shadow-lg -translate-y-0.5" : "border-primary/10 hover:border-primary/30 hover:shadow-md")
+                        }
+                      >
+                        <button
+                          type="button"
+                          className="block w-full relative overflow-hidden"
+                          onClick={() => setLightbox(it)}
+                          aria-label={`הגדל תמונה של ${it.name || it.sku}`}
+                        >
+                          {it.img ? (
+                            <img
+                              src={it.img}
+                              alt={it.alt}
+                              loading="lazy"
+                              className={
+                                (inspiration ? "h-56 md:h-64 object-contain bg-cream" : "h-40 object-cover") +
+                                " w-full transition-transform duration-500 group-hover:scale-105"
+                              }
+                            />
+                          ) : (
+                            <div className="h-40 flex items-center justify-center text-xs text-muted-foreground bg-cream">
+                              אין תמונה
+                            </div>
+                          )}
+                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-primary/10 flex items-center justify-center">
+                            <ZoomIn className="h-6 w-6 text-white drop-shadow-lg" />
+                          </div>
+                          {inspiration && (
+                            <span className="absolute bottom-2 right-2 bg-primary/90 text-primary-foreground text-[10px] tracking-widest uppercase px-2 py-1 rounded-full">
+                              להשראה בלבד
+                            </span>
+                          )}
+                        </button>
+
+                        {!inspiration && (
+                          <div className="p-3 flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="text-[10px] tracking-widest text-forest/60 uppercase">מק״ט {it.sku}</div>
+                              <div className="font-display text-peach-deep text-lg leading-none mt-0.5">₪{it.price}</div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => toggleCart(it)}
+                              className={
+                                "h-9 w-9 rounded-full flex items-center justify-center shrink-0 transition-colors " +
+                                (selected ? "bg-primary text-primary-foreground" : "bg-cream text-primary hover:bg-blush")
+                              }
+                              aria-label={selected ? `הסר מהסל את ${it.name}` : `הוסף לסל ${it.name}`}
+                            >
+                              {selected ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
-          <p className="info-strip" style={{ marginTop: 15 }}>
-            מינימום הזמנה 50 ₪. התשלום מתבצע לפני לקיחת האביזרים. לפרטי מדיניות
-            ההשכרה המלאה - <a href={`mailto:${EMAIL_TO}`}>כתבו לנו במייל</a>.
-          </p>
-        </div>
-      </div>
-      {lightbox && (
-        <div className="lightbox" onClick={() => setLightbox(null)} role="dialog" aria-modal="true">
-          <div className="lightbox-inner" onClick={(e) => e.stopPropagation()}>
-            <button className="lightbox-close" onClick={() => setLightbox(null)} aria-label="סגור">×</button>
-            <img src={lightbox.img} alt={lightbox.alt} />
-            <div className="lightbox-meta">
-              <div><strong>#{lightbox.sku}</strong> · {lightbox.name || lightbox.alt}</div>
-              <div>₪{lightbox.price}</div>
+
+          {/* CART SIDEBAR */}
+          <aside className="lg:sticky lg:top-24 bg-primary text-primary-foreground rounded-3xl p-6 shadow-xl">
+            <div className="flex items-center gap-2 mb-1">
+              <ShoppingBag className="h-4 w-4 text-peach" />
+              <div className="text-peach text-[11px] tracking-[0.3em] uppercase">My Order</div>
             </div>
+            <h2 className="font-display text-2xl mb-4">הסל שלי</h2>
+
+            {lines.length === 0 ? (
+              <div className="text-primary-foreground/70 text-sm py-8 text-center">
+                לחצו על <Plus className="inline h-3 w-3 mx-1" /> ליד פריט כדי להוסיף לסל.
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[46vh] overflow-y-auto pr-1 -mr-2">
+                {lines.map((l) => (
+                  <div key={l.id} className="flex gap-3 items-center bg-primary-foreground/5 rounded-2xl p-2 pr-3">
+                    <div className="h-12 w-12 rounded-xl overflow-hidden bg-cream shrink-0">
+                      {l.image_url && <img src={l.image_url} alt={l.name} className="h-full w-full object-cover" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm truncate">{l.name}</div>
+                      <div className="text-[10px] text-primary-foreground/60 tracking-widest">#{l.sku} · ₪{l.price}</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => remove(l.id)}
+                      className="h-7 w-7 rounded-full bg-primary-foreground/10 hover:bg-primary-foreground/20 flex items-center justify-center"
+                      aria-label={`הסר את ${l.name}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="h-px bg-primary-foreground/15 my-5" />
+            <div className="flex items-baseline justify-between">
+              <span className="text-sm text-primary-foreground/80">{count} פריטים</span>
+              <span className="font-display text-3xl text-peach">₪{subtotal.toFixed(0)}</span>
+            </div>
+            {subtotal > 0 && subtotal < 50 && (
+              <p className="text-peach text-xs mt-2">מינימום 50 ₪ — הוסיפו ₪{(50 - subtotal).toFixed(0)}.</p>
+            )}
+            <button
+              type="button"
+              disabled={subtotal < 50}
+              onClick={() => nav({ to: "/checkout" })}
+              className="w-full mt-5 h-12 rounded-full bg-peach text-primary font-medium hover:bg-peach-deep disabled:opacity-40 transition-colors"
+            >
+              המשך לקופה
+            </button>
+            <Link to="/cart" className="block text-center text-xs text-primary-foreground/60 mt-3 hover:text-peach">
+              צפייה בסל המלא
+            </Link>
+          </aside>
+        </div>
+      </section>
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 bg-black/85 z-[200] flex items-center justify-center p-4"
+          onClick={() => setLightbox(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="relative max-w-3xl max-h-[90vh] bg-card rounded-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="absolute top-3 left-3 h-9 w-9 rounded-full bg-black/60 text-white flex items-center justify-center z-10"
+              onClick={() => setLightbox(null)}
+              aria-label="סגור"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <img src={lightbox.img} alt={lightbox.alt} className="max-h-[75vh] w-auto mx-auto object-contain bg-black" />
+            {!lightbox.hasHand && (
+              <div className="p-4 flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] tracking-widest text-forest/60 uppercase">מק״ט {lightbox.sku}</div>
+                  <div className="font-display text-lg text-primary">{lightbox.name || lightbox.alt}</div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="font-display text-peach-deep text-2xl">₪{lightbox.price}</div>
+                  <button
+                    type="button"
+                    onClick={() => { toggleCart(lightbox); setLightbox(null); }}
+                    className="h-10 px-5 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
+                  >
+                    {inCart.has(lightbox.sku) ? "בסל" : "הוסף לסל"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
-      </div>
-    </>
+
+      <Footer />
+    </div>
   );
 }
 
-const css = `
-.sb-rental-cat { --bg-color:#f5c5b3; --primary-color:#163126; --white:#fff; --shadow:0 8px 32px 0 rgba(22,49,38,0.08); background:var(--bg-color); color:var(--primary-color); font-family:'Assistant',sans-serif; line-height:1.6; padding-bottom:60px; min-height:100vh; }
-.sb-rental-cat * { box-sizing:border-box; }
-.sb-rental-cat .sb-header { text-align:center; padding:40px 20px 20px; }
-.sb-rental-cat .sb-header h1 { font-family:'Platypi',serif; font-size:3rem; font-weight:600; }
-.sb-rental-cat .sb-header .subtitle { font-size:1.1rem; font-weight:600; margin-top:8px; opacity:0.8; }
-.sb-rental-cat .sb-container { max-width:1200px; margin:0 auto; padding:20px; }
-.sb-rental-cat .catalog-box { background:var(--white); border-radius:25px; padding:30px; box-shadow:var(--shadow); }
-.sb-rental-cat .booking-desc { text-align:center; margin-bottom:20px; opacity:0.85; }
-.sb-rental-cat .search-row { margin-bottom:25px; }
-.sb-rental-cat .search-row input { width:100%; padding:14px 18px; border:2px solid rgba(22,49,38,0.15); border-radius:12px; font-size:1rem; font-family:inherit; background:#fafafa; outline:none; }
-.sb-rental-cat .search-row input:focus { border-color:var(--primary-color); }
-.sb-rental-cat .cat-block { margin-bottom:35px; }
-.sb-rental-cat .cat-title { font-size:1.3rem; font-weight:700; margin-bottom:14px; border-bottom:2px solid rgba(22,49,38,0.15); padding-bottom:6px; }
-.sb-rental-cat .cat-count { font-weight:400; opacity:0.6; font-size:0.9rem; }
-.sb-rental-cat .item-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px; }
-.sb-rental-cat .item-card { position:relative; display:block; cursor:pointer; border-radius:12px; overflow:hidden; border:2px solid rgba(22,49,38,0.1); background:#fafafa; transition:all .2s; }
-.sb-rental-cat .item-card img { width:100%; height:110px; object-fit:cover; display:block; }
-.sb-rental-cat .item-card .no-img { width:100%; height:110px; display:flex; align-items:center; justify-content:center; font-size:0.8rem; opacity:0.4; }
-.sb-rental-cat .item-card input[type="checkbox"] { position:absolute; top:6px; left:6px; width:18px; height:18px; accent-color:var(--primary-color); z-index:2; }
-.sb-rental-cat .item-info { display:flex; justify-content:space-between; padding:6px 8px; font-size:0.78rem; font-weight:700; }
-.sb-rental-cat .item-card.checked { border-color:var(--primary-color); box-shadow:0 0 0 2px var(--primary-color); }
-.sb-rental-cat .item-card.checked .item-info { background:var(--primary-color); color:var(--bg-color); }
-.sb-rental-cat .item-card.inspiration { grid-column:span 2; border-style:dashed; border-color:rgba(22,49,38,0.25); background:#fff; }
-.sb-rental-cat .item-card.inspiration img { height:240px; object-fit:contain; background:#fff; padding:6px; }
-.sb-rental-cat .item-card.inspiration .badge-hand { font-size:0.75rem; padding:5px 10px; }
-@media (max-width:768px) { .sb-rental-cat .item-card.inspiration img { height:180px; } }
-.sb-rental-cat .cart-bar { position:sticky; bottom:0; background:var(--primary-color); color:var(--bg-color); padding:14px 20px; border-radius:16px; margin-top:25px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; box-shadow:0 -4px 20px rgba(0,0,0,0.15); z-index:5; }
-.sb-rental-cat .cart-count { font-weight:700; }
-.sb-rental-cat .cart-total { font-size:1.3rem; font-weight:700; }
-.sb-rental-cat .cart-form { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
-.sb-rental-cat .cart-form input, .sb-rental-cat .cart-form select { padding:10px 12px; border:1px solid rgba(22,49,38,0.2); border-radius:10px; background:#fafafa; color:var(--primary-color); font-size:0.95rem; outline:none; min-width:140px; font-family:inherit; }
-.sb-rental-cat .submit-btn { background:var(--bg-color); color:var(--primary-color); border:none; padding:12px 22px; font-size:1rem; font-weight:700; border-radius:10px; cursor:pointer; }
-.sb-rental-cat .submit-btn:hover { opacity:0.9; }
-.sb-rental-cat .info-strip { text-align:center; font-size:0.9rem; opacity:0.75; }
-.sb-rental-cat .info-strip a { color:var(--primary-color); font-weight:700; }
-@media (max-width:768px) {
-  .sb-rental-cat .sb-header h1 { font-size:2rem; }
-  .sb-rental-cat .item-grid { grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); }
-  .sb-rental-cat .item-card img, .sb-rental-cat .item-card .no-img { height:85px; }
-  .sb-rental-cat .cart-bar { flex-direction:column; align-items:stretch; }
+function Chip({ children, active, onClick }: { children: React.ReactNode; active?: boolean; onClick?: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        "px-4 h-8 rounded-full text-xs whitespace-nowrap transition-colors " +
+        (active ? "bg-primary text-primary-foreground" : "bg-cream text-primary/80 hover:bg-blush border border-primary/10")
+      }
+    >
+      {children}
+    </button>
+  );
 }
-.sb-rental-cat .search-row { display:flex; gap:8px; align-items:center; }
-.sb-rental-cat .search-row input { flex:1; }
-.sb-rental-cat .ai-btn { background:var(--primary-color); color:var(--bg-color); border:none; padding:14px 18px; border-radius:12px; font-weight:700; cursor:pointer; white-space:nowrap; font-family:inherit; }
-.sb-rental-cat .ai-btn:disabled { opacity:0.5; cursor:not-allowed; }
-.sb-rental-cat .ai-clear { background:transparent; color:var(--primary-color); border:1px solid var(--primary-color); padding:12px 14px; border-radius:12px; font-weight:600; cursor:pointer; font-family:inherit; }
-.sb-rental-cat .ai-hint { background:rgba(22,49,38,0.08); padding:8px 14px; border-radius:10px; margin-bottom:18px; font-size:0.9rem; font-weight:600; }
-.sb-rental-cat .item-card { cursor:default; }
-.sb-rental-cat .img-btn { display:block; width:100%; padding:0; border:none; background:none; cursor:zoom-in; position:relative; }
-.sb-rental-cat .badge-hand { position:absolute; bottom:4px; right:4px; background:rgba(22,49,38,0.85); color:#fff; font-size:0.65rem; font-weight:700; padding:3px 7px; border-radius:6px; letter-spacing:0.02em; }
-.sb-rental-cat .item-info { cursor:pointer; }
-.sb-rental-cat .lightbox { position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; }
-.sb-rental-cat .lightbox-inner { position:relative; max-width:min(90vw,900px); max-height:90vh; background:#fff; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; }
-.sb-rental-cat .lightbox-inner img { max-width:100%; max-height:75vh; object-fit:contain; background:#000; }
-.sb-rental-cat .lightbox-meta { padding:14px 20px; display:flex; justify-content:space-between; font-weight:700; font-size:1.05rem; }
-.sb-rental-cat .lightbox-close { position:absolute; top:8px; left:8px; width:38px; height:38px; border-radius:50%; border:none; background:rgba(0,0,0,0.6); color:#fff; font-size:22px; cursor:pointer; z-index:2; }
-`;

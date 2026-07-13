@@ -211,7 +211,7 @@ function EssentialNewbornPropsGuide() {
             עיינו בקטלוג של יותר מ-200 אביזרי ניוברן מעוצבים — כולם מוכנים להשכרה, נקיים ובטוחים לתינוק. בחירת מלאי אונליין ואיסוף גמיש.
           </p>
           <div className="flex flex-wrap gap-3 justify-center">
-            <Link to="/catalog">
+            <Link to="/rental-catalog">
               <Button className="rounded-full h-12 px-8 bg-[#f3c9bd] hover:bg-[#eab5a4] text-[#4a2a20] text-base font-medium">
                 לקטלוג האביזרים
               </Button>

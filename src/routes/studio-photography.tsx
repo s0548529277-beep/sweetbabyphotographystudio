@@ -110,7 +110,7 @@ function StudioPhotographyPage() {
               שמיכות, אביזרים לגיל שנה, לחלאקה ולצילומי חוץ. אפשר לבחור מה
               שמתאים לסשן שלכן ולשלב יחד עם חבילת הצילום.
             </p>
-            <Link to="/catalog" className="sp-cta-btn">
+            <Link to="/rental-catalog" className="sp-cta-btn">
               לקטלוג האביזרים ←
             </Link>
           </section>
