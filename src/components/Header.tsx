@@ -77,13 +77,26 @@ export function Header() {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full h-12 w-12" aria-label="תפריט משתמש">
-                  <UserIcon className="!h-6 !w-6" />
+                <Button variant="ghost" className="rounded-full h-12 px-3 gap-2" aria-label="אזור אישי">
+                  <UserIcon className="!h-5 !w-5" />
+                  <span className="hidden sm:flex flex-col items-start leading-tight text-right">
+                    <span className="text-[10px] tracking-[0.25em] uppercase text-foreground/60">אזור אישי</span>
+                    <span className="text-sm font-medium text-foreground max-w-[140px] truncate">{displayName || "שלום"}</span>
+                  </span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent align="end" className="w-60">
+                <DropdownMenuLabel className="text-right">
+                  <div className="text-[10px] tracking-[0.25em] uppercase text-muted-foreground">אזור אישי</div>
+                  <div className="font-display text-base text-primary truncate">{displayName || "לקוח/ה"}</div>
+                  <div className="text-xs text-muted-foreground truncate">{user.email}</div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => router.navigate({ to: "/account" })}>
                   הכרטיסייה שלי
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.navigate({ to: "/cart" })}>
+                  העגלה שלי
                 </DropdownMenuItem>
                 {isAdmin && (
                   <DropdownMenuItem onClick={() => router.navigate({ to: "/admin" })}>
