@@ -122,8 +122,9 @@ function Cart() {
 function Row({ k, v, big }: { k: string; v: string; big?: boolean }) {
   return (
     <div className="flex justify-between items-baseline">
-      <span className="text-primary-foreground/70">{k}</span>
-      <span className={big ? "font-display text-2xl text-peach" : ""}>{v}</span>
+      <span className="text-[#2d3d2b]/70">{k}</span>
+      <span className={big ? "font-display text-2xl text-[#2d3d2b]" : "text-[#2d3d2b]"}>{v}</span>
     </div>
   );
 }
+
