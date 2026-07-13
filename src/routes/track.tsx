@@ -48,7 +48,7 @@ function Track() {
             </div>
           </Link>
 
-          <Link to="/catalog" className="group glass-card rounded-3xl p-10 relative overflow-hidden hover:-translate-y-1 transition-transform">
+          <Link to="/rental-catalog" className="group glass-card rounded-3xl p-10 relative overflow-hidden hover:-translate-y-1 transition-transform">
             <div className="absolute -bottom-16 -right-16 w-64 h-64 rounded-full bg-blush-deep/40 blur-3xl" />
             <div className="relative">
               <div className="h-14 w-14 rounded-2xl bg-primary text-blush flex items-center justify-center mb-6">

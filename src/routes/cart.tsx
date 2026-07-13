@@ -34,7 +34,7 @@ function Cart() {
             <ShoppingBag className="h-10 w-10 text-primary/40 mx-auto mb-4" />
             <div className="font-display text-2xl text-primary mb-2">העגלה שלכם ריקה</div>
             <p className="text-muted-foreground text-sm mb-6">גלו את הקטלוג והתחילו להרכיב את הסט המושלם.</p>
-            <Link to="/catalog"><Button className="rounded-full">לקטלוג</Button></Link>
+            <Link to="/rental-catalog"><Button className="rounded-full">לקטלוג</Button></Link>
           </div>
         ) : (
           <div className="grid lg:grid-cols-[1fr_360px] gap-10">
@@ -83,7 +83,7 @@ function Cart() {
               >
                 המשך לתשלום
               </Button>
-              <Link to="/catalog" className="block text-center text-xs text-primary-foreground/70 mt-4 hover:text-peach">
+              <Link to="/rental-catalog" className="block text-center text-xs text-primary-foreground/70 mt-4 hover:text-peach">
                 המשך קניה
               </Link>
             </aside>

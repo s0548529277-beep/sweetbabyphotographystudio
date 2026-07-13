@@ -106,7 +106,7 @@ function Account() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="font-display text-3xl text-primary">היסטוריית הזמנות</h2>
-              <Link to="/catalog"><Button variant="outline" className="rounded-full">הזמנה חדשה</Button></Link>
+              <Link to="/rental-catalog"><Button variant="outline" className="rounded-full">הזמנה חדשה</Button></Link>
             </div>
 
             {orders.isLoading ? (
@@ -116,7 +116,7 @@ function Account() {
                 <Package className="h-8 w-8 text-primary/40 mx-auto mb-3" />
                 <div className="font-display text-2xl text-primary">אין עדיין הזמנות</div>
                 <p className="text-muted-foreground text-sm mt-1 mb-6">התחילו לגלות את הקטלוג.</p>
-                <Link to="/catalog"><Button className="rounded-full">לקטלוג</Button></Link>
+                <Link to="/rental-catalog"><Button className="rounded-full">לקטלוג</Button></Link>
               </div>
             ) : (
               orders.data!.map((o: any) => (
