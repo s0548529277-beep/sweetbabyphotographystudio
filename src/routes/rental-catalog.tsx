@@ -145,26 +145,31 @@ function RentalCatalogPage() {
               <div className="item-grid">
                 {cat.items.map((it) => {
                   const on = !!selected[it.sku];
+                  const inspiration = !!it.hasHand;
                   return (
-                    <div key={it.sku} className={`item-card${on ? " checked" : ""}`}>
-                      <input
-                        type="checkbox"
-                        aria-label={`בחר ${it.name || it.sku}`}
-                        checked={on}
-                        onChange={() => toggle(it.sku)}
-                      />
+                    <div key={it.sku} className={`item-card${on ? " checked" : ""}${inspiration ? " inspiration" : ""}`}>
+                      {!inspiration && (
+                        <input
+                          type="checkbox"
+                          aria-label={`בחר ${it.name || it.sku}`}
+                          checked={on}
+                          onChange={() => toggle(it.sku)}
+                        />
+                      )}
                       {it.img ? (
                         <button type="button" className="img-btn" onClick={() => setLightbox(it)} aria-label="הגדל תמונה">
                           <img src={it.img} alt={it.alt} loading="lazy" />
-                          {it.hasHand && <span className="badge-hand">להשראה בלבד</span>}
+                          {inspiration && <span className="badge-hand">להשראה בלבד</span>}
                         </button>
                       ) : (
                         <div className="no-img">אין תמונה</div>
                       )}
-                      <div className="item-info" onClick={() => toggle(it.sku)}>
-                        <span>#{it.sku}</span>
-                        <span>₪{it.price}</span>
-                      </div>
+                      {!inspiration && (
+                        <div className="item-info" onClick={() => toggle(it.sku)}>
+                          <span>#{it.sku}</span>
+                          <span>₪{it.price}</span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
