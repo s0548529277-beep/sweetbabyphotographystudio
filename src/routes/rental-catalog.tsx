@@ -252,6 +252,10 @@ const css = `
 .sb-rental-cat .item-info { display:flex; justify-content:space-between; padding:6px 8px; font-size:0.78rem; font-weight:700; }
 .sb-rental-cat .item-card.checked { border-color:var(--primary-color); box-shadow:0 0 0 2px var(--primary-color); }
 .sb-rental-cat .item-card.checked .item-info { background:var(--primary-color); color:var(--bg-color); }
+.sb-rental-cat .item-card.inspiration { grid-column:span 2; border-style:dashed; border-color:rgba(22,49,38,0.25); background:#fff; }
+.sb-rental-cat .item-card.inspiration img { height:240px; object-fit:contain; background:#fff; padding:6px; }
+.sb-rental-cat .item-card.inspiration .badge-hand { font-size:0.75rem; padding:5px 10px; }
+@media (max-width:768px) { .sb-rental-cat .item-card.inspiration img { height:180px; } }
 .sb-rental-cat .cart-bar { position:sticky; bottom:0; background:var(--primary-color); color:var(--bg-color); padding:14px 20px; border-radius:16px; margin-top:25px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; box-shadow:0 -4px 20px rgba(0,0,0,0.15); z-index:5; }
 .sb-rental-cat .cart-count { font-weight:700; }
 .sb-rental-cat .cart-total { font-size:1.3rem; font-weight:700; }
