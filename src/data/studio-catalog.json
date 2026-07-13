@@ -1,342 +1,222 @@
 [
   {
-    "title": "אביזרים כלליים",
+    "title": "כללי ואביזרים גדולים",
     "items": [
       {
-        "sku": "100",
-        "name": "מעיל",
-        "price": 15,
-        "img": "/catalog/100.jpg",
-        "alt": "מעיל"
-      },
-      {
-        "sku": "101",
-        "name": "דגים",
-        "price": 15,
-        "img": "/catalog/101.jpg",
-        "alt": "דגים"
-      },
-      {
         "sku": "102",
-        "name": "סרבל",
+        "name": "",
         "price": 15,
-        "img": "/catalog/102.jpg",
-        "alt": "סרבל"
-      },
-      {
-        "sku": "103",
-        "name": "מגפיים",
-        "price": 15,
-        "img": "/catalog/103.jpg",
-        "alt": "מגפיים"
+        "img": "/catalog-images/102.jpg",
+        "alt": "כללי ואביזרים גדולים #102",
+        "hasHand": true
       },
       {
         "sku": "104",
-        "name": "אביזרים כלליים #104",
+        "name": "",
         "price": 10,
-        "img": "/catalog/104.jpg",
-        "alt": "אביזרים כלליים #104"
+        "img": "/catalog-images/104.jpg",
+        "alt": "כללי ואביזרים גדולים #104",
+        "hasHand": false
       },
       {
         "sku": "105",
-        "name": "אביזרים כלליים #105",
+        "name": "",
         "price": 10,
-        "img": "/catalog/105.jpg",
-        "alt": "אביזרים כלליים #105"
+        "img": "/catalog-images/105.jpg",
+        "alt": "כללי ואביזרים גדולים #105",
+        "hasHand": false
       },
       {
         "sku": "106",
-        "name": "אביזרים כלליים #106",
+        "name": "",
         "price": 15,
-        "img": "/catalog/106.jpg",
-        "alt": "אביזרים כלליים #106"
+        "img": "/catalog-images/106.jpg",
+        "alt": "כללי ואביזרים גדולים #106",
+        "hasHand": false
       },
       {
         "sku": "107",
-        "name": "אביזרים כלליים #107",
-        "price": 10,
-        "img": "/catalog/107.jpg",
-        "alt": "אביזרים כלליים #107"
+        "name": "",
+        "price": 15,
+        "img": "/catalog-images/107.jpg",
+        "alt": "כללי ואביזרים גדולים #107",
+        "hasHand": false
       },
       {
         "sku": "108",
-        "name": "אביזרים כלליים #108",
+        "name": "",
         "price": 20,
-        "img": "/catalog/108.jpg",
-        "alt": "אביזרים כלליים #108"
+        "img": "/catalog-images/108.jpg",
+        "alt": "כללי ואביזרים גדולים #108",
+        "hasHand": false
       },
       {
         "sku": "109",
-        "name": "סוס נדנדה",
+        "name": "",
         "price": 50,
-        "img": "/catalog/109.jpg",
-        "alt": "סוס נדנדה"
+        "img": "/catalog-images/109.jpg",
+        "alt": "כללי ואביזרים גדולים #109",
+        "hasHand": true
       },
       {
         "sku": "110",
-        "name": "אביזרים כלליים #110",
+        "name": "",
         "price": 20,
-        "img": "/catalog/110.jpg",
-        "alt": "אביזרים כלליים #110"
+        "img": "/catalog-images/110.jpg",
+        "alt": "כללי ואביזרים גדולים #110",
+        "hasHand": false
       },
       {
         "sku": "111",
-        "name": "אביזרים כלליים #111",
+        "name": "",
         "price": 20,
-        "img": "/catalog/111.jpg",
-        "alt": "אביזרים כלליים #111"
+        "img": "/catalog-images/111.jpg",
+        "alt": "כללי ואביזרים גדולים #111",
+        "hasHand": false
       },
       {
         "sku": "112",
-        "name": "אביזרים כלליים #112",
+        "name": "",
         "price": 20,
-        "img": "/catalog/112.jpg",
-        "alt": "אביזרים כלליים #112"
+        "img": "/catalog-images/112.jpg",
+        "alt": "כללי ואביזרים גדולים #112",
+        "hasHand": false
       },
       {
         "sku": "113",
-        "name": "אביזרים כלליים #113",
-        "price": 15,
-        "img": "/catalog/113.jpg",
-        "alt": "אביזרים כלליים #113"
-      },
-      {
-        "sku": "114",
-        "name": "אביזרים כלליים #114",
-        "price": 25,
-        "img": "/catalog/114.jpg",
-        "alt": "אביזרים כלליים #114"
+        "name": "",
+        "price": 20,
+        "img": "/catalog-images/113.jpg",
+        "alt": "כללי ואביזרים גדולים #113",
+        "hasHand": false
       },
       {
         "sku": "115",
-        "name": "אביזרים כלליים #115",
+        "name": "",
         "price": 15,
-        "img": "/catalog/115.jpg",
-        "alt": "אביזרים כלליים #115"
+        "img": "/catalog-images/115.jpg",
+        "alt": "כללי ואביזרים גדולים #115",
+        "hasHand": false
       },
       {
         "sku": "116",
-        "name": "אביזרים כלליים #116",
+        "name": "",
         "price": 15,
-        "img": "/catalog/116.jpg",
-        "alt": "אביזרים כלליים #116"
+        "img": "/catalog-images/116.jpg",
+        "alt": "כללי ואביזרים גדולים #116",
+        "hasHand": false
       },
       {
         "sku": "117",
-        "name": "אביזרים כלליים #117",
+        "name": "",
         "price": 15,
-        "img": "/catalog/117.jpg",
-        "alt": "אביזרים כלליים #117"
+        "img": "/catalog-images/117.jpg",
+        "alt": "כללי ואביזרים גדולים #117",
+        "hasHand": false
       },
       {
         "sku": "118",
-        "name": "אביזרים כלליים #118",
+        "name": "",
         "price": 15,
-        "img": "/catalog/118.jpg",
-        "alt": "אביזרים כלליים #118"
-      },
-      {
-        "sku": "119",
-        "name": "אביזרים כלליים #119",
-        "price": 25,
-        "img": "/catalog/119.jpg",
-        "alt": "אביזרים כלליים #119"
-      },
-      {
-        "sku": "120",
-        "name": "סטנדר",
-        "price": 25,
-        "img": "/catalog/120.jpg",
-        "alt": "סטנדר"
+        "img": "/catalog-images/118.jpg",
+        "alt": "כללי ואביזרים גדולים #118",
+        "hasHand": true
       },
       {
         "sku": "121",
-        "name": "ספר תורה",
+        "name": "",
         "price": 15,
-        "img": "/catalog/121.jpg",
-        "alt": "ספר תורה"
-      },
-      {
-        "sku": "122",
-        "name": "מחבט",
-        "price": 20,
-        "img": "/catalog/122.jpg",
-        "alt": "מחבט"
+        "img": "/catalog-images/121.jpg",
+        "alt": "כללי ואביזרים גדולים #121",
+        "hasHand": true
       },
       {
         "sku": "123",
-        "name": "כדור",
+        "name": "",
         "price": 15,
-        "img": "/catalog/123.jpg",
-        "alt": "כדור"
-      },
-      {
-        "sku": "124",
-        "name": "סקייטבורד",
-        "price": 15,
-        "img": "/catalog/124.jpg",
-        "alt": "סקייטבורד"
-      },
-      {
-        "sku": "125",
-        "name": "3 ספריי",
-        "price": 5,
-        "img": "/catalog/125.jpg",
-        "alt": "3 ספריי"
+        "img": "/catalog-images/123.jpg",
+        "alt": "כללי ואביזרים גדולים #123",
+        "hasHand": true
       },
       {
         "sku": "126",
-        "name": "אוזניות",
+        "name": "",
         "price": 5,
-        "img": "/catalog/126.jpg",
-        "alt": "אוזניות"
+        "img": "/catalog-images/126.jpg",
+        "alt": "כללי ואביזרים גדולים #126",
+        "hasHand": true
       },
       {
         "sku": "127",
-        "name": "אביזרים כלליים #127",
-        "price": 20,
-        "img": "/catalog/127.jpg",
-        "alt": "אביזרים כלליים #127"
+        "name": "",
+        "price": 15,
+        "img": "/catalog-images/127.jpg",
+        "alt": "כללי ואביזרים גדולים #127",
+        "hasHand": false
       },
       {
         "sku": "128",
-        "name": "אביזרים כלליים #128",
-        "price": 10,
-        "img": "/catalog/128.jpg",
-        "alt": "אביזרים כלליים #128"
+        "name": "",
+        "price": 25,
+        "img": "/catalog-images/128.jpg",
+        "alt": "כללי ואביזרים גדולים #128",
+        "hasHand": false
       },
       {
         "sku": "129",
-        "name": "אביזרים כלליים #129",
-        "price": 15,
-        "img": "/catalog/129.jpg",
-        "alt": "אביזרים כלליים #129"
+        "name": "",
+        "price": 25,
+        "img": "/catalog-images/129.jpg",
+        "alt": "כללי ואביזרים גדולים #129",
+        "hasHand": false
       },
       {
         "sku": "130",
-        "name": "אביזרים כלליים #130",
+        "name": "",
         "price": 20,
-        "img": "/catalog/130.jpg",
-        "alt": "אביזרים כלליים #130"
+        "img": "/catalog-images/130.jpg",
+        "alt": "כללי ואביזרים גדולים #130",
+        "hasHand": false
       },
       {
         "sku": "131",
-        "name": "אביזרים כלליים #131",
+        "name": "",
         "price": 20,
-        "img": "/catalog/131.jpg",
-        "alt": "אביזרים כלליים #131"
+        "img": "/catalog-images/131.jpg",
+        "alt": "כללי ואביזרים גדולים #131",
+        "hasHand": false
       },
       {
         "sku": "132",
-        "name": "נדנדה",
+        "name": "",
         "price": 25,
-        "img": "/catalog/132.jpg",
-        "alt": "נדנדה"
+        "img": "/catalog-images/132.jpg",
+        "alt": "כללי ואביזרים גדולים #132",
+        "hasHand": true
       },
       {
         "sku": "133",
-        "name": "סירה",
+        "name": "",
         "price": 60,
-        "img": "/catalog/133.jpg",
-        "alt": "סירה"
-      },
-      {
-        "sku": "134",
-        "name": "מזוודה",
-        "price": 35,
-        "img": "/catalog/134.jpg",
-        "alt": "מזוודה"
+        "img": "/catalog-images/133.jpg",
+        "alt": "כללי ואביזרים גדולים #133",
+        "hasHand": true
       },
       {
         "sku": "135",
-        "name": "מצלמה",
+        "name": "",
         "price": 15,
-        "img": "/catalog/135.jpg",
-        "alt": "מצלמה"
-      },
-      {
-        "sku": "136",
-        "name": "כיסא אדום",
-        "price": 25,
-        "img": "/catalog/136.jpg",
-        "alt": "כיסא אדום"
-      },
-      {
-        "sku": "137",
-        "name": "עששית אדומה",
-        "price": 20,
-        "img": "/catalog/137.jpg",
-        "alt": "עששית אדומה"
+        "img": "/catalog-images/135.jpg",
+        "alt": "כללי ואביזרים גדולים #135",
+        "hasHand": true
       },
       {
         "sku": "138",
-        "name": "ספרים",
-        "price": 15,
-        "img": "/catalog/138.jpg",
-        "alt": "ספרים"
-      },
-      {
-        "sku": "139",
-        "name": "כובע",
+        "name": "",
         "price": 5,
-        "img": "/catalog/139.jpg",
-        "alt": "כובע"
-      },
-      {
-        "sku": "201",
-        "name": "סט מזוודות",
-        "price": 40,
-        "img": "/catalog/201.jpg",
-        "alt": "סט מזוודות"
-      },
-      {
-        "sku": "202",
-        "name": "מזוודה בודדת",
-        "price": 15,
-        "img": "/catalog/202.jpg",
-        "alt": "מזוודה בודדת"
-      },
-      {
-        "sku": "203",
-        "name": "אביזרים כלליים #203",
-        "price": 10,
-        "img": "/catalog/203.jpg",
-        "alt": "אביזרים כלליים #203"
-      },
-      {
-        "sku": "204",
-        "name": "אביזרים כלליים #204",
-        "price": 15,
-        "img": "/catalog/204.jpg",
-        "alt": "אביזרים כלליים #204"
-      },
-      {
-        "sku": "205",
-        "name": "אביזרים כלליים #205",
-        "price": 10,
-        "img": "/catalog/205.jpg",
-        "alt": "אביזרים כלליים #205"
-      },
-      {
-        "sku": "206",
-        "name": "אביזרים כלליים #206",
-        "price": 15,
-        "img": "/catalog/206.jpg",
-        "alt": "אביזרים כלליים #206"
-      },
-      {
-        "sku": "207",
-        "name": "אביזרים כלליים #207",
-        "price": 10,
-        "img": "/catalog/207.jpg",
-        "alt": "אביזרים כלליים #207"
-      },
-      {
-        "sku": "208",
-        "name": "אביזרים כלליים #208",
-        "price": 5,
-        "img": "/catalog/208.jpg",
-        "alt": "אביזרים כלליים #208"
+        "img": "/catalog-images/138.jpg",
+        "alt": "כללי ואביזרים גדולים #138",
+        "hasHand": true
       }
     ]
   },
@@ -345,410 +225,527 @@
     "items": [
       {
         "sku": "140",
-        "name": "Vintage #140",
+        "name": "",
         "price": 15,
-        "img": "/catalog/140.jpg",
-        "alt": "Vintage #140"
+        "img": "/catalog-images/140.jpg",
+        "alt": "Vintage #140",
+        "hasHand": false
       },
       {
         "sku": "141",
-        "name": "Vintage #141",
+        "name": "",
         "price": 15,
-        "img": "/catalog/141.jpg",
-        "alt": "Vintage #141"
+        "img": "/catalog-images/141.jpg",
+        "alt": "Vintage #141",
+        "hasHand": false
       },
       {
         "sku": "142",
-        "name": "Vintage #142",
+        "name": "",
         "price": 15,
-        "img": "/catalog/142.jpg",
-        "alt": "Vintage #142"
+        "img": "/catalog-images/142.jpg",
+        "alt": "Vintage #142",
+        "hasHand": false
       },
       {
         "sku": "143",
-        "name": "Vintage #143",
+        "name": "",
         "price": 15,
-        "img": "/catalog/143.jpg",
-        "alt": "Vintage #143"
+        "img": "/catalog-images/143.jpg",
+        "alt": "Vintage #143",
+        "hasHand": false
       },
       {
         "sku": "144",
-        "name": "Vintage #144",
+        "name": "",
         "price": 15,
-        "img": "/catalog/144.jpg",
-        "alt": "Vintage #144"
+        "img": "/catalog-images/144.jpg",
+        "alt": "Vintage #144",
+        "hasHand": false
       },
       {
         "sku": "145",
-        "name": "Vintage #145",
+        "name": "",
         "price": 15,
-        "img": "/catalog/145.jpg",
-        "alt": "Vintage #145"
+        "img": "/catalog-images/145.jpg",
+        "alt": "Vintage #145",
+        "hasHand": true
       },
       {
         "sku": "146",
-        "name": "Vintage #146",
+        "name": "",
         "price": 15,
-        "img": "/catalog/146.jpg",
-        "alt": "Vintage #146"
+        "img": "/catalog-images/146.jpg",
+        "alt": "Vintage #146",
+        "hasHand": false
       },
       {
         "sku": "147",
-        "name": "Vintage #147",
-        "price": 5,
-        "img": "/catalog/147.jpg",
-        "alt": "Vintage #147"
+        "name": "",
+        "price": 15,
+        "img": "/catalog-images/147.jpg",
+        "alt": "Vintage #147",
+        "hasHand": false
       },
       {
         "sku": "148",
-        "name": "Vintage #148",
+        "name": "",
         "price": 10,
-        "img": "/catalog/148.jpg",
-        "alt": "Vintage #148"
+        "img": "/catalog-images/148.jpg",
+        "alt": "Vintage #148",
+        "hasHand": false
       },
       {
         "sku": "149",
-        "name": "Vintage #149",
+        "name": "",
         "price": 10,
-        "img": "/catalog/149.jpg",
-        "alt": "Vintage #149"
+        "img": "/catalog-images/149.jpg",
+        "alt": "Vintage #149",
+        "hasHand": false
       },
       {
         "sku": "150",
-        "name": "Vintage #150",
+        "name": "",
         "price": 25,
-        "img": "/catalog/150.jpg",
-        "alt": "Vintage #150"
+        "img": "/catalog-images/150.jpg",
+        "alt": "Vintage #150",
+        "hasHand": false
       },
       {
         "sku": "160",
-        "name": "Vintage #160",
+        "name": "",
         "price": 25,
-        "img": "/catalog/160.jpg",
-        "alt": "Vintage #160"
+        "img": "/catalog-images/160.jpg",
+        "alt": "Vintage #160",
+        "hasHand": false
       },
       {
         "sku": "161",
-        "name": "Vintage #161",
+        "name": "",
         "price": 25,
-        "img": "/catalog/161.jpg",
-        "alt": "Vintage #161"
+        "img": "/catalog-images/161.jpg",
+        "alt": "Vintage #161",
+        "hasHand": false
       }
     ]
   },
   {
-    "title": "Hats",
+    "title": "כובעים - Hats",
     "items": [
       {
         "sku": "162",
-        "name": "Hats #162",
+        "name": "",
         "price": 5,
-        "img": "/catalog/162.jpg",
-        "alt": "Hats #162"
+        "img": "/catalog-images/162.jpg",
+        "alt": "כובעים - Hats #162",
+        "hasHand": false
       },
       {
         "sku": "163",
-        "name": "Hats #163",
+        "name": "",
         "price": 5,
-        "img": "/catalog/163.jpg",
-        "alt": "Hats #163"
+        "img": "/catalog-images/163.jpg",
+        "alt": "כובעים - Hats #163",
+        "hasHand": false
       },
       {
         "sku": "164",
-        "name": "Hats #164",
+        "name": "",
         "price": 5,
-        "img": "/catalog/164.jpg",
-        "alt": "Hats #164"
+        "img": "/catalog-images/164.jpg",
+        "alt": "כובעים - Hats #164",
+        "hasHand": false
       },
       {
         "sku": "165",
-        "name": "Hats #165",
+        "name": "",
         "price": 5,
-        "img": "/catalog/165.jpg",
-        "alt": "Hats #165"
+        "img": "/catalog-images/165.jpg",
+        "alt": "כובעים - Hats #165",
+        "hasHand": false
       },
       {
         "sku": "166",
-        "name": "Hats #166",
+        "name": "",
         "price": 5,
-        "img": "/catalog/166.jpg",
-        "alt": "Hats #166"
+        "img": "/catalog-images/166.jpg",
+        "alt": "כובעים - Hats #166",
+        "hasHand": false
       },
       {
         "sku": "167",
-        "name": "Hats #167",
+        "name": "",
         "price": 5,
-        "img": "/catalog/167.jpg",
-        "alt": "Hats #167"
+        "img": "/catalog-images/167.jpg",
+        "alt": "כובעים - Hats #167",
+        "hasHand": false
       },
       {
         "sku": "168",
-        "name": "Hats #168",
+        "name": "",
         "price": 5,
-        "img": "/catalog/168.jpg",
-        "alt": "Hats #168"
+        "img": "/catalog-images/168.jpg",
+        "alt": "כובעים - Hats #168",
+        "hasHand": false
       },
       {
         "sku": "169",
-        "name": "Hats #169",
+        "name": "",
         "price": 5,
-        "img": "/catalog/169.jpg",
-        "alt": "Hats #169"
+        "img": "/catalog-images/169.jpg",
+        "alt": "כובעים - Hats #169",
+        "hasHand": false
       },
       {
         "sku": "170",
-        "name": "Hats #170",
+        "name": "",
         "price": 5,
-        "img": "/catalog/170.jpg",
-        "alt": "Hats #170"
+        "img": "/catalog-images/170.jpg",
+        "alt": "כובעים - Hats #170",
+        "hasHand": false
       },
       {
         "sku": "171",
-        "name": "Hats #171",
+        "name": "",
         "price": 5,
-        "img": "/catalog/171.jpg",
-        "alt": "Hats #171"
+        "img": "/catalog-images/171.jpg",
+        "alt": "כובעים - Hats #171",
+        "hasHand": false
       },
       {
         "sku": "172",
-        "name": "Hats #172",
+        "name": "",
         "price": 5,
-        "img": "/catalog/172.jpg",
-        "alt": "Hats #172"
+        "img": "/catalog-images/172.jpg",
+        "alt": "כובעים - Hats #172",
+        "hasHand": false
       },
       {
         "sku": "173",
-        "name": "Hats #173",
+        "name": "",
         "price": 5,
-        "img": "/catalog/173.jpg",
-        "alt": "Hats #173"
+        "img": "/catalog-images/173.jpg",
+        "alt": "כובעים - Hats #173",
+        "hasHand": false
       },
       {
         "sku": "174",
-        "name": "Hats #174",
+        "name": "",
         "price": 5,
-        "img": "/catalog/174.jpg",
-        "alt": "Hats #174"
+        "img": "/catalog-images/174.jpg",
+        "alt": "כובעים - Hats #174",
+        "hasHand": false
       },
       {
         "sku": "175",
-        "name": "Hats #175",
+        "name": "",
         "price": 5,
-        "img": "/catalog/175.jpg",
-        "alt": "Hats #175"
+        "img": "/catalog-images/175.jpg",
+        "alt": "כובעים - Hats #175",
+        "hasHand": false
       },
       {
         "sku": "176",
-        "name": "גיל שנה",
+        "name": "",
         "price": 5,
-        "img": "/catalog/176.jpg",
-        "alt": "גיל שנה"
+        "img": "/catalog-images/176.jpg",
+        "alt": "כובעים - Hats #176",
+        "hasHand": false
       },
       {
         "sku": "177",
-        "name": "Hats #177",
+        "name": "",
         "price": 5,
-        "img": "/catalog/177.jpg",
-        "alt": "Hats #177"
+        "img": "/catalog-images/177.jpg",
+        "alt": "כובעים - Hats #177",
+        "hasHand": false
       },
       {
         "sku": "178",
-        "name": "Hats #178",
+        "name": "",
         "price": 5,
-        "img": "/catalog/178.jpg",
-        "alt": "Hats #178"
+        "img": "/catalog-images/178.jpg",
+        "alt": "כובעים - Hats #178",
+        "hasHand": false
       },
       {
         "sku": "179",
-        "name": "Hats #179",
+        "name": "",
         "price": 5,
-        "img": "/catalog/179.jpg",
-        "alt": "Hats #179"
+        "img": "/catalog-images/179.jpg",
+        "alt": "כובעים - Hats #179",
+        "hasHand": false
       },
       {
         "sku": "180",
-        "name": "גיל שנה ושלוש",
+        "name": "",
         "price": 15,
-        "img": "/catalog/180.jpg",
-        "alt": "גיל שנה ושלוש"
+        "img": "/catalog-images/180.jpg",
+        "alt": "כובעים - Hats #180",
+        "hasHand": false
       },
       {
         "sku": "181",
-        "name": "גיל שנה",
+        "name": "",
         "price": 15,
-        "img": "/catalog/181.jpg",
-        "alt": "גיל שנה"
+        "img": "/catalog-images/181.jpg",
+        "alt": "כובעים - Hats #181",
+        "hasHand": false
       },
       {
         "sku": "182",
-        "name": "גיל שנה ושלוש",
+        "name": "",
         "price": 15,
-        "img": "/catalog/182.jpg",
-        "alt": "גיל שנה ושלוש"
+        "img": "/catalog-images/182.jpg",
+        "alt": "כובעים - Hats #182",
+        "hasHand": false
       },
       {
         "sku": "183",
-        "name": "גיל שנה ושלוש",
+        "name": "",
         "price": 15,
-        "img": "/catalog/183.jpg",
-        "alt": "גיל שנה ושלוש"
+        "img": "/catalog-images/183.jpg",
+        "alt": "כובעים - Hats #183",
+        "hasHand": false
       },
       {
         "sku": "184",
-        "name": "גיל שנה",
+        "name": "",
         "price": 15,
-        "img": "/catalog/184.jpg",
-        "alt": "גיל שנה"
+        "img": "/catalog-images/184.jpg",
+        "alt": "כובעים - Hats #184",
+        "hasHand": false
       },
       {
         "sku": "185",
-        "name": "גיל שנה",
+        "name": "",
         "price": 15,
-        "img": "/catalog/185.jpg",
-        "alt": "גיל שנה"
+        "img": "/catalog-images/185.jpg",
+        "alt": "כובעים - Hats #185",
+        "hasHand": false
       }
     ]
   },
   {
-    "title": "Teddy bears",
+    "title": "דובי טדי",
     "items": [
       {
         "sku": "186",
-        "name": "Teddy bears #186",
+        "name": "",
         "price": 5,
-        "img": "/catalog/186.jpg",
-        "alt": "Teddy bears #186"
+        "img": "/catalog-images/186.jpg",
+        "alt": "דובי טדי #186",
+        "hasHand": false
       },
       {
         "sku": "187",
-        "name": "Teddy bears #187",
+        "name": "",
         "price": 5,
-        "img": "/catalog/187.jpg",
-        "alt": "Teddy bears #187"
+        "img": "/catalog-images/187.jpg",
+        "alt": "דובי טדי #187",
+        "hasHand": false
       },
       {
         "sku": "188",
-        "name": "Teddy bears #188",
+        "name": "",
         "price": 5,
-        "img": "/catalog/188.jpg",
-        "alt": "Teddy bears #188"
+        "img": "/catalog-images/188.jpg",
+        "alt": "דובי טדי #188",
+        "hasHand": false
       },
       {
         "sku": "189",
-        "name": "Teddy bears #189",
+        "name": "",
         "price": 5,
-        "img": "/catalog/189.jpg",
-        "alt": "Teddy bears #189"
+        "img": "/catalog-images/189.jpg",
+        "alt": "דובי טדי #189",
+        "hasHand": false
       },
       {
         "sku": "190",
-        "name": "Teddy bears #190",
+        "name": "",
         "price": 5,
-        "img": "/catalog/190.jpg",
-        "alt": "Teddy bears #190"
+        "img": "/catalog-images/190.jpg",
+        "alt": "דובי טדי #190",
+        "hasHand": false
       },
       {
         "sku": "191",
-        "name": "Teddy bears #191",
+        "name": "",
         "price": 5,
-        "img": "/catalog/191.jpg",
-        "alt": "Teddy bears #191"
+        "img": "/catalog-images/191.jpg",
+        "alt": "דובי טדי #191",
+        "hasHand": false
       },
       {
         "sku": "192",
-        "name": "Teddy bears #192",
+        "name": "",
         "price": 5,
-        "img": "/catalog/192.jpg",
-        "alt": "Teddy bears #192"
+        "img": "/catalog-images/192.jpg",
+        "alt": "דובי טדי #192",
+        "hasHand": false
       },
       {
         "sku": "193",
-        "name": "Teddy bears #193",
+        "name": "",
         "price": 5,
-        "img": "/catalog/193.jpg",
-        "alt": "Teddy bears #193"
+        "img": "/catalog-images/193.jpg",
+        "alt": "דובי טדי #193",
+        "hasHand": false
       },
       {
         "sku": "194",
-        "name": "Teddy bears #194",
+        "name": "",
         "price": 5,
-        "img": "/catalog/194.jpg",
-        "alt": "Teddy bears #194"
+        "img": "/catalog-images/194.jpg",
+        "alt": "דובי טדי #194",
+        "hasHand": false
       },
       {
         "sku": "195",
-        "name": "Teddy bears #195",
+        "name": "",
         "price": 5,
-        "img": "/catalog/195.jpg",
-        "alt": "Teddy bears #195"
+        "img": "/catalog-images/195.jpg",
+        "alt": "דובי טדי #195",
+        "hasHand": false
       },
       {
         "sku": "196",
-        "name": "Teddy bears #196",
+        "name": "",
         "price": 5,
-        "img": "/catalog/196.jpg",
-        "alt": "Teddy bears #196"
+        "img": "/catalog-images/196.jpg",
+        "alt": "דובי טדי #196",
+        "hasHand": false
       },
       {
         "sku": "197",
-        "name": "Teddy bears #197",
+        "name": "",
         "price": 5,
-        "img": "/catalog/197.jpg",
-        "alt": "Teddy bears #197"
+        "img": "/catalog-images/197.jpg",
+        "alt": "דובי טדי #197",
+        "hasHand": false
       },
       {
         "sku": "198",
-        "name": "Teddy bears #198",
+        "name": "",
         "price": 5,
-        "img": "/catalog/198.jpg",
-        "alt": "Teddy bears #198"
+        "img": "/catalog-images/198.jpg",
+        "alt": "דובי טדי #198",
+        "hasHand": false
       },
       {
         "sku": "199",
-        "name": "Teddy bears #199",
+        "name": "",
         "price": 5,
-        "img": "/catalog/199.jpg",
-        "alt": "Teddy bears #199"
+        "img": "/catalog-images/199.jpg",
+        "alt": "דובי טדי #199",
+        "hasHand": false
       },
       {
         "sku": "200",
-        "name": "Teddy bears #200",
+        "name": "",
         "price": 5,
-        "img": "/catalog/200.jpg",
-        "alt": "Teddy bears #200"
+        "img": "/catalog-images/200.jpg",
+        "alt": "דובי טדי #200",
+        "hasHand": false
       }
     ]
   },
   {
-    "title": "Glassware",
+    "title": "מזוודות",
+    "items": [
+      {
+        "sku": "202",
+        "name": "",
+        "price": 15,
+        "img": "/catalog-images/202.jpg",
+        "alt": "מזוודות #202",
+        "hasHand": true
+      },
+      {
+        "sku": "203",
+        "name": "",
+        "price": 10,
+        "img": "/catalog-images/203.jpg",
+        "alt": "מזוודות #203",
+        "hasHand": false
+      },
+      {
+        "sku": "204",
+        "name": "",
+        "price": 10,
+        "img": "/catalog-images/204.jpg",
+        "alt": "מזוודות #204",
+        "hasHand": false
+      },
+      {
+        "sku": "205",
+        "name": "",
+        "price": 10,
+        "img": "/catalog-images/205.jpg",
+        "alt": "מזוודות #205",
+        "hasHand": false
+      },
+      {
+        "sku": "206",
+        "name": "",
+        "price": 10,
+        "img": "/catalog-images/206.jpg",
+        "alt": "מזוודות #206",
+        "hasHand": false
+      },
+      {
+        "sku": "207",
+        "name": "",
+        "price": 10,
+        "img": "/catalog-images/207.jpg",
+        "alt": "מזוודות #207",
+        "hasHand": false
+      },
+      {
+        "sku": "208",
+        "name": "",
+        "price": 10,
+        "img": "/catalog-images/208.jpg",
+        "alt": "מזוודות #208",
+        "hasHand": false
+      }
+    ]
+  },
+  {
+    "title": "כלי זכוכית",
     "items": [
       {
         "sku": "209",
-        "name": "Glassware #209",
+        "name": "",
         "price": 5,
-        "img": "/catalog/209.jpg",
-        "alt": "Glassware #209"
+        "img": "/catalog-images/209.jpg",
+        "alt": "כלי זכוכית #209",
+        "hasHand": false
       },
       {
         "sku": "210",
-        "name": "Glassware #210",
+        "name": "",
         "price": 5,
-        "img": "/catalog/210.jpg",
-        "alt": "Glassware #210"
+        "img": "/catalog-images/210.jpg",
+        "alt": "כלי זכוכית #210",
+        "hasHand": false
       },
       {
         "sku": "211",
-        "name": "Glassware #211",
+        "name": "",
         "price": 5,
-        "img": "/catalog/211.jpg",
-        "alt": "Glassware #211"
+        "img": "/catalog-images/211.jpg",
+        "alt": "כלי זכוכית #211",
+        "hasHand": false
       },
       {
         "sku": "212",
-        "name": "Glassware #212",
+        "name": "",
         "price": 5,
-        "img": "/catalog/212.jpg",
-        "alt": "Glassware #212"
+        "img": "/catalog-images/212.jpg",
+        "alt": "כלי זכוכית #212",
+        "hasHand": false
       }
     ]
   },
@@ -757,337 +754,373 @@
     "items": [
       {
         "sku": "213",
-        "name": "Lifestyle #213",
+        "name": "",
         "price": 5,
-        "img": "/catalog/213.jpg",
-        "alt": "Lifestyle #213"
+        "img": "/catalog-images/213.jpg",
+        "alt": "Lifestyle #213",
+        "hasHand": false
       },
       {
         "sku": "214",
-        "name": "Lifestyle #214",
-        "price": 15,
-        "img": "/catalog/214.jpg",
-        "alt": "Lifestyle #214"
+        "name": "",
+        "price": 5,
+        "img": "/catalog-images/214.jpg",
+        "alt": "Lifestyle #214",
+        "hasHand": false
       },
       {
         "sku": "215",
-        "name": "Lifestyle #215",
+        "name": "",
         "price": 5,
-        "img": "/catalog/215.jpg",
-        "alt": "Lifestyle #215"
+        "img": "/catalog-images/215.jpg",
+        "alt": "Lifestyle #215",
+        "hasHand": false
       },
       {
         "sku": "216",
-        "name": "Lifestyle #216",
+        "name": "",
         "price": 5,
-        "img": "/catalog/216.jpg",
-        "alt": "Lifestyle #216"
+        "img": "/catalog-images/216.jpg",
+        "alt": "Lifestyle #216",
+        "hasHand": false
       },
       {
         "sku": "217",
-        "name": "Lifestyle #217",
+        "name": "",
         "price": 5,
-        "img": "/catalog/217.jpg",
-        "alt": "Lifestyle #217"
+        "img": "/catalog-images/217.jpg",
+        "alt": "Lifestyle #217",
+        "hasHand": false
       },
       {
         "sku": "218",
-        "name": "Lifestyle #218",
+        "name": "",
         "price": 5,
-        "img": "/catalog/218.jpg",
-        "alt": "Lifestyle #218"
+        "img": "/catalog-images/218.jpg",
+        "alt": "Lifestyle #218",
+        "hasHand": false
       },
       {
         "sku": "219",
-        "name": "Lifestyle #219",
+        "name": "",
         "price": 5,
-        "img": "/catalog/219.jpg",
-        "alt": "Lifestyle #219"
+        "img": "/catalog-images/219.jpg",
+        "alt": "Lifestyle #219",
+        "hasHand": false
       },
       {
         "sku": "220",
-        "name": "Lifestyle #220",
-        "price": 15,
-        "img": "/catalog/220.jpg",
-        "alt": "Lifestyle #220"
+        "name": "",
+        "price": 5,
+        "img": "/catalog-images/220.jpg",
+        "alt": "Lifestyle #220",
+        "hasHand": false
       },
       {
         "sku": "221",
-        "name": "Lifestyle #221",
+        "name": "",
         "price": 5,
-        "img": "/catalog/221.jpg",
-        "alt": "Lifestyle #221"
+        "img": "/catalog-images/221.jpg",
+        "alt": "Lifestyle #221",
+        "hasHand": false
       },
       {
         "sku": "222",
-        "name": "Lifestyle #222",
+        "name": "",
         "price": 5,
-        "img": "/catalog/222.jpg",
-        "alt": "Lifestyle #222"
-      },
-      {
-        "sku": "223",
-        "name": "Lifestyle #223",
-        "price": 15,
-        "img": "/catalog/223.jpg",
-        "alt": "Lifestyle #223"
+        "img": "/catalog-images/222.jpg",
+        "alt": "Lifestyle #222",
+        "hasHand": false
       },
       {
         "sku": "224",
-        "name": "Lifestyle #224",
+        "name": "",
         "price": 15,
-        "img": "/catalog/224.jpg",
-        "alt": "Lifestyle #224"
+        "img": "/catalog-images/224.jpg",
+        "alt": "Lifestyle #224",
+        "hasHand": false
       },
       {
         "sku": "225",
-        "name": "Lifestyle #225",
+        "name": "",
         "price": 15,
-        "img": "/catalog/225.jpg",
-        "alt": "Lifestyle #225"
+        "img": "/catalog-images/225.jpg",
+        "alt": "Lifestyle #225",
+        "hasHand": false
       },
       {
         "sku": "226",
-        "name": "Lifestyle #226",
+        "name": "",
         "price": 15,
-        "img": "/catalog/226.jpg",
-        "alt": "Lifestyle #226"
-      },
-      {
-        "sku": "227",
-        "name": "Lifestyle #227",
-        "price": 15,
-        "img": "/catalog/227.jpg",
-        "alt": "Lifestyle #227"
+        "img": "/catalog-images/226.jpg",
+        "alt": "Lifestyle #226",
+        "hasHand": false
       },
       {
         "sku": "228",
-        "name": "Lifestyle #228",
+        "name": "",
         "price": 15,
-        "img": "/catalog/228.jpg",
-        "alt": "Lifestyle #228"
+        "img": "/catalog-images/228.jpg",
+        "alt": "Lifestyle #228",
+        "hasHand": false
       }
     ]
   },
   {
-    "title": "New Born",
+    "title": "ניו-בורן - אביזרים גדולים",
     "items": [
       {
         "sku": "229",
-        "name": "New Born #229",
+        "name": "",
         "price": 25,
-        "img": "/catalog/229.jpg",
-        "alt": "New Born #229"
+        "img": "/catalog-images/229.jpg",
+        "alt": "ניו-בורן - אביזרים גדולים #229",
+        "hasHand": false
       },
       {
         "sku": "230",
-        "name": "New Born #230",
+        "name": "",
         "price": 25,
-        "img": "/catalog/230.jpg",
-        "alt": "New Born #230"
+        "img": "/catalog-images/230.jpg",
+        "alt": "ניו-בורן - אביזרים גדולים #230",
+        "hasHand": false
       },
       {
         "sku": "231",
-        "name": "New Born #231",
+        "name": "",
         "price": 25,
-        "img": "/catalog/231.jpg",
-        "alt": "New Born #231"
+        "img": "/catalog-images/231.jpg",
+        "alt": "ניו-בורן - אביזרים גדולים #231",
+        "hasHand": false
       },
       {
         "sku": "232",
-        "name": "New Born #232",
+        "name": "",
         "price": 25,
-        "img": "/catalog/232.jpg",
-        "alt": "New Born #232"
+        "img": "/catalog-images/232.jpg",
+        "alt": "ניו-בורן - אביזרים גדולים #232",
+        "hasHand": false
       },
       {
         "sku": "233",
-        "name": "New Born #233",
+        "name": "",
         "price": 25,
-        "img": "/catalog/233.jpg",
-        "alt": "New Born #233"
+        "img": "/catalog-images/233.jpg",
+        "alt": "ניו-בורן - אביזרים גדולים #233",
+        "hasHand": false
       },
       {
         "sku": "234",
-        "name": "New Born #234",
+        "name": "",
         "price": 25,
-        "img": "/catalog/234.jpg",
-        "alt": "New Born #234"
+        "img": "/catalog-images/234.jpg",
+        "alt": "ניו-בורן - אביזרים גדולים #234",
+        "hasHand": false
       },
       {
         "sku": "235",
-        "name": "New Born #235",
+        "name": "",
         "price": 15,
-        "img": "/catalog/235.jpg",
-        "alt": "New Born #235"
+        "img": "/catalog-images/235.jpg",
+        "alt": "ניו-בורן - אביזרים גדולים #235",
+        "hasHand": false
       },
       {
         "sku": "236",
-        "name": "New Born #236",
+        "name": "",
         "price": 15,
-        "img": "/catalog/236.jpg",
-        "alt": "New Born #236"
+        "img": "/catalog-images/236.jpg",
+        "alt": "ניו-בורן - אביזרים גדולים #236",
+        "hasHand": false
       },
       {
         "sku": "237",
-        "name": "New Born #237",
+        "name": "",
         "price": 15,
-        "img": "/catalog/237.jpg",
-        "alt": "New Born #237"
+        "img": "/catalog-images/237.jpg",
+        "alt": "ניו-בורן - אביזרים גדולים #237",
+        "hasHand": false
       },
       {
         "sku": "238",
-        "name": "New Born #238",
+        "name": "",
         "price": 15,
-        "img": "/catalog/238.jpg",
-        "alt": "New Born #238"
+        "img": "/catalog-images/238.jpg",
+        "alt": "ניו-בורן - אביזרים גדולים #238",
+        "hasHand": false
       },
       {
         "sku": "239",
-        "name": "New Born #239",
+        "name": "",
         "price": 15,
-        "img": "/catalog/239.jpg",
-        "alt": "New Born #239"
+        "img": "/catalog-images/239.jpg",
+        "alt": "ניו-בורן - אביזרים גדולים #239",
+        "hasHand": false
       },
       {
         "sku": "240",
-        "name": "New Born #240",
+        "name": "",
         "price": 15,
-        "img": "/catalog/240.jpg",
-        "alt": "New Born #240"
+        "img": "/catalog-images/240.jpg",
+        "alt": "ניו-בורן - אביזרים גדולים #240",
+        "hasHand": false
       },
       {
         "sku": "241",
-        "name": "מתאים גם לגיל שנה",
+        "name": "",
         "price": 20,
-        "img": "/catalog/241.jpg",
-        "alt": "מתאים גם לגיל שנה"
+        "img": "/catalog-images/241.jpg",
+        "alt": "ניו-בורן - אביזרים גדולים #241",
+        "hasHand": false
       },
       {
         "sku": "242",
-        "name": "מתאים גם לגיל שנה",
+        "name": "",
         "price": 20,
-        "img": "/catalog/242.jpg",
-        "alt": "מתאים גם לגיל שנה"
+        "img": "/catalog-images/242.jpg",
+        "alt": "ניו-בורן - אביזרים גדולים #242",
+        "hasHand": false
       },
       {
         "sku": "243",
-        "name": "New Born #243",
+        "name": "",
         "price": 20,
-        "img": "/catalog/243.jpg",
-        "alt": "New Born #243"
+        "img": "/catalog-images/243.jpg",
+        "alt": "ניו-בורן - אביזרים גדולים #243",
+        "hasHand": false
       },
       {
         "sku": "244",
-        "name": "מתאים גם לגיל שנה",
+        "name": "",
         "price": 20,
-        "img": "/catalog/244.jpg",
-        "alt": "מתאים גם לגיל שנה"
+        "img": "/catalog-images/244.jpg",
+        "alt": "ניו-בורן - אביזרים גדולים #244",
+        "hasHand": false
       },
       {
         "sku": "245",
-        "name": "New Born #245",
+        "name": "",
         "price": 20,
-        "img": "/catalog/245.jpg",
-        "alt": "New Born #245"
+        "img": "/catalog-images/245.jpg",
+        "alt": "ניו-בורן - אביזרים גדולים #245",
+        "hasHand": false
       },
       {
         "sku": "246",
-        "name": "New Born #246",
+        "name": "",
         "price": 30,
-        "img": "/catalog/246.jpg",
-        "alt": "New Born #246"
+        "img": "/catalog-images/246.jpg",
+        "alt": "ניו-בורן - אביזרים גדולים #246",
+        "hasHand": false
       },
       {
         "sku": "247",
-        "name": "New Born #247",
+        "name": "",
         "price": 40,
-        "img": "/catalog/247.jpg",
-        "alt": "New Born #247"
-      },
+        "img": "/catalog-images/247.jpg",
+        "alt": "ניו-בורן - אביזרים גדולים #247",
+        "hasHand": false
+      }
+    ]
+  },
+  {
+    "title": "כריות פוזינג ומעוצבות",
+    "items": [
       {
         "sku": "248",
-        "name": "New Born #248",
+        "name": "",
         "price": 10,
-        "img": "/catalog/248.jpg",
-        "alt": "New Born #248"
+        "img": "/catalog-images/248.jpg",
+        "alt": "כריות פוזינג ומעוצבות #248",
+        "hasHand": false
       },
       {
         "sku": "249",
-        "name": "New Born #249",
+        "name": "",
         "price": 10,
-        "img": "/catalog/249.jpg",
-        "alt": "New Born #249"
+        "img": "/catalog-images/249.jpg",
+        "alt": "כריות פוזינג ומעוצבות #249",
+        "hasHand": false
       },
       {
         "sku": "250",
-        "name": "New Born #250",
+        "name": "",
         "price": 10,
-        "img": "/catalog/250.jpg",
-        "alt": "New Born #250"
+        "img": "/catalog-images/250.jpg",
+        "alt": "כריות פוזינג ומעוצבות #250",
+        "hasHand": false
       },
       {
         "sku": "251",
-        "name": "New Born #251",
+        "name": "",
         "price": 10,
-        "img": "/catalog/251.jpg",
-        "alt": "New Born #251"
+        "img": "/catalog-images/251.jpg",
+        "alt": "כריות פוזינג ומעוצבות #251",
+        "hasHand": false
       },
       {
         "sku": "252",
-        "name": "New Born #252",
+        "name": "",
         "price": 10,
-        "img": "/catalog/252.jpg",
-        "alt": "New Born #252"
+        "img": "/catalog-images/252.jpg",
+        "alt": "כריות פוזינג ומעוצבות #252",
+        "hasHand": false
       },
       {
         "sku": "253",
-        "name": "New Born #253",
+        "name": "",
         "price": 10,
-        "img": "/catalog/253.jpg",
-        "alt": "New Born #253"
+        "img": "/catalog-images/253.jpg",
+        "alt": "כריות פוזינג ומעוצבות #253",
+        "hasHand": false
       },
       {
         "sku": "254",
-        "name": "New Born #254",
+        "name": "",
         "price": 5,
-        "img": "/catalog/254.jpg",
-        "alt": "New Born #254"
+        "img": "/catalog-images/254.jpg",
+        "alt": "כריות פוזינג ומעוצבות #254",
+        "hasHand": false
       },
       {
         "sku": "255",
-        "name": "New Born #255",
+        "name": "",
         "price": 5,
-        "img": "/catalog/255.jpg",
-        "alt": "New Born #255"
+        "img": "/catalog-images/255.jpg",
+        "alt": "כריות פוזינג ומעוצבות #255",
+        "hasHand": false
       },
       {
         "sku": "256",
-        "name": "New Born #256",
+        "name": "",
         "price": 5,
-        "img": "/catalog/256.jpg",
-        "alt": "New Born #256"
+        "img": "/catalog-images/256.jpg",
+        "alt": "כריות פוזינג ומעוצבות #256",
+        "hasHand": true
       },
       {
         "sku": "257",
-        "name": "New Born #257",
+        "name": "",
         "price": 5,
-        "img": "/catalog/257.jpg",
-        "alt": "New Born #257"
+        "img": "/catalog-images/257.jpg",
+        "alt": "כריות פוזינג ומעוצבות #257",
+        "hasHand": false
       },
       {
         "sku": "258",
-        "name": "New Born #258",
+        "name": "",
         "price": 5,
-        "img": "/catalog/258.jpg",
-        "alt": "New Born #258"
+        "img": "/catalog-images/258.jpg",
+        "alt": "כריות פוזינג ומעוצבות #258",
+        "hasHand": false
       },
       {
         "sku": "259",
-        "name": "New Born #259",
+        "name": "",
         "price": 5,
-        "img": "/catalog/259.jpg",
-        "alt": "New Born #259"
+        "img": "/catalog-images/259.jpg",
+        "alt": "כריות פוזינג ומעוצבות #259",
+        "hasHand": false
       }
     ]
   },
@@ -1096,733 +1129,802 @@
     "items": [
       {
         "sku": "260",
-        "name": "בגדים #260",
+        "name": "",
         "price": 15,
-        "img": "/catalog/260.jpg",
-        "alt": "בגדים #260"
+        "img": "/catalog-images/260.jpg",
+        "alt": "בגדים #260",
+        "hasHand": false
       },
       {
         "sku": "261",
-        "name": "בגדים #261",
+        "name": "",
         "price": 15,
-        "img": "/catalog/261.jpg",
-        "alt": "בגדים #261"
+        "img": "/catalog-images/261.jpg",
+        "alt": "בגדים #261",
+        "hasHand": false
       },
       {
         "sku": "262",
-        "name": "בגדים #262",
+        "name": "",
         "price": 15,
-        "img": "/catalog/262.jpg",
-        "alt": "בגדים #262"
+        "img": "/catalog-images/262.jpg",
+        "alt": "בגדים #262",
+        "hasHand": false
       },
       {
         "sku": "263",
-        "name": "בגדים #263",
+        "name": "",
         "price": 15,
-        "img": "/catalog/263.jpg",
-        "alt": "בגדים #263"
+        "img": "/catalog-images/263.jpg",
+        "alt": "בגדים #263",
+        "hasHand": false
       },
       {
         "sku": "264",
-        "name": "בגדים #264",
+        "name": "",
         "price": 15,
-        "img": "/catalog/264.jpg",
-        "alt": "בגדים #264"
+        "img": "/catalog-images/264.jpg",
+        "alt": "בגדים #264",
+        "hasHand": false
       },
       {
         "sku": "265",
-        "name": "בגדים #265",
+        "name": "",
         "price": 15,
-        "img": "/catalog/265.jpg",
-        "alt": "בגדים #265"
+        "img": "/catalog-images/265.jpg",
+        "alt": "בגדים #265",
+        "hasHand": false
       },
       {
         "sku": "266",
-        "name": "בגדים #266",
+        "name": "",
         "price": 10,
-        "img": "/catalog/266.jpg",
-        "alt": "בגדים #266"
+        "img": "/catalog-images/266.jpg",
+        "alt": "בגדים #266",
+        "hasHand": false
       },
       {
         "sku": "267",
-        "name": "בגדים #267",
+        "name": "",
         "price": 10,
-        "img": "/catalog/267.jpg",
-        "alt": "בגדים #267"
+        "img": "/catalog-images/267.jpg",
+        "alt": "בגדים #267",
+        "hasHand": false
       },
       {
         "sku": "268",
-        "name": "בגדים #268",
+        "name": "",
         "price": 10,
-        "img": "/catalog/268.jpg",
-        "alt": "בגדים #268"
+        "img": "/catalog-images/268.jpg",
+        "alt": "בגדים #268",
+        "hasHand": false
       },
       {
         "sku": "269",
-        "name": "בגדים #269",
+        "name": "",
         "price": 10,
-        "img": "/catalog/269.jpg",
-        "alt": "בגדים #269"
+        "img": "/catalog-images/269.jpg",
+        "alt": "בגדים #269",
+        "hasHand": false
       },
       {
         "sku": "270",
-        "name": "בגדים #270",
+        "name": "",
         "price": 10,
-        "img": "/catalog/270.jpg",
-        "alt": "בגדים #270"
+        "img": "/catalog-images/270.jpg",
+        "alt": "בגדים #270",
+        "hasHand": false
       },
       {
         "sku": "271",
-        "name": "בגדים #271",
+        "name": "",
         "price": 10,
-        "img": "/catalog/271.jpg",
-        "alt": "בגדים #271"
+        "img": "/catalog-images/271.jpg",
+        "alt": "בגדים #271",
+        "hasHand": false
       },
       {
         "sku": "272",
-        "name": "בגדים #272",
+        "name": "",
         "price": 5,
-        "img": "/catalog/272.jpg",
-        "alt": "בגדים #272"
+        "img": "/catalog-images/272.jpg",
+        "alt": "בגדים #272",
+        "hasHand": false
       },
       {
         "sku": "273",
-        "name": "בגדים #273",
+        "name": "",
         "price": 5,
-        "img": "/catalog/273.jpg",
-        "alt": "בגדים #273"
+        "img": "/catalog-images/273.jpg",
+        "alt": "בגדים #273",
+        "hasHand": false
       },
       {
         "sku": "274",
-        "name": "בגדים #274",
-        "price": 5,
-        "img": "/catalog/274.jpg",
-        "alt": "בגדים #274"
+        "name": "",
+        "price": 35,
+        "img": "/catalog-images/274.jpg",
+        "alt": "בגדים #274",
+        "hasHand": false
       },
       {
         "sku": "275",
-        "name": "בגדים #275",
-        "price": 5,
-        "img": "/catalog/275.jpg",
-        "alt": "בגדים #275"
-      },
-      {
-        "sku": "276",
-        "name": "בגדים #276",
+        "name": "",
         "price": 35,
-        "img": "/catalog/276.jpg",
-        "alt": "בגדים #276"
+        "img": "/catalog-images/275.jpg",
+        "alt": "בגדים #275",
+        "hasHand": false
       },
       {
         "sku": "277",
-        "name": "בגדים #277",
+        "name": "",
         "price": 15,
-        "img": "/catalog/277.jpg",
-        "alt": "בגדים #277"
+        "img": "/catalog-images/277.jpg",
+        "alt": "בגדים #277",
+        "hasHand": false
       },
       {
         "sku": "278",
-        "name": "בגדים #278",
+        "name": "",
         "price": 15,
-        "img": "/catalog/278.jpg",
-        "alt": "בגדים #278"
+        "img": "/catalog-images/278.jpg",
+        "alt": "בגדים #278",
+        "hasHand": false
       },
       {
         "sku": "279",
-        "name": "בגדים #279",
+        "name": "",
         "price": 15,
-        "img": "/catalog/279.jpg",
-        "alt": "בגדים #279"
+        "img": "/catalog-images/279.jpg",
+        "alt": "בגדים #279",
+        "hasHand": false
       },
       {
         "sku": "280",
-        "name": "בגדים #280",
+        "name": "",
         "price": 15,
-        "img": "/catalog/280.jpg",
-        "alt": "בגדים #280"
+        "img": "/catalog-images/280.jpg",
+        "alt": "בגדים #280",
+        "hasHand": false
       },
       {
         "sku": "281",
-        "name": "בגדים #281",
+        "name": "",
         "price": 15,
-        "img": "/catalog/281.jpg",
-        "alt": "בגדים #281"
+        "img": "/catalog-images/281.jpg",
+        "alt": "בגדים #281",
+        "hasHand": false
       }
     ]
   },
   {
-    "title": "רקע + עיטוף",
+    "title": "רקעים ועיטופים",
     "items": [
       {
         "sku": "282",
-        "name": "רקע + עיטוף #282",
+        "name": "",
         "price": 25,
-        "img": "/catalog/282.jpg",
-        "alt": "רקע + עיטוף #282"
+        "img": "/catalog-images/282.jpg",
+        "alt": "רקעים ועיטופים #282",
+        "hasHand": false
       },
       {
         "sku": "283",
-        "name": "רקע + עיטוף #283",
+        "name": "",
         "price": 25,
-        "img": "/catalog/283.jpg",
-        "alt": "רקע + עיטוף #283"
+        "img": "/catalog-images/283.jpg",
+        "alt": "רקעים ועיטופים #283",
+        "hasHand": false
       },
       {
         "sku": "284",
-        "name": "רקע + עיטוף #284",
+        "name": "",
         "price": 25,
-        "img": "/catalog/284.jpg",
-        "alt": "רקע + עיטוף #284"
+        "img": "/catalog-images/284.jpg",
+        "alt": "רקעים ועיטופים #284",
+        "hasHand": false
       },
       {
         "sku": "285",
-        "name": "רקע + עיטוף #285",
+        "name": "",
         "price": 25,
-        "img": "/catalog/285.jpg",
-        "alt": "רקע + עיטוף #285"
+        "img": "/catalog-images/285.jpg",
+        "alt": "רקעים ועיטופים #285",
+        "hasHand": false
       },
       {
         "sku": "286",
-        "name": "רקע + עיטוף #286",
+        "name": "",
         "price": 25,
-        "img": "/catalog/286.jpg",
-        "alt": "רקע + עיטוף #286"
+        "img": "/catalog-images/286.jpg",
+        "alt": "רקעים ועיטופים #286",
+        "hasHand": false
       },
       {
         "sku": "287",
-        "name": "רקע + עיטוף #287",
+        "name": "",
         "price": 25,
-        "img": "/catalog/287.jpg",
-        "alt": "רקע + עיטוף #287"
+        "img": "/catalog-images/287.jpg",
+        "alt": "רקעים ועיטופים #287",
+        "hasHand": false
       },
       {
         "sku": "288",
-        "name": "רקע + עיטוף #288",
+        "name": "",
         "price": 25,
-        "img": "/catalog/288.jpg",
-        "alt": "רקע + עיטוף #288"
+        "img": "/catalog-images/288.jpg",
+        "alt": "רקעים ועיטופים #288",
+        "hasHand": false
       },
       {
         "sku": "289",
-        "name": "רקע + עיטוף #289",
+        "name": "",
         "price": 25,
-        "img": "/catalog/289.jpg",
-        "alt": "רקע + עיטוף #289"
+        "img": "/catalog-images/289.jpg",
+        "alt": "רקעים ועיטופים #289",
+        "hasHand": false
       },
       {
         "sku": "290",
-        "name": "רקע + עיטוף #290",
+        "name": "",
         "price": 25,
-        "img": "/catalog/290.jpg",
-        "alt": "רקע + עיטוף #290"
+        "img": "/catalog-images/290.jpg",
+        "alt": "רקעים ועיטופים #290",
+        "hasHand": false
       },
       {
         "sku": "291",
-        "name": "רקע + עיטוף #291",
+        "name": "",
         "price": 25,
-        "img": "/catalog/291.jpg",
-        "alt": "רקע + עיטוף #291"
+        "img": "/catalog-images/291.jpg",
+        "alt": "רקעים ועיטופים #291",
+        "hasHand": false
       },
       {
         "sku": "292",
-        "name": "רקע + עיטוף #292",
+        "name": "",
         "price": 25,
-        "img": "/catalog/292.jpg",
-        "alt": "רקע + עיטוף #292"
+        "img": "/catalog-images/292.jpg",
+        "alt": "רקעים ועיטופים #292",
+        "hasHand": false
       },
       {
         "sku": "293",
-        "name": "רקע + עיטוף #293",
+        "name": "",
         "price": 25,
-        "img": "/catalog/293.jpg",
-        "alt": "רקע + עיטוף #293"
-      }
-    ]
-  },
-  {
-    "title": "עיטופים אמריקאים",
-    "items": [
+        "img": "/catalog-images/293.jpg",
+        "alt": "רקעים ועיטופים #293",
+        "hasHand": false
+      },
       {
         "sku": "294",
-        "name": "עיטופים אמריקאים #294",
+        "name": "",
         "price": 5,
-        "img": "/catalog/294.jpg",
-        "alt": "עיטופים אמריקאים #294"
+        "img": "/catalog-images/294.jpg",
+        "alt": "רקעים ועיטופים #294",
+        "hasHand": false
       },
       {
         "sku": "295",
-        "name": "עיטופים אמריקאים #295",
+        "name": "",
         "price": 5,
-        "img": "/catalog/295.jpg",
-        "alt": "עיטופים אמריקאים #295"
+        "img": "/catalog-images/295.jpg",
+        "alt": "רקעים ועיטופים #295",
+        "hasHand": false
       },
       {
         "sku": "296",
-        "name": "עיטופים אמריקאים #296",
+        "name": "",
         "price": 5,
-        "img": "/catalog/296.jpg",
-        "alt": "עיטופים אמריקאים #296"
+        "img": "/catalog-images/296.jpg",
+        "alt": "רקעים ועיטופים #296",
+        "hasHand": false
       },
       {
         "sku": "297",
-        "name": "עיטופים אמריקאים #297",
+        "name": "",
         "price": 5,
-        "img": "/catalog/297.jpg",
-        "alt": "עיטופים אמריקאים #297"
+        "img": "/catalog-images/297.jpg",
+        "alt": "רקעים ועיטופים #297",
+        "hasHand": false
       },
       {
         "sku": "298",
-        "name": "עיטופים אמריקאים #298",
+        "name": "",
         "price": 5,
-        "img": "/catalog/298.jpg",
-        "alt": "עיטופים אמריקאים #298"
+        "img": "/catalog-images/298.jpg",
+        "alt": "רקעים ועיטופים #298",
+        "hasHand": false
       },
       {
         "sku": "299",
-        "name": "עיטופים אמריקאים #299",
+        "name": "",
         "price": 5,
-        "img": "/catalog/299.jpg",
-        "alt": "עיטופים אמריקאים #299"
+        "img": "/catalog-images/299.jpg",
+        "alt": "רקעים ועיטופים #299",
+        "hasHand": false
       },
       {
         "sku": "300",
-        "name": "עיטופים אמריקאים #300",
+        "name": "",
         "price": 5,
-        "img": "/catalog/300.jpg",
-        "alt": "עיטופים אמריקאים #300"
+        "img": "/catalog-images/300.jpg",
+        "alt": "רקעים ועיטופים #300",
+        "hasHand": false
       },
       {
         "sku": "301",
-        "name": "עיטופים אמריקאים #301",
+        "name": "",
         "price": 5,
-        "img": "/catalog/301.jpg",
-        "alt": "עיטופים אמריקאים #301"
+        "img": "/catalog-images/301.jpg",
+        "alt": "רקעים ועיטופים #301",
+        "hasHand": false
       },
       {
         "sku": "302",
-        "name": "עיטופים אמריקאים #302",
+        "name": "",
         "price": 5,
-        "img": "/catalog/302.jpg",
-        "alt": "עיטופים אמריקאים #302"
+        "img": "/catalog-images/302.jpg",
+        "alt": "רקעים ועיטופים #302",
+        "hasHand": false
       },
       {
         "sku": "303",
-        "name": "עיטופים אמריקאים #303",
+        "name": "",
         "price": 5,
-        "img": "/catalog/303.jpg",
-        "alt": "עיטופים אמריקאים #303"
+        "img": "/catalog-images/303.jpg",
+        "alt": "רקעים ועיטופים #303",
+        "hasHand": false
       },
       {
         "sku": "304",
-        "name": "עיטופים אמריקאים #304",
+        "name": "",
         "price": 5,
-        "img": "/catalog/304.jpg",
-        "alt": "עיטופים אמריקאים #304"
+        "img": "/catalog-images/304.jpg",
+        "alt": "רקעים ועיטופים #304",
+        "hasHand": false
       },
       {
         "sku": "305",
-        "name": "עיטופים אמריקאים #305",
+        "name": "",
         "price": 5,
-        "img": "/catalog/305.jpg",
-        "alt": "עיטופים אמריקאים #305"
-      }
-    ]
-  },
-  {
-    "title": "עיטופים סרוגים",
-    "items": [
+        "img": "/catalog-images/305.jpg",
+        "alt": "רקעים ועיטופים #305",
+        "hasHand": false
+      },
       {
         "sku": "306",
-        "name": "עיטופים סרוגים #306",
+        "name": "",
         "price": 5,
-        "img": "/catalog/306.jpg",
-        "alt": "עיטופים סרוגים #306"
+        "img": "/catalog-images/306.jpg",
+        "alt": "רקעים ועיטופים #306",
+        "hasHand": false
       },
       {
         "sku": "307",
-        "name": "עיטופים סרוגים #307",
+        "name": "",
         "price": 5,
-        "img": "/catalog/307.jpg",
-        "alt": "עיטופים סרוגים #307"
+        "img": "/catalog-images/307.jpg",
+        "alt": "רקעים ועיטופים #307",
+        "hasHand": false
       },
       {
         "sku": "308",
-        "name": "עיטופים סרוגים #308",
+        "name": "",
         "price": 5,
-        "img": "/catalog/308.jpg",
-        "alt": "עיטופים סרוגים #308"
+        "img": "/catalog-images/308.jpg",
+        "alt": "רקעים ועיטופים #308",
+        "hasHand": false
       },
       {
         "sku": "309",
-        "name": "עיטופים סרוגים #309",
+        "name": "",
         "price": 5,
-        "img": "/catalog/309.jpg",
-        "alt": "עיטופים סרוגים #309"
+        "img": "/catalog-images/309.jpg",
+        "alt": "רקעים ועיטופים #309",
+        "hasHand": false
       },
       {
         "sku": "310",
-        "name": "עיטופים סרוגים #310",
+        "name": "",
         "price": 5,
-        "img": "/catalog/310.jpg",
-        "alt": "עיטופים סרוגים #310"
+        "img": "/catalog-images/310.jpg",
+        "alt": "רקעים ועיטופים #310",
+        "hasHand": false
       },
       {
         "sku": "311",
-        "name": "עיטופים סרוגים #311",
+        "name": "",
         "price": 5,
-        "img": "/catalog/311.jpg",
-        "alt": "עיטופים סרוגים #311"
+        "img": "/catalog-images/311.jpg",
+        "alt": "רקעים ועיטופים #311",
+        "hasHand": false
       },
       {
         "sku": "312",
-        "name": "עיטופים סרוגים #312",
+        "name": "",
         "price": 5,
-        "img": "/catalog/312.jpg",
-        "alt": "עיטופים סרוגים #312"
+        "img": "/catalog-images/312.jpg",
+        "alt": "רקעים ועיטופים #312",
+        "hasHand": false
       },
       {
         "sku": "313",
-        "name": "עיטופים סרוגים #313",
+        "name": "",
         "price": 5,
-        "img": "/catalog/313.jpg",
-        "alt": "עיטופים סרוגים #313"
+        "img": "/catalog-images/313.jpg",
+        "alt": "רקעים ועיטופים #313",
+        "hasHand": false
       },
       {
         "sku": "314",
-        "name": "עיטופים סרוגים #314",
+        "name": "",
         "price": 5,
-        "img": "/catalog/314.jpg",
-        "alt": "עיטופים סרוגים #314"
+        "img": "/catalog-images/314.jpg",
+        "alt": "רקעים ועיטופים #314",
+        "hasHand": false
       },
       {
         "sku": "315",
-        "name": "עיטופים סרוגים #315",
+        "name": "",
         "price": 5,
-        "img": "/catalog/315.jpg",
-        "alt": "עיטופים סרוגים #315"
+        "img": "/catalog-images/315.jpg",
+        "alt": "רקעים ועיטופים #315",
+        "hasHand": false
       },
       {
         "sku": "316",
-        "name": "עיטופים סרוגים #316",
+        "name": "",
         "price": 5,
-        "img": "/catalog/316.jpg",
-        "alt": "עיטופים סרוגים #316"
+        "img": "/catalog-images/316.jpg",
+        "alt": "רקעים ועיטופים #316",
+        "hasHand": false
       },
       {
         "sku": "317",
-        "name": "עיטופים סרוגים #317",
+        "name": "",
         "price": 5,
-        "img": "/catalog/317.jpg",
-        "alt": "עיטופים סרוגים #317"
+        "img": "/catalog-images/317.jpg",
+        "alt": "רקעים ועיטופים #317",
+        "hasHand": false
       },
       {
         "sku": "318",
-        "name": "עיטופים סרוגים #318",
+        "name": "",
         "price": 5,
-        "img": "/catalog/318.jpg",
-        "alt": "עיטופים סרוגים #318"
+        "img": "/catalog-images/318.jpg",
+        "alt": "רקעים ועיטופים #318",
+        "hasHand": false
       },
       {
         "sku": "319",
-        "name": "עיטופים סרוגים #319",
+        "name": "",
         "price": 5,
-        "img": "/catalog/319.jpg",
-        "alt": "עיטופים סרוגים #319"
+        "img": "/catalog-images/319.jpg",
+        "alt": "רקעים ועיטופים #319",
+        "hasHand": false
       },
       {
         "sku": "320",
-        "name": "עיטופים סרוגים #320",
+        "name": "",
         "price": 5,
-        "img": "/catalog/320.jpg",
-        "alt": "עיטופים סרוגים #320"
+        "img": "/catalog-images/320.jpg",
+        "alt": "רקעים ועיטופים #320",
+        "hasHand": false
       },
       {
         "sku": "321",
-        "name": "עיטופים סרוגים #321",
+        "name": "",
         "price": 5,
-        "img": "/catalog/321.jpg",
-        "alt": "עיטופים סרוגים #321"
+        "img": "/catalog-images/321.jpg",
+        "alt": "רקעים ועיטופים #321",
+        "hasHand": false
       },
       {
         "sku": "322",
-        "name": "אמריקאי",
+        "name": "",
         "price": 5,
-        "img": "/catalog/322.jpg",
-        "alt": "אמריקאי"
+        "img": "/catalog-images/322.jpg",
+        "alt": "רקעים ועיטופים #322",
+        "hasHand": false
       },
       {
         "sku": "323",
-        "name": "עיטופים סרוגים #323",
+        "name": "",
         "price": 5,
-        "img": "/catalog/323.jpg",
-        "alt": "עיטופים סרוגים #323"
+        "img": "/catalog-images/323.jpg",
+        "alt": "רקעים ועיטופים #323",
+        "hasHand": false
       },
       {
         "sku": "324",
-        "name": "עיטופים סרוגים #324",
+        "name": "",
         "price": 5,
-        "img": "/catalog/324.jpg",
-        "alt": "עיטופים סרוגים #324"
+        "img": "/catalog-images/324.jpg",
+        "alt": "רקעים ועיטופים #324",
+        "hasHand": false
       },
       {
         "sku": "325",
-        "name": "אמריקאי",
+        "name": "",
         "price": 5,
-        "img": "/catalog/325.jpg",
-        "alt": "אמריקאי"
+        "img": "/catalog-images/325.jpg",
+        "alt": "רקעים ועיטופים #325",
+        "hasHand": false
       },
       {
         "sku": "326",
-        "name": "נמתח",
+        "name": "",
         "price": 5,
-        "img": "/catalog/326.jpg",
-        "alt": "נמתח"
+        "img": "/catalog-images/326.jpg",
+        "alt": "רקעים ועיטופים #326",
+        "hasHand": false
       },
       {
         "sku": "327",
-        "name": "רשת",
+        "name": "",
         "price": 5,
-        "img": "/catalog/327.jpg",
-        "alt": "רשת"
+        "img": "/catalog-images/327.jpg",
+        "alt": "רקעים ועיטופים #327",
+        "hasHand": false
       },
       {
         "sku": "328",
-        "name": "רשת",
+        "name": "",
         "price": 5,
-        "img": "/catalog/328.jpg",
-        "alt": "רשת"
+        "img": "/catalog-images/328.jpg",
+        "alt": "רקעים ועיטופים #328",
+        "hasHand": false
       }
     ]
   },
   {
-    "title": "שמיכות",
+    "title": "שמיכות ופרוות",
     "items": [
       {
         "sku": "329",
-        "name": "שמיכות #329",
+        "name": "",
         "price": 10,
-        "img": "/catalog/329.jpg",
-        "alt": "שמיכות #329"
+        "img": "/catalog-images/329.jpg",
+        "alt": "שמיכות ופרוות #329",
+        "hasHand": false
       },
       {
         "sku": "330",
-        "name": "שמיכות #330",
+        "name": "",
         "price": 10,
-        "img": "/catalog/330.jpg",
-        "alt": "שמיכות #330"
+        "img": "/catalog-images/330.jpg",
+        "alt": "שמיכות ופרוות #330",
+        "hasHand": false
       },
       {
         "sku": "331",
-        "name": "שמיכות #331",
+        "name": "",
         "price": 10,
-        "img": "/catalog/331.jpg",
-        "alt": "שמיכות #331"
+        "img": "/catalog-images/331.jpg",
+        "alt": "שמיכות ופרוות #331",
+        "hasHand": false
       },
       {
         "sku": "332",
-        "name": "שמיכות #332",
+        "name": "",
         "price": 10,
-        "img": "/catalog/332.jpg",
-        "alt": "שמיכות #332"
+        "img": "/catalog-images/332.jpg",
+        "alt": "שמיכות ופרוות #332",
+        "hasHand": false
       },
       {
         "sku": "333",
-        "name": "שמיכות #333",
+        "name": "",
         "price": 10,
-        "img": "/catalog/333.jpg",
-        "alt": "שמיכות #333"
+        "img": "/catalog-images/333.jpg",
+        "alt": "שמיכות ופרוות #333",
+        "hasHand": false
       },
       {
         "sku": "334",
-        "name": "שמיכות #334",
+        "name": "",
         "price": 10,
-        "img": "/catalog/334.jpg",
-        "alt": "שמיכות #334"
+        "img": "/catalog-images/334.jpg",
+        "alt": "שמיכות ופרוות #334",
+        "hasHand": false
       },
       {
         "sku": "335",
-        "name": "שמיכות #335",
+        "name": "",
         "price": 10,
-        "img": "/catalog/335.jpg",
-        "alt": "שמיכות #335"
+        "img": "/catalog-images/335.jpg",
+        "alt": "שמיכות ופרוות #335",
+        "hasHand": false
       },
       {
         "sku": "336",
-        "name": "שמיכות #336",
+        "name": "",
         "price": 10,
-        "img": "/catalog/336.jpg",
-        "alt": "שמיכות #336"
+        "img": "/catalog-images/336.jpg",
+        "alt": "שמיכות ופרוות #336",
+        "hasHand": false
       },
       {
         "sku": "337",
-        "name": "שמיכות #337",
+        "name": "",
         "price": 10,
-        "img": "/catalog/337.jpg",
-        "alt": "שמיכות #337"
+        "img": "/catalog-images/337.jpg",
+        "alt": "שמיכות ופרוות #337",
+        "hasHand": false
       },
       {
         "sku": "338",
-        "name": "שמיכות #338",
+        "name": "",
         "price": 10,
-        "img": "/catalog/338.jpg",
-        "alt": "שמיכות #338"
+        "img": "/catalog-images/338.jpg",
+        "alt": "שמיכות ופרוות #338",
+        "hasHand": false
       },
       {
         "sku": "339",
-        "name": "שמיכות #339",
+        "name": "",
         "price": 10,
-        "img": "/catalog/339.jpg",
-        "alt": "שמיכות #339"
+        "img": "/catalog-images/339.jpg",
+        "alt": "שמיכות ופרוות #339",
+        "hasHand": false
       },
       {
         "sku": "340",
-        "name": "שמיכת פקולטאי",
-        "price": 40,
-        "img": "/catalog/340.jpg",
-        "alt": "שמיכת פקולטאי"
+        "name": "",
+        "price": 0,
+        "img": "/catalog-images/340.jpg",
+        "alt": "שמיכות ופרוות #340",
+        "hasHand": false
       },
       {
         "sku": "341",
-        "name": "צמר תלתלים",
-        "price": 30,
-        "img": "/catalog/341.jpg",
-        "alt": "צמר תלתלים"
+        "name": "",
+        "price": 0,
+        "img": "/catalog-images/341.jpg",
+        "alt": "שמיכות ופרוות #341",
+        "hasHand": false
       },
       {
-        "sku": "342",
-        "name": "צמר תלתלים",
-        "price": 30,
-        "img": "/catalog/342.jpg",
-        "alt": "צמר תלתלים"
-      }
-    ]
-  },
-  {
-    "title": "שטיחים ופרוות",
-    "items": [
-      {
         "sku": "343",
-        "name": "שטיחים ופרוות #343",
+        "name": "",
         "price": 10,
-        "img": "/catalog/343.jpg",
-        "alt": "שטיחים ופרוות #343"
+        "img": "/catalog-images/343.jpg",
+        "alt": "שמיכות ופרוות #343",
+        "hasHand": false
       },
       {
         "sku": "344",
-        "name": "שטיחים ופרוות #344",
+        "name": "",
         "price": 10,
-        "img": "/catalog/344.jpg",
-        "alt": "שטיחים ופרוות #344"
+        "img": "/catalog-images/344.jpg",
+        "alt": "שמיכות ופרוות #344",
+        "hasHand": false
       },
       {
         "sku": "345",
-        "name": "שטיחים ופרוות #345",
+        "name": "",
         "price": 10,
-        "img": "/catalog/345.jpg",
-        "alt": "שטיחים ופרוות #345"
+        "img": "/catalog-images/345.jpg",
+        "alt": "שמיכות ופרוות #345",
+        "hasHand": false
       },
       {
         "sku": "346",
-        "name": "שטיחים ופרוות #346",
+        "name": "",
         "price": 10,
-        "img": "/catalog/346.jpg",
-        "alt": "שטיחים ופרוות #346"
+        "img": "/catalog-images/346.jpg",
+        "alt": "שמיכות ופרוות #346",
+        "hasHand": false
       },
       {
         "sku": "347",
-        "name": "שטיחים ופרוות #347",
+        "name": "",
         "price": 10,
-        "img": "/catalog/347.jpg",
-        "alt": "שטיחים ופרוות #347"
+        "img": "/catalog-images/347.jpg",
+        "alt": "שמיכות ופרוות #347",
+        "hasHand": false
       }
     ]
   },
   {
-    "title": "כובעים",
+    "title": "כובעי ניו-בורן",
     "items": [
       {
         "sku": "348",
-        "name": "כובעים #348",
+        "name": "",
         "price": 5,
-        "img": "/catalog/348.jpg",
-        "alt": "כובעים #348"
+        "img": "/catalog-images/348.jpg",
+        "alt": "כובעי ניו-בורן #348",
+        "hasHand": false
       },
       {
         "sku": "349",
-        "name": "כובעים #349",
+        "name": "",
         "price": 5,
-        "img": "/catalog/349.jpg",
-        "alt": "כובעים #349"
+        "img": "/catalog-images/349.jpg",
+        "alt": "כובעי ניו-בורן #349",
+        "hasHand": false
       },
       {
         "sku": "350",
-        "name": "כובעים #350",
+        "name": "",
         "price": 5,
-        "img": "/catalog/350.jpg",
-        "alt": "כובעים #350"
+        "img": "/catalog-images/350.jpg",
+        "alt": "כובעי ניו-בורן #350",
+        "hasHand": false
       },
       {
         "sku": "351",
-        "name": "כובעים #351",
+        "name": "",
         "price": 5,
-        "img": "/catalog/351.jpg",
-        "alt": "כובעים #351"
+        "img": "/catalog-images/351.jpg",
+        "alt": "כובעי ניו-בורן #351",
+        "hasHand": false
       },
       {
         "sku": "352",
-        "name": "כובעים #352",
+        "name": "",
         "price": 5,
-        "img": "/catalog/352.jpg",
-        "alt": "כובעים #352"
+        "img": "/catalog-images/352.jpg",
+        "alt": "כובעי ניו-בורן #352",
+        "hasHand": false
       },
       {
         "sku": "353",
-        "name": "כובעים #353",
+        "name": "",
         "price": 5,
-        "img": "/catalog/353.jpg",
-        "alt": "כובעים #353"
+        "img": "/catalog-images/353.jpg",
+        "alt": "כובעי ניו-בורן #353",
+        "hasHand": false
       },
       {
         "sku": "354",
-        "name": "כובעים #354",
+        "name": "",
         "price": 5,
-        "img": "/catalog/354.jpg",
-        "alt": "כובעים #354"
+        "img": "/catalog-images/354.jpg",
+        "alt": "כובעי ניו-בורן #354",
+        "hasHand": false
       },
       {
         "sku": "355",
-        "name": "כובעים #355",
+        "name": "",
         "price": 5,
-        "img": "/catalog/355.jpg",
-        "alt": "כובעים #355"
+        "img": "/catalog-images/355.jpg",
+        "alt": "כובעי ניו-בורן #355",
+        "hasHand": false
       },
       {
         "sku": "356",
-        "name": "כובעים #356",
+        "name": "",
         "price": 5,
-        "img": "/catalog/356.jpg",
-        "alt": "כובעים #356"
+        "img": "/catalog-images/356.jpg",
+        "alt": "כובעי ניו-בורן #356",
+        "hasHand": false
       },
       {
         "sku": "357",
-        "name": "כובעים #357",
+        "name": "",
         "price": 5,
-        "img": "/catalog/357.jpg",
-        "alt": "כובעים #357"
+        "img": "/catalog-images/357.jpg",
+        "alt": "כובעי ניו-בורן #357",
+        "hasHand": false
       },
       {
         "sku": "358",
-        "name": "כובעים #358",
+        "name": "",
         "price": 5,
-        "img": "/catalog/358.jpg",
-        "alt": "כובעים #358"
+        "img": "/catalog-images/358.jpg",
+        "alt": "כובעי ניו-בורן #358",
+        "hasHand": false
       },
       {
         "sku": "359",
-        "name": "כובעים #359",
+        "name": "",
         "price": 5,
-        "img": "/catalog/359.jpg",
-        "alt": "כובעים #359"
+        "img": "/catalog-images/359.jpg",
+        "alt": "כובעי ניו-בורן #359",
+        "hasHand": false
       }
     ]
   },
@@ -1831,277 +1933,296 @@
     "items": [
       {
         "sku": "360",
-        "name": "סרטים #360",
+        "name": "",
         "price": 5,
-        "img": "/catalog/360.jpg",
-        "alt": "סרטים #360"
+        "img": "/catalog-images/360.jpg",
+        "alt": "סרטים #360",
+        "hasHand": false
       },
       {
         "sku": "361",
-        "name": "סרטים #361",
+        "name": "",
         "price": 5,
-        "img": "/catalog/361.jpg",
-        "alt": "סרטים #361"
+        "img": "/catalog-images/361.jpg",
+        "alt": "סרטים #361",
+        "hasHand": false
       },
       {
         "sku": "362",
-        "name": "סרטים #362",
+        "name": "",
         "price": 5,
-        "img": "/catalog/362.jpg",
-        "alt": "סרטים #362"
+        "img": "/catalog-images/362.jpg",
+        "alt": "סרטים #362",
+        "hasHand": false
       },
       {
         "sku": "363",
-        "name": "סרטים #363",
+        "name": "",
         "price": 5,
-        "img": "/catalog/363.jpg",
-        "alt": "סרטים #363"
+        "img": "/catalog-images/363.jpg",
+        "alt": "סרטים #363",
+        "hasHand": false
       },
       {
         "sku": "364",
-        "name": "סרטים #364",
+        "name": "",
         "price": 5,
-        "img": "/catalog/364.jpg",
-        "alt": "סרטים #364"
+        "img": "/catalog-images/364.jpg",
+        "alt": "סרטים #364",
+        "hasHand": false
       },
       {
         "sku": "365",
-        "name": "סרטים #365",
+        "name": "",
         "price": 5,
-        "img": "/catalog/365.jpg",
-        "alt": "סרטים #365"
+        "img": "/catalog-images/365.jpg",
+        "alt": "סרטים #365",
+        "hasHand": false
       },
       {
         "sku": "366",
-        "name": "סרטים #366",
+        "name": "",
         "price": 5,
-        "img": "/catalog/366.jpg",
-        "alt": "סרטים #366"
+        "img": "/catalog-images/366.jpg",
+        "alt": "סרטים #366",
+        "hasHand": false
       },
       {
         "sku": "367",
-        "name": "סרטים #367",
+        "name": "",
         "price": 5,
-        "img": "/catalog/367.jpg",
-        "alt": "סרטים #367"
+        "img": "/catalog-images/367.jpg",
+        "alt": "סרטים #367",
+        "hasHand": false
       },
       {
         "sku": "368",
-        "name": "סרטים #368",
+        "name": "",
         "price": 5,
-        "img": "/catalog/368.jpg",
-        "alt": "סרטים #368"
+        "img": "/catalog-images/368.jpg",
+        "alt": "סרטים #368",
+        "hasHand": false
       },
       {
         "sku": "369",
-        "name": "סרטים #369",
+        "name": "",
         "price": 5,
-        "img": "/catalog/369.jpg",
-        "alt": "סרטים #369"
+        "img": "/catalog-images/369.jpg",
+        "alt": "סרטים #369",
+        "hasHand": false
       },
       {
         "sku": "370",
-        "name": "סרטים #370",
+        "name": "",
         "price": 5,
-        "img": "/catalog/370.jpg",
-        "alt": "סרטים #370"
+        "img": "/catalog-images/370.jpg",
+        "alt": "סרטים #370",
+        "hasHand": false
       },
       {
         "sku": "371",
-        "name": "סרטים #371",
+        "name": "",
         "price": 5,
-        "img": "/catalog/371.jpg",
-        "alt": "סרטים #371"
+        "img": "/catalog-images/371.jpg",
+        "alt": "סרטים #371",
+        "hasHand": false
       },
       {
         "sku": "372",
-        "name": "סרטים #372",
+        "name": "",
         "price": 5,
-        "img": "/catalog/372.jpg",
-        "alt": "סרטים #372"
+        "img": "/catalog-images/372.jpg",
+        "alt": "סרטים #372",
+        "hasHand": false
       },
       {
         "sku": "373",
-        "name": "סרטים #373",
+        "name": "",
         "price": 5,
-        "img": "/catalog/373.jpg",
-        "alt": "סרטים #373"
+        "img": "/catalog-images/373.jpg",
+        "alt": "סרטים #373",
+        "hasHand": false
       },
       {
         "sku": "374",
-        "name": "סרטים #374",
+        "name": "",
         "price": 5,
-        "img": "/catalog/374.jpg",
-        "alt": "סרטים #374"
+        "img": "/catalog-images/374.jpg",
+        "alt": "סרטים #374",
+        "hasHand": false
       },
       {
         "sku": "375",
-        "name": "סרטים #375",
+        "name": "",
         "price": 5,
-        "img": "/catalog/375.jpg",
-        "alt": "סרטים #375"
+        "img": "/catalog-images/375.jpg",
+        "alt": "סרטים #375",
+        "hasHand": false
       },
       {
         "sku": "376",
-        "name": "סרטים #376",
+        "name": "",
         "price": 5,
-        "img": "/catalog/376.jpg",
-        "alt": "סרטים #376"
+        "img": "/catalog-images/376.jpg",
+        "alt": "סרטים #376",
+        "hasHand": false
       },
       {
         "sku": "377",
-        "name": "סרטים #377",
+        "name": "",
         "price": 5,
-        "img": "/catalog/377.jpg",
-        "alt": "סרטים #377"
+        "img": "/catalog-images/377.jpg",
+        "alt": "סרטים #377",
+        "hasHand": false
       },
       {
         "sku": "378",
-        "name": "סרטים #378",
+        "name": "",
         "price": 5,
-        "img": "/catalog/378.jpg",
-        "alt": "סרטים #378"
+        "img": "/catalog-images/378.jpg",
+        "alt": "סרטים #378",
+        "hasHand": false
       },
       {
         "sku": "379",
-        "name": "סרטים #379",
+        "name": "",
         "price": 5,
-        "img": "/catalog/379.jpg",
-        "alt": "סרטים #379"
+        "img": "/catalog-images/379.jpg",
+        "alt": "סרטים #379",
+        "hasHand": false
       },
       {
         "sku": "380",
-        "name": "סרטים #380",
+        "name": "",
         "price": 5,
-        "img": "/catalog/380.jpg",
-        "alt": "סרטים #380"
+        "img": "/catalog-images/380.jpg",
+        "alt": "סרטים #380",
+        "hasHand": false
       },
       {
         "sku": "381",
-        "name": "סרטים #381",
+        "name": "",
         "price": 5,
-        "img": "/catalog/381.jpg",
-        "alt": "סרטים #381"
+        "img": "/catalog-images/381.jpg",
+        "alt": "סרטים #381",
+        "hasHand": false
       },
       {
         "sku": "382",
-        "name": "סרטים #382",
+        "name": "",
         "price": 5,
-        "img": "/catalog/382.jpg",
-        "alt": "סרטים #382"
+        "img": "/catalog-images/382.jpg",
+        "alt": "סרטים #382",
+        "hasHand": false
       },
       {
         "sku": "383",
-        "name": "סרטים #383",
+        "name": "",
         "price": 5,
-        "img": "/catalog/383.jpg",
-        "alt": "סרטים #383"
+        "img": "/catalog-images/383.jpg",
+        "alt": "סרטים #383",
+        "hasHand": false
       }
     ]
   },
   {
-    "title": "דובונים",
+    "title": "דובונים ואביזרים משלימים",
     "items": [
       {
         "sku": "384",
-        "name": "דובונים #384",
+        "name": "",
         "price": 10,
-        "img": "/catalog/384.jpg",
-        "alt": "דובונים #384"
+        "img": "/catalog-images/384.jpg",
+        "alt": "דובונים ואביזרים משלימים #384",
+        "hasHand": false
       },
       {
         "sku": "385",
-        "name": "דובונים #385",
+        "name": "",
         "price": 5,
-        "img": "/catalog/385.jpg",
-        "alt": "דובונים #385"
+        "img": "/catalog-images/385.jpg",
+        "alt": "דובונים ואביזרים משלימים #385",
+        "hasHand": false
       },
       {
-        "sku": "386",
-        "name": "דובונים #386",
-        "price": 10,
-        "img": "/catalog/386.jpg",
-        "alt": "דובונים #386"
-      }
-    ]
-  },
-  {
-    "title": "אביזרים משלימים",
-    "items": [
-      {
         "sku": "387",
-        "name": "אביזרים משלימים #387",
+        "name": "",
         "price": 15,
-        "img": "/catalog/387.jpg",
-        "alt": "אביזרים משלימים #387"
+        "img": "/catalog-images/387.jpg",
+        "alt": "דובונים ואביזרים משלימים #387",
+        "hasHand": false
       },
       {
         "sku": "388",
-        "name": "אביזרים משלימים #388",
-        "price": 5,
-        "img": "/catalog/388.jpg",
-        "alt": "אביזרים משלימים #388"
+        "name": "",
+        "price": 15,
+        "img": "/catalog-images/388.jpg",
+        "alt": "דובונים ואביזרים משלימים #388",
+        "hasHand": false
       },
       {
         "sku": "389",
-        "name": "אביזרים משלימים #389",
+        "name": "",
         "price": 5,
-        "img": "/catalog/389.jpg",
-        "alt": "אביזרים משלימים #389"
+        "img": "/catalog-images/389.jpg",
+        "alt": "דובונים ואביזרים משלימים #389",
+        "hasHand": false
       },
       {
         "sku": "390",
-        "name": "אביזרים משלימים #390",
+        "name": "",
         "price": 5,
-        "img": "/catalog/390.jpg",
-        "alt": "אביזרים משלימים #390"
+        "img": "/catalog-images/390.jpg",
+        "alt": "דובונים ואביזרים משלימים #390",
+        "hasHand": false
       },
       {
         "sku": "391",
-        "name": "אביזרים משלימים #391",
+        "name": "",
         "price": 5,
-        "img": "/catalog/391.jpg",
-        "alt": "אביזרים משלימים #391"
+        "img": "/catalog-images/391.jpg",
+        "alt": "דובונים ואביזרים משלימים #391",
+        "hasHand": false
       },
       {
         "sku": "392",
-        "name": "אביזרים משלימים #392",
+        "name": "",
         "price": 5,
-        "img": "/catalog/392.jpg",
-        "alt": "אביזרים משלימים #392"
-      }
-    ]
-  },
-  {
-    "title": "בדי רקע קצרים",
-    "items": [
+        "img": "/catalog-images/392.jpg",
+        "alt": "דובונים ואביזרים משלימים #392",
+        "hasHand": false
+      },
       {
         "sku": "393",
-        "name": "בדי רקע קצרים #393",
+        "name": "",
         "price": 10,
-        "img": "/catalog/393.jpg",
-        "alt": "בדי רקע קצרים #393"
+        "img": "/catalog-images/393.jpg",
+        "alt": "דובונים ואביזרים משלימים #393",
+        "hasHand": false
       },
       {
         "sku": "394",
-        "name": "בדי רקע קצרים #394",
+        "name": "",
         "price": 10,
-        "img": "/catalog/394.jpg",
-        "alt": "בדי רקע קצרים #394"
+        "img": "/catalog-images/394.jpg",
+        "alt": "דובונים ואביזרים משלימים #394",
+        "hasHand": false
       },
       {
         "sku": "395",
-        "name": "בדי רקע קצרים #395",
+        "name": "",
         "price": 10,
-        "img": "/catalog/395.jpg",
-        "alt": "בדי רקע קצרים #395"
+        "img": "/catalog-images/395.jpg",
+        "alt": "דובונים ואביזרים משלימים #395",
+        "hasHand": false
       },
       {
         "sku": "396",
-        "name": "בדי רקע קצרים #396",
+        "name": "",
         "price": 10,
-        "img": "/catalog/396.jpg",
-        "alt": "בדי רקע קצרים #396"
+        "img": "/catalog-images/396.jpg",
+        "alt": "דובונים ואביזרים משלימים #396",
+        "hasHand": false
       }
     ]
   },
@@ -2110,486 +2231,692 @@
     "items": [
       {
         "sku": "397",
-        "name": "פרחים #397",
+        "name": "",
         "price": 5,
-        "img": "/catalog/397.jpg",
-        "alt": "פרחים #397"
+        "img": "/catalog-images/397.jpg",
+        "alt": "פרחים #397",
+        "hasHand": false
       },
       {
         "sku": "398",
-        "name": "פרחים #398",
+        "name": "",
         "price": 5,
-        "img": "/catalog/398.jpg",
-        "alt": "פרחים #398"
+        "img": "/catalog-images/398.jpg",
+        "alt": "פרחים #398",
+        "hasHand": false
       },
       {
         "sku": "399",
-        "name": "פרחים #399",
+        "name": "",
         "price": 5,
-        "img": "/catalog/399.jpg",
-        "alt": "פרחים #399"
+        "img": "/catalog-images/399.jpg",
+        "alt": "פרחים #399",
+        "hasHand": false
       },
       {
         "sku": "400",
-        "name": "פרחים #400",
+        "name": "",
         "price": 5,
-        "img": "/catalog/400.jpg",
-        "alt": "פרחים #400"
+        "img": "/catalog-images/400.jpg",
+        "alt": "פרחים #400",
+        "hasHand": false
       },
       {
         "sku": "401",
-        "name": "פרחים #401",
+        "name": "",
         "price": 5,
-        "img": "/catalog/401.jpg",
-        "alt": "פרחים #401"
+        "img": "/catalog-images/401.jpg",
+        "alt": "פרחים #401",
+        "hasHand": false
       },
       {
         "sku": "402",
-        "name": "פרחים #402",
+        "name": "",
         "price": 5,
-        "img": "/catalog/402.jpg",
-        "alt": "פרחים #402"
+        "img": "/catalog-images/402.jpg",
+        "alt": "פרחים #402",
+        "hasHand": false
       },
       {
         "sku": "403",
-        "name": "פרחים #403",
+        "name": "",
         "price": 5,
-        "img": "/catalog/403.jpg",
-        "alt": "פרחים #403"
+        "img": "/catalog-images/403.jpg",
+        "alt": "פרחים #403",
+        "hasHand": false
       },
       {
         "sku": "404",
-        "name": "פרחים #404",
+        "name": "",
         "price": 5,
-        "img": "/catalog/404.jpg",
-        "alt": "פרחים #404"
+        "img": "/catalog-images/404.jpg",
+        "alt": "פרחים #404",
+        "hasHand": false
       },
       {
         "sku": "405",
-        "name": "פרחים #405",
+        "name": "",
         "price": 5,
-        "img": "/catalog/405.jpg",
-        "alt": "פרחים #405"
+        "img": "/catalog-images/405.jpg",
+        "alt": "פרחים #405",
+        "hasHand": false
       },
       {
         "sku": "406",
-        "name": "פרחים #406",
+        "name": "",
         "price": 5,
-        "img": "/catalog/406.jpg",
-        "alt": "פרחים #406"
+        "img": "/catalog-images/406.jpg",
+        "alt": "פרחים #406",
+        "hasHand": false
       },
       {
         "sku": "407",
-        "name": "פרחים #407",
+        "name": "",
         "price": 5,
-        "img": "/catalog/407.jpg",
-        "alt": "פרחים #407"
+        "img": "/catalog-images/407.jpg",
+        "alt": "פרחים #407",
+        "hasHand": false
       },
       {
         "sku": "408",
-        "name": "פרחים #408",
+        "name": "",
         "price": 5,
-        "img": "/catalog/408.jpg",
-        "alt": "פרחים #408"
+        "img": "/catalog-images/408.jpg",
+        "alt": "פרחים #408",
+        "hasHand": false
       }
     ]
   },
   {
-    "title": "גיל שנה",
+    "title": "גיל שנה - אמבטיות",
     "items": [
       {
         "sku": "409",
-        "name": "אמבטיית קש",
+        "name": "",
         "price": 25,
-        "img": "/catalog/409.jpg",
-        "alt": "אמבטיית קש"
+        "img": "/catalog-images/409.jpg",
+        "alt": "גיל שנה - אמבטיות #409",
+        "hasHand": true
       },
       {
         "sku": "410",
-        "name": "גיל שנה #410",
+        "name": "",
         "price": 30,
-        "img": "/catalog/410.jpg",
-        "alt": "גיל שנה #410"
+        "img": "/catalog-images/410.jpg",
+        "alt": "גיל שנה - אמבטיות #410",
+        "hasHand": false
       },
       {
         "sku": "411",
-        "name": "גיל שנה #411",
+        "name": "",
         "price": 30,
-        "img": "/catalog/411.jpg",
-        "alt": "גיל שנה #411"
-      },
-      {
-        "sku": "412",
-        "name": "אמבטיית אמיל",
-        "price": 25,
-        "img": "/catalog/412.jpg",
-        "alt": "אמבטיית אמיל"
+        "img": "/catalog-images/411.jpg",
+        "alt": "גיל שנה - אמבטיות #411",
+        "hasHand": false
       },
       {
         "sku": "413",
-        "name": "שרשרת פנינים",
+        "name": "",
         "price": 5,
-        "img": "/catalog/413.jpg",
-        "alt": "שרשרת פנינים"
+        "img": "/catalog-images/413.jpg",
+        "alt": "גיל שנה - אמבטיות #413",
+        "hasHand": true
       },
       {
         "sku": "414",
-        "name": "גיל שנה #414",
+        "name": "",
         "price": 25,
-        "img": "/catalog/414.jpg",
-        "alt": "גיל שנה #414"
+        "img": "/catalog-images/414.jpg",
+        "alt": "גיל שנה - אמבטיות #414",
+        "hasHand": false
       },
       {
         "sku": "415",
-        "name": "גיל שנה #415",
+        "name": "",
         "price": 20,
-        "img": "/catalog/415.jpg",
-        "alt": "גיל שנה #415"
-      },
-      {
-        "sku": "416",
-        "name": "גיל שנה #416",
-        "price": 25,
-        "img": "/catalog/416.jpg",
-        "alt": "גיל שנה #416"
-      },
+        "img": "/catalog-images/415.jpg",
+        "alt": "גיל שנה - אמבטיות #415",
+        "hasHand": false
+      }
+    ]
+  },
+  {
+    "title": "גיל שנה - אופנוע וסל",
+    "items": [
       {
         "sku": "417",
-        "name": "אופנוע - מתאים גם לגיל 3",
+        "name": "",
         "price": 50,
-        "img": "/catalog/417.jpg",
-        "alt": "אופנוע - מתאים גם לגיל 3"
+        "img": "/catalog-images/417.jpg",
+        "alt": "גיל שנה - אופנוע וסל #417",
+        "hasHand": true
       },
       {
         "sku": "418",
-        "name": "סל",
+        "name": "",
         "price": 20,
-        "img": "/catalog/418.jpg",
-        "alt": "סל"
+        "img": "/catalog-images/418.jpg",
+        "alt": "גיל שנה - אופנוע וסל #418",
+        "hasHand": false
       }
     ]
   },
   {
-    "title": "יום הולדת",
+    "title": "אביזרים משלימים",
     "items": [
       {
         "sku": "419",
-        "name": "יום הולדת #419",
+        "name": "",
         "price": 20,
-        "img": "/catalog/419.jpg",
-        "alt": "יום הולדת #419"
+        "img": "/catalog-images/419.jpg",
+        "alt": "אביזרים משלימים #419",
+        "hasHand": false
       },
       {
         "sku": "420",
-        "name": "יום הולדת #420",
-        "price": 5,
-        "img": "/catalog/420.jpg",
-        "alt": "יום הולדת #420"
+        "name": "",
+        "price": 20,
+        "img": "/catalog-images/420.jpg",
+        "alt": "אביזרים משלימים #420",
+        "hasHand": false
       },
       {
         "sku": "421",
-        "name": "יום הולדת #421",
+        "name": "",
         "price": 10,
-        "img": "/catalog/421.jpg",
-        "alt": "יום הולדת #421"
+        "img": "/catalog-images/421.jpg",
+        "alt": "אביזרים משלימים #421",
+        "hasHand": false
       },
       {
         "sku": "422",
-        "name": "יום הולדת #422",
-        "price": 15,
-        "img": "/catalog/422.jpg",
-        "alt": "יום הולדת #422"
+        "name": "",
+        "price": 10,
+        "img": "/catalog-images/422.jpg",
+        "alt": "אביזרים משלימים #422",
+        "hasHand": false
       },
       {
         "sku": "423",
-        "name": "יום הולדת #423",
+        "name": "",
         "price": 5,
-        "img": "/catalog/423.jpg",
-        "alt": "יום הולדת #423"
+        "img": "/catalog-images/423.jpg",
+        "alt": "אביזרים משלימים #423",
+        "hasHand": false
       },
       {
         "sku": "424",
-        "name": "יום הולדת #424",
+        "name": "",
         "price": 5,
-        "img": "/catalog/424.jpg",
-        "alt": "יום הולדת #424"
+        "img": "/catalog-images/424.jpg",
+        "alt": "אביזרים משלימים #424",
+        "hasHand": false
       },
       {
         "sku": "425",
-        "name": "יום הולדת #425",
+        "name": "",
         "price": 5,
-        "img": "/catalog/425.jpg",
-        "alt": "יום הולדת #425"
+        "img": "/catalog-images/425.jpg",
+        "alt": "אביזרים משלימים #425",
+        "hasHand": false
       },
       {
         "sku": "426",
-        "name": "יום הולדת #426",
-        "price": 15,
-        "img": "/catalog/426.jpg",
-        "alt": "יום הולדת #426"
+        "name": "",
+        "price": 5,
+        "img": "/catalog-images/426.jpg",
+        "alt": "אביזרים משלימים #426",
+        "hasHand": false
       },
       {
         "sku": "427",
-        "name": "יום הולדת #427",
+        "name": "",
         "price": 10,
-        "img": "/catalog/427.jpg",
-        "alt": "יום הולדת #427"
+        "img": "/catalog-images/427.jpg",
+        "alt": "אביזרים משלימים #427",
+        "hasHand": false
       },
       {
         "sku": "428",
-        "name": "יום הולדת #428",
-        "price": 5,
-        "img": "/catalog/428.jpg",
-        "alt": "יום הולדת #428"
+        "name": "",
+        "price": 10,
+        "img": "/catalog-images/428.jpg",
+        "alt": "אביזרים משלימים #428",
+        "hasHand": false
       },
       {
         "sku": "429",
-        "name": "יום הולדת #429",
+        "name": "",
         "price": 10,
-        "img": "/catalog/429.jpg",
-        "alt": "יום הולדת #429"
+        "img": "/catalog-images/429.jpg",
+        "alt": "אביזרים משלימים #429",
+        "hasHand": false
       },
       {
         "sku": "430",
-        "name": "יום הולדת #430",
+        "name": "",
         "price": 10,
-        "img": "/catalog/430.jpg",
-        "alt": "יום הולדת #430"
-      }
-    ]
-  },
-  {
-    "title": "צעצועי עץ",
-    "items": [
+        "img": "/catalog-images/430.jpg",
+        "alt": "אביזרים משלימים #430",
+        "hasHand": false
+      },
       {
         "sku": "431",
-        "name": "צעצועי עץ #431",
+        "name": "",
         "price": 5,
-        "img": "/catalog/431.jpg",
-        "alt": "צעצועי עץ #431"
+        "img": "/catalog-images/431.jpg",
+        "alt": "אביזרים משלימים #431",
+        "hasHand": false
       },
       {
         "sku": "432",
-        "name": "צעצועי עץ #432",
+        "name": "",
         "price": 5,
-        "img": "/catalog/432.jpg",
-        "alt": "צעצועי עץ #432"
+        "img": "/catalog-images/432.jpg",
+        "alt": "אביזרים משלימים #432",
+        "hasHand": false
       },
       {
         "sku": "433",
-        "name": "צעצועי עץ #433",
+        "name": "",
         "price": 5,
-        "img": "/catalog/433.jpg",
-        "alt": "צעצועי עץ #433"
+        "img": "/catalog-images/433.jpg",
+        "alt": "אביזרים משלימים #433",
+        "hasHand": false
       },
       {
         "sku": "434",
-        "name": "צעצועי עץ #434",
+        "name": "",
         "price": 5,
-        "img": "/catalog/434.jpg",
-        "alt": "צעצועי עץ #434"
+        "img": "/catalog-images/434.jpg",
+        "alt": "אביזרים משלימים #434",
+        "hasHand": false
       },
       {
-        "sku": "435",
-        "name": "צעצועי עץ #435",
-        "price": 5,
-        "img": "/catalog/435.jpg",
-        "alt": "צעצועי עץ #435"
-      }
-    ]
-  },
-  {
-    "title": "יום הולדת - באנרים",
-    "items": [
-      {
         "sku": "436",
-        "name": "יום הולדת - באנרים #436",
+        "name": "",
         "price": 5,
-        "img": "/catalog/436.jpg",
-        "alt": "יום הולדת - באנרים #436"
+        "img": "/catalog-images/436.jpg",
+        "alt": "אביזרים משלימים #436",
+        "hasHand": false
       },
       {
         "sku": "437",
-        "name": "יום הולדת - באנרים #437",
+        "name": "",
         "price": 5,
-        "img": "/catalog/437.jpg",
-        "alt": "יום הולדת - באנרים #437"
-      },
-      {
-        "sku": "438",
-        "name": "יום הולדת - באנרים #438",
-        "price": 5,
-        "img": "/catalog/438.jpg",
-        "alt": "יום הולדת - באנרים #438"
+        "img": "/catalog-images/437.jpg",
+        "alt": "אביזרים משלימים #437",
+        "hasHand": false
       },
       {
         "sku": "439",
-        "name": "יום הולדת - באנרים #439",
+        "name": "",
         "price": 5,
-        "img": "/catalog/439.jpg",
-        "alt": "יום הולדת - באנרים #439"
-      }
-    ]
-  },
-  {
-    "title": "יום הולדת - כתרים ושרשראות",
-    "items": [
+        "img": "/catalog-images/439.jpg",
+        "alt": "אביזרים משלימים #439",
+        "hasHand": false
+      },
       {
         "sku": "440",
-        "name": "יום הולדת - כתרים ושרשראות #440",
+        "name": "",
         "price": 5,
-        "img": "/catalog/440.jpg",
-        "alt": "יום הולדת - כתרים ושרשראות #440"
+        "img": "/catalog-images/440.jpg",
+        "alt": "אביזרים משלימים #440",
+        "hasHand": false
       },
       {
         "sku": "441",
-        "name": "יום הולדת - כתרים ושרשראות #441",
+        "name": "",
         "price": 5,
-        "img": "/catalog/441.jpg",
-        "alt": "יום הולדת - כתרים ושרשראות #441"
+        "img": "/catalog-images/441.jpg",
+        "alt": "אביזרים משלימים #441",
+        "hasHand": false
       },
       {
         "sku": "442",
-        "name": "יום הולדת - כתרים ושרשראות #442",
+        "name": "",
         "price": 5,
-        "img": "/catalog/442.jpg",
-        "alt": "יום הולדת - כתרים ושרשראות #442"
+        "img": "/catalog-images/442.jpg",
+        "alt": "אביזרים משלימים #442",
+        "hasHand": false
       },
       {
         "sku": "443",
-        "name": "יום הולדת - כתרים ושרשראות #443",
+        "name": "",
         "price": 5,
-        "img": "/catalog/443.jpg",
-        "alt": "יום הולדת - כתרים ושרשראות #443"
+        "img": "/catalog-images/443.jpg",
+        "alt": "אביזרים משלימים #443",
+        "hasHand": false
       },
       {
         "sku": "444",
-        "name": "יום הולדת - כתרים ושרשראות #444",
+        "name": "",
         "price": 5,
-        "img": "/catalog/444.jpg",
-        "alt": "יום הולדת - כתרים ושרשראות #444"
+        "img": "/catalog-images/444.jpg",
+        "alt": "אביזרים משלימים #444",
+        "hasHand": false
       },
       {
         "sku": "445",
-        "name": "יום הולדת - כתרים ושרשראות #445",
+        "name": "",
         "price": 5,
-        "img": "/catalog/445.jpg",
-        "alt": "יום הולדת - כתרים ושרשראות #445"
+        "img": "/catalog-images/445.jpg",
+        "alt": "אביזרים משלימים #445",
+        "hasHand": false
       }
     ]
   },
   {
-    "title": "אוברולים",
+    "title": "אוברולים וטוטו",
     "items": [
       {
         "sku": "446",
-        "name": "אוברולים #446",
+        "name": "",
         "price": 15,
-        "img": "/catalog/446.jpg",
-        "alt": "אוברולים #446"
+        "img": "/catalog-images/446.jpg",
+        "alt": "אוברולים וטוטו #446",
+        "hasHand": false
       },
       {
         "sku": "447",
-        "name": "אוברולים #447",
+        "name": "",
         "price": 15,
-        "img": "/catalog/447.jpg",
-        "alt": "אוברולים #447"
+        "img": "/catalog-images/447.jpg",
+        "alt": "אוברולים וטוטו #447",
+        "hasHand": false
       },
       {
         "sku": "448",
-        "name": "אוברולים #448",
+        "name": "",
         "price": 15,
-        "img": "/catalog/448.jpg",
-        "alt": "אוברולים #448"
+        "img": "/catalog-images/448.jpg",
+        "alt": "אוברולים וטוטו #448",
+        "hasHand": false
       },
       {
         "sku": "449",
-        "name": "אוברולים #449",
+        "name": "",
         "price": 15,
-        "img": "/catalog/449.jpg",
-        "alt": "אוברולים #449"
+        "img": "/catalog-images/449.jpg",
+        "alt": "אוברולים וטוטו #449",
+        "hasHand": false
       },
       {
         "sku": "450",
-        "name": "אוברולים #450",
+        "name": "",
         "price": 15,
-        "img": "/catalog/450.jpg",
-        "alt": "אוברולים #450"
+        "img": "/catalog-images/450.jpg",
+        "alt": "אוברולים וטוטו #450",
+        "hasHand": false
       },
       {
         "sku": "451",
-        "name": "אוברולים #451",
+        "name": "",
         "price": 15,
-        "img": "/catalog/451.jpg",
-        "alt": "אוברולים #451"
+        "img": "/catalog-images/451.jpg",
+        "alt": "אוברולים וטוטו #451",
+        "hasHand": false
       },
       {
         "sku": "452",
-        "name": "אוברולים #452",
+        "name": "",
         "price": 15,
-        "img": "/catalog/452.jpg",
-        "alt": "אוברולים #452"
+        "img": "/catalog-images/452.jpg",
+        "alt": "אוברולים וטוטו #452",
+        "hasHand": false
       },
       {
         "sku": "453",
-        "name": "אוברולים #453",
+        "name": "",
         "price": 15,
-        "img": "/catalog/453.jpg",
-        "alt": "אוברולים #453"
+        "img": "/catalog-images/453.jpg",
+        "alt": "אוברולים וטוטו #453",
+        "hasHand": false
       },
       {
         "sku": "454",
-        "name": "אוברולים #454",
+        "name": "",
         "price": 15,
-        "img": "/catalog/454.jpg",
-        "alt": "אוברולים #454"
+        "img": "/catalog-images/454.jpg",
+        "alt": "אוברולים וטוטו #454",
+        "hasHand": false
       },
       {
         "sku": "455",
-        "name": "אוברולים #455",
+        "name": "",
         "price": 15,
-        "img": "/catalog/455.jpg",
-        "alt": "אוברולים #455"
+        "img": "/catalog-images/455.jpg",
+        "alt": "אוברולים וטוטו #455",
+        "hasHand": false
       },
       {
         "sku": "456",
-        "name": "אוברולים #456",
+        "name": "",
         "price": 15,
-        "img": "/catalog/456.jpg",
-        "alt": "אוברולים #456"
+        "img": "/catalog-images/456.jpg",
+        "alt": "אוברולים וטוטו #456",
+        "hasHand": false
       },
       {
         "sku": "457",
-        "name": "אוברולים #457",
+        "name": "",
         "price": 15,
-        "img": "/catalog/457.jpg",
-        "alt": "אוברולים #457"
+        "img": "/catalog-images/457.jpg",
+        "alt": "אוברולים וטוטו #457",
+        "hasHand": false
+      },
+      {
+        "sku": "458",
+        "name": "",
+        "price": 10,
+        "img": "/catalog-images/458.jpg",
+        "alt": "אוברולים וטוטו #458",
+        "hasHand": false
+      },
+      {
+        "sku": "459",
+        "name": "",
+        "price": 10,
+        "img": "/catalog-images/459.jpg",
+        "alt": "אוברולים וטוטו #459",
+        "hasHand": false
       }
     ]
   },
   {
-    "title": "טוטו",
+    "title": "אביזרים חדשים 2026",
     "items": [
       {
-        "sku": "458",
-        "name": "טוטו #458",
-        "price": 10,
-        "img": "/catalog/458.jpg",
-        "alt": "טוטו #458"
+        "sku": "461",
+        "name": "",
+        "price": 40,
+        "img": "/catalog-images/461.jpg",
+        "alt": "אביזרים חדשים 2026 #461",
+        "hasHand": false
       },
       {
-        "sku": "459",
-        "name": "טוטו #459",
-        "price": 10,
-        "img": "/catalog/459.jpg",
-        "alt": "טוטו #459"
+        "sku": "462",
+        "name": "",
+        "price": 40,
+        "img": "/catalog-images/462.jpg",
+        "alt": "אביזרים חדשים 2026 #462",
+        "hasHand": false
       },
       {
-        "sku": "460",
-        "name": "טוטו #460",
-        "price": 10,
-        "img": "/catalog/460.jpg",
-        "alt": "טוטו #460"
+        "sku": "463",
+        "name": "",
+        "price": 35,
+        "img": "/catalog-images/463.jpg",
+        "alt": "אביזרים חדשים 2026 #463",
+        "hasHand": false
+      },
+      {
+        "sku": "464",
+        "name": "",
+        "price": 35,
+        "img": "/catalog-images/464.jpg",
+        "alt": "אביזרים חדשים 2026 #464",
+        "hasHand": true
+      },
+      {
+        "sku": "466",
+        "name": "",
+        "price": 15,
+        "img": "/catalog-images/466.jpg",
+        "alt": "אביזרים חדשים 2026 #466",
+        "hasHand": false
+      },
+      {
+        "sku": "467",
+        "name": "",
+        "price": 15,
+        "img": "/catalog-images/467.jpg",
+        "alt": "אביזרים חדשים 2026 #467",
+        "hasHand": false
+      },
+      {
+        "sku": "468",
+        "name": "",
+        "price": 30,
+        "img": "/catalog-images/468.jpg",
+        "alt": "אביזרים חדשים 2026 #468",
+        "hasHand": false
+      },
+      {
+        "sku": "469",
+        "name": "",
+        "price": 30,
+        "img": "/catalog-images/469.jpg",
+        "alt": "אביזרים חדשים 2026 #469",
+        "hasHand": false
+      },
+      {
+        "sku": "471",
+        "name": "",
+        "price": 5,
+        "img": "/catalog-images/471.jpg",
+        "alt": "אביזרים חדשים 2026 #471",
+        "hasHand": false
+      },
+      {
+        "sku": "472",
+        "name": "",
+        "price": 5,
+        "img": "/catalog-images/472.jpg",
+        "alt": "אביזרים חדשים 2026 #472",
+        "hasHand": false
+      },
+      {
+        "sku": "473",
+        "name": "",
+        "price": 5,
+        "img": "/catalog-images/473.jpg",
+        "alt": "אביזרים חדשים 2026 #473",
+        "hasHand": false
+      },
+      {
+        "sku": "474",
+        "name": "",
+        "price": 5,
+        "img": "/catalog-images/474.jpg",
+        "alt": "אביזרים חדשים 2026 #474",
+        "hasHand": false
+      },
+      {
+        "sku": "475",
+        "name": "",
+        "price": 15,
+        "img": "/catalog-images/475.jpg",
+        "alt": "אביזרים חדשים 2026 #475",
+        "hasHand": false
+      },
+      {
+        "sku": "476",
+        "name": "",
+        "price": 15,
+        "img": "/catalog-images/476.jpg",
+        "alt": "אביזרים חדשים 2026 #476",
+        "hasHand": false
+      },
+      {
+        "sku": "477",
+        "name": "",
+        "price": 5,
+        "img": "/catalog-images/477.jpg",
+        "alt": "אביזרים חדשים 2026 #477",
+        "hasHand": false
+      },
+      {
+        "sku": "478",
+        "name": "",
+        "price": 5,
+        "img": "/catalog-images/478.jpg",
+        "alt": "אביזרים חדשים 2026 #478",
+        "hasHand": false
+      },
+      {
+        "sku": "479",
+        "name": "",
+        "price": 20,
+        "img": "/catalog-images/479.jpg",
+        "alt": "אביזרים חדשים 2026 #479",
+        "hasHand": false
+      },
+      {
+        "sku": "480",
+        "name": "",
+        "price": 20,
+        "img": "/catalog-images/480.jpg",
+        "alt": "אביזרים חדשים 2026 #480",
+        "hasHand": false
+      },
+      {
+        "sku": "481",
+        "name": "",
+        "price": 25,
+        "img": "/catalog-images/481.jpg",
+        "alt": "אביזרים חדשים 2026 #481",
+        "hasHand": false
+      },
+      {
+        "sku": "482",
+        "name": "",
+        "price": 25,
+        "img": "/catalog-images/482.jpg",
+        "alt": "אביזרים חדשים 2026 #482",
+        "hasHand": false
+      },
+      {
+        "sku": "483",
+        "name": "",
+        "price": 50,
+        "img": "/catalog-images/483.jpg",
+        "alt": "אביזרים חדשים 2026 #483",
+        "hasHand": false
+      },
+      {
+        "sku": "485",
+        "name": "",
+        "price": 35,
+        "img": "/catalog-images/485.jpg",
+        "alt": "אביזרים חדשים 2026 #485",
+        "hasHand": false
+      },
+      {
+        "sku": "486",
+        "name": "",
+        "price": 35,
+        "img": "/catalog-images/486.jpg",
+        "alt": "אביזרים חדשים 2026 #486",
+        "hasHand": false
+      },
+      {
+        "sku": "487",
+        "name": "",
+        "price": 60,
+        "img": "/catalog-images/487.jpg",
+        "alt": "אביזרים חדשים 2026 #487",
+        "hasHand": true
       }
     ]
   }
