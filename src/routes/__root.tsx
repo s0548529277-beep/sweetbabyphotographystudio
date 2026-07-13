@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "@/lib/auth";
 import { CartProvider } from "@/lib/cart";
 import { Toaster } from "@/components/ui/sonner";
+import { ChatBot } from "@/components/ChatBot";
 import { supabase } from "@/integrations/supabase/client";
 
 function NotFoundComponent() {
