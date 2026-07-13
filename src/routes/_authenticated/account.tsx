@@ -10,8 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useCart } from "@/lib/cart";
+import { ProductImage } from "@/components/ProductImage";
 import { toast } from "sonner";
-import { Package, Calendar as CalIcon, User as UserIcon, FileText } from "lucide-react";
+import { Package, Calendar as CalIcon, User as UserIcon, FileText, ShoppingBag } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/account")({
   component: Account,
