@@ -49,40 +49,40 @@
 :root {
   --radius: 0.5rem;
 
-  /* Soft Cream — modern editorial */
-  --cream: #faf8f5;
-  --bone: #f0ebe3;
-  --sand: #c9b99a;
-  --sand-deep: #a8956f;
-  --ink: #2d2d2d;
-  --ink-soft: #575757;
+  /* Sweetbaby — Blush · Sage · Cream · Forest */
+  --cream: #f8ede4;
+  --bone: #f5d5cf;         /* blush pink */
+  --sand: #a8c4a2;         /* sage */
+  --sand-deep: #6b8a63;    /* deep sage */
+  --ink: #2d3d2b;          /* forest */
+  --ink-soft: #4a5a48;
 
-  --background: #faf8f5;
-  --foreground: #1a1a1a;
+  --background: #f8ede4;
+  --foreground: #2d3d2b;
   --card: #ffffff;
-  --card-foreground: #1a1a1a;
+  --card-foreground: #2d3d2b;
   --popover: #ffffff;
-  --popover-foreground: #1a1a1a;
-  --primary: #1a1a1a;
-  --primary-foreground: #faf8f5;
-  --secondary: #f0ebe3;
-  --secondary-foreground: #1a1a1a;
-  --muted: #f0ebe3;
+  --popover-foreground: #2d3d2b;
+  --primary: #2d3d2b;
+  --primary-foreground: #f8ede4;
+  --secondary: #f5d5cf;
+  --secondary-foreground: #2d3d2b;
+  --muted: #efe2d5;
   --muted-foreground: #6b6b6b;
-  --accent: #c9b99a;
-  --accent-foreground: #1a1a1a;
+  --accent: #a8c4a2;
+  --accent-foreground: #2d3d2b;
   --destructive: oklch(0.55 0.19 25);
   --destructive-foreground: #ffffff;
-  --border: #e6dfd3;
-  --input: #ece5d8;
-  --ring: #1a1a1a;
+  --border: #e6d8c8;
+  --input: #ece0cf;
+  --ring: #2d3d2b;
 
-  --font-display: "Cormorant Garamond", ui-serif, Georgia, serif;
-  --font-body: "Karla", "Assistant", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "DM Serif Display", "Cormorant Garamond", ui-serif, Georgia, serif;
+  --font-body: "Fira Sans", "Assistant", ui-sans-serif, system-ui, sans-serif;
 
-  --shadow-soft: 0 40px 80px -40px rgb(0 0 0 / 0.18);
-  --shadow-card: 0 12px 40px -20px rgb(0 0 0 / 0.10);
-  --gradient-hero: linear-gradient(135deg, #faf8f5 0%, #ede4d3 100%);
+  --shadow-soft: 0 40px 80px -40px rgb(45 61 43 / 0.18);
+  --shadow-card: 0 12px 40px -20px rgb(45 61 43 / 0.10);
+  --gradient-hero: linear-gradient(135deg, #f8ede4 0%, #f5d5cf 100%);
 }
 
 .dark {
