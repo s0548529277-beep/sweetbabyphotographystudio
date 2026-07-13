@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
 import { Camera, Home as HomeIcon, Sparkles, ArrowLeft, MapPin, Star, Heart, Clock } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -7,6 +8,12 @@ import { CountUp } from "@/components/CountUp";
 import heroImg from "@/assets/hero-studio.jpg.asset.json";
 import studioInterior from "@/assets/studio-interior.jpg";
 import studioProps from "@/assets/studio-props-corner.jpg";
+import heroSlide0 from "@/assets/hero-slide-0.jpg.asset.json";
+import heroSlide1 from "@/assets/hero-slide-1.jpg.asset.json";
+import heroSlide2 from "@/assets/hero-slide-2.jpg.asset.json";
+import heroSlide3 from "@/assets/hero-slide-3.jpg.asset.json";
+
+const HERO_SLIDES = [heroSlide0.url, heroSlide1.url, heroSlide2.url, heroSlide3.url];
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -28,6 +35,12 @@ const fadeUp = {
 };
 
 function Home() {
+  const [slide, setSlide] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setSlide((s) => (s + 1) % HERO_SLIDES.length), 3800);
+    return () => clearInterval(id);
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col bg-[#f8ede4] text-[#2d3d2b] overflow-hidden" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
       <Header />
@@ -89,10 +102,10 @@ function Home() {
 
               <div className="mt-10 flex flex-wrap items-center gap-4">
                 <Link
-                  to="/studio-photography"
+                  to="/studio-rental"
                   className="group inline-flex items-center gap-3 rounded-full bg-[#2d3d2b] text-[#f8ede4] px-7 py-4 text-base font-medium hover:bg-[#1f2b1e] transition-all hover:gap-4"
                 >
-                  <span>הזמנת סשן צילום</span>
+                  <span>השכרת הסטודיו</span>
                   <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
                 </Link>
                 <Link
@@ -129,8 +142,29 @@ function Home() {
               initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
               className="lg:col-span-5 relative"
             >
-              <div className="relative aspect-[4/5] rounded-[2rem] overflow-hidden shadow-2xl">
-                <img src={heroImg.url} alt="ניוברן — סטודיו Sweetbaby" className="w-full h-full object-cover" />
+              <div className="relative aspect-[4/5] rounded-[2rem] overflow-hidden shadow-2xl bg-[#f5d5cf]">
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={slide}
+                    src={HERO_SLIDES[slide]}
+                    alt="רגעים מהסטודיו"
+                    initial={{ opacity: 0, scale: 1.06 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.02 }}
+                    transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                </AnimatePresence>
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                  {HERO_SLIDES.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setSlide(i)}
+                      aria-label={`תמונה ${i + 1}`}
+                      className={`h-1.5 rounded-full transition-all ${i === slide ? "w-6 bg-white" : "w-1.5 bg-white/60"}`}
+                    />
+                  ))}
+                </div>
               </div>
               <motion.div
                 animate={{ y: [0, -10, 0], rotate: [-3, -6, -3] }}
