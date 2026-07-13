@@ -42,12 +42,23 @@ export function ChatBot() {
           onClick={() => setOpen(true)}
           aria-label="פתח צ'אט"
           style={{
-            width: 60, height: 60, borderRadius: "50%", border: "none",
-            background: "#163126", color: "#f5c5b3", fontSize: 28, cursor: "pointer",
-            boxShadow: "0 8px 24px rgba(22,49,38,0.35)",
+            display: "flex", alignItems: "center", gap: 12,
+            padding: "12px 20px 12px 14px", borderRadius: 999, border: "none",
+            background: "#163126", color: "#f5c5b3", cursor: "pointer",
+            boxShadow: "0 12px 32px rgba(22,49,38,0.4)",
+            fontFamily: "'Assistant',sans-serif",
           }}
-        >💬</button>
+        >
+          <span style={{
+            width: 56, height: 56, borderRadius: "50%", background: "#f5c5b3",
+            color: "#163126", fontSize: 30, display: "flex", alignItems: "center", justifyContent: "center",
+          }}>💬</span>
+          <span style={{ fontSize: "1rem", fontWeight: 700, paddingLeft: 6 }}>
+            שאלי אותי כל דבר ✨
+          </span>
+        </button>
       )}
+
       {open && (
         <div style={{
           width: 340, height: 480, background: "#fff", borderRadius: 20,

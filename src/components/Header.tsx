@@ -28,12 +28,13 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 backdrop-blur-xl bg-background/80 border-b border-border">
-      <div className="container-page flex items-center justify-between h-20 gap-6">
+      <div className="container-page flex items-center justify-between h-28 gap-6">
         <Link to="/" className="flex items-center gap-3 shrink-0">
-          <img src={logo} alt="Sweetbaby" className="h-10 w-auto" />
+          <img src={logo} alt="Sweetbaby" className="h-16 md:h-20 w-auto" />
         </Link>
 
-        <nav className="hidden md:flex items-center gap-10 text-[11px] tracking-[0.28em] uppercase">
+        <nav className="hidden md:flex items-center gap-10 text-[13px] tracking-[0.28em] uppercase">
+
           {nav.map((n) => (
             <Link
               key={n.to}
@@ -46,10 +47,10 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Link to="/cart" className="relative" aria-label={`עגלת קניות${count > 0 ? ` (${count} פריטים)` : ""}`}>
-            <Button variant="ghost" size="icon" className="rounded-full" aria-label="עגלת קניות">
-              <ShoppingBag className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="rounded-full h-12 w-12" aria-label="עגלת קניות">
+              <ShoppingBag className="!h-6 !w-6" />
               {count > 0 && (
                 <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-peach-deep text-primary text-[11px] font-medium flex items-center justify-center">
                   {count}
@@ -58,11 +59,12 @@ export function Header() {
             </Button>
           </Link>
 
+
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full" aria-label="תפריט משתמש">
-                  <UserIcon className="h-5 w-5" />
+                <Button variant="ghost" size="icon" className="rounded-full h-12 w-12" aria-label="תפריט משתמש">
+                  <UserIcon className="!h-6 !w-6" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
@@ -82,16 +84,17 @@ export function Header() {
             </DropdownMenu>
           ) : (
             <Link to="/auth" className="hidden sm:block">
-              <Button variant="default" className="rounded-full">התחברות</Button>
+              <Button variant="default" className="rounded-full h-12 px-6 text-base">התחברות</Button>
             </Link>
           )}
 
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden rounded-full" aria-label="פתיחת תפריט ניווט">
-                <Menu className="h-5 w-5" />
+              <Button variant="ghost" size="icon" className="md:hidden rounded-full h-12 w-12" aria-label="פתיחת תפריט ניווט">
+                <Menu className="!h-6 !w-6" />
               </Button>
             </SheetTrigger>
+
             <SheetContent side="right" className="w-72">
               <div className="flex flex-col gap-4 pt-8">
                 {nav.map((n) => (

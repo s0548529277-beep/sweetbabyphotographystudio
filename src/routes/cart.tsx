@@ -64,29 +64,53 @@ function Cart() {
                 </div>
               ))}
             </div>
-            <aside className="bg-primary text-primary-foreground rounded-3xl p-8 h-fit lg:sticky lg:top-24">
-              <div className="text-peach text-xs tracking-[0.3em] uppercase mb-2">Summary</div>
+            <aside className="bg-[#f5d5cf] text-[#2d3d2b] rounded-3xl p-8 h-fit lg:sticky lg:top-24 shadow-xl border border-[#2d3d2b]/10">
+              <div className="text-[#2d3d2b]/70 text-xs tracking-[0.3em] uppercase mb-2">Summary</div>
               <h2 className="font-display text-3xl mb-6">סיכום הזמנה</h2>
               <div className="space-y-3 text-sm">
                 <Row k={`${count} פריטים`} v={`₪${subtotal.toFixed(0)}`} />
                 <Row k="דמי טיפול" v="—" />
-                <div className="h-px bg-primary-foreground/20 my-3" />
+                <div className="h-px bg-[#2d3d2b]/15 my-3" />
                 <Row k="סה״כ" v={`₪${subtotal.toFixed(0)}`} big />
                 {subtotal < 50 && (
-                  <p className="text-peach text-xs mt-3">מינימום להזמנה 50 ש״ח — יש להוסיף ₪{(50 - subtotal).toFixed(0)}.</p>
+                  <p className="text-[#2d3d2b]/80 text-xs mt-3">מינימום להזמנה 50 ש״ח — יש להוסיף ₪{(50 - subtotal).toFixed(0)}.</p>
                 )}
               </div>
               <Button
-                className="w-full mt-6 rounded-full h-12 bg-peach text-primary hover:bg-peach-deep"
+                className="w-full mt-6 rounded-full h-12 bg-[#2d3d2b] text-[#f5d5cf] hover:bg-[#1f2b1e]"
                 disabled={subtotal < 50}
                 onClick={() => nav({ to: "/checkout" })}
               >
                 המשך לתשלום
               </Button>
-              <Link to="/rental-catalog" className="block text-center text-xs text-primary-foreground/70 mt-4 hover:text-peach">
+              <Button
+                variant="outline"
+                className="w-full mt-2 rounded-full h-11 bg-white text-[#2d3d2b] border-[#2d3d2b]/15 hover:bg-white/80"
+                disabled={lines.length === 0}
+                onClick={() => {
+                  const body = [
+                    "שלום, אשמח להזמין את הפריטים הבאים:",
+                    "",
+                    ...lines.map((l) => `• ${l.name} (מק״ט ${l.sku}) — ₪${l.price} × ${l.quantity}`),
+                    "",
+                    `סה״כ: ₪${subtotal.toFixed(0)}`,
+                    "",
+                    "פרטי לקוח:",
+                    "שם: ",
+                    "טלפון: ",
+                    "תאריך רצוי: ",
+                  ].join("\n");
+                  const url = `https://mail.google.com/mail/?view=cm&fs=1&to=s0548529277@gmail.com&su=${encodeURIComponent("הזמנת אביזרים — Sweetbaby")}&body=${encodeURIComponent(body)}`;
+                  window.open(url, "_blank", "noopener,noreferrer");
+                }}
+              >
+                ✉️ שליחת הסל במייל (Gmail)
+              </Button>
+              <Link to="/rental-catalog" className="block text-center text-xs text-[#2d3d2b]/60 mt-4 hover:text-[#2d3d2b]">
                 המשך קניה
               </Link>
             </aside>
+
           </div>
         )}
       </section>
@@ -98,8 +122,9 @@ function Cart() {
 function Row({ k, v, big }: { k: string; v: string; big?: boolean }) {
   return (
     <div className="flex justify-between items-baseline">
-      <span className="text-primary-foreground/70">{k}</span>
-      <span className={big ? "font-display text-2xl text-peach" : ""}>{v}</span>
+      <span className="text-[#2d3d2b]/70">{k}</span>
+      <span className={big ? "font-display text-2xl text-[#2d3d2b]" : "text-[#2d3d2b]"}>{v}</span>
     </div>
   );
 }
+
