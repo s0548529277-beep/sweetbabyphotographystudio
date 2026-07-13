@@ -26,6 +26,19 @@ export function Header() {
   const { user, isAdmin, signOut } = useAuth();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [displayName, setDisplayName] = useState<string>("");
+
+  useEffect(() => {
+    let mounted = true;
+    if (!user) { setDisplayName(""); return; }
+    (async () => {
+      const { data } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+      if (!mounted) return;
+      const meta = (user.user_metadata as { full_name?: string; name?: string } | null) ?? null;
+      setDisplayName(data?.full_name || meta?.full_name || meta?.name || user.email?.split("@")[0] || "");
+    })();
+    return () => { mounted = false; };
+  }, [user]);
 
   return (
     <header className="sticky top-0 z-40 backdrop-blur-xl bg-background/80 border-b border-border">
