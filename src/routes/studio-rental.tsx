@@ -83,9 +83,9 @@ function StudioRentalPage() {
       <style>{css}</style>
 
       <header className="sb-header">
-        <h1>Sweetbaby</h1>
-        <div className="subtitle">התמונה הראשונה שלי</div>
+        <img src="/src/assets/logo-green.png" alt="Sweetbaby" style={{ height: "88px", width: "auto", margin: "0 auto", display: "block" }} />
       </header>
+
 
 
       <div className="sb-container">
