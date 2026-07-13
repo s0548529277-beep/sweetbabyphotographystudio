@@ -28,12 +28,13 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 backdrop-blur-xl bg-background/80 border-b border-border">
-      <div className="container-page flex items-center justify-between h-20 gap-6">
+      <div className="container-page flex items-center justify-between h-28 gap-6">
         <Link to="/" className="flex items-center gap-3 shrink-0">
-          <img src={logo} alt="Sweetbaby" className="h-10 w-auto" />
+          <img src={logo} alt="Sweetbaby" className="h-16 md:h-20 w-auto" />
         </Link>
 
-        <nav className="hidden md:flex items-center gap-10 text-[11px] tracking-[0.28em] uppercase">
+        <nav className="hidden md:flex items-center gap-10 text-[13px] tracking-[0.28em] uppercase">
+
           {nav.map((n) => (
             <Link
               key={n.to}
