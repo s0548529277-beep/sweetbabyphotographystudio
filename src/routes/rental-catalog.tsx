@@ -31,6 +31,10 @@ function RentalCatalogPage() {
   const [phone, setPhone] = useState("");
   const [hours, setHours] = useState("");
   const [query, setQuery] = useState("");
+  const [aiSkus, setAiSkus] = useState<Set<string> | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [lightbox, setLightbox] = useState<Item | null>(null);
+  const runSmartSearch = useServerFn(smartSearchItems);
 
   const toggle = (sku: string) =>
     setSelected((s) => ({ ...s, [sku]: !s[sku] }));
@@ -41,16 +45,33 @@ function RentalCatalogPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim();
-    if (!q) return categories;
+    if (!q && !aiSkus) return categories;
     return categories
       .map((c) => ({
         ...c,
-        items: c.items.filter(
-          (it) => it.sku.includes(q) || it.name.includes(q) || it.alt.includes(q),
-        ),
+        items: c.items.filter((it) => {
+          if (aiSkus) return aiSkus.has(it.sku);
+          return it.sku.includes(q) || it.name.includes(q) || it.alt.includes(q);
+        }),
       }))
       .filter((c) => c.items.length > 0);
-  }, [query]);
+  }, [query, aiSkus]);
+
+  const doAiSearch = async () => {
+    const q = query.trim();
+    if (!q) return;
+    setAiLoading(true);
+    try {
+      const { skus } = await runSmartSearch({ data: { query: q } });
+      setAiSkus(new Set(skus));
+    } catch {
+      setAiSkus(null);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+  const clearAi = () => { setAiSkus(null); setQuery(""); };
+
 
   const submit = () => {
     if (!clientName.trim() || !phone.trim()) {
