@@ -121,11 +121,21 @@ function RentalCatalogPage() {
           <div className="search-row">
             <input
               type="search"
-              placeholder="חיפוש לפי מק״ט או שם..."
+              placeholder='חיפוש חכם: "משהו ורוד לניו-בורן", "כובעים סרוגים", מק״ט...'
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => { setQuery(e.target.value); if (aiSkus) setAiSkus(null); }}
+              onKeyDown={(e) => { if (e.key === "Enter") doAiSearch(); }}
             />
+            <button type="button" className="ai-btn" onClick={doAiSearch} disabled={aiLoading || !query.trim()}>
+              {aiLoading ? "מחפשת…" : "✨ חיפוש חכם"}
+            </button>
+            {aiSkus && (
+              <button type="button" className="ai-clear" onClick={clearAi}>נקה</button>
+            )}
           </div>
+          {aiSkus && (
+            <div className="ai-hint">תוצאות חיפוש חכם: {aiSkus.size} פריטים</div>
+          )}
 
           {filtered.map((cat) => (
             <div className="cat-block" key={cat.title}>
@@ -136,25 +146,25 @@ function RentalCatalogPage() {
                 {cat.items.map((it) => {
                   const on = !!selected[it.sku];
                   return (
-                    <label
-                      key={it.sku}
-                      className={`item-card${on ? " checked" : ""}`}
-                    >
+                    <div key={it.sku} className={`item-card${on ? " checked" : ""}`}>
                       <input
                         type="checkbox"
+                        aria-label={`בחר ${it.name || it.sku}`}
                         checked={on}
                         onChange={() => toggle(it.sku)}
                       />
                       {it.img ? (
-                        <img src={it.img} alt={it.alt} loading="lazy" />
+                        <button type="button" className="img-btn" onClick={() => setLightbox(it)} aria-label="הגדל תמונה">
+                          <img src={it.img} alt={it.alt} loading="lazy" />
+                        </button>
                       ) : (
                         <div className="no-img">אין תמונה</div>
                       )}
-                      <div className="item-info">
+                      <div className="item-info" onClick={() => toggle(it.sku)}>
                         <span>#{it.sku}</span>
                         <span>₪{it.price}</span>
                       </div>
-                    </label>
+                    </div>
                   );
                 })}
               </div>
