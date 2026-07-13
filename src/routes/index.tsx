@@ -3,6 +3,8 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import heroImg from "@/assets/hero-studio.jpg.asset.json";
 import heroAnimation from "@/assets/hero-animation.gif.asset.json";
+import logo from "@/assets/logo-green.png";
+
 
 export const Route = createFileRoute("/")({
   component: Home,
