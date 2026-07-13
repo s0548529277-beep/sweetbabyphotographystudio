@@ -285,20 +285,20 @@ function StudioRentalPage() {
       </section>
 
       {/* BOOKING + INFO */}
-      <section className="container-page py-12 md:py-16" dir="rtl">
-        <div className="grid lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] gap-8">
+      <section className="container-page py-8 md:py-10" dir="rtl">
+        <div className="grid lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] gap-6">
           {/* Booking box */}
           <motion.div
             initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }} variants={fadeUp}
             className="bg-white rounded-[2rem] border border-[#2d3d2b]/5 overflow-hidden shadow-[0_20px_60px_-30px_rgba(45,61,43,0.35)]"
           >
-            <div className="p-8 md:p-10 border-b border-[#2d3d2b]/5">
-              <div className="text-[11px] tracking-[0.28em] uppercase text-[#6b8a63] mb-3">Booking</div>
-              <h2 className="text-3xl md:text-4xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+            <div className="p-6 md:p-8 border-b border-[#2d3d2b]/5">
+              <div className="text-[11px] tracking-[0.28em] uppercase text-[#6b8a63] mb-2">Booking</div>
+              <h2 className="text-2xl md:text-3xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
                 קביעת תור בסטודיו
               </h2>
 
-              <div className="mt-6 flex gap-3 items-start bg-[#f5d5cf]/50 border border-[#f5d5cf] rounded-2xl p-4">
+              <div className="mt-4 flex gap-3 items-start bg-[#f5d5cf]/50 border border-[#f5d5cf] rounded-2xl p-4">
                 <AlertTriangle className="h-5 w-5 text-[#8b3a2a] mt-0.5 shrink-0" />
                 <div className="text-sm text-[#2d3d2b]/85 leading-relaxed">
                   לא ניתן לקבוע תור לפני שליחת <strong>הסכם תיאום ציפיות</strong> במייל. קביעת שעה ביומן מהווה הסכמה מלאה לכללי הסטודיו ולהסכם.
@@ -308,14 +308,14 @@ function StudioRentalPage() {
               <button
                 type="button"
                 onClick={() => setShowForm(true)}
-                className="mt-5 w-full inline-flex items-center justify-center gap-3 rounded-full bg-[#2d3d2b] text-[#f8ede4] px-7 py-4 text-base font-medium hover:bg-[#1f2b1e] transition-all group"
+                className="mt-4 w-full inline-flex items-center justify-center gap-3 rounded-full bg-[#2d3d2b] text-[#f8ede4] px-7 py-3.5 text-sm font-medium hover:bg-[#1f2b1e] transition-all group"
               >
                 <Mail className="h-4 w-4" />
                 <span>מילוי ושליחת הסכם תיאום ציפיות</span>
                 <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
               </button>
 
-              <p className="mt-5 text-sm text-[#2d3d2b]/65">
+              <p className="mt-4 text-sm text-[#2d3d2b]/65">
                 לאחר שליחת ההסכם — בוחרים שעה פנויה (מינימום 2 חצאי שעות) והתור נכנס אוטומטית ליומן.
               </p>
             </div>
@@ -325,12 +325,12 @@ function StudioRentalPage() {
                 src={SCHEDULING_SRC}
                 style={{ border: 0 }}
                 width="100%"
-                height={640}
+                height={1020}
                 title="Google Calendar Appointment Scheduling"
               />
             </div>
 
-            <div className="p-6 text-center text-sm text-[#2d3d2b]/70 border-t border-[#2d3d2b]/5">
+            <div className="p-5 text-center text-sm text-[#2d3d2b]/70 border-t border-[#2d3d2b]/5">
               לשאלות לפני קביעת התור:{" "}
               <a href={`mailto:${EMAIL_TO}`} className="font-semibold text-[#2d3d2b] underline decoration-[#f5d5cf] decoration-2 underline-offset-4">
                 {EMAIL_TO}
@@ -339,52 +339,54 @@ function StudioRentalPage() {
           </motion.div>
 
           {/* Info cards */}
-          <div className="space-y-5">
+          <div className="space-y-4">
             <motion.div
               initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} variants={fadeUp}
-              className="bg-[#a8c4a2]/20 border border-[#a8c4a2]/40 rounded-[2rem] p-7"
+              className="bg-[#a8c4a2]/20 border border-[#a8c4a2]/40 rounded-[2rem] p-5"
             >
-              <div className="text-[11px] tracking-[0.28em] uppercase text-[#6b8a63] mb-2">Welcome</div>
-              <h3 className="text-2xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+              <div className="text-[11px] tracking-[0.28em] uppercase text-[#6b8a63] mb-1">Welcome</div>
+              <h3 className="text-xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
                 ברוכות הבאות לסטודיו שלנו
               </h3>
-              <p className="mt-3 text-sm text-[#2d3d2b]/75 leading-relaxed">
+              <p className="mt-2 text-sm text-[#2d3d2b]/75 leading-relaxed">
                 איזה כיף שאת באה ליצור אצלנו. ריכזנו כאן את כל הפרטים שיעזרו לך להרגיש בבית — הציוד, הכללים, וכל מה שחשוב לדעת מראש.
               </p>
             </motion.div>
 
-            {infoCards.map((c, i) => (
-              <motion.div
-                key={c.title} custom={i} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }} variants={fadeUp}
-                className="bg-white rounded-[2rem] border border-[#2d3d2b]/5 p-7 hover:shadow-lg transition-shadow"
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="h-10 w-10 rounded-full bg-[#f5d5cf]/60 flex items-center justify-center">
-                    <c.icon className="h-5 w-5 text-[#6b8a63]" />
+            <div className="grid md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-4">
+              {infoCards.map((c, i) => (
+                <motion.div
+                  key={c.title} custom={i} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }} variants={fadeUp}
+                  className="bg-white rounded-[2rem] border border-[#2d3d2b]/5 p-5 hover:shadow-lg transition-shadow"
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="h-9 w-9 rounded-full bg-[#f5d5cf]/60 flex items-center justify-center">
+                      <c.icon className="h-4.5 w-4.5 text-[#6b8a63]" />
+                    </div>
+                    <h4 className="text-lg text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                      {c.title}
+                    </h4>
                   </div>
-                  <h4 className="text-xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
-                    {c.title}
-                  </h4>
-                </div>
-                <ul className="space-y-2 text-sm text-[#2d3d2b]/80">
-                  {c.items.map((t) => (
-                    <li key={t} className="flex items-start gap-2">
-                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#a8c4a2] shrink-0" />
-                      <span className="leading-relaxed">{t}</span>
-                    </li>
-                  ))}
-                </ul>
-              </motion.div>
-            ))}
+                  <ul className="space-y-1.5 text-sm text-[#2d3d2b]/80">
+                    {c.items.map((t) => (
+                      <li key={t} className="flex items-start gap-2">
+                        <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#a8c4a2] shrink-0" />
+                        <span className="leading-relaxed">{t}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </motion.div>
+              ))}
+            </div>
 
             <motion.div
               initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }} variants={fadeUp}
-              className="bg-[#2d3d2b] text-[#f8ede4] rounded-[2rem] p-7 relative overflow-hidden"
+              className="bg-[#2d3d2b] text-[#f8ede4] rounded-[2rem] p-5 relative overflow-hidden"
             >
               <div className="absolute -top-10 -left-10 h-32 w-32 rounded-full bg-[#a8c4a2]/30 blur-2xl" />
               <div className="relative">
-                <div className="text-[11px] tracking-[0.28em] uppercase text-[#a8c4a2] mb-2">Add-on</div>
-                <h4 className="text-2xl mb-2" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                <div className="text-[11px] tracking-[0.28em] uppercase text-[#a8c4a2] mb-1">Add-on</div>
+                <h4 className="text-xl mb-2" style={{ fontFamily: "'DM Serif Display', serif" }}>
                   צריכה גם אביזרים?
                 </h4>
                 <p className="text-sm text-[#f8ede4]/75 leading-relaxed">
@@ -392,7 +394,7 @@ function StudioRentalPage() {
                 </p>
                 <Link
                   to="/rental-catalog"
-                  className="mt-5 inline-flex items-center gap-2 bg-[#f5d5cf] text-[#2d3d2b] px-5 py-3 rounded-full text-sm font-semibold hover:bg-[#f8ede4] transition-colors group"
+                  className="mt-4 inline-flex items-center gap-2 bg-[#f5d5cf] text-[#2d3d2b] px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-[#f8ede4] transition-colors group"
                 >
                   לקטלוג האביזרים
                   <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-1" />
