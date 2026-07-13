@@ -197,7 +197,7 @@ function StudioRentalPage() {
           transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        <div className="relative container-page pt-14 md:pt-20 pb-10">
+        <div className="relative container-page pt-10 md:pt-14 pb-6">
           <motion.div initial="hidden" animate="show" variants={fadeUp} className="max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/70 backdrop-blur px-4 py-1.5 border border-[#2d3d2b]/10">
               <Star className="h-3.5 w-3.5 fill-[#a8c4a2] text-[#a8c4a2]" />
@@ -206,15 +206,15 @@ function StudioRentalPage() {
               </span>
             </div>
             <h1
-              className="mt-6 text-[2.8rem] leading-[1.05] md:text-[4.8rem] md:leading-[1] text-[#2d3d2b]"
+              className="mt-4 text-[2.6rem] leading-[1.05] md:text-[4rem] md:leading-[1] text-[#2d3d2b]"
               style={{ fontFamily: "'DM Serif Display', serif" }}
             >
               השכרת <em className="not-italic text-[#6b8a63]">הסטודיו</em>
             </h1>
-            <p className="mt-6 text-lg md:text-xl text-[#2d3d2b]/75 max-w-2xl leading-relaxed">
+            <p className="mt-4 text-base md:text-lg text-[#2d3d2b]/75 max-w-2xl leading-relaxed">
               חלל בוטיק שקט ומאובזר לצלמות — תאורה מקצועית, רקעים, פרופס בסיסי ואווירה שמזמינה יצירה. מחירון שקוף, יומן פתוח, וכל הפרטים החשובים לפני שמסמנים תאריך.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3 text-xs tracking-[0.22em] uppercase text-[#2d3d2b]/60">
+            <div className="mt-5 flex flex-wrap gap-3 text-xs tracking-[0.22em] uppercase text-[#2d3d2b]/60">
               <span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-[#6b8a63]" /> תלמוד ירושלמי 24</span>
               <span className="w-px bg-[#2d3d2b]/20" />
               <span>Godox AD200 PRO</span>
