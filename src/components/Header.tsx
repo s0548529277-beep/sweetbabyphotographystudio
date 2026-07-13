@@ -87,7 +87,6 @@ export function Header() {
                   </span>
                 </Button>
               </DropdownMenuTrigger>
-              </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-60">
                 <DropdownMenuLabel className="text-right">
                   <div className="text-[10px] tracking-[0.25em] uppercase text-muted-foreground">אזור אישי</div>
