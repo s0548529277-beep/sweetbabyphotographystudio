@@ -142,8 +142,29 @@ function Home() {
               initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
               className="lg:col-span-5 relative"
             >
-              <div className="relative aspect-[4/5] rounded-[2rem] overflow-hidden shadow-2xl">
-                <img src={heroImg.url} alt="ניוברן — סטודיו Sweetbaby" className="w-full h-full object-cover" />
+              <div className="relative aspect-[4/5] rounded-[2rem] overflow-hidden shadow-2xl bg-[#f5d5cf]">
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={slide}
+                    src={HERO_SLIDES[slide]}
+                    alt="רגעים מהסטודיו"
+                    initial={{ opacity: 0, scale: 1.06 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.02 }}
+                    transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                </AnimatePresence>
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                  {HERO_SLIDES.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setSlide(i)}
+                      aria-label={`תמונה ${i + 1}`}
+                      className={`h-1.5 rounded-full transition-all ${i === slide ? "w-6 bg-white" : "w-1.5 bg-white/60"}`}
+                    />
+                  ))}
+                </div>
               </div>
               <motion.div
                 animate={{ y: [0, -10, 0], rotate: [-3, -6, -3] }}
