@@ -21,7 +21,7 @@ export const Route = createFileRoute("/rental-catalog")({
 
 const EMAIL_TO = "s0548529277@gmail.com";
 
-type Item = { sku: string; name: string; price: number; img: string; alt: string };
+type Item = { sku: string; name: string; price: number; img: string; alt: string; hasHand?: boolean };
 type Category = { title: string; items: Item[] };
 const categories = catalogData as Category[];
 
