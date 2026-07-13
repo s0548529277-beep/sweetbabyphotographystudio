@@ -44,6 +44,16 @@ function RentalCatalogPage() {
   const runSmartSearch = useServerFn(smartSearchItems);
 
   const allItems = useMemo(() => categories.flatMap((c) => c.items), []);
+  const inspirationImages = useMemo(
+    () => allItems.filter((it) => it.hasHand && it.img).map((it) => it.img),
+    [allItems],
+  );
+  const [inspoIdx, setInspoIdx] = useState(0);
+  useEffect(() => {
+    if (inspirationImages.length < 2) return;
+    const id = setInterval(() => setInspoIdx((i) => (i + 1) % inspirationImages.length), 3200);
+    return () => clearInterval(id);
+  }, [inspirationImages.length]);
 
   const filtered = useMemo(() => {
     const q = query.trim();
@@ -52,6 +62,7 @@ function RentalCatalogPage() {
       .map((c) => ({
         ...c,
         items: c.items.filter((it) => {
+          if (it.hasHand) return false;
           if (aiSkus) return aiSkus.has(it.sku);
           if (!q) return true;
           return it.sku.includes(q) || it.name.includes(q) || it.alt.includes(q);
