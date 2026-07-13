@@ -226,23 +226,23 @@ function StudioRentalPage() {
       </section>
 
       {/* PRICING CARDS */}
-      <section className="container-page pb-6" dir="rtl">
-        <div className="grid md:grid-cols-2 gap-6 md:gap-8">
+      <section className="container-page pb-4" dir="rtl">
+        <div className="grid md:grid-cols-2 gap-5 md:gap-6">
           <motion.div
             initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={0} variants={fadeUp}
-            className="bg-white rounded-[2rem] border border-[#2d3d2b]/5 p-8 md:p-10 relative overflow-hidden group"
+            className="bg-white rounded-[2rem] border border-[#2d3d2b]/5 p-6 md:p-8 relative overflow-hidden group"
           >
             <div className="absolute -top-16 -left-16 h-48 w-48 rounded-full bg-[#f5d5cf]/60 blur-2xl" />
             <div className="relative">
-              <div className="text-[11px] tracking-[0.28em] uppercase text-[#6b8a63] mb-3">01 · Flexible</div>
-              <h3 className="text-3xl md:text-4xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+              <div className="text-[11px] tracking-[0.28em] uppercase text-[#6b8a63] mb-2">01 · Flexible</div>
+              <h3 className="text-2xl md:text-3xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
                 שעתי גמיש
               </h3>
-              <div className="mt-6 flex items-baseline gap-2">
-                <span className="text-5xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>₪120</span>
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className="text-4xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>₪120</span>
                 <span className="text-sm text-[#2d3d2b]/60">/ שעה ראשונה</span>
               </div>
-              <ul className="mt-6 space-y-2.5 text-sm text-[#2d3d2b]/80">
+              <ul className="mt-4 space-y-2 text-sm text-[#2d3d2b]/80">
                 {["כל שעה נוספת: 90 ₪ בלבד", "חצאי שעות בחישוב יחסי", "מינימום: שעה (2 חצאי שעות)", "מתאים למשפחה, היריון וילדים"].map((t) => (
                   <li key={t} className="flex items-start gap-2">
                     <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#a8c4a2] shrink-0" />
@@ -255,26 +255,26 @@ function StudioRentalPage() {
 
           <motion.div
             initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={1} variants={fadeUp}
-            className="bg-[#2d3d2b] text-[#f8ede4] rounded-[2rem] p-8 md:p-10 relative overflow-hidden"
+            className="bg-[#f5d5cf] text-[#2d3d2b] rounded-[2rem] p-6 md:p-8 relative overflow-hidden"
           >
-            <div className="absolute top-10 -left-16 h-48 w-48 rounded-full bg-[#a8c4a2]/30 blur-2xl" />
-            <div className="absolute bottom-0 right-0 h-40 w-40 rounded-full bg-[#f5d5cf]/20 blur-2xl" />
+            <div className="absolute top-10 -left-16 h-48 w-48 rounded-full bg-white/40 blur-2xl" />
+            <div className="absolute bottom-0 right-0 h-40 w-40 rounded-full bg-[#a8c4a2]/20 blur-2xl" />
             <div className="relative">
               <div className="flex items-center justify-between">
-                <div className="text-[11px] tracking-[0.28em] uppercase text-[#a8c4a2] mb-3">02 · Morning Special</div>
-                <span className="text-[10px] tracking-[0.22em] uppercase bg-[#f5d5cf] text-[#2d3d2b] px-3 py-1 rounded-full font-semibold">מומלץ לניוברן</span>
+                <div className="text-[11px] tracking-[0.28em] uppercase text-[#6b8a63] mb-2">02 · Morning Special</div>
+                <span className="text-[10px] tracking-[0.22em] uppercase bg-[#2d3d2b] text-[#f8ede4] px-3 py-1 rounded-full font-semibold">מומלץ לניוברן</span>
               </div>
-              <h3 className="text-3xl md:text-4xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
+              <h3 className="text-2xl md:text-3xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
                 מבצע בוקר ניו-בורן
               </h3>
-              <div className="mt-6 flex items-baseline gap-2">
-                <span className="text-5xl" style={{ fontFamily: "'DM Serif Display', serif" }}>₪240</span>
-                <span className="text-sm text-[#f8ede4]/70">/ 3 שעות</span>
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className="text-4xl" style={{ fontFamily: "'DM Serif Display', serif" }}>₪240</span>
+                <span className="text-sm text-[#2d3d2b]/70">/ 3 שעות</span>
               </div>
-              <ul className="mt-6 space-y-2.5 text-sm text-[#f8ede4]/85">
+              <ul className="mt-4 space-y-2 text-sm text-[#2d3d2b]/85">
                 {["תקף בין 8:00 ל-13:00 בלבד", "הזמן השקט והמושלם לניוברן", "חיסכון משמעותי במחיר לשעה", "3 שעות רצופות של יצירה"].map((t) => (
                   <li key={t} className="flex items-start gap-2">
-                    <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#f5d5cf] shrink-0" />
+                    <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#2d3d2b] shrink-0" />
                     <span>{t}</span>
                   </li>
                 ))}
