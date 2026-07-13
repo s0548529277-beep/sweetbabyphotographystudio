@@ -137,6 +137,36 @@ export type Database = {
         }
         Relationships: []
       }
+      coupons: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          discount_amount: number
+          discount_percent: number
+          expires_at: string | null
+          id: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          discount_amount?: number
+          discount_percent?: number
+          expires_at?: string | null
+          id?: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          discount_amount?: number
+          discount_percent?: number
+          expires_at?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       item_availability: {
         Row: {
           created_at: string
@@ -448,6 +478,42 @@ export type Database = {
           id?: string
           note?: string | null
           open_time?: string | null
+        }
+        Relationships: []
+      }
+      subscription_requests: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          notes: string | null
+          phone: string
+          plan: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          notes?: string | null
+          phone: string
+          plan?: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          notes?: string | null
+          phone?: string
+          plan?: string
+          status?: string
+          user_id?: string | null
         }
         Relationships: []
       }
