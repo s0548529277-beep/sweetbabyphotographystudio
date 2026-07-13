@@ -1,8 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, MoveUpRight } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { Button } from "@/components/ui/button";
 import heroImg from "@/assets/hero-studio.jpg.asset.json";
 import heroAnimation from "@/assets/hero-animation.gif.asset.json";
 
@@ -10,218 +8,169 @@ export const Route = createFileRoute("/")({
   component: Home,
   head: () => ({
     meta: [
-      { title: "Sweetbaby — סטודיו בוטיק ומעל 400 אביזרי צילום בבית שמש" },
-      { name: "description", content: "סטודיו בוטיק בבית שמש ומעל 400 אביזרים מעוצבים להשכרה — וינטג׳, מקרמה, סרוגים, עץ ורטאן — לצילומי ניוברן, גיל שנה, חלאקה ומשפחה." },
-      { property: "og:title", content: "Sweetbaby — סטודיו בוטיק ומעל 400 אביזרי צילום" },
-      { property: "og:description", content: "סטודיו בוטיק בבית שמש ומעל 400 אביזרים מעוצבים להשכרה לצילומי ניוברן, גיל שנה, חלאקה ומשפחה." },
+      { title: "Sweetbaby — סטודיו בוטיק, צילומים והשכרת אביזרים בבית שמש" },
+      { name: "description", content: "סטודיו בוטיק בבית שמש: השכרת חלל צילום, סשן צילום עם מיכל סיבוני וקטלוג של 400+ אביזרים מעוצבים לניוברן, גיל שנה, חלאקה ומשפחה." },
+      { property: "og:title", content: "Sweetbaby — סטודיו, צילומים והשכרת אביזרים" },
+      { property: "og:description", content: "שלוש דרכים ליצור תמונה בלתי נשכחת: השכרת סטודיו, סשן צילום או השכרת אביזרים." },
       { property: "og:url", content: "https://sweetbabyphotographystudio.lovable.app/" },
     ],
     links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/" }],
   }),
 });
 
-const marqueeWords = [
-  "Newborn",
-  "Sitter",
-  "Cake Smash",
-  "Family",
-  "Vintage",
-  "Macramé",
-  "Lifestyle",
-  "Studio",
-];
-
 function Home() {
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
+    <div className="min-h-screen flex flex-col bg-[#f8ede4] text-[#2d3d2b]" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
       <Header />
 
-      {/* HERO — editorial split */}
-      <section className="relative border-b border-border/70">
-        <div className="container-page pt-10 md:pt-16 pb-20 md:pb-28">
-          {/* top meta bar */}
-          <div className="flex items-center justify-between text-[11px] tracking-[0.32em] uppercase text-muted-foreground mb-14">
-            <span>Est. 2020 — Beit Shemesh</span>
-            <span className="hidden md:inline">Catalogue №26 · 2026 Edition</span>
-            <span dir="ltr">SB / 001</span>
-          </div>
+      <main className="flex-1 w-full flex items-start justify-center px-4 md:px-8 py-8 md:py-12">
+        <div className="max-w-6xl w-full grid grid-cols-1 md:grid-cols-12 gap-5" dir="rtl">
 
-          <div className="grid lg:grid-cols-12 gap-10 lg:gap-14 items-end">
-            {/* headline */}
-            <div className="lg:col-span-7">
-              <h1 className="font-display leading-[0.92] text-foreground tracking-tight text-[clamp(3.5rem,10vw,9rem)]">
-                <span className="block whitespace-nowrap">היצירה</span>
-                <span className="block whitespace-nowrap italic font-normal text-sand-deep">הראשונה</span>
-                <span className="block whitespace-nowrap">שלי.</span>
+          {/* Brand / Identity tile */}
+          <div className="md:col-span-5 bg-[#f5d5cf] p-8 md:p-10 rounded-[2.5rem] flex flex-col justify-between border border-[#2d3d2b]/5 shadow-sm min-h-[420px]">
+            <div className="space-y-6">
+              <h1 className="text-5xl md:text-6xl leading-none text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                Sweetbaby
               </h1>
-              <div className="mt-8 flex flex-wrap items-center gap-4">
-                <Link to="/start">
-                  <Button size="lg" className="rounded-none h-12 px-8 text-sm tracking-widest uppercase gap-3 bg-foreground text-background hover:bg-foreground/90">
-                    להתחלת הזמנה <ArrowLeft className="h-4 w-4" />
-                  </Button>
-                </Link>
-                <Link to="/catalog" className="text-sm tracking-widest uppercase inline-flex items-center gap-2 border-b border-foreground/40 pb-1 hover:border-foreground transition-colors">
-                  לצפייה בקטלוג <MoveUpRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
+              <p className="text-lg md:text-xl text-[#2d3d2b]/80 leading-relaxed max-w-sm">
+                סטודיו בוטיק לצילום ואביזרים, המשלב אמנות, רגש ועיצוב מוקפד — בבית שמש.
+              </p>
             </div>
-
-            {/* image */}
-            <div className="lg:col-span-5 relative">
-              <div className="relative aspect-[4/5] overflow-hidden bg-bone">
-                <img
-                  src={heroAnimation.url}
-                  alt="סטודיו Sweetbaby - קולקציית אביזרים בתנועה"
-                  className="w-full h-full object-cover"
-                  width={1200}
-                  height={1500}
-                />
-                <div className="absolute inset-0 pointer-events-none ring-1 ring-inset ring-foreground/10" />
+            <div className="mt-10 flex items-end justify-between">
+              <div className="space-y-1">
+                <div className="text-xs tracking-[0.28em] text-[#2d3d2b]/60 font-medium uppercase">Est. 2020</div>
+                <div className="text-sm text-[#2d3d2b] font-medium italic">Beit Shemesh, IL</div>
               </div>
+              <Link to="/about" aria-label="קראו עלינו" className="h-12 w-12 rounded-full border border-[#2d3d2b]/25 flex items-center justify-center text-[#2d3d2b] hover:bg-[#2d3d2b] hover:text-[#f5d5cf] transition-colors">
+                <span className="text-xl">↓</span>
+              </Link>
             </div>
           </div>
 
-          {/* lede + stats */}
-          <div className="mt-20 grid lg:grid-cols-12 gap-10 border-t border-border pt-10">
-            <p className="lg:col-span-6 lg:col-start-1 text-lg md:text-xl leading-relaxed max-w-2xl text-foreground/85">
-              סטודיו בוטיק בבית שמש
-              ומאגר של מעל <span dir="ltr" className="inline-block font-display text-3xl not-italic text-foreground align-baseline">400+</span> אביזרים מעוצבים —
-              וינטג׳, מקרמה, סרוגים, עץ ורטאן — לצילומי ניוברן, גיל שנה, חלאקה ומשפחה. אתם בוחרים סגנון, אנחנו מכינים את הסט.
-            </p>
-            <dl className="lg:col-span-5 lg:col-start-8 grid grid-cols-3 gap-6 border-t border-border pt-8 lg:border-t-0 lg:pt-0">
-              {[
-                { n: "400+", l: "פריטים" },
-                { n: "24h", l: "השכרה" },
-                { n: "₪50", l: "מינימום" },
-              ].map((s) => (
-                <div key={s.l}>
-                  <dt className="text-[10px] tracking-[0.3em] uppercase text-muted-foreground mb-2">{s.l}</dt>
-                  <dd dir="ltr" className="font-display text-4xl md:text-5xl text-right">{s.n}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        </div>
-      </section>
-
-      {/* MARQUEE */}
-      <section className="overflow-hidden border-b border-border py-6 bg-foreground text-background" dir="ltr">
-        <div className="marquee-track font-display text-4xl md:text-5xl italic">
-          {[...marqueeWords, ...marqueeWords].map((w, i) => (
-            <span key={i} className="inline-flex items-center gap-12">
-              {w}
-              <span className="text-sand text-2xl">✦</span>
-            </span>
-          ))}
-        </div>
-      </section>
-
-      {/* PILLARS */}
-      <section className="container-page py-24 md:py-32">
-        <div className="grid lg:grid-cols-12 gap-10">
-          <div className="lg:col-span-4">
-            <div className="eyebrow mb-4">The Studio</div>
-            <h2 className="font-display text-5xl md:text-6xl leading-[1] tracking-tight">
-              עיצוב <span className="italic">שקט</span>,
-              <br />תמונה שנשארת.
-            </h2>
-          </div>
-          <div className="lg:col-span-8 grid sm:grid-cols-3 gap-px bg-border">
-            {[
-              { n: "01", t: "אביזרים מעוצבים", d: "וינטג׳, מקרמה, סרוגים, עץ ורטאן — נבחרו ידנית." },
-              { n: "02", t: "השכרה גמישה", d: "24 שעות מלאות בבית שמש, איסוף עצמי." },
-              { n: "03", t: "לכל סגנון", d: "ניו בורן, גיל שנה, חלאקה, משפחה ולוקיישן." },
-            ].map((f) => (
-              <div key={f.n} className="bg-background p-8 flex flex-col justify-between min-h-52">
-                <span className="font-display text-2xl text-sand-deep">{f.n}</span>
-                <div>
-                  <h3 className="font-display text-2xl mb-2">{f.t}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{f.d}</p>
-                </div>
+          {/* Hero image tile */}
+          <div className="md:col-span-7 h-[360px] md:h-[520px] rounded-[2.5rem] overflow-hidden relative">
+            <img
+              src={heroImg.url}
+              alt="ניוברן על סגנון בוטיק — סטודיו Sweetbaby"
+              className="w-full h-full object-cover"
+              loading="eager"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#2d3d2b]/40 to-transparent" />
+            <div className="absolute bottom-6 right-6 md:bottom-8 md:right-8">
+              <div className="bg-[#f8ede4]/90 backdrop-blur-md px-5 py-2.5 md:px-6 md:py-3 rounded-full border border-white/30">
+                <span className="text-[#2d3d2b] text-lg md:text-xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                  רגעים של פעם בחיים
+                </span>
               </div>
-            ))}
+            </div>
           </div>
-        </div>
-      </section>
 
-      {/* COLLECTIONS — hero-grid */}
-      <section className="container-page pb-24 md:pb-32">
-        <div className="flex items-end justify-between mb-10 border-b border-border pb-6">
-          <div>
-            <div className="eyebrow mb-3">Collections</div>
-            <h2 className="font-display text-5xl md:text-6xl tracking-tight">קולקציות נבחרות</h2>
-          </div>
-          <Link to="/catalog" className="text-sm tracking-widest uppercase inline-flex items-center gap-2 border-b border-foreground/50 pb-1">
-            לכל הקטלוג <ArrowLeft className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-
-        <div className="grid lg:grid-cols-12 gap-6 md:gap-8">
-          {/* feature */}
-          <Link to="/catalog" className="lg:col-span-7 group block relative overflow-hidden bg-bone aspect-[4/3]">
-            <img src={heroImg.url} alt="קולקציית אביזרי צילום ניובורן" className="absolute inset-0 w-full h-full object-cover transition-transform duration-[900ms] group-hover:scale-105" />
-            <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 via-foreground/10 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-8 md:p-10 text-background">
-              <div className="text-[11px] tracking-[0.35em] uppercase text-sand mb-3">Featured · 01</div>
-              <h3 className="font-display text-5xl md:text-6xl italic">ניו בורן</h3>
-              <p className="mt-3 text-sm text-background/80 max-w-md">עריסות, סלים, כריות פוזינג, עיטופים ורכות שנשארת לדורות.</p>
+          {/* Offering 1 — Photography Sessions */}
+          <Link
+            to="/studio-photography"
+            className="group md:col-span-4 bg-white rounded-[2.5rem] overflow-hidden border border-[#2d3d2b]/5 flex flex-col transition-all duration-500 hover:shadow-2xl hover:-translate-y-1"
+          >
+            <div className="h-56 md:h-64 relative overflow-hidden bg-[#f5d5cf]">
+              <img
+                src={heroAnimation.url}
+                alt="סשן צילום עם מיכל סיבוני"
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                loading="lazy"
+              />
+              <div className="absolute top-4 left-4 bg-[#a8c4a2] text-white px-4 py-1 rounded-full text-sm font-medium">
+                ₪300 / שעה
+              </div>
+            </div>
+            <div className="p-7 md:p-8 flex flex-col flex-grow">
+              <h3 className="text-2xl text-[#2d3d2b] mb-3" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                צילומים עם מיכל סיבוני
+              </h3>
+              <p className="text-[#2d3d2b]/70 text-sm mb-6 flex-grow leading-relaxed">
+                סשן צילום אישי, מקצועי ומלא ברוך בסטודיו המאובזר שלנו — אפשרות לחצי שעה ולבניית סטים בהתאמה.
+              </p>
+              <span className="text-sm font-semibold text-[#2d3d2b] underline underline-offset-4 decoration-[#a8c4a2] decoration-2">
+                להזמנת סשן →
+              </span>
             </div>
           </Link>
 
-          <div className="lg:col-span-5 grid sm:grid-cols-2 lg:grid-cols-1 gap-6 md:gap-8">
-            {[
-              { t: "Vintage", he: "וינטג׳", d: "מצלמות מינולטה, ספרים, טלפון וכובעים." },
-              { t: "Lifestyle", he: "לייף סטייל", d: "מקרמה, סלסלות, כדים ופרטים חמים." },
-            ].map((c, i) => (
-              <Link
-                key={c.t}
-                to="/catalog"
-                className="group relative overflow-hidden aspect-[4/3] lg:aspect-auto lg:h-full border border-border bg-bone flex items-end p-7"
-              >
-                <div className="absolute top-6 right-6 text-[10px] tracking-[0.35em] uppercase text-muted-foreground">0{i + 2}</div>
-                <div className="relative">
-                  <div className="eyebrow mb-2">{c.t}</div>
-                  <h3 className="font-display text-4xl italic">{c.he}</h3>
-                  <p className="text-sm text-muted-foreground mt-2 max-w-[26ch]">{c.d}</p>
-                </div>
-                <MoveUpRight className="absolute bottom-7 left-7 h-5 w-5 text-foreground/60 group-hover:text-foreground transition-colors" />
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
+          {/* Offering 2 — Studio Rental */}
+          <Link
+            to="/studio-rental"
+            className="group md:col-span-4 bg-[#a8c4a2]/20 rounded-[2.5rem] overflow-hidden border border-[#a8c4a2]/40 flex flex-col transition-all duration-500 hover:shadow-2xl hover:-translate-y-1"
+          >
+            <div className="h-56 md:h-64 relative overflow-hidden bg-[#a8c4a2]/30">
+              <img
+                src={heroImg.url}
+                alt="חלל סטודיו מעוצב להשכרה"
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                loading="lazy"
+              />
+              <div className="absolute top-4 left-4 bg-[#2d3d2b] text-[#f8ede4] px-4 py-1 rounded-full text-sm font-medium">
+                ₪120 / שעה
+              </div>
+            </div>
+            <div className="p-7 md:p-8 flex flex-col flex-grow">
+              <h3 className="text-2xl text-[#2d3d2b] mb-3" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                השכרת הסטודיו
+              </h3>
+              <p className="text-[#2d3d2b]/70 text-sm mb-6 flex-grow leading-relaxed">
+                חלל מעוצב לצלמים המחפשים תאורה טבעית, אווירה שקטה וציוד משלים — חבילת ניוברן בקר: 240₪ ל-3 שעות.
+              </p>
+              <span className="text-sm font-semibold text-[#2d3d2b] underline underline-offset-4 decoration-[#f5d5cf] decoration-2">
+                בדיקת זמינות →
+              </span>
+            </div>
+          </Link>
 
-      {/* RULES */}
-      <section className="container-page pb-24 md:pb-32">
-        <div className="grid lg:grid-cols-12 gap-10 border-t border-border pt-12">
-          <div className="lg:col-span-4">
-            <div className="eyebrow mb-4">Rental Rules</div>
-            <h2 className="font-display text-4xl md:text-5xl leading-[1.05]">
-              כללי <span className="italic">ההשכרה</span>
-            </h2>
-            <p className="text-muted-foreground mt-4 max-w-md text-sm leading-relaxed">
-              הזמנת אביזרים נחשבת להסכמה ל{" "}
-              <Link to="/terms" className="underline underline-offset-4 text-foreground hover:text-peach-deep">
-                תנאי השימוש
-              </Link>
-              . שמרו עליהם — ותעזרו לנו לתת לכם שירות טוב יותר
-            </p>
+          {/* Offering 3 — Prop Catalog */}
+          <Link
+            to="/rental-catalog"
+            className="group md:col-span-4 bg-[#2d3d2b] rounded-[2.5rem] p-7 md:p-8 flex flex-col justify-between transition-all duration-500 hover:shadow-2xl hover:bg-[#1f2b1e] border border-white/5 min-h-[380px]"
+          >
+            <div className="space-y-4">
+              <div className="flex justify-between items-start gap-3">
+                <h3 className="text-3xl text-[#f8ede4]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                  קטלוג אביזרים
+                </h3>
+                <div className="text-[#a8c4a2] text-xs font-bold tracking-widest uppercase pt-2">
+                  Catalog
+                </div>
+              </div>
+              <p className="text-[#f8ede4]/75 leading-relaxed text-sm">
+                מבחר של מעל 400 אביזרים לצילומי ניוברן, ילדים והריון. וינטג׳, מקרמה, סרוגים, עץ ורטאן — טקסטורות ייחודיות ופריטים בעבודת יד.
+              </p>
+            </div>
+
+            <div className="mt-10 flex items-center justify-between border-t border-white/10 pt-6">
+              <div>
+                <div className="text-[10px] text-[#a8c4a2] uppercase tracking-widest mb-1">החל מ-</div>
+                <div className="text-2xl text-[#f8ede4]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                  ₪50
+                </div>
+              </div>
+              <span className="bg-[#f5d5cf] text-[#2d3d2b] px-5 py-2 rounded-full text-sm font-bold group-hover:bg-[#f8ede4] transition-colors">
+                לצפייה בקטלוג
+              </span>
+            </div>
+          </Link>
+
+          {/* Footer strip */}
+          <div className="md:col-span-12 flex flex-col md:flex-row items-center justify-between gap-4 px-2 md:px-4 py-6 mt-2 text-[#2d3d2b]/70 text-xs border-t border-[#2d3d2b]/10">
+            <div className="flex flex-wrap justify-center md:justify-start gap-4 md:gap-6">
+              <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 bg-[#a8c4a2] rounded-full" /> מעל 400 אביזרים</span>
+              <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 bg-[#a8c4a2] rounded-full" /> סטודיו בבית שמש</span>
+              <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 bg-[#a8c4a2] rounded-full" /> מאז 2020</span>
+            </div>
+            <div className="flex gap-6 md:gap-8 font-medium">
+              <a href="https://wa.me/972548529277" target="_blank" rel="noopener noreferrer" className="hover:text-[#2d3d2b] transition-colors">ווטסאפ</a>
+              <a href="mailto:s0548529277@gmail.com" className="hover:text-[#2d3d2b] transition-colors">מייל</a>
+              <Link to="/contact" className="hover:text-[#2d3d2b] transition-colors">צרו קשר</Link>
+            </div>
           </div>
-          <ol className="lg:col-span-8 divide-y divide-border border-y border-border">
-            {[
-              "מינימום להזמנה 50 ש״ח, התשלום לפני לקיחת האביזרים.",
-              "איסוף והחזרה תוך 24 שעות; כל יום נוסף — חיוב השכרה מלא.",
-              "איחור מעל 3 שעות — חיוב חצי מסכום ההשכרה.",
-              "אחריות מלאה על האביזרים — נזק יחויב במחירם המלא.",
-            ].map((r, i) => (
-              <li key={i} className="py-6 grid grid-cols-[auto_1fr] gap-6 items-baseline">
-                <span className="font-display text-3xl text-sand-deep">0{i + 1}</span>
-                <span className="text-base md:text-lg text-foreground/90">{r}</span>
-              </li>
-            ))}
-          </ol>
+
         </div>
-      </section>
+      </main>
 
       <Footer />
     </div>
