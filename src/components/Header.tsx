@@ -112,8 +112,10 @@ export function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Link to="/auth" className="hidden sm:block">
-              <Button variant="default" className="rounded-full h-12 px-6 text-base">התחברות</Button>
+            <Link to="/auth" aria-label="כניסה לאזור אישי" title="אזור אישי">
+              <Button variant="default" size="icon" className="rounded-full h-12 w-12 bg-peach-deep text-primary hover:bg-peach-deep/90 shadow-md">
+                <UserIcon className="!h-5 !w-5" />
+              </Button>
             </Link>
           )}
 
