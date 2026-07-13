@@ -30,6 +30,7 @@ const STATUS_HE: Record<string, string> = {
 
 function Account() {
   const { user } = useAuth();
+  const { lines: cartLines, subtotal: cartSubtotal, count: cartCount, remove: removeFromCart } = useCart();
   const [profile, setProfile] = useState({ full_name: "", phone: "", address: "", city: "", discount_code: "", notes: "" });
   const [busy, setBusy] = useState(false);
 
