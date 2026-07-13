@@ -63,8 +63,8 @@ export function Header() {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full" aria-label="תפריט משתמש">
-                  <UserIcon className="h-5 w-5" />
+                <Button variant="ghost" size="icon" className="rounded-full h-12 w-12" aria-label="תפריט משתמש">
+                  <UserIcon className="!h-6 !w-6" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
@@ -84,16 +84,17 @@ export function Header() {
             </DropdownMenu>
           ) : (
             <Link to="/auth" className="hidden sm:block">
-              <Button variant="default" className="rounded-full">התחברות</Button>
+              <Button variant="default" className="rounded-full h-12 px-6 text-base">התחברות</Button>
             </Link>
           )}
 
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden rounded-full" aria-label="פתיחת תפריט ניווט">
-                <Menu className="h-5 w-5" />
+              <Button variant="ghost" size="icon" className="md:hidden rounded-full h-12 w-12" aria-label="פתיחת תפריט ניווט">
+                <Menu className="!h-6 !w-6" />
               </Button>
             </SheetTrigger>
+
             <SheetContent side="right" className="w-72">
               <div className="flex flex-col gap-4 pt-8">
                 {nav.map((n) => (
