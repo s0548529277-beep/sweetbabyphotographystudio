@@ -48,7 +48,7 @@ function Home() {
           </div>
 
           {/* Hero image tile */}
-          <div className="md:col-span-7 h-[360px] md:h-auto md:min-h-[420px] rounded-[2.5rem] overflow-hidden relative">
+          <div className="md:col-span-7 h-[360px] md:h-[520px] rounded-[2.5rem] overflow-hidden relative">
             <img
               src={heroImg.url}
               alt="ניוברן על סגנון בוטיק — סטודיו Sweetbaby"
