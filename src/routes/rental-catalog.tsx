@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { Header } from "@/components/Header";
 import catalogData from "@/data/studio-catalog.json";
+import { smartSearchItems } from "@/lib/ai.functions";
 
 export const Route = createFileRoute("/rental-catalog")({
   head: () => ({
