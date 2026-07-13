@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import catalogData from "@/data/studio-catalog.json";
@@ -43,6 +44,16 @@ function RentalCatalogPage() {
   const runSmartSearch = useServerFn(smartSearchItems);
 
   const allItems = useMemo(() => categories.flatMap((c) => c.items), []);
+  const inspirationImages = useMemo(
+    () => allItems.filter((it) => it.hasHand && it.img).map((it) => it.img),
+    [allItems],
+  );
+  const [inspoIdx, setInspoIdx] = useState(0);
+  useEffect(() => {
+    if (inspirationImages.length < 2) return;
+    const id = setInterval(() => setInspoIdx((i) => (i + 1) % inspirationImages.length), 3200);
+    return () => clearInterval(id);
+  }, [inspirationImages.length]);
 
   const filtered = useMemo(() => {
     const q = query.trim();
@@ -51,6 +62,7 @@ function RentalCatalogPage() {
       .map((c) => ({
         ...c,
         items: c.items.filter((it) => {
+          if (it.hasHand) return false;
           if (aiSkus) return aiSkus.has(it.sku);
           if (!q) return true;
           return it.sku.includes(q) || it.name.includes(q) || it.alt.includes(q);
@@ -88,12 +100,30 @@ function RentalCatalogPage() {
 
       {/* Hero */}
       <section className="border-b border-primary/10 bg-gradient-to-b from-blush/40 to-cream">
-        <div className="container-page py-14 text-center">
-          <div className="text-xs tracking-[0.35em] uppercase text-forest/70 mb-3">Rental Catalog</div>
-          <h1 className="font-display text-5xl md:text-6xl text-primary mb-3">קטלוג אביזרים להשכרה</h1>
-          <p className="text-muted-foreground max-w-xl mx-auto">
-            {allItems.length}+ אביזרים · {categories.length} קטגוריות · מינימום הזמנה 50 ₪
-          </p>
+        <div className="container-page py-14 grid md:grid-cols-[1fr_auto] gap-8 items-center">
+          <div className="text-center md:text-right">
+            <div className="text-xs tracking-[0.35em] uppercase text-forest/70 mb-3">Rental Catalog</div>
+            <h1 className="font-display text-5xl md:text-6xl text-primary mb-3">קטלוג אביזרים להשכרה</h1>
+            <p className="text-muted-foreground max-w-xl md:mx-0 mx-auto">
+              {allItems.length}+ אביזרים · {categories.length} קטגוריות · מינימום הזמנה 50 ₪
+            </p>
+          </div>
+          {inspirationImages.length > 0 && (
+            <div className="relative w-full md:w-[320px] aspect-square rounded-3xl overflow-hidden shadow-xl bg-cream mx-auto">
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={inspoIdx}
+                  src={inspirationImages[inspoIdx]}
+                  alt="השראה מהסטודיו"
+                  initial={{ opacity: 0, scale: 1.05 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.02 }}
+                  transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              </AnimatePresence>
+            </div>
+          )}
         </div>
       </section>
 
