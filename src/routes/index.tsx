@@ -8,14 +8,17 @@ import { CountUp } from "@/components/CountUp";
 import heroImg from "@/assets/hero-studio.jpg.asset.json";
 import studioInterior from "@/assets/studio-interior.jpg";
 import studioProps from "@/assets/studio-props-corner.jpg";
-import catalogData from "@/data/studio-catalog.json";
+const HERO_SLIDES: string[] = [
+  heroImg.url,
+  "/catalog-images/102.jpg",
+  studioInterior,
+  "/catalog-images/109.jpg",
+  "/catalog-images/121.jpg",
+  "/catalog-images/145.jpg",
+  "/catalog-images/202.jpg",
+  "/catalog-images/409.jpg",
+];
 
-type CatItem = { sku: string; img: string; hasHand?: boolean };
-type CatCategory = { items: CatItem[] };
-const HERO_SLIDES: string[] = (catalogData as CatCategory[])
-  .flatMap((c) => c.items)
-  .filter((it) => it.hasHand && it.img)
-  .map((it) => it.img);
 
 export const Route = createFileRoute("/")({
   component: Home,
