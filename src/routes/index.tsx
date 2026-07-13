@@ -31,10 +31,8 @@ function Home() {
           {/* Brand / Identity tile */}
           <div className="md:col-span-5 bg-[#f5d5cf] p-8 md:p-10 rounded-[2.5rem] flex flex-col justify-between border border-[#2d3d2b]/5 shadow-sm min-h-[420px]">
             <div className="space-y-6">
-              <h1 className="text-5xl md:text-6xl leading-none text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
-                Sweetbaby
-              </h1>
-              <p className="text-lg md:text-xl text-[#2d3d2b]/80 leading-relaxed max-w-sm">
+              <img src={logo} alt="Sweetbaby" className="h-24 md:h-32 w-auto" />
+              <p className="text-xl md:text-2xl text-[#2d3d2b]/85 leading-relaxed max-w-md" style={{ fontFamily: "'DM Serif Display', serif" }}>
                 סטודיו בוטיק לצילום ואביזרים, המשלב אמנות, רגש ועיצוב מוקפד — בבית שמש.
               </p>
             </div>
