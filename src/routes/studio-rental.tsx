@@ -85,8 +85,9 @@ function StudioRentalPage() {
       <style>{css}</style>
 
       <header className="sb-header">
-        <img src="/src/assets/logo-green.png" alt="Sweetbaby" style={{ height: "88px", width: "auto", margin: "0 auto", display: "block" }} />
+        <img src={logo} alt="Sweetbaby" style={{ height: "96px", width: "auto", margin: "0 auto", display: "block" }} />
       </header>
+
 
 
 
