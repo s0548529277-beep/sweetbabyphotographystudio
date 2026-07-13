@@ -102,10 +102,10 @@ function Home() {
 
               <div className="mt-10 flex flex-wrap items-center gap-4">
                 <Link
-                  to="/studio-photography"
+                  to="/studio-rental"
                   className="group inline-flex items-center gap-3 rounded-full bg-[#2d3d2b] text-[#f8ede4] px-7 py-4 text-base font-medium hover:bg-[#1f2b1e] transition-all hover:gap-4"
                 >
-                  <span>הזמנת סשן צילום</span>
+                  <span>השכרת הסטודיו</span>
                   <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
                 </Link>
                 <Link
