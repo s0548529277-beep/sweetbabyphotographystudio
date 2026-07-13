@@ -156,6 +156,7 @@ function RentalCatalogPage() {
                       {it.img ? (
                         <button type="button" className="img-btn" onClick={() => setLightbox(it)} aria-label="הגדל תמונה">
                           <img src={it.img} alt={it.alt} loading="lazy" />
+                          {it.hasHand && <span className="badge-hand">להשראה בלבד</span>}
                         </button>
                       ) : (
                         <div className="no-img">אין תמונה</div>
