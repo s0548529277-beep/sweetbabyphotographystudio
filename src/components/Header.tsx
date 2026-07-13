@@ -77,13 +77,16 @@ export function Header() {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="rounded-full h-12 px-3 gap-2" aria-label="אזור אישי">
-                  <UserIcon className="!h-5 !w-5" />
-                  <span className="hidden sm:flex flex-col items-start leading-tight text-right">
+                <Button variant="ghost" className="rounded-full h-12 pl-2 pr-3 gap-2 border border-peach-deep/40 bg-peach/30 hover:bg-peach/50" aria-label="אזור אישי">
+                  <span className="hidden sm:flex flex-col items-end leading-tight text-right">
                     <span className="text-[10px] tracking-[0.25em] uppercase text-foreground/60">אזור אישי</span>
                     <span className="text-sm font-medium text-foreground max-w-[140px] truncate">{displayName || "שלום"}</span>
                   </span>
+                  <span className="h-10 w-10 rounded-full bg-peach-deep text-primary flex items-center justify-center shrink-0">
+                    <UserIcon className="!h-5 !w-5" />
+                  </span>
                 </Button>
+              </DropdownMenuTrigger>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-60">
                 <DropdownMenuLabel className="text-right">
