@@ -1,0 +1,88 @@
+import { useState, useRef, useEffect } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { chatWithBot } from "@/lib/ai.functions";
+
+type Msg = { role: "user" | "assistant"; content: string };
+
+export function ChatBot() {
+  const [open, setOpen] = useState(false);
+  const [messages, setMessages] = useState<Msg[]>([
+    { role: "assistant", content: "שלום! אני העוזרת של Sweetbaby 💬 איך אפשר לעזור?" },
+  ]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const chat = useServerFn(chatWithBot);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, open]);
+
+  const send = async () => {
+    const text = input.trim();
+    if (!text || loading) return;
+    const next: Msg[] = [...messages, { role: "user", content: text }];
+    setMessages(next);
+    setInput("");
+    setLoading(true);
+    try {
+      const { reply } = await chat({ data: { messages: next } });
+      setMessages([...next, { role: "assistant", content: reply }]);
+    } catch {
+      setMessages([...next, { role: "assistant", content: "מצטערת, יש תקלה זמנית. נסי שוב." }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div dir="rtl" style={{ position: "fixed", bottom: 20, left: 20, zIndex: 100 }}>
+      {!open && (
+        <button
+          onClick={() => setOpen(true)}
+          aria-label="פתח צ'אט"
+          style={{
+            width: 60, height: 60, borderRadius: "50%", border: "none",
+            background: "#163126", color: "#f5c5b3", fontSize: 28, cursor: "pointer",
+            boxShadow: "0 8px 24px rgba(22,49,38,0.35)",
+          }}
+        >💬</button>
+      )}
+      {open && (
+        <div style={{
+          width: 340, height: 480, background: "#fff", borderRadius: 20,
+          boxShadow: "0 20px 60px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column",
+          overflow: "hidden", fontFamily: "'Assistant',sans-serif",
+        }}>
+          <div style={{ background: "#163126", color: "#f5c5b3", padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ fontWeight: 700 }}>Sweetbaby · עוזרת</div>
+            <button onClick={() => setOpen(false)} aria-label="סגור" style={{ background: "none", border: "none", color: "#f5c5b3", fontSize: 22, cursor: "pointer" }}>×</button>
+          </div>
+          <div ref={scrollRef} style={{ flex: 1, padding: 14, overflowY: "auto", background: "#faf7f4" }}>
+            {messages.map((m, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-start" : "flex-end", marginBottom: 8 }}>
+                <div style={{
+                  maxWidth: "80%", padding: "8px 12px", borderRadius: 14,
+                  background: m.role === "user" ? "#163126" : "#f5c5b3",
+                  color: m.role === "user" ? "#f5c5b3" : "#163126",
+                  fontSize: "0.92rem", whiteSpace: "pre-wrap", lineHeight: 1.45,
+                }}>{m.content}</div>
+              </div>
+            ))}
+            {loading && <div style={{ opacity: 0.6, fontSize: "0.85rem", textAlign: "center" }}>מקלידה…</div>}
+          </div>
+          <div style={{ padding: 10, borderTop: "1px solid #eee", display: "flex", gap: 6 }}>
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") send(); }}
+              placeholder="שאלי אותי..."
+              style={{ flex: 1, padding: "10px 12px", border: "1px solid #ddd", borderRadius: 10, outline: "none", fontFamily: "inherit", fontSize: "0.95rem" }}
+            />
+            <button onClick={send} disabled={loading} style={{ background: "#163126", color: "#f5c5b3", border: "none", padding: "0 16px", borderRadius: 10, fontWeight: 700, cursor: "pointer" }}>שלחי</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
