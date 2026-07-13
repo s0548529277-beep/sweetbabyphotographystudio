@@ -206,6 +206,18 @@ function RentalCatalogPage() {
           </p>
         </div>
       </div>
+      {lightbox && (
+        <div className="lightbox" onClick={() => setLightbox(null)} role="dialog" aria-modal="true">
+          <div className="lightbox-inner" onClick={(e) => e.stopPropagation()}>
+            <button className="lightbox-close" onClick={() => setLightbox(null)} aria-label="סגור">×</button>
+            <img src={lightbox.img} alt={lightbox.alt} />
+            <div className="lightbox-meta">
+              <div><strong>#{lightbox.sku}</strong> · {lightbox.name || lightbox.alt}</div>
+              <div>₪{lightbox.price}</div>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </>
   );
