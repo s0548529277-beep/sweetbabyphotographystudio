@@ -47,10 +47,10 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Link to="/cart" className="relative" aria-label={`עגלת קניות${count > 0 ? ` (${count} פריטים)` : ""}`}>
-            <Button variant="ghost" size="icon" className="rounded-full" aria-label="עגלת קניות">
-              <ShoppingBag className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="rounded-full h-12 w-12" aria-label="עגלת קניות">
+              <ShoppingBag className="!h-6 !w-6" />
               {count > 0 && (
                 <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-peach-deep text-primary text-[11px] font-medium flex items-center justify-center">
                   {count}
@@ -58,6 +58,7 @@ export function Header() {
               )}
             </Button>
           </Link>
+
 
           {user ? (
             <DropdownMenu>
