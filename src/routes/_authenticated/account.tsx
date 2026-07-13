@@ -106,11 +106,50 @@ function Account() {
             </div>
           </aside>
 
-          <div className="space-y-4">
+          <div className="space-y-8">
+            {/* Current cart */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-display text-3xl text-primary flex items-center gap-2">
+                  <ShoppingBag className="h-6 w-6" /> הסל שלי
+                </h2>
+                {cartCount > 0 && (
+                  <Link to="/cart"><Button className="rounded-full">מעבר לסל ({cartCount})</Button></Link>
+                )}
+              </div>
+              {cartLines.length === 0 ? (
+                <div className="bg-cream/60 rounded-3xl p-8 text-center border border-primary/10">
+                  <ShoppingBag className="h-7 w-7 text-primary/40 mx-auto mb-2" />
+                  <div className="text-muted-foreground text-sm">הסל כרגע ריק. <Link to="/rental-catalog" className="text-forest underline underline-offset-4">גלי את הקטלוג</Link></div>
+                </div>
+              ) : (
+                <div className="bg-card rounded-2xl p-5 border border-primary/5 space-y-3">
+                  {cartLines.map((l) => (
+                    <div key={l.id} className="flex items-center gap-3">
+                      <div className="h-14 w-14 rounded-xl overflow-hidden bg-cream shrink-0">
+                        <ProductImage imageUrl={l.image_url} alt={l.name} fallbackClassName="h-4 w-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-display text-sm text-primary truncate">{l.name}</div>
+                        <div className="text-xs text-muted-foreground">מק״ט {l.sku} · ₪{l.price} × {l.quantity}</div>
+                      </div>
+                      <div className="font-display text-peach-deep">₪{(l.price * l.quantity).toFixed(0)}</div>
+                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => removeFromCart(l.id)}>הסירי</Button>
+                    </div>
+                  ))}
+                  <div className="pt-3 border-t border-primary/5 flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">סכום ביניים</span>
+                    <span className="font-display text-2xl text-primary">₪{cartSubtotal.toFixed(0)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center justify-between">
               <h2 className="font-display text-3xl text-primary">היסטוריית הזמנות</h2>
               <Link to="/rental-catalog"><Button variant="outline" className="rounded-full">הזמנה חדשה</Button></Link>
             </div>
+
 
             {orders.isLoading ? (
               <div className="text-muted-foreground">טוען…</div>
