@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
 import { Camera, Home as HomeIcon, Sparkles, ArrowLeft, MapPin, Star, Heart, Clock } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -7,6 +8,12 @@ import { CountUp } from "@/components/CountUp";
 import heroImg from "@/assets/hero-studio.jpg.asset.json";
 import studioInterior from "@/assets/studio-interior.jpg";
 import studioProps from "@/assets/studio-props-corner.jpg";
+import heroSlide0 from "@/assets/hero-slide-0.jpg.asset.json";
+import heroSlide1 from "@/assets/hero-slide-1.jpg.asset.json";
+import heroSlide2 from "@/assets/hero-slide-2.jpg.asset.json";
+import heroSlide3 from "@/assets/hero-slide-3.jpg.asset.json";
+
+const HERO_SLIDES = [heroSlide0.url, heroSlide1.url, heroSlide2.url, heroSlide3.url];
 
 export const Route = createFileRoute("/")({
   component: Home,
