@@ -361,7 +361,7 @@ function StudioRentalPage() {
                 >
                   <div className="flex items-center gap-3 mb-2">
                     <div className="h-9 w-9 rounded-full bg-[#f5d5cf]/60 flex items-center justify-center">
-                      <c.icon className="h-4.5 w-4.5 text-[#6b8a63]" />
+                      <c.icon className="h-5 w-5 text-[#6b8a63]" />
                     </div>
                     <h4 className="text-lg text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
                       {c.title}
