@@ -1,12 +1,13 @@
 import { Link, useRouter } from "@tanstack/react-router";
 import { ShoppingBag, User as UserIcon, LogOut, Menu } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo-green.png";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
