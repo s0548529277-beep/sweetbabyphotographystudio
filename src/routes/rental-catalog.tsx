@@ -261,4 +261,18 @@ const css = `
   .sb-rental-cat .item-card img, .sb-rental-cat .item-card .no-img { height:85px; }
   .sb-rental-cat .cart-bar { flex-direction:column; align-items:stretch; }
 }
+.sb-rental-cat .search-row { display:flex; gap:8px; align-items:center; }
+.sb-rental-cat .search-row input { flex:1; }
+.sb-rental-cat .ai-btn { background:var(--primary-color); color:var(--bg-color); border:none; padding:14px 18px; border-radius:12px; font-weight:700; cursor:pointer; white-space:nowrap; font-family:inherit; }
+.sb-rental-cat .ai-btn:disabled { opacity:0.5; cursor:not-allowed; }
+.sb-rental-cat .ai-clear { background:transparent; color:var(--primary-color); border:1px solid var(--primary-color); padding:12px 14px; border-radius:12px; font-weight:600; cursor:pointer; font-family:inherit; }
+.sb-rental-cat .ai-hint { background:rgba(22,49,38,0.08); padding:8px 14px; border-radius:10px; margin-bottom:18px; font-size:0.9rem; font-weight:600; }
+.sb-rental-cat .item-card { cursor:default; }
+.sb-rental-cat .img-btn { display:block; width:100%; padding:0; border:none; background:none; cursor:zoom-in; }
+.sb-rental-cat .item-info { cursor:pointer; }
+.sb-rental-cat .lightbox { position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; }
+.sb-rental-cat .lightbox-inner { position:relative; max-width:min(90vw,900px); max-height:90vh; background:#fff; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; }
+.sb-rental-cat .lightbox-inner img { max-width:100%; max-height:75vh; object-fit:contain; background:#000; }
+.sb-rental-cat .lightbox-meta { padding:14px 20px; display:flex; justify-content:space-between; font-weight:700; font-size:1.05rem; }
+.sb-rental-cat .lightbox-close { position:absolute; top:8px; left:8px; width:38px; height:38px; border-radius:50%; border:none; background:rgba(0,0,0,0.6); color:#fff; font-size:22px; cursor:pointer; z-index:2; }
 `;
