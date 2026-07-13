@@ -269,7 +269,8 @@ const css = `
 .sb-rental-cat .ai-clear { background:transparent; color:var(--primary-color); border:1px solid var(--primary-color); padding:12px 14px; border-radius:12px; font-weight:600; cursor:pointer; font-family:inherit; }
 .sb-rental-cat .ai-hint { background:rgba(22,49,38,0.08); padding:8px 14px; border-radius:10px; margin-bottom:18px; font-size:0.9rem; font-weight:600; }
 .sb-rental-cat .item-card { cursor:default; }
-.sb-rental-cat .img-btn { display:block; width:100%; padding:0; border:none; background:none; cursor:zoom-in; }
+.sb-rental-cat .img-btn { display:block; width:100%; padding:0; border:none; background:none; cursor:zoom-in; position:relative; }
+.sb-rental-cat .badge-hand { position:absolute; bottom:4px; right:4px; background:rgba(22,49,38,0.85); color:#fff; font-size:0.65rem; font-weight:700; padding:3px 7px; border-radius:6px; letter-spacing:0.02em; }
 .sb-rental-cat .item-info { cursor:pointer; }
 .sb-rental-cat .lightbox { position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; }
 .sb-rental-cat .lightbox-inner { position:relative; max-width:min(90vw,900px); max-height:90vh; background:#fff; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; }
