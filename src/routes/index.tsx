@@ -6,8 +6,6 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CountUp } from "@/components/CountUp";
 import heroImg from "@/assets/hero-studio.jpg.asset.json";
-import studioInterior from "@/assets/studio-interior.jpg";
-import studioProps from "@/assets/studio-props-corner.jpg";
 import hero0 from "@/assets/home-hero-0.png.asset.json";
 import hero1 from "@/assets/home-hero-1.png.asset.json";
 import hero2 from "@/assets/home-hero-2.png.asset.json";
