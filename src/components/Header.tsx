@@ -17,6 +17,7 @@ const nav = [
   { to: "/studio-rental", label: "השכרת סטודיו" },
   { to: "/rental-catalog", label: "קטלוג אביזרים להשכרה" },
   { to: "/about", label: "אודות" },
+  { to: "/account", label: "אזור אישי" },
   { to: "/contact", label: "יצירת קשר" },
 ];
 
