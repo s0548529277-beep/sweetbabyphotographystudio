@@ -81,7 +81,7 @@ function Home() {
               <div className="inline-flex items-center gap-2 rounded-full bg-white/70 backdrop-blur px-4 py-1.5 border border-[#2d3d2b]/10">
                 <Star className="h-3.5 w-3.5 fill-[#a8c4a2] text-[#a8c4a2]" />
                 <span className="text-[11px] tracking-[0.28em] uppercase text-[#2d3d2b]/70 font-medium">
-                  סטודיו בוטיק · בית שמש · מאז 2020
+                  סטודיו בוטיק · בית שמש · מאז 2023
                 </span>
               </div>
 
