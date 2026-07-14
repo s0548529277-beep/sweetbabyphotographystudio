@@ -434,128 +434,34 @@ function StudioRentalPage() {
               הסכם תיאום ציפיות
             </h2>
             <p className="mt-3 text-sm text-[#2d3d2b]/75 leading-relaxed">
-              נא למלא את הפרטים ולשלוח במייל. <strong>שליחת ההסכם היא תנאי לקביעת התור.</strong> קביעת שעה ביומן מהווה הסכמה מלאה לכללי הסטודיו ולתנאים המפורטים בעמוד.
+              נא למלא ולשלוח את הטופס למטה. <strong>שליחת ההסכם היא תנאי לקביעת התור.</strong> קביעת שעה ביומן מהווה הסכמה מלאה לכללי הסטודיו ולתנאים המפורטים בעמוד.
             </p>
 
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Field label="שם מלא *"><input value={form.clientName} onChange={(e) => upd("clientName", e.target.value)} className={inputCls} /></Field>
-              <Field label="טלפון *"><input type="tel" value={form.phone} onChange={(e) => upd("phone", e.target.value)} className={inputCls} /></Field>
-              <Field label="אימייל *" full><input type="email" value={form.email} onChange={(e) => upd("email", e.target.value)} className={inputCls} /></Field>
-
-              <Field label="סוג הצילום">
-                <select value={form.sessionType} onChange={(e) => upd("sessionType", e.target.value)} className={inputCls}>
-                  <option value="">בחרי...</option>
-                  <option>ניו-בורן</option>
-                  <option>גיל שנה / חלאקה</option>
-                  <option>היריון</option>
-                  <option>משפחה</option>
-                  <option>ילדים</option>
-                  <option>אחר</option>
-                </select>
-              </Field>
-              <Field label="תאריך ושעה מבוקשים">
-                <input value={form.sessionDate} onChange={(e) => upd("sessionDate", e.target.value)} placeholder="לדוגמה: 15.7.26 ב-10:00" className={inputCls} />
-              </Field>
-
-              <Field label="מספר משתתפים"><input value={form.peopleCount} onChange={(e) => upd("peopleCount", e.target.value)} className={inputCls} /></Field>
-              <Field label="גיל התינוק (אם רלוונטי)">
-                <input value={form.babyAge} onChange={(e) => upd("babyAge", e.target.value)} placeholder="לדוגמה: 10 ימים" className={inputCls} />
-              </Field>
-
-              <Field label="מותג מצלמה">
-                <select value={form.cameraBrand} onChange={(e) => upd("cameraBrand", e.target.value)} className={inputCls}>
-                  <option value="">בחרי...</option>
-                  <option>Canon</option>
-                  <option>Sony</option>
-                  <option>Nikon</option>
-                  <option>אחר</option>
-                </select>
-              </Field>
-              <Field label="ניסיון בפלאש/סטודיו">
-                <select value={form.flashExperience} onChange={(e) => upd("flashExperience", e.target.value)} className={inputCls}>
-                  <option value="">בחרי...</option>
-                  <option>כן, מנוסה</option>
-                  <option>מעט ניסיון</option>
-                  <option>אין ניסיון – אשתמש באור טבעי</option>
-                </select>
-              </Field>
-
-              <Field label="זקוקה גם לאביזרים בהשכרה?" full>
-                <select value={form.needProps} onChange={(e) => upd("needProps", e.target.value)} className={inputCls}>
-                  <option value="">בחרי...</option>
-                  <option>כן — אעבור לקטלוג האביזרים</option>
-                  <option>לא</option>
-                </select>
-              </Field>
-
-              <Field label="בקשות מיוחדות / הערות" full>
-                <textarea rows={3} value={form.specialRequests} onChange={(e) => upd("specialRequests", e.target.value)} className={inputCls} />
-              </Field>
-
-              <div className="md:col-span-2">
-                <button
-                  type="button"
-                  onClick={() => setShowRules((v) => !v)}
-                  aria-expanded={showRules}
-                  className="w-full flex items-center justify-between gap-3 bg-[#f5d5cf]/60 border border-[#f5d5cf] rounded-2xl px-5 py-4 text-sm font-semibold text-[#2d3d2b] hover:bg-[#f5d5cf]/80 transition-colors"
-                >
-                  <span>{showRules ? "הסתרת כללי הסטודיו" : "לצפייה בכללי הסטודיו המלאים לפני האישור"}</span>
-                  <ChevronDown className={`h-4 w-4 transition-transform ${showRules ? "rotate-180" : ""}`} />
-                </button>
-                {showRules && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
-                    className="mt-3 bg-white rounded-2xl border border-[#2d3d2b]/10 p-5 max-h-80 overflow-y-auto text-sm leading-relaxed"
-                  >
-                    {rulesBlocks.map((b) => (
-                      <div key={b.title} className="mb-4 last:mb-0">
-                        <h5 className="font-semibold text-[#2d3d2b] mb-1.5" style={{ fontFamily: "'DM Serif Display', serif", fontSize: "1.05rem" }}>
-                          {b.title}
-                        </h5>
-                        <ul className="space-y-1 text-[#2d3d2b]/80">
-                          {b.items.map((t) => (
-                            <li key={t} className="flex items-start gap-2">
-                              <span className="mt-1.5 h-1 w-1 rounded-full bg-[#a8c4a2] shrink-0" />
-                              <span>{t}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                  </motion.div>
-                )}
-              </div>
-
-              <label className="md:col-span-2 flex items-start gap-3 bg-[#a8c4a2]/20 border border-[#a8c4a2]/50 rounded-2xl p-4 text-sm text-[#2d3d2b]/85 leading-relaxed cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.agreed}
-                  onChange={(e) => upd("agreed", e.target.checked)}
-                  className="mt-1 h-4 w-4 accent-[#2d3d2b] shrink-0"
-                />
-                <span>
-                  קראתי והבנתי את כללי הסטודיו, המחירון, מדיניות הביטולים, האחריות לנזקים וההנחיות לניקיון. ידוע לי שקביעת מועד ביומן מהווה הסכמה מלאה להסכם זה ולכל הכללים.
-                </span>
-              </label>
+            <div className="mt-6 rounded-2xl overflow-hidden bg-white border border-[#2d3d2b]/10">
+              <iframe
+                src="https://docs.google.com/forms/d/e/1FAIpQLSdVqfjJ53OzK55mXvEeExdHp0lEWFN7RJgwtG7OSqD94KjEhg/viewform?embedded=true"
+                width="100%"
+                height="900"
+                frameBorder={0}
+                marginHeight={0}
+                marginWidth={0}
+                title="הסכם תיאום ציפיות"
+                className="w-full block"
+              >
+                בטעינה…
+              </iframe>
             </div>
 
             <div className="mt-6 flex flex-wrap gap-3">
               <button
                 type="button"
-                onClick={sendIntake}
-                className="inline-flex items-center gap-2 rounded-full bg-[#2d3d2b] text-[#f8ede4] px-7 py-3.5 text-sm font-medium hover:bg-[#1f2b1e] transition-colors"
-              >
-                <Mail className="h-4 w-4" />
-                שליחת ההסכם במייל
-              </button>
-              <button
-                type="button"
                 onClick={() => setShowForm(false)}
                 className="rounded-full border border-[#2d3d2b]/25 text-[#2d3d2b] px-7 py-3.5 text-sm font-medium hover:bg-white/50 transition-colors"
               >
-                ביטול
+                סגירה
               </button>
             </div>
+
           </motion.div>
         </div>
       )}
