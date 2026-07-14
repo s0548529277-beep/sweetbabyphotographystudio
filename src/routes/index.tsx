@@ -6,8 +6,6 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CountUp } from "@/components/CountUp";
 import heroImg from "@/assets/hero-studio.jpg.asset.json";
-import studioInterior from "@/assets/studio-interior.jpg";
-import studioProps from "@/assets/studio-props-corner.jpg";
 import hero0 from "@/assets/home-hero-0.png.asset.json";
 import hero1 from "@/assets/home-hero-1.png.asset.json";
 import hero2 from "@/assets/home-hero-2.png.asset.json";
@@ -81,7 +79,7 @@ function Home() {
               <div className="inline-flex items-center gap-2 rounded-full bg-white/70 backdrop-blur px-4 py-1.5 border border-[#2d3d2b]/10">
                 <Star className="h-3.5 w-3.5 fill-[#a8c4a2] text-[#a8c4a2]" />
                 <span className="text-[11px] tracking-[0.28em] uppercase text-[#2d3d2b]/70 font-medium">
-                  סטודיו בוטיק · בית שמש · מאז 2020
+                  סטודיו בוטיק · בית שמש · מאז 2023
                 </span>
               </div>
 
@@ -131,7 +129,7 @@ function Home() {
               <div className="mt-14 grid grid-cols-3 gap-4 md:gap-8 max-w-lg">
                 {[
                   { end: 400, suffix: "+", label: "אביזרים", icon: Sparkles },
-                  { end: 6, suffix: " שנים", label: "מ-2020", icon: Clock },
+                  { end: 3, suffix: "+ שנים", label: "מ-2023", icon: Clock },
                   { end: 1200, suffix: "+", label: "משפחות", icon: Heart },
                 ].map((s, i) => (
                   <motion.div
@@ -247,7 +245,8 @@ function Home() {
           <motion.div initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={0} variants={fadeUp}>
             <Link to="/studio-photography" className="group block bg-white rounded-[2rem] overflow-hidden border border-[#2d3d2b]/5 h-full flex flex-col hover:shadow-2xl transition-all hover:-translate-y-1">
               <div className="h-64 relative overflow-hidden bg-[#f5d5cf]">
-                <img src={heroImg.url} alt="צילומים עם מיכל סיבוני" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
+                <img src={hero3.url} alt="צילום של מיכל סיבוני" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
+                <img src={hero4.url} alt="צילום נוסף של מיכל סיבוני" className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500" loading="lazy" />
                 <div className="absolute top-4 right-4 h-12 w-12 rounded-full bg-white/90 backdrop-blur flex items-center justify-center">
                   <Camera className="h-5 w-5 text-[#2d3d2b]" />
                 </div>
@@ -273,15 +272,12 @@ function Home() {
             </Link>
           </motion.div>
 
-          {/* Studio Rental — now with studio photos */}
+          {/* Studio Rental — actual studio space photos */}
           <motion.div initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={1} variants={fadeUp}>
             <Link to="/studio-rental" className="group block bg-[#a8c4a2]/20 rounded-[2rem] overflow-hidden border border-[#a8c4a2]/40 h-full flex flex-col hover:shadow-2xl transition-all hover:-translate-y-1">
               <div className="h-64 relative overflow-hidden">
-                <img src={studioInterior} alt="חלל הסטודיו המעוצב" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
-                <div className="absolute inset-0 grid grid-cols-2 gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                  <div />
-                  <img src={studioProps} alt="פינת אביזרים בסטודיו" className="w-full h-full object-cover" loading="lazy" />
-                </div>
+                <img src={heroImg.url} alt="חלל הסטודיו" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
+                <img src={hero0.url} alt="פינת רקעים בסטודיו" className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500" loading="lazy" />
                 <div className="absolute top-4 right-4 h-12 w-12 rounded-full bg-white/90 backdrop-blur flex items-center justify-center">
                   <HomeIcon className="h-5 w-5 text-[#2d3d2b]" />
                 </div>
