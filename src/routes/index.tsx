@@ -131,7 +131,7 @@ function Home() {
               <div className="mt-14 grid grid-cols-3 gap-4 md:gap-8 max-w-lg">
                 {[
                   { end: 400, suffix: "+", label: "אביזרים", icon: Sparkles },
-                  { end: 6, suffix: " שנים", label: "מ-2020", icon: Clock },
+                  { end: 3, suffix: "+ שנים", label: "מ-2023", icon: Clock },
                   { end: 1200, suffix: "+", label: "משפחות", icon: Heart },
                 ].map((s, i) => (
                   <motion.div
