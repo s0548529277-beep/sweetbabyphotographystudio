@@ -320,6 +320,20 @@ function RentalCatalogPage() {
               type="button"
               disabled={lines.length === 0}
               onClick={() => {
+                const skusText = lines.map((l) => `${l.sku} × ${l.quantity}`).join(", ");
+                const url =
+                  `https://docs.google.com/forms/d/e/1FAIpQLSc4atGAeD36M3Q8S27w6JZAZyKWM86AapSYNYv4sNAYXlgJwQ/viewform?usp=pp_url` +
+                  `&entry.1462159346=${encodeURIComponent(skusText)}`;
+                window.open(url, "_blank", "noopener,noreferrer");
+              }}
+              className="w-full mt-2 h-11 rounded-full bg-white text-[#2d3d2b] font-medium border border-[#2d3d2b]/15 hover:bg-white/80 disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
+            >
+              📋 שליחת הסל בטופס איסוף
+            </button>
+            <button
+              type="button"
+              disabled={lines.length === 0}
+              onClick={() => {
                 const body = [
                   "שלום, אשמח להזמין את הפריטים הבאים:",
                   "",
