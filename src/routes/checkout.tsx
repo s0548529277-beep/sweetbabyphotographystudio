@@ -98,7 +98,7 @@ function Checkout() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (disabled || !form.terms_accepted) return;
+    if (disabled || !form.terms_accepted || !form.pickup_form_submitted) return;
     setBusy(true);
     try {
       const res = await place({
