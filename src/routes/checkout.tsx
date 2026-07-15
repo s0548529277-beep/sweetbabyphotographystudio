@@ -263,7 +263,7 @@ function Checkout() {
               <span className="font-display text-3xl text-blush">₪{subtotal.toFixed(0)}</span>
             </div>
             <div className="text-[11px] text-primary-foreground/60 mt-2">מינימום 50₪. מקדמה 90₪ תיגבה לפני יום הצילום.</div>
-            <Button type="submit" disabled={disabled || busy || !form.terms_accepted} className="w-full mt-6 rounded-full h-12 bg-blush text-primary hover:bg-blush-deep">
+            <Button type="submit" disabled={disabled || busy || !form.terms_accepted || !form.pickup_form_submitted} className="w-full mt-6 rounded-full h-12 bg-blush text-primary hover:bg-blush-deep">
               {busy ? "שולח…" : "המשך לתשלום מקדמה"}
             </Button>
           </aside>
