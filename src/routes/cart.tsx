@@ -150,10 +150,13 @@ function Cart() {
                 className="w-full mt-2 rounded-full h-11 bg-white text-[#2d3d2b] border-[#2d3d2b]/15 hover:bg-white/80"
                 disabled={lines.length === 0}
                 onClick={() => {
+                  const skus = lines.map((l) => `${l.sku} × ${l.quantity}`).join(", ");
                   const body = [
                     "שלום, אשמח להזמין את הפריטים הבאים:",
                     "",
                     ...lines.map((l) => `• ${l.name} (מק״ט ${l.sku}) — ₪${l.price} × ${l.quantity}`),
+                    "",
+                    `מק״טים לטופס איסוף: ${skus}`,
                     "",
                     `סכום ביניים: ₪${subtotal.toFixed(0)}`,
                     ...(coupon ? [`קוד קופון: ${coupon.code} — הנחה ₪${discount.toFixed(0)}`] : []),
@@ -163,9 +166,12 @@ function Cart() {
                     "שם: ",
                     "טלפון: ",
                     "תאריך רצוי: ",
+                    "",
+                    "— אישור אוטומטי: הסל נשלח ישירות מהאתר של Sweetbaby.",
                   ].join("\n");
                   const url = `https://mail.google.com/mail/?view=cm&fs=1&to=s0548529277@gmail.com&su=${encodeURIComponent("הזמנת אביזרים — Sweetbaby")}&body=${encodeURIComponent(body)}`;
                   window.open(url, "_blank", "noopener,noreferrer");
+                  toast.success("נפתח חלון Gmail עם אישור הזמנה — נא לוודא ולשלוח ✉️");
                 }}
               >
                 ✉️ שליחת הסל במייל (Gmail)
