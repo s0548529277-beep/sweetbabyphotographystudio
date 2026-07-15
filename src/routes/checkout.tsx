@@ -40,9 +40,24 @@ function Checkout() {
     camera_model: "",
     notes: "",
     terms_accepted: false,
+    pickup_form_submitted: false,
   });
 
   const disabled = lines.length === 0 || subtotal < 50;
+
+  const skuList = lines.map((l) => `${l.sku} × ${l.quantity} (${l.name})`).join(", ");
+  const pickupFormUrl = (() => {
+    const base = "https://docs.google.com/forms/d/e/1FAIpQLSc4atGAeD36M3Q8S27w6JZAZyKWM86AapSYNYv4sNAYXlgJwQ/viewform";
+    const params = new URLSearchParams({
+      "entry.1462159346": skuList,
+      "entry.1909001795": form.contact_name,
+      "entry.1252723948": form.contact_phone,
+      "entry.1772840725": user?.email ?? "",
+      "entry.1074291119": form.session_date,
+    });
+    return `${base}?${params.toString()}`;
+  })();
+  const pickupFormEmbedUrl = pickupFormUrl.replace("/viewform?", "/viewform?embedded=true&");
 
   if (!user) {
     return (
