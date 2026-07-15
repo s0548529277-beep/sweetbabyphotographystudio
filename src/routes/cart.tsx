@@ -150,6 +150,21 @@ function Cart() {
                 className="w-full mt-2 rounded-full h-11 bg-white text-[#2d3d2b] border-[#2d3d2b]/15 hover:bg-white/80"
                 disabled={lines.length === 0}
                 onClick={() => {
+                  const skusText = lines.map((l) => `${l.sku} × ${l.quantity}`).join(", ");
+                  const url =
+                    `https://docs.google.com/forms/d/e/1FAIpQLSc4atGAeD36M3Q8S27w6JZAZyKWM86AapSYNYv4sNAYXlgJwQ/viewform?usp=pp_url` +
+                    `&entry.1462159346=${encodeURIComponent(skusText)}`;
+                  window.open(url, "_blank", "noopener,noreferrer");
+                  toast.success("נפתח טופס האיסוף עם המק״טים ממולאים אוטומטית 📋");
+                }}
+              >
+                📋 שליחת הסל בטופס איסוף
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full mt-2 rounded-full h-11 bg-white text-[#2d3d2b] border-[#2d3d2b]/15 hover:bg-white/80"
+                disabled={lines.length === 0}
+                onClick={() => {
                   const skus = lines.map((l) => `${l.sku} × ${l.quantity}`).join(", ");
                   const body = [
                     "שלום, אשמח להזמין את הפריטים הבאים:",
