@@ -40,9 +40,24 @@ function Checkout() {
     camera_model: "",
     notes: "",
     terms_accepted: false,
+    pickup_form_submitted: false,
   });
 
   const disabled = lines.length === 0 || subtotal < 50;
+
+  const skuList = lines.map((l) => `${l.sku} × ${l.quantity} (${l.name})`).join(", ");
+  const pickupFormUrl = (() => {
+    const base = "https://docs.google.com/forms/d/e/1FAIpQLSc4atGAeD36M3Q8S27w6JZAZyKWM86AapSYNYv4sNAYXlgJwQ/viewform";
+    const params = new URLSearchParams({
+      "entry.1462159346": skuList,
+      "entry.1909001795": form.contact_name,
+      "entry.1252723948": form.contact_phone,
+      "entry.1772840725": user?.email ?? "",
+      "entry.1074291119": form.session_date,
+    });
+    return `${base}?${params.toString()}`;
+  })();
+  const pickupFormEmbedUrl = pickupFormUrl.replace("/viewform?", "/viewform?embedded=true&");
 
   if (!user) {
     return (
@@ -83,7 +98,7 @@ function Checkout() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (disabled || !form.terms_accepted) return;
+    if (disabled || !form.terms_accepted || !form.pickup_form_submitted) return;
     setBusy(true);
     try {
       const res = await place({
@@ -180,6 +195,55 @@ function Checkout() {
                 </span>
               </label>
             </div>
+
+            <div className="glass-card rounded-3xl p-8">
+              <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-2">Pickup Form</div>
+              <h2 className="font-display text-2xl text-primary mb-2">טופס איסוף אביזרים</h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                לפני התשלום — יש למלא ולשלוח את טופס איסוף האביזרים. המק״טים שבחרת הועתקו אוטומטית לשדה "יש לפרט כאן את המק״טים של האביזרים להשכרה".
+              </p>
+              <div className="bg-blush/20 border border-blush rounded-2xl p-3 text-xs text-primary mb-4" dir="rtl">
+                <div className="font-semibold mb-1">המק״טים שלך:</div>
+                <div className="text-muted-foreground break-words">{skuList || "—"}</div>
+              </div>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <a href={pickupFormUrl} target="_blank" rel="noopener noreferrer">
+                  <Button type="button" variant="secondary" className="rounded-full">
+                    פתחי את הטופס בחלון חדש ↗
+                  </Button>
+                </a>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-full"
+                  onClick={() => { navigator.clipboard.writeText(skuList); toast.success("המק״טים הועתקו"); }}
+                >
+                  העתיקי מק״טים
+                </Button>
+              </div>
+              <div className="rounded-2xl overflow-hidden border border-primary/10 bg-white">
+                <iframe
+                  key={pickupFormEmbedUrl}
+                  src={pickupFormEmbedUrl}
+                  title="טופס איסוף אביזרים"
+                  width="100%"
+                  height="620"
+                  frameBorder={0}
+                  marginHeight={0}
+                  marginWidth={0}
+                >
+                  בטעינה…
+                </iframe>
+              </div>
+              <label className="flex items-start gap-2 text-sm cursor-pointer bg-blush/30 rounded-2xl p-4 border border-blush mt-4">
+                <Checkbox
+                  checked={form.pickup_form_submitted}
+                  onCheckedChange={(v) => setForm({ ...form, pickup_form_submitted: !!v })}
+                  className="mt-0.5"
+                />
+                <span className="font-medium">מילאתי ושלחתי את טופס איסוף האביזרים *</span>
+              </label>
+            </div>
           </div>
 
           <aside className="bg-primary text-primary-foreground rounded-3xl p-8 h-fit lg:sticky lg:top-24">
@@ -199,7 +263,7 @@ function Checkout() {
               <span className="font-display text-3xl text-blush">₪{subtotal.toFixed(0)}</span>
             </div>
             <div className="text-[11px] text-primary-foreground/60 mt-2">מינימום 50₪. מקדמה 90₪ תיגבה לפני יום הצילום.</div>
-            <Button type="submit" disabled={disabled || busy || !form.terms_accepted} className="w-full mt-6 rounded-full h-12 bg-blush text-primary hover:bg-blush-deep">
+            <Button type="submit" disabled={disabled || busy || !form.terms_accepted || !form.pickup_form_submitted} className="w-full mt-6 rounded-full h-12 bg-blush text-primary hover:bg-blush-deep">
               {busy ? "שולח…" : "המשך לתשלום מקדמה"}
             </Button>
           </aside>
