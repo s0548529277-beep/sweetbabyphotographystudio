@@ -492,7 +492,7 @@ function RentalCatalogPage() {
               </label>
 
               <Field label="11. יש לך הצעה לשיפור? (לא חובה)">
-                <textarea value={form.suggestion} onChange={(e) => setForm({ ...form, suggestion: e.target.value })} className="input-field min-h-[80px]" />
+                <textarea value={form.suggestion} onChange={(e) => setForm({ ...form, suggestion: e.target.value })} className="w-full min-h-[80px] px-4 py-3 rounded-2xl bg-white/85 border border-primary/15 text-sm outline-none focus:border-primary/40" />
               </Field>
 
               <div className="text-[11px] text-forest/60 text-center pt-2">
