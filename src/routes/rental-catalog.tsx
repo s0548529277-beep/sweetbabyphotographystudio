@@ -338,22 +338,7 @@ function RentalCatalogPage() {
             <button
               type="button"
               disabled={lines.length === 0}
-              onClick={() => {
-                const body = [
-                  "שלום, אשמח להזמין את הפריטים הבאים:",
-                  "",
-                  ...lines.map((l) => `• ${l.name} (מק״ט ${l.sku}) — ₪${l.price} × ${l.quantity}`),
-                  "",
-                  `סה״כ: ₪${subtotal.toFixed(0)}`,
-                  "",
-                  "פרטי לקוח:",
-                  "שם: ",
-                  "טלפון: ",
-                  "תאריך רצוי: ",
-                ].join("\n");
-                const url = `https://mail.google.com/mail/?view=cm&fs=1&to=s0548529277@gmail.com&su=${encodeURIComponent("הזמנת אביזרים — Sweetbaby")}&body=${encodeURIComponent(body)}`;
-                window.open(url, "_blank", "noopener,noreferrer");
-              }}
+              onClick={() => setShowOrderForm(true)}
               className="w-full mt-2 h-11 rounded-full bg-white text-[#2d3d2b] font-medium border border-[#2d3d2b]/15 hover:bg-white/80 disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
             >
               ✉️ שליחת הסל במייל (Gmail)
@@ -405,8 +390,138 @@ function RentalCatalogPage() {
         </div>
       )}
 
+      {/* Order form modal */}
+      {showOrderForm && (
+        <div
+          className="fixed inset-0 bg-black/60 z-[210] flex items-start justify-center overflow-y-auto p-4"
+          onClick={() => setShowOrderForm(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <form
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!form.agree) return;
+              const skusText = lines.map((l) => `${l.sku} × ${l.quantity}`).join(", ");
+              const body = [
+                "👋 הזמנת אביזרים — Sweetbaby",
+                "",
+                `1. מייל: ${form.email}`,
+                `2. שם: ${form.name}`,
+                `3. טלפון: ${form.phone}`,
+                `4. איך הגעת אלינו: ${form.referral}`,
+                `5. מתי נתראה (תאריך + שעות איסוף): ${form.pickup}`,
+                "",
+                "6. מק״טים של האביזרים להשכרה:",
+                skusText || "(אין)",
+                "",
+                "פירוט פריטים:",
+                ...lines.map((l) => `• ${l.name} (מק״ט ${l.sku}) — ₪${l.price} × ${l.quantity}`),
+                `סה״כ: ₪${subtotal.toFixed(0)}`,
+                "",
+                `7. אופן תשלום: ${form.payment}`,
+                `8. סכום: ${form.amount}`,
+                `9. אישור כללי השכרה: ${form.agree ? "כן, אני מאשרת" : "לא"}`,
+                `11. הצעה לשיפור: ${form.suggestion || "—"}`,
+              ].join("\n");
+              const url = `https://mail.google.com/mail/?view=cm&fs=1&to=s0548529277@gmail.com&su=${encodeURIComponent("הזמנת אביזרים — Sweetbaby")}&body=${encodeURIComponent(body)}`;
+              window.open(url, "_blank", "noopener,noreferrer");
+              setShowOrderForm(false);
+            }}
+            className="relative w-full max-w-2xl my-8 bg-cream rounded-3xl p-6 md:p-8 shadow-2xl border border-primary/10"
+          >
+            <button
+              type="button"
+              onClick={() => setShowOrderForm(false)}
+              className="absolute top-4 left-4 h-9 w-9 rounded-full bg-white text-primary flex items-center justify-center border border-primary/10"
+              aria-label="סגור"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="text-center mb-6">
+              <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-2">Rental Order</div>
+              <h3 className="font-display text-3xl text-primary">הזמנת אביזרים</h3>
+              <p className="text-sm text-muted-foreground mt-2">👋 מלאי את הפרטים ונשלח את ההזמנה למייל של הסטודיו.</p>
+            </div>
+
+            <div className="space-y-3 text-right">
+              <Field label="1. מייל *" >
+                <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="input-field" />
+              </Field>
+              <Field label="2. שם *">
+                <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input-field" />
+              </Field>
+              <Field label="3. טלפון *">
+                <input required type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="input-field" />
+              </Field>
+              <Field label="4. איך הגעת אלינו? 📍 *">
+                <input required value={form.referral} onChange={(e) => setForm({ ...form, referral: e.target.value })} className="input-field" placeholder="חברה, אינסטגרם, גוגל…" />
+              </Field>
+              <Field label="5. מתי נתראה? (תאריך + טווח שעות איסוף) *">
+                <input required value={form.pickup} onChange={(e) => setForm({ ...form, pickup: e.target.value })} className="input-field" placeholder="לדוגמה: 20.7 בין 10:00–12:00" />
+              </Field>
+
+              <div className="rounded-2xl bg-white/70 border border-primary/10 p-4 text-xs text-forest/80 leading-relaxed">
+                <b>6. מק״טים של האביזרים להשכרה</b> (ממולא אוטומטית מהסל):
+                <div className="mt-2 font-mono text-primary">
+                  {lines.length ? lines.map((l) => `${l.sku} × ${l.quantity}`).join(", ") : "— אין פריטים בסל —"}
+                </div>
+                <ul className="list-disc pr-5 mt-3 space-y-1">
+                  <li>מינימום להזמנה: 50 ₪.</li>
+                  <li>איסוף והחזרה תוך 24 שעות — כל יום נוסף מחויב בעלות השכרה נוספת.</li>
+                  <li>האביזרים באחריות מלאה של השוכר — נזק יחויב לפי מחיר מלא.</li>
+                  <li>יש להחזיר נקי ובמצב טוב.</li>
+                </ul>
+              </div>
+
+              <Field label="7. איך את משלמת?">
+                <select value={form.payment} onChange={(e) => setForm({ ...form, payment: e.target.value })} className="input-field">
+                  <option>מזומן במקום</option>
+                  <option>העברה</option>
+                  <option>BIT / PAYBOX</option>
+                </select>
+              </Field>
+              <Field label="8. מה הסכום? *">
+                <input required value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="input-field" placeholder={`מוצע: ₪${subtotal.toFixed(0)}`} />
+              </Field>
+
+              <label className="flex items-start gap-2 text-sm text-forest/80 bg-white/70 border border-primary/10 rounded-2xl p-3">
+                <input type="checkbox" checked={form.agree} onChange={(e) => setForm({ ...form, agree: e.target.checked })} className="mt-1" required />
+                <span>9. אני מאשרת כי קראתי בעיון את כללי השכרת האביזרים, מחירי ההשכרה והמדיניות, ואני מסכימה לפעול לפיהם במלואם.*</span>
+              </label>
+
+              <Field label="11. יש לך הצעה לשיפור? (לא חובה)">
+                <textarea value={form.suggestion} onChange={(e) => setForm({ ...form, suggestion: e.target.value })} className="w-full min-h-[80px] px-4 py-3 rounded-2xl bg-white/85 border border-primary/15 text-sm outline-none focus:border-primary/40" />
+              </Field>
+
+              <div className="text-[11px] text-forest/60 text-center pt-2">
+                10. לכל שאלה: 054-8529277 · s0548529277@gmail.com
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={!form.agree || lines.length === 0}
+              className="w-full mt-6 h-12 rounded-full bg-primary text-primary-foreground font-medium hover:bg-primary/90 disabled:opacity-40 transition-colors"
+            >
+              ✉️ שליחת ההזמנה למייל
+            </button>
+          </form>
+        </div>
+      )}
+
       <Footer />
     </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <div className="text-xs text-forest/70 mb-1">{label}</div>
+      {children}
+    </label>
   );
 }
 
