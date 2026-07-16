@@ -511,6 +511,120 @@ function RentalCatalogPage() {
         </div>
       )}
 
+      {/* Inline order form section — always visible on page */}
+      <section id="order-form" className="max-w-4xl mx-auto px-6 md:px-10 py-16">
+        <div className="text-center mb-8">
+          <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-2">Rental Order Form</div>
+          <h2 className="font-display text-4xl md:text-5xl text-primary">טופס הזמנת אביזרים</h2>
+          <p className="text-sm text-muted-foreground mt-3 max-w-xl mx-auto">
+            👋 ברוכות הבאות! מלאי את כל הפרטים למטה — ההזמנה תישלח ישירות למייל של הסטודיו
+            <br />(המק״טים ממולאים אוטומטית מהסל שבחרת).
+          </p>
+        </div>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!form.agree) return;
+            const skusText = lines.map((l) => `${l.sku} × ${l.quantity}`).join(", ");
+            const body = [
+              "👋 הזמנת אביזרים — Sweetbaby",
+              "",
+              `1. מייל: ${form.email}`,
+              `2. שם: ${form.name}`,
+              `3. טלפון: ${form.phone}`,
+              `4. איך הגעת אלינו: ${form.referral}`,
+              `5. מתי נתראה (תאריך + שעות איסוף): ${form.pickup}`,
+              "",
+              "6. מק״טים של האביזרים להשכרה:",
+              skusText || "(אין)",
+              "",
+              "פירוט פריטים:",
+              ...lines.map((l) => `• ${l.name} (מק״ט ${l.sku}) — ₪${l.price} × ${l.quantity}`),
+              `סה״כ: ₪${subtotal.toFixed(0)}`,
+              "",
+              `7. אופן תשלום: ${form.payment}`,
+              `8. סכום: ${form.amount}`,
+              `9. אישור כללי השכרה: ${form.agree ? "כן, אני מאשרת" : "לא"}`,
+              `11. הצעה לשיפור: ${form.suggestion || "—"}`,
+            ].join("\n");
+            const url = `https://mail.google.com/mail/?view=cm&fs=1&to=s0548529277@gmail.com&su=${encodeURIComponent("הזמנת אביזרים — Sweetbaby")}&body=${encodeURIComponent(body)}`;
+            window.open(url, "_blank", "noopener,noreferrer");
+          }}
+          className="bg-cream rounded-3xl p-6 md:p-10 shadow-xl border border-primary/10 space-y-4 text-right"
+        >
+          <div className="grid md:grid-cols-2 gap-4">
+            <Field label="1. מייל *">
+              <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="input-field" />
+            </Field>
+            <Field label="2. שם *">
+              <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input-field" />
+            </Field>
+            <Field label="3. טלפון *">
+              <input required type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="input-field" />
+            </Field>
+            <Field label="4. איך הגעת אלינו? 📍 *">
+              <input required value={form.referral} onChange={(e) => setForm({ ...form, referral: e.target.value })} className="input-field" placeholder="חברה, אינסטגרם, גוגל…" />
+            </Field>
+          </div>
+
+          <Field label="5. מתי נתראה? (תאריך + טווח שעות איסוף) *">
+            <input required value={form.pickup} onChange={(e) => setForm({ ...form, pickup: e.target.value })} className="input-field" placeholder="לדוגמה: 20.7 בין 10:00–12:00" />
+          </Field>
+
+          <div className="rounded-2xl bg-white/70 border border-primary/10 p-4 text-xs text-forest/80 leading-relaxed">
+            <b>6. מק״טים של האביזרים להשכרה</b> (ממולא אוטומטית מהסל):
+            <div className="mt-2 font-mono text-primary text-sm">
+              {lines.length ? lines.map((l) => `${l.sku} × ${l.quantity}`).join(", ") : "— אין פריטים בסל, הוסיפי פריטים מהקטלוג —"}
+            </div>
+            <div className="mt-4 font-semibold">כללי השכרת אביזרים:</div>
+            <ul className="list-disc pr-5 mt-2 space-y-1">
+              <li>מינימום להזמנה: 50 ₪.</li>
+              <li>איסוף והחזרה תוך 24 שעות — כל יום נוסף מחויב בעלות השכרה נוספת.</li>
+              <li>האביזרים באחריות מלאה של השוכר — נזק יחויב לפי מחיר מלא.</li>
+              <li>יש להחזיר נקי ובמצב טוב.</li>
+            </ul>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <Field label="7. איך את משלמת?">
+              <select value={form.payment} onChange={(e) => setForm({ ...form, payment: e.target.value })} className="input-field">
+                <option>מזומן במקום</option>
+                <option>העברה</option>
+                <option>BIT / PAYBOX</option>
+              </select>
+            </Field>
+            <Field label="8. מה הסכום? *">
+              <input required value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="input-field" placeholder={`מוצע: ₪${subtotal.toFixed(0)}`} />
+            </Field>
+          </div>
+
+          <label className="flex items-start gap-2 text-sm text-forest/80 bg-white/70 border border-primary/10 rounded-2xl p-3">
+            <input type="checkbox" checked={form.agree} onChange={(e) => setForm({ ...form, agree: e.target.checked })} className="mt-1" required />
+            <span>9. אני מאשרת כי קראתי בעיון את כללי השכרת האביזרים, מחירי ההשכרה והמדיניות, ואני מסכימה לפעול לפיהם במלואם. *</span>
+          </label>
+
+          <Field label="11. יש לך הצעה לשיפור? (לא חובה)">
+            <textarea value={form.suggestion} onChange={(e) => setForm({ ...form, suggestion: e.target.value })} className="w-full min-h-[100px] px-4 py-3 rounded-2xl bg-white/85 border border-primary/15 text-sm outline-none focus:border-primary/40" />
+          </Field>
+
+          <div className="text-[11px] text-forest/60 text-center pt-2">
+            10. לכל שאלה: 054-8529277 · s0548529277@gmail.com
+          </div>
+
+          <button
+            type="submit"
+            disabled={!form.agree || lines.length === 0}
+            className="w-full mt-2 py-4 rounded-full bg-primary text-primary-foreground font-medium text-base hover:bg-primary/90 disabled:opacity-40 transition-colors"
+          >
+            ✉️ שליחת ההזמנה למייל
+          </button>
+          {lines.length === 0 && (
+            <p className="text-center text-xs text-muted-foreground">הוסיפי לפחות פריט אחד מהקטלוג כדי לשלוח את ההזמנה.</p>
+          )}
+        </form>
+      </section>
+
       <Footer />
     </div>
   );
