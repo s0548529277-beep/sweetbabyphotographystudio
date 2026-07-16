@@ -338,22 +338,7 @@ function RentalCatalogPage() {
             <button
               type="button"
               disabled={lines.length === 0}
-              onClick={() => {
-                const body = [
-                  "שלום, אשמח להזמין את הפריטים הבאים:",
-                  "",
-                  ...lines.map((l) => `• ${l.name} (מק״ט ${l.sku}) — ₪${l.price} × ${l.quantity}`),
-                  "",
-                  `סה״כ: ₪${subtotal.toFixed(0)}`,
-                  "",
-                  "פרטי לקוח:",
-                  "שם: ",
-                  "טלפון: ",
-                  "תאריך רצוי: ",
-                ].join("\n");
-                const url = `https://mail.google.com/mail/?view=cm&fs=1&to=s0548529277@gmail.com&su=${encodeURIComponent("הזמנת אביזרים — Sweetbaby")}&body=${encodeURIComponent(body)}`;
-                window.open(url, "_blank", "noopener,noreferrer");
-              }}
+              onClick={() => setShowOrderForm(true)}
               className="w-full mt-2 h-11 rounded-full bg-white text-[#2d3d2b] font-medium border border-[#2d3d2b]/15 hover:bg-white/80 disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
             >
               ✉️ שליחת הסל במייל (Gmail)
