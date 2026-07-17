@@ -43,6 +43,9 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 backdrop-blur-xl bg-background/80 border-b border-border">
+      <div className="bg-peach-deep/90 text-white text-center text-[12px] tracking-[0.2em] uppercase py-1.5">
+        ✨ האתר בהרצה — ייתכנו שינויים ותקלות ✨
+      </div>
       <div className="container-page flex items-center justify-between h-28 gap-6">
         <Link to="/" className="flex items-center gap-3 shrink-0">
           <img src={logo} alt="Sweetbaby" className="h-16 md:h-20 w-auto" />

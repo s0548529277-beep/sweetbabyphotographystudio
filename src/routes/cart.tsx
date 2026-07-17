@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -31,9 +31,13 @@ export const Route = createFileRoute("/cart")({
 function Cart() {
   const { lines, remove, setQty, subtotal, count, coupon, applyCoupon, removeCoupon, discount, total } = useCart();
   const { user } = useAuth();
-  const nav = useNavigate();
   const [couponInput, setCouponInput] = useState("");
   const [applying, setApplying] = useState(false);
+  const [showOrderForm, setShowOrderForm] = useState(false);
+  const [form, setForm] = useState({
+    email: user?.email ?? "", name: "", phone: "", referral: "", pickup: "",
+    payment: "מזומן במקום", amount: "", agree: false, suggestion: "",
+  });
 
   const onApply = async () => {
     setApplying(true);
@@ -139,55 +143,16 @@ function Cart() {
                 )}
               </div>
               <Button
-                className="w-full mt-6 rounded-full h-12 bg-[#2d3d2b] text-[#f5d5cf] hover:bg-[#1f2b1e]"
-                disabled={total < 50}
-                onClick={() => nav({ to: "/checkout" })}
+                className="w-full mt-6 rounded-full h-12 bg-[#2d3d2b]/40 text-[#f5d5cf] cursor-not-allowed hover:bg-[#2d3d2b]/40"
+                disabled
               >
-                המשך לתשלום
+                המשך לתשלום <span className="mr-2 text-[11px] tracking-widest opacity-80">· בקרוב</span>
               </Button>
               <Button
                 variant="outline"
                 className="w-full mt-2 rounded-full h-11 bg-white text-[#2d3d2b] border-[#2d3d2b]/15 hover:bg-white/80"
                 disabled={lines.length === 0}
-                onClick={() => {
-                  const skusText = lines.map((l) => `${l.sku} × ${l.quantity}`).join(", ");
-                  const url =
-                    `https://docs.google.com/forms/d/e/1FAIpQLSc4atGAeD36M3Q8S27w6JZAZyKWM86AapSYNYv4sNAYXlgJwQ/viewform?usp=pp_url` +
-                    `&entry.1462159346=${encodeURIComponent(skusText)}`;
-                  window.open(url, "_blank", "noopener,noreferrer");
-                  toast.success("נפתח טופס האיסוף עם המק״טים ממולאים אוטומטית 📋");
-                }}
-              >
-                📋 שליחת הסל בטופס איסוף
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full mt-2 rounded-full h-11 bg-white text-[#2d3d2b] border-[#2d3d2b]/15 hover:bg-white/80"
-                disabled={lines.length === 0}
-                onClick={() => {
-                  const skus = lines.map((l) => `${l.sku} × ${l.quantity}`).join(", ");
-                  const body = [
-                    "שלום, אשמח להזמין את הפריטים הבאים:",
-                    "",
-                    ...lines.map((l) => `• ${l.name} (מק״ט ${l.sku}) — ₪${l.price} × ${l.quantity}`),
-                    "",
-                    `מק״טים לטופס איסוף: ${skus}`,
-                    "",
-                    `סכום ביניים: ₪${subtotal.toFixed(0)}`,
-                    ...(coupon ? [`קוד קופון: ${coupon.code} — הנחה ₪${discount.toFixed(0)}`] : []),
-                    `סה״כ לתשלום: ₪${total.toFixed(0)}`,
-                    "",
-                    "פרטי לקוח:",
-                    "שם: ",
-                    "טלפון: ",
-                    "תאריך רצוי: ",
-                    "",
-                    "— אישור אוטומטי: הסל נשלח ישירות מהאתר של Sweetbaby.",
-                  ].join("\n");
-                  const url = `https://mail.google.com/mail/?view=cm&fs=1&to=s0548529277@gmail.com&su=${encodeURIComponent("הזמנת אביזרים — Sweetbaby")}&body=${encodeURIComponent(body)}`;
-                  window.open(url, "_blank", "noopener,noreferrer");
-                  toast.success("נפתח חלון Gmail עם אישור הזמנה — נא לוודא ולשלוח ✉️");
-                }}
+                onClick={() => setShowOrderForm(true)}
               >
                 ✉️ שליחת הסל במייל (Gmail)
               </Button>
@@ -199,6 +164,116 @@ function Cart() {
           </div>
         )}
       </section>
+
+      {/* Order form modal */}
+      {showOrderForm && (
+        <div
+          className="fixed inset-0 bg-black/60 z-[210] flex items-start justify-center overflow-y-auto p-4"
+          onClick={() => setShowOrderForm(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <form
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!form.agree) return;
+              const skusText = lines.map((l) => `${l.sku} × ${l.quantity}`).join(", ");
+              const body = [
+                "👋 הזמנת אביזרים — Sweetbaby",
+                "",
+                `1. מייל: ${form.email}`,
+                `2. שם: ${form.name}`,
+                `3. טלפון: ${form.phone}`,
+                `4. איך הגעת אלינו: ${form.referral}`,
+                `5. מתי נתראה (תאריך + שעות איסוף): ${form.pickup}`,
+                "",
+                "6. מק״טים של האביזרים להשכרה:",
+                skusText || "(אין)",
+                "",
+                "פירוט פריטים:",
+                ...lines.map((l) => `• ${l.name} (מק״ט ${l.sku}) — ₪${l.price} × ${l.quantity}`),
+                ...(coupon ? [`קוד קופון: ${coupon.code} — הנחה ₪${discount.toFixed(0)}`] : []),
+                `סה״כ: ₪${total.toFixed(0)}`,
+                "",
+                `7. אופן תשלום: ${form.payment}`,
+                `8. סכום: ${form.amount}`,
+                `9. אישור כללי השכרה: ${form.agree ? "כן, אני מאשרת" : "לא"}`,
+                `11. הצעה לשיפור: ${form.suggestion || "—"}`,
+              ].join("\n");
+              const url = `https://mail.google.com/mail/?view=cm&fs=1&to=s0548529277@gmail.com&su=${encodeURIComponent("הזמנת אביזרים — Sweetbaby")}&body=${encodeURIComponent(body)}`;
+              window.open(url, "_blank", "noopener,noreferrer");
+              setShowOrderForm(false);
+              toast.success("נפתח Gmail עם ההזמנה — נא לוודא ולשלוח ✉️");
+            }}
+            className="relative w-full max-w-2xl my-8 bg-cream rounded-3xl p-6 md:p-8 shadow-2xl border border-primary/10"
+          >
+            <button
+              type="button"
+              onClick={() => setShowOrderForm(false)}
+              className="absolute top-4 left-4 h-9 w-9 rounded-full bg-white text-primary flex items-center justify-center border border-primary/10"
+              aria-label="סגור"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="text-center mb-6">
+              <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-2">Rental Order</div>
+              <h3 className="font-display text-3xl text-primary">הזמנת אביזרים</h3>
+              <p className="text-sm text-muted-foreground mt-2">👋 מלאי את הפרטים ונשלח את ההזמנה למייל של הסטודיו.</p>
+            </div>
+
+            <div className="space-y-3 text-right">
+              <div><Label>1. מייל *</Label><Input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="mt-1" /></div>
+              <div><Label>2. שם *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1" /></div>
+              <div><Label>3. טלפון *</Label><Input required type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="mt-1" /></div>
+              <div><Label>4. איך הגעת אלינו? 📍 *</Label><Input required value={form.referral} onChange={(e) => setForm({ ...form, referral: e.target.value })} placeholder="חברה, אינסטגרם, גוגל…" className="mt-1" /></div>
+              <div><Label>5. מתי נתראה? (תאריך + טווח שעות איסוף) *</Label><Input required value={form.pickup} onChange={(e) => setForm({ ...form, pickup: e.target.value })} placeholder="לדוגמה: 20.7 בין 10:00–12:00" className="mt-1" /></div>
+
+              <div className="rounded-2xl bg-white/70 border border-primary/10 p-4 text-xs text-forest/80 leading-relaxed">
+                <b>6. מק״טים של האביזרים להשכרה</b> (ממולא אוטומטית מהסל):
+                <div className="mt-2 font-mono text-primary">
+                  {lines.length ? lines.map((l) => `${l.sku} × ${l.quantity}`).join(", ") : "— אין פריטים בסל —"}
+                </div>
+                <ul className="list-disc pr-5 mt-3 space-y-1">
+                  <li>מינימום להזמנה: 50 ₪.</li>
+                  <li>איסוף והחזרה תוך 24 שעות — כל יום נוסף מחויב בעלות השכרה נוספת.</li>
+                  <li>האביזרים באחריות מלאה של השוכר — נזק יחויב לפי מחיר מלא.</li>
+                  <li>יש להחזיר נקי ובמצב טוב.</li>
+                </ul>
+              </div>
+
+              <div>
+                <Label>7. איך את משלמת?</Label>
+                <select value={form.payment} onChange={(e) => setForm({ ...form, payment: e.target.value })} className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm">
+                  <option>מזומן במקום</option>
+                  <option>העברה</option>
+                  <option>BIT / PAYBOX</option>
+                </select>
+              </div>
+              <div><Label>8. מה הסכום? *</Label><Input required value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder={`מוצע: ₪${total.toFixed(0)}`} className="mt-1" /></div>
+
+              <label className="flex items-start gap-2 text-sm text-forest/80 bg-white/70 border border-primary/10 rounded-2xl p-3">
+                <input type="checkbox" checked={form.agree} onChange={(e) => setForm({ ...form, agree: e.target.checked })} className="mt-1" required />
+                <span>9. אני מאשרת כי קראתי בעיון את כללי השכרת האביזרים, מחירי ההשכרה והמדיניות, ואני מסכימה לפעול לפיהם במלואם.*</span>
+              </label>
+
+              <div><Label>11. יש לך הצעה לשיפור? (לא חובה)</Label><Textarea rows={3} value={form.suggestion} onChange={(e) => setForm({ ...form, suggestion: e.target.value })} className="mt-1" /></div>
+
+              <div className="text-[11px] text-forest/60 text-center pt-2">
+                10. לכל שאלה: 054-8529277 · s0548529277@gmail.com
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={!form.agree || lines.length === 0}
+              className="w-full mt-6 rounded-full h-12"
+            >
+              ✉️ שליחת ההזמנה למייל
+            </Button>
+          </form>
+        </div>
+      )}
       <Footer />
     </div>
   );
