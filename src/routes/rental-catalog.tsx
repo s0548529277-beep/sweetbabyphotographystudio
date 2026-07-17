@@ -315,25 +315,10 @@ function RentalCatalogPage() {
             )}
             <button
               type="button"
-              disabled={subtotal < 50}
-              onClick={() => nav({ to: "/checkout" })}
-              className="w-full mt-5 h-12 rounded-full bg-[#2d3d2b] text-[#f5d5cf] font-medium hover:bg-[#1f2b1e] disabled:opacity-40 transition-colors"
+              disabled
+              className="w-full mt-5 h-12 rounded-full bg-[#2d3d2b]/40 text-[#f5d5cf] font-medium cursor-not-allowed flex items-center justify-center gap-2"
             >
-              המשך לקופה
-            </button>
-            <button
-              type="button"
-              disabled={lines.length === 0}
-              onClick={() => {
-                const skusText = lines.map((l) => `${l.sku} × ${l.quantity}`).join(", ");
-                const url =
-                  `https://docs.google.com/forms/d/e/1FAIpQLSc4atGAeD36M3Q8S27w6JZAZyKWM86AapSYNYv4sNAYXlgJwQ/viewform?usp=pp_url` +
-                  `&entry.1462159346=${encodeURIComponent(skusText)}`;
-                window.open(url, "_blank", "noopener,noreferrer");
-              }}
-              className="w-full mt-2 h-11 rounded-full bg-white text-[#2d3d2b] font-medium border border-[#2d3d2b]/15 hover:bg-white/80 disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
-            >
-              📋 שליחת הסל בטופס איסוף
+              המשך לקופה <span className="text-[11px] tracking-widest">· בקרוב</span>
             </button>
             <button
               type="button"
