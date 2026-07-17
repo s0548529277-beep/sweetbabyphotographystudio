@@ -31,9 +31,13 @@ export const Route = createFileRoute("/cart")({
 function Cart() {
   const { lines, remove, setQty, subtotal, count, coupon, applyCoupon, removeCoupon, discount, total } = useCart();
   const { user } = useAuth();
-  const nav = useNavigate();
   const [couponInput, setCouponInput] = useState("");
   const [applying, setApplying] = useState(false);
+  const [showOrderForm, setShowOrderForm] = useState(false);
+  const [form, setForm] = useState({
+    email: user?.email ?? "", name: "", phone: "", referral: "", pickup: "",
+    payment: "מזומן במקום", amount: "", agree: false, suggestion: "",
+  });
 
   const onApply = async () => {
     setApplying(true);
