@@ -223,11 +223,11 @@ function Cart() {
             </div>
 
             <div className="space-y-3 text-right">
-              <div><Label>1. מייל *</Label><Input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="mt-1" /></div>
+              <div><Label>1. מייל</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="mt-1" /></div>
               <div><Label>2. שם *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1" /></div>
               <div><Label>3. טלפון *</Label><Input required type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="mt-1" /></div>
-              <div><Label>4. איך הגעת אלינו? 📍 *</Label><Input required value={form.referral} onChange={(e) => setForm({ ...form, referral: e.target.value })} placeholder="חברה, אינסטגרם, גוגל…" className="mt-1" /></div>
-              <div><Label>5. מתי נתראה? (תאריך + טווח שעות איסוף) *</Label><Input required value={form.pickup} onChange={(e) => setForm({ ...form, pickup: e.target.value })} placeholder="לדוגמה: 20.7 בין 10:00–12:00" className="mt-1" /></div>
+              <div><Label>4. איך הגעת אלינו? 📍</Label><Input value={form.referral} onChange={(e) => setForm({ ...form, referral: e.target.value })} placeholder="חברה, אינסטגרם, גוגל…" className="mt-1" /></div>
+              <div><Label>5. מתי נתראה? (תאריך + טווח שעות איסוף)</Label><Input value={form.pickup} onChange={(e) => setForm({ ...form, pickup: e.target.value })} placeholder="לדוגמה: 20.7 בין 10:00–12:00" className="mt-1" /></div>
 
               <div className="rounded-2xl bg-white/70 border border-primary/10 p-4 text-xs text-forest/80 leading-relaxed">
                 <b>6. מק״טים של האביזרים להשכרה</b> (ממולא אוטומטית מהסל):
