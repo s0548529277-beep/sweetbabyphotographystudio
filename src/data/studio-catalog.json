@@ -4,7 +4,7 @@
     "items": [
       {
         "sku": "102",
-        "name": "",
+        "name": "מעיל גשם צהוב",
         "price": 15,
         "img": "/catalog-images/102.jpg",
         "alt": "כללי ואביזרים גדולים #102",
@@ -12,7 +12,7 @@
       },
       {
         "sku": "104",
-        "name": "",
+        "name": "מגפי גומי צהובים",
         "price": 10,
         "img": "/catalog-images/104.jpg",
         "alt": "כללי ואביזרים גדולים #104",
@@ -20,7 +20,7 @@
       },
       {
         "sku": "105",
-        "name": "",
+        "name": "מגפי גשם צבעוניות",
         "price": 10,
         "img": "/catalog-images/105.jpg",
         "alt": "כללי ואביזרים גדולים #105",
@@ -28,7 +28,7 @@
       },
       {
         "sku": "106",
-        "name": "",
+        "name": "מציל ים",
         "price": 15,
         "img": "/catalog-images/106.jpg",
         "alt": "כללי ואביזרים גדולים #106",
@@ -36,7 +36,7 @@
       },
       {
         "sku": "107",
-        "name": "",
+        "name": "מצוף כתום",
         "price": 15,
         "img": "/catalog-images/107.jpg",
         "alt": "כללי ואביזרים גדולים #107",
@@ -44,7 +44,7 @@
       },
       {
         "sku": "108",
-        "name": "",
+        "name": "דלי עץ",
         "price": 20,
         "img": "/catalog-images/108.jpg",
         "alt": "כללי ואביזרים גדולים #108",
@@ -52,7 +52,7 @@
       },
       {
         "sku": "109",
-        "name": "",
+        "name": "סוס נדנדה לבן",
         "price": 50,
         "img": "/catalog-images/109.jpg",
         "alt": "כללי ואביזרים גדולים #109",
@@ -60,7 +60,7 @@
       },
       {
         "sku": "110",
-        "name": "",
+        "name": "כסא עץ גבוה",
         "price": 20,
         "img": "/catalog-images/110.jpg",
         "alt": "כללי ואביזרים גדולים #110",
@@ -68,7 +68,7 @@
       },
       {
         "sku": "111",
-        "name": "",
+        "name": "שרפרף עץ לבן",
         "price": 20,
         "img": "/catalog-images/111.jpg",
         "alt": "כללי ואביזרים גדולים #111",
@@ -76,7 +76,7 @@
       },
       {
         "sku": "112",
-        "name": "",
+        "name": "כיסא עץ חום",
         "price": 20,
         "img": "/catalog-images/112.jpg",
         "alt": "כללי ואביזרים גדולים #112",
@@ -84,7 +84,7 @@
       },
       {
         "sku": "113",
-        "name": "",
+        "name": "כיסא עץ לבן",
         "price": 20,
         "img": "/catalog-images/113.jpg",
         "alt": "כללי ואביזרים גדולים #113",
@@ -92,7 +92,7 @@
       },
       {
         "sku": "115",
-        "name": "",
+        "name": "כסא עץ גולמי",
         "price": 15,
         "img": "/catalog-images/115.jpg",
         "alt": "כללי ואביזרים גדולים #115",
@@ -100,7 +100,7 @@
       },
       {
         "sku": "116",
-        "name": "",
+        "name": "שרפרף עץ טבעי",
         "price": 15,
         "img": "/catalog-images/116.jpg",
         "alt": "כללי ואביזרים גדולים #116",
@@ -108,7 +108,7 @@
       },
       {
         "sku": "117",
-        "name": "",
+        "name": "אופניים מעץ",
         "price": 15,
         "img": "/catalog-images/117.jpg",
         "alt": "כללי ואביזרים גדולים #117",
@@ -116,7 +116,7 @@
       },
       {
         "sku": "118",
-        "name": "",
+        "name": "מריצה מעץ",
         "price": 15,
         "img": "/catalog-images/118.jpg",
         "alt": "כללי ואביזרים גדולים #118",
@@ -124,7 +124,7 @@
       },
       {
         "sku": "121",
-        "name": "",
+        "name": "תורה מגולגלת",
         "price": 15,
         "img": "/catalog-images/121.jpg",
         "alt": "כללי ואביזרים גדולים #121",
@@ -132,7 +132,7 @@
       },
       {
         "sku": "123",
-        "name": "",
+        "name": "כדור פוטבול",
         "price": 15,
         "img": "/catalog-images/123.jpg",
         "alt": "כללי ואביזרים גדולים #123",
@@ -140,7 +140,7 @@
       },
       {
         "sku": "126",
-        "name": "",
+        "name": "אוזניות חיבוריות, ראש גולש, קופסאות צבע",
         "price": 5,
         "img": "/catalog-images/126.jpg",
         "alt": "כללי ואביזרים גדולים #126",
@@ -148,7 +148,7 @@
       },
       {
         "sku": "127",
-        "name": "",
+        "name": "סקייטבורד משובץ",
         "price": 15,
         "img": "/catalog-images/127.jpg",
         "alt": "כללי ואביזרים גדולים #127",
@@ -156,7 +156,7 @@
       },
       {
         "sku": "128",
-        "name": "",
+        "name": "גלגלים ושעון",
         "price": 25,
         "img": "/catalog-images/128.jpg",
         "alt": "כללי ואביזרים גדולים #128",
@@ -164,7 +164,7 @@
       },
       {
         "sku": "129",
-        "name": "",
+        "name": "רמקול צבעוני",
         "price": 25,
         "img": "/catalog-images/129.jpg",
         "alt": "כללי ואביזרים גדולים #129",
@@ -172,7 +172,7 @@
       },
       {
         "sku": "130",
-        "name": "",
+        "name": "אוהל בד",
         "price": 20,
         "img": "/catalog-images/130.jpg",
         "alt": "כללי ואביזרים גדולים #130",
@@ -180,7 +180,7 @@
       },
       {
         "sku": "131",
-        "name": "",
+        "name": "מיטת ראטן לכלב",
         "price": 20,
         "img": "/catalog-images/131.jpg",
         "alt": "כללי ואביזרים גדולים #131",
@@ -188,7 +188,7 @@
       },
       {
         "sku": "132",
-        "name": "",
+        "name": "טרמפולינה מעץ",
         "price": 25,
         "img": "/catalog-images/132.jpg",
         "alt": "כללי ואביזרים גדולים #132",
@@ -196,7 +196,7 @@
       },
       {
         "sku": "133",
-        "name": "",
+        "name": "סירת מפרש מעץ",
         "price": 60,
         "img": "/catalog-images/133.jpg",
         "alt": "כללי ואביזרים גדולים #133",
@@ -204,7 +204,7 @@
       },
       {
         "sku": "135",
-        "name": "",
+        "name": "מצלמה דיגיטלית",
         "price": 15,
         "img": "/catalog-images/135.jpg",
         "alt": "כללי ואביזרים גדולים #135",
@@ -212,7 +212,7 @@
       },
       {
         "sku": "138",
-        "name": "",
+        "name": "פנס אדום, כובע אדום",
         "price": 5,
         "img": "/catalog-images/138.jpg",
         "alt": "כללי ואביזרים גדולים #138",
@@ -225,7 +225,7 @@
     "items": [
       {
         "sku": "140",
-        "name": "",
+        "name": "פנס ירוק",
         "price": 15,
         "img": "/catalog-images/140.jpg",
         "alt": "Vintage #140",
@@ -233,7 +233,7 @@
       },
       {
         "sku": "141",
-        "name": "",
+        "name": "פנס שמן",
         "price": 15,
         "img": "/catalog-images/141.jpg",
         "alt": "Vintage #141",
@@ -241,7 +241,7 @@
       },
       {
         "sku": "142",
-        "name": "",
+        "name": "רדיו פלסטיק ישן",
         "price": 15,
         "img": "/catalog-images/142.jpg",
         "alt": "Vintage #142",
@@ -249,7 +249,7 @@
       },
       {
         "sku": "143",
-        "name": "",
+        "name": "תיבת אוצר",
         "price": 15,
         "img": "/catalog-images/143.jpg",
         "alt": "Vintage #143",
@@ -257,7 +257,7 @@
       },
       {
         "sku": "144",
-        "name": "",
+        "name": "מצלמה שחורה, רצועה",
         "price": 15,
         "img": "/catalog-images/144.jpg",
         "alt": "Vintage #144",
@@ -265,7 +265,7 @@
       },
       {
         "sku": "145",
-        "name": "",
+        "name": "עגלת עץ",
         "price": 15,
         "img": "/catalog-images/145.jpg",
         "alt": "Vintage #145",
@@ -273,7 +273,7 @@
       },
       {
         "sku": "146",
-        "name": "",
+        "name": "ערימת ספרים ישנים",
         "price": 15,
         "img": "/catalog-images/146.jpg",
         "alt": "Vintage #146",
@@ -281,7 +281,7 @@
       },
       {
         "sku": "147",
-        "name": "",
+        "name": "מגילה חומה",
         "price": 15,
         "img": "/catalog-images/147.jpg",
         "alt": "Vintage #147",
@@ -289,7 +289,7 @@
       },
       {
         "sku": "148",
-        "name": "",
+        "name": "פנס לבן",
         "price": 10,
         "img": "/catalog-images/148.jpg",
         "alt": "Vintage #148",
@@ -297,7 +297,7 @@
       },
       {
         "sku": "149",
-        "name": "",
+        "name": "קנקן מתכת עתיק",
         "price": 10,
         "img": "/catalog-images/149.jpg",
         "alt": "Vintage #149",
@@ -305,7 +305,7 @@
       },
       {
         "sku": "150",
-        "name": "",
+        "name": "טלפון חוגה בז",
         "price": 25,
         "img": "/catalog-images/150.jpg",
         "alt": "Vintage #150",
@@ -313,7 +313,7 @@
       },
       {
         "sku": "160",
-        "name": "",
+        "name": "שולחן לילה שחור",
         "price": 25,
         "img": "/catalog-images/160.jpg",
         "alt": "Vintage #160",
@@ -321,7 +321,7 @@
       },
       {
         "sku": "161",
-        "name": "",
+        "name": "בגד ריקוד עץ",
         "price": 25,
         "img": "/catalog-images/161.jpg",
         "alt": "Vintage #161",
@@ -334,7 +334,7 @@
     "items": [
       {
         "sku": "162",
-        "name": "",
+        "name": "כובע קש פסים",
         "price": 5,
         "img": "/catalog-images/162.jpg",
         "alt": "כובעים - Hats #162",
@@ -342,7 +342,7 @@
       },
       {
         "sku": "163",
-        "name": "",
+        "name": "כובעי קש אפורים",
         "price": 5,
         "img": "/catalog-images/163.jpg",
         "alt": "כובעים - Hats #163",
@@ -350,7 +350,7 @@
       },
       {
         "sku": "164",
-        "name": "",
+        "name": "כובע קש חום",
         "price": 5,
         "img": "/catalog-images/164.jpg",
         "alt": "כובעים - Hats #164",
@@ -358,7 +358,7 @@
       },
       {
         "sku": "165",
-        "name": "",
+        "name": "כובעי קש",
         "price": 5,
         "img": "/catalog-images/165.jpg",
         "alt": "כובעים - Hats #165",
@@ -366,7 +366,7 @@
       },
       {
         "sku": "166",
-        "name": "",
+        "name": "כובע פדורה חום",
         "price": 5,
         "img": "/catalog-images/166.jpg",
         "alt": "כובעים - Hats #166",
@@ -374,7 +374,7 @@
       },
       {
         "sku": "167",
-        "name": "",
+        "name": "כפפות גריי פרווה",
         "price": 5,
         "img": "/catalog-images/167.jpg",
         "alt": "כובעים - Hats #167",
@@ -382,7 +382,7 @@
       },
       {
         "sku": "168",
-        "name": "",
+        "name": "כובע קש בז",
         "price": 5,
         "img": "/catalog-images/168.jpg",
         "alt": "כובעים - Hats #168",
@@ -390,7 +390,7 @@
       },
       {
         "sku": "169",
-        "name": "",
+        "name": "כובע קש דקורטיבי",
         "price": 5,
         "img": "/catalog-images/169.jpg",
         "alt": "כובעים - Hats #169",
@@ -398,7 +398,7 @@
       },
       {
         "sku": "170",
-        "name": "",
+        "name": "כובע קש צבעוני",
         "price": 5,
         "img": "/catalog-images/170.jpg",
         "alt": "כובעים - Hats #170",
@@ -406,7 +406,7 @@
       },
       {
         "sku": "171",
-        "name": "",
+        "name": "כובע קש ורוד",
         "price": 5,
         "img": "/catalog-images/171.jpg",
         "alt": "כובעים - Hats #171",
@@ -414,7 +414,7 @@
       },
       {
         "sku": "172",
-        "name": "",
+        "name": "כובע רחב",
         "price": 5,
         "img": "/catalog-images/172.jpg",
         "alt": "כובעים - Hats #172",
@@ -422,7 +422,7 @@
       },
       {
         "sku": "173",
-        "name": "",
+        "name": "כובע שטוח אפור",
         "price": 5,
         "img": "/catalog-images/173.jpg",
         "alt": "כובעים - Hats #173",
@@ -430,7 +430,7 @@
       },
       {
         "sku": "174",
-        "name": "",
+        "name": "כובע צמר אפור",
         "price": 5,
         "img": "/catalog-images/174.jpg",
         "alt": "כובעים - Hats #174",
@@ -438,7 +438,7 @@
       },
       {
         "sku": "175",
-        "name": "",
+        "name": "כובע שטוח שחור",
         "price": 5,
         "img": "/catalog-images/175.jpg",
         "alt": "כובעים - Hats #175",
@@ -446,7 +446,7 @@
       },
       {
         "sku": "176",
-        "name": "",
+        "name": "כובע בז'",
         "price": 5,
         "img": "/catalog-images/176.jpg",
         "alt": "כובעים - Hats #176",
@@ -454,7 +454,7 @@
       },
       {
         "sku": "177",
-        "name": "",
+        "name": "כובע ברט סרוג",
         "price": 5,
         "img": "/catalog-images/177.jpg",
         "alt": "כובעים - Hats #177",
@@ -462,7 +462,7 @@
       },
       {
         "sku": "178",
-        "name": "",
+        "name": "כומתה שחורה",
         "price": 5,
         "img": "/catalog-images/178.jpg",
         "alt": "כובעים - Hats #178",
@@ -470,7 +470,7 @@
       },
       {
         "sku": "179",
-        "name": "",
+        "name": "כובעים אדומים",
         "price": 5,
         "img": "/catalog-images/179.jpg",
         "alt": "כובעים - Hats #179",
@@ -478,7 +478,7 @@
       },
       {
         "sku": "180",
-        "name": "",
+        "name": "כובע סרוג",
         "price": 15,
         "img": "/catalog-images/180.jpg",
         "alt": "כובעים - Hats #180",
@@ -486,7 +486,7 @@
       },
       {
         "sku": "181",
-        "name": "",
+        "name": "כובע טריקו ורוד",
         "price": 15,
         "img": "/catalog-images/181.jpg",
         "alt": "כובעים - Hats #181",
@@ -494,7 +494,7 @@
       },
       {
         "sku": "182",
-        "name": "",
+        "name": "כובע תינוק אפור",
         "price": 15,
         "img": "/catalog-images/182.jpg",
         "alt": "כובעים - Hats #182",
@@ -502,7 +502,7 @@
       },
       {
         "sku": "183",
-        "name": "",
+        "name": "כובע תינוק ורוד",
         "price": 15,
         "img": "/catalog-images/183.jpg",
         "alt": "כובעים - Hats #183",
@@ -510,7 +510,7 @@
       },
       {
         "sku": "184",
-        "name": "",
+        "name": "כובע מצנפת לבן",
         "price": 15,
         "img": "/catalog-images/184.jpg",
         "alt": "כובעים - Hats #184",
@@ -518,7 +518,7 @@
       },
       {
         "sku": "185",
-        "name": "",
+        "name": "כובע סרוג ורוד",
         "price": 15,
         "img": "/catalog-images/185.jpg",
         "alt": "כובעים - Hats #185",
@@ -531,7 +531,7 @@
     "items": [
       {
         "sku": "186",
-        "name": "",
+        "name": "דובי פרווה",
         "price": 5,
         "img": "/catalog-images/186.jpg",
         "alt": "דובי טדי #186",
@@ -539,7 +539,7 @@
       },
       {
         "sku": "187",
-        "name": "",
+        "name": "דוב פרווה חום",
         "price": 5,
         "img": "/catalog-images/187.jpg",
         "alt": "דובי טדי #187",
@@ -547,7 +547,7 @@
       },
       {
         "sku": "188",
-        "name": "",
+        "name": "דובי פרווה בהיר",
         "price": 5,
         "img": "/catalog-images/188.jpg",
         "alt": "דובי טדי #188",
@@ -555,7 +555,7 @@
       },
       {
         "sku": "189",
-        "name": "",
+        "name": "דובי לבן",
         "price": 5,
         "img": "/catalog-images/189.jpg",
         "alt": "דובי טדי #189",
@@ -563,7 +563,7 @@
       },
       {
         "sku": "190",
-        "name": "",
+        "name": "דוב חום",
         "price": 5,
         "img": "/catalog-images/190.jpg",
         "alt": "דובי טדי #190",
@@ -571,7 +571,7 @@
       },
       {
         "sku": "191",
-        "name": "",
+        "name": "ארנבון פרווה לבן",
         "price": 5,
         "img": "/catalog-images/191.jpg",
         "alt": "דובי טדי #191",
@@ -579,7 +579,7 @@
       },
       {
         "sku": "192",
-        "name": "",
+        "name": "דוב סרוג",
         "price": 5,
         "img": "/catalog-images/192.jpg",
         "alt": "דובי טדי #192",
@@ -587,7 +587,7 @@
       },
       {
         "sku": "193",
-        "name": "",
+        "name": "לבבות סרוגים",
         "price": 5,
         "img": "/catalog-images/193.jpg",
         "alt": "דובי טדי #193",
@@ -595,7 +595,7 @@
       },
       {
         "sku": "194",
-        "name": "",
+        "name": "ג'ירפה סרוגה",
         "price": 5,
         "img": "/catalog-images/194.jpg",
         "alt": "דובי טדי #194",
@@ -603,7 +603,7 @@
       },
       {
         "sku": "195",
-        "name": "",
+        "name": "שבלול סרוג",
         "price": 5,
         "img": "/catalog-images/195.jpg",
         "alt": "דובי טדי #195",
@@ -611,7 +611,7 @@
       },
       {
         "sku": "196",
-        "name": "",
+        "name": "דובי סרוג לבן",
         "price": 5,
         "img": "/catalog-images/196.jpg",
         "alt": "דובי טדי #196",
@@ -619,7 +619,7 @@
       },
       {
         "sku": "197",
-        "name": "",
+        "name": "בובה מצוירת",
         "price": 5,
         "img": "/catalog-images/197.jpg",
         "alt": "דובי טדי #197",
@@ -627,7 +627,7 @@
       },
       {
         "sku": "198",
-        "name": "",
+        "name": "שתי כבשים מצוירות",
         "price": 5,
         "img": "/catalog-images/198.jpg",
         "alt": "דובי טדי #198",
@@ -635,7 +635,7 @@
       },
       {
         "sku": "199",
-        "name": "",
+        "name": "דובי פרווה חום",
         "price": 5,
         "img": "/catalog-images/199.jpg",
         "alt": "דובי טדי #199",
@@ -643,7 +643,7 @@
       },
       {
         "sku": "200",
-        "name": "",
+        "name": "גזר סרוג",
         "price": 5,
         "img": "/catalog-images/200.jpg",
         "alt": "דובי טדי #200",
@@ -656,7 +656,7 @@
     "items": [
       {
         "sku": "202",
-        "name": "",
+        "name": "מזוודות וינטג' משובצות",
         "price": 15,
         "img": "/catalog-images/202.jpg",
         "alt": "מזוודות #202",
@@ -664,7 +664,7 @@
       },
       {
         "sku": "203",
-        "name": "",
+        "name": "תיבת עץ",
         "price": 10,
         "img": "/catalog-images/203.jpg",
         "alt": "מזוודות #203",
@@ -672,7 +672,7 @@
       },
       {
         "sku": "204",
-        "name": "",
+        "name": "ארגז עץ",
         "price": 10,
         "img": "/catalog-images/204.jpg",
         "alt": "מזוודות #204",
@@ -680,7 +680,7 @@
       },
       {
         "sku": "205",
-        "name": "",
+        "name": "תיבת עץ",
         "price": 10,
         "img": "/catalog-images/205.jpg",
         "alt": "מזוודות #205",
@@ -688,7 +688,7 @@
       },
       {
         "sku": "206",
-        "name": "",
+        "name": "סל קש",
         "price": 10,
         "img": "/catalog-images/206.jpg",
         "alt": "מזוודות #206",
@@ -696,7 +696,7 @@
       },
       {
         "sku": "207",
-        "name": "",
+        "name": "תיק קש שזור",
         "price": 10,
         "img": "/catalog-images/207.jpg",
         "alt": "מזוודות #207",
@@ -704,7 +704,7 @@
       },
       {
         "sku": "208",
-        "name": "",
+        "name": "סלסלת עץ מחוספסת",
         "price": 10,
         "img": "/catalog-images/208.jpg",
         "alt": "מזוודות #208",
@@ -717,7 +717,7 @@
     "items": [
       {
         "sku": "209",
-        "name": "",
+        "name": "בקבוקים עם פקק",
         "price": 5,
         "img": "/catalog-images/209.jpg",
         "alt": "כלי זכוכית #209",
@@ -725,7 +725,7 @@
       },
       {
         "sku": "210",
-        "name": "",
+        "name": "בקבוק זכוכית עם פקק",
         "price": 5,
         "img": "/catalog-images/210.jpg",
         "alt": "כלי זכוכית #210",
@@ -733,7 +733,7 @@
       },
       {
         "sku": "211",
-        "name": "",
+        "name": "קנקנים זכוכית שקופים",
         "price": 5,
         "img": "/catalog-images/211.jpg",
         "alt": "כלי זכוכית #211",
@@ -741,7 +741,7 @@
       },
       {
         "sku": "212",
-        "name": "",
+        "name": "כוס זכוכית ריקה",
         "price": 5,
         "img": "/catalog-images/212.jpg",
         "alt": "כלי זכוכית #212",
@@ -754,7 +754,7 @@
     "items": [
       {
         "sku": "213",
-        "name": "",
+        "name": "יוצר חלומות לבן",
         "price": 5,
         "img": "/catalog-images/213.jpg",
         "alt": "Lifestyle #213",
@@ -762,7 +762,7 @@
       },
       {
         "sku": "214",
-        "name": "",
+        "name": "מחרוזת עלים ירוקים",
         "price": 5,
         "img": "/catalog-images/214.jpg",
         "alt": "Lifestyle #214",
@@ -770,7 +770,7 @@
       },
       {
         "sku": "215",
-        "name": "",
+        "name": "קשת עשויה חוטים",
         "price": 5,
         "img": "/catalog-images/215.jpg",
         "alt": "Lifestyle #215",
@@ -778,7 +778,7 @@
       },
       {
         "sku": "216",
-        "name": "",
+        "name": "מחרוזת חרוזים עץ",
         "price": 5,
         "img": "/catalog-images/216.jpg",
         "alt": "Lifestyle #216",
@@ -786,7 +786,7 @@
       },
       {
         "sku": "217",
-        "name": "",
+        "name": "קיר מקראמה",
         "price": 5,
         "img": "/catalog-images/217.jpg",
         "alt": "Lifestyle #217",
@@ -794,7 +794,7 @@
       },
       {
         "sku": "218",
-        "name": "",
+        "name": "תליון מקרומה",
         "price": 5,
         "img": "/catalog-images/218.jpg",
         "alt": "Lifestyle #218",
@@ -802,7 +802,7 @@
       },
       {
         "sku": "219",
-        "name": "",
+        "name": "צנצנת מקרומה",
         "price": 5,
         "img": "/catalog-images/219.jpg",
         "alt": "Lifestyle #219",
@@ -810,7 +810,7 @@
       },
       {
         "sku": "220",
-        "name": "",
+        "name": "מפה קרושה לבנה",
         "price": 5,
         "img": "/catalog-images/220.jpg",
         "alt": "Lifestyle #220",
@@ -818,7 +818,7 @@
       },
       {
         "sku": "221",
-        "name": "",
+        "name": "חבל יוטה",
         "price": 5,
         "img": "/catalog-images/221.jpg",
         "alt": "Lifestyle #221",
@@ -826,7 +826,7 @@
       },
       {
         "sku": "222",
-        "name": "",
+        "name": "בסיסי כוסות קלועים",
         "price": 5,
         "img": "/catalog-images/222.jpg",
         "alt": "Lifestyle #222",
@@ -834,7 +834,7 @@
       },
       {
         "sku": "224",
-        "name": "",
+        "name": "כריות רקמה",
         "price": 15,
         "img": "/catalog-images/224.jpg",
         "alt": "Lifestyle #224",
@@ -842,7 +842,7 @@
       },
       {
         "sku": "225",
-        "name": "",
+        "name": "כרית קשירה, כריות פשתן",
         "price": 15,
         "img": "/catalog-images/225.jpg",
         "alt": "Lifestyle #225",
@@ -850,7 +850,7 @@
       },
       {
         "sku": "226",
-        "name": "",
+        "name": "שטיחון מקרומה קלוע",
         "price": 15,
         "img": "/catalog-images/226.jpg",
         "alt": "Lifestyle #226",
@@ -858,7 +858,7 @@
       },
       {
         "sku": "228",
-        "name": "",
+        "name": "מחצלת מקראמה",
         "price": 15,
         "img": "/catalog-images/228.jpg",
         "alt": "Lifestyle #228",
@@ -871,7 +871,7 @@
     "items": [
       {
         "sku": "229",
-        "name": "",
+        "name": "סל קש עגול",
         "price": 25,
         "img": "/catalog-images/229.jpg",
         "alt": "ניו-בורן - אביזרים גדולים #229",
@@ -879,7 +879,7 @@
       },
       {
         "sku": "230",
-        "name": "",
+        "name": "עגלת קש",
         "price": 25,
         "img": "/catalog-images/230.jpg",
         "alt": "ניו-בורן - אביזרים גדולים #230",
@@ -887,7 +887,7 @@
       },
       {
         "sku": "231",
-        "name": "",
+        "name": "קערת לב אדומה",
         "price": 25,
         "img": "/catalog-images/231.jpg",
         "alt": "ניו-בורן - אביזרים גדולים #231",
@@ -895,7 +895,7 @@
       },
       {
         "sku": "232",
-        "name": "",
+        "name": "קערת עץ מחוספסת",
         "price": 25,
         "img": "/catalog-images/232.jpg",
         "alt": "ניו-בורן - אביזרים גדולים #232",
@@ -903,7 +903,7 @@
       },
       {
         "sku": "233",
-        "name": "",
+        "name": "כלי עץ לב",
         "price": 25,
         "img": "/catalog-images/233.jpg",
         "alt": "ניו-בורן - אביזרים גדולים #233",
@@ -911,7 +911,7 @@
       },
       {
         "sku": "234",
-        "name": "",
+        "name": "עריסת קש",
         "price": 25,
         "img": "/catalog-images/234.jpg",
         "alt": "ניו-בורן - אביזרים גדולים #234",
@@ -919,7 +919,7 @@
       },
       {
         "sku": "235",
-        "name": "",
+        "name": "מיטה לבנה עץ",
         "price": 15,
         "img": "/catalog-images/235.jpg",
         "alt": "ניו-בורן - אביזרים גדולים #235",
@@ -927,7 +927,7 @@
       },
       {
         "sku": "236",
-        "name": "",
+        "name": "דלי צהוב",
         "price": 15,
         "img": "/catalog-images/236.jpg",
         "alt": "ניו-בורן - אביזרים גדולים #236",
@@ -935,7 +935,7 @@
       },
       {
         "sku": "237",
-        "name": "",
+        "name": "דלי לבן וחלוד",
         "price": 15,
         "img": "/catalog-images/237.jpg",
         "alt": "ניו-בורן - אביזרים גדולים #237",
@@ -943,7 +943,7 @@
       },
       {
         "sku": "238",
-        "name": "",
+        "name": "דלי ורוד",
         "price": 15,
         "img": "/catalog-images/238.jpg",
         "alt": "ניו-בורן - אביזרים גדולים #238",
@@ -951,7 +951,7 @@
       },
       {
         "sku": "239",
-        "name": "",
+        "name": "דלי עץ",
         "price": 15,
         "img": "/catalog-images/239.jpg",
         "alt": "ניו-בורן - אביזרים גדולים #239",
@@ -959,7 +959,7 @@
       },
       {
         "sku": "240",
-        "name": "",
+        "name": "סל קש",
         "price": 15,
         "img": "/catalog-images/240.jpg",
         "alt": "ניו-בורן - אביזרים גדולים #240",
@@ -967,7 +967,7 @@
       },
       {
         "sku": "241",
-        "name": "",
+        "name": "סל קש",
         "price": 20,
         "img": "/catalog-images/241.jpg",
         "alt": "ניו-בורן - אביזרים גדולים #241",
@@ -975,7 +975,7 @@
       },
       {
         "sku": "242",
-        "name": "",
+        "name": "כיסא קש",
         "price": 20,
         "img": "/catalog-images/242.jpg",
         "alt": "ניו-בורן - אביזרים גדולים #242",
@@ -983,7 +983,7 @@
       },
       {
         "sku": "243",
-        "name": "",
+        "name": "סל קש",
         "price": 20,
         "img": "/catalog-images/243.jpg",
         "alt": "ניו-בורן - אביזרים גדולים #243",
@@ -991,7 +991,7 @@
       },
       {
         "sku": "244",
-        "name": "",
+        "name": "עריסת עץ",
         "price": 20,
         "img": "/catalog-images/244.jpg",
         "alt": "ניו-בורן - אביזרים גדולים #244",
@@ -999,7 +999,7 @@
       },
       {
         "sku": "245",
-        "name": "",
+        "name": "דלי עץ חום",
         "price": 20,
         "img": "/catalog-images/245.jpg",
         "alt": "ניו-בורן - אביזרים גדולים #245",
@@ -1007,7 +1007,7 @@
       },
       {
         "sku": "246",
-        "name": "",
+        "name": "כרית פוף לילדים",
         "price": 30,
         "img": "/catalog-images/246.jpg",
         "alt": "ניו-בורן - אביזרים גדולים #246",
@@ -1015,7 +1015,7 @@
       },
       {
         "sku": "247",
-        "name": "",
+        "name": "מעמד מתכת עגול",
         "price": 40,
         "img": "/catalog-images/247.jpg",
         "alt": "ניו-בורן - אביזרים גדולים #247",
@@ -1028,7 +1028,7 @@
     "items": [
       {
         "sku": "248",
-        "name": "",
+        "name": "כריות בצורת ירח",
         "price": 10,
         "img": "/catalog-images/248.jpg",
         "alt": "כריות פוזינג ומעוצבות #248",
@@ -1036,7 +1036,7 @@
       },
       {
         "sku": "249",
-        "name": "",
+        "name": "רפידה רב פעמית",
         "price": 10,
         "img": "/catalog-images/249.jpg",
         "alt": "כריות פוזינג ומעוצבות #249",
@@ -1044,7 +1044,7 @@
       },
       {
         "sku": "250",
-        "name": "",
+        "name": "כריות צורה",
         "price": 10,
         "img": "/catalog-images/250.jpg",
         "alt": "כריות פוזינג ומעוצבות #250",
@@ -1052,7 +1052,7 @@
       },
       {
         "sku": "251",
-        "name": "",
+        "name": "כרית תמיכה צווארית",
         "price": 10,
         "img": "/catalog-images/251.jpg",
         "alt": "כריות פוזינג ומעוצבות #251",
@@ -1060,7 +1060,7 @@
       },
       {
         "sku": "252",
-        "name": "",
+        "name": "כרית תמיכה לבנה",
         "price": 10,
         "img": "/catalog-images/252.jpg",
         "alt": "כריות פוזינג ומעוצבות #252",
@@ -1068,7 +1068,7 @@
       },
       {
         "sku": "253",
-        "name": "",
+        "name": "כריות קטיפה בהירות",
         "price": 10,
         "img": "/catalog-images/253.jpg",
         "alt": "כריות פוזינג ומעוצבות #253",
@@ -1076,7 +1076,7 @@
       },
       {
         "sku": "254",
-        "name": "",
+        "name": "כרית תכלת",
         "price": 5,
         "img": "/catalog-images/254.jpg",
         "alt": "כריות פוזינג ומעוצבות #254",
@@ -1084,7 +1084,7 @@
       },
       {
         "sku": "255",
-        "name": "",
+        "name": "כרית אורכית כתומה",
         "price": 5,
         "img": "/catalog-images/255.jpg",
         "alt": "כריות פוזינג ומעוצבות #255",
@@ -1092,7 +1092,7 @@
       },
       {
         "sku": "256",
-        "name": "",
+        "name": "כובע קש",
         "price": 5,
         "img": "/catalog-images/256.jpg",
         "alt": "כריות פוזינג ומעוצבות #256",
@@ -1100,7 +1100,7 @@
       },
       {
         "sku": "257",
-        "name": "",
+        "name": "כרית ענן לבנה",
         "price": 5,
         "img": "/catalog-images/257.jpg",
         "alt": "כריות פוזינג ומעוצבות #257",
@@ -1108,7 +1108,7 @@
       },
       {
         "sku": "258",
-        "name": "",
+        "name": "סרט תחרה ירוק",
         "price": 5,
         "img": "/catalog-images/258.jpg",
         "alt": "כריות פוזינג ומעוצבות #258",
@@ -1116,7 +1116,7 @@
       },
       {
         "sku": "259",
-        "name": "",
+        "name": "שמיכת מקראמה",
         "price": 5,
         "img": "/catalog-images/259.jpg",
         "alt": "כריות פוזינג ומעוצבות #259",
@@ -1129,7 +1129,7 @@
     "items": [
       {
         "sku": "260",
-        "name": "",
+        "name": "חליפת תינוקות כובע",
         "price": 15,
         "img": "/catalog-images/260.jpg",
         "alt": "בגדים #260",
@@ -1137,7 +1137,7 @@
       },
       {
         "sku": "261",
-        "name": "",
+        "name": "בגד גוף וספודיק",
         "price": 15,
         "img": "/catalog-images/261.jpg",
         "alt": "בגדים #261",
@@ -1145,7 +1145,7 @@
       },
       {
         "sku": "262",
-        "name": "",
+        "name": "אוברול צמר ירוק",
         "price": 15,
         "img": "/catalog-images/262.jpg",
         "alt": "בגדים #262",
@@ -1153,7 +1153,7 @@
       },
       {
         "sku": "263",
-        "name": "",
+        "name": "בגד גוף וכובע",
         "price": 15,
         "img": "/catalog-images/263.jpg",
         "alt": "בגדים #263",
@@ -1161,7 +1161,7 @@
       },
       {
         "sku": "264",
-        "name": "",
+        "name": "בגד תינוק ורוד",
         "price": 15,
         "img": "/catalog-images/264.jpg",
         "alt": "בגדים #264",
@@ -1169,7 +1169,7 @@
       },
       {
         "sku": "265",
-        "name": "",
+        "name": "בגד גוף וכובע",
         "price": 15,
         "img": "/catalog-images/265.jpg",
         "alt": "בגדים #265",
@@ -1177,7 +1177,7 @@
       },
       {
         "sku": "266",
-        "name": "",
+        "name": "בגד גוף כובע",
         "price": 10,
         "img": "/catalog-images/266.jpg",
         "alt": "בגדים #266",
@@ -1185,7 +1185,7 @@
       },
       {
         "sku": "267",
-        "name": "",
+        "name": "בגד גוף ורוד",
         "price": 10,
         "img": "/catalog-images/267.jpg",
         "alt": "בגדים #267",
@@ -1193,7 +1193,7 @@
       },
       {
         "sku": "268",
-        "name": "",
+        "name": "בגדי גוף וכובע",
         "price": 10,
         "img": "/catalog-images/268.jpg",
         "alt": "בגדים #268",
@@ -1201,7 +1201,7 @@
       },
       {
         "sku": "269",
-        "name": "",
+        "name": "בגד גוף כובע",
         "price": 10,
         "img": "/catalog-images/269.jpg",
         "alt": "בגדים #269",
@@ -1209,7 +1209,7 @@
       },
       {
         "sku": "270",
-        "name": "",
+        "name": "בגד גוף סרוג",
         "price": 10,
         "img": "/catalog-images/270.jpg",
         "alt": "בגדים #270",
@@ -1217,7 +1217,7 @@
       },
       {
         "sku": "271",
-        "name": "",
+        "name": "בגד גוף תואם, כובע תואם",
         "price": 10,
         "img": "/catalog-images/271.jpg",
         "alt": "בגדים #271",
@@ -1225,7 +1225,7 @@
       },
       {
         "sku": "272",
-        "name": "",
+        "name": "סרבל ג'ינס חום",
         "price": 5,
         "img": "/catalog-images/272.jpg",
         "alt": "בגדים #272",
@@ -1233,7 +1233,7 @@
       },
       {
         "sku": "273",
-        "name": "",
+        "name": "בגד גוף אפור",
         "price": 5,
         "img": "/catalog-images/273.jpg",
         "alt": "בגדים #273",
@@ -1241,7 +1241,7 @@
       },
       {
         "sku": "274",
-        "name": "",
+        "name": "שרוך ורוד תחתון",
         "price": 35,
         "img": "/catalog-images/274.jpg",
         "alt": "בגדים #274",
@@ -1249,7 +1249,7 @@
       },
       {
         "sku": "275",
-        "name": "",
+        "name": "חולצת תחרה לבנה",
         "price": 35,
         "img": "/catalog-images/275.jpg",
         "alt": "בגדים #275",
@@ -1257,7 +1257,7 @@
       },
       {
         "sku": "277",
-        "name": "",
+        "name": "בגד גוף ורוד",
         "price": 15,
         "img": "/catalog-images/277.jpg",
         "alt": "בגדים #277",
@@ -1265,7 +1265,7 @@
       },
       {
         "sku": "278",
-        "name": "",
+        "name": "בגד גוף וכובע",
         "price": 15,
         "img": "/catalog-images/278.jpg",
         "alt": "בגדים #278",
@@ -1273,7 +1273,7 @@
       },
       {
         "sku": "279",
-        "name": "",
+        "name": "בגד תינוק סרוג",
         "price": 15,
         "img": "/catalog-images/279.jpg",
         "alt": "בגדים #279",
@@ -1281,7 +1281,7 @@
       },
       {
         "sku": "280",
-        "name": "",
+        "name": "כובע וסרבל",
         "price": 15,
         "img": "/catalog-images/280.jpg",
         "alt": "בגדים #280",
@@ -1289,7 +1289,7 @@
       },
       {
         "sku": "281",
-        "name": "",
+        "name": "קצר מכנסיים, כובע תינוק",
         "price": 15,
         "img": "/catalog-images/281.jpg",
         "alt": "בגדים #281",
@@ -1302,7 +1302,7 @@
     "items": [
       {
         "sku": "282",
-        "name": "",
+        "name": "בד צהוב מגולגל",
         "price": 25,
         "img": "/catalog-images/282.jpg",
         "alt": "רקעים ועיטופים #282",
@@ -1310,7 +1310,7 @@
       },
       {
         "sku": "283",
-        "name": "",
+        "name": "בגד תינוק כחול",
         "price": 25,
         "img": "/catalog-images/283.jpg",
         "alt": "רקעים ועיטופים #283",
@@ -1318,7 +1318,7 @@
       },
       {
         "sku": "284",
-        "name": "",
+        "name": "בד מגולגל",
         "price": 25,
         "img": "/catalog-images/284.jpg",
         "alt": "רקעים ועיטופים #284",
@@ -1326,7 +1326,7 @@
       },
       {
         "sku": "285",
-        "name": "",
+        "name": "בגד גוף מתוק",
         "price": 25,
         "img": "/catalog-images/285.jpg",
         "alt": "רקעים ועיטופים #285",
@@ -1334,7 +1334,7 @@
       },
       {
         "sku": "286",
-        "name": "",
+        "name": "בד מגולגל",
         "price": 25,
         "img": "/catalog-images/286.jpg",
         "alt": "רקעים ועיטופים #286",
@@ -1342,7 +1342,7 @@
       },
       {
         "sku": "287",
-        "name": "",
+        "name": "בגד גוף",
         "price": 25,
         "img": "/catalog-images/287.jpg",
         "alt": "רקעים ועיטופים #287",
@@ -1350,7 +1350,7 @@
       },
       {
         "sku": "288",
-        "name": "",
+        "name": "עטיפה וגליל",
         "price": 25,
         "img": "/catalog-images/288.jpg",
         "alt": "רקעים ועיטופים #288",
@@ -1358,7 +1358,7 @@
       },
       {
         "sku": "289",
-        "name": "",
+        "name": "שתי כיסויים ורודים",
         "price": 25,
         "img": "/catalog-images/289.jpg",
         "alt": "רקעים ועיטופים #289",
@@ -1366,7 +1366,7 @@
       },
       {
         "sku": "290",
-        "name": "",
+        "name": "בגד גוף מבדים",
         "price": 25,
         "img": "/catalog-images/290.jpg",
         "alt": "רקעים ועיטופים #290",
@@ -1374,7 +1374,7 @@
       },
       {
         "sku": "291",
-        "name": "",
+        "name": "בגד גוף ורוד",
         "price": 25,
         "img": "/catalog-images/291.jpg",
         "alt": "רקעים ועיטופים #291",
@@ -1382,7 +1382,7 @@
       },
       {
         "sku": "292",
-        "name": "",
+        "name": "חוט קרושה צמרי",
         "price": 25,
         "img": "/catalog-images/292.jpg",
         "alt": "רקעים ועיטופים #292",
@@ -1390,7 +1390,7 @@
       },
       {
         "sku": "293",
-        "name": "",
+        "name": "פוף עגול ירוק",
         "price": 25,
         "img": "/catalog-images/293.jpg",
         "alt": "רקעים ועיטופים #293",
@@ -1398,7 +1398,7 @@
       },
       {
         "sku": "294",
-        "name": "",
+        "name": "צעיף צהוב מגולגל",
         "price": 5,
         "img": "/catalog-images/294.jpg",
         "alt": "רקעים ועיטופים #294",
@@ -1406,7 +1406,7 @@
       },
       {
         "sku": "295",
-        "name": "",
+        "name": "בד מלופף בגוון חום",
         "price": 5,
         "img": "/catalog-images/295.jpg",
         "alt": "רקעים ועיטופים #295",
@@ -1414,7 +1414,7 @@
       },
       {
         "sku": "296",
-        "name": "",
+        "name": "צורה מקופלת",
         "price": 5,
         "img": "/catalog-images/296.jpg",
         "alt": "רקעים ועיטופים #296",
@@ -1422,7 +1422,7 @@
       },
       {
         "sku": "297",
-        "name": "",
+        "name": "מרקם ירוק מגולגל",
         "price": 5,
         "img": "/catalog-images/297.jpg",
         "alt": "רקעים ועיטופים #297",
@@ -1430,7 +1430,7 @@
       },
       {
         "sku": "298",
-        "name": "",
+        "name": "בד גמיש מגולגל",
         "price": 5,
         "img": "/catalog-images/298.jpg",
         "alt": "רקעים ועיטופים #298",
@@ -1438,7 +1438,7 @@
       },
       {
         "sku": "299",
-        "name": "",
+        "name": "צמר כתום",
         "price": 5,
         "img": "/catalog-images/299.jpg",
         "alt": "רקעים ועיטופים #299",
@@ -1446,7 +1446,7 @@
       },
       {
         "sku": "300",
-        "name": "",
+        "name": "בד סגול",
         "price": 5,
         "img": "/catalog-images/300.jpg",
         "alt": "רקעים ועיטופים #300",
@@ -1454,7 +1454,7 @@
       },
       {
         "sku": "301",
-        "name": "",
+        "name": "בד כתום מקומט",
         "price": 5,
         "img": "/catalog-images/301.jpg",
         "alt": "רקעים ועיטופים #301",
@@ -1462,7 +1462,7 @@
       },
       {
         "sku": "302",
-        "name": "",
+        "name": "צעיף סגול מקומט",
         "price": 5,
         "img": "/catalog-images/302.jpg",
         "alt": "רקעים ועיטופים #302",
@@ -1470,7 +1470,7 @@
       },
       {
         "sku": "303",
-        "name": "",
+        "name": "סרטים מגולגלים",
         "price": 5,
         "img": "/catalog-images/303.jpg",
         "alt": "רקעים ועיטופים #303",
@@ -1478,7 +1478,7 @@
       },
       {
         "sku": "304",
-        "name": "",
+        "name": "ורוד גולגל",
         "price": 5,
         "img": "/catalog-images/304.jpg",
         "alt": "רקעים ועיטופים #304",
@@ -1486,7 +1486,7 @@
       },
       {
         "sku": "305",
-        "name": "",
+        "name": "בד לבן מגולגל",
         "price": 5,
         "img": "/catalog-images/305.jpg",
         "alt": "רקעים ועיטופים #305",
@@ -1494,7 +1494,7 @@
       },
       {
         "sku": "306",
-        "name": "",
+        "name": "שכבות ארוגות בז'י",
         "price": 5,
         "img": "/catalog-images/306.jpg",
         "alt": "רקעים ועיטופים #306",
@@ -1502,7 +1502,7 @@
       },
       {
         "sku": "307",
-        "name": "",
+        "name": "צמר מקרמה",
         "price": 5,
         "img": "/catalog-images/307.jpg",
         "alt": "רקעים ועיטופים #307",
@@ -1510,7 +1510,7 @@
       },
       {
         "sku": "308",
-        "name": "",
+        "name": "שמיכה מינקית צילומית",
         "price": 5,
         "img": "/catalog-images/308.jpg",
         "alt": "רקעים ועיטופים #308",
@@ -1518,7 +1518,7 @@
       },
       {
         "sku": "309",
-        "name": "",
+        "name": "צמר ורוד רך",
         "price": 5,
         "img": "/catalog-images/309.jpg",
         "alt": "רקעים ועיטופים #309",
@@ -1526,7 +1526,7 @@
       },
       {
         "sku": "310",
-        "name": "",
+        "name": "צעיף סרוג ירוק",
         "price": 5,
         "img": "/catalog-images/310.jpg",
         "alt": "רקעים ועיטופים #310",
@@ -1534,7 +1534,7 @@
       },
       {
         "sku": "311",
-        "name": "",
+        "name": "שכבה עשויה אריג",
         "price": 5,
         "img": "/catalog-images/311.jpg",
         "alt": "רקעים ועיטופים #311",
@@ -1542,7 +1542,7 @@
       },
       {
         "sku": "312",
-        "name": "",
+        "name": "שמיכה מבטון",
         "price": 5,
         "img": "/catalog-images/312.jpg",
         "alt": "רקעים ועיטופים #312",
@@ -1550,7 +1550,7 @@
       },
       {
         "sku": "313",
-        "name": "",
+        "name": "שמיכה צהובה מגולגלת",
         "price": 5,
         "img": "/catalog-images/313.jpg",
         "alt": "רקעים ועיטופים #313",
@@ -1558,7 +1558,7 @@
       },
       {
         "sku": "314",
-        "name": "",
+        "name": "צעיף סריג כחול",
         "price": 5,
         "img": "/catalog-images/314.jpg",
         "alt": "רקעים ועיטופים #314",
@@ -1566,7 +1566,7 @@
       },
       {
         "sku": "315",
-        "name": "",
+        "name": "בד מגולגל",
         "price": 5,
         "img": "/catalog-images/315.jpg",
         "alt": "רקעים ועיטופים #315",
@@ -1574,7 +1574,7 @@
       },
       {
         "sku": "316",
-        "name": "",
+        "name": "צמר לבן",
         "price": 5,
         "img": "/catalog-images/316.jpg",
         "alt": "רקעים ועיטופים #316",
@@ -1582,7 +1582,7 @@
       },
       {
         "sku": "317",
-        "name": "",
+        "name": "בד ורוד סרוג",
         "price": 5,
         "img": "/catalog-images/317.jpg",
         "alt": "רקעים ועיטופים #317",
@@ -1590,7 +1590,7 @@
       },
       {
         "sku": "318",
-        "name": "",
+        "name": "שמיכת צילום",
         "price": 5,
         "img": "/catalog-images/318.jpg",
         "alt": "רקעים ועיטופים #318",
@@ -1598,7 +1598,7 @@
       },
       {
         "sku": "319",
-        "name": "",
+        "name": "צמר אפור",
         "price": 5,
         "img": "/catalog-images/319.jpg",
         "alt": "רקעים ועיטופים #319",
@@ -1606,7 +1606,7 @@
       },
       {
         "sku": "320",
-        "name": "",
+        "name": "אביזר צילום",
         "price": 5,
         "img": "/catalog-images/320.jpg",
         "alt": "רקעים ועיטופים #320",
@@ -1614,7 +1614,7 @@
       },
       {
         "sku": "321",
-        "name": "",
+        "name": "שכבת צמר גס",
         "price": 5,
         "img": "/catalog-images/321.jpg",
         "alt": "רקעים ועיטופים #321",
@@ -1622,7 +1622,7 @@
       },
       {
         "sku": "322",
-        "name": "",
+        "name": "גרביון חום, כדור לבן",
         "price": 5,
         "img": "/catalog-images/322.jpg",
         "alt": "רקעים ועיטופים #322",
@@ -1630,7 +1630,7 @@
       },
       {
         "sku": "323",
-        "name": "",
+        "name": "רקע לתינוק",
         "price": 5,
         "img": "/catalog-images/323.jpg",
         "alt": "רקעים ועיטופים #323",
@@ -1638,7 +1638,7 @@
       },
       {
         "sku": "324",
-        "name": "",
+        "name": "אביזרים לצילום תינוקות",
         "price": 5,
         "img": "/catalog-images/324.jpg",
         "alt": "רקעים ועיטופים #324",
@@ -1646,7 +1646,7 @@
       },
       {
         "sku": "325",
-        "name": "",
+        "name": "שמיכה מקומטת",
         "price": 5,
         "img": "/catalog-images/325.jpg",
         "alt": "רקעים ועיטופים #325",
@@ -1654,7 +1654,7 @@
       },
       {
         "sku": "326",
-        "name": "",
+        "name": "בגד גוף תינוק",
         "price": 5,
         "img": "/catalog-images/326.jpg",
         "alt": "רקעים ועיטופים #326",
@@ -1662,7 +1662,7 @@
       },
       {
         "sku": "327",
-        "name": "",
+        "name": "שתי גרביים",
         "price": 5,
         "img": "/catalog-images/327.jpg",
         "alt": "רקעים ועיטופים #327",
@@ -1670,7 +1670,7 @@
       },
       {
         "sku": "328",
-        "name": "",
+        "name": "סריג כחול מגולגל",
         "price": 5,
         "img": "/catalog-images/328.jpg",
         "alt": "רקעים ועיטופים #328",
@@ -1683,7 +1683,7 @@
     "items": [
       {
         "sku": "329",
-        "name": "",
+        "name": "כרית גליל תכלת",
         "price": 10,
         "img": "/catalog-images/329.jpg",
         "alt": "שמיכות ופרוות #329",
@@ -1691,7 +1691,7 @@
       },
       {
         "sku": "330",
-        "name": "",
+        "name": "כרית טורקית עגולה",
         "price": 10,
         "img": "/catalog-images/330.jpg",
         "alt": "שמיכות ופרוות #330",
@@ -1699,7 +1699,7 @@
       },
       {
         "sku": "331",
-        "name": "",
+        "name": "שמיכה ורודה רכה",
         "price": 10,
         "img": "/catalog-images/331.jpg",
         "alt": "שמיכות ופרוות #331",
@@ -1707,7 +1707,7 @@
       },
       {
         "sku": "332",
-        "name": "",
+        "name": "שרוול צמר אפור",
         "price": 10,
         "img": "/catalog-images/332.jpg",
         "alt": "שמיכות ופרוות #332",
@@ -1715,7 +1715,7 @@
       },
       {
         "sku": "333",
-        "name": "",
+        "name": "בד דק אפור",
         "price": 10,
         "img": "/catalog-images/333.jpg",
         "alt": "שמיכות ופרוות #333",
@@ -1723,7 +1723,7 @@
       },
       {
         "sku": "334",
-        "name": "",
+        "name": "כובע פרווה אפור",
         "price": 10,
         "img": "/catalog-images/334.jpg",
         "alt": "שמיכות ופרוות #334",
@@ -1731,7 +1731,7 @@
       },
       {
         "sku": "335",
-        "name": "",
+        "name": "מגבת לבנה מקופלת",
         "price": 10,
         "img": "/catalog-images/335.jpg",
         "alt": "שמיכות ופרוות #335",
@@ -1739,7 +1739,7 @@
       },
       {
         "sku": "336",
-        "name": "",
+        "name": "בגד בורדו מקופל",
         "price": 10,
         "img": "/catalog-images/336.jpg",
         "alt": "שמיכות ופרוות #336",
@@ -1747,7 +1747,7 @@
       },
       {
         "sku": "337",
-        "name": "",
+        "name": "שמיכה ורודה",
         "price": 10,
         "img": "/catalog-images/337.jpg",
         "alt": "שמיכות ופרוות #337",
@@ -1755,7 +1755,7 @@
       },
       {
         "sku": "338",
-        "name": "",
+        "name": "מגבת לבנה מקופלת",
         "price": 10,
         "img": "/catalog-images/338.jpg",
         "alt": "שמיכות ופרוות #338",
@@ -1763,7 +1763,7 @@
       },
       {
         "sku": "339",
-        "name": "",
+        "name": "שמיכה סרוגה ורודה",
         "price": 10,
         "img": "/catalog-images/339.jpg",
         "alt": "שמיכות ופרוות #339",
@@ -1771,7 +1771,7 @@
       },
       {
         "sku": "340",
-        "name": "",
+        "name": "שטיח פרווה אפור",
         "price": 0,
         "img": "/catalog-images/340.jpg",
         "alt": "שמיכות ופרוות #340",
@@ -1779,7 +1779,7 @@
       },
       {
         "sku": "341",
-        "name": "",
+        "name": "סדין פרווה כחול",
         "price": 0,
         "img": "/catalog-images/341.jpg",
         "alt": "שמיכות ופרוות #341",
@@ -1787,7 +1787,7 @@
       },
       {
         "sku": "343",
-        "name": "",
+        "name": "שטיח צמר ורוד",
         "price": 10,
         "img": "/catalog-images/343.jpg",
         "alt": "שמיכות ופרוות #343",
@@ -1795,7 +1795,7 @@
       },
       {
         "sku": "344",
-        "name": "",
+        "name": "שטיח פרווה לבן",
         "price": 10,
         "img": "/catalog-images/344.jpg",
         "alt": "שמיכות ופרוות #344",
@@ -1803,7 +1803,7 @@
       },
       {
         "sku": "345",
-        "name": "",
+        "name": "שטיח פרווה אפור",
         "price": 10,
         "img": "/catalog-images/345.jpg",
         "alt": "שמיכות ופרוות #345",
@@ -1811,7 +1811,7 @@
       },
       {
         "sku": "346",
-        "name": "",
+        "name": "כרית פרווה",
         "price": 10,
         "img": "/catalog-images/346.jpg",
         "alt": "שמיכות ופרוות #346",
@@ -1819,7 +1819,7 @@
       },
       {
         "sku": "347",
-        "name": "",
+        "name": "שכבה כחולה פרוותית",
         "price": 10,
         "img": "/catalog-images/347.jpg",
         "alt": "שמיכות ופרוות #347",
@@ -1832,7 +1832,7 @@
     "items": [
       {
         "sku": "348",
-        "name": "",
+        "name": "כובע צמר",
         "price": 5,
         "img": "/catalog-images/348.jpg",
         "alt": "כובעי ניו-בורן #348",
@@ -1840,7 +1840,7 @@
       },
       {
         "sku": "349",
-        "name": "",
+        "name": "כובע תינוק סרוג",
         "price": 5,
         "img": "/catalog-images/349.jpg",
         "alt": "כובעי ניו-בורן #349",
@@ -1848,7 +1848,7 @@
       },
       {
         "sku": "350",
-        "name": "",
+        "name": "כובע סרוג ורוד",
         "price": 5,
         "img": "/catalog-images/350.jpg",
         "alt": "כובעי ניו-בורן #350",
@@ -1856,7 +1856,7 @@
       },
       {
         "sku": "351",
-        "name": "",
+        "name": "כובע צמר ורוד",
         "price": 5,
         "img": "/catalog-images/351.jpg",
         "alt": "כובעי ניו-בורן #351",
@@ -1864,7 +1864,7 @@
       },
       {
         "sku": "352",
-        "name": "",
+        "name": "כובע טריקו חום",
         "price": 5,
         "img": "/catalog-images/352.jpg",
         "alt": "כובעי ניו-בורן #352",
@@ -1872,7 +1872,7 @@
       },
       {
         "sku": "353",
-        "name": "",
+        "name": "כומתה לבד",
         "price": 5,
         "img": "/catalog-images/353.jpg",
         "alt": "כובעי ניו-בורן #353",
@@ -1880,7 +1880,7 @@
       },
       {
         "sku": "354",
-        "name": "",
+        "name": "כובע תינוק מושלם",
         "price": 5,
         "img": "/catalog-images/354.jpg",
         "alt": "כובעי ניו-בורן #354",
@@ -1888,7 +1888,7 @@
       },
       {
         "sku": "355",
-        "name": "",
+        "name": "כובע ורוד",
         "price": 5,
         "img": "/catalog-images/355.jpg",
         "alt": "כובעי ניו-בורן #355",
@@ -1896,7 +1896,7 @@
       },
       {
         "sku": "356",
-        "name": "",
+        "name": "כובע צמר אפור",
         "price": 5,
         "img": "/catalog-images/356.jpg",
         "alt": "כובעי ניו-בורן #356",
@@ -1904,7 +1904,7 @@
       },
       {
         "sku": "357",
-        "name": "",
+        "name": "כובע ירוק פרוותי",
         "price": 5,
         "img": "/catalog-images/357.jpg",
         "alt": "כובעי ניו-בורן #357",
@@ -1912,7 +1912,7 @@
       },
       {
         "sku": "358",
-        "name": "",
+        "name": "כובע טריקו חום",
         "price": 5,
         "img": "/catalog-images/358.jpg",
         "alt": "כובעי ניו-בורן #358",
@@ -1920,7 +1920,7 @@
       },
       {
         "sku": "359",
-        "name": "",
+        "name": "כובע תינוק סרוג",
         "price": 5,
         "img": "/catalog-images/359.jpg",
         "alt": "כובעי ניו-בורן #359",
@@ -1933,7 +1933,7 @@
     "items": [
       {
         "sku": "360",
-        "name": "",
+        "name": "סרט פרחוני בייבי",
         "price": 5,
         "img": "/catalog-images/360.jpg",
         "alt": "סרטים #360",
@@ -1941,7 +1941,7 @@
       },
       {
         "sku": "361",
-        "name": "",
+        "name": "סרט פרח ורוד",
         "price": 5,
         "img": "/catalog-images/361.jpg",
         "alt": "סרטים #361",
@@ -1949,7 +1949,7 @@
       },
       {
         "sku": "362",
-        "name": "",
+        "name": "קישוט כתום-צהוב",
         "price": 5,
         "img": "/catalog-images/362.jpg",
         "alt": "סרטים #362",
@@ -1957,7 +1957,7 @@
       },
       {
         "sku": "363",
-        "name": "",
+        "name": "רצועת ראש פרחונית",
         "price": 5,
         "img": "/catalog-images/363.jpg",
         "alt": "סרטים #363",
@@ -1965,7 +1965,7 @@
       },
       {
         "sku": "364",
-        "name": "",
+        "name": "סרט פרח ורוד",
         "price": 5,
         "img": "/catalog-images/364.jpg",
         "alt": "סרטים #364",
@@ -1973,7 +1973,7 @@
       },
       {
         "sku": "365",
-        "name": "",
+        "name": "כפית ראש פרחונית",
         "price": 5,
         "img": "/catalog-images/365.jpg",
         "alt": "סרטים #365",
@@ -1981,7 +1981,7 @@
       },
       {
         "sku": "366",
-        "name": "",
+        "name": "סרט ראש פרחוני",
         "price": 5,
         "img": "/catalog-images/366.jpg",
         "alt": "סרטים #366",
@@ -1989,7 +1989,7 @@
       },
       {
         "sku": "367",
-        "name": "",
+        "name": "סרט ראש פרחוני",
         "price": 5,
         "img": "/catalog-images/367.jpg",
         "alt": "סרטים #367",
@@ -1997,7 +1997,7 @@
       },
       {
         "sku": "368",
-        "name": "",
+        "name": "סרט ראש פרחוני",
         "price": 5,
         "img": "/catalog-images/368.jpg",
         "alt": "סרטים #368",
@@ -2005,7 +2005,7 @@
       },
       {
         "sku": "369",
-        "name": "",
+        "name": "סרט ורוד",
         "price": 5,
         "img": "/catalog-images/369.jpg",
         "alt": "סרטים #369",
@@ -2013,7 +2013,7 @@
       },
       {
         "sku": "370",
-        "name": "",
+        "name": "קשת שיער",
         "price": 5,
         "img": "/catalog-images/370.jpg",
         "alt": "סרטים #370",
@@ -2021,7 +2021,7 @@
       },
       {
         "sku": "371",
-        "name": "",
+        "name": "חוט ופנינים",
         "price": 5,
         "img": "/catalog-images/371.jpg",
         "alt": "סרטים #371",
@@ -2029,7 +2029,7 @@
       },
       {
         "sku": "372",
-        "name": "",
+        "name": "קישוט לשיער",
         "price": 5,
         "img": "/catalog-images/372.jpg",
         "alt": "סרטים #372",
@@ -2037,7 +2037,7 @@
       },
       {
         "sku": "373",
-        "name": "",
+        "name": "קישוט מחרוזת פנינים",
         "price": 5,
         "img": "/catalog-images/373.jpg",
         "alt": "סרטים #373",
@@ -2045,7 +2045,7 @@
       },
       {
         "sku": "374",
-        "name": "",
+        "name": "בגד תחרה כחול",
         "price": 5,
         "img": "/catalog-images/374.jpg",
         "alt": "סרטים #374",
@@ -2053,7 +2053,7 @@
       },
       {
         "sku": "375",
-        "name": "",
+        "name": "כתר פרחים ורוד",
         "price": 5,
         "img": "/catalog-images/375.jpg",
         "alt": "סרטים #375",
@@ -2061,7 +2061,7 @@
       },
       {
         "sku": "376",
-        "name": "",
+        "name": "סרט לב ורוד",
         "price": 5,
         "img": "/catalog-images/376.jpg",
         "alt": "סרטים #376",
@@ -2069,7 +2069,7 @@
       },
       {
         "sku": "377",
-        "name": "",
+        "name": "חוט עם חרוזים",
         "price": 5,
         "img": "/catalog-images/377.jpg",
         "alt": "סרטים #377",
@@ -2077,7 +2077,7 @@
       },
       {
         "sku": "378",
-        "name": "",
+        "name": "סרט שיער עם פפיון",
         "price": 5,
         "img": "/catalog-images/378.jpg",
         "alt": "סרטים #378",
@@ -2085,7 +2085,7 @@
       },
       {
         "sku": "379",
-        "name": "",
+        "name": "סרט ראש פרחים",
         "price": 5,
         "img": "/catalog-images/379.jpg",
         "alt": "סרטים #379",
@@ -2093,7 +2093,7 @@
       },
       {
         "sku": "380",
-        "name": "",
+        "name": "סרט פרפר פרוותי",
         "price": 5,
         "img": "/catalog-images/380.jpg",
         "alt": "סרטים #380",
@@ -2101,7 +2101,7 @@
       },
       {
         "sku": "381",
-        "name": "",
+        "name": "סרטים לשיער",
         "price": 5,
         "img": "/catalog-images/381.jpg",
         "alt": "סרטים #381",
@@ -2109,7 +2109,7 @@
       },
       {
         "sku": "382",
-        "name": "",
+        "name": "סרט לשיער ורוד",
         "price": 5,
         "img": "/catalog-images/382.jpg",
         "alt": "סרטים #382",
@@ -2117,7 +2117,7 @@
       },
       {
         "sku": "383",
-        "name": "",
+        "name": "סרט קטיפה תכול",
         "price": 5,
         "img": "/catalog-images/383.jpg",
         "alt": "סרטים #383",
@@ -2130,7 +2130,7 @@
     "items": [
       {
         "sku": "384",
-        "name": "",
+        "name": "שש בובות ארנב",
         "price": 10,
         "img": "/catalog-images/384.jpg",
         "alt": "דובונים ואביזרים משלימים #384",
@@ -2138,7 +2138,7 @@
       },
       {
         "sku": "385",
-        "name": "",
+        "name": "כבשה לבנה, ארנב כחול, קואלה אפורה",
         "price": 5,
         "img": "/catalog-images/385.jpg",
         "alt": "דובונים ואביזרים משלימים #385",
@@ -2146,7 +2146,7 @@
       },
       {
         "sku": "387",
-        "name": "",
+        "name": "מכשיר רעש לבן",
         "price": 15,
         "img": "/catalog-images/387.jpg",
         "alt": "דובונים ואביזרים משלימים #387",
@@ -2154,7 +2154,7 @@
       },
       {
         "sku": "388",
-        "name": "",
+        "name": "קליפסים שחורים",
         "price": 15,
         "img": "/catalog-images/388.jpg",
         "alt": "דובונים ואביזרים משלימים #388",
@@ -2162,7 +2162,7 @@
       },
       {
         "sku": "389",
-        "name": "",
+        "name": "לבבות אדומים קטנים",
         "price": 5,
         "img": "/catalog-images/389.jpg",
         "alt": "דובונים ואביזרים משלימים #389",
@@ -2170,7 +2170,7 @@
       },
       {
         "sku": "390",
-        "name": "",
+        "name": "לבבות לבנים קטנים",
         "price": 5,
         "img": "/catalog-images/390.jpg",
         "alt": "דובונים ואביזרים משלימים #390",
@@ -2178,7 +2178,7 @@
       },
       {
         "sku": "391",
-        "name": "",
+        "name": "רעשן עץ מוצק",
         "price": 5,
         "img": "/catalog-images/391.jpg",
         "alt": "דובונים ואביזרים משלימים #391",
@@ -2186,7 +2186,7 @@
       },
       {
         "sku": "392",
-        "name": "",
+        "name": "פרחים קטנים",
         "price": 5,
         "img": "/catalog-images/392.jpg",
         "alt": "דובונים ואביזרים משלימים #392",
@@ -2194,7 +2194,7 @@
       },
       {
         "sku": "393",
-        "name": "",
+        "name": "סל קש תחרה",
         "price": 10,
         "img": "/catalog-images/393.jpg",
         "alt": "דובונים ואביזרים משלימים #393",
@@ -2202,7 +2202,7 @@
       },
       {
         "sku": "394",
-        "name": "",
+        "name": "צעיף ירוק דק",
         "price": 10,
         "img": "/catalog-images/394.jpg",
         "alt": "דובונים ואביזרים משלימים #394",
@@ -2210,7 +2210,7 @@
       },
       {
         "sku": "395",
-        "name": "",
+        "name": "צעיף ירוק עדין",
         "price": 10,
         "img": "/catalog-images/395.jpg",
         "alt": "דובונים ואביזרים משלימים #395",
@@ -2218,7 +2218,7 @@
       },
       {
         "sku": "396",
-        "name": "",
+        "name": "שמיכת סריג לבנה",
         "price": 10,
         "img": "/catalog-images/396.jpg",
         "alt": "דובונים ואביזרים משלימים #396",
@@ -2231,7 +2231,7 @@
     "items": [
       {
         "sku": "397",
-        "name": "",
+        "name": "פרחים קטנים לבנים",
         "price": 5,
         "img": "/catalog-images/397.jpg",
         "alt": "פרחים #397",
@@ -2239,7 +2239,7 @@
       },
       {
         "sku": "398",
-        "name": "",
+        "name": "זר חמניות כתום",
         "price": 5,
         "img": "/catalog-images/398.jpg",
         "alt": "פרחים #398",
@@ -2247,7 +2247,7 @@
       },
       {
         "sku": "399",
-        "name": "",
+        "name": "צמח מיובש ורדרד",
         "price": 5,
         "img": "/catalog-images/399.jpg",
         "alt": "פרחים #399",
@@ -2255,7 +2255,7 @@
       },
       {
         "sku": "400",
-        "name": "",
+        "name": "צמחים מלאכותיים",
         "price": 5,
         "img": "/catalog-images/400.jpg",
         "alt": "פרחים #400",
@@ -2263,7 +2263,7 @@
       },
       {
         "sku": "401",
-        "name": "",
+        "name": "פרחים לבנדר מלאכותיים",
         "price": 5,
         "img": "/catalog-images/401.jpg",
         "alt": "פרחים #401",
@@ -2271,7 +2271,7 @@
       },
       {
         "sku": "402",
-        "name": "",
+        "name": "חמניות לבנות קטנות",
         "price": 5,
         "img": "/catalog-images/402.jpg",
         "alt": "פרחים #402",
@@ -2279,7 +2279,7 @@
       },
       {
         "sku": "403",
-        "name": "",
+        "name": "צמחי כותנה",
         "price": 5,
         "img": "/catalog-images/403.jpg",
         "alt": "פרחים #403",
@@ -2287,7 +2287,7 @@
       },
       {
         "sku": "404",
-        "name": "",
+        "name": "כותנה ורדרדה",
         "price": 5,
         "img": "/catalog-images/404.jpg",
         "alt": "פרחים #404",
@@ -2295,7 +2295,7 @@
       },
       {
         "sku": "405",
-        "name": "",
+        "name": "ענפי פירות יער",
         "price": 5,
         "img": "/catalog-images/405.jpg",
         "alt": "פרחים #405",
@@ -2303,7 +2303,7 @@
       },
       {
         "sku": "406",
-        "name": "",
+        "name": "אשכול אוכמניות כחולות",
         "price": 5,
         "img": "/catalog-images/406.jpg",
         "alt": "פרחים #406",
@@ -2311,7 +2311,7 @@
       },
       {
         "sku": "407",
-        "name": "",
+        "name": "פרחי קסם מיובשים",
         "price": 5,
         "img": "/catalog-images/407.jpg",
         "alt": "פרחים #407",
@@ -2319,7 +2319,7 @@
       },
       {
         "sku": "408",
-        "name": "",
+        "name": "פרחי גבספילה כחולים",
         "price": 5,
         "img": "/catalog-images/408.jpg",
         "alt": "פרחים #408",
@@ -2332,7 +2332,7 @@
     "items": [
       {
         "sku": "409",
-        "name": "",
+        "name": "סל קש\nדובון פרווה\nכרית טקסטיל\nכובע תינוק",
         "price": 25,
         "img": "/catalog-images/409.jpg",
         "alt": "גיל שנה - אמבטיות #409",
@@ -2340,7 +2340,7 @@
       },
       {
         "sku": "410",
-        "name": "",
+        "name": "כיסא אוכל קש",
         "price": 30,
         "img": "/catalog-images/410.jpg",
         "alt": "גיל שנה - אמבטיות #410",
@@ -2348,7 +2348,7 @@
       },
       {
         "sku": "411",
-        "name": "",
+        "name": "אמבטיה קטנה",
         "price": 30,
         "img": "/catalog-images/411.jpg",
         "alt": "גיל שנה - אמבטיות #411",
@@ -2356,7 +2356,7 @@
       },
       {
         "sku": "413",
-        "name": "",
+        "name": "קערת אמבט צהובה",
         "price": 5,
         "img": "/catalog-images/413.jpg",
         "alt": "גיל שנה - אמבטיות #413",
@@ -2364,7 +2364,7 @@
       },
       {
         "sku": "414",
-        "name": "",
+        "name": "עגלת עץ",
         "price": 25,
         "img": "/catalog-images/414.jpg",
         "alt": "גיל שנה - אמבטיות #414",
@@ -2372,7 +2372,7 @@
       },
       {
         "sku": "415",
-        "name": "",
+        "name": "מכונית צעצוע כחולה",
         "price": 20,
         "img": "/catalog-images/415.jpg",
         "alt": "גיל שנה - אמבטיות #415",
@@ -2385,7 +2385,7 @@
     "items": [
       {
         "sku": "417",
-        "name": "",
+        "name": "קטנוע תכלת",
         "price": 50,
         "img": "/catalog-images/417.jpg",
         "alt": "גיל שנה - אופנוע וסל #417",
@@ -2393,7 +2393,7 @@
       },
       {
         "sku": "418",
-        "name": "",
+        "name": "סל קלוע, בלונים, עננים",
         "price": 20,
         "img": "/catalog-images/418.jpg",
         "alt": "גיל שנה - אופנוע וסל #418",
@@ -2406,7 +2406,7 @@
     "items": [
       {
         "sku": "419",
-        "name": "",
+        "name": "תבנית סיליקון",
         "price": 20,
         "img": "/catalog-images/419.jpg",
         "alt": "אביזרים משלימים #419",
@@ -2414,7 +2414,7 @@
       },
       {
         "sku": "420",
-        "name": "",
+        "name": "אותיות העץ \"ONE",
         "price": 20,
         "img": "/catalog-images/420.jpg",
         "alt": "אביזרים משלימים #420",
@@ -2422,7 +2422,7 @@
       },
       {
         "sku": "421",
-        "name": "",
+        "name": "מעמד עוגה",
         "price": 10,
         "img": "/catalog-images/421.jpg",
         "alt": "אביזרים משלימים #421",
@@ -2430,7 +2430,7 @@
       },
       {
         "sku": "422",
-        "name": "",
+        "name": "מעמד עוגה",
         "price": 10,
         "img": "/catalog-images/422.jpg",
         "alt": "אביזרים משלימים #422",
@@ -2438,7 +2438,7 @@
       },
       {
         "sku": "423",
-        "name": "",
+        "name": "ברווזים צהובים",
         "price": 5,
         "img": "/catalog-images/423.jpg",
         "alt": "אביזרים משלימים #423",
@@ -2446,7 +2446,7 @@
       },
       {
         "sku": "424",
-        "name": "",
+        "name": "פרוסות לימון",
         "price": 5,
         "img": "/catalog-images/424.jpg",
         "alt": "אביזרים משלימים #424",
@@ -2454,7 +2454,7 @@
       },
       {
         "sku": "425",
-        "name": "",
+        "name": "חלילית עץ, פלסטיק",
         "price": 5,
         "img": "/catalog-images/425.jpg",
         "alt": "אביזרים משלימים #425",
@@ -2462,7 +2462,7 @@
       },
       {
         "sku": "426",
-        "name": "",
+        "name": "חשבון עץ",
         "price": 5,
         "img": "/catalog-images/426.jpg",
         "alt": "אביזרים משלימים #426",
@@ -2470,7 +2470,7 @@
       },
       {
         "sku": "427",
-        "name": "",
+        "name": "צעצוע עץ צבעוני",
         "price": 10,
         "img": "/catalog-images/427.jpg",
         "alt": "אביזרים משלימים #427",
@@ -2478,7 +2478,7 @@
       },
       {
         "sku": "428",
-        "name": "",
+        "name": "אוטובוס עץ צבעוני",
         "price": 10,
         "img": "/catalog-images/428.jpg",
         "alt": "אביזרים משלימים #428",
@@ -2486,7 +2486,7 @@
       },
       {
         "sku": "429",
-        "name": "",
+        "name": "שני לימונים סרוגים",
         "price": 10,
         "img": "/catalog-images/429.jpg",
         "alt": "אביזרים משלימים #429",
@@ -2494,7 +2494,7 @@
       },
       {
         "sku": "430",
-        "name": "",
+        "name": "צעצועי מוזיקה מעץ",
         "price": 10,
         "img": "/catalog-images/430.jpg",
         "alt": "אביזרים משלימים #430",
@@ -2502,7 +2502,7 @@
       },
       {
         "sku": "431",
-        "name": "",
+        "name": "מצלמת עץ צעצוע",
         "price": 5,
         "img": "/catalog-images/431.jpg",
         "alt": "אביזרים משלימים #431",
@@ -2510,7 +2510,7 @@
       },
       {
         "sku": "432",
-        "name": "",
+        "name": "קוביות עץ",
         "price": 5,
         "img": "/catalog-images/432.jpg",
         "alt": "אביזרים משלימים #432",
@@ -2518,7 +2518,7 @@
       },
       {
         "sku": "433",
-        "name": "",
+        "name": "קוביית עץ",
         "price": 5,
         "img": "/catalog-images/433.jpg",
         "alt": "אביזרים משלימים #433",
@@ -2526,7 +2526,7 @@
       },
       {
         "sku": "434",
-        "name": "",
+        "name": "שמלת פסטיבל",
         "price": 5,
         "img": "/catalog-images/434.jpg",
         "alt": "אביזרים משלימים #434",
@@ -2534,7 +2534,7 @@
       },
       {
         "sku": "436",
-        "name": "",
+        "name": "זר דגלים משולשים",
         "price": 5,
         "img": "/catalog-images/436.jpg",
         "alt": "אביזרים משלימים #436",
@@ -2542,7 +2542,7 @@
       },
       {
         "sku": "437",
-        "name": "",
+        "name": "שלט בד, \"ONE",
         "price": 5,
         "img": "/catalog-images/437.jpg",
         "alt": "אביזרים משלימים #437",
@@ -2550,7 +2550,7 @@
       },
       {
         "sku": "439",
-        "name": "",
+        "name": "דגלונים \"יום הולדת שמח",
         "price": 5,
         "img": "/catalog-images/439.jpg",
         "alt": "אביזרים משלימים #439",
@@ -2558,7 +2558,7 @@
       },
       {
         "sku": "440",
-        "name": "",
+        "name": "שרשרת חרוזים ורודה",
         "price": 5,
         "img": "/catalog-images/440.jpg",
         "alt": "אביזרים משלימים #440",
@@ -2566,7 +2566,7 @@
       },
       {
         "sku": "441",
-        "name": "",
+        "name": "שרשרת פנינים ורודות",
         "price": 5,
         "img": "/catalog-images/441.jpg",
         "alt": "אביזרים משלימים #441",
@@ -2574,7 +2574,7 @@
       },
       {
         "sku": "442",
-        "name": "",
+        "name": "כתר זהב ורוד",
         "price": 5,
         "img": "/catalog-images/442.jpg",
         "alt": "אביזרים משלימים #442",
@@ -2582,7 +2582,7 @@
       },
       {
         "sku": "443",
-        "name": "",
+        "name": "כובע נצנץ וורוד",
         "price": 5,
         "img": "/catalog-images/443.jpg",
         "alt": "אביזרים משלימים #443",
@@ -2590,7 +2590,7 @@
       },
       {
         "sku": "444",
-        "name": "",
+        "name": "כובע יום הולדת",
         "price": 5,
         "img": "/catalog-images/444.jpg",
         "alt": "אביזרים משלימים #444",
@@ -2598,7 +2598,7 @@
       },
       {
         "sku": "445",
-        "name": "",
+        "name": "כובע מספר 1",
         "price": 5,
         "img": "/catalog-images/445.jpg",
         "alt": "אביזרים משלימים #445",
@@ -2611,7 +2611,7 @@
     "items": [
       {
         "sku": "446",
-        "name": "",
+        "name": "ג'ינס תינוקות",
         "price": 15,
         "img": "/catalog-images/446.jpg",
         "alt": "אוברולים וטוטו #446",
@@ -2619,7 +2619,7 @@
       },
       {
         "sku": "447",
-        "name": "",
+        "name": "בגד גוף סרוג",
         "price": 15,
         "img": "/catalog-images/447.jpg",
         "alt": "אוברולים וטוטו #447",
@@ -2627,7 +2627,7 @@
       },
       {
         "sku": "448",
-        "name": "",
+        "name": "שתי אברקטי",
         "price": 15,
         "img": "/catalog-images/448.jpg",
         "alt": "אוברולים וטוטו #448",
@@ -2635,7 +2635,7 @@
       },
       {
         "sku": "449",
-        "name": "",
+        "name": "בגד גוף תחרה",
         "price": 15,
         "img": "/catalog-images/449.jpg",
         "alt": "אוברולים וטוטו #449",
@@ -2643,7 +2643,7 @@
       },
       {
         "sku": "450",
-        "name": "",
+        "name": "בגד גוף בז",
         "price": 15,
         "img": "/catalog-images/450.jpg",
         "alt": "אוברולים וטוטו #450",
@@ -2651,7 +2651,7 @@
       },
       {
         "sku": "451",
-        "name": "",
+        "name": "בגד גוף תינוק",
         "price": 15,
         "img": "/catalog-images/451.jpg",
         "alt": "אוברולים וטוטו #451",
@@ -2659,7 +2659,7 @@
       },
       {
         "sku": "452",
-        "name": "",
+        "name": "שמלת טול ורודה",
         "price": 15,
         "img": "/catalog-images/452.jpg",
         "alt": "אוברולים וטוטו #452",
@@ -2667,7 +2667,7 @@
       },
       {
         "sku": "453",
-        "name": "",
+        "name": "שמלת ג'ינס",
         "price": 15,
         "img": "/catalog-images/453.jpg",
         "alt": "אוברולים וטוטו #453",
@@ -2675,7 +2675,7 @@
       },
       {
         "sku": "454",
-        "name": "",
+        "name": "ג'ינס סרבל",
         "price": 15,
         "img": "/catalog-images/454.jpg",
         "alt": "אוברולים וטוטו #454",
@@ -2683,7 +2683,7 @@
       },
       {
         "sku": "455",
-        "name": "",
+        "name": "מכנסי ג'ינס משולבים",
         "price": 15,
         "img": "/catalog-images/455.jpg",
         "alt": "אוברולים וטוטו #455",
@@ -2691,7 +2691,7 @@
       },
       {
         "sku": "456",
-        "name": "",
+        "name": "סרבל ג'ינס",
         "price": 15,
         "img": "/catalog-images/456.jpg",
         "alt": "אוברולים וטוטו #456",
@@ -2699,7 +2699,7 @@
       },
       {
         "sku": "457",
-        "name": "",
+        "name": "בגד גוף סרוג",
         "price": 15,
         "img": "/catalog-images/457.jpg",
         "alt": "אוברולים וטוטו #457",
@@ -2707,7 +2707,7 @@
       },
       {
         "sku": "458",
-        "name": "",
+        "name": "טוטו ורוד",
         "price": 10,
         "img": "/catalog-images/458.jpg",
         "alt": "אוברולים וטוטו #458",
@@ -2715,7 +2715,7 @@
       },
       {
         "sku": "459",
-        "name": "",
+        "name": "חצאית טוטו צבעונית",
         "price": 10,
         "img": "/catalog-images/459.jpg",
         "alt": "אוברולים וטוטו #459",
@@ -2728,7 +2728,7 @@
     "items": [
       {
         "sku": "461",
-        "name": "",
+        "name": "אופניים לילדים",
         "price": 40,
         "img": "/catalog-images/461.jpg",
         "alt": "אביזרים חדשים 2026 #461",
@@ -2736,7 +2736,7 @@
       },
       {
         "sku": "462",
-        "name": "",
+        "name": "אופני עץ עם סל",
         "price": 40,
         "img": "/catalog-images/462.jpg",
         "alt": "אביזרים חדשים 2026 #462",
@@ -2744,7 +2744,7 @@
       },
       {
         "sku": "463",
-        "name": "",
+        "name": "קטנוע צעצוע מעץ",
         "price": 35,
         "img": "/catalog-images/463.jpg",
         "alt": "אביזרים חדשים 2026 #463",
@@ -2752,7 +2752,7 @@
       },
       {
         "sku": "464",
-        "name": "",
+        "name": "סירה מעץ\nמשוטים מעץ",
         "price": 35,
         "img": "/catalog-images/464.jpg",
         "alt": "אביזרים חדשים 2026 #464",
@@ -2760,7 +2760,7 @@
       },
       {
         "sku": "466",
-        "name": "",
+        "name": "קערת עץ",
         "price": 15,
         "img": "/catalog-images/466.jpg",
         "alt": "אביזרים חדשים 2026 #466",
@@ -2768,7 +2768,7 @@
       },
       {
         "sku": "467",
-        "name": "",
+        "name": "מכסה זכוכית עץ",
         "price": 15,
         "img": "/catalog-images/467.jpg",
         "alt": "אביזרים חדשים 2026 #467",
@@ -2776,7 +2776,7 @@
       },
       {
         "sku": "468",
-        "name": "",
+        "name": "כיסא אוכל",
         "price": 30,
         "img": "/catalog-images/468.jpg",
         "alt": "אביזרים חדשים 2026 #468",
@@ -2784,7 +2784,7 @@
       },
       {
         "sku": "469",
-        "name": "",
+        "name": "שרפרף עץ לבן",
         "price": 30,
         "img": "/catalog-images/469.jpg",
         "alt": "אביזרים חדשים 2026 #469",
@@ -2792,7 +2792,7 @@
       },
       {
         "sku": "471",
-        "name": "",
+        "name": "כובעים בייז",
         "price": 5,
         "img": "/catalog-images/471.jpg",
         "alt": "אביזרים חדשים 2026 #471",
@@ -2800,7 +2800,7 @@
       },
       {
         "sku": "472",
-        "name": "",
+        "name": "כובעים פסים",
         "price": 5,
         "img": "/catalog-images/472.jpg",
         "alt": "אביזרים חדשים 2026 #472",
@@ -2808,7 +2808,7 @@
       },
       {
         "sku": "473",
-        "name": "",
+        "name": "כובע ג'ינס",
         "price": 5,
         "img": "/catalog-images/473.jpg",
         "alt": "אביזרים חדשים 2026 #473",
@@ -2816,7 +2816,7 @@
       },
       {
         "sku": "474",
-        "name": "",
+        "name": "קוביות עץ גדולות",
         "price": 5,
         "img": "/catalog-images/474.jpg",
         "alt": "אביזרים חדשים 2026 #474",
@@ -2824,7 +2824,7 @@
       },
       {
         "sku": "475",
-        "name": "",
+        "name": "עפרונות עץ ירושלים",
         "price": 15,
         "img": "/catalog-images/475.jpg",
         "alt": "אביזרים חדשים 2026 #475",
@@ -2832,7 +2832,7 @@
       },
       {
         "sku": "476",
-        "name": "",
+        "name": "כלי מטבח",
         "price": 15,
         "img": "/catalog-images/476.jpg",
         "alt": "אביזרים חדשים 2026 #476",
@@ -2840,7 +2840,7 @@
       },
       {
         "sku": "477",
-        "name": "",
+        "name": "כובע ג'ינס שטוח",
         "price": 5,
         "img": "/catalog-images/477.jpg",
         "alt": "אביזרים חדשים 2026 #477",
@@ -2848,7 +2848,7 @@
       },
       {
         "sku": "478",
-        "name": "",
+        "name": "כובע משובץ",
         "price": 5,
         "img": "/catalog-images/478.jpg",
         "alt": "אביזרים חדשים 2026 #478",
@@ -2856,7 +2856,7 @@
       },
       {
         "sku": "479",
-        "name": "",
+        "name": "שולחן מגש במבוק",
         "price": 20,
         "img": "/catalog-images/479.jpg",
         "alt": "אביזרים חדשים 2026 #479",
@@ -2864,7 +2864,7 @@
       },
       {
         "sku": "480",
-        "name": "",
+        "name": "מדף עץ כהה",
         "price": 20,
         "img": "/catalog-images/480.jpg",
         "alt": "אביזרים חדשים 2026 #480",
@@ -2872,7 +2872,7 @@
       },
       {
         "sku": "481",
-        "name": "",
+        "name": "עגלת גלידה ורודה",
         "price": 25,
         "img": "/catalog-images/481.jpg",
         "alt": "אביזרים חדשים 2026 #481",
@@ -2880,7 +2880,7 @@
       },
       {
         "sku": "482",
-        "name": "",
+        "name": "ארגז עץ",
         "price": 25,
         "img": "/catalog-images/482.jpg",
         "alt": "אביזרים חדשים 2026 #482",
@@ -2888,7 +2888,7 @@
       },
       {
         "sku": "483",
-        "name": "",
+        "name": "מכונית עץ אדומה",
         "price": 50,
         "img": "/catalog-images/483.jpg",
         "alt": "אביזרים חדשים 2026 #483",
@@ -2896,7 +2896,7 @@
       },
       {
         "sku": "485",
-        "name": "",
+        "name": "לוח עץ",
         "price": 35,
         "img": "/catalog-images/485.jpg",
         "alt": "אביזרים חדשים 2026 #485",
@@ -2904,7 +2904,7 @@
       },
       {
         "sku": "486",
-        "name": "",
+        "name": "עוגן טורקיז גדול",
         "price": 35,
         "img": "/catalog-images/486.jpg",
         "alt": "אביזרים חדשים 2026 #486",
@@ -2912,7 +2912,7 @@
       },
       {
         "sku": "487",
-        "name": "",
+        "name": "שולחן לבן\nכיסא לבן\nתפוזים\nמיץ תפוזים\nג'אג",
         "price": 60,
         "img": "/catalog-images/487.jpg",
         "alt": "אביזרים חדשים 2026 #487",

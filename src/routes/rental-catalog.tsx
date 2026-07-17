@@ -246,7 +246,8 @@ function RentalCatalogPage() {
                           <div className="p-3 flex items-center justify-between gap-2">
                             <div className="min-w-0">
                               <div className="text-[10px] tracking-widest text-forest/60 uppercase">מק״ט {it.sku}</div>
-                              <div className="font-display text-peach-deep text-lg leading-none mt-0.5">₪{it.price}</div>
+                              {it.name && <div className="text-xs text-primary/85 truncate mt-1" title={it.name}>{it.name}</div>}
+                              <div className="font-display text-peach-deep text-lg leading-none mt-1">₪{it.price}</div>
                             </div>
                             <button
                               type="button"
@@ -431,8 +432,8 @@ function RentalCatalogPage() {
             </div>
 
             <div className="space-y-3 text-right">
-              <Field label="1. מייל *" >
-                <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="input-field" />
+              <Field label="1. מייל" >
+                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="input-field" />
               </Field>
               <Field label="2. שם *">
                 <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input-field" />
@@ -440,11 +441,11 @@ function RentalCatalogPage() {
               <Field label="3. טלפון *">
                 <input required type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="input-field" />
               </Field>
-              <Field label="4. איך הגעת אלינו? 📍 *">
-                <input required value={form.referral} onChange={(e) => setForm({ ...form, referral: e.target.value })} className="input-field" placeholder="חברה, אינסטגרם, גוגל…" />
+              <Field label="4. איך הגעת אלינו? 📍">
+                <input value={form.referral} onChange={(e) => setForm({ ...form, referral: e.target.value })} className="input-field" placeholder="חברה, אינסטגרם, גוגל…" />
               </Field>
-              <Field label="5. מתי נתראה? (תאריך + טווח שעות איסוף) *">
-                <input required value={form.pickup} onChange={(e) => setForm({ ...form, pickup: e.target.value })} className="input-field" placeholder="לדוגמה: 20.7 בין 10:00–12:00" />
+              <Field label="5. מתי נתראה? (תאריך + טווח שעות איסוף)">
+                <input value={form.pickup} onChange={(e) => setForm({ ...form, pickup: e.target.value })} className="input-field" placeholder="לדוגמה: 20.7 בין 10:00–12:00" />
               </Field>
 
               <div className="rounded-2xl bg-white/70 border border-primary/10 p-4 text-xs text-forest/80 leading-relaxed">
@@ -467,8 +468,8 @@ function RentalCatalogPage() {
                   <option>BIT / PAYBOX</option>
                 </select>
               </Field>
-              <Field label="8. מה הסכום? *">
-                <input required value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="input-field" placeholder={`מוצע: ₪${subtotal.toFixed(0)}`} />
+              <Field label="8. מה הסכום?">
+                <input value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="input-field" placeholder={`מוצע: ₪${subtotal.toFixed(0)}`} />
               </Field>
 
               <label className="flex items-start gap-2 text-sm text-forest/80 bg-white/70 border border-primary/10 rounded-2xl p-3">
@@ -539,8 +540,8 @@ function RentalCatalogPage() {
           className="bg-cream rounded-3xl p-6 md:p-10 shadow-xl border border-primary/10 space-y-4 text-right"
         >
           <div className="grid md:grid-cols-2 gap-4">
-            <Field label="1. מייל *">
-              <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="input-field" />
+            <Field label="1. מייל">
+              <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="input-field" />
             </Field>
             <Field label="2. שם *">
               <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input-field" />
@@ -548,13 +549,13 @@ function RentalCatalogPage() {
             <Field label="3. טלפון *">
               <input required type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="input-field" />
             </Field>
-            <Field label="4. איך הגעת אלינו? 📍 *">
-              <input required value={form.referral} onChange={(e) => setForm({ ...form, referral: e.target.value })} className="input-field" placeholder="חברה, אינסטגרם, גוגל…" />
+            <Field label="4. איך הגעת אלינו? 📍">
+              <input value={form.referral} onChange={(e) => setForm({ ...form, referral: e.target.value })} className="input-field" placeholder="חברה, אינסטגרם, גוגל…" />
             </Field>
           </div>
 
-          <Field label="5. מתי נתראה? (תאריך + טווח שעות איסוף) *">
-            <input required value={form.pickup} onChange={(e) => setForm({ ...form, pickup: e.target.value })} className="input-field" placeholder="לדוגמה: 20.7 בין 10:00–12:00" />
+          <Field label="5. מתי נתראה? (תאריך + טווח שעות איסוף)">
+            <input value={form.pickup} onChange={(e) => setForm({ ...form, pickup: e.target.value })} className="input-field" placeholder="לדוגמה: 20.7 בין 10:00–12:00" />
           </Field>
 
           <div className="rounded-2xl bg-white/70 border border-primary/10 p-4 text-xs text-forest/80 leading-relaxed">
@@ -579,8 +580,8 @@ function RentalCatalogPage() {
                 <option>BIT / PAYBOX</option>
               </select>
             </Field>
-            <Field label="8. מה הסכום? *">
-              <input required value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="input-field" placeholder={`מוצע: ₪${subtotal.toFixed(0)}`} />
+            <Field label="8. מה הסכום?">
+              <input value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="input-field" placeholder={`מוצע: ₪${subtotal.toFixed(0)}`} />
             </Field>
           </div>
 
