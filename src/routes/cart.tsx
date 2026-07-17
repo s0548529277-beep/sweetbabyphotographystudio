@@ -250,7 +250,7 @@ function Cart() {
                   <option>BIT / PAYBOX</option>
                 </select>
               </div>
-              <div><Label>8. מה הסכום? *</Label><Input required value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder={`מוצע: ₪${total.toFixed(0)}`} className="mt-1" /></div>
+              <div><Label>8. מה הסכום?</Label><Input value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder={`מוצע: ₪${total.toFixed(0)}`} className="mt-1" /></div>
 
               <label className="flex items-start gap-2 text-sm text-forest/80 bg-white/70 border border-primary/10 rounded-2xl p-3">
                 <input type="checkbox" checked={form.agree} onChange={(e) => setForm({ ...form, agree: e.target.checked })} className="mt-1" required />
