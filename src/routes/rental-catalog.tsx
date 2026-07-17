@@ -246,7 +246,8 @@ function RentalCatalogPage() {
                           <div className="p-3 flex items-center justify-between gap-2">
                             <div className="min-w-0">
                               <div className="text-[10px] tracking-widest text-forest/60 uppercase">מק״ט {it.sku}</div>
-                              <div className="font-display text-peach-deep text-lg leading-none mt-0.5">₪{it.price}</div>
+                              {it.name && <div className="text-xs text-primary/85 truncate mt-1" title={it.name}>{it.name}</div>}
+                              <div className="font-display text-peach-deep text-lg leading-none mt-1">₪{it.price}</div>
                             </div>
                             <button
                               type="button"
