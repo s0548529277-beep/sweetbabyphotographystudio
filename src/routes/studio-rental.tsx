@@ -282,6 +282,86 @@ function StudioRentalPage() {
             </div>
           </motion.div>
         </div>
+
+        {/* GUIDANCE ADD-ONS */}
+        <div className="mt-10">
+          <div className="flex items-end justify-between flex-wrap gap-4 mb-5">
+            <div>
+              <div className="text-[11px] tracking-[0.3em] uppercase text-[#6b8a63] mb-2">Add-ons · תוספות ליווי</div>
+              <h3 className="text-2xl md:text-3xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                חבילות הדרכה וליווי בסטודיו
+              </h3>
+            </div>
+            <p className="text-sm text-[#2d3d2b]/70 max-w-sm">
+              בחרי את רמת הליווי שמתאימה לך — מהדרכה טכנית קצרה ועד מעטפת מלאה של הכנה וזמינות לאורך כל השהות.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-4 md:gap-6">
+            {[
+              {
+                tag: "Basic",
+                price: 50,
+                title: "הדרכה טכנית קצרה",
+                desc: "סידור מהיר של הפלאש והמצלמה — יוצאים לצילום בביטחון.",
+                bullets: ["הכוונה קצרה לפני התחלה", "סידור פלאש ומצלמה", "מענה על שאלות טכניות"],
+                bg: "bg-white",
+                accent: "border-[#2d3d2b]/10",
+              },
+              {
+                tag: "Plus",
+                price: 100,
+                title: "ליווי מקצועי ראשוני",
+                desc: "התאמת 2 סטים לצילום בדיוק לצרכים שלך, כולל הכוונה יצירתית.",
+                bullets: ["בניית 2 סטים אישיים", "בחירת אביזרים ותאורה", "טיפים לצילום איכותי"],
+                bg: "bg-[#a8c4a2]/25",
+                accent: "border-[#a8c4a2]/50",
+                featured: true,
+              },
+              {
+                tag: "Premium",
+                price: 150,
+                title: "מעטפת מלאה",
+                desc: "הכנת החלל מאפס, תמיכה והסבר טכני מפורט + זמינות במהלך השהות בסטודיו.",
+                bullets: ["הכנת חלל מלאה מאפס", "הסבר טכני מפורט", "זמינות לאורך כל הסשן"],
+                bg: "bg-[#f5d5cf]",
+                accent: "border-[#f5d5cf]",
+              },
+            ].map((p, i) => (
+              <motion.div
+                key={p.title}
+                initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={i} variants={fadeUp}
+                className={`${p.bg} rounded-[1.75rem] p-6 border ${p.accent} relative overflow-hidden`}
+              >
+                {p.featured && (
+                  <span className="absolute top-4 left-4 text-[10px] tracking-[0.22em] uppercase bg-[#2d3d2b] text-[#f8ede4] px-3 py-1 rounded-full font-semibold">
+                    הכי פופולרי
+                  </span>
+                )}
+                <div className="text-[11px] tracking-[0.28em] uppercase text-[#6b8a63] mb-2">{p.tag}</div>
+                <h4 className="text-xl md:text-2xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                  {p.title}
+                </h4>
+                <div className="mt-3 flex items-baseline gap-1">
+                  <span className="text-3xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>₪{p.price}</span>
+                  <span className="text-xs text-[#2d3d2b]/60">תוספת חד-פעמית</span>
+                </div>
+                <p className="mt-3 text-sm text-[#2d3d2b]/75 leading-relaxed">{p.desc}</p>
+                <ul className="mt-4 space-y-2 text-sm text-[#2d3d2b]/85">
+                  {p.bullets.map((b) => (
+                    <li key={b} className="flex items-start gap-2">
+                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#6b8a63] shrink-0" />
+                      <span>{b}</span>
+                    </li>
+                  ))}
+                </ul>
+              </motion.div>
+            ))}
+          </div>
+          <p className="mt-4 text-xs text-[#2d3d2b]/60 text-center">
+            החבילות הן תוספת אופציונלית להשכרת הסטודיו. יש לציין את החבילה הרצויה בטופס תיאום הציפיות.
+          </p>
+        </div>
       </section>
 
       {/* BOOKING + INFO */}
