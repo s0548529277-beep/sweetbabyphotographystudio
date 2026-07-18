@@ -227,10 +227,10 @@ function StudioRentalPage() {
 
       {/* PRICING CARDS */}
       <section className="container-page pb-4" dir="rtl">
-        <div className="grid md:grid-cols-2 gap-5 md:gap-6">
+        <div className="grid md:grid-cols-2 gap-5 md:gap-6 items-stretch">
           <motion.div
             initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={0} variants={fadeUp}
-            className="bg-white rounded-[2rem] border border-[#2d3d2b]/5 p-6 md:p-8 relative overflow-hidden group"
+            className="bg-white rounded-[2rem] border border-[#2d3d2b]/5 p-6 md:p-8 relative overflow-hidden group h-full flex flex-col"
           >
             <div className="absolute -top-16 -left-16 h-48 w-48 rounded-full bg-[#f5d5cf]/60 blur-2xl" />
             <div className="relative">
@@ -255,7 +255,7 @@ function StudioRentalPage() {
 
           <motion.div
             initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={1} variants={fadeUp}
-            className="bg-[#f5d5cf] text-[#2d3d2b] rounded-[2rem] p-6 md:p-8 relative overflow-hidden"
+            className="bg-[#f5d5cf] text-[#2d3d2b] rounded-[2rem] p-6 md:p-8 relative overflow-hidden h-full flex flex-col"
           >
             <div className="absolute top-10 -left-16 h-48 w-48 rounded-full bg-white/40 blur-2xl" />
             <div className="absolute bottom-0 right-0 h-40 w-40 rounded-full bg-[#a8c4a2]/20 blur-2xl" />
@@ -405,7 +405,7 @@ function StudioRentalPage() {
                 src={SCHEDULING_SRC}
                 style={{ border: 0 }}
                 width="100%"
-                height={1020}
+                height={1170}
                 title="Google Calendar Appointment Scheduling"
               />
             </div>

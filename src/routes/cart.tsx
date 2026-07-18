@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Minus, Plus, Trash2, ShoppingBag, Tag, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
+import { GmailOverlay } from "@/components/GmailOverlay";
 
 export const Route = createFileRoute("/cart")({
   component: Cart,
@@ -34,6 +35,7 @@ function Cart() {
   const [couponInput, setCouponInput] = useState("");
   const [applying, setApplying] = useState(false);
   const [showOrderForm, setShowOrderForm] = useState(false);
+  const [gmailUrl, setGmailUrl] = useState<string | null>(null);
   const [form, setForm] = useState({
     email: user?.email ?? "", name: "", phone: "", referral: "", pickup: "",
     payment: "מזומן במקום", amount: "", agree: false, suggestion: "",
@@ -202,9 +204,9 @@ function Cart() {
                 `11. הצעה לשיפור: ${form.suggestion || "—"}`,
               ].join("\n");
               const url = `https://mail.google.com/mail/?view=cm&fs=1&to=s0548529277@gmail.com&su=${encodeURIComponent("הזמנת אביזרים — Sweetbaby")}&body=${encodeURIComponent(body)}`;
-              window.open(url, "_blank", "noopener,noreferrer");
+              setGmailUrl(url);
               setShowOrderForm(false);
-              toast.success("נפתח Gmail עם ההזמנה — נא לוודא ולשלוח ✉️");
+              toast.success("Gmail מוטמע לשליחת ההזמנה ✉️");
             }}
             className="relative w-full max-w-2xl my-8 bg-cream rounded-3xl p-6 md:p-8 shadow-2xl border border-primary/10"
           >
@@ -274,6 +276,7 @@ function Cart() {
           </form>
         </div>
       )}
+      {gmailUrl && <GmailOverlay url={gmailUrl} onClose={() => setGmailUrl(null)} />}
       <Footer />
     </div>
   );

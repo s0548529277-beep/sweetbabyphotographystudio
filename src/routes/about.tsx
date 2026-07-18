@@ -2,23 +2,52 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Camera, Aperture, Clock, Sparkles } from "lucide-react";
+import { Camera, Aperture, Clock, Sparkles, Phone, Mail, MapPin } from "lucide-react";
 
 export const Route = createFileRoute("/about")({
   component: About,
   head: () => ({
     meta: [
-      { title: "אודות הסטודיו | Sweetbaby" },
-      { name: "description", content: "Sweetbaby — סטודיו ומחסן אביזרי צילום מעוצבים בבית שמש. צילומי ניוברן, גיל שנה, חלאקה ומשפחה." },
-      { property: "og:title", content: "אודות הסטודיו | Sweetbaby" },
-      { property: "og:description", content: "Sweetbaby — סטודיו ומחסן אביזרי צילום מעוצבים בבית שמש. צילומי ניוברן, גיל שנה, חלאקה ומשפחה." },
+      { title: "אודות ויצירת קשר | Sweetbaby" },
+      { name: "description", content: "Sweetbaby — סטודיו ומחסן אביזרי צילום מעוצבים בבית שמש. צילומי ניוברן, גיל שנה, חלאקה ומשפחה. טלפון, אימייל וכתובת." },
+      { property: "og:title", content: "אודות ויצירת קשר | Sweetbaby" },
+      { property: "og:description", content: "Sweetbaby — סטודיו ומחסן אביזרי צילום מעוצבים בבית שמש. יצירת קשר, כתובת ושעות." },
       { property: "og:url", content: "https://sweetbabyphotographystudio.lovable.app/about" },
     ],
     links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/about" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "LocalBusiness",
+          "@id": "https://sweetbabyphotographystudio.lovable.app/#business",
+          name: "Sweetbaby",
+          image: "https://sweetbabyphotographystudio.lovable.app/favicon.ico",
+          url: "https://sweetbabyphotographystudio.lovable.app",
+          telephone: "+972-54-8529277",
+          email: "s0548529277@gmail.com",
+          priceRange: "₪₪",
+          address: {
+            "@type": "PostalAddress",
+            streetAddress: "תלמוד ירושלמי 24",
+            addressLocality: "בית שמש",
+            addressCountry: "IL",
+          },
+          areaServed: "IL",
+        }),
+      },
+    ],
   }),
 });
 
 function About() {
+  const contactCards = [
+    { icon: Phone, t: "טלפון", v: "054-8529277", href: "tel:0548529277", ltr: true },
+    { icon: Mail, t: "אימייל", v: "s0548529277@gmail.com", href: "mailto:s0548529277@gmail.com", ltr: true },
+    { icon: MapPin, t: "כתובת", v: "תלמוד ירושלמי 24, בית שמש", href: "https://maps.google.com/?q=תלמוד+ירושלמי+24+בית+שמש", ltr: false },
+  ];
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
@@ -52,9 +81,28 @@ function About() {
           ))}
         </div>
 
+        {/* Contact */}
+        <div className="mt-24">
+          <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-4">Get In Touch</div>
+          <h2 className="font-display text-4xl md:text-5xl text-primary">בואו נדבר</h2>
+          <p className="text-muted-foreground max-w-lg mt-4">
+            שמחות לענות על שאלות, לעזור בבחירת אביזרים ולתאם השכרה.
+          </p>
+
+          <div className="grid md:grid-cols-3 gap-5 mt-10">
+            {contactCards.map((c) => (
+              <a key={c.t} href={c.href} className="bg-card rounded-3xl p-8 border border-primary/5 hover:shadow-[var(--shadow-card)] transition-shadow block">
+                <c.icon className="h-6 w-6 text-peach-deep mb-6" />
+                <div className="text-xs tracking-widest uppercase text-muted-foreground mb-2">{c.t}</div>
+                <div className="font-display text-2xl text-primary" dir={c.ltr ? "ltr" : undefined}>{c.v}</div>
+              </a>
+            ))}
+          </div>
+        </div>
+
         <div className="mt-16 flex gap-3">
           <Link to="/rental-catalog"><Button className="rounded-full px-7 h-12">לקטלוג</Button></Link>
-          <Link to="/contact"><Button variant="outline" className="rounded-full px-7 h-12">יצירת קשר</Button></Link>
+          <Link to="/studio-rental"><Button variant="outline" className="rounded-full px-7 h-12">השכרת סטודיו</Button></Link>
         </div>
       </section>
       <Footer />

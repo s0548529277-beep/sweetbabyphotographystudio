@@ -1,5 +1,335 @@
 [
   {
+    "title": "אביזרים חדשים 2026",
+    "items": [
+      {
+        "sku": "461",
+        "name": "אופניים לילדים",
+        "price": 40,
+        "img": "/catalog-images/461.jpg",
+        "alt": "אביזרים חדשים 2026 #461",
+        "hasHand": false
+      },
+      {
+        "sku": "462",
+        "name": "אופני עץ עם סל",
+        "price": 40,
+        "img": "/catalog-images/462.jpg",
+        "alt": "אביזרים חדשים 2026 #462",
+        "hasHand": false
+      },
+      {
+        "sku": "463",
+        "name": "קטנוע צעצוע מעץ",
+        "price": 35,
+        "img": "/catalog-images/463.jpg",
+        "alt": "אביזרים חדשים 2026 #463",
+        "hasHand": false
+      },
+      {
+        "sku": "464",
+        "name": "סירה מעץ\nמשוטים מעץ",
+        "price": 35,
+        "img": "/catalog-images/464.jpg",
+        "alt": "אביזרים חדשים 2026 #464",
+        "hasHand": true
+      },
+      {
+        "sku": "466",
+        "name": "קערת עץ",
+        "price": 15,
+        "img": "/catalog-images/466.jpg",
+        "alt": "אביזרים חדשים 2026 #466",
+        "hasHand": false
+      },
+      {
+        "sku": "467",
+        "name": "מכסה זכוכית עץ",
+        "price": 15,
+        "img": "/catalog-images/467.jpg",
+        "alt": "אביזרים חדשים 2026 #467",
+        "hasHand": false
+      },
+      {
+        "sku": "468",
+        "name": "כיסא אוכל",
+        "price": 30,
+        "img": "/catalog-images/468.jpg",
+        "alt": "אביזרים חדשים 2026 #468",
+        "hasHand": false
+      },
+      {
+        "sku": "469",
+        "name": "שרפרף עץ לבן",
+        "price": 30,
+        "img": "/catalog-images/469.jpg",
+        "alt": "אביזרים חדשים 2026 #469",
+        "hasHand": false
+      },
+      {
+        "sku": "471",
+        "name": "כובעים בייז",
+        "price": 5,
+        "img": "/catalog-images/471.jpg",
+        "alt": "אביזרים חדשים 2026 #471",
+        "hasHand": false
+      },
+      {
+        "sku": "472",
+        "name": "כובעים פסים",
+        "price": 5,
+        "img": "/catalog-images/472.jpg",
+        "alt": "אביזרים חדשים 2026 #472",
+        "hasHand": false
+      },
+      {
+        "sku": "473",
+        "name": "כובע ג'ינס",
+        "price": 5,
+        "img": "/catalog-images/473.jpg",
+        "alt": "אביזרים חדשים 2026 #473",
+        "hasHand": false
+      },
+      {
+        "sku": "474",
+        "name": "קוביות עץ גדולות",
+        "price": 5,
+        "img": "/catalog-images/474.jpg",
+        "alt": "אביזרים חדשים 2026 #474",
+        "hasHand": false
+      },
+      {
+        "sku": "475",
+        "name": "עפרונות עץ ירושלים",
+        "price": 15,
+        "img": "/catalog-images/475.jpg",
+        "alt": "אביזרים חדשים 2026 #475",
+        "hasHand": false
+      },
+      {
+        "sku": "476",
+        "name": "כלי מטבח",
+        "price": 15,
+        "img": "/catalog-images/476.jpg",
+        "alt": "אביזרים חדשים 2026 #476",
+        "hasHand": false
+      },
+      {
+        "sku": "477",
+        "name": "כובע ג'ינס שטוח",
+        "price": 5,
+        "img": "/catalog-images/477.jpg",
+        "alt": "אביזרים חדשים 2026 #477",
+        "hasHand": false
+      },
+      {
+        "sku": "478",
+        "name": "כובע משובץ",
+        "price": 5,
+        "img": "/catalog-images/478.jpg",
+        "alt": "אביזרים חדשים 2026 #478",
+        "hasHand": false
+      },
+      {
+        "sku": "479",
+        "name": "שולחן מגש במבוק",
+        "price": 20,
+        "img": "/catalog-images/479.jpg",
+        "alt": "אביזרים חדשים 2026 #479",
+        "hasHand": false
+      },
+      {
+        "sku": "480",
+        "name": "מדף עץ כהה",
+        "price": 20,
+        "img": "/catalog-images/480.jpg",
+        "alt": "אביזרים חדשים 2026 #480",
+        "hasHand": false
+      },
+      {
+        "sku": "481",
+        "name": "עגלת גלידה ורודה",
+        "price": 25,
+        "img": "/catalog-images/481.jpg",
+        "alt": "אביזרים חדשים 2026 #481",
+        "hasHand": false
+      },
+      {
+        "sku": "482",
+        "name": "ארגז עץ",
+        "price": 25,
+        "img": "/catalog-images/482.jpg",
+        "alt": "אביזרים חדשים 2026 #482",
+        "hasHand": false
+      },
+      {
+        "sku": "483",
+        "name": "מכונית עץ אדומה",
+        "price": 50,
+        "img": "/catalog-images/483.jpg",
+        "alt": "אביזרים חדשים 2026 #483",
+        "hasHand": false
+      },
+      {
+        "sku": "485",
+        "name": "לוח עץ",
+        "price": 35,
+        "img": "/catalog-images/485.jpg",
+        "alt": "אביזרים חדשים 2026 #485",
+        "hasHand": false
+      },
+      {
+        "sku": "486",
+        "name": "עוגן טורקיז גדול",
+        "price": 35,
+        "img": "/catalog-images/486.jpg",
+        "alt": "אביזרים חדשים 2026 #486",
+        "hasHand": false
+      },
+      {
+        "sku": "487",
+        "name": "שולחן לבן\nכיסא לבן\nתפוזים\nמיץ תפוזים\nג'אג",
+        "price": 60,
+        "img": "/catalog-images/487.jpg",
+        "alt": "אביזרים חדשים 2026 #487",
+        "hasHand": true
+      }
+    ]
+  },
+  {
+    "title": "אביזרים חדשים – השלמות 2026",
+    "items": [
+      {
+        "sku": "100",
+        "name": "מעיל גשם צהוב לילדים – חוץ",
+        "price": 25,
+        "img": "/catalog-images/100.jpg",
+        "alt": "מעיל גשם צהוב לילדים – חוץ #100",
+        "hasHand": true
+      },
+      {
+        "sku": "101",
+        "name": "רשת דגים – חוץ",
+        "price": 15,
+        "img": "/catalog-images/101.jpg",
+        "alt": "רשת דגים – חוץ #101",
+        "hasHand": true
+      },
+      {
+        "sku": "103",
+        "name": "מגפי גומי צהובים בודדים",
+        "price": 15,
+        "img": "/catalog-images/103.jpg",
+        "alt": "מגפי גומי צהובים בודדים #103",
+        "hasHand": false
+      },
+      {
+        "sku": "119",
+        "name": "מריצת עץ וינטג׳ – חוץ",
+        "price": 25,
+        "img": "/catalog-images/119.jpg",
+        "alt": "מריצת עץ וינטג׳ – חוץ #119",
+        "hasHand": true
+      },
+      {
+        "sku": "120",
+        "name": "סטנדר תאורה מתכת",
+        "price": 15,
+        "img": "/catalog-images/120.jpg",
+        "alt": "סטנדר תאורה מתכת #120",
+        "hasHand": false
+      },
+      {
+        "sku": "122",
+        "name": "מחבט וינטג׳",
+        "price": 15,
+        "img": "/catalog-images/122.jpg",
+        "alt": "מחבט וינטג׳ #122",
+        "hasHand": false
+      },
+      {
+        "sku": "124",
+        "name": "סקייטבורד שחור",
+        "price": 15,
+        "img": "/catalog-images/124.jpg",
+        "alt": "סקייטבורד שחור #124",
+        "hasHand": false
+      },
+      {
+        "sku": "125",
+        "name": "ספריי צבע ריק (תפאורה)",
+        "price": 5,
+        "img": "/catalog-images/125.jpg",
+        "alt": "ספריי צבע ריק (תפאורה) #125",
+        "hasHand": false
+      },
+      {
+        "sku": "134",
+        "name": "מזוודה קטנה וינטג׳",
+        "price": 15,
+        "img": "/catalog-images/134.jpg",
+        "alt": "מזוודה קטנה וינטג׳ #134",
+        "hasHand": false
+      },
+      {
+        "sku": "136",
+        "name": "כיסא עץ אדום קטן",
+        "price": 20,
+        "img": "/catalog-images/136.jpg",
+        "alt": "כיסא עץ אדום קטן #136",
+        "hasHand": false
+      },
+      {
+        "sku": "137",
+        "name": "עששית אדומה",
+        "price": 10,
+        "img": "/catalog-images/137.jpg",
+        "alt": "עששית אדומה #137",
+        "hasHand": false
+      },
+      {
+        "sku": "139",
+        "name": "ספרי וינטג׳ (5 ב-15 ₪)",
+        "price": 15,
+        "img": "/catalog-images/139.jpg",
+        "alt": "ספרי וינטג׳ (5 ב-15 ₪) #139",
+        "hasHand": false
+      },
+      {
+        "sku": "201",
+        "name": "סט 3 מזוודות וינטג׳",
+        "price": 25,
+        "img": "/catalog-images/201.jpg",
+        "alt": "סט 3 מזוודות וינטג׳ #201",
+        "hasHand": false
+      },
+      {
+        "sku": "412",
+        "name": "אמבטיה צהובה עם לימונים",
+        "price": 30,
+        "img": "/catalog-images/412.jpg",
+        "alt": "אמבטיה צהובה עם לימונים #412",
+        "hasHand": true
+      },
+      {
+        "sku": "488",
+        "name": "שמלת תחרה לבנה לגיל שנה",
+        "price": 20,
+        "img": "/catalog-images/488.jpg",
+        "alt": "שמלת תחרה לבנה לגיל שנה #488",
+        "hasHand": false
+      },
+      {
+        "sku": "490",
+        "name": "כתר פרחים ורוד",
+        "price": 15,
+        "img": "/catalog-images/490.jpg",
+        "alt": "כתר פרחים ורוד #490",
+        "hasHand": false
+      }
+    ]
+  },
+  {
     "title": "כללי ואביזרים גדולים",
     "items": [
       {
@@ -2227,6 +2557,115 @@
     ]
   },
   {
+    "title": "דובוני סריגה – חדש",
+    "items": [
+      {
+        "sku": "500",
+        "name": "דובון סרוג אוברול תכלת עם כובע",
+        "price": 15,
+        "img": "/catalog-images/500.jpg",
+        "alt": "דובון סרוג אוברול תכלת עם כובע #500",
+        "hasHand": false
+      },
+      {
+        "sku": "501",
+        "name": "דובון סרוג סגלגל רך",
+        "price": 15,
+        "img": "/catalog-images/501.jpg",
+        "alt": "דובון סרוג סגלגל רך #501",
+        "hasHand": false
+      },
+      {
+        "sku": "502",
+        "name": "דובון סרוג אוברול ורוד עם כובע",
+        "price": 15,
+        "img": "/catalog-images/502.jpg",
+        "alt": "דובון סרוג אוברול ורוד עם כובע #502",
+        "hasHand": false
+      },
+      {
+        "sku": "503",
+        "name": "דובון סרוג אוברול חום עם כובע",
+        "price": 15,
+        "img": "/catalog-images/503.jpg",
+        "alt": "דובון סרוג אוברול חום עם כובע #503",
+        "hasHand": false
+      },
+      {
+        "sku": "504",
+        "name": "דובון לבד אפור טבעי",
+        "price": 15,
+        "img": "/catalog-images/504.jpg",
+        "alt": "דובון לבד אפור טבעי #504",
+        "hasHand": false
+      },
+      {
+        "sku": "505",
+        "name": "דובון לבד סגול",
+        "price": 15,
+        "img": "/catalog-images/505.jpg",
+        "alt": "דובון לבד סגול #505",
+        "hasHand": false
+      },
+      {
+        "sku": "506",
+        "name": "דובון סרוג אוברול חרדל עם כובע",
+        "price": 15,
+        "img": "/catalog-images/506.jpg",
+        "alt": "דובון סרוג אוברול חרדל עם כובע #506",
+        "hasHand": false
+      },
+      {
+        "sku": "507",
+        "name": "דובון לבד קטן קרם",
+        "price": 15,
+        "img": "/catalog-images/507.jpg",
+        "alt": "דובון לבד קטן קרם #507",
+        "hasHand": false
+      },
+      {
+        "sku": "508",
+        "name": "דובון סרוג בז׳ פשוט",
+        "price": 15,
+        "img": "/catalog-images/508.jpg",
+        "alt": "דובון סרוג בז׳ פשוט #508",
+        "hasHand": false
+      },
+      {
+        "sku": "509",
+        "name": "דובון סרוג ורוד עדין",
+        "price": 15,
+        "img": "/catalog-images/509.jpg",
+        "alt": "דובון סרוג ורוד עדין #509",
+        "hasHand": false
+      },
+      {
+        "sku": "510",
+        "name": "דובון סרוג תכלת פשוט",
+        "price": 15,
+        "img": "/catalog-images/510.jpg",
+        "alt": "דובון סרוג תכלת פשוט #510",
+        "hasHand": false
+      },
+      {
+        "sku": "511",
+        "name": "דובון סרוג בז׳ קלאסי",
+        "price": 15,
+        "img": "/catalog-images/511.jpg",
+        "alt": "דובון סרוג בז׳ קלאסי #511",
+        "hasHand": false
+      },
+      {
+        "sku": "512",
+        "name": "דובון סרוג אוברול כחול בהיר עם כובע",
+        "price": 15,
+        "img": "/catalog-images/512.jpg",
+        "alt": "דובון סרוג אוברול כחול בהיר עם כובע #512",
+        "hasHand": false
+      }
+    ]
+  },
+  {
     "title": "פרחים",
     "items": [
       {
@@ -2719,445 +3158,6 @@
         "price": 10,
         "img": "/catalog-images/459.jpg",
         "alt": "אוברולים וטוטו #459",
-        "hasHand": false
-      }
-    ]
-  },
-  {
-    "title": "אביזרים חדשים 2026",
-    "items": [
-      {
-        "sku": "461",
-        "name": "אופניים לילדים",
-        "price": 40,
-        "img": "/catalog-images/461.jpg",
-        "alt": "אביזרים חדשים 2026 #461",
-        "hasHand": false
-      },
-      {
-        "sku": "462",
-        "name": "אופני עץ עם סל",
-        "price": 40,
-        "img": "/catalog-images/462.jpg",
-        "alt": "אביזרים חדשים 2026 #462",
-        "hasHand": false
-      },
-      {
-        "sku": "463",
-        "name": "קטנוע צעצוע מעץ",
-        "price": 35,
-        "img": "/catalog-images/463.jpg",
-        "alt": "אביזרים חדשים 2026 #463",
-        "hasHand": false
-      },
-      {
-        "sku": "464",
-        "name": "סירה מעץ\nמשוטים מעץ",
-        "price": 35,
-        "img": "/catalog-images/464.jpg",
-        "alt": "אביזרים חדשים 2026 #464",
-        "hasHand": true
-      },
-      {
-        "sku": "466",
-        "name": "קערת עץ",
-        "price": 15,
-        "img": "/catalog-images/466.jpg",
-        "alt": "אביזרים חדשים 2026 #466",
-        "hasHand": false
-      },
-      {
-        "sku": "467",
-        "name": "מכסה זכוכית עץ",
-        "price": 15,
-        "img": "/catalog-images/467.jpg",
-        "alt": "אביזרים חדשים 2026 #467",
-        "hasHand": false
-      },
-      {
-        "sku": "468",
-        "name": "כיסא אוכל",
-        "price": 30,
-        "img": "/catalog-images/468.jpg",
-        "alt": "אביזרים חדשים 2026 #468",
-        "hasHand": false
-      },
-      {
-        "sku": "469",
-        "name": "שרפרף עץ לבן",
-        "price": 30,
-        "img": "/catalog-images/469.jpg",
-        "alt": "אביזרים חדשים 2026 #469",
-        "hasHand": false
-      },
-      {
-        "sku": "471",
-        "name": "כובעים בייז",
-        "price": 5,
-        "img": "/catalog-images/471.jpg",
-        "alt": "אביזרים חדשים 2026 #471",
-        "hasHand": false
-      },
-      {
-        "sku": "472",
-        "name": "כובעים פסים",
-        "price": 5,
-        "img": "/catalog-images/472.jpg",
-        "alt": "אביזרים חדשים 2026 #472",
-        "hasHand": false
-      },
-      {
-        "sku": "473",
-        "name": "כובע ג'ינס",
-        "price": 5,
-        "img": "/catalog-images/473.jpg",
-        "alt": "אביזרים חדשים 2026 #473",
-        "hasHand": false
-      },
-      {
-        "sku": "474",
-        "name": "קוביות עץ גדולות",
-        "price": 5,
-        "img": "/catalog-images/474.jpg",
-        "alt": "אביזרים חדשים 2026 #474",
-        "hasHand": false
-      },
-      {
-        "sku": "475",
-        "name": "עפרונות עץ ירושלים",
-        "price": 15,
-        "img": "/catalog-images/475.jpg",
-        "alt": "אביזרים חדשים 2026 #475",
-        "hasHand": false
-      },
-      {
-        "sku": "476",
-        "name": "כלי מטבח",
-        "price": 15,
-        "img": "/catalog-images/476.jpg",
-        "alt": "אביזרים חדשים 2026 #476",
-        "hasHand": false
-      },
-      {
-        "sku": "477",
-        "name": "כובע ג'ינס שטוח",
-        "price": 5,
-        "img": "/catalog-images/477.jpg",
-        "alt": "אביזרים חדשים 2026 #477",
-        "hasHand": false
-      },
-      {
-        "sku": "478",
-        "name": "כובע משובץ",
-        "price": 5,
-        "img": "/catalog-images/478.jpg",
-        "alt": "אביזרים חדשים 2026 #478",
-        "hasHand": false
-      },
-      {
-        "sku": "479",
-        "name": "שולחן מגש במבוק",
-        "price": 20,
-        "img": "/catalog-images/479.jpg",
-        "alt": "אביזרים חדשים 2026 #479",
-        "hasHand": false
-      },
-      {
-        "sku": "480",
-        "name": "מדף עץ כהה",
-        "price": 20,
-        "img": "/catalog-images/480.jpg",
-        "alt": "אביזרים חדשים 2026 #480",
-        "hasHand": false
-      },
-      {
-        "sku": "481",
-        "name": "עגלת גלידה ורודה",
-        "price": 25,
-        "img": "/catalog-images/481.jpg",
-        "alt": "אביזרים חדשים 2026 #481",
-        "hasHand": false
-      },
-      {
-        "sku": "482",
-        "name": "ארגז עץ",
-        "price": 25,
-        "img": "/catalog-images/482.jpg",
-        "alt": "אביזרים חדשים 2026 #482",
-        "hasHand": false
-      },
-      {
-        "sku": "483",
-        "name": "מכונית עץ אדומה",
-        "price": 50,
-        "img": "/catalog-images/483.jpg",
-        "alt": "אביזרים חדשים 2026 #483",
-        "hasHand": false
-      },
-      {
-        "sku": "485",
-        "name": "לוח עץ",
-        "price": 35,
-        "img": "/catalog-images/485.jpg",
-        "alt": "אביזרים חדשים 2026 #485",
-        "hasHand": false
-      },
-      {
-        "sku": "486",
-        "name": "עוגן טורקיז גדול",
-        "price": 35,
-        "img": "/catalog-images/486.jpg",
-        "alt": "אביזרים חדשים 2026 #486",
-        "hasHand": false
-      },
-      {
-        "sku": "487",
-        "name": "שולחן לבן\nכיסא לבן\nתפוזים\nמיץ תפוזים\nג'אג",
-        "price": 60,
-        "img": "/catalog-images/487.jpg",
-        "alt": "אביזרים חדשים 2026 #487",
-        "hasHand": true
-      }
-    ]
-  },
-  {
-    "title": "אביזרים חדשים – השלמות 2026",
-    "items": [
-      {
-        "sku": "100",
-        "name": "מעיל גשם צהוב לילדים – חוץ",
-        "price": 25,
-        "img": "/catalog-images/100.jpg",
-        "alt": "מעיל גשם צהוב לילדים – חוץ #100",
-        "hasHand": true
-      },
-      {
-        "sku": "101",
-        "name": "רשת דגים – חוץ",
-        "price": 15,
-        "img": "/catalog-images/101.jpg",
-        "alt": "רשת דגים – חוץ #101",
-        "hasHand": true
-      },
-      {
-        "sku": "103",
-        "name": "מגפי גומי צהובים בודדים",
-        "price": 15,
-        "img": "/catalog-images/103.jpg",
-        "alt": "מגפי גומי צהובים בודדים #103",
-        "hasHand": false
-      },
-      {
-        "sku": "119",
-        "name": "מריצת עץ וינטג׳ – חוץ",
-        "price": 25,
-        "img": "/catalog-images/119.jpg",
-        "alt": "מריצת עץ וינטג׳ – חוץ #119",
-        "hasHand": true
-      },
-      {
-        "sku": "120",
-        "name": "סטנדר תאורה מתכת",
-        "price": 15,
-        "img": "/catalog-images/120.jpg",
-        "alt": "סטנדר תאורה מתכת #120",
-        "hasHand": false
-      },
-      {
-        "sku": "122",
-        "name": "מחבט וינטג׳",
-        "price": 15,
-        "img": "/catalog-images/122.jpg",
-        "alt": "מחבט וינטג׳ #122",
-        "hasHand": false
-      },
-      {
-        "sku": "124",
-        "name": "סקייטבורד שחור",
-        "price": 15,
-        "img": "/catalog-images/124.jpg",
-        "alt": "סקייטבורד שחור #124",
-        "hasHand": false
-      },
-      {
-        "sku": "125",
-        "name": "ספריי צבע ריק (תפאורה)",
-        "price": 5,
-        "img": "/catalog-images/125.jpg",
-        "alt": "ספריי צבע ריק (תפאורה) #125",
-        "hasHand": false
-      },
-      {
-        "sku": "134",
-        "name": "מזוודה קטנה וינטג׳",
-        "price": 15,
-        "img": "/catalog-images/134.jpg",
-        "alt": "מזוודה קטנה וינטג׳ #134",
-        "hasHand": false
-      },
-      {
-        "sku": "136",
-        "name": "כיסא עץ אדום קטן",
-        "price": 20,
-        "img": "/catalog-images/136.jpg",
-        "alt": "כיסא עץ אדום קטן #136",
-        "hasHand": false
-      },
-      {
-        "sku": "137",
-        "name": "עששית אדומה",
-        "price": 10,
-        "img": "/catalog-images/137.jpg",
-        "alt": "עששית אדומה #137",
-        "hasHand": false
-      },
-      {
-        "sku": "139",
-        "name": "ספרי וינטג׳ (5 ב-15 ₪)",
-        "price": 15,
-        "img": "/catalog-images/139.jpg",
-        "alt": "ספרי וינטג׳ (5 ב-15 ₪) #139",
-        "hasHand": false
-      },
-      {
-        "sku": "201",
-        "name": "סט 3 מזוודות וינטג׳",
-        "price": 25,
-        "img": "/catalog-images/201.jpg",
-        "alt": "סט 3 מזוודות וינטג׳ #201",
-        "hasHand": false
-      },
-      {
-        "sku": "412",
-        "name": "אמבטיה צהובה עם לימונים",
-        "price": 30,
-        "img": "/catalog-images/412.jpg",
-        "alt": "אמבטיה צהובה עם לימונים #412",
-        "hasHand": true
-      },
-      {
-        "sku": "488",
-        "name": "שמלת תחרה לבנה לגיל שנה",
-        "price": 20,
-        "img": "/catalog-images/488.jpg",
-        "alt": "שמלת תחרה לבנה לגיל שנה #488",
-        "hasHand": false
-      },
-      {
-        "sku": "490",
-        "name": "כתר פרחים ורוד",
-        "price": 15,
-        "img": "/catalog-images/490.jpg",
-        "alt": "כתר פרחים ורוד #490",
-        "hasHand": false
-      }
-    ]
-  },
-  {
-    "title": "דובוני סריגה – חדש",
-    "items": [
-      {
-        "sku": "500",
-        "name": "דובון סרוג אוברול תכלת עם כובע",
-        "price": 15,
-        "img": "/catalog-images/500.jpg",
-        "alt": "דובון סרוג אוברול תכלת עם כובע #500",
-        "hasHand": false
-      },
-      {
-        "sku": "501",
-        "name": "דובון סרוג סגלגל רך",
-        "price": 15,
-        "img": "/catalog-images/501.jpg",
-        "alt": "דובון סרוג סגלגל רך #501",
-        "hasHand": false
-      },
-      {
-        "sku": "502",
-        "name": "דובון סרוג אוברול ורוד עם כובע",
-        "price": 15,
-        "img": "/catalog-images/502.jpg",
-        "alt": "דובון סרוג אוברול ורוד עם כובע #502",
-        "hasHand": false
-      },
-      {
-        "sku": "503",
-        "name": "דובון סרוג אוברול חום עם כובע",
-        "price": 15,
-        "img": "/catalog-images/503.jpg",
-        "alt": "דובון סרוג אוברול חום עם כובע #503",
-        "hasHand": false
-      },
-      {
-        "sku": "504",
-        "name": "דובון לבד אפור טבעי",
-        "price": 15,
-        "img": "/catalog-images/504.jpg",
-        "alt": "דובון לבד אפור טבעי #504",
-        "hasHand": false
-      },
-      {
-        "sku": "505",
-        "name": "דובון לבד סגול",
-        "price": 15,
-        "img": "/catalog-images/505.jpg",
-        "alt": "דובון לבד סגול #505",
-        "hasHand": false
-      },
-      {
-        "sku": "506",
-        "name": "דובון סרוג אוברול חרדל עם כובע",
-        "price": 15,
-        "img": "/catalog-images/506.jpg",
-        "alt": "דובון סרוג אוברול חרדל עם כובע #506",
-        "hasHand": false
-      },
-      {
-        "sku": "507",
-        "name": "דובון לבד קטן קרם",
-        "price": 15,
-        "img": "/catalog-images/507.jpg",
-        "alt": "דובון לבד קטן קרם #507",
-        "hasHand": false
-      },
-      {
-        "sku": "508",
-        "name": "דובון סרוג בז׳ פשוט",
-        "price": 15,
-        "img": "/catalog-images/508.jpg",
-        "alt": "דובון סרוג בז׳ פשוט #508",
-        "hasHand": false
-      },
-      {
-        "sku": "509",
-        "name": "דובון סרוג ורוד עדין",
-        "price": 15,
-        "img": "/catalog-images/509.jpg",
-        "alt": "דובון סרוג ורוד עדין #509",
-        "hasHand": false
-      },
-      {
-        "sku": "510",
-        "name": "דובון סרוג תכלת פשוט",
-        "price": 15,
-        "img": "/catalog-images/510.jpg",
-        "alt": "דובון סרוג תכלת פשוט #510",
-        "hasHand": false
-      },
-      {
-        "sku": "511",
-        "name": "דובון סרוג בז׳ קלאסי",
-        "price": 15,
-        "img": "/catalog-images/511.jpg",
-        "alt": "דובון סרוג בז׳ קלאסי #511",
-        "hasHand": false
-      },
-      {
-        "sku": "512",
-        "name": "דובון סרוג אוברול כחול בהיר עם כובע",
-        "price": 15,
-        "img": "/catalog-images/512.jpg",
-        "alt": "דובון סרוג אוברול כחול בהיר עם כובע #512",
         "hasHand": false
       }
     ]

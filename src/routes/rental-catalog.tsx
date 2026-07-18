@@ -8,6 +8,7 @@ import catalogData from "@/data/studio-catalog.json";
 import { smartSearchItems } from "@/lib/ai.functions";
 import { useCart } from "@/lib/cart";
 import { Sparkles, Search, X, ShoppingBag, Check, Plus, Trash2, ZoomIn } from "lucide-react";
+import { GmailOverlay } from "@/components/GmailOverlay";
 
 export const Route = createFileRoute("/rental-catalog")({
   head: () => ({
@@ -42,6 +43,7 @@ function RentalCatalogPage() {
   const [lightbox, setLightbox] = useState<Item | null>(null);
   const [activeCat, setActiveCat] = useState<string>("all");
   const [showOrderForm, setShowOrderForm] = useState(false);
+  const [gmailUrl, setGmailUrl] = useState<string | null>(null);
   const [form, setForm] = useState({
     email: "", name: "", phone: "", referral: "", pickup: "",
     payment: "מזומן במקום", amount: "", agree: false, suggestion: "",
@@ -412,7 +414,7 @@ function RentalCatalogPage() {
                 `11. הצעה לשיפור: ${form.suggestion || "—"}`,
               ].join("\n");
               const url = `https://mail.google.com/mail/?view=cm&fs=1&to=s0548529277@gmail.com&su=${encodeURIComponent("הזמנת אביזרים — Sweetbaby")}&body=${encodeURIComponent(body)}`;
-              window.open(url, "_blank", "noopener,noreferrer");
+              setGmailUrl(url);
               setShowOrderForm(false);
             }}
             className="relative w-full max-w-2xl my-8 bg-cream rounded-3xl p-6 md:p-8 shadow-2xl border border-primary/10"
@@ -535,7 +537,7 @@ function RentalCatalogPage() {
               `11. הצעה לשיפור: ${form.suggestion || "—"}`,
             ].join("\n");
             const url = `https://mail.google.com/mail/?view=cm&fs=1&to=s0548529277@gmail.com&su=${encodeURIComponent("הזמנת אביזרים — Sweetbaby")}&body=${encodeURIComponent(body)}`;
-            window.open(url, "_blank", "noopener,noreferrer");
+            setGmailUrl(url);
           }}
           className="bg-cream rounded-3xl p-6 md:p-10 shadow-xl border border-primary/10 space-y-4 text-right"
         >
@@ -611,6 +613,7 @@ function RentalCatalogPage() {
         </form>
       </section>
 
+      {gmailUrl && <GmailOverlay url={gmailUrl} onClose={() => setGmailUrl(null)} />}
       <Footer />
     </div>
   );
@@ -639,3 +642,5 @@ function Chip({ children, active, onClick }: { children: React.ReactNode; active
     </button>
   );
 }
+
+
