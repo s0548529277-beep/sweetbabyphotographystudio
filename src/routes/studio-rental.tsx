@@ -255,7 +255,7 @@ function StudioRentalPage() {
 
           <motion.div
             initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={1} variants={fadeUp}
-            className="bg-[#f5d5cf] text-[#2d3d2b] rounded-[2rem] p-6 md:p-8 relative overflow-hidden"
+            className="bg-[#f5d5cf] text-[#2d3d2b] rounded-[2rem] p-6 md:p-8 relative overflow-hidden h-full flex flex-col"
           >
             <div className="absolute top-10 -left-16 h-48 w-48 rounded-full bg-white/40 blur-2xl" />
             <div className="absolute bottom-0 right-0 h-40 w-40 rounded-full bg-[#a8c4a2]/20 blur-2xl" />
