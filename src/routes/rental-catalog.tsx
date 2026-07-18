@@ -536,7 +536,7 @@ function RentalCatalogPage() {
               `11. הצעה לשיפור: ${form.suggestion || "—"}`,
             ].join("\n");
             const url = `https://mail.google.com/mail/?view=cm&fs=1&to=s0548529277@gmail.com&su=${encodeURIComponent("הזמנת אביזרים — Sweetbaby")}&body=${encodeURIComponent(body)}`;
-            window.open(url, "_blank", "noopener,noreferrer");
+            setGmailUrl(url);
           }}
           className="bg-cream rounded-3xl p-6 md:p-10 shadow-xl border border-primary/10 space-y-4 text-right"
         >
