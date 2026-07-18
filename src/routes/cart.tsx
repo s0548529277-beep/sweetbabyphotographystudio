@@ -34,6 +34,7 @@ function Cart() {
   const [couponInput, setCouponInput] = useState("");
   const [applying, setApplying] = useState(false);
   const [showOrderForm, setShowOrderForm] = useState(false);
+  const [gmailUrl, setGmailUrl] = useState<string | null>(null);
   const [form, setForm] = useState({
     email: user?.email ?? "", name: "", phone: "", referral: "", pickup: "",
     payment: "מזומן במקום", amount: "", agree: false, suggestion: "",
