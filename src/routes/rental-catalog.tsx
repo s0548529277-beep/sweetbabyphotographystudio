@@ -8,6 +8,7 @@ import catalogData from "@/data/studio-catalog.json";
 import { smartSearchItems } from "@/lib/ai.functions";
 import { useCart } from "@/lib/cart";
 import { Sparkles, Search, X, ShoppingBag, Check, Plus, Trash2, ZoomIn } from "lucide-react";
+import { GmailOverlay } from "@/components/GmailOverlay";
 
 export const Route = createFileRoute("/rental-catalog")({
   head: () => ({
