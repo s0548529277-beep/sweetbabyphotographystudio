@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Minus, Plus, Trash2, ShoppingBag, Tag, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
-import { GmailOverlay } from "@/routes/rental-catalog";
+import { GmailOverlay } from "@/components/GmailOverlay";
 
 export const Route = createFileRoute("/cart")({
   component: Cart,
