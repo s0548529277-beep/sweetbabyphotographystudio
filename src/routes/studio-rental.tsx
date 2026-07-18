@@ -405,7 +405,7 @@ function StudioRentalPage() {
                 src={SCHEDULING_SRC}
                 style={{ border: 0 }}
                 width="100%"
-                height={1020}
+                height={1170}
                 title="Google Calendar Appointment Scheduling"
               />
             </div>
