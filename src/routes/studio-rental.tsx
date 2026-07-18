@@ -230,7 +230,7 @@ function StudioRentalPage() {
         <div className="grid md:grid-cols-2 gap-5 md:gap-6 items-stretch">
           <motion.div
             initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={0} variants={fadeUp}
-            className="bg-white rounded-[2rem] border border-[#2d3d2b]/5 p-6 md:p-8 relative overflow-hidden group"
+            className="bg-white rounded-[2rem] border border-[#2d3d2b]/5 p-6 md:p-8 relative overflow-hidden group h-full flex flex-col"
           >
             <div className="absolute -top-16 -left-16 h-48 w-48 rounded-full bg-[#f5d5cf]/60 blur-2xl" />
             <div className="relative">
