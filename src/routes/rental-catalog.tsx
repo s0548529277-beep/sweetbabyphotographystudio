@@ -612,6 +612,7 @@ function RentalCatalogPage() {
         </form>
       </section>
 
+      {gmailUrl && <GmailOverlay url={gmailUrl} onClose={() => setGmailUrl(null)} />}
       <Footer />
     </div>
   );
