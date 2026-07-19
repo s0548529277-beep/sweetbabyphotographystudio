@@ -517,8 +517,9 @@ function RentalCatalogPage() {
             if (!form.agree) return;
             const skusText = lines.map((l) => `${l.sku} × ${l.quantity}`).join(", ");
             const body = [
-              "👋 הזמנת אביזרים — Sweetbaby",
+              `👋 ${form.orderType} — Sweetbaby`,
               "",
+              `סוג פנייה: ${form.orderType}`,
               `1. מייל: ${form.email}`,
               `2. שם: ${form.name}`,
               `3. טלפון: ${form.phone}`,
@@ -537,8 +538,8 @@ function RentalCatalogPage() {
               `9. אישור כללי השכרה: ${form.agree ? "כן, אני מאשרת" : "לא"}`,
               `11. הצעה לשיפור: ${form.suggestion || "—"}`,
             ].join("\n");
-            const url = `https://mail.google.com/mail/?view=cm&fs=1&to=s0548529277@gmail.com&su=${encodeURIComponent("הזמנת אביזרים — Sweetbaby")}&body=${encodeURIComponent(body)}`;
-            setGmailUrl(url);
+            const url = `https://mail.google.com/mail/?view=cm&fs=1&to=s0548529277@gmail.com&su=${encodeURIComponent(`${form.orderType} — Sweetbaby`)}&body=${encodeURIComponent(body)}`;
+            window.open(url, "_blank", "noopener,noreferrer");
           }}
           className="bg-cream rounded-3xl p-6 md:p-10 shadow-xl border border-primary/10 space-y-4 text-right"
         >
