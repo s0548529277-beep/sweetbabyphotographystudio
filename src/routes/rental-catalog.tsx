@@ -8,7 +8,7 @@ import catalogData from "@/data/studio-catalog.json";
 import { smartSearchItems } from "@/lib/ai.functions";
 import { useCart } from "@/lib/cart";
 import { Sparkles, Search, X, ShoppingBag, Check, Plus, Trash2, ZoomIn } from "lucide-react";
-import { GmailOverlay } from "@/components/GmailOverlay";
+
 
 export const Route = createFileRoute("/rental-catalog")({
   head: () => ({
@@ -43,8 +43,8 @@ function RentalCatalogPage() {
   const [lightbox, setLightbox] = useState<Item | null>(null);
   const [activeCat, setActiveCat] = useState<string>("all");
   const [showOrderForm, setShowOrderForm] = useState(false);
-  const [gmailUrl, setGmailUrl] = useState<string | null>(null);
   const [form, setForm] = useState({
+    orderType: "הזמנת אביזרים",
     email: "", name: "", phone: "", referral: "", pickup: "",
     payment: "מזומן במקום", amount: "", agree: false, suggestion: "",
   });
