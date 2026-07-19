@@ -277,7 +277,7 @@ function Cart() {
           </form>
         </div>
       )}
-      {gmailUrl && <GmailOverlay url={gmailUrl} onClose={() => setGmailUrl(null)} />}
+      
       <Footer />
     </div>
   );
