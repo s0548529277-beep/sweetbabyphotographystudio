@@ -435,6 +435,13 @@ function RentalCatalogPage() {
             </div>
 
             <div className="space-y-3 text-right">
+              <Field label="סוג פנייה *">
+                <select value={form.orderType} onChange={(e) => setForm({ ...form, orderType: e.target.value })} className="input-field">
+                  <option>הזמנת אביזרים</option>
+                  <option>איסוף אביזרים</option>
+                  <option>החזרת אביזרים</option>
+                </select>
+              </Field>
               <Field label="1. מייל" >
                 <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="input-field" />
               </Field>
