@@ -550,6 +550,13 @@ function RentalCatalogPage() {
           }}
           className="bg-cream rounded-3xl p-6 md:p-10 shadow-xl border border-primary/10 space-y-4 text-right"
         >
+          <Field label="סוג פנייה *">
+            <select value={form.orderType} onChange={(e) => setForm({ ...form, orderType: e.target.value })} className="input-field">
+              <option>הזמנת אביזרים</option>
+              <option>איסוף אביזרים</option>
+              <option>החזרת אביזרים</option>
+            </select>
+          </Field>
           <div className="grid md:grid-cols-2 gap-4">
             <Field label="1. מייל">
               <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="input-field" />
