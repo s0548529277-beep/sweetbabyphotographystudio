@@ -8,7 +8,7 @@ import catalogData from "@/data/studio-catalog.json";
 import { smartSearchItems } from "@/lib/ai.functions";
 import { useCart } from "@/lib/cart";
 import { Sparkles, Search, X, ShoppingBag, Check, Plus, Trash2, ZoomIn } from "lucide-react";
-import { GmailOverlay } from "@/components/GmailOverlay";
+
 
 export const Route = createFileRoute("/rental-catalog")({
   head: () => ({
@@ -43,8 +43,8 @@ function RentalCatalogPage() {
   const [lightbox, setLightbox] = useState<Item | null>(null);
   const [activeCat, setActiveCat] = useState<string>("all");
   const [showOrderForm, setShowOrderForm] = useState(false);
-  const [gmailUrl, setGmailUrl] = useState<string | null>(null);
   const [form, setForm] = useState({
+    orderType: "הזמנת אביזרים",
     email: "", name: "", phone: "", referral: "", pickup: "",
     payment: "מזומן במקום", amount: "", agree: false, suggestion: "",
   });
@@ -393,8 +393,9 @@ function RentalCatalogPage() {
               if (!form.agree) return;
               const skusText = lines.map((l) => `${l.sku} × ${l.quantity}`).join(", ");
               const body = [
-                "👋 הזמנת אביזרים — Sweetbaby",
+                `👋 ${form.orderType} — Sweetbaby`,
                 "",
+                `סוג פנייה: ${form.orderType}`,
                 `1. מייל: ${form.email}`,
                 `2. שם: ${form.name}`,
                 `3. טלפון: ${form.phone}`,
@@ -413,8 +414,8 @@ function RentalCatalogPage() {
                 `9. אישור כללי השכרה: ${form.agree ? "כן, אני מאשרת" : "לא"}`,
                 `11. הצעה לשיפור: ${form.suggestion || "—"}`,
               ].join("\n");
-              const url = `https://mail.google.com/mail/?view=cm&fs=1&to=s0548529277@gmail.com&su=${encodeURIComponent("הזמנת אביזרים — Sweetbaby")}&body=${encodeURIComponent(body)}`;
-              setGmailUrl(url);
+              const url = `https://mail.google.com/mail/?view=cm&fs=1&to=s0548529277@gmail.com&su=${encodeURIComponent(`${form.orderType} — Sweetbaby`)}&body=${encodeURIComponent(body)}`;
+              window.open(url, "_blank", "noopener,noreferrer");
               setShowOrderForm(false);
             }}
             className="relative w-full max-w-2xl my-8 bg-cream rounded-3xl p-6 md:p-8 shadow-2xl border border-primary/10"
@@ -434,6 +435,13 @@ function RentalCatalogPage() {
             </div>
 
             <div className="space-y-3 text-right">
+              <Field label="סוג פנייה *">
+                <select value={form.orderType} onChange={(e) => setForm({ ...form, orderType: e.target.value })} className="input-field">
+                  <option>הזמנת אביזרים</option>
+                  <option>איסוף אביזרים</option>
+                  <option>החזרת אביזרים</option>
+                </select>
+              </Field>
               <Field label="1. מייל" >
                 <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="input-field" />
               </Field>
@@ -516,8 +524,9 @@ function RentalCatalogPage() {
             if (!form.agree) return;
             const skusText = lines.map((l) => `${l.sku} × ${l.quantity}`).join(", ");
             const body = [
-              "👋 הזמנת אביזרים — Sweetbaby",
+              `👋 ${form.orderType} — Sweetbaby`,
               "",
+              `סוג פנייה: ${form.orderType}`,
               `1. מייל: ${form.email}`,
               `2. שם: ${form.name}`,
               `3. טלפון: ${form.phone}`,
@@ -536,11 +545,18 @@ function RentalCatalogPage() {
               `9. אישור כללי השכרה: ${form.agree ? "כן, אני מאשרת" : "לא"}`,
               `11. הצעה לשיפור: ${form.suggestion || "—"}`,
             ].join("\n");
-            const url = `https://mail.google.com/mail/?view=cm&fs=1&to=s0548529277@gmail.com&su=${encodeURIComponent("הזמנת אביזרים — Sweetbaby")}&body=${encodeURIComponent(body)}`;
-            setGmailUrl(url);
+            const url = `https://mail.google.com/mail/?view=cm&fs=1&to=s0548529277@gmail.com&su=${encodeURIComponent(`${form.orderType} — Sweetbaby`)}&body=${encodeURIComponent(body)}`;
+            window.open(url, "_blank", "noopener,noreferrer");
           }}
           className="bg-cream rounded-3xl p-6 md:p-10 shadow-xl border border-primary/10 space-y-4 text-right"
         >
+          <Field label="סוג פנייה *">
+            <select value={form.orderType} onChange={(e) => setForm({ ...form, orderType: e.target.value })} className="input-field">
+              <option>הזמנת אביזרים</option>
+              <option>איסוף אביזרים</option>
+              <option>החזרת אביזרים</option>
+            </select>
+          </Field>
           <div className="grid md:grid-cols-2 gap-4">
             <Field label="1. מייל">
               <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="input-field" />
@@ -613,7 +629,7 @@ function RentalCatalogPage() {
         </form>
       </section>
 
-      {gmailUrl && <GmailOverlay url={gmailUrl} onClose={() => setGmailUrl(null)} />}
+      
       <Footer />
     </div>
   );

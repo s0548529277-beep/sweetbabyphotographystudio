@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Minus, Plus, Trash2, ShoppingBag, Tag, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
-import { GmailOverlay } from "@/components/GmailOverlay";
+
 
 export const Route = createFileRoute("/cart")({
   component: Cart,
@@ -35,8 +35,8 @@ function Cart() {
   const [couponInput, setCouponInput] = useState("");
   const [applying, setApplying] = useState(false);
   const [showOrderForm, setShowOrderForm] = useState(false);
-  const [gmailUrl, setGmailUrl] = useState<string | null>(null);
   const [form, setForm] = useState({
+    orderType: "הזמנת אביזרים",
     email: user?.email ?? "", name: "", phone: "", referral: "", pickup: "",
     payment: "מזומן במקום", amount: "", agree: false, suggestion: "",
   });
@@ -182,8 +182,9 @@ function Cart() {
               if (!form.agree) return;
               const skusText = lines.map((l) => `${l.sku} × ${l.quantity}`).join(", ");
               const body = [
-                "👋 הזמנת אביזרים — Sweetbaby",
+                `👋 ${form.orderType} — Sweetbaby`,
                 "",
+                `סוג פנייה: ${form.orderType}`,
                 `1. מייל: ${form.email}`,
                 `2. שם: ${form.name}`,
                 `3. טלפון: ${form.phone}`,
@@ -203,10 +204,10 @@ function Cart() {
                 `9. אישור כללי השכרה: ${form.agree ? "כן, אני מאשרת" : "לא"}`,
                 `11. הצעה לשיפור: ${form.suggestion || "—"}`,
               ].join("\n");
-              const url = `https://mail.google.com/mail/?view=cm&fs=1&to=s0548529277@gmail.com&su=${encodeURIComponent("הזמנת אביזרים — Sweetbaby")}&body=${encodeURIComponent(body)}`;
-              setGmailUrl(url);
+              const url = `https://mail.google.com/mail/?view=cm&fs=1&to=s0548529277@gmail.com&su=${encodeURIComponent(`${form.orderType} — Sweetbaby`)}&body=${encodeURIComponent(body)}`;
+              window.open(url, "_blank", "noopener,noreferrer");
               setShowOrderForm(false);
-              toast.success("Gmail מוטמע לשליחת ההזמנה ✉️");
+              toast.success("נפתח חלון Gmail לשליחת ההזמנה ✉️");
             }}
             className="relative w-full max-w-2xl my-8 bg-cream rounded-3xl p-6 md:p-8 shadow-2xl border border-primary/10"
           >
@@ -225,6 +226,14 @@ function Cart() {
             </div>
 
             <div className="space-y-3 text-right">
+              <div>
+                <Label>סוג פנייה *</Label>
+                <select value={form.orderType} onChange={(e) => setForm({ ...form, orderType: e.target.value })} className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm">
+                  <option>הזמנת אביזרים</option>
+                  <option>איסוף אביזרים</option>
+                  <option>החזרת אביזרים</option>
+                </select>
+              </div>
               <div><Label>1. מייל</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="mt-1" /></div>
               <div><Label>2. שם *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1" /></div>
               <div><Label>3. טלפון *</Label><Input required type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="mt-1" /></div>
@@ -276,7 +285,7 @@ function Cart() {
           </form>
         </div>
       )}
-      {gmailUrl && <GmailOverlay url={gmailUrl} onClose={() => setGmailUrl(null)} />}
+      
       <Footer />
     </div>
   );
