@@ -226,6 +226,14 @@ function Cart() {
             </div>
 
             <div className="space-y-3 text-right">
+              <div>
+                <Label>סוג פנייה *</Label>
+                <select value={form.orderType} onChange={(e) => setForm({ ...form, orderType: e.target.value })} className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm">
+                  <option>הזמנת אביזרים</option>
+                  <option>איסוף אביזרים</option>
+                  <option>החזרת אביזרים</option>
+                </select>
+              </div>
               <div><Label>1. מייל</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="mt-1" /></div>
               <div><Label>2. שם *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1" /></div>
               <div><Label>3. טלפון *</Label><Input required type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="mt-1" /></div>
