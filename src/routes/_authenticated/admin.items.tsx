@@ -27,9 +27,10 @@ type ItemForm = {
   image_url: string | null;
   category_id: string | null;
   active: boolean;
+  stock_quantity: number;
 };
 
-const empty: ItemForm = { sku: "", name: "", description: "", price: 0, image_url: null, category_id: null, active: true };
+const empty: ItemForm = { sku: "", name: "", description: "", price: 0, image_url: null, category_id: null, active: true, stock_quantity: 1 };
 
 function pad(n: number, width = 3) {
   return String(n).padStart(width, "0");
