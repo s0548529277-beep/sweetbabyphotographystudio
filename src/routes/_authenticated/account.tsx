@@ -158,10 +158,44 @@ function Account() {
               )}
             </div>
 
+            {/* Studio bookings */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-display text-3xl text-primary flex items-center gap-2">
+                  <CalIcon className="h-6 w-6" /> השכרת סטודיו
+                </h2>
+                <Link to="/studio-rental"><Button variant="outline" className="rounded-full">שריון חדש</Button></Link>
+              </div>
+              {bookings.isLoading ? (
+                <div className="text-muted-foreground">טוען…</div>
+              ) : (bookings.data?.length ?? 0) === 0 ? (
+                <div className="bg-cream/60 rounded-3xl p-6 text-center border border-primary/10 text-sm text-muted-foreground">
+                  אין עדיין שריוני סטודיו.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {bookings.data!.map((b: any) => (
+                    <div key={b.id} className="bg-card rounded-2xl p-5 border border-primary/5 flex flex-wrap justify-between gap-3">
+                      <div>
+                        <div className="font-display text-lg text-primary">
+                          {new Date(b.session_date).toLocaleDateString("he-IL")} · {String(b.start_time).slice(0,5)}–{String(b.end_time).slice(0,5)}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {b.package === "morning" ? "מבצע בוקר ניו-בורן" : `${b.slots} חצאי שעות`} · סטטוס: {STATUS_HE[b.status] ?? b.status}
+                        </div>
+                      </div>
+                      <div className="font-display text-2xl text-peach-deep">₪{Number(b.price).toFixed(0)}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center justify-between">
-              <h2 className="font-display text-3xl text-primary">היסטוריית הזמנות</h2>
+              <h2 className="font-display text-3xl text-primary">היסטוריית הזמנות אביזרים</h2>
               <Link to="/rental-catalog"><Button variant="outline" className="rounded-full">הזמנה חדשה</Button></Link>
             </div>
+
 
 
             {orders.isLoading ? (
