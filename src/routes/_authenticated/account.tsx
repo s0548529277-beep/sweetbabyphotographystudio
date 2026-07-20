@@ -69,6 +69,19 @@ function Account() {
     enabled: !!user,
   });
 
+  const bookings = useQuery({
+    queryKey: ["my-bookings", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("bookings")
+        .select("*")
+        .order("session_date", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
+
   const save = async () => {
     setBusy(true);
     const { error } = await supabase.from("profiles").upsert({ id: user!.id, ...profile });
