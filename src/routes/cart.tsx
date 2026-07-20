@@ -144,12 +144,14 @@ function Cart() {
                   <p className="text-[#2d3d2b]/80 text-xs mt-3">מינימום להזמנה 50 ש״ח — יש להוסיף ₪{(50 - total).toFixed(0)}.</p>
                 )}
               </div>
-              <Button
-                className="w-full mt-6 rounded-full h-12 bg-[#2d3d2b]/40 text-[#f5d5cf] cursor-not-allowed hover:bg-[#2d3d2b]/40"
-                disabled
-              >
-                המשך לתשלום <span className="mr-2 text-[11px] tracking-widest opacity-80">· בקרוב</span>
-              </Button>
+              <Link to="/checkout" className="block">
+                <Button
+                  className="w-full mt-6 rounded-full h-12 bg-[#2d3d2b] text-[#f5d5cf] hover:bg-[#2d3d2b]/90"
+                  disabled={lines.length === 0 || total < 50}
+                >
+                  המשך לתשלום
+                </Button>
+              </Link>
               <Button
                 variant="outline"
                 className="w-full mt-2 rounded-full h-11 bg-white text-[#2d3d2b] border-[#2d3d2b]/15 hover:bg-white/80"
