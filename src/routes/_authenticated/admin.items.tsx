@@ -114,6 +114,7 @@ function ItemsAdmin() {
     setForm({
       id: i.id, sku: i.sku, name: i.name, description: i.description ?? "",
       price: Number(i.price), image_url: i.image_url, category_id: i.category_id, active: i.active,
+      stock_quantity: Number(i.stock_quantity ?? 1),
     });
     setOpen(true);
   };
@@ -123,6 +124,7 @@ function ItemsAdmin() {
     const payload = {
       sku: form.sku, name: form.name, description: form.description || null,
       price: form.price, image_url: form.image_url, category_id: form.category_id, active: form.active,
+      stock_quantity: Math.max(1, Math.floor(form.stock_quantity || 1)),
     };
     const { error } = form.id
       ? await supabase.from("items").update(payload).eq("id", form.id)
