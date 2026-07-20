@@ -171,26 +171,32 @@ export type Database = {
         Row: {
           created_at: string
           date: string
+          end_date: string
           id: string
           item_id: string
           order_id: string | null
           slot_index: number
+          start_date: string
         }
         Insert: {
           created_at?: string
           date: string
+          end_date: string
           id?: string
           item_id: string
           order_id?: string | null
           slot_index?: number
+          start_date: string
         }
         Update: {
           created_at?: string
           date?: string
+          end_date?: string
           id?: string
           item_id?: string
           order_id?: string | null
           slot_index?: number
+          start_date?: string
         }
         Relationships: [
           {
@@ -560,7 +566,10 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      count_item_reservations: {
+        Args: { _from: string; _item_id: string; _to: string }
+        Returns: number
+      }
     }
     Enums: {
       app_role: "admin" | "client"

@@ -27,9 +27,10 @@ type ItemForm = {
   image_url: string | null;
   category_id: string | null;
   active: boolean;
+  stock_quantity: number;
 };
 
-const empty: ItemForm = { sku: "", name: "", description: "", price: 0, image_url: null, category_id: null, active: true };
+const empty: ItemForm = { sku: "", name: "", description: "", price: 0, image_url: null, category_id: null, active: true, stock_quantity: 1 };
 
 function pad(n: number, width = 3) {
   return String(n).padStart(width, "0");
@@ -113,6 +114,7 @@ function ItemsAdmin() {
     setForm({
       id: i.id, sku: i.sku, name: i.name, description: i.description ?? "",
       price: Number(i.price), image_url: i.image_url, category_id: i.category_id, active: i.active,
+      stock_quantity: Number(i.stock_quantity ?? 1),
     });
     setOpen(true);
   };
@@ -122,6 +124,7 @@ function ItemsAdmin() {
     const payload = {
       sku: form.sku, name: form.name, description: form.description || null,
       price: form.price, image_url: form.image_url, category_id: form.category_id, active: form.active,
+      stock_quantity: Math.max(1, Math.floor(form.stock_quantity || 1)),
     };
     const { error } = form.id
       ? await supabase.from("items").update(payload).eq("id", form.id)
@@ -242,7 +245,19 @@ function ItemsAdmin() {
                   <div><Label>מק״ט</Label><Input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} className="mt-1" /></div>
                   <div><Label>מחיר (₪)</Label><Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} className="mt-1" /></div>
                 </div>
-                <div><Label>שם</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1" /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>שם</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1" /></div>
+                  <div>
+                    <Label>כמות במלאי</Label>
+                    <Input
+                      type="number" min={1}
+                      value={form.stock_quantity}
+                      onChange={(e) => setForm({ ...form, stock_quantity: Math.max(1, Number(e.target.value) || 1) })}
+                      className="mt-1"
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-1">מספר יחידות זמינות. לרוב 1. לכובעים/פריטים כפולים — 2 ומעלה.</p>
+                  </div>
+                </div>
                 <div>
                   <div className="flex items-center justify-between">
                     <Label>קטגוריה</Label>
