@@ -316,13 +316,15 @@ function RentalCatalogPage() {
             {subtotal > 0 && subtotal < 50 && (
               <p className="text-[#2d3d2b]/80 text-xs mt-2">מינימום 50 ₪ — הוסיפו ₪{(50 - subtotal).toFixed(0)}.</p>
             )}
-            <button
-              type="button"
-              disabled
-              className="w-full mt-5 h-12 rounded-full bg-[#2d3d2b]/40 text-[#f5d5cf] font-medium cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              המשך לקופה <span className="text-[11px] tracking-widest">· בקרוב</span>
-            </button>
+            <Link to="/checkout" className="block">
+              <button
+                type="button"
+                disabled={lines.length === 0 || subtotal < 50}
+                className="w-full mt-5 h-12 rounded-full bg-[#2d3d2b] text-[#f5d5cf] font-medium hover:bg-[#2d3d2b]/90 disabled:opacity-40 flex items-center justify-center gap-2"
+              >
+                המשך לקופה
+              </button>
+            </Link>
             <button
               type="button"
               disabled={lines.length === 0}
