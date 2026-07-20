@@ -245,7 +245,19 @@ function ItemsAdmin() {
                   <div><Label>מק״ט</Label><Input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} className="mt-1" /></div>
                   <div><Label>מחיר (₪)</Label><Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} className="mt-1" /></div>
                 </div>
-                <div><Label>שם</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1" /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>שם</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1" /></div>
+                  <div>
+                    <Label>כמות במלאי</Label>
+                    <Input
+                      type="number" min={1}
+                      value={form.stock_quantity}
+                      onChange={(e) => setForm({ ...form, stock_quantity: Math.max(1, Number(e.target.value) || 1) })}
+                      className="mt-1"
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-1">מספר יחידות זמינות. לרוב 1. לכובעים/פריטים כפולים — 2 ומעלה.</p>
+                  </div>
+                </div>
                 <div>
                   <div className="flex items-center justify-between">
                     <Label>קטגוריה</Label>
