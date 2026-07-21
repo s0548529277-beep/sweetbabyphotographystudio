@@ -61,6 +61,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
+      { name: "google-site-verification", content: "zbQfpqYARTY81LEL7BRHza6bc-SgIAr-Q_cXk103m0w" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Sweetbaby — סטודיו להשכרת אביזרי צילום בבית שמש" },
       { name: "description", content: "השכרת אביזרים מעוצבים לצילומי ניוברן, גיל שנה, חלאקה ומשפחה. בית שמש." },
