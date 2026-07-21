@@ -90,6 +90,30 @@ export const placeBooking = createServerFn({ method: "POST" })
     if (error || !booking) throw new Error(error?.message ?? "יצירת שריון נכשלה");
 
     try {
+      const { createGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const startISO = `${data.session_date}T${data.start_time}:00`;
+      const endISO = `${data.session_date}T${endTime}:00`;
+      const event = await createGoogleCalendarEvent({
+        summary: `סטודיו · ${data.contact_name}`,
+        description: [
+          `טלפון: ${data.contact_phone}`,
+          `מחיר: ₪${price}`,
+          data.notes ? `הערות: ${data.notes}` : null,
+        ].filter(Boolean).join("\n"),
+        startISO,
+        endISO,
+      });
+      if (event) {
+        await supabaseAdmin.from("bookings").update({ google_event_id: event.id }).eq("id", booking.id);
+      }
+    } catch (e) {
+      // Never fail the booking itself if the calendar sync has an issue —
+      // the booking is already saved; just log it for follow-up.
+      console.error("[SWEETBABY] Google Calendar sync failed", e);
+    }
+
+    try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       await supabaseAdmin.from("admin_notifications").insert({
         type: "booking",
