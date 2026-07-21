@@ -21,12 +21,18 @@ function CopyRow({ label, value }: { label: string; value: string }) {
   return (
     <button
       type="button"
-      onClick={() => { navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
+      onClick={() => {
+        navigator.clipboard.writeText(value);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      }}
       className="w-full flex items-center justify-between p-4 rounded-2xl border border-border bg-card hover:border-primary transition-colors text-right"
     >
       <div>
         <div className="text-[11px] tracking-[0.2em] uppercase text-muted-foreground">{label}</div>
-        <div className="font-display text-2xl text-primary" dir="ltr">{value}</div>
+        <div className="font-display text-2xl text-primary" dir="ltr">
+          {value}
+        </div>
       </div>
       {copied ? <Check className="h-5 w-5 text-forest" /> : <Copy className="h-5 w-5 text-muted-foreground" />}
     </button>
@@ -45,29 +51,41 @@ function Deposit() {
 
   useEffect(() => {
     const table = type === "booking" ? "bookings" : "orders";
-    (supabase.from(table) as any).select("*").eq("id", id).maybeSingle().then(({ data }: any) => {
-      setRecord(data);
-      if (data) {
-        const totalVal = data.price ?? data.total ?? 0;
-        setBalanceAmount(String(data.balance_amount ?? Math.max(0, totalVal - (data.deposit_amount ?? 90))));
-      }
-    });
+    (supabase.from(table) as any)
+      .select("*")
+      .eq("id", id)
+      .maybeSingle()
+      .then(({ data }: any) => {
+        setRecord(data);
+        if (data) {
+          const totalVal = data.price ?? data.total ?? 0;
+          setBalanceAmount(String(data.balance_amount ?? Math.max(0, totalVal - (data.deposit_amount ?? 90))));
+        }
+      });
   }, [type, id]);
 
   const submit = async () => {
     if (!file || !user) return;
     setUploading(true);
     try {
-      const path = `${user.id}/${type}-${id}-${Date.now()}-${file.name}`;
+      const ext =
+        file.name
+          .split(".")
+          .pop()
+          ?.toLowerCase()
+          .replace(/[^a-z0-9]/g, "") || "bin";
+      const path = `${user.id}/${type}-${id}-${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("receipts").upload(path, file, { upsert: false });
       if (upErr) throw upErr;
       const table = type === "booking" ? "bookings" : "orders";
-      const { error: updErr } = await (supabase.from(table) as any).update({
-        deposit_receipt_url: path,
-        deposit_status: "submitted",
-        balance_method: balanceMethod,
-        balance_amount: Number(balanceAmount) || 0,
-      }).eq("id", id);
+      const { error: updErr } = await (supabase.from(table) as any)
+        .update({
+          deposit_receipt_url: path,
+          deposit_status: "submitted",
+          balance_method: balanceMethod,
+          balance_amount: Number(balanceAmount) || 0,
+        })
+        .eq("id", id);
       if (updErr) throw updErr;
       toast.success("האסמכתא נשלחה. נאשר לך במייל תוך זמן קצר.");
       setDone(true);
@@ -89,7 +107,8 @@ function Deposit() {
           <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-3">Step 3 · Deposit</div>
           <h1 className="font-display text-5xl text-primary mb-3">שריון סופי במקדמה</h1>
           <p className="text-muted-foreground max-w-2xl mb-10">
-            להשלמת השריון יש להעביר <span className="text-primary font-semibold">{depositAmount}₪</span> בהעברה בנקאית ולהעלות אסמכתא. ההעתק יישלח אלינו אוטומטית.
+            להשלמת השריון יש להעביר <span className="text-primary font-semibold">{depositAmount}₪</span> בהעברה בנקאית
+            ולהעלות אסמכתא. ההעתק יישלח אלינו אוטומטית.
           </p>
 
           {done ? (
@@ -99,7 +118,9 @@ function Deposit() {
               </div>
               <h2 className="font-display text-3xl text-primary mb-2">קיבלנו את האסמכתא</h2>
               <p className="text-muted-foreground mb-6">נשלח לך אישור סופי במייל. מחכות לפגוש אותך!</p>
-              <Link to="/account"><Button className="rounded-full">לחשבון שלי</Button></Link>
+              <Link to="/account">
+                <Button className="rounded-full">לחשבון שלי</Button>
+              </Link>
             </div>
           ) : (
             <div className="grid md:grid-cols-2 gap-6">
@@ -115,7 +136,11 @@ function Deposit() {
                 <div className="mt-4 p-4 rounded-2xl bg-primary text-primary-foreground text-center">
                   <div className="text-blush text-xs tracking-[0.3em] uppercase mb-1">סכום להעברה</div>
                   <div className="font-display text-5xl text-blush">₪{depositAmount}</div>
-                  {total > depositAmount && <div className="text-primary-foreground/60 text-xs mt-2">יתרה לתשלום ביום הצילום: ₪{total - depositAmount}</div>}
+                  {total > depositAmount && (
+                    <div className="text-primary-foreground/60 text-xs mt-2">
+                      יתרה לתשלום ביום הצילום: ₪{total - depositAmount}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -124,7 +149,12 @@ function Deposit() {
                   <Upload className="h-5 w-5 text-blush-deep" /> העלאת אסמכתא
                 </h2>
                 <label className="block border-2 border-dashed border-border rounded-2xl p-8 text-center cursor-pointer hover:border-primary transition-colors">
-                  <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="hidden"
+                    onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  />
                   {file ? (
                     <div className="text-primary font-medium">{file.name}</div>
                   ) : (
@@ -142,15 +172,27 @@ function Deposit() {
                   </div>
                   <div className="grid grid-cols-3 gap-2 mb-4">
                     {(["cash", "transfer", "bit"] as const).map((m) => (
-                      <button key={m} type="button" onClick={() => setBalanceMethod(m)}
-                        className={`h-11 rounded-xl text-sm border transition-colors ${balanceMethod === m ? "bg-primary text-primary-foreground border-primary" : "border-border bg-card hover:border-primary"}`}>
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setBalanceMethod(m)}
+                        className={`h-11 rounded-xl text-sm border transition-colors ${balanceMethod === m ? "bg-primary text-primary-foreground border-primary" : "border-border bg-card hover:border-primary"}`}
+                      >
                         {m === "cash" ? "מזומן" : m === "transfer" ? "העברה" : "Bit/PayBox"}
                       </button>
                     ))}
                   </div>
                   <div>
                     <label className="text-sm text-muted-foreground">סכום היתרה *</label>
-                    <Input type="number" min={0} required value={balanceAmount} onChange={(e) => setBalanceAmount(e.target.value)} className="mt-1" dir="ltr" />
+                    <Input
+                      type="number"
+                      min={0}
+                      required
+                      value={balanceAmount}
+                      onChange={(e) => setBalanceAmount(e.target.value)}
+                      className="mt-1"
+                      dir="ltr"
+                    />
                   </div>
                 </div>
 
