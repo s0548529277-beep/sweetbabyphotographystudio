@@ -51,6 +51,7 @@ export type Database = {
           deposit_receipt_url: string | null
           deposit_status: string
           end_time: string
+          google_event_id: string | null
           id: string
           notes: string | null
           overtime_charge: number | null
@@ -74,6 +75,7 @@ export type Database = {
           deposit_receipt_url?: string | null
           deposit_status?: string
           end_time: string
+          google_event_id?: string | null
           id?: string
           notes?: string | null
           overtime_charge?: number | null
@@ -97,6 +99,7 @@ export type Database = {
           deposit_receipt_url?: string | null
           deposit_status?: string
           end_time?: string
+          google_event_id?: string | null
           id?: string
           notes?: string | null
           overtime_charge?: number | null

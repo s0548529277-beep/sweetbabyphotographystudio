@@ -52,7 +52,7 @@ function Checkout() {
     if (form.return_date < form.session_date) { setAvailability(null); return; }
     let cancelled = false;
     setChecking(true);
-    checkAvail({ data: { item_ids: lines.map((l) => l.id), from: form.session_date, to: form.return_date } })
+    checkAvail({ data: { skus: lines.map((l) => l.sku), from: form.session_date, to: form.return_date } })
       .then((r) => { if (!cancelled) setAvailability(r); })
       .catch(() => { if (!cancelled) setAvailability(null); })
       .finally(() => { if (!cancelled) setChecking(false); });
@@ -60,7 +60,7 @@ function Checkout() {
   }, [form.session_date, form.return_date, lines, checkAvail]);
 
   const anyUnavailable = availability
-    ? lines.some((l) => (availability[l.id]?.available ?? 0) < l.quantity)
+    ? lines.some((l) => (availability[l.sku]?.available ?? 0) < l.quantity)
     : false;
 
   if (!user) {

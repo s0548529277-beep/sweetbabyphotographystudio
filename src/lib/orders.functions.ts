@@ -3,9 +3,9 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
 const lineSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().min(1),
   name: z.string().min(1),
-  sku: z.string(),
+  sku: z.string().min(1),
   price: z.number().nonnegative(),
   quantity: z.number().int().positive(),
 });
@@ -30,17 +30,17 @@ export const placeOrder = createServerFn({ method: "POST" })
     const startDate = data.session_date;
     const endDate = data.return_date >= data.session_date ? data.return_date : data.session_date;
 
-    const ids = data.lines.map((l) => l.id);
+    const skus = data.lines.map((l) => l.sku);
     const { data: items, error: itemsErr } = await supabase
       .from("items")
       .select("id, name, sku, price, active, stock_quantity")
-      .in("id", ids);
+      .in("sku", skus);
     if (itemsErr) throw new Error(itemsErr.message);
 
-    const byId = new Map(items?.map((i) => [i.id, i]) ?? []);
+    const byId = new Map(items?.map((i) => [i.sku, i]) ?? []);
     let total = 0;
     const orderLines = data.lines.map((l) => {
-      const server = byId.get(l.id);
+      const server = byId.get(l.sku);
       if (!server || !server.active) throw new Error(`פריט לא זמין: ${l.name}`);
       const price = Number(server.price);
       total += price * l.quantity;
@@ -58,10 +58,11 @@ export const placeOrder = createServerFn({ method: "POST" })
 
     // Date-range availability check: any existing reservation whose range
     // overlaps [startDate, endDate] counts as taken for that item.
+    const resolvedItemIds = orderLines.map((l) => l.item_id);
     const { data: overlaps, error: takenErr } = await supabase
       .from("item_availability")
       .select("item_id")
-      .in("item_id", ids)
+      .in("item_id", resolvedItemIds)
       .lte("start_date", endDate)
       .gte("end_date", startDate);
     if (takenErr) throw new Error(takenErr.message);
@@ -173,7 +174,7 @@ export const placeOrder = createServerFn({ method: "POST" })
 
 // Public availability check server fn (client uses it to disable unavailable items)
 const availSchema = z.object({
-  item_ids: z.array(z.string().uuid()).min(1).max(200),
+  skus: z.array(z.string().min(1)).min(1).max(200),
   from: z.string().min(10),
   to: z.string().min(10),
 });
@@ -188,31 +189,34 @@ export const checkItemsAvailability = createServerFn({ method: "POST" })
     const from = data.from;
     const to = data.to >= data.from ? data.to : data.from;
 
-    const [avail, items] = await Promise.all([
-      supabaseAdmin
-        .from("item_availability")
-        .select("item_id")
-        .in("item_id", data.item_ids)
-        .lte("start_date", to)
-        .gte("end_date", from),
-      supabaseAdmin
-        .from("items")
-        .select("id, stock_quantity")
-        .in("id", data.item_ids),
-    ]);
-    if (avail.error) throw new Error(avail.error.message);
-    if (items.error) throw new Error(items.error.message);
+    const itemsRes = await supabaseAdmin
+      .from("items")
+      .select("id, sku, stock_quantity")
+      .in("sku", data.skus);
+    if (itemsRes.error) throw new Error(itemsRes.error.message);
 
-    const busy = new Map<string, number>();
-    for (const r of avail.data ?? []) busy.set(r.item_id, (busy.get(r.item_id) ?? 0) + 1);
-    const stock = new Map<string, number>();
-    for (const r of items.data ?? []) stock.set(r.id, Number(r.stock_quantity ?? 1));
+    const items = itemsRes.data ?? [];
+    const idsBySku = new Map(items.map((i) => [i.sku, i.id]));
+    const stockBySku = new Map(items.map((i) => [i.sku, Number(i.stock_quantity ?? 1)]));
+    const realIds = items.map((i) => i.id);
+
+    const avail = await supabaseAdmin
+      .from("item_availability")
+      .select("item_id")
+      .in("item_id", realIds)
+      .lte("start_date", to)
+      .gte("end_date", from);
+    if (avail.error) throw new Error(avail.error.message);
+
+    const busyByRealId = new Map<string, number>();
+    for (const r of avail.data ?? []) busyByRealId.set(r.item_id, (busyByRealId.get(r.item_id) ?? 0) + 1);
 
     const result: Record<string, { stock: number; taken: number; available: number }> = {};
-    for (const id of data.item_ids) {
-      const s = stock.get(id) ?? 1;
-      const t = busy.get(id) ?? 0;
-      result[id] = { stock: s, taken: t, available: Math.max(0, s - t) };
+    for (const sku of data.skus) {
+      const realId = idsBySku.get(sku);
+      const s = stockBySku.get(sku) ?? 1;
+      const t = realId ? busyByRealId.get(realId) ?? 0 : 0;
+      result[sku] = { stock: s, taken: t, available: Math.max(0, s - t) };
     }
     return result;
   });

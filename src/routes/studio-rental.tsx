@@ -399,14 +399,16 @@ function StudioRentalPage() {
               </p>
             </div>
 
-            <div className="bg-[#f8ede4]/60">
-              <iframe
-                src={SCHEDULING_SRC}
-                style={{ border: 0 }}
-                width="100%"
-                height={1170}
-                title="Google Calendar Appointment Scheduling"
-              />
+            <div className="bg-[#f8ede4]/60 p-8 text-center">
+              <p className="text-sm text-[#2d3d2b]/75 leading-relaxed mb-5 max-w-md mx-auto">
+                בחרי תאריך ושעה בלוח השנה שלנו — השריון ייכנס אוטומטית ליומן, בדיוק כמו קודם.
+              </p>
+              <Link
+                to="/booking"
+                className="inline-flex items-center justify-center gap-3 rounded-full bg-[#2d3d2b] text-[#f8ede4] px-7 py-3.5 text-sm font-medium hover:bg-[#1f2b1e] transition-all"
+              >
+                לבחירת תאריך ושעה
+              </Link>
             </div>
 
             <div className="p-5 text-center text-sm text-[#2d3d2b]/70 border-t border-[#2d3d2b]/5">
