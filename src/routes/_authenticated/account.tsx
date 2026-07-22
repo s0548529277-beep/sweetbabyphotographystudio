@@ -35,6 +35,23 @@ function Account() {
   const { lines: cartLines, subtotal: cartSubtotal, count: cartCount, remove: removeFromCart } = useCart();
   const [profile, setProfile] = useState({ full_name: "", phone: "", address: "", city: "", discount_code: "", notes: "" });
   const [busy, setBusy] = useState(false);
+  const cancelB = useServerFn(cancelBooking);
+  const cancelO = useServerFn(cancelOrder);
+  const [cancelling, setCancelling] = useState<string | null>(null);
+  const doCancelBooking = async (id: string) => {
+    if (!confirm("לבטל את השריון?")) return;
+    setCancelling(id);
+    try { await cancelB({ data: { id } }); toast.success("השריון בוטל"); bookings.refetch(); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "ביטול נכשל"); }
+    finally { setCancelling(null); }
+  };
+  const doCancelOrder = async (id: string) => {
+    if (!confirm("לבטל את ההזמנה?")) return;
+    setCancelling(id);
+    try { await cancelO({ data: { id } }); toast.success("ההזמנה בוטלה"); orders.refetch(); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "ביטול נכשל"); }
+    finally { setCancelling(null); }
+  };
 
   const profileQ = useQuery({
     queryKey: ["profile", user?.id],
