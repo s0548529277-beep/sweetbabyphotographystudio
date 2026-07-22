@@ -29,9 +29,9 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Sweetbaby — סטודיו בוטיק, צילומים והשכרת אביזרים בבית שמש" },
-      { name: "description", content: "סטודיו בוטיק בבית שמש: השכרת חלל צילום, סשן צילום עם מיכל סיבוני וקטלוג של 400+ אביזרים מעוצבים לניוברן, גיל שנה, חלאקה ומשפחה." },
+      { name: "description", content: "סטודיו בוטיק בבית שמש: סוויט בייבי השכרת חלל צילום, סשן צילום סוויט ביבי  עם מיכל סיבוני וקטלוג של 400+ אביזרים מעוצבים לניוברן, גיל שנה, חלאקה ומשפחה." },
       { property: "og:title", content: "Sweetbaby — סטודיו בוטיק, צילומים והשכרת אביזרים בבית שמש" },
-      { property: "og:description", content: "סטודיו בוטיק בבית שמש: השכרת חלל צילום, סשן צילום עם מיכל סיבוני וקטלוג של 400+ אביזרים מעוצבים לניוברן, גיל שנה, חלאקה ומשפחה." },
+      { property: "og:description", content: "סטודיו בוטיק בבית שמש: סוויט בייבי השכרת חלל צילום, סשן צילום סוויט ביבי  עם מיכל סיבוני וקטלוג של 400+ אביזרים מעוצבים לניוברן, גיל שנה, חלאקה ומשפחה." },
       { property: "og:url", content: "https://sweetbabyphotographystudio.lovable.app/" },
     ],
     links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/" }],
