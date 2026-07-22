@@ -151,36 +151,64 @@ function StudioRentalPage() {
   const [showForm, setShowForm] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [form, setForm] = useState<IntakeForm>(emptyForm);
+  const [submitting, setSubmitting] = useState(false);
+  const nav = useNavigate();
+  const { user } = useAuth();
   const upd = <K extends keyof IntakeForm>(k: K, v: IntakeForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  const sendIntake = () => {
+  const sendIntake = async () => {
     if (!form.clientName.trim() || !form.phone.trim() || !form.email.trim()) {
-      alert("נא למלא שם, טלפון ואימייל.");
+      toast.error("נא למלא שם, טלפון ואימייל.");
       return;
     }
     if (!form.agreed) {
-      alert("יש לאשר את הסכם תיאום הציפיות לפני השליחה.");
+      toast.error("יש לאשר את הסכם תיאום הציפיות לפני השליחה.");
       return;
     }
-    const lines = [
-      `שם מלא: ${form.clientName}`,
-      `טלפון: ${form.phone}`,
-      `אימייל: ${form.email}`,
-      `סוג הצילום: ${form.sessionType}`,
-      `תאריך/שעה מבוקשים: ${form.sessionDate}`,
-      `מספר משתתפים: ${form.peopleCount}`,
-      `גיל התינוק (אם רלוונטי): ${form.babyAge}`,
-      `מותג מצלמה: ${form.cameraBrand}`,
-      `ניסיון בעבודה עם פלאש/סטודיו: ${form.flashExperience}`,
-      `זקוקה לאביזרים בהשכרה: ${form.needProps}`,
-      `בקשות מיוחדות: ${form.specialRequests}`,
-      ``,
-      `אישרתי שקראתי והסכמתי להסכם תיאום הציפיות ולכללי הסטודיו.`,
-    ].join("\n");
-    const subject = `הסכם תיאום ציפיות - ${form.clientName}`;
-    window.location.href = `mailto:${EMAIL_TO}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines)}`;
+    setSubmitting(true);
+    try {
+      // Save to DB (best-effort — email fallback still runs).
+      if (user) {
+        await supabase.from("studio_intake_forms").insert({
+          user_id: user.id,
+          payload: form as unknown as Record<string, unknown>,
+        });
+      }
+
+      // Also open a mailto so a copy reaches the studio owner immediately.
+      const lines = [
+        `שם מלא: ${form.clientName}`,
+        `טלפון: ${form.phone}`,
+        `אימייל: ${form.email}`,
+        `סוג הצילום: ${form.sessionType}`,
+        `תאריך/שעה מבוקשים: ${form.sessionDate}`,
+        `מספר משתתפים: ${form.peopleCount}`,
+        `גיל התינוק (אם רלוונטי): ${form.babyAge}`,
+        `מותג מצלמה: ${form.cameraBrand}`,
+        `ניסיון בעבודה עם פלאש/סטודיו: ${form.flashExperience}`,
+        `זקוקה לאביזרים בהשכרה: ${form.needProps}`,
+        `בקשות מיוחדות: ${form.specialRequests}`,
+        ``,
+        `אישרתי שקראתי והסכמתי להסכם תיאום הציפיות ולכללי הסטודיו.`,
+      ].join("\n");
+      const subject = `הסכם תיאום ציפיות - ${form.clientName}`;
+      window.open(
+        `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(EMAIL_TO)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines)}`,
+        "_blank",
+        "noopener,noreferrer"
+      );
+
+      toast.success("ההסכם נשלח. ממשיכות לבחירת שעה ביומן.");
+      setShowForm(false);
+      nav({ to: "/booking" });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "שליחה נכשלה");
+    } finally {
+      setSubmitting(false);
+    }
   };
+
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f8ede4] text-[#2d3d2b] overflow-hidden" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
