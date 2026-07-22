@@ -203,7 +203,14 @@ function Account() {
                           {b.package === "morning" ? "מבצע בוקר ניו-בורן" : `${b.slots} חצאי שעות`} · סטטוס: {STATUS_HE[b.status] ?? b.status}
                         </div>
                       </div>
-                      <div className="font-display text-2xl text-peach-deep">₪{Number(b.price).toFixed(0)}</div>
+                      <div className="flex items-center gap-3">
+                        <div className="font-display text-2xl text-peach-deep">₪{Number(b.price).toFixed(0)}</div>
+                        {b.status !== "cancelled" && b.status !== "returned" && (
+                          <Button variant="outline" size="sm" className="rounded-full text-xs" disabled={cancelling === b.id} onClick={() => doCancelBooking(b.id)}>
+                            {cancelling === b.id ? "מבטל…" : "ביטול"}
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
