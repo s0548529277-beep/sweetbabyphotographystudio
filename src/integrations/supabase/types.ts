@@ -490,6 +490,38 @@ export type Database = {
         }
         Relationships: []
       }
+      studio_intake_forms: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          id: string
+          payload: Json
+          user_id: string | null
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          payload: Json
+          user_id?: string | null
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          payload?: Json
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_intake_forms_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_requests: {
         Row: {
           created_at: string
