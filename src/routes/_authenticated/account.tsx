@@ -13,6 +13,8 @@ import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
 import { ProductImage } from "@/components/ProductImage";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { cancelBooking, cancelOrder } from "@/lib/bookings.functions";
 import { Package, Calendar as CalIcon, User as UserIcon, FileText, ShoppingBag } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/account")({
@@ -33,6 +35,23 @@ function Account() {
   const { lines: cartLines, subtotal: cartSubtotal, count: cartCount, remove: removeFromCart } = useCart();
   const [profile, setProfile] = useState({ full_name: "", phone: "", address: "", city: "", discount_code: "", notes: "" });
   const [busy, setBusy] = useState(false);
+  const cancelB = useServerFn(cancelBooking);
+  const cancelO = useServerFn(cancelOrder);
+  const [cancelling, setCancelling] = useState<string | null>(null);
+  const doCancelBooking = async (id: string) => {
+    if (!confirm("לבטל את השריון?")) return;
+    setCancelling(id);
+    try { await cancelB({ data: { id } }); toast.success("השריון בוטל"); bookings.refetch(); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "ביטול נכשל"); }
+    finally { setCancelling(null); }
+  };
+  const doCancelOrder = async (id: string) => {
+    if (!confirm("לבטל את ההזמנה?")) return;
+    setCancelling(id);
+    try { await cancelO({ data: { id } }); toast.success("ההזמנה בוטלה"); orders.refetch(); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "ביטול נכשל"); }
+    finally { setCancelling(null); }
+  };
 
   const profileQ = useQuery({
     queryKey: ["profile", user?.id],
@@ -184,7 +203,14 @@ function Account() {
                           {b.package === "morning" ? "מבצע בוקר ניו-בורן" : `${b.slots} חצאי שעות`} · סטטוס: {STATUS_HE[b.status] ?? b.status}
                         </div>
                       </div>
-                      <div className="font-display text-2xl text-peach-deep">₪{Number(b.price).toFixed(0)}</div>
+                      <div className="flex items-center gap-3">
+                        <div className="font-display text-2xl text-peach-deep">₪{Number(b.price).toFixed(0)}</div>
+                        {b.status !== "cancelled" && b.status !== "returned" && (
+                          <Button variant="outline" size="sm" className="rounded-full text-xs" disabled={cancelling === b.id} onClick={() => doCancelBooking(b.id)}>
+                            {cancelling === b.id ? "מבטל…" : "ביטול"}
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -221,6 +247,11 @@ function Account() {
                     <div className="flex items-center gap-3">
                       <Badge variant="secondary" className="rounded-full">{STATUS_HE[o.status] ?? o.status}</Badge>
                       <div className="font-display text-2xl text-peach-deep">₪{Number(o.total).toFixed(0)}</div>
+                      {o.status !== "cancelled" && o.status !== "returned" && (
+                        <Button variant="outline" size="sm" className="rounded-full text-xs" disabled={cancelling === o.id} onClick={() => doCancelOrder(o.id)}>
+                          {cancelling === o.id ? "מבטל…" : "ביטול"}
+                        </Button>
+                      )}
                     </div>
                   </div>
                   <div className="text-sm text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">

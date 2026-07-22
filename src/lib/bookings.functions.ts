@@ -136,3 +136,77 @@ export const placeBooking = createServerFn({ method: "POST" })
 
     return { id: booking.id, price, deposit, balance: Math.max(0, price - deposit), end_time: endTime };
   });
+
+// ---------- Cancellation ----------
+
+async function deleteGoogleEvent(eventId: string) {
+  const client_id = process.env.GOOGLE_CALENDAR_CLIENT_ID;
+  const client_secret = process.env.GOOGLE_CALENDAR_CLIENT_SECRET;
+  const refresh_token = process.env.GOOGLE_CALENDAR_REFRESH_TOKEN;
+  const calendarId = process.env.GOOGLE_CALENDAR_ID || "primary";
+  if (!client_id || !client_secret || !refresh_token) return;
+  const tokRes = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ client_id, client_secret, refresh_token, grant_type: "refresh_token" }),
+  });
+  if (!tokRes.ok) return;
+  const { access_token } = (await tokRes.json()) as { access_token: string };
+  await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
+    { method: "DELETE", headers: { Authorization: `Bearer ${access_token}` } }
+  );
+}
+
+export const cancelBooking = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: b, error } = await supabase
+      .from("bookings")
+      .select("id, user_id, status, google_event_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error || !b) throw new Error("השריון לא נמצא");
+    if (b.user_id !== userId) throw new Error("אין הרשאה לבטל שריון זה");
+    if (b.status === "cancelled") return { ok: true };
+
+    const { error: upErr } = await supabase
+      .from("bookings")
+      .update({ status: "cancelled" })
+      .eq("id", data.id);
+    if (upErr) throw new Error(upErr.message);
+
+    if ((b as { google_event_id?: string }).google_event_id) {
+      try { await deleteGoogleEvent((b as { google_event_id: string }).google_event_id); }
+      catch (e) { console.error("[SWEETBABY] gcal delete failed", e); }
+    }
+    return { ok: true };
+  });
+
+export const cancelOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: o, error } = await supabase
+      .from("orders")
+      .select("id, user_id, status")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error || !o) throw new Error("ההזמנה לא נמצאה");
+    if (o.user_id !== userId) throw new Error("אין הרשאה לבטל הזמנה זו");
+    if (o.status === "cancelled") return { ok: true };
+
+    // Free reserved units, then mark cancelled. Use admin client to ensure the
+    // availability rows are removed regardless of policy scoping.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("item_availability").delete().eq("order_id", data.id);
+    const { error: upErr } = await supabaseAdmin
+      .from("orders")
+      .update({ status: "cancelled" })
+      .eq("id", data.id);
+    if (upErr) throw new Error(upErr.message);
+    return { ok: true };
+  });

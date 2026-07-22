@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
@@ -8,6 +8,10 @@ import {
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
+import { toast } from "sonner";
+
 
 export const Route = createFileRoute("/studio-rental")({
   head: () => ({
@@ -147,36 +151,64 @@ function StudioRentalPage() {
   const [showForm, setShowForm] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [form, setForm] = useState<IntakeForm>(emptyForm);
+  const [submitting, setSubmitting] = useState(false);
+  const nav = useNavigate();
+  const { user } = useAuth();
   const upd = <K extends keyof IntakeForm>(k: K, v: IntakeForm[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  const sendIntake = () => {
+  const sendIntake = async () => {
     if (!form.clientName.trim() || !form.phone.trim() || !form.email.trim()) {
-      alert("נא למלא שם, טלפון ואימייל.");
+      toast.error("נא למלא שם, טלפון ואימייל.");
       return;
     }
     if (!form.agreed) {
-      alert("יש לאשר את הסכם תיאום הציפיות לפני השליחה.");
+      toast.error("יש לאשר את הסכם תיאום הציפיות לפני השליחה.");
       return;
     }
-    const lines = [
-      `שם מלא: ${form.clientName}`,
-      `טלפון: ${form.phone}`,
-      `אימייל: ${form.email}`,
-      `סוג הצילום: ${form.sessionType}`,
-      `תאריך/שעה מבוקשים: ${form.sessionDate}`,
-      `מספר משתתפים: ${form.peopleCount}`,
-      `גיל התינוק (אם רלוונטי): ${form.babyAge}`,
-      `מותג מצלמה: ${form.cameraBrand}`,
-      `ניסיון בעבודה עם פלאש/סטודיו: ${form.flashExperience}`,
-      `זקוקה לאביזרים בהשכרה: ${form.needProps}`,
-      `בקשות מיוחדות: ${form.specialRequests}`,
-      ``,
-      `אישרתי שקראתי והסכמתי להסכם תיאום הציפיות ולכללי הסטודיו.`,
-    ].join("\n");
-    const subject = `הסכם תיאום ציפיות - ${form.clientName}`;
-    window.location.href = `mailto:${EMAIL_TO}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines)}`;
+    setSubmitting(true);
+    try {
+      // Save to DB (best-effort — email fallback still runs).
+      if (user) {
+        await supabase.from("studio_intake_forms").insert({
+          user_id: user.id,
+          payload: JSON.parse(JSON.stringify(form)),
+        });
+      }
+
+      // Also open a mailto so a copy reaches the studio owner immediately.
+      const lines = [
+        `שם מלא: ${form.clientName}`,
+        `טלפון: ${form.phone}`,
+        `אימייל: ${form.email}`,
+        `סוג הצילום: ${form.sessionType}`,
+        `תאריך/שעה מבוקשים: ${form.sessionDate}`,
+        `מספר משתתפים: ${form.peopleCount}`,
+        `גיל התינוק (אם רלוונטי): ${form.babyAge}`,
+        `מותג מצלמה: ${form.cameraBrand}`,
+        `ניסיון בעבודה עם פלאש/סטודיו: ${form.flashExperience}`,
+        `זקוקה לאביזרים בהשכרה: ${form.needProps}`,
+        `בקשות מיוחדות: ${form.specialRequests}`,
+        ``,
+        `אישרתי שקראתי והסכמתי להסכם תיאום הציפיות ולכללי הסטודיו.`,
+      ].join("\n");
+      const subject = `הסכם תיאום ציפיות - ${form.clientName}`;
+      window.open(
+        `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(EMAIL_TO)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines)}`,
+        "_blank",
+        "noopener,noreferrer"
+      );
+
+      toast.success("ההסכם נשלח. ממשיכות לבחירת שעה ביומן.");
+      setShowForm(false);
+      nav({ to: "/booking" });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "שליחה נכשלה");
+    } finally {
+      setSubmitting(false);
+    }
   };
+
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f8ede4] text-[#2d3d2b] overflow-hidden" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
@@ -518,30 +550,83 @@ function StudioRentalPage() {
               נא למלא ולשלוח את הטופס למטה. <strong>שליחת ההסכם היא תנאי לקביעת התור.</strong> קביעת שעה ביומן מהווה הסכמה מלאה לכללי הסטודיו ולתנאים המפורטים בעמוד.
             </p>
 
-            <div className="mt-6 rounded-2xl overflow-hidden bg-white border border-[#2d3d2b]/10">
-              <iframe
-                src="https://docs.google.com/forms/d/e/1FAIpQLSdVqfjJ53OzK55mXvEeExdHp0lEWFN7RJgwtG7OSqD94KjEhg/viewform?embedded=true"
-                width="100%"
-                height="900"
-                frameBorder={0}
-                marginHeight={0}
-                marginWidth={0}
-                title="הסכם תיאום ציפיות"
-                className="w-full block"
-              >
-                בטעינה…
-              </iframe>
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Field label="שם מלא *">
+                <input className={inputCls} value={form.clientName} onChange={(e) => upd("clientName", e.target.value)} />
+              </Field>
+              <Field label="טלפון *">
+                <input className={inputCls} dir="ltr" type="tel" value={form.phone} onChange={(e) => upd("phone", e.target.value)} />
+              </Field>
+              <Field label="אימייל *">
+                <input className={inputCls} dir="ltr" type="email" value={form.email} onChange={(e) => upd("email", e.target.value)} />
+              </Field>
+              <Field label="סוג הצילום">
+                <select className={inputCls} value={form.sessionType} onChange={(e) => upd("sessionType", e.target.value)}>
+                  <option value="">בחרי…</option>
+                  <option>ניו-בורן</option>
+                  <option>משפחה</option>
+                  <option>הריון</option>
+                  <option>סמאש קייק / יום הולדת</option>
+                  <option>אישי / בוק תדמית</option>
+                  <option>אחר</option>
+                </select>
+              </Field>
+              <Field label="תאריך ושעה מבוקשים">
+                <input className={inputCls} value={form.sessionDate} onChange={(e) => upd("sessionDate", e.target.value)} placeholder="למשל: 12.8 בשעה 09:00" />
+              </Field>
+              <Field label="מספר משתתפים">
+                <input className={inputCls} value={form.peopleCount} onChange={(e) => upd("peopleCount", e.target.value)} />
+              </Field>
+              <Field label="גיל התינוק (אם רלוונטי)">
+                <input className={inputCls} value={form.babyAge} onChange={(e) => upd("babyAge", e.target.value)} />
+              </Field>
+              <Field label="מותג / דגם מצלמה">
+                <input className={inputCls} value={form.cameraBrand} onChange={(e) => upd("cameraBrand", e.target.value)} />
+              </Field>
+              <Field label="ניסיון עם פלאש / סטודיו" full>
+                <select className={inputCls} value={form.flashExperience} onChange={(e) => upd("flashExperience", e.target.value)}>
+                  <option value="">בחרי…</option>
+                  <option>יש לי ניסיון עצמאי</option>
+                  <option>יש לי ניסיון בסיסי</option>
+                  <option>אין ניסיון — אשמח להדרכה</option>
+                </select>
+              </Field>
+              <Field label="זקוקה לאביזרים בהשכרה?" full>
+                <input className={inputCls} value={form.needProps} onChange={(e) => upd("needProps", e.target.value)} placeholder="פרטי בקצרה + מק״טים אם רלוונטי" />
+              </Field>
+              <Field label="בקשות מיוחדות / הערות" full>
+                <textarea className={inputCls} rows={3} value={form.specialRequests} onChange={(e) => upd("specialRequests", e.target.value)} />
+              </Field>
             </div>
 
+            <label className="mt-5 flex items-start gap-2.5 text-xs text-[#2d3d2b]/80 cursor-pointer leading-relaxed">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 accent-[#6b8a63]"
+                checked={form.agreed}
+                onChange={(e) => upd("agreed", e.target.checked)}
+              />
+              <span>קראתי והסכמתי להסכם תיאום הציפיות ולכללי הסטודיו (שעות פעילות, מחירון, ביטולים, ניקיון, אחריות ונזקים).</span>
+            </label>
+
             <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={sendIntake}
+                disabled={submitting}
+                className="rounded-full bg-[#2d3d2b] hover:bg-[#1f2b1e] text-[#f8ede4] px-7 py-3.5 text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {submitting ? "שולח…" : "שליחה והמשך לקביעת שעה"}
+              </button>
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
                 className="rounded-full border border-[#2d3d2b]/25 text-[#2d3d2b] px-7 py-3.5 text-sm font-medium hover:bg-white/50 transition-colors"
               >
-                סגירה
+                ביטול
               </button>
             </div>
+
 
           </motion.div>
         </div>

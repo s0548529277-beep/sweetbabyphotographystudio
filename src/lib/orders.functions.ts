@@ -119,34 +119,43 @@ export const placeOrder = createServerFn({ method: "POST" })
       })));
     if (linesErr) throw new Error(linesErr.message);
 
-    // Lock availability slots for the rental range (one row per unit).
-    const availabilityRows: {
-      item_id: string;
-      order_id: string;
-      date: string; // kept for backward compatibility
-      start_date: string;
-      end_date: string;
-      slot_index: number;
-    }[] = [];
-    for (const l of orderLines) {
-      const busy = takenCount.get(l.item_id) ?? 0;
-      for (let i = 0; i < l.quantity; i++) {
-        availabilityRows.push({
+    // Lock availability slots for the rental range. Insert row-by-row so a
+    // unique-conflict on (item_id, start_date, end_date, slot_index) — from a
+    // concurrent booking — is retried with the next slot_index up to `stock`.
+    const insertOne = async (l: typeof orderLines[number]) => {
+      const start = takenCount.get(l.item_id) ?? 0;
+      for (let attempt = start; attempt < l.stock + 8; attempt++) {
+        const { error } = await supabase.from("item_availability").insert({
           item_id: l.item_id,
           order_id: order.id,
           date: startDate,
           start_date: startDate,
           end_date: endDate,
-          slot_index: busy + i,
+          slot_index: attempt,
         });
+        if (!error) {
+          takenCount.set(l.item_id, attempt + 1);
+          return;
+        }
+        // 23505 = unique_violation. Any other error is fatal.
+        // Retry only on conflicts, and only while slots are theoretically free.
+        const isConflict = (error as { code?: string }).code === "23505" || /duplicate|unique/i.test(error.message ?? "");
+        if (!isConflict) throw new Error(error.message);
+        // If we've exhausted stock, real conflict — no unit available.
+        if (attempt + 1 >= l.stock) break;
       }
-    }
-    if (availabilityRows.length) {
-      const { error: availErr } = await supabase.from("item_availability").insert(availabilityRows);
-      if (availErr) {
-        await supabase.from("orders").delete().eq("id", order.id);
-        throw new Error("הפריטים נתפסו בתאריכים אלה. בבקשה נסי שוב.");
+      throw new Error(`הפריט "${l.item_name}" לא זמין בתאריכים שנבחרו`);
+    };
+
+    try {
+      for (const l of orderLines) {
+        for (let i = 0; i < l.quantity; i++) await insertOne(l);
       }
+    } catch (e) {
+      // Rollback: delete inserted availability rows + order.
+      await supabase.from("item_availability").delete().eq("order_id", order.id);
+      await supabase.from("orders").delete().eq("id", order.id);
+      throw e;
     }
 
     try {
