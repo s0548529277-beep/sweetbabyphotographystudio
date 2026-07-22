@@ -172,7 +172,7 @@ function StudioRentalPage() {
       if (user) {
         await supabase.from("studio_intake_forms").insert({
           user_id: user.id,
-          payload: form as unknown as Record<string, unknown>,
+          payload: JSON.parse(JSON.stringify(form)),
         });
       }
 
