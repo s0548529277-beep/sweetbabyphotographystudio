@@ -113,7 +113,12 @@ export const placeOrder = createServerFn({ method: "POST" })
         contact_name: data.contact_name,
         contact_phone: data.contact_phone,
         camera_model: data.camera_model ?? null,
-        notes: data.notes ?? null,
+        notes: [
+          data.start_time && data.end_time
+            ? `שעות השכרה: ${data.start_time}–${data.end_time} · ${dayMultiplier} יח׳ של 24ש (מכפיל x${dayMultiplier})`
+            : null,
+          data.notes,
+        ].filter(Boolean).join("\n") || null,
         deposit_amount: depositAmount,
         balance_amount: balanceAmount,
         deposit_status: "pending",
