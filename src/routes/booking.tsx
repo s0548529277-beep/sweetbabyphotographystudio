@@ -160,6 +160,7 @@ function Booking() {
           contact_name: contactName,
           contact_phone: contactPhone,
           notes,
+          reserved_items: reservedSkus,
           terms_accepted: true as const,
         },
       });
