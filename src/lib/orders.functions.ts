@@ -94,11 +94,9 @@ export const placeOrder = createServerFn({ method: "POST" })
       }
     }
 
-    // Same-day → 100% up front; else 90 deposit
-    const today = new Date().toISOString().slice(0, 10);
-    const sameDay = data.session_date === today;
-    const depositAmount = sameDay ? total : 90;
-    const balanceAmount = Math.max(0, total - depositAmount);
+    // Full payment up front — no deposit split.
+    const depositAmount = total;
+    const balanceAmount = 0;
 
     const { data: order, error: orderErr } = await supabase
       .from("orders")
