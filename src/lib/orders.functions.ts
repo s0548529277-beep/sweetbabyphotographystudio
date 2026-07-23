@@ -225,7 +225,7 @@ export const checkItemsAvailability = createServerFn({ method: "POST" })
     const result: Record<string, { stock: number; taken: number; available: number }> = {};
     for (const sku of data.skus) {
       const realId = idsBySku.get(sku);
-      const s = stockBySku.get(sku) ?? 1;
+      const s = realId ? (stockBySku.get(sku) ?? 1) : 0;
       const t = realId ? (busyByRealId.get(realId) ?? 0) : 0;
       result[sku] = { stock: s, taken: t, available: Math.max(0, s - t) };
     }
