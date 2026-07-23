@@ -112,10 +112,8 @@ function Home() {
                 className="mt-6 text-[3.2rem] leading-[1.02] md:text-[5.2rem] md:leading-[0.98] text-[#2d3d2b]"
                 style={{ fontFamily: "'DM Serif Display', serif" }}
               >
-                סוויט בייבי
-                <br />
                 <span className="relative inline-block">
-                  התמונה הראשונה שלי
+                  היצירה הראשונה שלי.
                   <motion.svg
                     viewBox="0 0 400 20" className="absolute -bottom-3 right-0 w-full h-4 text-[#f5d5cf]"
                     initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.6, delay: 0.5 }}
