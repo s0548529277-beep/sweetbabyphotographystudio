@@ -238,8 +238,11 @@ function Checkout() {
             <div className="h-px bg-primary-foreground/20 my-4" />
             <div className="flex justify-between items-baseline">
               <span className="text-primary-foreground/70">סה״כ</span>
-              <span className="font-display text-3xl text-blush">₪{subtotal.toFixed(0)}</span>
+              <span className="font-display text-3xl text-blush">₪{chargedTotal.toFixed(0)}</span>
             </div>
+            {dayMultiplier > 1 && (
+              <div className="text-[11px] text-blush/90 mt-1">מבוסס על ₪{subtotal.toFixed(0)} × {dayMultiplier} יח׳ של 24 שעות</div>
+            )}
             <div className="text-[11px] text-primary-foreground/60 mt-2">מינימום 50₪. מקדמה 90₪ תיגבה לפני הצילום.</div>
             <Button
               type="submit"
