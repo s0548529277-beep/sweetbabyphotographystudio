@@ -70,6 +70,21 @@ function RentalCatalogPage() {
     return () => clearInterval(id);
   }, [inspirationImages.length]);
 
+  // Fetch availability for the whole catalog whenever the date range changes.
+  useEffect(() => {
+    if (!dateFrom || !dateTo || dateTo < dateFrom) { setAvailability(null); return; }
+    const skus = allItems.filter((i) => !i.hasHand).map((i) => i.sku);
+    if (skus.length === 0) return;
+    let cancelled = false;
+    setAvailLoading(true);
+    runCheckAvail({ data: { skus, from: dateFrom, to: dateTo } })
+      .then((r) => { if (!cancelled) setAvailability(r); })
+      .catch(() => { if (!cancelled) setAvailability(null); })
+      .finally(() => { if (!cancelled) setAvailLoading(false); });
+    return () => { cancelled = true; };
+  }, [dateFrom, dateTo, allItems, runCheckAvail]);
+
+
   const filtered = useMemo(() => {
     const q = query.trim();
     return categories
