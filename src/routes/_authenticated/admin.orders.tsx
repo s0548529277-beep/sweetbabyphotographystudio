@@ -26,6 +26,8 @@ function OrdersAdmin() {
 
   const orders = useQuery({
     queryKey: ["admin-orders"],
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
