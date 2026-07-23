@@ -54,6 +54,8 @@ export const Route = createFileRoute("/")({
       { property: "og:url", content: "https://sweetbabyphoto.shop/" },
       { property: "og:image", content: OG_IMAGE },
       { property: "og:image:alt", content: "סטודיו Sweetbaby — פינת צילום ורודה עם אביזרים מעוצבים" },
+      { name: "twitter:title", content: "Sweetbaby — 400+ אביזרים לצילומי ניוברן, סטודיו בוטיק בבית שמש" },
+      { name: "twitter:description", content: "סטודיו בוטיק בבית שמש: סוויט בייבי השכרת חלל צילום, סשן צילום סוויט ביבי עם מיכל סיבוני וקטלוג של 400+ אביזרים מעוצבים לניוברן, גיל שנה, חלאקה ומשפחה." },
       { name: "twitter:image", content: OG_IMAGE },
       { name: "twitter:image:alt", content: "סטודיו Sweetbaby — פינת צילום ורודה עם אביזרים מעוצבים" },
     ],
