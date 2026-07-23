@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 
-const BASE_URL = "https://sweetbabyphotographystudio.lovable.app";
+const BASE_URL = "https://sweetbabyphoto.shop";
 
 interface SitemapEntry {
   path: string;
@@ -9,15 +11,13 @@ interface SitemapEntry {
   priority?: string;
 }
 
-const entries: SitemapEntry[] = [
+const staticEntries: SitemapEntry[] = [
   { path: "/", changefreq: "weekly", priority: "1.0" },
-  { path: "/rental-catalog", changefreq: "weekly", priority: "0.9" },
   { path: "/rental-catalog", changefreq: "weekly", priority: "0.9" },
   { path: "/studio-photography", changefreq: "weekly", priority: "0.9" },
   { path: "/studio-rental", changefreq: "weekly", priority: "0.9" },
   { path: "/booking", changefreq: "weekly", priority: "0.8" },
   { path: "/track", changefreq: "weekly", priority: "0.8" },
-  { path: "/start", changefreq: "weekly", priority: "0.8" },
   { path: "/about", changefreq: "monthly", priority: "0.7" },
   { path: "/contact", changefreq: "monthly", priority: "0.7" },
   { path: "/terms", changefreq: "monthly", priority: "0.7" },
@@ -25,10 +25,54 @@ const entries: SitemapEntry[] = [
   { path: "/blog/essential-newborn-props", changefreq: "monthly", priority: "0.7" },
 ];
 
+function createSupabaseFetch(supabaseKey: string): typeof fetch {
+  const isNewKey = supabaseKey.startsWith("sb_publishable_") || supabaseKey.startsWith("sb_secret_");
+  return (input, init) => {
+    const headers = new Headers(
+      typeof Request !== "undefined" && input instanceof Request ? input.headers : undefined,
+    );
+    if (init?.headers) {
+      new Headers(init.headers).forEach((value, key) => headers.set(key, value));
+    }
+    if (isNewKey && headers.get("Authorization") === `Bearer ${supabaseKey}`) {
+      headers.delete("Authorization");
+    }
+    headers.set("apikey", supabaseKey);
+    return fetch(input, { ...init, headers });
+  };
+}
+
 export const Route = createFileRoute("/sitemap.xml")({
   server: {
     handlers: {
-      GET: () => {
+      GET: async () => {
+        const entries: SitemapEntry[] = [...staticEntries];
+
+        try {
+          const url = process.env.SUPABASE_URL;
+          const key = process.env.SUPABASE_PUBLISHABLE_KEY;
+          if (url && key) {
+            const supabase = createClient<Database>(url, key, {
+              global: { fetch: createSupabaseFetch(key) },
+              auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
+            });
+            const { data: items } = await supabase
+              .from("items")
+              .select("id, sku, active")
+              .eq("active", true)
+              .limit(1000);
+            (items ?? []).forEach((item) => {
+              entries.push({
+                path: `/items/${item.id}`,
+                changefreq: "weekly",
+                priority: "0.6",
+              });
+            });
+          }
+        } catch {
+          // If the DB query fails, still serve the static sitemap.
+        }
+
         const urls = entries.map((e) =>
           [
             `  <url>`,

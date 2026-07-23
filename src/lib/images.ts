@@ -1,4 +1,4 @@
-const SITE_ORIGIN = "https://sweetbabyphotographystudio.lovable.app";
+const SITE_ORIGIN = "https://sweetbabyphoto.shop";
 
 export function normalizeImageUrl(value?: string | null) {
   const src = value?.trim();

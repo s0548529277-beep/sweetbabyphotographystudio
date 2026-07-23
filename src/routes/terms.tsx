@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
-const CANONICAL = "https://sweetbabyphotographystudio.lovable.app/terms";
+const CANONICAL = "https://sweetbabyphoto.shop/terms";
 const TITLE = "תנאים והגבלות | Sweetbaby";
 const DESCRIPTION = "תנאי השכרת אביזרים ושימוש בסטודיו Sweetbaby. קראו את כללי ההזמנה, הביטול והאחריות לפני השכרה.";
 

@@ -22,9 +22,9 @@ export const Route = createFileRoute("/auth")({
     { name: "description", content: "התחברו או צרו חשבון ב-Sweetbaby — כניסה מאובטחת לכרטיסיית לקוח, הזמנות ושריון סטודיו בבית שמש." },
     { property: "og:title", content: "התחברות | Sweetbaby" },
     { property: "og:description", content: "התחברו או צרו חשבון ב-Sweetbaby — כניסה מאובטחת לכרטיסיית לקוח, הזמנות ושריון סטודיו בבית שמש." },
-    { property: "og:url", content: "https://sweetbabyphotographystudio.lovable.app/auth" },
+    { property: "og:url", content: "https://sweetbabyphoto.shop/auth" },
     { name: "robots", content: "noindex, follow" },
-  ], links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/auth" }] }),
+  ], links: [{ rel: "canonical", href: "https://sweetbabyphoto.shop/auth" }] }),
 });
 
 function AuthPage() {

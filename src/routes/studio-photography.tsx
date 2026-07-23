@@ -21,13 +21,13 @@ export const Route = createFileRoute("/studio-photography")({
       { property: "og:image", content: "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04166_optimized-1-scaled.jpg" },
       {
         property: "og:url",
-        content: "https://sweetbabyphotographystudio.lovable.app/studio-photography",
+        content: "https://sweetbabyphoto.shop/studio-photography",
       },
     ],
     links: [
       {
         rel: "canonical",
-        href: "https://sweetbabyphotographystudio.lovable.app/studio-photography",
+        href: "https://sweetbabyphoto.shop/studio-photography",
       },
     ],
   }),

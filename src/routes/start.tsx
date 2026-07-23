@@ -16,8 +16,8 @@ export const Route = createFileRoute("/start")({
     { name: "description", content: "התחילו את החוויה ב-Sweetbaby — טופס פתיחה קצר לתיאום צילומי ניוברן, גיל שנה וסשן סטודיו בבית שמש." },
     { property: "og:title", content: "בואי נכיר | Sweetbaby" },
     { property: "og:description", content: "התחילו את החוויה ב-Sweetbaby — טופס פתיחה קצר לתיאום צילומי ניוברן, גיל שנה וסשן סטודיו בבית שמש." },
-    { property: "og:url", content: "https://sweetbabyphotographystudio.lovable.app/start" },
-  ], links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/start" }] }),
+    { property: "og:url", content: "https://sweetbabyphoto.shop/start" },
+  ], links: [{ rel: "canonical", href: "https://sweetbabyphoto.shop/start" }] }),
 });
 
 const KEY = "sweetbaby.lead.v1";
