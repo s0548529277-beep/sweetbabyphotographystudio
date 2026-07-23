@@ -14,7 +14,12 @@ import { useServerFn } from "@tanstack/react-start";
 import { placeBooking, computeStudioPrice } from "@/lib/bookings.functions";
 import { toast } from "sonner";
 import { he } from "date-fns/locale";
-import { Lock, Clock, Sparkles, CalendarDays } from "lucide-react";
+import { Lock, Clock, Sparkles, CalendarDays, Package, X, Search } from "lucide-react";
+import catalogData from "@/data/studio-catalog.json";
+
+type CatItem = { sku: string; name: string; alt: string; price: number };
+type Cat = { title: string; items: CatItem[] };
+const ALL_PROPS: CatItem[] = (catalogData as Cat[]).flatMap((c) => c.items);
 
 export const Route = createFileRoute("/booking")({
   component: Booking,
