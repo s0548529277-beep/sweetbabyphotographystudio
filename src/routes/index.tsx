@@ -80,7 +80,16 @@ function Home() {
       <Header />
 
       {/* HERO */}
-      <section className="relative">
+      <section className="relative overflow-hidden">
+        {/* Soft editorial gradient like the reference */}
+        <div
+          aria-hidden
+          className="absolute inset-0 -z-10"
+          style={{
+            background: "linear-gradient(135deg, #f8ede4 0%, #f1e6dc 45%, #e1e8d9 100%)",
+          }}
+        />
+
         {/* Decorative floating shapes */}
         <motion.div
           aria-hidden
