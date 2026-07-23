@@ -99,6 +99,21 @@ function Booking() {
   const [notes, setNotes] = useState("");
   const [terms, setTerms] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [reservedSkus, setReservedSkus] = useState<string[]>([]);
+  const [propQuery, setPropQuery] = useState("");
+  const [showPropPicker, setShowPropPicker] = useState(false);
+
+  const filteredProps = useMemo(() => {
+    const q = propQuery.trim().toLowerCase();
+    if (!q) return ALL_PROPS.slice(0, 40);
+    return ALL_PROPS.filter((p) =>
+      p.sku.includes(q) || (p.name || "").toLowerCase().includes(q) || (p.alt || "").toLowerCase().includes(q),
+    ).slice(0, 60);
+  }, [propQuery]);
+  const toggleSku = (sku: string) =>
+    setReservedSkus((prev) =>
+      prev.includes(sku) ? prev.filter((s) => s !== sku) : prev.length >= 20 ? prev : [...prev, sku],
+    );
 
   useEffect(() => {
     supabase.from("studio_closures").select("*").then(({ data }) => setClosures((data as typeof closures) ?? []));
