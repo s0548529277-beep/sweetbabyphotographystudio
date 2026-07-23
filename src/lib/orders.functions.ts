@@ -230,10 +230,11 @@ export const placeOrder = createServerFn({ method: "POST" })
 
 // Public availability check server fn (client uses it to disable unavailable items)
 const availSchema = z.object({
-  skus: z.array(z.string().min(1)).min(1).max(200),
+  skus: z.array(z.string().min(1)).min(1).max(600),
   from: z.string().min(10),
   to: z.string().min(10),
 });
+
 
 export const checkItemsAvailability = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => availSchema.parse(data))

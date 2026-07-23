@@ -263,9 +263,10 @@ function StudioRentalPage() {
           </div>
           <div className="grid md:grid-cols-3 gap-3 md:gap-4">
             {[
-              { tag: "Basic", price: 50, title: "הדרכה טכנית קצרה", desc: "סידור מהיר של פלאש ומצלמה, מוכנות ליציאה לצילום.", bg: "bg-white", accent: "border-[#2d3d2b]/10" },
-              { tag: "Plus", price: 100, title: "ליווי מקצועי ראשוני", desc: "התאמת 2 סטים לצילום כולל הכוונה יצירתית.", bg: "bg-[#a8c4a2]/25", accent: "border-[#a8c4a2]/50", featured: true },
-              { tag: "Premium", price: 150, title: "מעטפת מלאה", desc: "הכנת חלל מאפס + זמינות במהלך כל השהות.", bg: "bg-[#f5d5cf]", accent: "border-[#f5d5cf]" },
+              { tag: "Mini", price: 50, title: "הדרכה טכנית קצרצרה", desc: "עד 20 דק' בסטודיו: הפעלת פלאש, הגדרות מצלמה בסיסיות והתאמת סט אחד.", bg: "bg-white", accent: "border-[#2d3d2b]/10" },
+              { tag: "Plus", price: 100, title: "ליווי מקצועי ראשוני", desc: "התאמת 2 סטים לצילום כולל הכוונה יצירתית והדרכה טכנית.", bg: "bg-[#a8c4a2]/25", accent: "border-[#a8c4a2]/50", featured: true },
+              { tag: "Premium", price: 150, title: "מעטפת מלאה", desc: "הכנת חלל מאפס + זמינות במהלך כל השהות + סיוע בסידור אביזרים.", bg: "bg-[#f5d5cf]", accent: "border-[#f5d5cf]" },
+
             ].map((p, i) => (
               <motion.div
                 key={p.title} custom={i} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} variants={fadeUp}
@@ -338,20 +339,27 @@ function StudioRentalPage() {
         <div className="mt-6 max-w-3xl mx-auto bg-[#2d3d2b] text-[#f8ede4] rounded-[2rem] p-5 relative overflow-hidden">
           <div className="absolute -top-10 -left-10 h-32 w-32 rounded-full bg-[#a8c4a2]/30 blur-2xl" />
           <div className="relative flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <div className="text-[11px] tracking-[0.28em] uppercase text-[#a8c4a2] mb-1">Add-on</div>
+            <div className="flex-1 min-w-[240px]">
+              <div className="text-[11px] tracking-[0.28em] uppercase text-[#a8c4a2] mb-1">Add-on · חינם</div>
               <h4 className="text-xl" style={{ fontFamily: "'DM Serif Display', serif" }}>צריכה גם אביזרים?</h4>
-              <p className="text-sm text-[#f8ede4]/75 mt-1">400+ פריטים — וינטג׳, מקרמה, סרוגים. מוסיפים לסל וסוגרים ביחד.</p>
+              <p className="text-sm text-[#f8ede4]/85 mt-1 leading-relaxed">
+                <strong className="text-[#f5d5cf]">עד 20 אביזרים חינם</strong> לשעות ההשכרה בסטודיו — ללא תוספת תשלום.
+                אנו מתחייבים שכ-80% מהקטלוג יהיה בהישג יד בזמן הצילום (בכפוף לזמינות).
+              </p>
+              <p className="text-[11px] text-[#f8ede4]/60 mt-2">
+                רוצה לשריין אביזרים ספציפיים? ציין/י אותם בהערות בטופס תיאום הציפיות.
+              </p>
             </div>
             <Link
               to="/rental-catalog"
               className="inline-flex items-center gap-2 bg-[#f5d5cf] text-[#2d3d2b] px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-[#f8ede4] transition-colors group whitespace-nowrap"
             >
-              לקטלוג האביזרים
+              לצפייה בקטלוג
               <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-1" />
             </Link>
           </div>
         </div>
+
       </section>
 
       <Footer />

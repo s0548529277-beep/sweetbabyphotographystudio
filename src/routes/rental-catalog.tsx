@@ -6,8 +6,10 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import catalogData from "@/data/studio-catalog.json";
 import { smartSearchItems } from "@/lib/ai.functions";
+import { checkItemsAvailability } from "@/lib/orders.functions";
 import { useCart } from "@/lib/cart";
-import { Sparkles, Search, X, ShoppingBag, Check, Plus, Trash2, ZoomIn } from "lucide-react";
+import { Sparkles, Search, X, ShoppingBag, Check, Plus, Trash2, ZoomIn, CalendarDays } from "lucide-react";
+
 
 
 export const Route = createFileRoute("/rental-catalog")({
@@ -43,12 +45,18 @@ function RentalCatalogPage() {
   const [lightbox, setLightbox] = useState<Item | null>(null);
   const [activeCat, setActiveCat] = useState<string>("all");
   const [showOrderForm, setShowOrderForm] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [availability, setAvailability] = useState<Record<string, { available: number }> | null>(null);
+  const [availLoading, setAvailLoading] = useState(false);
   const [form, setForm] = useState({
     orderType: "הזמנת אביזרים",
     email: "", name: "", phone: "", referral: "", pickup: "",
     payment: "מזומן במקום", amount: "", agree: false, suggestion: "",
   });
   const runSmartSearch = useServerFn(smartSearchItems);
+  const runCheckAvail = useServerFn(checkItemsAvailability);
+
 
   const allItems = useMemo(() => categories.flatMap((c) => c.items), []);
   const inspirationImages = useMemo(
@@ -61,6 +69,21 @@ function RentalCatalogPage() {
     const id = setInterval(() => setInspoIdx((i) => (i + 1) % inspirationImages.length), 3200);
     return () => clearInterval(id);
   }, [inspirationImages.length]);
+
+  // Fetch availability for the whole catalog whenever the date range changes.
+  useEffect(() => {
+    if (!dateFrom || !dateTo || dateTo < dateFrom) { setAvailability(null); return; }
+    const skus = allItems.filter((i) => !i.hasHand).map((i) => i.sku);
+    if (skus.length === 0) return;
+    let cancelled = false;
+    setAvailLoading(true);
+    runCheckAvail({ data: { skus, from: dateFrom, to: dateTo } })
+      .then((r) => { if (!cancelled) setAvailability(r); })
+      .catch(() => { if (!cancelled) setAvailability(null); })
+      .finally(() => { if (!cancelled) setAvailLoading(false); });
+    return () => { cancelled = true; };
+  }, [dateFrom, dateTo, allItems, runCheckAvail]);
+
 
   const filtered = useMemo(() => {
     const q = query.trim();
@@ -138,8 +161,42 @@ function RentalCatalogPage() {
         <div className="grid lg:grid-cols-[1fr_340px] gap-8 items-start">
           {/* MAIN */}
           <div className="min-w-0">
+            {/* Date picker — must choose to see live availability per item */}
+            <div className="bg-[#f5d5cf] rounded-3xl border border-primary/10 p-5 mb-4 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <CalendarDays className="h-4 w-4 text-primary" />
+                <div className="text-sm font-semibold text-primary">בחרי תאריכי השכרה כדי לראות זמינות חיה</div>
+              </div>
+              <div className="grid sm:grid-cols-[1fr_1fr_auto] gap-2 items-end">
+                <label className="text-xs text-primary/80">
+                  מתאריך
+                  <input type="date" min={new Date().toISOString().slice(0,10)} value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="mt-1 w-full h-11 px-3 rounded-full bg-white border border-primary/15 text-sm" />
+                </label>
+                <label className="text-xs text-primary/80">
+                  עד תאריך
+                  <input type="date" min={dateFrom || new Date().toISOString().slice(0,10)} value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    className="mt-1 w-full h-11 px-3 rounded-full bg-white border border-primary/15 text-sm" />
+                </label>
+                {(dateFrom || dateTo) && (
+                  <button type="button" onClick={() => { setDateFrom(""); setDateTo(""); setAvailability(null); }}
+                    className="h-11 px-4 rounded-full bg-white border border-primary/15 text-xs text-primary hover:bg-cream">
+                    ניקוי
+                  </button>
+                )}
+              </div>
+              <p className="text-[11px] text-primary/70 mt-2">
+                💡 חישוב מחיר לפי 24 שעות · חובה לעדכן לפני איחור בהחזרה.
+                {availLoading && " · בודקת זמינות…"}
+                {availability && !availLoading && ` · ${Object.values(availability).filter(a => a.available > 0).length} פריטים זמינים בתאריכים אלה`}
+              </p>
+            </div>
+
             {/* Search */}
             <div className="bg-card rounded-3xl border border-primary/10 p-5 mb-6 shadow-sm">
+
               <div className="flex gap-2 items-center">
                 <div className="flex-1 relative">
                   <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/50" />
@@ -205,12 +262,14 @@ function RentalCatalogPage() {
                   {cat.items.map((it) => {
                     const inspiration = !!it.hasHand;
                     const selected = inCart.has(it.sku);
+                    const availInfo = availability?.[it.sku];
+                    const unavailable = !inspiration && availInfo != null && availInfo.available <= 0;
                     return (
                       <div
                         key={it.sku}
                         className={
                           "group relative rounded-2xl overflow-hidden border bg-card transition-all " +
-                          (inspiration ? "col-span-2 border-dashed border-primary/25" : selected ? "border-primary shadow-lg -translate-y-0.5" : "border-primary/10 hover:border-primary/30 hover:shadow-md")
+                          (inspiration ? "col-span-2 border-dashed border-primary/25" : unavailable ? "border-primary/10 opacity-60" : selected ? "border-primary shadow-lg -translate-y-0.5" : "border-primary/10 hover:border-primary/30 hover:shadow-md")
                         }
                       >
                         <button
@@ -226,7 +285,8 @@ function RentalCatalogPage() {
                               loading="lazy"
                               className={
                                 (inspiration ? "h-56 md:h-64 object-contain bg-cream" : "h-40 object-cover") +
-                                " w-full transition-transform duration-500 group-hover:scale-105"
+                                " w-full transition-transform duration-500 group-hover:scale-105" +
+                                (unavailable ? " grayscale" : "")
                               }
                             />
                           ) : (
@@ -242,6 +302,16 @@ function RentalCatalogPage() {
                               להשראה בלבד
                             </span>
                           )}
+                          {unavailable && (
+                            <span className="absolute top-2 right-2 bg-destructive text-destructive-foreground text-[10px] tracking-widest uppercase px-2 py-1 rounded-full font-semibold">
+                              תפוס בתאריך שנבחר
+                            </span>
+                          )}
+                          {!inspiration && !unavailable && availInfo && availInfo.available > 0 && (
+                            <span className="absolute top-2 right-2 bg-forest/90 text-white text-[10px] tracking-widest uppercase px-2 py-1 rounded-full">
+                              זמין
+                            </span>
+                          )}
                         </button>
 
                         {!inspiration && (
@@ -254,13 +324,15 @@ function RentalCatalogPage() {
                             <button
                               type="button"
                               onClick={() => toggleCart(it)}
+                              disabled={unavailable}
                               className={
                                 "h-9 w-9 rounded-full flex items-center justify-center shrink-0 transition-colors " +
-                                (selected ? "bg-primary text-primary-foreground" : "bg-cream text-primary hover:bg-blush")
+                                (unavailable ? "bg-muted text-muted-foreground cursor-not-allowed" : selected ? "bg-primary text-primary-foreground" : "bg-cream text-primary hover:bg-blush")
                               }
-                              aria-label={selected ? `הסר מהסל את ${it.name}` : `הוסף לסל ${it.name}`}
+                              aria-label={unavailable ? `${it.name} תפוס בתאריך שנבחר` : selected ? `הסר מהסל את ${it.name}` : `הוסף לסל ${it.name}`}
                             >
                               {selected ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+
                             </button>
                           </div>
                         )}
