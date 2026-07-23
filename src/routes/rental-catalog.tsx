@@ -45,12 +45,18 @@ function RentalCatalogPage() {
   const [lightbox, setLightbox] = useState<Item | null>(null);
   const [activeCat, setActiveCat] = useState<string>("all");
   const [showOrderForm, setShowOrderForm] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [availability, setAvailability] = useState<Record<string, { available: number }> | null>(null);
+  const [availLoading, setAvailLoading] = useState(false);
   const [form, setForm] = useState({
     orderType: "הזמנת אביזרים",
     email: "", name: "", phone: "", referral: "", pickup: "",
     payment: "מזומן במקום", amount: "", agree: false, suggestion: "",
   });
   const runSmartSearch = useServerFn(smartSearchItems);
+  const runCheckAvail = useServerFn(checkItemsAvailability);
+
 
   const allItems = useMemo(() => categories.flatMap((c) => c.items), []);
   const inspirationImages = useMemo(
