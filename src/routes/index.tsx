@@ -109,22 +109,24 @@ function Home() {
               </div>
 
               <h1
-                className="mt-6 text-[3.2rem] leading-[1.02] md:text-[5.2rem] md:leading-[0.98] text-[#2d3d2b]"
+                className="mt-6 text-[2.9rem] leading-[1.05] md:text-[4.8rem] md:leading-[1.02] text-[#2d3d2b]"
                 style={{ fontFamily: "'DM Serif Display', serif" }}
               >
+                <span className="block">סוויט בייבי</span>
                 <span className="relative inline-block">
-                  היצירה הראשונה שלי.
+                  כאן נולדת התמונה
                   <motion.svg
-                    viewBox="0 0 400 20" className="absolute -bottom-3 right-0 w-full h-4 text-[#f5d5cf]"
+                    viewBox="0 0 420 22" className="absolute -bottom-2 right-0 w-full h-5 text-[#f5d5cf]"
                     initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.6, delay: 0.5 }}
                   >
                     <motion.path
-                      d="M5 12 Q 100 2, 200 10 T 395 8" stroke="currentColor" strokeWidth="6"
+                      d="M8 14 Q 120 2, 220 12 T 412 8" stroke="currentColor" strokeWidth="7"
                       strokeLinecap="round" fill="none"
                       initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.6, delay: 0.5 }}
                     />
                   </motion.svg>
                 </span>
+                <span className="block">שתשאר איתך תמיד.</span>
               </h1>
 
               <p className="mt-8 text-lg md:text-xl text-[#2d3d2b]/75 max-w-xl leading-relaxed">
