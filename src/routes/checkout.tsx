@@ -156,7 +156,7 @@ function Checkout() {
                 ) : (
                   <ul className="space-y-2 text-sm">
                     {lines.map((l) => {
-                      const a = availability?.[l.id];
+                      const a = availability?.[l.sku];
                       const ok = a ? a.available >= l.quantity : true;
                       return (
                         <li key={l.id} className="flex items-center justify-between">
