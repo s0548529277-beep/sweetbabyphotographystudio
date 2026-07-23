@@ -111,6 +111,7 @@ function StudioRentalPage() {
   const [submitting, setSubmitting] = useState(false);
   const nav = useNavigate();
   const { user } = useAuth();
+  const submitIntake = useServerFn(submitStudioIntake);
   const upd = <K extends keyof IntakeForm>(k: K, v: IntakeForm[K]) => setForm((f) => ({ ...f, [k]: v }));
 
   const sendIntake = async () => {
@@ -122,40 +123,31 @@ function StudioRentalPage() {
       toast.error("יש לאשר את הסכם תיאום הציפיות לפני השליחה.");
       return;
     }
-
-    // Build the mailto URL BEFORE any await so the popup opens in the same
-    // user gesture — Chrome/Safari block window.open called after await.
-    const lines = [
-      `שם מלא: ${form.clientName}`,
-      `טלפון: ${form.phone}`,
-      `אימייל: ${form.email}`,
-      `סוג הצילום: ${form.sessionType}`,
-      `תאריך/שעה מבוקשים: ${form.sessionDate}`,
-      `מספר משתתפים: ${form.peopleCount}`,
-      `גיל התינוק (אם רלוונטי): ${form.babyAge}`,
-      `מותג מצלמה: ${form.cameraBrand}`,
-      `ניסיון פלאש/סטודיו: ${form.flashExperience}`,
-      `אביזרים בהשכרה: ${form.needProps}`,
-      `בקשות מיוחדות: ${form.specialRequests}`,
-      ``,
-      `אישרתי שקראתי והסכמתי להסכם תיאום הציפיות ולכללי הסטודיו.`,
-    ].join("\n");
-    const subject = `הסכם תיאום ציפיות - ${form.clientName}`;
-    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(EMAIL_TO)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines)}`;
-    // Opened synchronously → not blocked by popup blockers.
-    const popup = window.open(gmailUrl, "_blank", "noopener,noreferrer");
-    // Fallback for iOS/embedded browsers that still refuse popups.
-    if (!popup) window.location.href = `mailto:${EMAIL_TO}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines)}`;
+    if (!user) {
+      toast.error("יש להתחבר לפני שליחת הטופס.");
+      nav({ to: "/auth" });
+      return;
+    }
 
     setSubmitting(true);
     try {
-      if (user) {
-        await supabase.from("studio_intake_forms").insert({
-          user_id: user.id,
-          payload: JSON.parse(JSON.stringify(form)),
-        });
-      }
-      toast.success("ההסכם נשלח. ממשיכות לבחירת שעה ביומן.");
+      await submitIntake({
+        data: {
+          clientName: form.clientName,
+          phone: form.phone,
+          email: form.email,
+          sessionType: form.sessionType,
+          sessionDate: form.sessionDate,
+          peopleCount: form.peopleCount,
+          babyAge: form.babyAge,
+          cameraBrand: form.cameraBrand,
+          flashExperience: form.flashExperience,
+          needProps: form.needProps,
+          specialRequests: form.specialRequests,
+          agreed: true,
+        },
+      });
+      toast.success("הטופס נשלח למייל שלך ולסטודיו. ממשיכות לבחירת שעה ביומן.");
       setShowForm(false);
       nav({ to: "/booking" });
     } catch (e) {
