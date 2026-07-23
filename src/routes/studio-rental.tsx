@@ -15,9 +15,9 @@ export const Route = createFileRoute("/studio-rental")({
       { name: "description", content: "השכרת סטודיו בוטיק בבית שמש לצילומי ניו-בורן, משפחה והיריון. מחירון שקוף וקביעת תור אונליין." },
       { property: "og:title", content: "השכרת סטודיו | Sweetbaby" },
       { property: "og:description", content: "חלל בוטיק מאובזר, תאורה מקצועית ואווירה שקטה — לצלמות שמחפשות סטודיו איכותי בבית שמש." },
-      { property: "og:url", content: "https://sweetbabyphotographystudio.lovable.app/studio-rental" },
+      { property: "og:url", content: "https://sweetbabyphoto.shop/studio-rental" },
     ],
-    links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/studio-rental" }],
+    links: [{ rel: "canonical", href: "https://sweetbabyphoto.shop/studio-rental" }],
   }),
   component: StudioRentalPage,
 });

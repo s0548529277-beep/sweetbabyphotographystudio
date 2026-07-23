@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ShieldCheck, Sparkles, Camera, Feather, Layers, Heart, CheckCircle2 } from "lucide-react";
 import ogImage from "@/assets/blog-newborn-props-og.jpg";
 
-const CANONICAL = "https://sweetbabyphotographystudio.lovable.app/blog/essential-newborn-props";
+const CANONICAL = "https://sweetbabyphoto.shop/blog/essential-newborn-props";
 const TITLE = "מדריך: אביזרים חיוניים לצילומי ניוברן למתחילים | Sweetbaby";
 const DESCRIPTION =
   "מדריך מלא לאביזרים החיוניים בצילומי ניוברן — סלסלות, מצעים, כובעים ושמיכות. דגש על בטיחות, רבגוניות והציוד ההכרחי לסטודיו ראשון.";
@@ -13,7 +13,7 @@ const DESCRIPTION =
 export const Route = createFileRoute("/blog/essential-newborn-props")({
   component: EssentialNewbornPropsGuide,
   head: () => {
-    const OG_IMAGE = `https://sweetbabyphotographystudio.lovable.app${ogImage}`;
+    const OG_IMAGE = `https://sweetbabyphoto.shop${ogImage}`;
     return {
     meta: [
       { title: TITLE },
@@ -65,8 +65,8 @@ export const Route = createFileRoute("/blog/essential-newborn-props")({
           "@context": "https://schema.org",
           "@type": "BreadcrumbList",
           itemListElement: [
-            { "@type": "ListItem", position: 1, name: "Sweetbaby", item: "https://sweetbabyphotographystudio.lovable.app/" },
-            { "@type": "ListItem", position: 2, name: "Blog", item: "https://sweetbabyphotographystudio.lovable.app/blog" },
+            { "@type": "ListItem", position: 1, name: "Sweetbaby", item: "https://sweetbabyphoto.shop/" },
+            { "@type": "ListItem", position: 2, name: "Blog", item: "https://sweetbabyphoto.shop/blog" },
             { "@type": "ListItem", position: 3, name: "אביזרים חיוניים לצילומי ניוברן", item: CANONICAL },
           ],
         }),

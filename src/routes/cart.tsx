@@ -24,9 +24,9 @@ export const Route = createFileRoute("/cart")({
     { name: "description", content: "העגלה שלכם ב-Sweetbaby — סקירת אביזרי צילום נבחרים, הפעלת קוד קופון, בקשת מנוי ומעבר לתשלום מקדמה." },
     { property: "og:title", content: "עגלת קניות | Sweetbaby" },
     { property: "og:description", content: "העגלה שלכם ב-Sweetbaby — סקירת אביזרי צילום נבחרים, הפעלת קוד קופון, בקשת מנוי ומעבר לתשלום מקדמה." },
-    { property: "og:url", content: "https://sweetbabyphotographystudio.lovable.app/cart" },
+    { property: "og:url", content: "https://sweetbabyphoto.shop/cart" },
     { name: "robots", content: "noindex, follow" },
-  ], links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/cart" }] }),
+  ], links: [{ rel: "canonical", href: "https://sweetbabyphoto.shop/cart" }] }),
 });
 
 function Cart() {

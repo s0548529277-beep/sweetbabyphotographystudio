@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronRight, ChevronLeft, Clock } from "lucide-react";
 import { BLOG_POSTS } from "@/lib/blog-posts";
 
-const CANONICAL = "https://sweetbabyphotographystudio.lovable.app/blog";
+const CANONICAL = "https://sweetbabyphoto.shop/blog";
 const TITLE = "הבלוג של Sweetbaby | מדריכים וטיפים לצילומי ניוברן";
 const DESCRIPTION =
   "מאמרים, מדריכים והשראה מסטודיו Sweetbaby — אביזרים, סטיילינג ורעיונות לצילומי ניוברן, משפחה וילדים.";

@@ -20,7 +20,7 @@ export const Route = createFileRoute("/checkout")({
     { title: "סיכום הזמנה | Sweetbaby" },
     { name: "description", content: "סיכום הזמנה, בדיקת זמינות אביזרים לתאריך שלך ותשלום מקדמה." },
     { name: "robots", content: "noindex, follow" },
-  ], links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/checkout" }] }),
+  ], links: [{ rel: "canonical", href: "https://sweetbabyphoto.shop/checkout" }] }),
 });
 
 function Checkout() {

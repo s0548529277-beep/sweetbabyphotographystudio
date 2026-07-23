@@ -10,8 +10,8 @@ export const Route = createFileRoute("/track")({
     { name: "description", content: "בחרו מסלול ב-Sweetbaby — שריון סטודיו צילום או השכרת אביזרי צילום לסשן ניוברן וגיל שנה בבית שמש." },
     { property: "og:title", content: "בחירת מסלול | Sweetbaby" },
     { property: "og:description", content: "בחרו מסלול ב-Sweetbaby — שריון סטודיו צילום או השכרת אביזרי צילום לסשן ניוברן וגיל שנה בבית שמש." },
-    { property: "og:url", content: "https://sweetbabyphotographystudio.lovable.app/track" },
-  ], links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/track" }] }),
+    { property: "og:url", content: "https://sweetbabyphoto.shop/track" },
+  ], links: [{ rel: "canonical", href: "https://sweetbabyphoto.shop/track" }] }),
 });
 
 function Track() {
