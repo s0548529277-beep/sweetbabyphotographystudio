@@ -41,15 +41,21 @@ const HERO_SLIDES: string[] = [
 ];
 
 
+const OG_IMAGE = `https://sweetbabyphoto.shop${hero0.url}`;
+
 export const Route = createFileRoute("/")({
   component: Home,
   head: () => ({
     meta: [
-      { title: "Sweetbaby — סטודיו בוטיק, צילומים והשכרת אביזרים בבית שמש" },
-      { name: "description", content: "סטודיו בוטיק בבית שמש: סוויט בייבי השכרת חלל צילום, סשן צילום סוויט ביבי  עם מיכל סיבוני וקטלוג של 400+ אביזרים מעוצבים לניוברן, גיל שנה, חלאקה ומשפחה." },
-      { property: "og:title", content: "Sweetbaby — סטודיו בוטיק, צילומים והשכרת אביזרים בבית שמש" },
-      { property: "og:description", content: "סטודיו בוטיק בבית שמש: סוויט בייבי השכרת חלל צילום, סשן צילום סוויט ביבי  עם מיכל סיבוני וקטלוג של 400+ אביזרים מעוצבים לניוברן, גיל שנה, חלאקה ומשפחה." },
+      { title: "Sweetbaby — 400+ אביזרים לצילומי ניוברן, סטודיו בוטיק בבית שמש" },
+      { name: "description", content: "סטודיו בוטיק בבית שמש: סוויט בייבי השכרת חלל צילום, סשן צילום סוויט ביבי עם מיכל סיבוני וקטלוג של 400+ אביזרים מעוצבים לניוברן, גיל שנה, חלאקה ומשפחה." },
+      { property: "og:title", content: "Sweetbaby — 400+ אביזרים לצילומי ניוברן, סטודיו בוטיק בבית שמש" },
+      { property: "og:description", content: "סטודיו בוטיק בבית שמש: סוויט בייבי השכרת חלל צילום, סשן צילום סוויט ביבי עם מיכל סיבוני וקטלוג של 400+ אביזרים מעוצבים לניוברן, גיל שנה, חלאקה ומשפחה." },
       { property: "og:url", content: "https://sweetbabyphoto.shop/" },
+      { property: "og:image", content: OG_IMAGE },
+      { property: "og:image:alt", content: "סטודיו Sweetbaby — פינת צילום ורודה עם אביזרים מעוצבים" },
+      { name: "twitter:image", content: OG_IMAGE },
+      { name: "twitter:image:alt", content: "סטודיו Sweetbaby — פינת צילום ורודה עם אביזרים מעוצבים" },
     ],
     links: [{ rel: "canonical", href: "https://sweetbabyphoto.shop/" }],
   }),
