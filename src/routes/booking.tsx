@@ -417,6 +417,7 @@ function Booking() {
               )}
             </div>
 
+            <div className="bg-[#2d3d2b] text-[#f8ede4] rounded-2xl p-5 shadow-lg">
               <div className="text-[10px] tracking-[0.32em] uppercase text-[#f5d5cf] mb-2 flex items-center gap-1.5">
                 <Sparkles className="h-3 w-3" /> סיכום
               </div>
