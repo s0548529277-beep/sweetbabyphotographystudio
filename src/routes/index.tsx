@@ -48,14 +48,14 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Sweetbaby — 400+ אביזרים לצילומי ניוברן, סטודיו בוטיק בבית שמש" },
-      { name: "description", content: "סטודיו Sweetbaby בבית שמש — 400+ אביזרים לצילומי ניוברן, השכרת סטודיו וסשן צילום עם מיכל סיבוני." },
+      { name: "description", content: "400+ אביזרים לצילומי ניוברן, השכרת סטודיו בוטיק וסשן צילום עם מיכל סיבוני — סטודיו Sweetbaby בבית שמש." },
       { property: "og:title", content: "Sweetbaby — 400+ אביזרים לצילומי ניוברן, סטודיו בוטיק בבית שמש" },
-      { property: "og:description", content: "סטודיו Sweetbaby בבית שמש — 400+ אביזרים לצילומי ניוברן, השכרת סטודיו וסשן צילום עם מיכל סיבוני." },
+      { property: "og:description", content: "400+ אביזרים לצילומי ניוברן, השכרת סטודיו בוטיק וסשן צילום עם מיכל סיבוני — סטודיו Sweetbaby בבית שמש." },
       { property: "og:url", content: "https://sweetbabyphoto.shop/" },
       { property: "og:image", content: OG_IMAGE },
       { property: "og:image:alt", content: "סטודיו Sweetbaby — פינת צילום ורודה עם אביזרים מעוצבים" },
       { name: "twitter:title", content: "Sweetbaby — 400+ אביזרים לצילומי ניוברן, סטודיו בוטיק בבית שמש" },
-      { name: "twitter:description", content: "סטודיו Sweetbaby בבית שמש — 400+ אביזרים לצילומי ניוברן, השכרת סטודיו וסשן צילום עם מיכל סיבוני." },
+      { name: "twitter:description", content: "400+ אביזרים לצילומי ניוברן, השכרת סטודיו בוטיק וסשן צילום עם מיכל סיבוני — סטודיו Sweetbaby בבית שמש." },
       { name: "twitter:image", content: OG_IMAGE },
       { name: "twitter:image:alt", content: "סטודיו Sweetbaby — פינת צילום ורודה עם אביזרים מעוצבים" },
     ],
