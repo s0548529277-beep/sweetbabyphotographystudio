@@ -263,9 +263,10 @@ function StudioRentalPage() {
           </div>
           <div className="grid md:grid-cols-3 gap-3 md:gap-4">
             {[
-              { tag: "Basic", price: 50, title: "הדרכה טכנית קצרה", desc: "סידור מהיר של פלאש ומצלמה, מוכנות ליציאה לצילום.", bg: "bg-white", accent: "border-[#2d3d2b]/10" },
-              { tag: "Plus", price: 100, title: "ליווי מקצועי ראשוני", desc: "התאמת 2 סטים לצילום כולל הכוונה יצירתית.", bg: "bg-[#a8c4a2]/25", accent: "border-[#a8c4a2]/50", featured: true },
-              { tag: "Premium", price: 150, title: "מעטפת מלאה", desc: "הכנת חלל מאפס + זמינות במהלך כל השהות.", bg: "bg-[#f5d5cf]", accent: "border-[#f5d5cf]" },
+              { tag: "Mini", price: 50, title: "הדרכה טכנית קצרצרה", desc: "עד 20 דק' בסטודיו: הפעלת פלאש, הגדרות מצלמה בסיסיות והתאמת סט אחד.", bg: "bg-white", accent: "border-[#2d3d2b]/10" },
+              { tag: "Plus", price: 100, title: "ליווי מקצועי ראשוני", desc: "התאמת 2 סטים לצילום כולל הכוונה יצירתית והדרכה טכנית.", bg: "bg-[#a8c4a2]/25", accent: "border-[#a8c4a2]/50", featured: true },
+              { tag: "Premium", price: 150, title: "מעטפת מלאה", desc: "הכנת חלל מאפס + זמינות במהלך כל השהות + סיוע בסידור אביזרים.", bg: "bg-[#f5d5cf]", accent: "border-[#f5d5cf]" },
+
             ].map((p, i) => (
               <motion.div
                 key={p.title} custom={i} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} variants={fadeUp}
