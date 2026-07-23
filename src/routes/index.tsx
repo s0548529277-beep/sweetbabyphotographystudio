@@ -13,6 +13,23 @@ import hero3 from "@/assets/home-hero-3.jpg.asset.json";
 import hero4 from "@/assets/home-hero-4.jpg.asset.json";
 import hero5 from "@/assets/home-hero-5.jpg.asset.json";
 import hero7 from "@/assets/home-hero-7.png.asset.json";
+import studioInterior from "@/assets/studio-interior.jpg";
+import studioPropsCorner from "@/assets/studio-props-corner.jpg";
+import heroScene from "@/assets/hero-scene.jpg";
+
+const GALLERY_IMAGES: { src: string; caption: string }[] = [
+  { src: hero0.url,             caption: "פינת ניו-בורן ורודה" },
+  { src: studioInterior,        caption: "הסטודיו — אור טבעי" },
+  { src: hero3.url,             caption: "סט וינטג׳ בבז׳" },
+  { src: studioPropsCorner,     caption: "פינת אביזרים סרוגים" },
+  { src: hero1.url,             caption: "רכות ופסטל" },
+  { src: heroScene,             caption: "סצנת צילום מוכנה" },
+  { src: hero4.url,             caption: "משפחה בסטודיו" },
+  { src: hero2.url,             caption: "טקסטורות ומקרמה" },
+  { src: hero5.url,             caption: "דרמה בשחור" },
+  { src: hero7.url,             caption: "פרחים ואור בוקר" },
+];
+
 const HERO_SLIDES: string[] = [
   hero0.url,
   hero1.url,
