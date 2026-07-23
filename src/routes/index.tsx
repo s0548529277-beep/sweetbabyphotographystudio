@@ -47,15 +47,15 @@ export const Route = createFileRoute("/")({
   component: Home,
   head: () => ({
     meta: [
-      { title: "סוויט בייבי — התמונה הראשונה שלי | סטודיו בוטיק בבית שמש" },
-      { name: "description", content: "סוויט בייבי — התמונה הראשונה שלי. סטודיו בוטיק בבית שמש עם 400+ אביזרים לצילומי ניוברן, השכרת סטודיו וסשן צילום עם מיכל סיבוני." },
-      { property: "og:title", content: "סוויט בייבי — התמונה הראשונה שלי" },
-      { property: "og:description", content: "סוויט בייבי — התמונה הראשונה שלי. סטודיו בוטיק בבית שמש עם 400+ אביזרים לצילומי ניוברן, השכרת סטודיו וסשן צילום." },
+      { title: "סוויט בייבי — כאן נולדת התמונה שתשאר איתך תמיד" },
+      { name: "description", content: "סוויט בייבי — כאן נולדת התמונה שתשאר איתך תמיד. סטודיו בוטיק בבית שמש עם 400+ אביזרים לצילומי ניוברן, השכרת סטודיו וסשן צילום עם מיכל סיבוני." },
+      { property: "og:title", content: "סוויט בייבי — כאן נולדת התמונה שתשאר איתך תמיד" },
+      { property: "og:description", content: "סוויט בייבי — כאן נולדת התמונה שתשאר איתך תמיד. סטודיו בוטיק בבית שמש עם 400+ אביזרים לצילומי ניוברן, השכרת סטודיו וסשן צילום." },
       { property: "og:url", content: "https://sweetbabyphoto.shop/" },
       { property: "og:image", content: OG_IMAGE },
       { property: "og:image:alt", content: "סטודיו Sweetbaby — פינת צילום ורודה עם אביזרים מעוצבים" },
-      { name: "twitter:title", content: "סוויט בייבי — התמונה הראשונה שלי" },
-      { name: "twitter:description", content: "סוויט בייבי — התמונה הראשונה שלי. סטודיו בוטיק בבית שמש עם 400+ אביזרים לצילומי ניוברן, השכרת סטודיו וסשן צילום." },
+      { name: "twitter:title", content: "סוויט בייבי — כאן נולדת התמונה שתשאר איתך תמיד" },
+      { name: "twitter:description", content: "סוויט בייבי — כאן נולדת התמונה שתשאר איתך תמיד. סטודיו בוטיק בבית שמש עם 400+ אביזרים לצילומי ניוברן, השכרת סטודיו וסשן צילום." },
       { name: "twitter:image", content: OG_IMAGE },
       { name: "twitter:image:alt", content: "סטודיו Sweetbaby — פינת צילום ורודה עם אביזרים מעוצבים" },
     ],
@@ -80,7 +80,16 @@ function Home() {
       <Header />
 
       {/* HERO */}
-      <section className="relative">
+      <section className="relative overflow-hidden">
+        {/* Soft editorial gradient like the reference */}
+        <div
+          aria-hidden
+          className="absolute inset-0 -z-10"
+          style={{
+            background: "linear-gradient(135deg, #f8ede4 0%, #f1e6dc 45%, #e1e8d9 100%)",
+          }}
+        />
+
         {/* Decorative floating shapes */}
         <motion.div
           aria-hidden
@@ -109,26 +118,28 @@ function Home() {
               </div>
 
               <h1
-                className="mt-6 text-[3.2rem] leading-[1.02] md:text-[5.2rem] md:leading-[0.98] text-[#2d3d2b]"
+                className="mt-6 text-[2.9rem] leading-[1.05] md:text-[4.8rem] md:leading-[1.02] text-[#2d3d2b]"
                 style={{ fontFamily: "'DM Serif Display', serif" }}
               >
+                <span className="block">סוויט בייבי</span>
                 <span className="relative inline-block">
-                  היצירה הראשונה שלי.
+                  כאן נולדת התמונה
                   <motion.svg
-                    viewBox="0 0 400 20" className="absolute -bottom-3 right-0 w-full h-4 text-[#f5d5cf]"
+                    viewBox="0 0 420 22" className="absolute -bottom-2 right-0 w-full h-5 text-[#f5d5cf]"
                     initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.6, delay: 0.5 }}
                   >
                     <motion.path
-                      d="M5 12 Q 100 2, 200 10 T 395 8" stroke="currentColor" strokeWidth="6"
+                      d="M8 14 Q 120 2, 220 12 T 412 8" stroke="currentColor" strokeWidth="7"
                       strokeLinecap="round" fill="none"
                       initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.6, delay: 0.5 }}
                     />
                   </motion.svg>
                 </span>
+                <span className="block">שתשאר איתך תמיד.</span>
               </h1>
 
               <p className="mt-8 text-lg md:text-xl text-[#2d3d2b]/75 max-w-xl leading-relaxed">
-                סטודיו בוטיק בבית שמש המשלב אמנות, רגש ועיצוב מוקפד — לצילומי ניוברן, חלאקה, גיל שנה ומשפחה. שלוש דרכים ליצור רגע שלא נשכח.
+                סטודיו בוטיק בבית שמש המשלב אמנות, רגש ועיצוב מוקפד — לצילומי ניוברן, חלאקה, גיל שנה ומשפחה. כאן כל תמונה היא זיכרון לנצח.
               </p>
 
               <div className="mt-10 flex flex-wrap items-center gap-4">
