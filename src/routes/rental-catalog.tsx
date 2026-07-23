@@ -23,9 +23,9 @@ export const Route = createFileRoute("/rental-catalog")({
       },
       { property: "og:title", content: "קטלוג אביזרים להשכרה | Sweetbaby" },
       { property: "og:description", content: "מעל 400 אביזרים להשכרה — בחירה, סל וקופה." },
-      { property: "og:url", content: "https://sweetbabyphotographystudio.lovable.app/rental-catalog" },
+      { property: "og:url", content: "https://sweetbabyphoto.shop/rental-catalog" },
     ],
-    links: [{ rel: "canonical", href: "https://sweetbabyphotographystudio.lovable.app/rental-catalog" }],
+    links: [{ rel: "canonical", href: "https://sweetbabyphoto.shop/rental-catalog" }],
   }),
   component: RentalCatalogPage,
 });
