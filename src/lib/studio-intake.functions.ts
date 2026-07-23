@@ -94,7 +94,7 @@ export const submitStudioIntake = createServerFn({ method: "POST" })
       await supabaseAdmin.from("admin_notifications").insert({
         type: "studio_intake",
         title: `טופס תיאום ציפיות · ${data.clientName}`,
-        body: data as unknown as Record<string, unknown>,
+        body: JSON.parse(JSON.stringify(data)),
       });
     } catch (e) {
       console.error("[SWEETBABY] intake admin notify failed", e);
