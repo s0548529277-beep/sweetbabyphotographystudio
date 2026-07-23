@@ -29,6 +29,7 @@ const inputSchema = z.object({
   contact_name: z.string().min(1).max(120),
   contact_phone: z.string().min(5).max(40),
   notes: z.string().max(1000).optional().nullable(),
+  reserved_items: z.array(z.string().min(1).max(24)).max(20).optional(),
   terms_accepted: z.literal(true),
 });
 
@@ -83,6 +84,7 @@ export const placeBooking = createServerFn({ method: "POST" })
         status: "pending",
         deposit_status: "pending",
         notes: data.notes ?? null,
+        reserved_items: data.reserved_items && data.reserved_items.length > 0 ? data.reserved_items : null,
         terms_accepted_at: new Date().toISOString(),
       })
       .select("id, price")

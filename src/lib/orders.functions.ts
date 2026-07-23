@@ -14,12 +14,22 @@ const inputSchema = z.object({
   lines: z.array(lineSchema).min(1),
   session_date: z.string().min(10), // rental start date (יום הצילום)
   return_date: z.string().min(10), // rental end date (חובה — לפחות אותו יום)
+  start_time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  end_time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
   contact_name: z.string().min(1).max(120),
   contact_phone: z.string().min(5).max(40),
   camera_model: z.string().min(1).max(120).optional().nullable(),
   notes: z.string().max(1000).optional().nullable(),
   terms_accepted: z.literal(true),
 });
+
+// Round up rental duration (in hours) to whole 24h units; min 1.
+function computeDayMultiplier(startISO: string, endISO: string): number {
+  const ms = new Date(endISO).getTime() - new Date(startISO).getTime();
+  if (!isFinite(ms) || ms <= 0) return 1;
+  const hours = ms / (1000 * 60 * 60);
+  return Math.max(1, Math.ceil(hours / 24));
+}
 
 export const placeOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -37,12 +47,19 @@ export const placeOrder = createServerFn({ method: "POST" })
       .in("sku", skus);
     if (itemsErr) throw new Error(itemsErr.message);
 
+    // Compute how many 24h units this rental covers. If specific times were
+    // provided, use them; otherwise use full days between the two dates.
+    const startISO = `${startDate}T${data.start_time ?? "09:00"}:00`;
+    const endISO = `${endDate}T${data.end_time ?? data.start_time ?? "18:00"}:00`;
+    const dayMultiplier = computeDayMultiplier(startISO, endISO);
+
     const byId = new Map(items?.map((i) => [i.sku, i]) ?? []);
     let total = 0;
     const orderLines = data.lines.map((l) => {
       const server = byId.get(l.sku);
       if (!server || !server.active) throw new Error(`פריט לא זמין: ${l.name}`);
-      const price = Number(server.price);
+      const basePrice = Number(server.price);
+      const price = basePrice * dayMultiplier;
       total += price * l.quantity;
       return {
         item_id: server.id,
@@ -96,7 +113,12 @@ export const placeOrder = createServerFn({ method: "POST" })
         contact_name: data.contact_name,
         contact_phone: data.contact_phone,
         camera_model: data.camera_model ?? null,
-        notes: data.notes ?? null,
+        notes: [
+          data.start_time && data.end_time
+            ? `שעות השכרה: ${data.start_time}–${data.end_time} · ${dayMultiplier} יח׳ של 24ש (מכפיל x${dayMultiplier})`
+            : null,
+          data.notes,
+        ].filter(Boolean).join("\n") || null,
         deposit_amount: depositAmount,
         balance_amount: balanceAmount,
         deposit_status: "pending",

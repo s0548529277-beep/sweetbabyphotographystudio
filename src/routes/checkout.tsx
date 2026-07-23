@@ -34,13 +34,25 @@ function Checkout() {
     contact_name: "",
     contact_phone: "",
     session_date: "",
+    start_time: "09:00",
     return_date: "",
+    end_time: "18:00",
     camera_model: "",
     notes: "",
     terms_accepted: false,
   });
   const [availability, setAvailability] = useState<Record<string, { stock: number; taken: number; available: number }> | null>(null);
   const [checking, setChecking] = useState(false);
+
+  // 24h-multiplier: any rental up to 24h = base, 24-48h = x2, and so on.
+  const dayMultiplier = (() => {
+    if (!form.session_date || !form.return_date) return 1;
+    const s = new Date(`${form.session_date}T${form.start_time || "09:00"}:00`).getTime();
+    const e = new Date(`${form.return_date}T${form.end_time || form.start_time || "18:00"}:00`).getTime();
+    if (!isFinite(s) || !isFinite(e) || e <= s) return 1;
+    return Math.max(1, Math.ceil((e - s) / (1000 * 60 * 60 * 24)));
+  })();
+  const chargedTotal = subtotal * dayMultiplier;
 
   const disabled = lines.length === 0 || subtotal < 50;
 
@@ -94,7 +106,9 @@ function Checkout() {
           contact_phone: form.contact_phone,
           camera_model: form.camera_model || null,
           session_date: form.session_date,
+          start_time: form.start_time || undefined,
           return_date: form.return_date,
+          end_time: form.end_time || undefined,
           notes: form.notes,
           terms_accepted: true as const,
         },
@@ -130,12 +144,26 @@ function Checkout() {
                   <Input required type="tel" dir="ltr" value={form.contact_phone} onChange={(e) => setForm({ ...form, contact_phone: e.target.value })} className="mt-1" />
                 </div>
                 <div>
-                  <Label className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> תאריך התחלה (יום הצילום) *</Label>
+                  <Label className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> תאריך איסוף *</Label>
                   <Input required type="date" min={new Date().toISOString().slice(0,10)} value={form.session_date} onChange={(e) => setForm({ ...form, session_date: e.target.value })} className="mt-1" />
+                </div>
+                <div>
+                  <Label>שעת איסוף *</Label>
+                  <Input required type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} className="mt-1" />
                 </div>
                 <div>
                   <Label className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> תאריך החזרה *</Label>
                   <Input required type="date" min={form.session_date || new Date().toISOString().slice(0,10)} value={form.return_date} onChange={(e) => setForm({ ...form, return_date: e.target.value })} className="mt-1" />
+                </div>
+                <div>
+                  <Label>שעת החזרה *</Label>
+                  <Input required type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} className="mt-1" />
+                </div>
+                <div className="md:col-span-2 -mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blush/40 text-primary font-medium">
+                    <AlertTriangle className="h-3 w-3" /> תמחור לפי 24 שעות · מכפיל נוכחי: ×{dayMultiplier}
+                  </span>
+                  <span className="text-muted-foreground">חובה לעדכן מראש אם צפוי איחור — כל 24ש נוספות = תשלום כפול.</span>
                 </div>
                 <div className="md:col-span-2">
                   <Label className="flex items-center gap-1"><Camera className="h-3 w-3" /> דגם המצלמה (אופציונלי)</Label>
@@ -210,8 +238,11 @@ function Checkout() {
             <div className="h-px bg-primary-foreground/20 my-4" />
             <div className="flex justify-between items-baseline">
               <span className="text-primary-foreground/70">סה״כ</span>
-              <span className="font-display text-3xl text-blush">₪{subtotal.toFixed(0)}</span>
+              <span className="font-display text-3xl text-blush">₪{chargedTotal.toFixed(0)}</span>
             </div>
+            {dayMultiplier > 1 && (
+              <div className="text-[11px] text-blush/90 mt-1">מבוסס על ₪{subtotal.toFixed(0)} × {dayMultiplier} יח׳ של 24 שעות</div>
+            )}
             <div className="text-[11px] text-primary-foreground/60 mt-2">מינימום 50₪. מקדמה 90₪ תיגבה לפני הצילום.</div>
             <Button
               type="submit"
