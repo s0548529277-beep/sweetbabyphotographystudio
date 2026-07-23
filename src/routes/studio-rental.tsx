@@ -4,8 +4,9 @@ import { motion } from "framer-motion";
 import { Clock, CreditCard, CalendarDays, Sparkles, ArrowLeft, X, MapPin, Star, AlertTriangle, Mail } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { submitStudioIntake } from "@/lib/studio-intake.functions";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/studio-rental")({
