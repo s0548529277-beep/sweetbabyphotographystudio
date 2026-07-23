@@ -63,8 +63,8 @@ function SummaryPage() {
   }
 
   const total = record.price ?? record.total ?? 0;
-  const deposit = record.deposit_amount ?? Math.min(90, total);
-  const balance = Math.max(0, total - deposit);
+  const deposit = total;
+  const balance = 0;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -76,7 +76,7 @@ function SummaryPage() {
           </div>
           <h1 className="font-display text-5xl text-primary mb-3">סיכום ותשלום</h1>
           <p className="text-muted-foreground max-w-2xl mb-10">
-            עברי על הפרטים ובחרי איך לסיים את השריון. הכל שמור ומחכה — מקדמה של ₪{deposit} סוגרת עסקה.
+            עברי על הפרטים ובחרי איך לסיים את התשלום. תשלום מלא של ₪{total} סוגר את ההזמנה — ניתן לשלם במזומן ביום האיסוף ללא צורך באסמכתא.
           </p>
 
           <div className="grid md:grid-cols-[1.4fr_1fr] gap-6">
@@ -148,9 +148,7 @@ function SummaryPage() {
               <div className="glass-card rounded-3xl p-6 sticky top-24">
                 <h3 className="font-display text-xl text-primary mb-4">סיכום תשלום</h3>
                 <div className="space-y-2 text-sm">
-                  <Row label="סה״כ הזמנה" value={`₪${total}`} />
-                  <Row label="מקדמה עכשיו" value={`₪${deposit}`} strong />
-                  {balance > 0 && <Row label="יתרה ביום הצילום" value={`₪${balance}`} muted />}
+                  <Row label="סה״כ לתשלום" value={`₪${total}`} strong />
                 </div>
 
                 <div className="mt-6 space-y-3">
@@ -182,9 +180,9 @@ function SummaryPage() {
                   >
                     <span className="flex items-center gap-2">
                       <Banknote className="h-4 w-4 text-blush-deep" />
-                      <span>העברה בנקאית / Bit</span>
+                      <span>מזומן / העברה בנקאית / Bit</span>
                     </span>
-                    <span className="text-xs text-muted-foreground">זמין עכשיו →</span>
+                    <span className="text-xs text-muted-foreground">בחירה →</span>
                   </Button>
                 </div>
 
