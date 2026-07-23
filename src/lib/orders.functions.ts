@@ -14,12 +14,22 @@ const inputSchema = z.object({
   lines: z.array(lineSchema).min(1),
   session_date: z.string().min(10), // rental start date (יום הצילום)
   return_date: z.string().min(10), // rental end date (חובה — לפחות אותו יום)
+  start_time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  end_time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
   contact_name: z.string().min(1).max(120),
   contact_phone: z.string().min(5).max(40),
   camera_model: z.string().min(1).max(120).optional().nullable(),
   notes: z.string().max(1000).optional().nullable(),
   terms_accepted: z.literal(true),
 });
+
+// Round up rental duration (in hours) to whole 24h units; min 1.
+function computeDayMultiplier(startISO: string, endISO: string): number {
+  const ms = new Date(endISO).getTime() - new Date(startISO).getTime();
+  if (!isFinite(ms) || ms <= 0) return 1;
+  const hours = ms / (1000 * 60 * 60);
+  return Math.max(1, Math.ceil(hours / 24));
+}
 
 export const placeOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
