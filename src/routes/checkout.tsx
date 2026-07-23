@@ -34,13 +34,25 @@ function Checkout() {
     contact_name: "",
     contact_phone: "",
     session_date: "",
+    start_time: "09:00",
     return_date: "",
+    end_time: "18:00",
     camera_model: "",
     notes: "",
     terms_accepted: false,
   });
   const [availability, setAvailability] = useState<Record<string, { stock: number; taken: number; available: number }> | null>(null);
   const [checking, setChecking] = useState(false);
+
+  // 24h-multiplier: any rental up to 24h = base, 24-48h = x2, and so on.
+  const dayMultiplier = (() => {
+    if (!form.session_date || !form.return_date) return 1;
+    const s = new Date(`${form.session_date}T${form.start_time || "09:00"}:00`).getTime();
+    const e = new Date(`${form.return_date}T${form.end_time || form.start_time || "18:00"}:00`).getTime();
+    if (!isFinite(s) || !isFinite(e) || e <= s) return 1;
+    return Math.max(1, Math.ceil((e - s) / (1000 * 60 * 60 * 24)));
+  })();
+  const chargedTotal = subtotal * dayMultiplier;
 
   const disabled = lines.length === 0 || subtotal < 50;
 
