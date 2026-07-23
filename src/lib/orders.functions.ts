@@ -13,7 +13,7 @@ const lineSchema = z.object({
 const inputSchema = z.object({
   lines: z.array(lineSchema).min(1),
   session_date: z.string().min(10), // rental start date (יום הצילום)
-  return_date: z.string().min(10),  // rental end date (חובה — לפחות אותו יום)
+  return_date: z.string().min(10), // rental end date (חובה — לפחות אותו יום)
   contact_name: z.string().min(1).max(120),
   contact_phone: z.string().min(5).max(40),
   camera_model: z.string().min(1).max(120).optional().nullable(),
@@ -107,25 +107,26 @@ export const placeOrder = createServerFn({ method: "POST" })
       .single();
     if (orderErr || !order) throw new Error(orderErr?.message ?? "יצירת הזמנה נכשלה");
 
-    const { error: linesErr } = await supabase
-      .from("order_items")
-      .insert(orderLines.map((l) => ({
+    const { error: linesErr } = await supabase.from("order_items").insert(
+      orderLines.map((l) => ({
         order_id: order.id,
         item_id: l.item_id,
         item_name: l.item_name,
         item_sku: l.item_sku,
         quantity: l.quantity,
         price: l.price,
-      })));
+      })),
+    );
     if (linesErr) throw new Error(linesErr.message);
 
     // Lock availability slots for the rental range. Insert row-by-row so a
     // unique-conflict on (item_id, start_date, end_date, slot_index) — from a
     // concurrent booking — is retried with the next slot_index up to `stock`.
-    const insertOne = async (l: typeof orderLines[number]) => {
+    const insertOne = async (l: (typeof orderLines)[number]) => {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const start = takenCount.get(l.item_id) ?? 0;
       for (let attempt = start; attempt < l.stock + 8; attempt++) {
-        const { error } = await supabase.from("item_availability").insert({
+        const { error } = await supabaseAdmin.from("item_availability").insert({
           item_id: l.item_id,
           order_id: order.id,
           date: startDate,
@@ -139,7 +140,8 @@ export const placeOrder = createServerFn({ method: "POST" })
         }
         // 23505 = unique_violation. Any other error is fatal.
         // Retry only on conflicts, and only while slots are theoretically free.
-        const isConflict = (error as { code?: string }).code === "23505" || /duplicate|unique/i.test(error.message ?? "");
+        const isConflict =
+          (error as { code?: string }).code === "23505" || /duplicate|unique/i.test(error.message ?? "");
         if (!isConflict) throw new Error(error.message);
         // If we've exhausted stock, real conflict — no unit available.
         if (attempt + 1 >= l.stock) break;
@@ -165,7 +167,9 @@ export const placeOrder = createServerFn({ method: "POST" })
         title: `הזמנת אביזרים חדשה · ₪${total}`,
         body: {
           order_id: order.id,
-          total, deposit: depositAmount, balance: balanceAmount,
+          total,
+          deposit: depositAmount,
+          balance: balanceAmount,
           contact_name: data.contact_name,
           contact_phone: data.contact_phone,
           camera_model: data.camera_model ?? null,
@@ -176,7 +180,9 @@ export const placeOrder = createServerFn({ method: "POST" })
         },
       });
       console.log("[SWEETBABY] New props order", { id: order.id, total, deposit: depositAmount });
-    } catch (e) { console.error("[SWEETBABY] admin notify failed", e); }
+    } catch (e) {
+      console.error("[SWEETBABY] admin notify failed", e);
+    }
 
     return { id: order.id, total, deposit: depositAmount, balance: balanceAmount };
   });
@@ -198,10 +204,7 @@ export const checkItemsAvailability = createServerFn({ method: "POST" })
     const from = data.from;
     const to = data.to >= data.from ? data.to : data.from;
 
-    const itemsRes = await supabaseAdmin
-      .from("items")
-      .select("id, sku, stock_quantity")
-      .in("sku", data.skus);
+    const itemsRes = await supabaseAdmin.from("items").select("id, sku, stock_quantity").in("sku", data.skus);
     if (itemsRes.error) throw new Error(itemsRes.error.message);
 
     const items = itemsRes.data ?? [];
@@ -224,7 +227,7 @@ export const checkItemsAvailability = createServerFn({ method: "POST" })
     for (const sku of data.skus) {
       const realId = idsBySku.get(sku);
       const s = stockBySku.get(sku) ?? 1;
-      const t = realId ? busyByRealId.get(realId) ?? 0 : 0;
+      const t = realId ? (busyByRealId.get(realId) ?? 0) : 0;
       result[sku] = { stock: s, taken: t, available: Math.max(0, s - t) };
     }
     return result;
