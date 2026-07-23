@@ -58,18 +58,16 @@ export const placeOrder = createServerFn({ method: "POST" })
 
     // Date-range availability check: any existing reservation whose range
     // overlaps [startDate, endDate] counts as taken for that item.
-    const resolvedItemIds = orderLines.map((l) => l.item_id);
-    const { data: overlaps, error: takenErr } = await supabase
-      .from("item_availability")
-      .select("item_id")
-      .in("item_id", resolvedItemIds)
-      .lte("start_date", endDate)
-      .gte("end_date", startDate);
-    if (takenErr) throw new Error(takenErr.message);
-
+  const { supabaseAdmin: adminForCount } = await import("@/integrations/supabase/client.server");
     const takenCount = new Map<string, number>();
-    for (const t of overlaps ?? []) {
-      takenCount.set(t.item_id, (takenCount.get(t.item_id) ?? 0) + 1);
+    for (const l of orderLines) {
+      const { data: reservedCount, error: countErr } = await adminForCount.rpc(
+        "count_item_reservations",
+        { _item_id: l.item_id, _from: startDate, _to: endDate }
+      );
+      if (countErr) throw new Error(countErr.message);
+      takenCount.set(l.item_id, reservedCount ?? 0);
+    }
     }
     for (const l of orderLines) {
       const busy = takenCount.get(l.item_id) ?? 0;
@@ -155,7 +153,7 @@ export const placeOrder = createServerFn({ method: "POST" })
       }
     } catch (e) {
       // Rollback: delete inserted availability rows + order.
-      await supabase.from("item_availability").delete().eq("order_id", order.id);
+     await supabaseAdmin.from("item_availability").delete().eq("order_id", order.id);
       await supabase.from("orders").delete().eq("id", order.id);
       throw e;
     }
