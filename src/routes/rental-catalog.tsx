@@ -161,8 +161,42 @@ function RentalCatalogPage() {
         <div className="grid lg:grid-cols-[1fr_340px] gap-8 items-start">
           {/* MAIN */}
           <div className="min-w-0">
+            {/* Date picker — must choose to see live availability per item */}
+            <div className="bg-[#f5d5cf] rounded-3xl border border-primary/10 p-5 mb-4 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <CalendarDays className="h-4 w-4 text-primary" />
+                <div className="text-sm font-semibold text-primary">בחרי תאריכי השכרה כדי לראות זמינות חיה</div>
+              </div>
+              <div className="grid sm:grid-cols-[1fr_1fr_auto] gap-2 items-end">
+                <label className="text-xs text-primary/80">
+                  מתאריך
+                  <input type="date" min={new Date().toISOString().slice(0,10)} value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="mt-1 w-full h-11 px-3 rounded-full bg-white border border-primary/15 text-sm" />
+                </label>
+                <label className="text-xs text-primary/80">
+                  עד תאריך
+                  <input type="date" min={dateFrom || new Date().toISOString().slice(0,10)} value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    className="mt-1 w-full h-11 px-3 rounded-full bg-white border border-primary/15 text-sm" />
+                </label>
+                {(dateFrom || dateTo) && (
+                  <button type="button" onClick={() => { setDateFrom(""); setDateTo(""); setAvailability(null); }}
+                    className="h-11 px-4 rounded-full bg-white border border-primary/15 text-xs text-primary hover:bg-cream">
+                    ניקוי
+                  </button>
+                )}
+              </div>
+              <p className="text-[11px] text-primary/70 mt-2">
+                💡 חישוב מחיר לפי 24 שעות · חובה לעדכן לפני איחור בהחזרה.
+                {availLoading && " · בודקת זמינות…"}
+                {availability && !availLoading && ` · ${Object.values(availability).filter(a => a.available > 0).length} פריטים זמינים בתאריכים אלה`}
+              </p>
+            </div>
+
             {/* Search */}
             <div className="bg-card rounded-3xl border border-primary/10 p-5 mb-6 shadow-sm">
+
               <div className="flex gap-2 items-center">
                 <div className="flex-1 relative">
                   <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/50" />
