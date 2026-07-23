@@ -47,15 +47,15 @@ export const Route = createFileRoute("/")({
   component: Home,
   head: () => ({
     meta: [
-      { title: "Sweetbaby — 400+ אביזרים לצילומי ניוברן, סטודיו בוטיק בבית שמש" },
-      { name: "description", content: "400+ אביזרים לצילומי ניוברן, השכרת סטודיו בוטיק וסשן צילום עם מיכל סיבוני — סטודיו Sweetbaby בבית שמש." },
-      { property: "og:title", content: "Sweetbaby — 400+ אביזרים לצילומי ניוברן, סטודיו בוטיק בבית שמש" },
-      { property: "og:description", content: "400+ אביזרים לצילומי ניוברן, השכרת סטודיו בוטיק וסשן צילום עם מיכל סיבוני — סטודיו Sweetbaby בבית שמש." },
+      { title: "סוויט בייבי — התמונה הראשונה שלי | סטודיו בוטיק בבית שמש" },
+      { name: "description", content: "סוויט בייבי — התמונה הראשונה שלי. סטודיו בוטיק בבית שמש עם 400+ אביזרים לצילומי ניוברן, השכרת סטודיו וסשן צילום עם מיכל סיבוני." },
+      { property: "og:title", content: "סוויט בייבי — התמונה הראשונה שלי" },
+      { property: "og:description", content: "סוויט בייבי — התמונה הראשונה שלי. סטודיו בוטיק בבית שמש עם 400+ אביזרים לצילומי ניוברן, השכרת סטודיו וסשן צילום." },
       { property: "og:url", content: "https://sweetbabyphoto.shop/" },
       { property: "og:image", content: OG_IMAGE },
       { property: "og:image:alt", content: "סטודיו Sweetbaby — פינת צילום ורודה עם אביזרים מעוצבים" },
-      { name: "twitter:title", content: "Sweetbaby — 400+ אביזרים לצילומי ניוברן, סטודיו בוטיק בבית שמש" },
-      { name: "twitter:description", content: "400+ אביזרים לצילומי ניוברן, השכרת סטודיו בוטיק וסשן צילום עם מיכל סיבוני — סטודיו Sweetbaby בבית שמש." },
+      { name: "twitter:title", content: "סוויט בייבי — התמונה הראשונה שלי" },
+      { name: "twitter:description", content: "סוויט בייבי — התמונה הראשונה שלי. סטודיו בוטיק בבית שמש עם 400+ אביזרים לצילומי ניוברן, השכרת סטודיו וסשן צילום." },
       { name: "twitter:image", content: OG_IMAGE },
       { name: "twitter:image:alt", content: "סטודיו Sweetbaby — פינת צילום ורודה עם אביזרים מעוצבים" },
     ],
@@ -112,10 +112,10 @@ function Home() {
                 className="mt-6 text-[3.2rem] leading-[1.02] md:text-[5.2rem] md:leading-[0.98] text-[#2d3d2b]"
                 style={{ fontFamily: "'DM Serif Display', serif" }}
               >
-                כאן נולדת <em className="not-italic text-[#6b8a63]">התמונה</em>
+                סוויט בייבי
                 <br />
                 <span className="relative inline-block">
-                  שתישאר איתך
+                  התמונה הראשונה שלי
                   <motion.svg
                     viewBox="0 0 400 20" className="absolute -bottom-3 right-0 w-full h-4 text-[#f5d5cf]"
                     initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.6, delay: 0.5 }}
@@ -126,8 +126,7 @@ function Home() {
                       initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.6, delay: 0.5 }}
                     />
                   </motion.svg>
-                </span>{" "}
-                לתמיד.
+                </span>
               </h1>
 
               <p className="mt-8 text-lg md:text-xl text-[#2d3d2b]/75 max-w-xl leading-relaxed">
