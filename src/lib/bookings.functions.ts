@@ -171,6 +171,9 @@ export const cancelBooking = createServerFn({ method: "POST" })
     if (error || !b) throw new Error("השריון לא נמצא");
     if (b.user_id !== userId) throw new Error("אין הרשאה לבטל שריון זה");
     if (b.status === "cancelled") return { ok: true };
+    // Only pending bookings can be self-cancelled — active/confirmed/returned
+    // require admin intervention so we don't free live inventory by accident.
+    if (b.status !== "pending") throw new Error("לא ניתן לבטל שריון פעיל — נא לפנות לצוות הסטודיו");
 
     const { error: upErr } = await supabase
       .from("bookings")
@@ -198,6 +201,10 @@ export const cancelOrder = createServerFn({ method: "POST" })
     if (error || !o) throw new Error("ההזמנה לא נמצאה");
     if (o.user_id !== userId) throw new Error("אין הרשאה לבטל הזמנה זו");
     if (o.status === "cancelled") return { ok: true };
+    // Only pending orders can be self-cancelled — once an order is active
+    // (picked up), returning inventory to the pool while items are still in
+    // the customer's hands would let a second customer double-book.
+    if (o.status !== "pending") throw new Error("לא ניתן לבטל הזמנה פעילה — נא לפנות לצוות הסטודיו");
 
     // Free reserved units, then mark cancelled. Use admin client to ensure the
     // availability rows are removed regardless of policy scoping.
