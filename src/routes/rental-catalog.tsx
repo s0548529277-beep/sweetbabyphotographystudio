@@ -6,8 +6,10 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import catalogData from "@/data/studio-catalog.json";
 import { smartSearchItems } from "@/lib/ai.functions";
+import { checkItemsAvailability } from "@/lib/orders.functions";
 import { useCart } from "@/lib/cart";
-import { Sparkles, Search, X, ShoppingBag, Check, Plus, Trash2, ZoomIn } from "lucide-react";
+import { Sparkles, Search, X, ShoppingBag, Check, Plus, Trash2, ZoomIn, CalendarDays } from "lucide-react";
+
 
 
 export const Route = createFileRoute("/rental-catalog")({
