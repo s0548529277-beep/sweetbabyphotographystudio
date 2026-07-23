@@ -58,6 +58,7 @@ export type Database = {
           overtime_minutes: number | null
           package: string
           price: number
+          reserved_items: Json
           session_date: string
           slots: number
           start_time: string
@@ -82,6 +83,7 @@ export type Database = {
           overtime_minutes?: number | null
           package?: string
           price: number
+          reserved_items?: Json
           session_date: string
           slots: number
           start_time: string
@@ -106,6 +108,7 @@ export type Database = {
           overtime_minutes?: number | null
           package?: string
           price?: number
+          reserved_items?: Json
           session_date?: string
           slots?: number
           start_time?: string
@@ -174,31 +177,37 @@ export type Database = {
         Row: {
           created_at: string
           date: string
+          end_at: string | null
           end_date: string
           id: string
           item_id: string
           order_id: string | null
           slot_index: number
+          start_at: string | null
           start_date: string
         }
         Insert: {
           created_at?: string
           date: string
+          end_at?: string | null
           end_date: string
           id?: string
           item_id: string
           order_id?: string | null
           slot_index?: number
+          start_at?: string | null
           start_date: string
         }
         Update: {
           created_at?: string
           date?: string
+          end_at?: string | null
           end_date?: string
           id?: string
           item_id?: string
           order_id?: string | null
           slot_index?: number
+          start_at?: string | null
           start_date?: string
         }
         Relationships: [
@@ -362,6 +371,8 @@ export type Database = {
           notes: string | null
           overtime_charge: number | null
           overtime_minutes: number | null
+          pickup_at: string | null
+          return_at: string | null
           return_date: string | null
           scheduled_date: string | null
           session_date: string | null
@@ -387,6 +398,8 @@ export type Database = {
           notes?: string | null
           overtime_charge?: number | null
           overtime_minutes?: number | null
+          pickup_at?: string | null
+          return_at?: string | null
           return_date?: string | null
           scheduled_date?: string | null
           session_date?: string | null
@@ -412,6 +425,8 @@ export type Database = {
           notes?: string | null
           overtime_charge?: number | null
           overtime_minutes?: number | null
+          pickup_at?: string | null
+          return_at?: string | null
           return_date?: string | null
           scheduled_date?: string | null
           session_date?: string | null
