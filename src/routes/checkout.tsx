@@ -144,12 +144,26 @@ function Checkout() {
                   <Input required type="tel" dir="ltr" value={form.contact_phone} onChange={(e) => setForm({ ...form, contact_phone: e.target.value })} className="mt-1" />
                 </div>
                 <div>
-                  <Label className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> תאריך התחלה (יום הצילום) *</Label>
+                  <Label className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> תאריך איסוף *</Label>
                   <Input required type="date" min={new Date().toISOString().slice(0,10)} value={form.session_date} onChange={(e) => setForm({ ...form, session_date: e.target.value })} className="mt-1" />
+                </div>
+                <div>
+                  <Label>שעת איסוף *</Label>
+                  <Input required type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} className="mt-1" />
                 </div>
                 <div>
                   <Label className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> תאריך החזרה *</Label>
                   <Input required type="date" min={form.session_date || new Date().toISOString().slice(0,10)} value={form.return_date} onChange={(e) => setForm({ ...form, return_date: e.target.value })} className="mt-1" />
+                </div>
+                <div>
+                  <Label>שעת החזרה *</Label>
+                  <Input required type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} className="mt-1" />
+                </div>
+                <div className="md:col-span-2 -mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blush/40 text-primary font-medium">
+                    <AlertTriangle className="h-3 w-3" /> תמחור לפי 24 שעות · מכפיל נוכחי: ×{dayMultiplier}
+                  </span>
+                  <span className="text-muted-foreground">חובה לעדכן מראש אם צפוי איחור — כל 24ש נוספות = תשלום כפול.</span>
                 </div>
                 <div className="md:col-span-2">
                   <Label className="flex items-center gap-1"><Camera className="h-3 w-3" /> דגם המצלמה (אופציונלי)</Label>
