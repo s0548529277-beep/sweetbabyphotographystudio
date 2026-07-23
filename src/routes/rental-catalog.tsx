@@ -262,12 +262,14 @@ function RentalCatalogPage() {
                   {cat.items.map((it) => {
                     const inspiration = !!it.hasHand;
                     const selected = inCart.has(it.sku);
+                    const availInfo = availability?.[it.sku];
+                    const unavailable = !inspiration && availInfo != null && availInfo.available <= 0;
                     return (
                       <div
                         key={it.sku}
                         className={
                           "group relative rounded-2xl overflow-hidden border bg-card transition-all " +
-                          (inspiration ? "col-span-2 border-dashed border-primary/25" : selected ? "border-primary shadow-lg -translate-y-0.5" : "border-primary/10 hover:border-primary/30 hover:shadow-md")
+                          (inspiration ? "col-span-2 border-dashed border-primary/25" : unavailable ? "border-primary/10 opacity-60" : selected ? "border-primary shadow-lg -translate-y-0.5" : "border-primary/10 hover:border-primary/30 hover:shadow-md")
                         }
                       >
                         <button
@@ -283,7 +285,8 @@ function RentalCatalogPage() {
                               loading="lazy"
                               className={
                                 (inspiration ? "h-56 md:h-64 object-contain bg-cream" : "h-40 object-cover") +
-                                " w-full transition-transform duration-500 group-hover:scale-105"
+                                " w-full transition-transform duration-500 group-hover:scale-105" +
+                                (unavailable ? " grayscale" : "")
                               }
                             />
                           ) : (
@@ -299,6 +302,16 @@ function RentalCatalogPage() {
                               להשראה בלבד
                             </span>
                           )}
+                          {unavailable && (
+                            <span className="absolute top-2 right-2 bg-destructive text-destructive-foreground text-[10px] tracking-widest uppercase px-2 py-1 rounded-full font-semibold">
+                              תפוס בתאריך שנבחר
+                            </span>
+                          )}
+                          {!inspiration && !unavailable && availInfo && availInfo.available > 0 && (
+                            <span className="absolute top-2 right-2 bg-forest/90 text-white text-[10px] tracking-widest uppercase px-2 py-1 rounded-full">
+                              זמין
+                            </span>
+                          )}
                         </button>
 
                         {!inspiration && (
@@ -311,13 +324,15 @@ function RentalCatalogPage() {
                             <button
                               type="button"
                               onClick={() => toggleCart(it)}
+                              disabled={unavailable}
                               className={
                                 "h-9 w-9 rounded-full flex items-center justify-center shrink-0 transition-colors " +
-                                (selected ? "bg-primary text-primary-foreground" : "bg-cream text-primary hover:bg-blush")
+                                (unavailable ? "bg-muted text-muted-foreground cursor-not-allowed" : selected ? "bg-primary text-primary-foreground" : "bg-cream text-primary hover:bg-blush")
                               }
-                              aria-label={selected ? `הסר מהסל את ${it.name}` : `הוסף לסל ${it.name}`}
+                              aria-label={unavailable ? `${it.name} תפוס בתאריך שנבחר` : selected ? `הסר מהסל את ${it.name}` : `הוסף לסל ${it.name}`}
                             >
                               {selected ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+
                             </button>
                           </div>
                         )}
