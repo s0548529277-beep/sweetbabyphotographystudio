@@ -47,12 +47,19 @@ export const placeOrder = createServerFn({ method: "POST" })
       .in("sku", skus);
     if (itemsErr) throw new Error(itemsErr.message);
 
+    // Compute how many 24h units this rental covers. If specific times were
+    // provided, use them; otherwise use full days between the two dates.
+    const startISO = `${startDate}T${data.start_time ?? "09:00"}:00`;
+    const endISO = `${endDate}T${data.end_time ?? data.start_time ?? "18:00"}:00`;
+    const dayMultiplier = computeDayMultiplier(startISO, endISO);
+
     const byId = new Map(items?.map((i) => [i.sku, i]) ?? []);
     let total = 0;
     const orderLines = data.lines.map((l) => {
       const server = byId.get(l.sku);
       if (!server || !server.active) throw new Error(`פריט לא זמין: ${l.name}`);
-      const price = Number(server.price);
+      const basePrice = Number(server.price);
+      const price = basePrice * dayMultiplier;
       total += price * l.quantity;
       return {
         item_id: server.id,
