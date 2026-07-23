@@ -339,7 +339,84 @@ function Booking() {
               </label>
             </div>
 
-            <div className="bg-[#2d3d2b] text-[#f8ede4] rounded-2xl p-5 shadow-lg">
+            {/* Reserve props (free with studio rental — up to 20) */}
+            <div className="bg-white rounded-2xl border border-[#2d3d2b]/8 p-5 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setShowPropPicker((v) => !v)}
+                className="w-full flex items-center justify-between gap-2 text-right"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-full bg-[#a8c4a2]/25 flex items-center justify-center">
+                    <Package className="h-4 w-4 text-[#6b8a63]" />
+                  </div>
+                  <div>
+                    <div className="font-display text-lg text-[#2d3d2b]">שריון אביזרים · חינם</div>
+                    <div className="text-[11px] text-[#2d3d2b]/60">עד 20 אביזרים כלולים בהשכרת הסטודיו</div>
+                  </div>
+                </div>
+                <span className="text-xs text-[#6b8a63] font-medium">
+                  {reservedSkus.length}/20 {showPropPicker ? "▲" : "▼"}
+                </span>
+              </button>
+
+              {reservedSkus.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {reservedSkus.map((sku) => {
+                    const it = ALL_PROPS.find((p) => p.sku === sku);
+                    return (
+                      <span key={sku} className="inline-flex items-center gap-1 bg-[#f5d5cf]/60 text-[#2d3d2b] text-[11px] px-2 py-1 rounded-full">
+                        #{sku} {it?.name || it?.alt || ""}
+                        <button type="button" onClick={() => toggleSku(sku)} className="hover:text-[#8b3a2a]">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+
+              {showPropPicker && (
+                <div className="mt-4 border-t border-[#2d3d2b]/8 pt-4">
+                  <div className="relative mb-3">
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#6b8a63]" />
+                    <Input
+                      placeholder="חיפוש לפי שם או מק״ט…"
+                      value={propQuery}
+                      onChange={(e) => setPropQuery(e.target.value)}
+                      className="h-9 text-sm pr-9"
+                    />
+                  </div>
+                  <div className="max-h-60 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    {filteredProps.map((p) => {
+                      const on = reservedSkus.includes(p.sku);
+                      const disabled = !on && reservedSkus.length >= 20;
+                      return (
+                        <button
+                          type="button"
+                          key={p.sku}
+                          disabled={disabled}
+                          onClick={() => toggleSku(p.sku)}
+                          className={`text-right text-xs px-2.5 py-1.5 rounded-lg border transition-colors ${
+                            on
+                              ? "bg-[#a8c4a2]/30 border-[#6b8a63] text-[#2d3d2b] font-medium"
+                              : disabled
+                              ? "opacity-40 cursor-not-allowed border-[#2d3d2b]/10"
+                              : "border-[#2d3d2b]/12 hover:border-[#6b8a63] bg-white text-[#2d3d2b]"
+                          }`}
+                        >
+                          <span className="text-[#6b8a63]">#{p.sku}</span> {p.name || p.alt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[10px] text-[#2d3d2b]/55 mt-2">
+                    * שריון מותנה בזמינות ביום השריון. הצוות יאשר סופית בהודעת אישור.
+                  </p>
+                </div>
+              )}
+            </div>
+
               <div className="text-[10px] tracking-[0.32em] uppercase text-[#f5d5cf] mb-2 flex items-center gap-1.5">
                 <Sparkles className="h-3 w-3" /> סיכום
               </div>
