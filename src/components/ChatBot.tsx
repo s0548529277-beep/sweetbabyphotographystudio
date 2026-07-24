@@ -1,22 +1,39 @@
 import { useState, useRef, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { chatWithBot } from "@/lib/ai.functions";
+import { checkItemsAvailability } from "@/lib/orders.functions";
+import { useAuth } from "@/lib/auth";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
 export function ChatBot() {
+  const { user } = useAuth();
+  const isAuth = !!user;
+  const userName =
+    (user?.user_metadata as { full_name?: string; name?: string } | null)?.full_name ||
+    (user?.user_metadata as { full_name?: string; name?: string } | null)?.name ||
+    user?.email?.split("@")[0] ||
+    undefined;
+
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<Msg[]>([
-    { role: "assistant", content: "שלום! אני העוזרת של Sweetbaby 💬 איך אפשר לעזור?" },
-  ]);
+  const greeting = isAuth
+    ? `שלום ${userName || ""} 💬 אני העוזרת של Sweetbaby. אפשר לבדוק זמינות אביזרים/סטודיו לתאריך שאת רוצה — לחצי "בדיקת זמינות מהירה" למטה.`
+    : "שלום! אני העוזרת של Sweetbaby 💬 איך אפשר לעזור? (אם תרצי לבדוק זמינות אישית לאביזרים — התחברי בעמוד /auth)";
+  const [messages, setMessages] = useState<Msg[]>([{ role: "assistant", content: greeting }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [availOpen, setAvailOpen] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [skuInput, setSkuInput] = useState("");
+  const [availLoading, setAvailLoading] = useState(false);
   const chat = useServerFn(chatWithBot);
+  const checkAvail = useServerFn(checkItemsAvailability);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, open]);
+  }, [messages, open, availOpen]);
 
   const send = async () => {
     const text = input.trim();
@@ -26,12 +43,42 @@ export function ChatBot() {
     setInput("");
     setLoading(true);
     try {
-      const { reply } = await chat({ data: { messages: next } });
+      const { reply } = await chat({ data: { messages: next, userName, isAuthenticated: isAuth } });
       setMessages([...next, { role: "assistant", content: reply }]);
     } catch {
       setMessages([...next, { role: "assistant", content: "מצטערת, יש תקלה זמנית. נסי שוב." }]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const runAvailability = async () => {
+    if (!dateFrom || !dateTo) return;
+    const skus = skuInput
+      .split(/[,\s]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (skus.length === 0) {
+      setMessages((m) => [...m, { role: "assistant", content: "רשמי מק״טים (מספרים) מופרדים בפסיק — לדוגמה: 461, 483, 510" }]);
+      return;
+    }
+    setAvailLoading(true);
+    try {
+      const res = await checkAvail({ data: { skus, from: dateFrom, to: dateTo } });
+      const lines: string[] = [`בדיקת זמינות ${dateFrom} → ${dateTo}:`];
+      for (const sku of skus) {
+        const r = res[sku];
+        if (!r) lines.push(`• מק״ט ${sku}: לא נמצא בקטלוג`);
+        else if (r.available > 0) lines.push(`• מק״ט ${sku}: פנוי ✓`);
+        else lines.push(`• מק״ט ${sku}: תפוס ✗`);
+      }
+      lines.push("להזמנה: פתחי /rental-catalog, בחרי תאריכים והוסיפי אביזרים לעגלה.");
+      setMessages((m) => [...m, { role: "assistant", content: lines.join("\n") }]);
+      setAvailOpen(false);
+    } catch (e) {
+      setMessages((m) => [...m, { role: "assistant", content: "לא הצלחתי לבדוק זמינות כרגע. נסי שוב בעוד רגע." }]);
+    } finally {
+      setAvailLoading(false);
     }
   };
 
@@ -61,7 +108,7 @@ export function ChatBot() {
 
       {open && (
         <div style={{
-          width: 340, height: 480, background: "#fff", borderRadius: 20,
+          width: 360, height: 540, background: "#fff", borderRadius: 20,
           boxShadow: "0 20px 60px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column",
           overflow: "hidden", fontFamily: "'Assistant',sans-serif",
         }}>
@@ -73,7 +120,7 @@ export function ChatBot() {
             {messages.map((m, i) => (
               <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-start" : "flex-end", marginBottom: 8 }}>
                 <div style={{
-                  maxWidth: "80%", padding: "8px 12px", borderRadius: 14,
+                  maxWidth: "82%", padding: "8px 12px", borderRadius: 14,
                   background: m.role === "user" ? "#163126" : "#f5c5b3",
                   color: m.role === "user" ? "#f5c5b3" : "#163126",
                   fontSize: "0.92rem", whiteSpace: "pre-wrap", lineHeight: 1.45,
@@ -82,6 +129,48 @@ export function ChatBot() {
             ))}
             {loading && <div style={{ opacity: 0.6, fontSize: "0.85rem", textAlign: "center" }}>מקלידה…</div>}
           </div>
+
+          {isAuth && (
+            <div style={{ borderTop: "1px solid #eee", background: "#fff", padding: 10 }}>
+              {!availOpen ? (
+                <button
+                  onClick={() => setAvailOpen(true)}
+                  style={{
+                    width: "100%", background: "#f5c5b3", color: "#163126", border: "none",
+                    padding: "8px 12px", borderRadius: 10, fontWeight: 700, cursor: "pointer", fontSize: "0.9rem",
+                  }}
+                >
+                  🔍 בדיקת זמינות מהירה
+                </button>
+              ) : (
+                <div style={{ display: "grid", gap: 6 }}>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+                      style={{ flex: 1, padding: "6px 8px", border: "1px solid #ddd", borderRadius: 8, fontSize: "0.85rem" }} />
+                    <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+                      style={{ flex: 1, padding: "6px 8px", border: "1px solid #ddd", borderRadius: 8, fontSize: "0.85rem" }} />
+                  </div>
+                  <input
+                    value={skuInput}
+                    onChange={(e) => setSkuInput(e.target.value)}
+                    placeholder="מק״טים לדוגמה: 461, 483"
+                    style={{ padding: "6px 8px", border: "1px solid #ddd", borderRadius: 8, fontSize: "0.85rem" }}
+                  />
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={runAvailability} disabled={availLoading}
+                      style={{ flex: 1, background: "#163126", color: "#f5c5b3", border: "none", padding: "8px", borderRadius: 8, cursor: "pointer", fontSize: "0.85rem", fontWeight: 700 }}>
+                      {availLoading ? "בודקת…" : "בדקי"}
+                    </button>
+                    <button onClick={() => setAvailOpen(false)}
+                      style={{ background: "#eee", border: "none", padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: "0.85rem" }}>
+                      ביטול
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <div style={{ padding: 10, borderTop: "1px solid #eee", display: "flex", gap: 6 }}>
             <input
               value={input}
