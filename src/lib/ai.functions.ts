@@ -37,6 +37,8 @@ const ChatInput = z.object({
     )
     .min(1)
     .max(20),
+  userName: z.string().max(80).optional(),
+  isAuthenticated: z.boolean().optional(),
 });
 
 export const chatWithBot = createServerFn({ method: "POST" })
@@ -45,9 +47,12 @@ export const chatWithBot = createServerFn({ method: "POST" })
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("Missing LOVABLE_API_KEY");
     const gateway = createLovableAiGatewayProvider(key);
+    const personalized = data.isAuthenticated
+      ? `\n\nהמשתמשת מחוברת לחשבון${data.userName ? ` בשם ${data.userName}` : ""}. את יכולה לפנות אליה בשמה, לעזור לבדוק זמינות אביזרים/סטודיו, ולהציע לה לפתוח את "בדיקת זמינות מהירה" בכפתור למטה בצ'אט.`
+      : `\n\nהמשתמשת לא מחוברת. אם היא רוצה לבצע הזמנה או לבדוק זמינות אישית — הציעי לה להתחבר בעמוד /auth.`;
     const { text } = await generateText({
       model: gateway("google/gemini-2.5-flash"),
-      system: SYSTEM,
+      system: SYSTEM + personalized,
       messages: data.messages,
     });
     return { reply: text };
