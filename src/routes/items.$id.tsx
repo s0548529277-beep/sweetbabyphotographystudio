@@ -10,6 +10,8 @@ import { absoluteImageUrl, normalizeImageUrl } from "@/lib/images";
 import { toast } from "sonner";
 import { ChevronRight, ShoppingBag, Plus, Minus } from "lucide-react";
 import { useMemo } from "react";
+import { InspirationStrip } from "@/components/InspirationStrip";
+import { inspirationFor } from "@/lib/inspiration";
 
 export const Route = createFileRoute("/items/$id")({
   component: ItemPage,
@@ -180,6 +182,12 @@ function ItemPage() {
             </div>
           </div>
         </div>
+
+        <InspirationStrip
+          images={inspirationFor(it.sku)}
+          title="כך זה נראה בצילומים"
+          subtitle="השראה בלבד — הצילומים לא כלולים בהשכרה."
+        />
       </section>
 
       <Footer />

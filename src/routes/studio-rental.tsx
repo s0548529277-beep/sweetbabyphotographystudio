@@ -8,6 +8,8 @@ import { useAuth } from "@/lib/auth";
 import { submitStudioIntake } from "@/lib/studio-intake.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { InspirationStrip } from "@/components/InspirationStrip";
+import { studioInspiration } from "@/lib/inspiration";
 
 export const Route = createFileRoute("/studio-rental")({
   head: () => ({
@@ -353,6 +355,14 @@ function StudioRentalPage() {
           </div>
         </div>
 
+      </section>
+
+      <section className="container-page pb-12">
+        <InspirationStrip
+          images={studioInspiration()}
+          title="השראה מהסטודיו"
+          subtitle="ככה החלל נראה בפועל — תוכלי לקבל את אותה אווירה בצילומים שלך."
+        />
       </section>
 
       <Footer />
