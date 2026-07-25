@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Clock, CreditCard, CalendarDays, Sparkles, ArrowLeft, X, MapPin, Star, AlertTriangle, Mail } from "lucide-react";
+import { Clock, CreditCard, CalendarDays, Sparkles, ArrowLeft, X, MapPin, Star, AlertTriangle } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/lib/auth";
@@ -149,7 +149,7 @@ function StudioRentalPage() {
           agreed: true,
         },
       });
-      toast.success("הטופס נשלח למייל שלך ולסטודיו. ממשיכות לבחירת שעה ביומן.");
+      toast.success("ההסכם נשמר ✓ ממשיכות לשלב 2 — בחירת תאריך ושעה ביומן.");
       setShowForm(false);
       nav({ to: "/booking" });
     } catch (e) {
@@ -408,7 +408,7 @@ function StudioRentalPage() {
               הסכם תיאום ציפיות
             </h2>
             <p className="mt-2 text-sm text-[#2d3d2b]/75 leading-relaxed">
-              נא למלא את הטופס למטה. <strong>שליחת ההסכם היא תנאי לקביעת התור.</strong>
+              שלב 1 מתוך 3. <strong>אישור ההסכם הוא תנאי לפתיחת היומן</strong> — מיד לאחר השליחה נעבור לבחירת תאריך ושעה.
             </p>
 
             {/* RULES — full agreement text */}
@@ -500,7 +500,7 @@ function StudioRentalPage() {
                 disabled={submitting}
                 className="rounded-full bg-[#2d3d2b] hover:bg-[#1f2b1e] text-[#f8ede4] px-7 py-3.5 text-sm font-medium transition-colors disabled:opacity-50"
               >
-                {submitting ? "שולח…" : "שליחה והמשך לקביעת שעה"}
+                {submitting ? "שומר…" : "אישור והמשך ליומן →"}
               </button>
               <button
                 type="button"
