@@ -17,8 +17,6 @@ const intakeSchema = z.object({
   agreed: z.literal(true),
 });
 
-const STUDIO_EMAIL = "s0548529277@gmail.com";
-
 export const submitStudioIntake = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => intakeSchema.parse(data))
