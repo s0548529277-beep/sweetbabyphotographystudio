@@ -1,8 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
-import { generateText } from "ai";
+import { generateText, stepCountIs } from "ai";
 import { z } from "zod";
 import { createLovableAiGatewayProvider } from "./ai-gateway.server";
+import { buildAssistantTools } from "./ai-tools.server";
 import catalogData from "@/data/studio-catalog.json";
+
 
 const SYSTEM = `את עוזרת וירטואלית של סטודיו Sweetbaby - סטודיו בוטיק להשכרת סטודיו ואביזרים וצילומי ניו-בורן/משפחה בבית שמש. עני בעברית, קצר, חמים ומקצועי. אל תמציאי מידע. אם לא יודעת - כווני לצור קשר במייל s0548529277@gmail.com או בטלפון 054-8529277.
 
