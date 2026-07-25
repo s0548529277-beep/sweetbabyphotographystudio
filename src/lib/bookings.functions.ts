@@ -135,7 +135,49 @@ export const placeBooking = createServerFn({ method: "POST" })
       });
       console.log("[SWEETBABY] New booking", { id: booking.id, price, deposit });
     } catch (e) { console.error("[SWEETBABY] admin notify failed", e); }
-
+// Send confirmation emails (customer + studio) via Resend gateway.
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const customerEmail = user?.email;
+      const key = process.env.RESEND_API_KEY;
+      const lovableKey = process.env.LOVABLE_API_KEY;
+      if (key && lovableKey) {
+        const html = `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:560px;margin:auto">
+          <h2 style="color:#2d3d2b">התור שלך נקבע 💗</h2>
+          <p>שלום ${data.contact_name},</p>
+          <p>תודה שקבעת תור בסטודיו Sweetbaby. פרטי התור:</p>
+          <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">
+            <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>תאריך</strong></td><td style="padding:6px 10px">${data.session_date}</td></tr>
+            <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>שעה</strong></td><td style="padding:6px 10px">${data.start_time} - ${endTime}</td></tr>
+            <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>מחיר</strong></td><td style="padding:6px 10px">₪${price}</td></tr>
+            <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>מקדמה</strong></td><td style="padding:6px 10px">₪${deposit}</td></tr>
+            <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>יתרה לתשלום</strong></td><td style="padding:6px 10px">₪${Math.max(0, price - deposit)}</td></tr>
+            ${data.notes ? `<tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>הערות</strong></td><td style="padding:6px 10px">${String(data.notes).replace(/</g, "&lt;")}</td></tr>` : ""}
+          </table>
+          <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: תלמוד ירושלמי 24, בית שמש · לשאלות: s0548529277@gmail.com / 054-8529277</p>
+        </div>`;
+        const recipients = ["s0548529277@gmail.com"];
+        if (customerEmail) recipients.push(customerEmail);
+        for (const to of recipients) {
+          await fetch("https://connector-gateway.lovable.dev/resend/emails", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${lovableKey}`,
+              "X-Connection-Api-Key": key,
+            },
+            body: JSON.stringify({
+              from: "Sweetbaby <studio@sweetbabyphoto.shop>",
+              to: [to],
+              subject: `אישור תור #${booking.id.slice(0, 8)} · Sweetbaby`,
+              html,
+            }),
+          }).catch((e) => console.error("[SWEETBABY] booking resend failed", to, e));
+        }
+      }
+    } catch (e) {
+      console.error("[SWEETBABY] booking confirmation email failed", e);
+    }
     return { id: booking.id, price, deposit, balance: Math.max(0, price - deposit), end_time: endTime };
   });
 
