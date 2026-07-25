@@ -47,6 +47,9 @@ function RentalCatalogPage() {
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [timeFrom, setTimeFrom] = useState("09:00");
+  const [timeTo, setTimeTo] = useState("18:00");
+
   const [availability, setAvailability] = useState<Record<string, { available: number }> | null>(null);
   const [availLoading, setAvailLoading] = useState(false);
   const [form, setForm] = useState({
@@ -83,6 +86,17 @@ function RentalCatalogPage() {
       .finally(() => { if (!cancelled) setAvailLoading(false); });
     return () => { cancelled = true; };
   }, [dateFrom, dateTo, allItems, runCheckAvail]);
+
+  // Remember the chosen rental window so checkout can prefill it.
+  useEffect(() => {
+    if (!dateFrom) return;
+    try {
+      localStorage.setItem(
+        "sb_rental_window",
+        JSON.stringify({ from: dateFrom, to: dateTo || dateFrom, timeFrom, timeTo }),
+      );
+    } catch { /* storage unavailable */ }
+  }, [dateFrom, dateTo, timeFrom, timeTo]);
 
 
   const filtered = useMemo(() => {
@@ -165,34 +179,49 @@ function RentalCatalogPage() {
             <div className="bg-[#f5d5cf] rounded-3xl border border-primary/10 p-5 mb-4 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
                 <CalendarDays className="h-4 w-4 text-primary" />
-                <div className="text-sm font-semibold text-primary">בחרי תאריכי השכרה כדי לראות זמינות חיה</div>
+                <div className="text-sm font-semibold text-primary">בחרי תאריך ושעת איסוף והחזרה כדי לראות זמינות חיה</div>
               </div>
-              <div className="grid sm:grid-cols-[1fr_1fr_auto] gap-2 items-end">
-                <label className="text-xs text-primary/80">
-                  מתאריך
-                  <input type="date" min={new Date().toISOString().slice(0,10)} value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    className="mt-1 w-full h-11 px-3 rounded-full bg-white border border-primary/15 text-sm" />
-                </label>
-                <label className="text-xs text-primary/80">
-                  עד תאריך
-                  <input type="date" min={dateFrom || new Date().toISOString().slice(0,10)} value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)}
-                    className="mt-1 w-full h-11 px-3 rounded-full bg-white border border-primary/15 text-sm" />
-                </label>
-                {(dateFrom || dateTo) && (
-                  <button type="button" onClick={() => { setDateFrom(""); setDateTo(""); setAvailability(null); }}
-                    className="h-11 px-4 rounded-full bg-white border border-primary/15 text-xs text-primary hover:bg-cream">
-                    ניקוי
-                  </button>
-                )}
+              <div className="grid sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-[1fr_auto] gap-2">
+                  <label className="text-xs text-primary/80">
+                    מתאריך
+                    <input type="date" min={new Date().toISOString().slice(0,10)} value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      className="mt-1 w-full h-11 px-3 rounded-full bg-white border border-primary/15 text-sm" />
+                  </label>
+                  <label className="text-xs text-primary/80">
+                    שעת איסוף
+                    <input type="time" value={timeFrom} onChange={(e) => setTimeFrom(e.target.value)}
+                      className="mt-1 w-[110px] h-11 px-3 rounded-full bg-white border border-primary/15 text-sm" />
+                  </label>
+                </div>
+                <div className="grid grid-cols-[1fr_auto] gap-2">
+                  <label className="text-xs text-primary/80">
+                    עד תאריך
+                    <input type="date" min={dateFrom || new Date().toISOString().slice(0,10)} value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      className="mt-1 w-full h-11 px-3 rounded-full bg-white border border-primary/15 text-sm" />
+                  </label>
+                  <label className="text-xs text-primary/80">
+                    שעת החזרה
+                    <input type="time" value={timeTo} onChange={(e) => setTimeTo(e.target.value)}
+                      className="mt-1 w-[110px] h-11 px-3 rounded-full bg-white border border-primary/15 text-sm" />
+                  </label>
+                </div>
               </div>
+              {(dateFrom || dateTo) && (
+                <button type="button" onClick={() => { setDateFrom(""); setDateTo(""); setAvailability(null); }}
+                  className="mt-2 h-9 px-4 rounded-full bg-white border border-primary/15 text-xs text-primary hover:bg-cream">
+                  ניקוי תאריכים
+                </button>
+              )}
               <p className="text-[11px] text-primary/70 mt-2">
-                💡 חישוב מחיר לפי 24 שעות · חובה לעדכן לפני איחור בהחזרה.
+                💡 חישוב מחיר לפי 24 שעות מרגע האיסוף · חובה לעדכן לפני איחור בהחזרה.
                 {availLoading && " · בודקת זמינות…"}
                 {availability && !availLoading && ` · ${Object.values(availability).filter(a => a.available > 0).length} פריטים זמינים בתאריכים אלה`}
               </p>
             </div>
+
 
             {/* Search */}
             <div className="bg-card rounded-3xl border border-primary/10 p-5 mb-6 shadow-sm">

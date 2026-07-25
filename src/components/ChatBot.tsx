@@ -17,8 +17,9 @@ export function ChatBot() {
 
   const [open, setOpen] = useState(false);
   const greeting = isAuth
-    ? `שלום ${userName || ""} 💬 אני העוזרת של Sweetbaby. אפשר לבדוק זמינות אביזרים/סטודיו לתאריך שאת רוצה — לחצי "בדיקת זמינות מהירה" למטה.`
-    : "שלום! אני העוזרת של Sweetbaby 💬 איך אפשר לעזור? (אם תרצי לבדוק זמינות אישית לאביזרים — התחברי בעמוד /auth)";
+    ? `שלום ${userName || ""} 💬 אני העוזרת של Sweetbaby. אפשר לשאול אותי ישירות "האם הסטודיו פנוי ב-12.8 בשעה 9:00?" או "האם מק״ט 461 פנוי בשבוע הבא?" — אני בודקת ביומן ובמלאי בזמן אמת.`
+    : `שלום! אני העוזרת של Sweetbaby 💬 אפשר לשאול אותי ישירות "האם הסטודיו פנוי ב-12.8 בשעה 9:00?" או "האם מק״ט 461 פנוי מחר?" — אני בודקת ביומן ובמלאי בזמן אמת.`;
+
   const [messages, setMessages] = useState<Msg[]>([{ role: "assistant", content: greeting }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -130,7 +131,7 @@ export function ChatBot() {
             {loading && <div style={{ opacity: 0.6, fontSize: "0.85rem", textAlign: "center" }}>מקלידה…</div>}
           </div>
 
-          {isAuth && (
+          {(
             <div style={{ borderTop: "1px solid #eee", background: "#fff", padding: 10 }}>
               {!availOpen ? (
                 <button

@@ -225,7 +225,7 @@ export const placeOrder = createServerFn({ method: "POST" })
         const recipients = ["s0548529277@gmail.com"];
         if (customerEmail) recipients.push(customerEmail);
         for (const to of recipients) {
-          await fetch("https://connector-gateway.lovable.dev/resend/emails", {
+          const res = await fetch("https://connector-gateway.lovable.dev/resend/emails", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -233,17 +233,21 @@ export const placeOrder = createServerFn({ method: "POST" })
               "X-Connection-Api-Key": key,
             },
             body: JSON.stringify({
-            from: "Sweetbaby <studio@sweetbabyphoto.shop>",
+              from: "Sweetbaby <studio@sweetbabyphoto.shop>",
               to: [to],
               subject: `אישור הזמנה #${order.id.slice(0, 8)} · Sweetbaby`,
               html,
             }),
-          }).catch((e) => console.error("[SWEETBABY] resend send failed", to, e));
+          }).catch((e) => { console.error("[SWEETBABY] resend send failed", to, e); return null; });
+          if (res && !res.ok) console.error("[SWEETBABY] resend error", to, res.status, await res.text());
         }
+      } else {
+        console.error("[SWEETBABY] order email skipped — missing RESEND_API_KEY/LOVABLE_API_KEY");
       }
     } catch (e) {
       console.error("[SWEETBABY] confirmation email failed", e);
     }
+
 
     return { id: order.id, total, deposit: depositAmount, balance: balanceAmount };
   });

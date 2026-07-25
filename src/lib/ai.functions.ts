@@ -1,8 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
-import { generateText } from "ai";
+import { generateText, stepCountIs } from "ai";
 import { z } from "zod";
 import { createLovableAiGatewayProvider } from "./ai-gateway.server";
+import { buildAssistantTools } from "./ai-tools.server";
 import catalogData from "@/data/studio-catalog.json";
+
 
 const SYSTEM = `את עוזרת וירטואלית של סטודיו Sweetbaby - סטודיו בוטיק להשכרת סטודיו ואביזרים וצילומי ניו-בורן/משפחה בבית שמש. עני בעברית, קצר, חמים ומקצועי. אל תמציאי מידע. אם לא יודעת - כווני לצור קשר במייל s0548529277@gmail.com או בטלפון 054-8529277.
 
@@ -48,15 +50,24 @@ export const chatWithBot = createServerFn({ method: "POST" })
     if (!key) throw new Error("Missing LOVABLE_API_KEY");
     const gateway = createLovableAiGatewayProvider(key);
     const personalized = data.isAuthenticated
-      ? `\n\nהמשתמשת מחוברת לחשבון${data.userName ? ` בשם ${data.userName}` : ""}. את יכולה לפנות אליה בשמה, לעזור לבדוק זמינות אביזרים/סטודיו, ולהציע לה לפתוח את "בדיקת זמינות מהירה" בכפתור למטה בצ'אט.`
-      : `\n\nהמשתמשת לא מחוברת. אם היא רוצה לבצע הזמנה או לבדוק זמינות אישית — הציעי לה להתחבר בעמוד /auth.`;
+      ? `\n\nהמשתמשת מחוברת לחשבון${data.userName ? ` בשם ${data.userName}` : ""}. את יכולה לפנות אליה בשמה.`
+      : `\n\nהמשתמשת לא מחוברת. לביצוע הזמנה בפועל הציעי לה להתחבר בעמוד /auth — אבל בדיקת זמינות אפשר לעשות גם בלי התחברות.`;
+    const today = new Date().toISOString().slice(0, 10);
+    const toolRules = `\n\nהיום ${today}. יש לך גישה אמיתית ליומן ולמלאי:
+- לשאלה על זמינות הסטודיו בתאריך/שעה — חובה להשתמש בכלי check_studio_availability ולענות רק לפי התוצאה. אל תניחי שפנוי.
+- לשאלה אם אביזר מסוים פנוי (לפי מק״ט או שם) — חובה להשתמש בכלי check_prop_availability ולענות רק לפי התוצאה.
+- אם חסר תאריך — בקשי תאריך קודם. המירי ביטויים כמו "מחר" לתאריך מלא YYYY-MM-DD לפי היום הנוכחי.
+- אחרי תשובה חיובית — הציעי להמשיך: סטודיו בעמוד /studio-rental (טופס ואז יומן), אביזרים בעמוד /rental-catalog.`;
     const { text } = await generateText({
       model: gateway("google/gemini-2.5-flash"),
-      system: SYSTEM + personalized,
+      system: SYSTEM + personalized + toolRules,
       messages: data.messages,
+      tools: buildAssistantTools(),
+      stopWhen: stepCountIs(5),
     });
     return { reply: text };
   });
+
 
 const SearchInput = z.object({ query: z.string().min(1).max(200) });
 

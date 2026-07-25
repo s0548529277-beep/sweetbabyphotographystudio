@@ -136,16 +136,52 @@ export const placeBooking = createServerFn({ method: "POST" })
       console.log("[SWEETBABY] New booking", { id: booking.id, price, deposit });
     } catch (e) { console.error("[SWEETBABY] admin notify failed", e); }
 // Send confirmation emails (customer + studio) via Resend gateway.
+    // Includes the signed coordination agreement so everything arrives together.
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const customerEmail = user?.email;
       const key = process.env.RESEND_API_KEY;
       const lovableKey = process.env.LOVABLE_API_KEY;
+
+      // Latest signed intake for this user
+      let intakeHtml = "";
+      try {
+        const { data: intake } = await supabase
+          .from("studio_intake_forms")
+          .select("payload, created_at")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const p = (intake?.payload ?? null) as Record<string, string> | null;
+        if (p) {
+          const labels: Array<[string, string]> = [
+            ["שם מלא", "clientName"], ["טלפון", "phone"], ["אימייל", "email"],
+            ["סוג הצילום", "sessionType"], ["מספר משתתפים", "peopleCount"],
+            ["גיל התינוק", "babyAge"], ["מותג מצלמה", "cameraBrand"],
+            ["ניסיון פלאש/סטודיו", "flashExperience"], ["אביזרים בהשכרה", "needProps"],
+            ["בקשות מיוחדות", "specialRequests"],
+          ];
+          const rows = labels
+            .filter(([, k]) => p[k] && String(p[k]).trim().length > 0)
+            .map(([label, k]) =>
+              `<tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>${label}</strong></td><td style="padding:6px 10px">${String(p[k]).replace(/</g, "&lt;")}</td></tr>`)
+            .join("");
+          intakeHtml = `<h3 style="color:#2d3d2b;margin-top:24px">הסכם תיאום ציפיות — חתום ✓</h3>
+            <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">${rows}</table>
+            <p style="font-size:12px;color:#6b8a63">הלקוחה אישרה שקראה והסכימה לכללי הסטודיו: שעות פעילות, מחירון וחישוב שעות, מדיניות ביטולים, ניקיון, אחריות ונזקים.</p>`;
+        }
+      } catch (e) { console.error("[SWEETBABY] intake fetch for email failed", e); }
+
       if (key && lovableKey) {
-        const html = `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:560px;margin:auto">
-          <h2 style="color:#2d3d2b">התור שלך נקבע 💗</h2>
+        const itemsHtml = data.reserved_items && data.reserved_items.length > 0
+          ? `<p><strong>אביזרים ששוריינו:</strong> ${data.reserved_items.map((s) => `#${s}`).join(", ")}</p>`
+          : "";
+        const html = `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:600px;margin:auto">
+          <h2 style="color:#2d3d2b">סיכום הזמנה · הסטודיו שוריין 💗</h2>
           <p>שלום ${data.contact_name},</p>
-          <p>תודה שקבעת תור בסטודיו Sweetbaby. פרטי התור:</p>
+          <p>תודה שקבעת תור בסטודיו Sweetbaby. להלן סיכום מלא — הסכם, שריון, אביזרים ותשלום.</p>
+          <h3 style="color:#2d3d2b">פרטי התור</h3>
           <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">
             <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>תאריך</strong></td><td style="padding:6px 10px">${data.session_date}</td></tr>
             <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>שעה</strong></td><td style="padding:6px 10px">${data.start_time} - ${endTime}</td></tr>
@@ -154,12 +190,14 @@ export const placeBooking = createServerFn({ method: "POST" })
             <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>יתרה לתשלום</strong></td><td style="padding:6px 10px">₪${Math.max(0, price - deposit)}</td></tr>
             ${data.notes ? `<tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>הערות</strong></td><td style="padding:6px 10px">${String(data.notes).replace(/</g, "&lt;")}</td></tr>` : ""}
           </table>
+          ${itemsHtml}
+          ${intakeHtml}
           <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: תלמוד ירושלמי 24, בית שמש · לשאלות: s0548529277@gmail.com / 054-8529277</p>
         </div>`;
         const recipients = ["s0548529277@gmail.com"];
         if (customerEmail) recipients.push(customerEmail);
         for (const to of recipients) {
-          await fetch("https://connector-gateway.lovable.dev/resend/emails", {
+          const res = await fetch("https://connector-gateway.lovable.dev/resend/emails", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -169,15 +207,19 @@ export const placeBooking = createServerFn({ method: "POST" })
             body: JSON.stringify({
               from: "Sweetbaby <studio@sweetbabyphoto.shop>",
               to: [to],
-              subject: `אישור תור #${booking.id.slice(0, 8)} · Sweetbaby`,
+              subject: `סיכום הזמנה #${booking.id.slice(0, 8)} · Sweetbaby`,
               html,
             }),
-          }).catch((e) => console.error("[SWEETBABY] booking resend failed", to, e));
+          }).catch((e) => { console.error("[SWEETBABY] booking resend failed", to, e); return null; });
+          if (res && !res.ok) console.error("[SWEETBABY] resend error", to, res.status, await res.text());
         }
+      } else {
+        console.error("[SWEETBABY] booking email skipped — missing RESEND_API_KEY/LOVABLE_API_KEY");
       }
     } catch (e) {
       console.error("[SWEETBABY] booking confirmation email failed", e);
     }
+
     return { id: booking.id, price, deposit, balance: Math.max(0, price - deposit), end_time: endTime };
   });
 

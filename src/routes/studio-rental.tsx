@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Clock, CreditCard, CalendarDays, Sparkles, ArrowLeft, X, MapPin, Star, AlertTriangle, Mail } from "lucide-react";
+import { Clock, CreditCard, CalendarDays, Sparkles, ArrowLeft, X, MapPin, Star, AlertTriangle } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/lib/auth";
@@ -149,7 +149,7 @@ function StudioRentalPage() {
           agreed: true,
         },
       });
-      toast.success("הטופס נשלח למייל שלך ולסטודיו. ממשיכות לבחירת שעה ביומן.");
+      toast.success("ההסכם נשמר ✓ ממשיכות לשלב 2 — בחירת תאריך ושעה ביומן.");
       setShowForm(false);
       nav({ to: "/booking" });
     } catch (e) {
@@ -288,48 +288,62 @@ function StudioRentalPage() {
         </div>
       </section>
 
-      {/* BOOKING CTA */}
+      {/* BOOKING PROCESS */}
       <section className="container-page pb-14" dir="rtl">
         <motion.div
           initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }} variants={fadeUp}
-          className="max-w-3xl mx-auto bg-white rounded-[2rem] border border-[#2d3d2b]/5 overflow-hidden shadow-[0_20px_60px_-30px_rgba(45,61,43,0.35)]"
+          className="max-w-4xl mx-auto bg-white rounded-[2rem] border border-[#2d3d2b]/5 overflow-hidden shadow-[0_20px_60px_-30px_rgba(45,61,43,0.35)]"
         >
-          <div className="p-6 md:p-8">
-            <div className="text-[11px] tracking-[0.28em] uppercase text-[#6b8a63] mb-2">Booking</div>
-            <h2 className="text-2xl md:text-3xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
-              קביעת תור בסטודיו
-            </h2>
+          <div className="p-6 md:p-9">
+            <div className="text-center">
+              <div className="text-[11px] tracking-[0.28em] uppercase text-[#6b8a63] mb-2">Booking Process</div>
+              <h2 className="text-2xl md:text-3xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                איך קובעים תור? 3 שלבים
+              </h2>
+              <p className="mt-2 text-sm text-[#2d3d2b]/70 max-w-xl mx-auto leading-relaxed">
+                התהליך כולו מתבצע כאן באתר — בסיום תקבלי מייל אחד מסודר עם ההסכם, פרטי השריון והתשלום.
+              </p>
+            </div>
 
-            <div className="mt-4 flex gap-3 items-start bg-[#f5d5cf]/50 border border-[#f5d5cf] rounded-2xl p-4">
+            <div className="mt-7 grid md:grid-cols-3 gap-3 md:gap-4">
+              {[
+                { n: "01", title: "שאלון והסכם", desc: "ממלאים את הסכם תיאום הציפיות — פרטים, סוג הצילום ואישור כללי הסטודיו.", tone: "bg-[#f5d5cf]/50 border-[#f5d5cf]" },
+                { n: "02", title: "קביעת יומן", desc: "בוחרים תאריך ושעה פנויים ביומן החי, משך שהות ואביזרים לשריון (עד 20 חינם).", tone: "bg-[#a8c4a2]/20 border-[#a8c4a2]/50" },
+                { n: "03", title: "תשלום מקדמה", desc: "מקדמה 90 ₪ לשריון המועד (ביום ההגעה — תשלום מלא). ואז הכל נסגר.", tone: "bg-[#f8ede4] border-[#2d3d2b]/10" },
+              ].map((s) => (
+                <div key={s.n} className={`rounded-2xl border p-5 ${s.tone}`}>
+                  <div className="text-[10px] tracking-[0.28em] uppercase text-[#6b8a63] mb-1">Step {s.n}</div>
+                  <h3 className="text-lg text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>{s.title}</h3>
+                  <p className="mt-1.5 text-[13px] text-[#2d3d2b]/75 leading-relaxed">{s.desc}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 flex gap-3 items-start bg-[#f8ede4] border border-[#2d3d2b]/10 rounded-2xl p-4">
               <AlertTriangle className="h-5 w-5 text-[#8b3a2a] mt-0.5 shrink-0" />
               <div className="text-sm text-[#2d3d2b]/85 leading-relaxed">
-                לא ניתן לקבוע תור לפני שליחת <strong>הסכם תיאום ציפיות</strong>. כל כללי הסטודיו וההסכם מופיעים בטופס — אישור הטופס = הסכמה מלאה לתנאים.
+                השאלון וההסכם הם השלב הראשון — מיד לאחר האישור נפתח היומן לבחירת שעה. אישור הטופס = הסכמה מלאה לכל תנאי הסטודיו.
               </div>
             </div>
 
-            <div className="mt-5 grid sm:grid-cols-2 gap-3">
+            <div className="mt-6 flex flex-col items-center gap-2">
               <button
                 type="button"
                 onClick={() => setShowForm(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#2d3d2b] text-[#f8ede4] px-6 py-3.5 text-sm font-medium hover:bg-[#1f2b1e] transition-all group"
-              >
-                <Mail className="h-4 w-4" />
-                <span>מילוי הסכם תיאום ציפיות</span>
-              </button>
-              <Link
-                to="/booking"
-                className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-[#2d3d2b] text-[#2d3d2b] px-6 py-3.5 text-sm font-medium hover:bg-[#2d3d2b] hover:text-[#f8ede4] transition-all"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#2d3d2b] text-[#f8ede4] px-9 py-4 text-sm font-semibold hover:bg-[#1f2b1e] transition-all"
               >
                 <CalendarDays className="h-4 w-4" />
-                <span>לבחירת תאריך ושעה</span>
-              </Link>
+                <span>התחלת התהליך · שאלון וקביעת יומן</span>
+              </button>
+              <span className="text-[11px] text-[#2d3d2b]/55">שלב 1 מתוך 3 · לוקח כדקה</span>
             </div>
 
-            <p className="mt-4 text-xs text-[#2d3d2b]/60 text-center">
+            <p className="mt-5 text-xs text-[#2d3d2b]/60 text-center">
               לשאלות: <a href={`mailto:${EMAIL_TO}`} className="font-semibold text-[#2d3d2b] underline decoration-[#f5d5cf] decoration-2 underline-offset-4">{EMAIL_TO}</a>
             </p>
           </div>
         </motion.div>
+
 
         <div className="mt-6 max-w-3xl mx-auto bg-[#2d3d2b] text-[#f8ede4] rounded-[2rem] p-5 relative overflow-hidden">
           <div className="absolute -top-10 -left-10 h-32 w-32 rounded-full bg-[#a8c4a2]/30 blur-2xl" />
@@ -394,7 +408,7 @@ function StudioRentalPage() {
               הסכם תיאום ציפיות
             </h2>
             <p className="mt-2 text-sm text-[#2d3d2b]/75 leading-relaxed">
-              נא למלא את הטופס למטה. <strong>שליחת ההסכם היא תנאי לקביעת התור.</strong>
+              שלב 1 מתוך 3. <strong>אישור ההסכם הוא תנאי לפתיחת היומן</strong> — מיד לאחר השליחה נעבור לבחירת תאריך ושעה.
             </p>
 
             {/* RULES — full agreement text */}
@@ -486,7 +500,7 @@ function StudioRentalPage() {
                 disabled={submitting}
                 className="rounded-full bg-[#2d3d2b] hover:bg-[#1f2b1e] text-[#f8ede4] px-7 py-3.5 text-sm font-medium transition-colors disabled:opacity-50"
               >
-                {submitting ? "שולח…" : "שליחה והמשך לקביעת שעה"}
+                {submitting ? "שומר…" : "אישור והמשך ליומן →"}
               </button>
               <button
                 type="button"
