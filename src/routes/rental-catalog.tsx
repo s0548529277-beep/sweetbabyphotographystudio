@@ -87,6 +87,17 @@ function RentalCatalogPage() {
     return () => { cancelled = true; };
   }, [dateFrom, dateTo, allItems, runCheckAvail]);
 
+  // Remember the chosen rental window so checkout can prefill it.
+  useEffect(() => {
+    if (!dateFrom) return;
+    try {
+      localStorage.setItem(
+        "sb_rental_window",
+        JSON.stringify({ from: dateFrom, to: dateTo || dateFrom, timeFrom, timeTo }),
+      );
+    } catch { /* storage unavailable */ }
+  }, [dateFrom, dateTo, timeFrom, timeTo]);
+
 
   const filtered = useMemo(() => {
     const q = query.trim();
