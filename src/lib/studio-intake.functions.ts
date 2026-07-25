@@ -76,7 +76,7 @@ export const submitStudioIntake = createServerFn({ method: "POST" })
               "X-Connection-Api-Key": key,
             },
             body: JSON.stringify({
-              from: "Sweetbaby <onboarding@resend.dev>",
+             from: "Sweetbaby <studio@sweetbabyphoto.shop>",
               to: [to],
               subject,
               html,
