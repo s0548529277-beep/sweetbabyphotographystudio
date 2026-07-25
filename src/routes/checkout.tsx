@@ -44,6 +44,25 @@ function Checkout() {
   const [availability, setAvailability] = useState<Record<string, { stock: number; taken: number; available: number }> | null>(null);
   const [checking, setChecking] = useState(false);
 
+  // Prefill the rental window chosen in the catalog (date + hours).
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("sb_rental_window");
+      if (!raw) return;
+      const w = JSON.parse(raw) as { from?: string; to?: string; timeFrom?: string; timeTo?: string };
+      if (!w.from) return;
+      setForm((f) => ({
+        ...f,
+        session_date: f.session_date || w.from || "",
+        return_date: f.return_date || w.to || w.from || "",
+        start_time: w.timeFrom || f.start_time,
+        end_time: w.timeTo || f.end_time,
+      }));
+    } catch { /* ignore */ }
+  }, []);
+
+
+
   // 24h-multiplier: any rental up to 24h = base, 24-48h = x2, and so on.
   const dayMultiplier = (() => {
     if (!form.session_date || !form.return_date) return 1;
