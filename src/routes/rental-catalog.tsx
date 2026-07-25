@@ -47,6 +47,9 @@ function RentalCatalogPage() {
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [timeFrom, setTimeFrom] = useState("09:00");
+  const [timeTo, setTimeTo] = useState("18:00");
+
   const [availability, setAvailability] = useState<Record<string, { available: number }> | null>(null);
   const [availLoading, setAvailLoading] = useState(false);
   const [form, setForm] = useState({
