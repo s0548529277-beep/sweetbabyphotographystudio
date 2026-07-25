@@ -233,7 +233,7 @@ export const placeOrder = createServerFn({ method: "POST" })
               "X-Connection-Api-Key": key,
             },
             body: JSON.stringify({
-              from: "Sweetbaby <onboarding@resend.dev>",
+            from: "Sweetbaby <studio@sweetbabyphoto.shop>",
               to: [to],
               subject: `אישור הזמנה #${order.id.slice(0, 8)} · Sweetbaby`,
               html,
