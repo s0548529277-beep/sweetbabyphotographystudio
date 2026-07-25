@@ -131,7 +131,7 @@ export function ChatBot() {
             {loading && <div style={{ opacity: 0.6, fontSize: "0.85rem", textAlign: "center" }}>מקלידה…</div>}
           </div>
 
-          {isAuth && (
+          {(
             <div style={{ borderTop: "1px solid #eee", background: "#fff", padding: 10 }}>
               {!availOpen ? (
                 <button
