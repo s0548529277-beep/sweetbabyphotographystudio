@@ -110,8 +110,12 @@ function Deposit() {
           <h1 className="font-display text-5xl text-primary mb-3">סיום תשלום</h1>
           <p className="text-muted-foreground max-w-2xl mb-10">
             לסיום ההזמנה יש להעביר תשלום מלא של <span className="text-primary font-semibold">{total}₪</span>. אפשר לשלם
-            במזומן ביום האיסוף (ללא צורך באסמכתא) או בהעברה בנקאית / Bit עם צירוף אסמכתא.
+            לסיום ההזמנה יש להעביר תשלום מלא של <span className="text-primary font-semibold">{total}₪</span>.{" "}
+            {isStudio
+              ? "התשלום מתבצע בהעברה בנקאית או ב-Bit/PayBox עם צירוף אסמכתא."
+              : "אפשר לשלם במזומן ביום האיסוף (ללא צורך באסמכתא) או בהעברה בנקאית / Bit עם צירוף אסמכתא."}
           </p>
+
 
           {done ? (
             <div className="glass-card rounded-3xl p-10 text-center">
