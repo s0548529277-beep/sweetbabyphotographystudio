@@ -43,6 +43,18 @@ function Checkout() {
   });
   const [availability, setAvailability] = useState<Record<string, { stock: number; taken: number; available: number }> | null>(null);
   const [checking, setChecking] = useState(false);
+  const profile = useProfilePrefill();
+
+  // Prefill contact details from the customer's personal area.
+  useEffect(() => {
+    if (!profile.loaded) return;
+    setForm((f) => ({
+      ...f,
+      contact_name: f.contact_name || profile.fullName,
+      contact_phone: f.contact_phone || profile.phone,
+    }));
+  }, [profile.loaded, profile.fullName, profile.phone]);
+
 
   // Prefill the rental window chosen in the catalog (date + hours).
   useEffect(() => {
