@@ -517,9 +517,55 @@ function StudioRentalPage() {
                   <option>אין ניסיון — אשמח להדרכה</option>
                 </select>
               </Field>
-              <Field label="זקוקה לאביזרים בהשכרה?" full>
-                <input className={inputCls} value={form.needProps} onChange={(e) => upd("needProps", e.target.value)} placeholder="פרטי בקצרה + מק״טים אם רלוונטי" />
+              <Field label="אביזרים מהקטלוג (אופציונלי)" full>
+                <div className="rounded-xl border border-[#2d3d2b]/15 bg-white p-3">
+                  <p className="text-[11px] text-[#2d3d2b]/60 mb-2">
+                    הרשימה מתעדכנת אוטומטית מקטלוג השכרת האביזרים · לא חובה לבחור, אפשר להשלים גם בהמשך.
+                  </p>
+                  {propSkus.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {propSkus.map((sku) => {
+                        const it = ALL_PROPS.find((p) => p.sku === sku);
+                        return (
+                          <span key={sku} className="inline-flex items-center gap-1 bg-[#f5d5cf]/60 text-[11px] px-2 py-1 rounded-full">
+                            #{sku} {it?.name || it?.alt || ""}
+                            <button type="button" onClick={() => toggleProp(sku)} className="hover:text-[#8b3a2a]">
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <div className="relative">
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#6b8a63]" />
+                    <input
+                      className={`${inputCls} pr-9`}
+                      value={propQuery}
+                      onChange={(e) => setPropQuery(e.target.value)}
+                      placeholder="חיפוש לפי שם או מק״ט…"
+                    />
+                  </div>
+                  <div className="mt-2 max-h-48 overflow-y-auto grid sm:grid-cols-2 gap-1">
+                    {filteredProps.map((p) => {
+                      const on = propSkus.includes(p.sku);
+                      return (
+                        <button
+                          type="button"
+                          key={p.sku}
+                          onClick={() => toggleProp(p.sku)}
+                          className={`text-right text-[12px] rounded-lg px-2.5 py-1.5 border transition-colors ${
+                            on ? "bg-[#a8c4a2]/30 border-[#6b8a63]" : "bg-white border-[#2d3d2b]/10 hover:border-[#6b8a63]"
+                          }`}
+                        >
+                          <span className="text-[#6b8a63]">#{p.sku}</span> {p.name || p.alt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </Field>
+
               <Field label="בקשות מיוחדות / הערות" full>
                 <textarea className={inputCls} rows={3} value={form.specialRequests} onChange={(e) => upd("specialRequests", e.target.value)} />
               </Field>
