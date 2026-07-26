@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
+import { useProfilePrefill } from "@/hooks/use-profile";
+
 import { useServerFn } from "@tanstack/react-start";
 import { placeOrder, checkItemsAvailability } from "@/lib/orders.functions";
 import { toast } from "sonner";
