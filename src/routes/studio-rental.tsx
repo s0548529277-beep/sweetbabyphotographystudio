@@ -1,15 +1,23 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Clock, CreditCard, CalendarDays, Sparkles, ArrowLeft, X, MapPin, Star, AlertTriangle } from "lucide-react";
+import { Clock, CreditCard, CalendarDays, Sparkles, ArrowLeft, X, MapPin, Star, AlertTriangle, Search } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/lib/auth";
+import { useProfilePrefill } from "@/hooks/use-profile";
 import { submitStudioIntake } from "@/lib/studio-intake.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { InspirationStrip } from "@/components/InspirationStrip";
 import { studioInspiration } from "@/lib/inspiration";
+import catalogData from "@/data/studio-catalog.json";
+
+// Same source of truth as the props rental catalog (/rental-catalog).
+type CatalogItem = { sku: string; name: string; alt: string; price: number };
+type CatalogCategory = { title: string; items: CatalogItem[] };
+const ALL_PROPS: CatalogItem[] = (catalogData as CatalogCategory[]).flatMap((c) => c.items);
+
 
 export const Route = createFileRoute("/studio-rental")({
   head: () => ({
