@@ -84,7 +84,7 @@ export const placeBooking = createServerFn({ method: "POST" })
         status: "pending",
         deposit_status: "pending",
         notes: data.notes ?? null,
-       reserved_items: data.reserved_items && data.reserved_items.length > 0 ? data.reserved_items : [],
+        reserved_items: data.reserved_items && data.reserved_items.length > 0 ? data.reserved_items : null,
         terms_accepted_at: new Date().toISOString(),
       })
       .select("id, price")
