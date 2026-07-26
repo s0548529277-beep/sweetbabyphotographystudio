@@ -87,6 +87,7 @@ function groupSlots(list: string[]) {
 
 function Booking() {
   const { user } = useAuth();
+  const profile = useProfilePrefill();
   const nav = useNavigate();
   const place = useServerFn(placeBooking);
   const [date, setDate] = useState<Date | undefined>(undefined);
@@ -102,6 +103,14 @@ function Booking() {
   const [reservedSkus, setReservedSkus] = useState<string[]>([]);
   const [propQuery, setPropQuery] = useState("");
   const [showPropPicker, setShowPropPicker] = useState(false);
+
+  // Prefill contact details from the customer's personal area.
+  useEffect(() => {
+    if (!profile.loaded) return;
+    setContactName((v) => v || profile.fullName);
+    setContactPhone((v) => v || profile.phone);
+  }, [profile.loaded, profile.fullName, profile.phone]);
+
 
   const filteredProps = useMemo(() => {
     const q = propQuery.trim().toLowerCase();
