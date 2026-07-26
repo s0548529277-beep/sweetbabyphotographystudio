@@ -137,8 +137,8 @@ function Deposit() {
                   <CreditCard className="h-5 w-5 text-blush-deep" />
                   <h2 className="font-display text-xl text-primary">אופן תשלום</h2>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["cash", "transfer", "bit"] as const).map((m) => (
+                <div className={`grid gap-2 ${isStudio ? "grid-cols-2" : "grid-cols-3"}`}>
+                  {(isStudio ? (["transfer", "bit"] as const) : (["cash", "transfer", "bit"] as const)).map((m) => (
                     <button
                       key={m}
                       type="button"
@@ -151,6 +151,7 @@ function Deposit() {
                 </div>
 
                 {method === "cash" ? (
+
                   <div className="mt-2 p-5 rounded-2xl bg-blush/40 text-primary text-sm space-y-2">
                     <div className="flex items-center gap-2 font-medium">
                       <Wallet className="h-4 w-4 text-blush-deep" /> תשלום במזומן ביום האיסוף
