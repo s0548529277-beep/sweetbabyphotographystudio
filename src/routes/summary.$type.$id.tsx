@@ -76,7 +76,7 @@ function SummaryPage() {
           </div>
           <h1 className="font-display text-5xl text-primary mb-3">סיכום ותשלום</h1>
           <p className="text-muted-foreground max-w-2xl mb-10">
-            עברי על הפרטים ובחרי איך לסיים את התשלום. תשלום מלא של ₪{total} סוגר את ההזמנה — ניתן לשלם במזומן ביום האיסוף ללא צורך באסמכתא.
+            עברי על הפרטים ובחרי איך לסיים את התשלום. תשלום מלא של ₪{total} סוגר את ההזמנה — {type === "booking" ? "בהעברה בנקאית או Bit/PayBox עם אסמכתא." : "ניתן לשלם במזומן ביום האיסוף ללא צורך באסמכתא."}
           </p>
 
           <div className="grid md:grid-cols-[1.4fr_1fr] gap-6">
