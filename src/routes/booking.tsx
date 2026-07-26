@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/lib/auth";
+import { useProfilePrefill } from "@/hooks/use-profile";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { placeBooking, computeStudioPrice } from "@/lib/bookings.functions";
@@ -87,6 +89,7 @@ function groupSlots(list: string[]) {
 
 function Booking() {
   const { user } = useAuth();
+  const profile = useProfilePrefill();
   const nav = useNavigate();
   const place = useServerFn(placeBooking);
   const [date, setDate] = useState<Date | undefined>(undefined);
@@ -102,6 +105,14 @@ function Booking() {
   const [reservedSkus, setReservedSkus] = useState<string[]>([]);
   const [propQuery, setPropQuery] = useState("");
   const [showPropPicker, setShowPropPicker] = useState(false);
+
+  // Prefill contact details from the customer's personal area.
+  useEffect(() => {
+    if (!profile.loaded) return;
+    setContactName((v) => v || profile.fullName);
+    setContactPhone((v) => v || profile.phone);
+  }, [profile.loaded, profile.fullName, profile.phone]);
+
 
   const filteredProps = useMemo(() => {
     const q = propQuery.trim().toLowerCase();

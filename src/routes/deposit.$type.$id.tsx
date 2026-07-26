@@ -41,11 +41,14 @@ function CopyRow({ label, value }: { label: string; value: string }) {
 function Deposit() {
   const { user } = useAuth();
   const { type, id } = Route.useParams();
+  const isStudio = type === "booking";
   const [record, setRecord] = useState<any>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [method, setMethod] = useState<"cash" | "transfer" | "bit">("cash");
+  // Studio rentals are digital-payment only — no cash deposit.
+  const [method, setMethod] = useState<"cash" | "transfer" | "bit">(isStudio ? "transfer" : "cash");
   const [uploading, setUploading] = useState(false);
   const [done, setDone] = useState(false);
+
 
   useEffect(() => {
     const table = type === "booking" ? "bookings" : "orders";
@@ -106,9 +109,13 @@ function Deposit() {
           <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-3">Step 3 · Payment</div>
           <h1 className="font-display text-5xl text-primary mb-3">סיום תשלום</h1>
           <p className="text-muted-foreground max-w-2xl mb-10">
-            לסיום ההזמנה יש להעביר תשלום מלא של <span className="text-primary font-semibold">{total}₪</span>. אפשר לשלם
-            במזומן ביום האיסוף (ללא צורך באסמכתא) או בהעברה בנקאית / Bit עם צירוף אסמכתא.
+            
+            לסיום ההזמנה יש להעביר תשלום מלא של <span className="text-primary font-semibold">{total}₪</span>.{" "}
+            {isStudio
+              ? "התשלום מתבצע בהעברה בנקאית או ב-Bit/PayBox עם צירוף אסמכתא."
+              : "אפשר לשלם במזומן ביום האיסוף (ללא צורך באסמכתא) או בהעברה בנקאית / Bit עם צירוף אסמכתא."}
           </p>
+
 
           {done ? (
             <div className="glass-card rounded-3xl p-10 text-center">
@@ -134,8 +141,8 @@ function Deposit() {
                   <CreditCard className="h-5 w-5 text-blush-deep" />
                   <h2 className="font-display text-xl text-primary">אופן תשלום</h2>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["cash", "transfer", "bit"] as const).map((m) => (
+                <div className={`grid gap-2 ${isStudio ? "grid-cols-2" : "grid-cols-3"}`}>
+                  {(isStudio ? (["transfer", "bit"] as const) : (["cash", "transfer", "bit"] as const)).map((m) => (
                     <button
                       key={m}
                       type="button"
@@ -148,6 +155,7 @@ function Deposit() {
                 </div>
 
                 {method === "cash" ? (
+
                   <div className="mt-2 p-5 rounded-2xl bg-blush/40 text-primary text-sm space-y-2">
                     <div className="flex items-center gap-2 font-medium">
                       <Wallet className="h-4 w-4 text-blush-deep" /> תשלום במזומן ביום האיסוף

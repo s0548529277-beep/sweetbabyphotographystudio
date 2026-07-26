@@ -76,7 +76,7 @@ function SummaryPage() {
           </div>
           <h1 className="font-display text-5xl text-primary mb-3">סיכום ותשלום</h1>
           <p className="text-muted-foreground max-w-2xl mb-10">
-            עברי על הפרטים ובחרי איך לסיים את התשלום. תשלום מלא של ₪{total} סוגר את ההזמנה — ניתן לשלם במזומן ביום האיסוף ללא צורך באסמכתא.
+            עברי על הפרטים ובחרי איך לסיים את התשלום. תשלום מלא של ₪{total} סוגר את ההזמנה — {type === "booking" ? "בהעברה בנקאית או Bit/PayBox עם אסמכתא." : "ניתן לשלם במזומן ביום האיסוף ללא צורך באסמכתא."}
           </p>
 
           <div className="grid md:grid-cols-[1.4fr_1fr] gap-6">
@@ -180,7 +180,7 @@ function SummaryPage() {
                   >
                     <span className="flex items-center gap-2">
                       <Banknote className="h-4 w-4 text-blush-deep" />
-                      <span>מזומן / העברה בנקאית / Bit</span>
+                      <span>{type === "booking" ? "העברה בנקאית / Bit" : "מזומן / העברה בנקאית / Bit"}</span>
                     </span>
                     <span className="text-xs text-muted-foreground">בחירה →</span>
                   </Button>

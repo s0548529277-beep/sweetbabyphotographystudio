@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
+import { useProfilePrefill } from "@/hooks/use-profile";
+
 import { useServerFn } from "@tanstack/react-start";
 import { placeOrder, checkItemsAvailability } from "@/lib/orders.functions";
 import { toast } from "sonner";
@@ -43,6 +45,18 @@ function Checkout() {
   });
   const [availability, setAvailability] = useState<Record<string, { stock: number; taken: number; available: number }> | null>(null);
   const [checking, setChecking] = useState(false);
+  const profile = useProfilePrefill();
+
+  // Prefill contact details from the customer's personal area.
+  useEffect(() => {
+    if (!profile.loaded) return;
+    setForm((f) => ({
+      ...f,
+      contact_name: f.contact_name || profile.fullName,
+      contact_phone: f.contact_phone || profile.phone,
+    }));
+  }, [profile.loaded, profile.fullName, profile.phone]);
+
 
   // Prefill the rental window chosen in the catalog (date + hours).
   useEffect(() => {
