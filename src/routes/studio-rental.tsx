@@ -186,7 +186,7 @@ function StudioRentalPage() {
           babyAge: form.babyAge,
           cameraBrand: form.cameraBrand,
           flashExperience: form.flashExperience,
-          needProps: form.needProps,
+          needProps: propsSummary,
           specialRequests: form.specialRequests,
           agreed: true,
         },
