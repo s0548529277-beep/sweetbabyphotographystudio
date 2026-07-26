@@ -41,11 +41,14 @@ function CopyRow({ label, value }: { label: string; value: string }) {
 function Deposit() {
   const { user } = useAuth();
   const { type, id } = Route.useParams();
+  const isStudio = type === "booking";
   const [record, setRecord] = useState<any>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [method, setMethod] = useState<"cash" | "transfer" | "bit">("cash");
+  // Studio rentals are digital-payment only — no cash deposit.
+  const [method, setMethod] = useState<"cash" | "transfer" | "bit">(isStudio ? "transfer" : "cash");
   const [uploading, setUploading] = useState(false);
   const [done, setDone] = useState(false);
+
 
   useEffect(() => {
     const table = type === "booking" ? "bookings" : "orders";
