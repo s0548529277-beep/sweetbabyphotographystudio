@@ -180,7 +180,7 @@ function SummaryPage() {
                   >
                     <span className="flex items-center gap-2">
                       <Banknote className="h-4 w-4 text-blush-deep" />
-                      <span>מזומן / העברה בנקאית / Bit</span>
+                      <span>{type === "booking" ? "העברה בנקאית / Bit" : "מזומן / העברה בנקאית / Bit"}</span>
                     </span>
                     <span className="text-xs text-muted-foreground">בחירה →</span>
                   </Button>
