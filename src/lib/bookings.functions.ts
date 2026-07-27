@@ -211,23 +211,10 @@ export const placeBooking = createServerFn({ method: "POST" })
 // ---------- Cancellation ----------
 
 async function deleteGoogleEvent(eventId: string) {
-  const client_id = process.env.GOOGLE_CALENDAR_CLIENT_ID;
-  const client_secret = process.env.GOOGLE_CALENDAR_CLIENT_SECRET;
-  const refresh_token = process.env.GOOGLE_CALENDAR_REFRESH_TOKEN;
-  const calendarId = process.env.GOOGLE_CALENDAR_ID || "primary";
-  if (!client_id || !client_secret || !refresh_token) return;
-  const tokRes = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ client_id, client_secret, refresh_token, grant_type: "refresh_token" }),
-  });
-  if (!tokRes.ok) return;
-  const { access_token } = (await tokRes.json()) as { access_token: string };
-  await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
-    { method: "DELETE", headers: { Authorization: `Bearer ${access_token}` } }
-  );
+  const { deleteGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
+  await deleteGoogleCalendarEvent(eventId);
 }
+
 
 export const cancelBooking = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
