@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Clock, CreditCard, CalendarDays, Sparkles, ArrowLeft, X, MapPin, Star, AlertTriangle, Search } from "lucide-react";
+import { Clock, CreditCard, CalendarDays, Sparkles, ArrowLeft, X, MapPin, Star, AlertTriangle } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/lib/auth";
@@ -11,13 +11,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { InspirationStrip } from "@/components/InspirationStrip";
 import { studioInspiration } from "@/lib/inspiration";
-import catalogData from "@/data/studio-catalog.json";
-
-// Same source of truth as the props rental catalog (/rental-catalog).
-type CatalogItem = { sku: string; name: string; alt: string; price: number };
-type CatalogCategory = { title: string; items: CatalogItem[] };
-const ALL_PROPS: CatalogItem[] = (catalogData as CatalogCategory[]).flatMap((c) => c.items);
-
 
 export const Route = createFileRoute("/studio-rental")({
   head: () => ({
@@ -119,8 +112,6 @@ function StudioRentalPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<IntakeForm>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
-  const [propSkus, setPropSkus] = useState<string[]>([]);
-  const [propQuery, setPropQuery] = useState("");
   const nav = useNavigate();
   const { user } = useAuth();
   const profile = useProfilePrefill();
@@ -138,24 +129,7 @@ function StudioRentalPage() {
     }));
   }, [profile.loaded, profile.fullName, profile.phone, profile.email]);
 
-  const filteredProps = useMemo(() => {
-    const q = propQuery.trim().toLowerCase();
-    if (!q) return ALL_PROPS.slice(0, 24);
-    return ALL_PROPS.filter(
-      (p) => p.sku.includes(q) || (p.name || "").toLowerCase().includes(q) || (p.alt || "").toLowerCase().includes(q),
-    ).slice(0, 40);
-  }, [propQuery]);
 
-  const toggleProp = (sku: string) =>
-    setPropSkus((prev) => (prev.includes(sku) ? prev.filter((s) => s !== sku) : [...prev, sku]));
-
-  const propsSummary = propSkus
-    .map((sku) => {
-      const it = ALL_PROPS.find((p) => p.sku === sku);
-      return `#${sku}${it?.name ? ` ${it.name}` : ""}`;
-    })
-    .join(", ")
-    .slice(0, 500);
 
 
   const sendIntake = async () => {
@@ -181,13 +155,14 @@ function StudioRentalPage() {
           phone: form.phone,
           email: form.email,
           sessionType: form.sessionType,
-          sessionDate: form.sessionDate,
-          peopleCount: form.peopleCount,
-          babyAge: form.babyAge,
+          sessionDate: "",
+          peopleCount: "",
+          babyAge: "",
           cameraBrand: form.cameraBrand,
           flashExperience: form.flashExperience,
-          needProps: propsSummary,
+          needProps: "",
           specialRequests: form.specialRequests,
+
           agreed: true,
         },
       });
@@ -497,15 +472,6 @@ function StudioRentalPage() {
                   <option>אחר</option>
                 </select>
               </Field>
-              <Field label="תאריך ושעה מבוקשים">
-                <input className={inputCls} value={form.sessionDate} onChange={(e) => upd("sessionDate", e.target.value)} placeholder="למשל: 12.8 בשעה 09:00" />
-              </Field>
-              <Field label="מספר משתתפים">
-                <input className={inputCls} value={form.peopleCount} onChange={(e) => upd("peopleCount", e.target.value)} />
-              </Field>
-              <Field label="גיל התינוק (אם רלוונטי)">
-                <input className={inputCls} value={form.babyAge} onChange={(e) => upd("babyAge", e.target.value)} />
-              </Field>
               <Field label="מותג / דגם מצלמה">
                 <input className={inputCls} value={form.cameraBrand} onChange={(e) => upd("cameraBrand", e.target.value)} />
               </Field>
@@ -517,54 +483,7 @@ function StudioRentalPage() {
                   <option>אין ניסיון — אשמח להדרכה</option>
                 </select>
               </Field>
-              <Field label="אביזרים מהקטלוג (אופציונלי)" full>
-                <div className="rounded-xl border border-[#2d3d2b]/15 bg-white p-3">
-                  <p className="text-[11px] text-[#2d3d2b]/60 mb-2">
-                    הרשימה מתעדכנת אוטומטית מקטלוג השכרת האביזרים · לא חובה לבחור, אפשר להשלים גם בהמשך.
-                  </p>
-                  {propSkus.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-2">
-                      {propSkus.map((sku) => {
-                        const it = ALL_PROPS.find((p) => p.sku === sku);
-                        return (
-                          <span key={sku} className="inline-flex items-center gap-1 bg-[#f5d5cf]/60 text-[11px] px-2 py-1 rounded-full">
-                            #{sku} {it?.name || it?.alt || ""}
-                            <button type="button" onClick={() => toggleProp(sku)} className="hover:text-[#8b3a2a]">
-                              <X className="h-3 w-3" />
-                            </button>
-                          </span>
-                        );
-                      })}
-                    </div>
-                  )}
-                  <div className="relative">
-                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#6b8a63]" />
-                    <input
-                      className={`${inputCls} pr-9`}
-                      value={propQuery}
-                      onChange={(e) => setPropQuery(e.target.value)}
-                      placeholder="חיפוש לפי שם או מק״ט…"
-                    />
-                  </div>
-                  <div className="mt-2 max-h-48 overflow-y-auto grid sm:grid-cols-2 gap-1">
-                    {filteredProps.map((p) => {
-                      const on = propSkus.includes(p.sku);
-                      return (
-                        <button
-                          type="button"
-                          key={p.sku}
-                          onClick={() => toggleProp(p.sku)}
-                          className={`text-right text-[12px] rounded-lg px-2.5 py-1.5 border transition-colors ${
-                            on ? "bg-[#a8c4a2]/30 border-[#6b8a63]" : "bg-white border-[#2d3d2b]/10 hover:border-[#6b8a63]"
-                          }`}
-                        >
-                          <span className="text-[#6b8a63]">#{p.sku}</span> {p.name || p.alt}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </Field>
+
 
               <Field label="בקשות מיוחדות / הערות" full>
                 <textarea className={inputCls} rows={3} value={form.specialRequests} onChange={(e) => upd("specialRequests", e.target.value)} />

@@ -203,50 +203,32 @@ export const placeOrder = createServerFn({ method: "POST" })
       console.error("[SWEETBABY] admin notify failed", e);
     }
 
-    // Send confirmation emails (customer + studio) via Resend gateway.
+    // Send confirmation emails (customer + studio) from the studio's Gmail.
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const customerEmail = user?.email;
-      const key = process.env.RESEND_API_KEY;
-      const lovableKey = process.env.LOVABLE_API_KEY;
-      if (key && lovableKey) {
-        const itemsHtml = orderLines
-          .map((l) => `<tr><td style="padding:4px 8px">${l.item_name} (${l.item_sku})</td><td style="padding:4px 8px">×${l.quantity}</td><td style="padding:4px 8px;text-align:left">₪${(l.price * l.quantity).toFixed(0)}</td></tr>`)
-          .join("");
-        const html = `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:560px;margin:auto">
-          <h2 style="color:#2d3d2b">ההזמנה שלך התקבלה 💗</h2>
-          <p>שלום ${data.contact_name},</p>
-          <p>תודה על ההזמנה בסטודיו Sweetbaby. פרטי ההזמנה:</p>
-          <p><strong>איסוף:</strong> ${data.session_date} · <strong>החזרה:</strong> ${endDate}</p>
-          <table style="width:100%;border-collapse:collapse;background:#faf7f4">${itemsHtml}</table>
-          <p style="margin-top:16px"><strong>סה״כ:</strong> ₪${total} · <strong>מקדמה:</strong> ₪${depositAmount} · <strong>יתרה:</strong> ₪${balanceAmount}</p>
-          <p style="color:#6b8a63;font-size:13px">כתובת הסטודיו: תלמוד ירושלמי 24, בית שמש · לשאלות: s0548529277@gmail.com / 054-8529277</p>
-        </div>`;
-        const recipients = ["s0548529277@gmail.com"];
-        if (customerEmail) recipients.push(customerEmail);
-        for (const to of recipients) {
-          const res = await fetch("https://connector-gateway.lovable.dev/resend/emails", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${lovableKey}`,
-              "X-Connection-Api-Key": key,
-            },
-            body: JSON.stringify({
-              from: "Sweetbaby <studio@sweetbabyphoto.shop>",
-              to: [to],
-              subject: `אישור הזמנה #${order.id.slice(0, 8)} · Sweetbaby`,
-              html,
-            }),
-          }).catch((e) => { console.error("[SWEETBABY] resend send failed", to, e); return null; });
-          if (res && !res.ok) console.error("[SWEETBABY] resend error", to, res.status, await res.text());
-        }
-      } else {
-        console.error("[SWEETBABY] order email skipped — missing RESEND_API_KEY/LOVABLE_API_KEY");
-      }
+      const itemsHtml = orderLines
+        .map((l) => `<tr><td style="padding:4px 8px">${l.item_name} (${l.item_sku})</td><td style="padding:4px 8px">×${l.quantity}</td><td style="padding:4px 8px;text-align:left">₪${(l.price * l.quantity).toFixed(0)}</td></tr>`)
+        .join("");
+      const html = `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:560px;margin:auto">
+        <h2 style="color:#2d3d2b">ההזמנה שלך התקבלה 💗</h2>
+        <p>שלום ${data.contact_name},</p>
+        <p>תודה על ההזמנה בסטודיו Sweetbaby. פרטי ההזמנה:</p>
+        <p><strong>איסוף:</strong> ${data.session_date} · <strong>החזרה:</strong> ${endDate}</p>
+        <table style="width:100%;border-collapse:collapse;background:#faf7f4">${itemsHtml}</table>
+        <p style="margin-top:16px"><strong>סה״כ:</strong> ₪${total} · <strong>מקדמה:</strong> ₪${depositAmount} · <strong>יתרה:</strong> ₪${balanceAmount}</p>
+        <p style="color:#6b8a63;font-size:13px">כתובת הסטודיו: תלמוד ירושלמי 24, בית שמש · לשאלות: s0548529277@gmail.com / 054-8529277</p>
+      </div>`;
+      const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+      await sendStudioAndCustomer({
+        customerEmail,
+        subject: `אישור הזמנה #${order.id.slice(0, 8)} · Sweetbaby`,
+        html,
+      });
     } catch (e) {
       console.error("[SWEETBABY] confirmation email failed", e);
     }
+
 
 
     return { id: order.id, total, deposit: depositAmount, balance: balanceAmount };

@@ -135,13 +135,12 @@ export const placeBooking = createServerFn({ method: "POST" })
       });
       console.log("[SWEETBABY] New booking", { id: booking.id, price, deposit });
     } catch (e) { console.error("[SWEETBABY] admin notify failed", e); }
-// Send confirmation emails (customer + studio) via Resend gateway.
+// Send confirmation emails (customer + studio) from the studio's Gmail.
     // Includes the signed coordination agreement so everything arrives together.
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const customerEmail = user?.email;
-      const key = process.env.RESEND_API_KEY;
-      const lovableKey = process.env.LOVABLE_API_KEY;
+
 
       // Latest signed intake for this user
       let intakeHtml = "";
@@ -173,7 +172,7 @@ export const placeBooking = createServerFn({ method: "POST" })
         }
       } catch (e) { console.error("[SWEETBABY] intake fetch for email failed", e); }
 
-      if (key && lovableKey) {
+      {
         const itemsHtml = data.reserved_items && data.reserved_items.length > 0
           ? `<p><strong>אביזרים ששוריינו:</strong> ${data.reserved_items.map((s) => `#${s}`).join(", ")}</p>`
           : "";
@@ -194,28 +193,14 @@ export const placeBooking = createServerFn({ method: "POST" })
           ${intakeHtml}
           <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: תלמוד ירושלמי 24, בית שמש · לשאלות: s0548529277@gmail.com / 054-8529277</p>
         </div>`;
-        const recipients = ["s0548529277@gmail.com"];
-        if (customerEmail) recipients.push(customerEmail);
-        for (const to of recipients) {
-          const res = await fetch("https://connector-gateway.lovable.dev/resend/emails", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${lovableKey}`,
-              "X-Connection-Api-Key": key,
-            },
-            body: JSON.stringify({
-              from: "Sweetbaby <studio@sweetbabyphoto.shop>",
-              to: [to],
-              subject: `סיכום הזמנה #${booking.id.slice(0, 8)} · Sweetbaby`,
-              html,
-            }),
-          }).catch((e) => { console.error("[SWEETBABY] booking resend failed", to, e); return null; });
-          if (res && !res.ok) console.error("[SWEETBABY] resend error", to, res.status, await res.text());
-        }
-      } else {
-        console.error("[SWEETBABY] booking email skipped — missing RESEND_API_KEY/LOVABLE_API_KEY");
+        const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+        await sendStudioAndCustomer({
+          customerEmail,
+          subject: `סיכום הזמנה #${booking.id.slice(0, 8)} · Sweetbaby`,
+          html,
+        });
       }
+
     } catch (e) {
       console.error("[SWEETBABY] booking confirmation email failed", e);
     }
@@ -226,23 +211,10 @@ export const placeBooking = createServerFn({ method: "POST" })
 // ---------- Cancellation ----------
 
 async function deleteGoogleEvent(eventId: string) {
-  const client_id = process.env.GOOGLE_CALENDAR_CLIENT_ID;
-  const client_secret = process.env.GOOGLE_CALENDAR_CLIENT_SECRET;
-  const refresh_token = process.env.GOOGLE_CALENDAR_REFRESH_TOKEN;
-  const calendarId = process.env.GOOGLE_CALENDAR_ID || "primary";
-  if (!client_id || !client_secret || !refresh_token) return;
-  const tokRes = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ client_id, client_secret, refresh_token, grant_type: "refresh_token" }),
-  });
-  if (!tokRes.ok) return;
-  const { access_token } = (await tokRes.json()) as { access_token: string };
-  await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
-    { method: "DELETE", headers: { Authorization: `Bearer ${access_token}` } }
-  );
+  const { deleteGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
+  await deleteGoogleCalendarEvent(eventId);
 }
+
 
 export const cancelBooking = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
