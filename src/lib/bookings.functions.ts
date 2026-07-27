@@ -135,13 +135,12 @@ export const placeBooking = createServerFn({ method: "POST" })
       });
       console.log("[SWEETBABY] New booking", { id: booking.id, price, deposit });
     } catch (e) { console.error("[SWEETBABY] admin notify failed", e); }
-// Send confirmation emails (customer + studio) via Resend gateway.
+// Send confirmation emails (customer + studio) from the studio's Gmail.
     // Includes the signed coordination agreement so everything arrives together.
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const customerEmail = user?.email;
-      const key = process.env.RESEND_API_KEY;
-      const lovableKey = process.env.LOVABLE_API_KEY;
+
 
       // Latest signed intake for this user
       let intakeHtml = "";
