@@ -14,6 +14,7 @@ import { useProfilePrefill } from "@/hooks/use-profile";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { placeBooking, computeStudioPrice } from "@/lib/bookings.functions";
+import { checkItemsAvailability } from "@/lib/orders.functions";
 import { toast } from "sonner";
 import { he } from "date-fns/locale";
 import { Lock, Clock, Sparkles, CalendarDays, Package, X, Search } from "lucide-react";
@@ -92,6 +93,7 @@ function Booking() {
   const profile = useProfilePrefill();
   const nav = useNavigate();
   const place = useServerFn(placeBooking);
+  const checkAvail = useServerFn(checkItemsAvailability);
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [existing, setExisting] = useState<Booking[]>([]);
   const [closures, setClosures] = useState<{ date: string; closed: boolean; open_time: string | null; close_time: string | null }[]>([]);
@@ -105,6 +107,32 @@ function Booking() {
   const [reservedSkus, setReservedSkus] = useState<string[]>([]);
   const [propQuery, setPropQuery] = useState("");
   const [showPropPicker, setShowPropPicker] = useState(false);
+  const [propAvail, setPropAvail] = useState<Record<string, { available: number }> | null>(null);
+  const [propAvailLoading, setPropAvailLoading] = useState(false);
+
+  // Live prop availability for the chosen date — same source of truth as the
+  // rental-catalog / checkout inventory (items + item_availability).
+  useEffect(() => {
+    if (!date) { setPropAvail(null); return; }
+    const iso = date.toISOString().slice(0, 10);
+    let cancelled = false;
+    setPropAvailLoading(true);
+    checkAvail({ data: { skus: ALL_PROPS.map((p) => p.sku), from: iso, to: iso } })
+      .then((r) => { if (!cancelled) setPropAvail(r); })
+      .catch(() => { if (!cancelled) setPropAvail(null); })
+      .finally(() => { if (!cancelled) setPropAvailLoading(false); });
+    return () => { cancelled = true; };
+  }, [date, checkAvail]);
+
+  // Drop props that became unavailable for the newly picked date.
+  useEffect(() => {
+    if (!propAvail) return;
+    setReservedSkus((prev) => {
+      const next = prev.filter((s) => (propAvail[s]?.available ?? 0) > 0);
+      if (next.length !== prev.length) toast.info("חלק מהאביזרים ששוריינו תפוסים בתאריך שנבחר והוסרו מהרשימה.");
+      return next.length === prev.length ? prev : next;
+    });
+  }, [propAvail]);
 
   // Prefill contact details from the customer's personal area.
   useEffect(() => {
@@ -398,10 +426,20 @@ function Booking() {
                       className="h-9 text-sm pr-9"
                     />
                   </div>
+                  <div className="mb-2 text-[11px] text-[#2d3d2b]/60">
+                    {!date
+                      ? "בחרו תאריך כדי לראות זמינות אמיתית לכל מק״ט."
+                      : propAvailLoading
+                      ? "בודקת זמינות מול המלאי…"
+                      : propAvail
+                      ? "הזמינות מסונכרנת עם מלאי השכרת האביזרים בזמן אמת."
+                      : "לא הצלחנו לבדוק זמינות כרגע."}
+                  </div>
                   <div className="max-h-60 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                     {filteredProps.map((p) => {
                       const on = reservedSkus.includes(p.sku);
-                      const disabled = !on && reservedSkus.length >= 20;
+                      const taken = !!date && !!propAvail && (propAvail[p.sku]?.available ?? 0) <= 0;
+                      const disabled = taken || (!on && reservedSkus.length >= 20);
                       return (
                         <button
                           type="button"
@@ -417,6 +455,7 @@ function Booking() {
                           }`}
                         >
                           <span className="text-[#6b8a63]">#{p.sku}</span> {p.name || p.alt}
+                          {taken && <span className="text-[10px] text-[#8b3a2a]"> · תפוס בתאריך זה</span>}
                         </button>
                       );
                     })}
