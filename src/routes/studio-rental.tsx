@@ -6,6 +6,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/lib/auth";
 import { useProfilePrefill } from "@/hooks/use-profile";
+import { saveContactHandoff } from "@/lib/contact-handoff";
 import { submitStudioIntake } from "@/lib/studio-intake.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -166,6 +167,7 @@ function StudioRentalPage() {
           agreed: true,
         },
       });
+      saveContactHandoff({ fullName: form.clientName, phone: form.phone, email: form.email });
       toast.success("ההסכם נשמר ✓ ממשיכות לשלב 2 — בחירת תאריך ושעה ביומן.");
       setShowForm(false);
       nav({ to: "/booking" });
