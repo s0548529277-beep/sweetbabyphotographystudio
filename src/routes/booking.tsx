@@ -10,6 +10,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/lib/auth";
 import { useProfilePrefill } from "@/hooks/use-profile";
+import { saveContactHandoff } from "@/lib/contact-handoff";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
@@ -190,6 +191,7 @@ function Booking() {
     e.preventDefault();
     if (!date || !startTime) return;
     setBusy(true);
+    saveContactHandoff({ fullName: contactName, phone: contactPhone });
     try {
       const res = await place({
         data: {
