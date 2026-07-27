@@ -172,7 +172,7 @@ export const placeBooking = createServerFn({ method: "POST" })
         }
       } catch (e) { console.error("[SWEETBABY] intake fetch for email failed", e); }
 
-      if (key && lovableKey) {
+      {
         const itemsHtml = data.reserved_items && data.reserved_items.length > 0
           ? `<p><strong>אביזרים ששוריינו:</strong> ${data.reserved_items.map((s) => `#${s}`).join(", ")}</p>`
           : "";
@@ -193,28 +193,14 @@ export const placeBooking = createServerFn({ method: "POST" })
           ${intakeHtml}
           <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: תלמוד ירושלמי 24, בית שמש · לשאלות: s0548529277@gmail.com / 054-8529277</p>
         </div>`;
-        const recipients = ["s0548529277@gmail.com"];
-        if (customerEmail) recipients.push(customerEmail);
-        for (const to of recipients) {
-          const res = await fetch("https://connector-gateway.lovable.dev/resend/emails", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${lovableKey}`,
-              "X-Connection-Api-Key": key,
-            },
-            body: JSON.stringify({
-              from: "Sweetbaby <studio@sweetbabyphoto.shop>",
-              to: [to],
-              subject: `סיכום הזמנה #${booking.id.slice(0, 8)} · Sweetbaby`,
-              html,
-            }),
-          }).catch((e) => { console.error("[SWEETBABY] booking resend failed", to, e); return null; });
-          if (res && !res.ok) console.error("[SWEETBABY] resend error", to, res.status, await res.text());
-        }
-      } else {
-        console.error("[SWEETBABY] booking email skipped — missing RESEND_API_KEY/LOVABLE_API_KEY");
+        const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+        await sendStudioAndCustomer({
+          customerEmail,
+          subject: `סיכום הזמנה #${booking.id.slice(0, 8)} · Sweetbaby`,
+          html,
+        });
       }
+
     } catch (e) {
       console.error("[SWEETBABY] booking confirmation email failed", e);
     }
