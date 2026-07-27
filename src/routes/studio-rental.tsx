@@ -162,13 +162,14 @@ function StudioRentalPage() {
           phone: form.phone,
           email: form.email,
           sessionType: form.sessionType,
-          sessionDate: form.sessionDate,
-          peopleCount: form.peopleCount,
-          babyAge: form.babyAge,
+          sessionDate: "",
+          peopleCount: "",
+          babyAge: "",
           cameraBrand: form.cameraBrand,
           flashExperience: form.flashExperience,
-          needProps: propsSummary,
+          needProps: "",
           specialRequests: form.specialRequests,
+
           agreed: true,
         },
       });
