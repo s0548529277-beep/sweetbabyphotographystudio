@@ -119,8 +119,6 @@ function StudioRentalPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<IntakeForm>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
-  const [propSkus, setPropSkus] = useState<string[]>([]);
-  const [propQuery, setPropQuery] = useState("");
   const nav = useNavigate();
   const { user } = useAuth();
   const profile = useProfilePrefill();
@@ -138,24 +136,7 @@ function StudioRentalPage() {
     }));
   }, [profile.loaded, profile.fullName, profile.phone, profile.email]);
 
-  const filteredProps = useMemo(() => {
-    const q = propQuery.trim().toLowerCase();
-    if (!q) return ALL_PROPS.slice(0, 24);
-    return ALL_PROPS.filter(
-      (p) => p.sku.includes(q) || (p.name || "").toLowerCase().includes(q) || (p.alt || "").toLowerCase().includes(q),
-    ).slice(0, 40);
-  }, [propQuery]);
 
-  const toggleProp = (sku: string) =>
-    setPropSkus((prev) => (prev.includes(sku) ? prev.filter((s) => s !== sku) : [...prev, sku]));
-
-  const propsSummary = propSkus
-    .map((sku) => {
-      const it = ALL_PROPS.find((p) => p.sku === sku);
-      return `#${sku}${it?.name ? ` ${it.name}` : ""}`;
-    })
-    .join(", ")
-    .slice(0, 500);
 
 
   const sendIntake = async () => {
