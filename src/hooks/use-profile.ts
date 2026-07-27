@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { loadContactHandoff } from "@/lib/contact-handoff";
 
 export type ProfilePrefill = {
   fullName: string;
@@ -19,8 +20,9 @@ export function useProfilePrefill(): ProfilePrefill {
 
   useEffect(() => {
     let active = true;
+    const handoff = loadContactHandoff();
     if (!user) {
-      setState({ fullName: "", phone: "", email: "", loaded: true });
+      setState({ ...handoff, loaded: true });
       return;
     }
     (async () => {
@@ -31,9 +33,9 @@ export function useProfilePrefill(): ProfilePrefill {
         .maybeSingle();
       if (!active) return;
       setState({
-        fullName: data?.full_name ?? (user.user_metadata?.full_name as string | undefined) ?? "",
-        phone: data?.phone ?? (user.user_metadata?.phone as string | undefined) ?? "",
-        email: user.email ?? "",
+        fullName: handoff.fullName || data?.full_name || (user.user_metadata?.full_name as string | undefined) || "",
+        phone: handoff.phone || data?.phone || (user.user_metadata?.phone as string | undefined) || "",
+        email: user.email || handoff.email || "",
         loaded: true,
       });
     })();
