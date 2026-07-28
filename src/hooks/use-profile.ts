@@ -9,6 +9,7 @@ export type ProfilePrefill = {
   email: string;
   /** Session type carried over from the coordination agreement. */
   sessionType: string;
+  guidance: string;
   loaded: boolean;
 };
 
@@ -19,7 +20,7 @@ export type ProfilePrefill = {
 export function useProfilePrefill(): ProfilePrefill {
   const { user } = useAuth();
   const [state, setState] = useState<ProfilePrefill>({
-    fullName: "", phone: "", email: "", sessionType: "", loaded: false,
+    fullName: "", phone: "", email: "", sessionType: "", guidance: "", loaded: false,
   });
 
   useEffect(() => {
@@ -41,6 +42,7 @@ export function useProfilePrefill(): ProfilePrefill {
         phone: handoff.phone || data?.phone || (user.user_metadata?.phone as string | undefined) || "",
         email: user.email || handoff.email || "",
         sessionType: handoff.sessionType,
+        guidance: handoff.guidance,
         loaded: true,
       });
     })();

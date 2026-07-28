@@ -8,11 +8,13 @@ export type ContactHandoff = {
   email: string;
   /** Session type chosen in the coordination agreement (e.g. "ניו-בורן"). */
   sessionType: string;
+  /** Guidance add-on key: basic | mini | plus | premium. */
+  guidance: string;
 };
 
 const KEY = "sb_contact_handoff";
 
-const EMPTY: ContactHandoff = { fullName: "", phone: "", email: "", sessionType: "" };
+const EMPTY: ContactHandoff = { fullName: "", phone: "", email: "", sessionType: "", guidance: "" };
 
 export function saveContactHandoff(c: Partial<ContactHandoff>) {
   if (typeof window === "undefined") return;
@@ -23,6 +25,7 @@ export function saveContactHandoff(c: Partial<ContactHandoff>) {
       phone: c.phone || prev.phone,
       email: c.email || prev.email,
       sessionType: c.sessionType || prev.sessionType,
+      guidance: c.guidance || prev.guidance,
     };
     window.sessionStorage.setItem(KEY, JSON.stringify(next));
   } catch { /* storage unavailable */ }
@@ -39,6 +42,7 @@ export function loadContactHandoff(): ContactHandoff {
       phone: p.phone || "",
       email: p.email || "",
       sessionType: p.sessionType || "",
+      guidance: p.guidance || "",
     };
   } catch {
     return { ...EMPTY };
