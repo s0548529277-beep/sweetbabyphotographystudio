@@ -12,6 +12,15 @@ import { z } from "zod";
 export const MORNING_PACKAGE_STARTS = ["08:00", "09:00", "10:00"] as const;
 export const MORNING_PACKAGE_PRICE = 240;
 
+/** Paid guidance / mentoring add-ons chosen in the coordination agreement. */
+export const GUIDANCE_FEES = { basic: 0, mini: 50, plus: 100, premium: 150 } as const;
+export const GUIDANCE_LABELS: Record<keyof typeof GUIDANCE_FEES, string> = {
+  basic: "בסיסי (חינם)",
+  mini: "MINI · הדרכה טכנית קצרצרה",
+  plus: "PLUS · ליווי מקצועי ראשוני",
+  premium: "PREMIUM · מעטפת מלאה",
+};
+
 export function isMorningPackage(slots: number, startTime: string): boolean {
   if (slots !== 6) return false;
   if (!MORNING_PACKAGE_STARTS.includes(startTime.slice(0, 5) as (typeof MORNING_PACKAGE_STARTS)[number])) return false;
