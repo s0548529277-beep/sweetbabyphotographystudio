@@ -61,7 +61,60 @@ function StudioPhotographyPage() {
   // Built-ins + admin-managed photos, respecting deletions/order made in the admin gallery.
   const photos = tab === "studio" ? studioGallery.images : outdoorGallery.images;
 
+  // --- Booking a session with Michal straight into the studio calendar ---
+  const nav = useNavigate();
+  const { user } = useAuth();
+  const profile = useProfilePrefill();
+  const bookSession = useServerFn(requestPhotographySession);
+  const [sending, setSending] = useState(false);
+  const [book, setBook] = useState({
+    name: "",
+    phone: "",
+    date: "",
+    time: "10:00",
+    hours: "1",
+    sessionType: "ניו-בורן",
+    notes: "",
+  });
+  useEffect(() => {
+    if (!profile.loaded) return;
+    setBook((b) => ({ ...b, name: b.name || profile.fullName, phone: b.phone || profile.phone }));
+  }, [profile.loaded, profile.fullName, profile.phone]);
 
+  const bookPrice = Math.round(PHOTOGRAPHY_HOURLY_RATE * Number(book.hours || 0));
+
+  const submitBooking = async () => {
+    if (!book.name.trim() || !book.phone.trim() || !book.date) {
+      toast.error("נא למלא שם, טלפון ותאריך.");
+      return;
+    }
+    if (!user) {
+      toast.error("יש להתחבר כדי לקבוע מועד ביומן.");
+      nav({ to: "/auth" });
+      return;
+    }
+    setSending(true);
+    try {
+      await bookSession({
+        data: {
+          session_date: book.date,
+          start_time: book.time,
+          hours: Number(book.hours),
+          contact_name: book.name.trim(),
+          contact_phone: book.phone.trim(),
+          session_type: book.sessionType,
+          location: tab,
+          notes: book.notes || null,
+        },
+      });
+      toast.success("הבקשה נקלטה ביומן הסטודיו ✓ המועד ייקבע סופית לאחר תיאום עם הצלמת.");
+      setBook((b) => ({ ...b, notes: "" }));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "קביעת המועד נכשלה");
+    } finally {
+      setSending(false);
+    }
+  };
 
   const sessionMsg = tab === "studio"
     ? "היי מיכל, אשמח לתאם סשן צילומים בסטודיו 🌿"
@@ -70,6 +123,9 @@ function StudioPhotographyPage() {
     `https://mail.google.com/mail/?view=cm&fs=1&to=${EMAIL}` +
     `&su=${encodeURIComponent("תיאום סשן צילום")}&body=${encodeURIComponent(sessionMsg)}`;
   const telLink = `tel:${PHONE}`;
+  const bookInputCls =
+    "w-full rounded-xl bg-white border border-[#2d4a2b]/15 px-3.5 py-2.5 text-sm outline-none focus:border-[#5b7a52] transition-colors";
+
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f8ede4] text-[#2d3b2a]" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
