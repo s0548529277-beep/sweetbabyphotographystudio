@@ -30,6 +30,9 @@ export const Route = createFileRoute("/rental-catalog")({
   component: RentalCatalogPage,
 });
 
+import { PropInspirationImage } from "@/components/PropInspirationImage";
+import { mergedInspiration, useItemInspiration } from "@/lib/item-inspiration";
+
 type Item = { sku: string; name: string; price: number; img: string; alt: string; hasHand?: boolean };
 type Category = { title: string; items: Item[] };
 const categories = catalogData as Category[];
@@ -61,6 +64,7 @@ function RentalCatalogPage() {
   const runCheckAvail = useServerFn(checkItemsAvailability);
 
 
+  const remoteInspiration = useItemInspiration();
   const allItems = useMemo(() => categories.flatMap((c) => c.items), []);
   const inspirationImages = useMemo(
     () => allItems.filter((it) => it.hasHand && it.img).map((it) => it.img),
@@ -308,14 +312,14 @@ function RentalCatalogPage() {
                           aria-label={`הגדל תמונה של ${it.name || it.sku}`}
                         >
                           {it.img ? (
-                            <img
+                            <PropInspirationImage
                               src={it.img}
                               alt={it.alt}
-                              loading="lazy"
+                              shots={mergedInspiration(it.sku, remoteInspiration.data)}
+                              grayscale={unavailable}
                               className={
                                 (inspiration ? "h-56 md:h-64 object-contain bg-cream" : "h-40 object-cover") +
-                                " w-full transition-transform duration-500 group-hover:scale-105" +
-                                (unavailable ? " grayscale" : "")
+                                " w-full transition-transform duration-500 group-hover:scale-105"
                               }
                             />
                           ) : (

@@ -243,6 +243,39 @@ export type Database = {
           },
         ]
       }
+      item_inspiration_images: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          sku: string
+          sort_order: number
+          source: string
+          storage_path: string | null
+          url: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          sku: string
+          sort_order?: number
+          source?: string
+          storage_path?: string | null
+          url: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          sku?: string
+          sort_order?: number
+          source?: string
+          storage_path?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
       items: {
         Row: {
           active: boolean
