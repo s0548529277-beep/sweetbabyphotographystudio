@@ -63,8 +63,10 @@ function SummaryPage() {
   }
 
   const total = record.price ?? record.total ?? 0;
-  const deposit = total;
-  const balance = 0;
+  // Studio rentals are secured with a ₪90 deposit; the balance is paid at the studio.
+  const deposit = type === "booking" ? Math.min(90, total) : total;
+  const balance = Math.max(0, total - deposit);
+
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
