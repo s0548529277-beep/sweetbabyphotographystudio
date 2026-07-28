@@ -7,6 +7,8 @@ export type ProfilePrefill = {
   fullName: string;
   phone: string;
   email: string;
+  /** Session type carried over from the coordination agreement. */
+  sessionType: string;
   loaded: boolean;
 };
 
@@ -16,7 +18,9 @@ export type ProfilePrefill = {
  */
 export function useProfilePrefill(): ProfilePrefill {
   const { user } = useAuth();
-  const [state, setState] = useState<ProfilePrefill>({ fullName: "", phone: "", email: "", loaded: false });
+  const [state, setState] = useState<ProfilePrefill>({
+    fullName: "", phone: "", email: "", sessionType: "", loaded: false,
+  });
 
   useEffect(() => {
     let active = true;
@@ -36,6 +40,7 @@ export function useProfilePrefill(): ProfilePrefill {
         fullName: handoff.fullName || data?.full_name || (user.user_metadata?.full_name as string | undefined) || "",
         phone: handoff.phone || data?.phone || (user.user_metadata?.phone as string | undefined) || "",
         email: user.email || handoff.email || "",
+        sessionType: handoff.sessionType,
         loaded: true,
       });
     })();
