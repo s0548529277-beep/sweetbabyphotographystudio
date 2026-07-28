@@ -36,7 +36,7 @@ export const Route = createFileRoute("/studio-photography")({
   component: StudioPhotographyPage,
 });
 
-const WHATSAPP = "972548529277";
+const PHONE = "0548529277";
 const EMAIL = "s0548529277@gmail.com";
 const MICHAL_SITE = "https://michalsiboni.co.il/";
 
@@ -72,13 +72,17 @@ function StudioPhotographyPage() {
   const extraStudio = usePageImages(PAGE_IMAGE_KEYS.photographyStudio);
   const extraOutdoor = usePageImages(PAGE_IMAGE_KEYS.photographyOutdoor);
   const extra = ((tab === "studio" ? extraStudio.data : extraOutdoor.data) ?? []).map((i: PageImage) => i.url);
-  const photos = [...(tab === "studio" ? STUDIO_PHOTOS : OUTDOOR_PHOTOS), ...extra];
+  // Built-in page photos are also seeded into the gallery table, so de-dupe by URL.
+  const photos = Array.from(new Set([...(tab === "studio" ? STUDIO_PHOTOS : OUTDOOR_PHOTOS), ...extra]));
 
 
-  const waMsg = tab === "studio"
+  const sessionMsg = tab === "studio"
     ? "היי מיכל, אשמח לתאם סשן צילומים בסטודיו 🌿"
     : "היי מיכל, אשמח לתאם סשן צילומי חוץ בטבע 🌸";
-  const waLink = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(waMsg)}`;
+  const gmailLink =
+    `https://mail.google.com/mail/?view=cm&fs=1&to=${EMAIL}` +
+    `&su=${encodeURIComponent("תיאום סשן צילום")}&body=${encodeURIComponent(sessionMsg)}`;
+  const telLink = `tel:${PHONE}`;
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f8ede4] text-[#2d3b2a]" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
@@ -121,12 +125,12 @@ function StudioPhotographyPage() {
           </p>
           <div className="flex flex-wrap gap-3 justify-center">
             <a
-              href={waLink}
+              href={gmailLink}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-[#2d4a2b] text-white px-7 py-3.5 rounded-full hover:bg-[#3d5a3b] transition shadow-lg"
             >
-              <Phone size={18} /> לתאום סשן
+              <Mail size={18} /> לתאום סשן במייל
             </a>
             <a
               href={MICHAL_SITE}
@@ -273,15 +277,15 @@ function StudioPhotographyPage() {
             </p>
             <div className="flex flex-wrap gap-3 justify-center">
               <a
-                href={waLink}
-                target="_blank"
-                rel="noopener noreferrer"
+                href={telLink}
                 className="inline-flex items-center gap-2 bg-[#f5d5cf] text-[#2d4a2b] px-7 py-3.5 rounded-full hover:bg-white transition"
               >
-                <Phone size={18} /> ווטסאפ
+                <Phone size={18} /> חיוג 054-8529277
               </a>
               <a
-                href={`mailto:${EMAIL}?subject=${encodeURIComponent("תיאום סשן צילום")}`}
+                href={gmailLink}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-white/10 border border-white/30 text-[#f8ede4] px-7 py-3.5 rounded-full hover:bg-white/20 transition"
               >
                 <Mail size={18} /> מייל
