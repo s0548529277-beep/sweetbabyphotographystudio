@@ -120,7 +120,7 @@ const quickFacts = [
 ];
 
 function StudioRentalPage() {
-  const extraStudioImages = usePageImages(PAGE_IMAGE_KEYS.studioRental);
+  const studioGallery = usePageGallery(PAGE_IMAGE_KEYS.studioRental);
   const [showForm, setShowForm] = useState(false);
 
   const [form, setForm] = useState<IntakeForm>(emptyForm);
