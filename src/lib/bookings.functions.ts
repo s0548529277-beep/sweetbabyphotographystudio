@@ -289,6 +289,10 @@ export const cancelBooking = createServerFn({ method: "POST" })
     // require admin intervention so we don't free live inventory by accident.
     if (b.status !== "pending") throw new Error("לא ניתן לבטל שריון פעיל — נא לפנות לצוות הסטודיו");
 
+    // Free any props reserved through this studio booking.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("item_availability").delete().eq("booking_id", data.id);
+
     const { error: upErr } = await supabase
       .from("bookings")
       .update({ status: "cancelled" })
