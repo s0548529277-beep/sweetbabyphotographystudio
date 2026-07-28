@@ -35,6 +35,7 @@ import { Route as SummaryTypeIdRouteImport } from './routes/summary.$type.$id'
 import { Route as DepositTypeIdRouteImport } from './routes/deposit.$type.$id'
 import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenticated/admin.orders'
 import { Route as AuthenticatedAdminItemsRouteImport } from './routes/_authenticated/admin.items'
+import { Route as AuthenticatedAdminInspirationRouteImport } from './routes/_authenticated/admin.inspiration'
 import { Route as AuthenticatedAdminGalleryRouteImport } from './routes/_authenticated/admin.gallery'
 import { Route as AuthenticatedAdminClientsRouteImport } from './routes/_authenticated/admin.clients'
 import { Route as AuthenticatedAdminCalendarRouteImport } from './routes/_authenticated/admin.calendar'
@@ -171,6 +172,12 @@ const AuthenticatedAdminItemsRoute = AuthenticatedAdminItemsRouteImport.update({
   path: '/items',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminInspirationRoute =
+  AuthenticatedAdminInspirationRouteImport.update({
+    id: '/inspiration',
+    path: '/inspiration',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminGalleryRoute =
   AuthenticatedAdminGalleryRouteImport.update({
     id: '/gallery',
@@ -220,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/admin/gallery': typeof AuthenticatedAdminGalleryRoute
+  '/admin/inspiration': typeof AuthenticatedAdminInspirationRoute
   '/admin/items': typeof AuthenticatedAdminItemsRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
@@ -250,6 +258,7 @@ export interface FileRoutesByTo {
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/admin/gallery': typeof AuthenticatedAdminGalleryRoute
+  '/admin/inspiration': typeof AuthenticatedAdminInspirationRoute
   '/admin/items': typeof AuthenticatedAdminItemsRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
@@ -283,6 +292,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/_authenticated/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/_authenticated/admin/gallery': typeof AuthenticatedAdminGalleryRoute
+  '/_authenticated/admin/inspiration': typeof AuthenticatedAdminInspirationRoute
   '/_authenticated/admin/items': typeof AuthenticatedAdminItemsRoute
   '/_authenticated/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
@@ -316,6 +326,7 @@ export interface FileRouteTypes {
     | '/admin/calendar'
     | '/admin/clients'
     | '/admin/gallery'
+    | '/admin/inspiration'
     | '/admin/items'
     | '/admin/orders'
     | '/deposit/$type/$id'
@@ -346,6 +357,7 @@ export interface FileRouteTypes {
     | '/admin/calendar'
     | '/admin/clients'
     | '/admin/gallery'
+    | '/admin/inspiration'
     | '/admin/items'
     | '/admin/orders'
     | '/deposit/$type/$id'
@@ -378,6 +390,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/calendar'
     | '/_authenticated/admin/clients'
     | '/_authenticated/admin/gallery'
+    | '/_authenticated/admin/inspiration'
     | '/_authenticated/admin/items'
     | '/_authenticated/admin/orders'
     | '/deposit/$type/$id'
@@ -594,6 +607,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminItemsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/inspiration': {
+      id: '/_authenticated/admin/inspiration'
+      path: '/inspiration'
+      fullPath: '/admin/inspiration'
+      preLoaderRoute: typeof AuthenticatedAdminInspirationRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/gallery': {
       id: '/_authenticated/admin/gallery'
       path: '/gallery'
@@ -629,6 +649,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminCalendarRoute: typeof AuthenticatedAdminCalendarRoute
   AuthenticatedAdminClientsRoute: typeof AuthenticatedAdminClientsRoute
   AuthenticatedAdminGalleryRoute: typeof AuthenticatedAdminGalleryRoute
+  AuthenticatedAdminInspirationRoute: typeof AuthenticatedAdminInspirationRoute
   AuthenticatedAdminItemsRoute: typeof AuthenticatedAdminItemsRoute
   AuthenticatedAdminOrdersRoute: typeof AuthenticatedAdminOrdersRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -638,6 +659,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminCalendarRoute: AuthenticatedAdminCalendarRoute,
   AuthenticatedAdminClientsRoute: AuthenticatedAdminClientsRoute,
   AuthenticatedAdminGalleryRoute: AuthenticatedAdminGalleryRoute,
+  AuthenticatedAdminInspirationRoute: AuthenticatedAdminInspirationRoute,
   AuthenticatedAdminItemsRoute: AuthenticatedAdminItemsRoute,
   AuthenticatedAdminOrdersRoute: AuthenticatedAdminOrdersRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
