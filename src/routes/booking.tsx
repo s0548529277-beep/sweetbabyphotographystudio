@@ -14,7 +14,15 @@ import { saveContactHandoff } from "@/lib/contact-handoff";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
-import { placeBooking, computeStudioPrice } from "@/lib/bookings.functions";
+import {
+  placeBooking,
+  computeStudioPrice,
+  isMorningPackage,
+  GUIDANCE_FEES,
+  GUIDANCE_LABELS,
+  MORNING_PACKAGE_STARTS,
+  MORNING_PACKAGE_PRICE,
+} from "@/lib/bookings.functions";
 import { checkItemsAvailability } from "@/lib/orders.functions";
 import { toast } from "sonner";
 import { he } from "date-fns/locale";
