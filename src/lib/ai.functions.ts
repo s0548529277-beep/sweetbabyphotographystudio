@@ -56,7 +56,9 @@ export const chatWithBot = createServerFn({ method: "POST" })
     const personalized = data.isAuthenticated
       ? `\n\nהמשתמשת מחוברת לחשבון${data.userName ? ` בשם ${data.userName}` : ""}. את יכולה לפנות אליה בשמה.`
       : `\n\nהמשתמשת לא מחוברת. לביצוע הזמנה בפועל הציעי לה להתחבר בעמוד /auth — אבל בדיקת זמינות אפשר לעשות גם בלי התחברות.`;
+    const { israelNow } = await import("./availability.server");
     const now = israelNow();
+
     const toolRules = `\n\nהיום ${now.date}, השעה בישראל ${now.time}. יש לך גישה אמיתית ליומן הסטודיו (כולל אירועים שהוזנו ישירות ביומן גוגל) ולמלאי האביזרים — הנתונים חיים ומדויקים לכל לקוחה, גם בלי התחברות:
 - זמינות סטודיו בתאריך/שעה — חובה check_studio_availability. ענִי אך ורק לפי התוצאה, לעולם אל תניחי שפנוי ואל תפני את הלקוחה "לבדוק בעמוד היומן" במקום לבדוק בעצמך.
 - "מתי יש לך פנוי?" בלי תאריך — השתמשי ב-find_next_available_days והציעי 2-3 מועדים קונקרטיים.
