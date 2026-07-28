@@ -103,13 +103,49 @@ export const placeBooking = createServerFn({ method: "POST" })
         balance_amount: Math.max(0, price - deposit),
         status: "pending",
         deposit_status: "pending",
-        notes: data.notes ?? null,
+        contact_name: data.contact_name,
+        contact_phone: data.contact_phone,
+        notes: [
+          guidanceFee > 0 ? `חבילת הדרכה: ${GUIDANCE_LABELS[guidanceKey]} (+₪${guidanceFee})` : null,
+          data.notes,
+        ].filter(Boolean).join("\n") || null,
         reserved_items: data.reserved_items && data.reserved_items.length > 0 ? data.reserved_items : null,
         terms_accepted_at: new Date().toISOString(),
       })
       .select("id, price")
       .single();
     if (error || !booking) throw new Error(error?.message ?? "יצירת שריון נכשלה");
+
+    // Lock the reserved props for the session date so the separate props
+    // rental catalog can't double-book the exact same items.
+    if (data.reserved_items && data.reserved_items.length > 0) {
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: propRows } = await supabaseAdmin
+          .from("items")
+          .select("id, sku, stock_quantity")
+          .in("sku", data.reserved_items);
+        for (const it of propRows ?? []) {
+          const stock = Number(it.stock_quantity ?? 1);
+          for (let slot = 0; slot < stock + 4; slot++) {
+            const { error: lockErr } = await supabaseAdmin.from("item_availability").insert({
+              item_id: it.id,
+              booking_id: booking.id,
+              date: data.session_date,
+              start_date: data.session_date,
+              end_date: data.session_date,
+              slot_index: slot,
+            });
+            if (!lockErr) break;
+            const isConflict =
+              (lockErr as { code?: string }).code === "23505" || /duplicate|unique/i.test(lockErr.message ?? "");
+            if (!isConflict || slot + 1 >= stock) break;
+          }
+        }
+      } catch (e) {
+        console.error("[SWEETBABY] prop lock for booking failed", e);
+      }
+    }
 
     try {
       const { createGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
