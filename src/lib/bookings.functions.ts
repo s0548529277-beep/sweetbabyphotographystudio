@@ -7,14 +7,30 @@ import { z } from "zod";
 // - First hour (2 slots): 120₪
 // - Every extra hour (2 slots): 90₪
 // - Half-hour = half of that rate
-// - Morning package: date 08:00→11:00 (3 hours = 6 slots) → 240₪ flat
+// - Newborn morning package: 3 hours (6 slots) starting 08:00 / 09:00 / 10:00
+//   and ending by 13:00 → 240₪ flat
+export const MORNING_PACKAGE_STARTS = ["08:00", "09:00", "10:00"] as const;
+export const MORNING_PACKAGE_PRICE = 240;
+
+/** Paid guidance / mentoring add-ons chosen in the coordination agreement. */
+export const GUIDANCE_FEES = { basic: 0, mini: 50, plus: 100, premium: 150 } as const;
+export const GUIDANCE_LABELS: Record<keyof typeof GUIDANCE_FEES, string> = {
+  basic: "בסיסי (חינם)",
+  mini: "MINI · הדרכה טכנית קצרצרה",
+  plus: "PLUS · ליווי מקצועי ראשוני",
+  premium: "PREMIUM · מעטפת מלאה",
+};
+
+export function isMorningPackage(slots: number, startTime: string): boolean {
+  if (slots !== 6) return false;
+  if (!MORNING_PACKAGE_STARTS.includes(startTime.slice(0, 5) as (typeof MORNING_PACKAGE_STARTS)[number])) return false;
+  const [h, m] = startTime.split(":").map(Number);
+  return h * 60 + m + 180 <= 13 * 60;
+}
+
 export function computeStudioPrice(slots: number, startTime: string): number {
   if (slots < 2) throw new Error("מינימום שעה (2 חצאי שעות)");
-  // Morning package: starts 08:00 and exactly 6 slots (3 hours), ends by 13:00
-  const [h, m] = startTime.split(":").map(Number);
-  const startMinutes = h * 60 + m;
-  const endMinutes = startMinutes + slots * 30;
-  if (slots === 6 && startMinutes === 8 * 60 && endMinutes <= 13 * 60) return 240;
+  if (isMorningPackage(slots, startTime)) return MORNING_PACKAGE_PRICE;
 
   // Standard: 60₪ per first-hour slot (slots 1-2), 45₪ per extra slot
   const firstHourSlots = Math.min(slots, 2);
@@ -30,6 +46,7 @@ const inputSchema = z.object({
   contact_phone: z.string().min(5).max(40),
   notes: z.string().max(1000).optional().nullable(),
   reserved_items: z.array(z.string().min(1).max(24)).max(20).optional(),
+  guidance: z.string().max(60).optional().nullable(),
   terms_accepted: z.literal(true),
 });
 
@@ -44,8 +61,11 @@ export const placeBooking = createServerFn({ method: "POST" })
     const endMin = h * 60 + m + data.slots * 30;
     const endTime = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
 
-    const price = computeStudioPrice(data.slots, data.start_time);
-    const isMorning = data.slots === 6 && data.start_time === "08:00";
+    const basePrice = computeStudioPrice(data.slots, data.start_time);
+    const guidanceKey = (data.guidance ?? "basic") as keyof typeof GUIDANCE_FEES;
+    const guidanceFee = GUIDANCE_FEES[guidanceKey] ?? 0;
+    const price = basePrice + guidanceFee;
+    const isMorning = isMorningPackage(data.slots, data.start_time);
 
     // Overlap check
     const { data: existing, error: exErr } = await supabase
@@ -83,13 +103,49 @@ export const placeBooking = createServerFn({ method: "POST" })
         balance_amount: Math.max(0, price - deposit),
         status: "pending",
         deposit_status: "pending",
-        notes: data.notes ?? null,
+        contact_name: data.contact_name,
+        contact_phone: data.contact_phone,
+        notes: [
+          guidanceFee > 0 ? `חבילת הדרכה: ${GUIDANCE_LABELS[guidanceKey]} (+₪${guidanceFee})` : null,
+          data.notes,
+        ].filter(Boolean).join("\n") || null,
         reserved_items: data.reserved_items && data.reserved_items.length > 0 ? data.reserved_items : null,
         terms_accepted_at: new Date().toISOString(),
       })
       .select("id, price")
       .single();
     if (error || !booking) throw new Error(error?.message ?? "יצירת שריון נכשלה");
+
+    // Lock the reserved props for the session date so the separate props
+    // rental catalog can't double-book the exact same items.
+    if (data.reserved_items && data.reserved_items.length > 0) {
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: propRows } = await supabaseAdmin
+          .from("items")
+          .select("id, sku, stock_quantity")
+          .in("sku", data.reserved_items);
+        for (const it of propRows ?? []) {
+          const stock = Number(it.stock_quantity ?? 1);
+          for (let slot = 0; slot < stock + 4; slot++) {
+            const { error: lockErr } = await supabaseAdmin.from("item_availability").insert({
+              item_id: it.id,
+              booking_id: booking.id,
+              date: data.session_date,
+              start_date: data.session_date,
+              end_date: data.session_date,
+              slot_index: slot,
+            });
+            if (!lockErr) break;
+            const isConflict =
+              (lockErr as { code?: string }).code === "23505" || /duplicate|unique/i.test(lockErr.message ?? "");
+            if (!isConflict || slot + 1 >= stock) break;
+          }
+        }
+      } catch (e) {
+        console.error("[SWEETBABY] prop lock for booking failed", e);
+      }
+    }
 
     try {
       const { createGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
@@ -232,6 +288,10 @@ export const cancelBooking = createServerFn({ method: "POST" })
     // Only pending bookings can be self-cancelled — active/confirmed/returned
     // require admin intervention so we don't free live inventory by accident.
     if (b.status !== "pending") throw new Error("לא ניתן לבטל שריון פעיל — נא לפנות לצוות הסטודיו");
+
+    // Free any props reserved through this studio booking.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("item_availability").delete().eq("booking_id", data.id);
 
     const { error: upErr } = await supabase
       .from("bookings")

@@ -33,13 +33,21 @@ type IntakeForm = {
   clientName: string; phone: string; email: string;
   sessionType: string; sessionDate: string; peopleCount: string; babyAge: string;
   cameraBrand: string; flashExperience: string; needProps: string; specialRequests: string;
+  guidance: string;
   agreed: boolean;
 };
 const emptyForm: IntakeForm = {
   clientName: "", phone: "", email: "", sessionType: "", sessionDate: "",
   peopleCount: "", babyAge: "", cameraBrand: "", flashExperience: "",
-  needProps: "", specialRequests: "", agreed: false,
+  needProps: "", specialRequests: "", guidance: "basic", agreed: false,
 };
+
+const guidanceOptions = [
+  { key: "basic", price: 0, tag: "בסיסי", title: "הדרכה קצרה (חינם)", desc: "עד 5 דקות, בכפוף לזמינות או בטלפון." },
+  { key: "mini", price: 50, tag: "MINI", title: "הדרכה טכנית קצרצרה", desc: "עד 20 דק׳ בסטודיו פנים אל פנים: הפעלת ציוד, הגדרות מצלמה בסיסיות והתאמת סט אחד." },
+  { key: "plus", price: 100, tag: "PLUS", title: "ליווי מקצועי ראשוני", desc: "התאמת 2 סטים לצילום כולל כוונה יצירתית והדרכה טכנית.", featured: true },
+  { key: "premium", price: 150, tag: "PREMIUM", title: "מעטפת מלאה", desc: "הכנת חלל מראש + זמינות במהלך כל השהות + סיוע בסידור אביזרים." },
+] as const;
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -138,6 +146,10 @@ function StudioRentalPage() {
       toast.error("נא למלא שם, טלפון ואימייל.");
       return;
     }
+    if (!form.sessionType.trim()) {
+      toast.error("נא לבחור את סוג הצילום.");
+      return;
+    }
     if (!form.agreed) {
       toast.error("יש לאשר את הסכם תיאום הציפיות לפני השליחה.");
       return;
@@ -148,6 +160,7 @@ function StudioRentalPage() {
       return;
     }
 
+    const guidanceLabel = guidanceOptions.find((g) => g.key === form.guidance);
     setSubmitting(true);
     try {
       await submitIntake({
@@ -161,13 +174,19 @@ function StudioRentalPage() {
           babyAge: "",
           cameraBrand: form.cameraBrand,
           flashExperience: form.flashExperience,
-          needProps: "",
+          needProps: guidanceLabel ? `${guidanceLabel.tag} · ${guidanceLabel.title}${guidanceLabel.price ? ` (+₪${guidanceLabel.price})` : ""}` : "",
           specialRequests: form.specialRequests,
 
           agreed: true,
         },
       });
-      saveContactHandoff({ fullName: form.clientName, phone: form.phone, email: form.email });
+      saveContactHandoff({
+        fullName: form.clientName,
+        phone: form.phone,
+        email: form.email,
+        sessionType: form.sessionType,
+        guidance: form.guidance,
+      });
       toast.success("ההסכם נשמר ✓ ממשיכות לשלב 2 — בחירת תאריך ושעה ביומן.");
       setShowForm(false);
       nav({ to: "/booking" });
@@ -463,8 +482,8 @@ function StudioRentalPage() {
               <Field label="אימייל *">
                 <input className={inputCls} dir="ltr" type="email" value={form.email} onChange={(e) => upd("email", e.target.value)} />
               </Field>
-              <Field label="סוג הצילום">
-                <select className={inputCls} value={form.sessionType} onChange={(e) => upd("sessionType", e.target.value)}>
+              <Field label="סוג הצילום *">
+                <select className={inputCls} value={form.sessionType} onChange={(e) => upd("sessionType", e.target.value)} required>
                   <option value="">בחרי…</option>
                   <option>ניו-בורן</option>
                   <option>משפחה</option>
@@ -486,11 +505,45 @@ function StudioRentalPage() {
                 </select>
               </Field>
 
+              <Field label="הדרכה וליווי בסטודיו" full>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {guidanceOptions.map((g) => {
+                    const active = form.guidance === g.key;
+                    return (
+                      <button
+                        type="button"
+                        key={g.key}
+                        onClick={() => upd("guidance", g.key)}
+                        className={`relative text-right rounded-2xl border p-3 transition ${
+                          active
+                            ? "border-[#6b8a63] bg-[#a8c4a2]/25 shadow-sm"
+                            : "border-[#2d3d2b]/15 bg-white/70 hover:border-[#6b8a63]/50"
+                        }`}
+                      >
+                        {"featured" in g && g.featured && (
+                          <span className="absolute -top-2 left-3 rounded-full bg-[#e8b4bc] px-2 py-0.5 text-[10px] font-semibold text-[#2d3d2b]">
+                            פופולרי
+                          </span>
+                        )}
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="text-xs font-bold tracking-wide">{g.tag}</span>
+                          <span className="text-xs font-semibold text-[#6b8a63]">
+                            {g.price === 0 ? "ללא עלות" : `+₪${g.price}`}
+                          </span>
+                        </div>
+                        <div className="mt-1 text-sm font-medium">{g.title}</div>
+                        <p className="mt-1 text-[11px] leading-relaxed text-[#2d3d2b]/70">{g.desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </Field>
 
               <Field label="בקשות מיוחדות / הערות" full>
                 <textarea className={inputCls} rows={3} value={form.specialRequests} onChange={(e) => upd("specialRequests", e.target.value)} />
               </Field>
             </div>
+
 
             <label className="mt-4 flex items-start gap-2.5 text-xs text-[#2d3d2b]/85 cursor-pointer leading-relaxed bg-[#a8c4a2]/20 border border-[#a8c4a2]/40 rounded-xl p-3">
               <input

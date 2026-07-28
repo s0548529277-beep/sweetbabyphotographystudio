@@ -14,7 +14,15 @@ import { saveContactHandoff } from "@/lib/contact-handoff";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
-import { placeBooking, computeStudioPrice } from "@/lib/bookings.functions";
+import {
+  placeBooking,
+  computeStudioPrice,
+  isMorningPackage,
+  GUIDANCE_FEES,
+  GUIDANCE_LABELS,
+  MORNING_PACKAGE_STARTS,
+  MORNING_PACKAGE_PRICE,
+} from "@/lib/bookings.functions";
 import { checkItemsAvailability } from "@/lib/orders.functions";
 import { toast } from "sonner";
 import { he } from "date-fns/locale";
@@ -173,10 +181,16 @@ function Booking() {
   const daySlots = useMemo(() => (date ? slotsForDate(date, closures) : []), [date, closures]);
   const grouped = useMemo(() => groupSlots(daySlots), [daySlots]);
 
-  const price = useMemo(() => {
+  const isNewborn = /ניו.?בורן/.test(profile.sessionType || "");
+  const guidanceKey = (profile.guidance || "basic") as keyof typeof GUIDANCE_FEES;
+  const guidanceFee = GUIDANCE_FEES[guidanceKey] ?? 0;
+
+  const basePrice = useMemo(() => {
     if (!startTime) return 0;
     try { return computeStudioPrice(slots, startTime); } catch { return 0; }
   }, [startTime, slots]);
+  const price = basePrice > 0 ? basePrice + guidanceFee : 0;
+  const morningActive = !!startTime && isMorningPackage(slots, startTime);
 
   const endTimeStr = useMemo(() => {
     if (!startTime) return null;
@@ -202,6 +216,7 @@ function Booking() {
           contact_phone: contactPhone,
           notes,
           reserved_items: reservedSkus,
+          guidance: guidanceKey,
           terms_accepted: true as const,
         },
       });
@@ -275,9 +290,45 @@ function Booking() {
                 </div>
               )}
             </div>
-            <p className="text-xs text-[#2d3d2b]/55 mb-5">
-              מינימום שעה (2 חצאי שעות). חבילת בוקר 08:00–11:00 · 240₪.
+            <p className="text-xs text-[#2d3d2b]/55 mb-4">
+              מינימום שעה (2 חצאי שעות).
+              {isNewborn
+                ? ` חבילת ניו-בורן — 3 שעות ב-₪${MORNING_PACKAGE_PRICE}, בחלונות 08:00, 09:00 או 10:00 (עד 13:00).`
+                : ` חבילת בוקר ניו-בורן 3 שעות · ₪${MORNING_PACKAGE_PRICE} — זמינה למי שבחרה "ניו-בורן" בשאלון.`}
             </p>
+
+            {date && isNewborn && (
+              <div className="mb-5 rounded-2xl border border-[#e8b4bc] bg-[#e8b4bc]/15 p-4">
+                <div className="text-[10px] tracking-[0.28em] uppercase text-[#6b8a63] mb-2">
+                  חבילת ניו-בורן · 3 שעות · ₪{MORNING_PACKAGE_PRICE}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {MORNING_PACKAGE_STARTS.map((s) => {
+                    const taken = overlaps(s, 6, existing) || !daySlots.includes(s);
+                    const active = startTime === s && slots === 6;
+                    const [hh] = s.split(":").map(Number);
+                    return (
+                      <button
+                        type="button"
+                        key={s}
+                        disabled={taken}
+                        onClick={() => { setStartTime(s); setSlots(6); }}
+                        className={`h-9 px-4 rounded-full text-xs font-medium border transition-all ${
+                          taken
+                            ? "opacity-30 line-through cursor-not-allowed border-[#2d3d2b]/10"
+                            : active
+                            ? "bg-[#2d3d2b] text-[#f8ede4] border-[#2d3d2b] shadow-md"
+                            : "bg-white border-[#e8b4bc] text-[#2d3d2b] hover:bg-[#e8b4bc]/30"
+                        }`}
+                      >
+                        {s}–{String(hh + 3).padStart(2, "0")}:00
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
 
             {!date && (
               <div className="text-[#2d3d2b]/50 text-sm py-16 text-center border-2 border-dashed border-[#2d3d2b]/10 rounded-xl">
@@ -362,14 +413,26 @@ function Booking() {
           <aside className="space-y-4 lg:sticky lg:top-24">
             <div className="bg-white rounded-2xl border border-[#2d3d2b]/8 p-5 space-y-3 shadow-sm">
               <h3 className="font-display text-lg text-[#2d3d2b]">פרטי יצירת קשר</h3>
-              <div>
-                <Label className="text-xs text-[#2d3d2b]/70">שם מלא *</Label>
-                <Input required value={contactName} onChange={(e) => setContactName(e.target.value)} className="mt-1 h-9 text-sm" />
-              </div>
-              <div>
-                <Label className="text-xs text-[#2d3d2b]/70">טלפון *</Label>
-                <Input required type="tel" dir="ltr" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} className="mt-1 h-9 text-sm" />
-              </div>
+              {profile.loaded && profile.fullName && profile.phone ? (
+                <div className="rounded-xl bg-[#a8c4a2]/15 border border-[#a8c4a2]/40 px-3 py-2 text-xs text-[#2d3d2b]/80 leading-relaxed">
+                  <div><strong>{contactName}</strong></div>
+                  <div dir="ltr" className="text-right">{contactPhone}</div>
+                  {profile.email && <div dir="ltr" className="text-right">{profile.email}</div>}
+                  <div className="mt-1 text-[10px] text-[#6b8a63]">הפרטים נטענו מהאזור האישי / מהשאלון.</div>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <Label className="text-xs text-[#2d3d2b]/70">שם מלא *</Label>
+                    <Input required value={contactName} onChange={(e) => setContactName(e.target.value)} className="mt-1 h-9 text-sm" />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-[#2d3d2b]/70">טלפון *</Label>
+                    <Input required type="tel" dir="ltr" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} className="mt-1 h-9 text-sm" />
+                  </div>
+                </>
+              )}
+
               <div>
                 <Label className="text-xs text-[#2d3d2b]/70">הערות</Label>
                 <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} className="mt-1 text-sm" />
@@ -392,8 +455,8 @@ function Booking() {
                     <Package className="h-4 w-4 text-[#6b8a63]" />
                   </div>
                   <div>
-                    <div className="font-display text-lg text-[#2d3d2b]">שריון אביזרים · חינם</div>
-                    <div className="text-[11px] text-[#2d3d2b]/60">עד 20 אביזרים כלולים בהשכרת הסטודיו</div>
+                    <div className="font-display text-lg text-[#2d3d2b]">שריון אביזרים · חינם (אופציונלי)</div>
+                    <div className="text-[11px] text-[#2d3d2b]/60">עד 20 אביזרים כלולים בהשכרת הסטודיו — אפשר גם לדלג</div>
                   </div>
                 </div>
                 <span className="text-xs text-[#6b8a63] font-medium">
@@ -478,11 +541,21 @@ function Booking() {
                 {date ? date.toLocaleDateString("he-IL", { day: "numeric", month: "long" }) : "לא נבחר תאריך"}
                 {startTime && ` · ${startTime}${endTimeStr ? `–${endTimeStr}` : ""}`}
               </div>
+              {morningActive && (
+                <div className="mb-2 text-[11px] text-[#f5d5cf]">חבילת ניו-בורן · 3 שעות</div>
+              )}
+              {guidanceFee > 0 && (
+                <div className="flex items-baseline justify-between text-[11px] text-[#f8ede4]/70 mb-1">
+                  <span>{GUIDANCE_LABELS[guidanceKey]}</span>
+                  <span>+₪{guidanceFee}</span>
+                </div>
+              )}
               <div className="flex items-baseline justify-between mb-3">
                 <span className="text-[#f8ede4]/70 text-xs">סה״כ</span>
                 <span className="font-display text-3xl text-[#f5d5cf]">₪{price}</span>
               </div>
               <div className="text-[10px] text-[#f8ede4]/55 mb-4">מתוכם 90₪ מקדמה לשריון</div>
+
               <Button
                 type="submit"
                 disabled={!canBook || busy}

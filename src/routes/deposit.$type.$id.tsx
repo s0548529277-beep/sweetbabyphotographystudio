@@ -84,6 +84,8 @@ function Deposit() {
           deposit_receipt_url: receiptPath,
           deposit_status: method === "cash" ? "cash_pending" : "submitted",
           balance_method: method,
+          // Full payment: the whole amount is now the paid deposit, nothing left over.
+          deposit_amount: total,
           balance_amount: 0,
         })
         .eq("id", id);
