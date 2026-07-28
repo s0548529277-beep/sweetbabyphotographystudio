@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Header } from "@/components/Header";
+import { usePageImages, PAGE_IMAGE_KEYS, type PageImage } from "@/lib/page-images";
+
 import { Camera, Sun, Trees, Sparkles, Clock, Phone, Mail, ExternalLink, ArrowLeft } from "lucide-react";
 
 export const Route = createFileRoute("/studio-photography")({
@@ -67,7 +69,11 @@ const OUTDOOR_PHOTOS = [
 function StudioPhotographyPage() {
   const [tab, setTab] = useState<"studio" | "outdoor">("studio");
   const [lightbox, setLightbox] = useState<string | null>(null);
-  const photos = tab === "studio" ? STUDIO_PHOTOS : OUTDOOR_PHOTOS;
+  const extraStudio = usePageImages(PAGE_IMAGE_KEYS.photographyStudio);
+  const extraOutdoor = usePageImages(PAGE_IMAGE_KEYS.photographyOutdoor);
+  const extra = ((tab === "studio" ? extraStudio.data : extraOutdoor.data) ?? []).map((i: PageImage) => i.url);
+  const photos = [...(tab === "studio" ? STUDIO_PHOTOS : OUTDOOR_PHOTOS), ...extra];
+
 
   const waMsg = tab === "studio"
     ? "היי מיכל, אשמח לתאם סשן צילומים בסטודיו 🌿"

@@ -455,6 +455,36 @@ export type Database = {
         }
         Relationships: []
       }
+      page_images: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          page: string
+          sort_order: number
+          storage_path: string | null
+          url: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          page: string
+          sort_order?: number
+          storage_path?: string | null
+          url: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          page?: string
+          sort_order?: number
+          storage_path?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null

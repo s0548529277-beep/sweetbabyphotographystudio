@@ -12,6 +12,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { InspirationStrip } from "@/components/InspirationStrip";
 import { studioInspiration } from "@/lib/inspiration";
+import { usePageImages, PAGE_IMAGE_KEYS, type PageImage } from "@/lib/page-images";
+
 
 export const Route = createFileRoute("/studio-rental")({
   head: () => ({
@@ -118,7 +120,9 @@ const quickFacts = [
 ];
 
 function StudioRentalPage() {
+  const extraStudioImages = usePageImages(PAGE_IMAGE_KEYS.studioRental);
   const [showForm, setShowForm] = useState(false);
+
   const [form, setForm] = useState<IntakeForm>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const nav = useNavigate();
@@ -426,7 +430,8 @@ function StudioRentalPage() {
 
       <section id="studio-inspiration" className="container-page pb-12 scroll-mt-24">
         <InspirationStrip
-          images={studioInspiration()}
+          images={[...studioInspiration(), ...(extraStudioImages.data ?? []).map((i: PageImage) => i.url)]}
+
           title="השראה מהסטודיו"
           subtitle="ככה החלל נראה בפועל — תוכלי לקבל את אותה אווירה בצילומים שלך."
         />
