@@ -482,8 +482,8 @@ function StudioRentalPage() {
               <Field label="אימייל *">
                 <input className={inputCls} dir="ltr" type="email" value={form.email} onChange={(e) => upd("email", e.target.value)} />
               </Field>
-              <Field label="סוג הצילום">
-                <select className={inputCls} value={form.sessionType} onChange={(e) => upd("sessionType", e.target.value)}>
+              <Field label="סוג הצילום *">
+                <select className={inputCls} value={form.sessionType} onChange={(e) => upd("sessionType", e.target.value)} required>
                   <option value="">בחרי…</option>
                   <option>ניו-בורן</option>
                   <option>משפחה</option>
@@ -505,11 +505,45 @@ function StudioRentalPage() {
                 </select>
               </Field>
 
+              <Field label="הדרכה וליווי בסטודיו" full>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {guidanceOptions.map((g) => {
+                    const active = form.guidance === g.key;
+                    return (
+                      <button
+                        type="button"
+                        key={g.key}
+                        onClick={() => upd("guidance", g.key)}
+                        className={`relative text-right rounded-2xl border p-3 transition ${
+                          active
+                            ? "border-[#6b8a63] bg-[#a8c4a2]/25 shadow-sm"
+                            : "border-[#2d3d2b]/15 bg-white/70 hover:border-[#6b8a63]/50"
+                        }`}
+                      >
+                        {"featured" in g && g.featured && (
+                          <span className="absolute -top-2 left-3 rounded-full bg-[#e8b4bc] px-2 py-0.5 text-[10px] font-semibold text-[#2d3d2b]">
+                            פופולרי
+                          </span>
+                        )}
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="text-xs font-bold tracking-wide">{g.tag}</span>
+                          <span className="text-xs font-semibold text-[#6b8a63]">
+                            {g.price === 0 ? "ללא עלות" : `+₪${g.price}`}
+                          </span>
+                        </div>
+                        <div className="mt-1 text-sm font-medium">{g.title}</div>
+                        <p className="mt-1 text-[11px] leading-relaxed text-[#2d3d2b]/70">{g.desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </Field>
 
               <Field label="בקשות מיוחדות / הערות" full>
                 <textarea className={inputCls} rows={3} value={form.specialRequests} onChange={(e) => upd("specialRequests", e.target.value)} />
               </Field>
             </div>
+
 
             <label className="mt-4 flex items-start gap-2.5 text-xs text-[#2d3d2b]/85 cursor-pointer leading-relaxed bg-[#a8c4a2]/20 border border-[#a8c4a2]/40 rounded-xl p-3">
               <input
