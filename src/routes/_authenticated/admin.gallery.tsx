@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Images, Loader2, Trash2, Upload, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { Images, Loader2, Trash2, Upload, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { builtinPageImages, fetchPageImages, PAGE_IMAGE_KEYS, type PageImage } from "@/lib/page-images";
+import { builtinEntries, fetchPageImages, PAGE_IMAGE_KEYS, rowUrl, type PageImage } from "@/lib/page-images";
 
 export const Route = createFileRoute("/_authenticated/admin/gallery")({
   component: AdminGalleryPage,
@@ -41,10 +41,33 @@ function AdminGalleryPage() {
   });
 
   const rows = images.data ?? [];
-  const managed = rows.some((r) => r.source === "builtin");
-  const builtins = builtinPageImages(page);
-  const pendingBuiltins = builtins.filter((url) => !rows.some((r) => r.url === url));
   const refresh = () => qc.invalidateQueries({ queryKey: ["page-images", page] });
+
+  // Bundled site photos are adopted into the gallery automatically, so every
+  // image on every page can be deleted / reordered from here.
+  useEffect(() => {
+    if (!images.data) return;
+    const adopted = new Set(images.data.filter((r) => r.source === "builtin").map((r) => r.storage_path ?? ""));
+    const pending = builtinEntries(page).filter((e) => !adopted.has(e.key));
+    if (pending.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      let sort = images.data!.length ? Math.min(...images.data!.map((r) => r.sort_order)) - pending.length : 0;
+      const payload = pending.map((e) => ({
+        page,
+        url: e.url,
+        storage_path: e.key,
+        source: "builtin",
+        caption: null,
+        sort_order: sort++,
+      }));
+      const { error } = await supabase.from("page_images").insert(payload);
+      if (!cancelled && !error) refresh();
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [images.data, page]);
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -76,36 +99,24 @@ function AdminGalleryPage() {
     refresh();
   };
 
-  /** Bring built-in page photos into the gallery so they can be reordered / removed. */
-  const importBuiltins = async () => {
-    setBusy(true);
-    try {
-      // Mark rows that already mirror a built-in photo.
-      const existing = rows.filter((r) => builtins.includes(r.url) && r.source !== "builtin");
-      for (const r of existing) {
-        await supabase.from("page_images").update({ source: "builtin" }).eq("id", r.id);
-      }
-      let sort = rows.length ? Math.min(...rows.map((r) => r.sort_order)) - pendingBuiltins.length : 0;
-      for (const url of pendingBuiltins) {
-        const { error } = await supabase
-          .from("page_images")
-          .insert({ page, url, source: "builtin", sort_order: sort++, caption: "תמונה מובנית" });
-        if (error) throw error;
-      }
-      toast.success("התמונות המובנות נוספו לגלריה וניתן לסדר או למחוק אותן");
-    } catch (e: any) {
-      toast.error(e.message ?? "שגיאה בייבוא התמונות");
+  const remove = async (img: PageImage) => {
+    if (!confirm("למחוק את התמונה מהעמוד?")) return;
+    if (img.source === "builtin") {
+      // Bundled asset — keep the record so it isn't re-adopted, just hide it.
+      const { error } = await supabase.from("page_images").update({ hidden: true }).eq("id", img.id);
+      if (error) return toast.error(error.message);
+    } else {
+      const { error } = await supabase.from("page_images").delete().eq("id", img.id);
+      if (error) return toast.error(error.message);
+      if (img.storage_path) await supabase.storage.from("items").remove([img.storage_path]);
     }
-    setBusy(false);
+    toast.success("התמונה הוסרה מהעמוד");
     refresh();
   };
 
-  const remove = async (img: PageImage) => {
-    if (!confirm("למחוק את התמונה?")) return;
-    const { error } = await supabase.from("page_images").delete().eq("id", img.id);
+  const restore = async (img: PageImage) => {
+    const { error } = await supabase.from("page_images").update({ hidden: false }).eq("id", img.id);
     if (error) return toast.error(error.message);
-    if (img.storage_path) await supabase.storage.from("items").remove([img.storage_path]);
-    toast.success("התמונה נמחקה");
     refresh();
   };
 
@@ -131,7 +142,7 @@ function AdminGalleryPage() {
             <Images className="h-5 w-5" /> גלריות באתר
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            העלאה, מחיקה ושינוי סדר של תמונות בדף השכרת הסטודיו ובדפי הצילומים. אפשר להעלות כמה תמונות בבת אחת.
+            כל התמונות בעמודים – כולל אלה שהיו מוטמעות באתר – ניתנות למחיקה ולשינוי סדר מכאן. אפשר להעלות כמה תמונות בבת אחת.
           </p>
         </div>
         <div>
@@ -171,59 +182,45 @@ function AdminGalleryPage() {
         ))}
       </div>
 
-      {!managed && builtins.length > 0 && (
-        <div className="rounded-2xl border border-primary/15 bg-cream/60 p-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="text-sm text-muted-foreground">
-            בעמוד זה מוצגות {builtins.length} תמונות מובנות. כדי למחוק אותן או לשנות את סדרן – יש להוסיף אותן לגלריה.
-          </div>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={importBuiltins}
-            className="inline-flex items-center gap-2 rounded-full bg-primary/10 text-primary px-4 h-10 text-sm disabled:opacity-60"
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            הוספת התמונות המובנות לגלריה
-          </button>
-        </div>
-      )}
-
-      {!managed && builtins.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {builtins.map((url) => (
-            <div key={url} className="relative aspect-square overflow-hidden rounded-2xl border border-primary/10 bg-cream">
-              <img src={url} alt="תמונה מובנית" loading="lazy" className="h-full w-full object-cover" />
-              <span className="absolute bottom-2 right-2 rounded-full bg-black/60 text-white text-[11px] px-2 py-0.5">
-                מובנית
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-
       {images.isLoading ? (
         <div className="text-sm text-muted-foreground">טוען...</div>
       ) : rows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-primary/20 p-10 text-center text-sm text-muted-foreground">
-          אין עדיין תמונות שהועלו לגלריה הזו. לחצי על "העלאת תמונות".
+          אין עדיין תמונות בגלריה הזו. לחצי על "העלאת תמונות".
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {rows.map((img, i) => (
-            <div key={img.id} className="group relative aspect-square overflow-hidden rounded-2xl border border-primary/10 bg-cream">
-              <img src={img.url} alt={img.caption ?? "תמונה"} loading="lazy" className="h-full w-full object-cover" />
+            <div
+              key={img.id}
+              className={`group relative aspect-square overflow-hidden rounded-2xl border border-primary/10 bg-cream ${
+                img.hidden ? "opacity-40" : ""
+              }`}
+            >
+              <img src={rowUrl(page, img)} alt={img.caption ?? "תמונה"} loading="lazy" className="h-full w-full object-cover" />
               <span className="absolute top-2 right-2 rounded-full bg-black/50 text-white text-[11px] px-2 py-0.5">
                 {i + 1}
-                {img.source === "builtin" ? " · מובנית" : ""}
+                {img.hidden ? " · מוסתרת" : ""}
               </span>
-              <button
-                type="button"
-                onClick={() => remove(img)}
-                className="absolute top-2 left-2 h-9 w-9 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                aria-label="מחיקת תמונה"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              {img.hidden ? (
+                <button
+                  type="button"
+                  onClick={() => restore(img)}
+                  className="absolute top-2 left-2 h-9 w-9 rounded-full bg-black/60 text-white flex items-center justify-center"
+                  aria-label="החזרת תמונה לעמוד"
+                >
+                  <Eye className="h-4 w-4" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => remove(img)}
+                  className="absolute top-2 left-2 h-9 w-9 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                  aria-label="מחיקת תמונה"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
               <div className="absolute bottom-2 left-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
                 <button
                   type="button"
