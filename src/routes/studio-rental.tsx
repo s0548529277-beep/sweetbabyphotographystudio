@@ -12,6 +12,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { InspirationStrip } from "@/components/InspirationStrip";
 import { studioInspiration } from "@/lib/inspiration";
+import { usePageImages, PAGE_IMAGE_KEYS, type PageImage } from "@/lib/page-images";
+
 
 export const Route = createFileRoute("/studio-rental")({
   head: () => ({
