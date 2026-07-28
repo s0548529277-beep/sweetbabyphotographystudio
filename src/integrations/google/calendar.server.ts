@@ -64,3 +64,55 @@ export async function deleteGoogleCalendarEvent(eventId: string): Promise<void> 
     console.error("[SWEETBABY] gcal delete error", res.status, await res.text().catch(() => ""));
   }
 }
+
+/**
+ * Reads the studio owner's real calendar for a date range and returns busy
+ * intervals per day (Asia/Jerusalem). Used by the chat assistant so it never
+ * says "free" for an hour that is blocked directly in Google Calendar.
+ */
+export async function listGoogleCalendarBusy(
+  fromDate: string,
+  toDate: string,
+): Promise<Record<string, Array<[number, number]>>> {
+  const calendarId = process.env.GOOGLE_CALENDAR_ID || "primary";
+  const timeMin = `${fromDate}T00:00:00+02:00`;
+  const timeMax = `${toDate}T23:59:59+02:00`;
+  const url =
+    `${GATEWAY_URL}/calendars/${encodeURIComponent(calendarId)}/events` +
+    `?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}` +
+    `&singleEvents=true&orderBy=startTime&maxResults=250`;
+
+  const res = await fetch(url, { headers: gatewayHeaders() });
+  if (!res.ok) throw new Error(`Google Calendar list failed: ${res.status}`);
+  const data = (await res.json()) as {
+    items?: Array<{
+      status?: string;
+      transparency?: string;
+      start?: { dateTime?: string; date?: string };
+      end?: { dateTime?: string; date?: string };
+    }>;
+  };
+
+  const out: Record<string, Array<[number, number]>> = {};
+  const push = (day: string, range: [number, number]) => {
+    (out[day] ??= []).push(range);
+  };
+
+  for (const ev of data.items ?? []) {
+    if (ev.status === "cancelled" || ev.transparency === "transparent") continue;
+    // All-day event → the whole day is blocked.
+    if (ev.start?.date) {
+      push(ev.start.date, [0, 24 * 60]);
+      continue;
+    }
+    const s = ev.start?.dateTime;
+    const e = ev.end?.dateTime;
+    if (!s || !e) continue;
+    const day = s.slice(0, 10);
+    const toMin = (iso: string) => Number(iso.slice(11, 13)) * 60 + Number(iso.slice(14, 16));
+    const startMin = toMin(s);
+    const endMin = e.slice(0, 10) === day ? toMin(e) : 24 * 60;
+    push(day, [startMin, Math.max(endMin, startMin + 30)]);
+  }
+  return out;
+}
