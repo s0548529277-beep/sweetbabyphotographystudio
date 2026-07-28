@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Camera, Package, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/orders")({
   component: OrdersAdmin,
 });
 
-const STATUS = [
+const ORDER_STATUS = [
   { v: "pending", l: "ממתין לאישור" },
   { v: "confirmed", l: "אושר" },
   { v: "active", l: "בהשכרה" },
@@ -20,38 +20,127 @@ const STATUS = [
   { v: "cancelled", l: "בוטל" },
 ];
 
+const BOOKING_STATUS = [
+  { v: "pending", l: "ממתין לאישור" },
+  { v: "confirmed", l: "אושר" },
+  { v: "completed", l: "התקיים" },
+  { v: "cancelled", l: "בוטל" },
+];
+
+type Row = {
+  id: string;
+  kind: "order" | "booking";
+  created_at: string;
+  name: string;
+  phone: string;
+  date: string | null;
+  time?: string | null;
+  total: number;
+  status: string;
+  raw: any;
+};
+
 function OrdersAdmin() {
   const qc = useQueryClient();
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [tab, setTab] = useState<"all" | "booking" | "order">("all");
 
-  const orders = useQuery({
-    queryKey: ["admin-orders"],
+  const q = useQuery({
+    queryKey: ["admin-all-orders"],
     refetchInterval: 15000,
     refetchOnWindowFocus: true,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*, order_items(*), profiles(full_name, phone)")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
+    queryFn: async (): Promise<Row[]> => {
+      const [ordersRes, bookingsRes] = await Promise.all([
+        supabase
+          .from("orders")
+          .select("*, order_items(*), profiles(full_name, phone)")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("bookings")
+          .select("*, profiles(full_name, phone)")
+          .order("created_at", { ascending: false }),
+      ]);
+      if (ordersRes.error) throw ordersRes.error;
+      if (bookingsRes.error) throw bookingsRes.error;
+
+      const orders: Row[] = (ordersRes.data ?? []).map((o: any) => ({
+        id: o.id,
+        kind: "order",
+        created_at: o.created_at,
+        name: o.contact_name || o.profiles?.full_name || "—",
+        phone: o.contact_phone || o.profiles?.phone || "—",
+        date: o.session_date ?? o.scheduled_date ?? null,
+        total: Number(o.total ?? 0),
+        status: o.status,
+        raw: o,
+      }));
+      const bookings: Row[] = (bookingsRes.data ?? []).map((b: any) => ({
+        id: b.id,
+        kind: "booking",
+        created_at: b.created_at,
+        name: b.contact_name || b.profiles?.full_name || "—",
+        phone: b.contact_phone || b.profiles?.phone || "—",
+        date: b.session_date,
+        time: b.start_time ? `${b.start_time}–${b.end_time}` : null,
+        total: Number(b.price ?? 0),
+        status: b.status,
+        raw: b,
+      }));
+      return [...bookings, ...orders].sort((a, b) => b.created_at.localeCompare(a.created_at));
     },
   });
 
-  const setStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from("orders").update({ status: status as any }).eq("id", id);
+  const rows = (q.data ?? []).filter((r) => tab === "all" || r.kind === tab);
+
+  const setStatus = async (row: Row, status: string) => {
+    const table = row.kind === "order" ? "orders" : "bookings";
+    const { error } = await supabase.from(table as any).update({ status } as any).eq("id", row.id);
     if (error) toast.error(error.message);
-    else { toast.success("סטטוס עודכן"); qc.invalidateQueries({ queryKey: ["admin-orders"] }); }
+    else {
+      toast.success("סטטוס עודכן");
+      qc.invalidateQueries({ queryKey: ["admin-all-orders"] });
+      qc.invalidateQueries({ queryKey: ["calendar-entries"] });
+    }
   };
+
+  const tabs = [
+    { v: "all" as const, l: "הכל", icon: null },
+    { v: "booking" as const, l: "השכרות סטודיו", icon: Camera },
+    { v: "order" as const, l: "הזמנות אביזרים", icon: Package },
+  ];
 
   return (
     <div className="space-y-4">
-      <div className="bg-card rounded-2xl border border-primary/5 overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-2">
+          {tabs.map((t) => {
+            const count = (q.data ?? []).filter((r) => t.v === "all" || r.kind === t.v).length;
+            return (
+              <Button
+                key={t.v}
+                size="sm"
+                variant={tab === t.v ? "default" : "outline"}
+                className="rounded-full gap-2"
+                onClick={() => setTab(t.v)}
+              >
+                {t.icon && <t.icon className="h-3.5 w-3.5" />} {t.l}
+                <span className="opacity-70">({count})</span>
+              </Button>
+            );
+          })}
+        </div>
+        <Button variant="ghost" size="sm" className="rounded-full gap-2" onClick={() => q.refetch()}>
+          <RefreshCw className={`h-3.5 w-3.5 ${q.isFetching ? "animate-spin" : ""}`} /> רענון
+        </Button>
+      </div>
+
+      <div className="bg-card rounded-2xl border border-primary/5 overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-cream/60 text-right">
             <tr>
               <th className="p-3" />
-              <th className="p-3 font-medium">תאריך</th>
+              <th className="p-3 font-medium">סוג</th>
+              <th className="p-3 font-medium">נוצר</th>
               <th className="p-3 font-medium">לקוח</th>
               <th className="p-3 font-medium">טלפון</th>
               <th className="p-3 font-medium">תאריך צילום</th>
@@ -60,58 +149,88 @@ function OrdersAdmin() {
             </tr>
           </thead>
           <tbody>
-            {(orders.data ?? []).map((o: any) => (
-              <>
-                <tr key={o.id} className="border-t border-border">
-                  <td className="p-2">
-                    <Button size="icon" variant="ghost" onClick={() => setExpanded(expanded === o.id ? null : o.id)}>
-                      {expanded === o.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                    </Button>
-                  </td>
-                  <td className="p-3 whitespace-nowrap">{new Date(o.created_at).toLocaleDateString("he-IL")}</td>
-                  <td className="p-3 font-medium">{o.contact_name || o.profiles?.full_name || "—"}</td>
-                  <td className="p-3" dir="ltr">{o.contact_phone || o.profiles?.phone || "—"}</td>
-                  <td className="p-3">{o.scheduled_date ? new Date(o.scheduled_date).toLocaleDateString("he-IL") : "—"}</td>
-                  <td className="p-3 font-display text-peach-deep">₪{Number(o.total).toFixed(0)}</td>
-                  <td className="p-3">
-                    <Select value={o.status} onValueChange={(v) => setStatus(o.id, v)}>
-                      <SelectTrigger className="h-8 w-40"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {STATUS.map((s) => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </td>
-                </tr>
-                {expanded === o.id && (
-                  <tr className="bg-cream/40">
-                    <td colSpan={7} className="p-4">
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                          <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">פריטים</div>
-                          <ul className="text-sm space-y-1">
-                            {o.order_items?.map((oi: any) => (
-                              <li key={oi.id} className="flex justify-between">
-                                <span>{oi.item_name} <span className="text-muted-foreground">({oi.item_sku})</span> × {oi.quantity}</span>
-                                <span>₪{(oi.price * oi.quantity).toFixed(0)}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                        <div>
-                          <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">פרטים</div>
-                          <div className="text-sm space-y-1">
-                            <div>החזרה: {o.return_date ? new Date(o.return_date).toLocaleDateString("he-IL") : "—"}</div>
-                            {o.notes && <div>הערות: {o.notes}</div>}
-                          </div>
-                        </div>
-                      </div>
+            {rows.map((r) => {
+              const o = r.raw;
+              const statusList = r.kind === "order" ? ORDER_STATUS : BOOKING_STATUS;
+              const key = `${r.kind}-${r.id}`;
+              return (
+                <>
+                  <tr key={key} className="border-t border-border">
+                    <td className="p-2">
+                      <Button size="icon" variant="ghost" onClick={() => setExpanded(expanded === key ? null : key)}>
+                        {expanded === key ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </Button>
+                    </td>
+                    <td className="p-3">
+                      <Badge variant="secondary" className="gap-1 text-[11px]">
+                        {r.kind === "booking" ? <Camera className="h-3 w-3" /> : <Package className="h-3 w-3" />}
+                        {r.kind === "booking" ? "סטודיו" : "אביזרים"}
+                      </Badge>
+                    </td>
+                    <td className="p-3 whitespace-nowrap">{new Date(r.created_at).toLocaleDateString("he-IL")}</td>
+                    <td className="p-3 font-medium">{r.name}</td>
+                    <td className="p-3" dir="ltr">{r.phone}</td>
+                    <td className="p-3 whitespace-nowrap">
+                      {r.date ? new Date(r.date).toLocaleDateString("he-IL") : "—"}
+                      {r.time && <span className="text-muted-foreground text-xs block" dir="ltr">{r.time}</span>}
+                    </td>
+                    <td className="p-3 font-display text-peach-deep">₪{r.total.toFixed(0)}</td>
+                    <td className="p-3">
+                      <Select value={r.status} onValueChange={(v) => setStatus(r, v)}>
+                        <SelectTrigger className="h-8 w-40"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {statusList.map((s) => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </td>
                   </tr>
-                )}
-              </>
-            ))}
-            {(orders.data?.length ?? 0) === 0 && (
-              <tr><td colSpan={7} className="p-16 text-center text-muted-foreground">אין הזמנות עדיין.</td></tr>
+                  {expanded === key && (
+                    <tr className="bg-cream/40">
+                      <td colSpan={8} className="p-4">
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                            <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">פריטים</div>
+                            <ul className="text-sm space-y-1">
+                              {r.kind === "order"
+                                ? (o.order_items ?? []).map((oi: any) => (
+                                    <li key={oi.id} className="flex justify-between">
+                                      <span>{oi.item_name} <span className="text-muted-foreground">({oi.item_sku})</span> × {oi.quantity}</span>
+                                      <span>₪{(oi.price * oi.quantity).toFixed(0)}</span>
+                                    </li>
+                                  ))
+                                : (Array.isArray(o.reserved_items) ? o.reserved_items : []).map((ri: any, i: number) => (
+                                    <li key={i}>{ri?.name ?? ri?.sku ?? String(ri)}</li>
+                                  ))}
+                              {((r.kind === "order" && !(o.order_items ?? []).length) ||
+                                (r.kind === "booking" && !(Array.isArray(o.reserved_items) ? o.reserved_items : []).length)) && (
+                                <li className="text-muted-foreground">אין אביזרים משוריינים</li>
+                              )}
+                            </ul>
+                          </div>
+                          <div>
+                            <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">פרטים</div>
+                            <div className="text-sm space-y-1">
+                              {r.kind === "order" ? (
+                                <div>החזרה: {o.return_date ? new Date(o.return_date).toLocaleDateString("he-IL") : "—"}</div>
+                              ) : (
+                                <>
+                                  <div>חבילה: {o.package ?? "—"}</div>
+                                  <div>שעות: <span dir="ltr">{o.start_time}–{o.end_time}</span></div>
+                                </>
+                              )}
+                              <div>מקדמה: ₪{Number(o.deposit_amount ?? 0).toFixed(0)} ({o.deposit_status ?? "—"})</div>
+                              {o.notes && <div>הערות: {o.notes}</div>}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
+              );
+            })}
+            {rows.length === 0 && (
+              <tr><td colSpan={8} className="p-16 text-center text-muted-foreground">אין הזמנות עדיין.</td></tr>
             )}
           </tbody>
         </table>
