@@ -431,7 +431,7 @@ function Booking() {
                   </div>
                   <div>
                     <div className="font-display text-lg text-[#2d3d2b]">שריון אביזרים · חינם (אופציונלי)</div>
-                    <div className="text-[11px] text-[#2d3d2b]/60">עד 20 אביזרים כלולים בהשכרת הסטודיו — אפשר גם לדלג</div>
+                    <div className="text-[11px] text-[#2d3d2b]/60">עד 20 אביזרים שריון כלולים בהשכרת הסטודיו — אפשר גם לדלג</div>
                   </div>
                 </div>
                 <span className="text-xs text-[#6b8a63] font-medium">

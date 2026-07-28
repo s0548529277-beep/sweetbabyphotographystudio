@@ -396,7 +396,7 @@ function StudioRentalPage() {
               <div className="text-[11px] tracking-[0.28em] uppercase text-[#a8c4a2] mb-1">Add-on · חינם</div>
               <h4 className="text-xl" style={{ fontFamily: "'DM Serif Display', serif" }}>צריכה גם אביזרים?</h4>
               <p className="text-sm text-[#f8ede4]/85 mt-1 leading-relaxed">
-                <strong className="text-[#f5d5cf]">עד 20 אביזרים חינם</strong> לשעות ההשכרה בסטודיו — ללא תוספת תשלום.
+                <strong className="text-[#f5d5cf]">עד 20 אביזרים שריון חינם</strong> לשעות ההשכרה בסטודיו — ללא תוספת תשלום.
                 אנו מתחייבים שכ-80% מהקטלוג יהיה בהישג יד בזמן הצילום (בכפוף לזמינות).
               </p>
               <p className="text-[11px] text-[#f8ede4]/60 mt-2">
