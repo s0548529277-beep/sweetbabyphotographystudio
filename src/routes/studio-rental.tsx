@@ -118,7 +118,9 @@ const quickFacts = [
 ];
 
 function StudioRentalPage() {
+  const extraStudioImages = usePageImages(PAGE_IMAGE_KEYS.studioRental);
   const [showForm, setShowForm] = useState(false);
+
   const [form, setForm] = useState<IntakeForm>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const nav = useNavigate();
