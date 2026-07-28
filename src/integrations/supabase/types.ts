@@ -389,6 +389,39 @@ export type Database = {
         }
         Relationships: []
       }
+      manual_income: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          id: string
+          notes: string | null
+          received_on: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          received_on?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          received_on?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string
@@ -525,6 +558,7 @@ export type Database = {
         Row: {
           caption: string | null
           created_at: string
+          hidden: boolean
           id: string
           page: string
           sort_order: number
@@ -535,6 +569,7 @@ export type Database = {
         Insert: {
           caption?: string | null
           created_at?: string
+          hidden?: boolean
           id?: string
           page: string
           sort_order?: number
@@ -545,6 +580,7 @@ export type Database = {
         Update: {
           caption?: string | null
           created_at?: string
+          hidden?: boolean
           id?: string
           page?: string
           sort_order?: number
