@@ -7,14 +7,21 @@ import { z } from "zod";
 // - First hour (2 slots): 120₪
 // - Every extra hour (2 slots): 90₪
 // - Half-hour = half of that rate
-// - Morning package: date 08:00→11:00 (3 hours = 6 slots) → 240₪ flat
+// - Newborn morning package: 3 hours (6 slots) starting 08:00 / 09:00 / 10:00
+//   and ending by 13:00 → 240₪ flat
+export const MORNING_PACKAGE_STARTS = ["08:00", "09:00", "10:00"] as const;
+export const MORNING_PACKAGE_PRICE = 240;
+
+export function isMorningPackage(slots: number, startTime: string): boolean {
+  if (slots !== 6) return false;
+  if (!MORNING_PACKAGE_STARTS.includes(startTime.slice(0, 5) as (typeof MORNING_PACKAGE_STARTS)[number])) return false;
+  const [h, m] = startTime.split(":").map(Number);
+  return h * 60 + m + 180 <= 13 * 60;
+}
+
 export function computeStudioPrice(slots: number, startTime: string): number {
   if (slots < 2) throw new Error("מינימום שעה (2 חצאי שעות)");
-  // Morning package: starts 08:00 and exactly 6 slots (3 hours), ends by 13:00
-  const [h, m] = startTime.split(":").map(Number);
-  const startMinutes = h * 60 + m;
-  const endMinutes = startMinutes + slots * 30;
-  if (slots === 6 && startMinutes === 8 * 60 && endMinutes <= 13 * 60) return 240;
+  if (isMorningPackage(slots, startTime)) return MORNING_PACKAGE_PRICE;
 
   // Standard: 60₪ per first-hour slot (slots 1-2), 45₪ per extra slot
   const firstHourSlots = Math.min(slots, 2);
@@ -30,6 +37,7 @@ const inputSchema = z.object({
   contact_phone: z.string().min(5).max(40),
   notes: z.string().max(1000).optional().nullable(),
   reserved_items: z.array(z.string().min(1).max(24)).max(20).optional(),
+  guidance: z.string().max(60).optional().nullable(),
   terms_accepted: z.literal(true),
 });
 
