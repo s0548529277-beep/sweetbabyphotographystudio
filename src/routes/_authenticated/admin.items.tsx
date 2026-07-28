@@ -208,16 +208,12 @@ function ItemsAdmin() {
     let ok = 0;
     for (const file of bulkFiles) {
       try {
-        const ext = file.name.split(".").pop();
-        const path = `${crypto.randomUUID()}.${ext}`;
-        const up = await supabase.storage.from("items").upload(path, file, { upsert: false });
-        if (up.error) throw up.error;
-        const { data: pub } = supabase.storage.from("items").getPublicUrl(path);
+        const url = await uploadToStorage(file);
         const sku = nextSkuFor(prefix, existing);
         existing.push(sku);
         const name = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim() || sku;
         const { error } = await supabase.from("items").insert({
-          sku, name, price: bulkPrice, image_url: pub.publicUrl, category_id: bulkCat, active: true,
+          sku, name, price: bulkPrice, image_url: url, category_id: bulkCat, active: true,
         });
         if (error) throw error;
         ok++;
