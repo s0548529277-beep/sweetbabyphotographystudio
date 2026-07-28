@@ -290,9 +290,45 @@ function Booking() {
                 </div>
               )}
             </div>
-            <p className="text-xs text-[#2d3d2b]/55 mb-5">
-              מינימום שעה (2 חצאי שעות). חבילת בוקר 08:00–11:00 · 240₪.
+            <p className="text-xs text-[#2d3d2b]/55 mb-4">
+              מינימום שעה (2 חצאי שעות).
+              {isNewborn
+                ? ` חבילת ניו-בורן — 3 שעות ב-₪${MORNING_PACKAGE_PRICE}, בחלונות 08:00, 09:00 או 10:00 (עד 13:00).`
+                : ` חבילת בוקר ניו-בורן 3 שעות · ₪${MORNING_PACKAGE_PRICE} — זמינה למי שבחרה "ניו-בורן" בשאלון.`}
             </p>
+
+            {date && isNewborn && (
+              <div className="mb-5 rounded-2xl border border-[#e8b4bc] bg-[#e8b4bc]/15 p-4">
+                <div className="text-[10px] tracking-[0.28em] uppercase text-[#6b8a63] mb-2">
+                  חבילת ניו-בורן · 3 שעות · ₪{MORNING_PACKAGE_PRICE}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {MORNING_PACKAGE_STARTS.map((s) => {
+                    const taken = overlaps(s, 6, existing) || !daySlots.includes(s);
+                    const active = startTime === s && slots === 6;
+                    const [hh] = s.split(":").map(Number);
+                    return (
+                      <button
+                        type="button"
+                        key={s}
+                        disabled={taken}
+                        onClick={() => { setStartTime(s); setSlots(6); }}
+                        className={`h-9 px-4 rounded-full text-xs font-medium border transition-all ${
+                          taken
+                            ? "opacity-30 line-through cursor-not-allowed border-[#2d3d2b]/10"
+                            : active
+                            ? "bg-[#2d3d2b] text-[#f8ede4] border-[#2d3d2b] shadow-md"
+                            : "bg-white border-[#e8b4bc] text-[#2d3d2b] hover:bg-[#e8b4bc]/30"
+                        }`}
+                      >
+                        {s}–{String(hh + 3).padStart(2, "0")}:00
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
 
             {!date && (
               <div className="text-[#2d3d2b]/50 text-sm py-16 text-center border-2 border-dashed border-[#2d3d2b]/10 rounded-xl">
