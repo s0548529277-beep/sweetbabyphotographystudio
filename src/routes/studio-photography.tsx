@@ -1,7 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Header } from "@/components/Header";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import { useAuth } from "@/lib/auth";
+import { useProfilePrefill } from "@/hooks/use-profile";
+import { requestPhotographySession, PHOTOGRAPHY_HOURLY_RATE } from "@/lib/photography.functions";
 import {
   usePageGallery,
   PAGE_IMAGE_KEYS,
@@ -9,7 +14,7 @@ import {
   BUILTIN_PHOTOGRAPHY_OUTDOOR,
 } from "@/lib/page-images";
 
-import { Camera, Sun, Trees, Sparkles, Clock, Phone, Mail, ExternalLink, ArrowLeft } from "lucide-react";
+import { Camera, Sun, Trees, Sparkles, Clock, Phone, Mail, ExternalLink, ArrowLeft, CalendarDays } from "lucide-react";
 
 export const Route = createFileRoute("/studio-photography")({
   head: () => ({
@@ -56,7 +61,60 @@ function StudioPhotographyPage() {
   // Built-ins + admin-managed photos, respecting deletions/order made in the admin gallery.
   const photos = tab === "studio" ? studioGallery.images : outdoorGallery.images;
 
+  // --- Booking a session with Michal straight into the studio calendar ---
+  const nav = useNavigate();
+  const { user } = useAuth();
+  const profile = useProfilePrefill();
+  const bookSession = useServerFn(requestPhotographySession);
+  const [sending, setSending] = useState(false);
+  const [book, setBook] = useState({
+    name: "",
+    phone: "",
+    date: "",
+    time: "10:00",
+    hours: "1",
+    sessionType: "ניו-בורן",
+    notes: "",
+  });
+  useEffect(() => {
+    if (!profile.loaded) return;
+    setBook((b) => ({ ...b, name: b.name || profile.fullName, phone: b.phone || profile.phone }));
+  }, [profile.loaded, profile.fullName, profile.phone]);
 
+  const bookPrice = Math.round(PHOTOGRAPHY_HOURLY_RATE * Number(book.hours || 0));
+
+  const submitBooking = async () => {
+    if (!book.name.trim() || !book.phone.trim() || !book.date) {
+      toast.error("נא למלא שם, טלפון ותאריך.");
+      return;
+    }
+    if (!user) {
+      toast.error("יש להתחבר כדי לקבוע מועד ביומן.");
+      nav({ to: "/auth" });
+      return;
+    }
+    setSending(true);
+    try {
+      await bookSession({
+        data: {
+          session_date: book.date,
+          start_time: book.time,
+          hours: Number(book.hours),
+          contact_name: book.name.trim(),
+          contact_phone: book.phone.trim(),
+          session_type: book.sessionType,
+          location: tab,
+          notes: book.notes || null,
+        },
+      });
+      toast.success("הבקשה נקלטה ביומן הסטודיו ✓ המועד ייקבע סופית לאחר תיאום עם הצלמת.");
+      setBook((b) => ({ ...b, notes: "" }));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "קביעת המועד נכשלה");
+    } finally {
+      setSending(false);
+    }
+  };
 
   const sessionMsg = tab === "studio"
     ? "היי מיכל, אשמח לתאם סשן צילומים בסטודיו 🌿"
@@ -65,6 +123,9 @@ function StudioPhotographyPage() {
     `https://mail.google.com/mail/?view=cm&fs=1&to=${EMAIL}` +
     `&su=${encodeURIComponent("תיאום סשן צילום")}&body=${encodeURIComponent(sessionMsg)}`;
   const telLink = `tel:${PHONE}`;
+  const bookInputCls =
+    "w-full rounded-xl bg-white border border-[#2d4a2b]/15 px-3.5 py-2.5 text-sm outline-none focus:border-[#5b7a52] transition-colors";
+
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f8ede4] text-[#2d3b2a]" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
@@ -188,6 +249,77 @@ function StudioPhotographyPage() {
             ))}
           </motion.div>
         </AnimatePresence>
+      </section>
+
+      {/* Book a session into the studio calendar */}
+      <section id="book-michal" className="max-w-4xl mx-auto px-6 pb-14 scroll-mt-24">
+        <div className="bg-white/85 backdrop-blur rounded-3xl border border-[#a8bfa1]/30 p-6 md:p-8 shadow-sm">
+          <div className="flex items-center gap-2 text-[#5b7a52] text-xs tracking-[0.28em] uppercase mb-2">
+            <CalendarDays size={14} /> Booking
+          </div>
+          <h2 className="text-2xl md:text-3xl mb-2" style={{ fontFamily: "'DM Serif Display', serif" }}>
+            קביעת צילומים עם מיכל ביומן הסטודיו
+          </h2>
+          <p className="text-sm text-[#4a5d43]/85 mb-5 leading-relaxed">
+            בוחרים תאריך, שעה ומשך הסשן — המועד נשמר ביומן הסטודיו.{" "}
+            <strong>המועד מאושר סופית לאחר תיאום עם הצלמת.</strong> תעריף: {PHOTOGRAPHY_HOURLY_RATE} ₪ לשעה.
+          </p>
+
+          <div className="grid sm:grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[#4a5d43]/80">שם מלא *</span>
+              <input className={bookInputCls} value={book.name} onChange={(e) => setBook({ ...book, name: e.target.value })} />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[#4a5d43]/80">טלפון *</span>
+              <input className={bookInputCls} dir="ltr" type="tel" value={book.phone} onChange={(e) => setBook({ ...book, phone: e.target.value })} />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[#4a5d43]/80">תאריך *</span>
+              <input className={bookInputCls} type="date" value={book.date} onChange={(e) => setBook({ ...book, date: e.target.value })} />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[#4a5d43]/80">שעת התחלה *</span>
+              <input className={bookInputCls} type="time" step={1800} value={book.time} onChange={(e) => setBook({ ...book, time: e.target.value })} />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[#4a5d43]/80">משך הסשן</span>
+              <select className={bookInputCls} value={book.hours} onChange={(e) => setBook({ ...book, hours: e.target.value })}>
+                {["0.5", "1", "1.5", "2", "3"].map((h) => (
+                  <option key={h} value={h}>
+                    {h} שעות · ₪{Math.round(PHOTOGRAPHY_HOURLY_RATE * Number(h))}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[#4a5d43]/80">סוג צילום</span>
+              <select className={bookInputCls} value={book.sessionType} onChange={(e) => setBook({ ...book, sessionType: e.target.value })}>
+                {["ניו-בורן", "משפחה", "הריון", "ילדים", "סמאש קייק", "אירוע", "אחר"].map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1.5 sm:col-span-2">
+              <span className="text-xs font-semibold text-[#4a5d43]/80">הערות</span>
+              <textarea className={bookInputCls} rows={2} value={book.notes} onChange={(e) => setBook({ ...book, notes: e.target.value })} />
+            </label>
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center gap-4">
+            <button
+              type="button"
+              onClick={submitBooking}
+              disabled={sending}
+              className="inline-flex items-center gap-2 bg-[#2d4a2b] text-white px-7 py-3.5 rounded-full hover:bg-[#3d5a3b] transition disabled:opacity-50"
+            >
+              <CalendarDays size={18} /> {sending ? "שולח…" : "קביעת מועד ביומן"}
+            </button>
+            <span className="text-sm text-[#4a5d43]/80">
+              עלות משוערת: <strong>₪{bookPrice}</strong> · לאחר תיאום עם הצלמת
+            </span>
+          </div>
+        </div>
       </section>
 
       {/* Gallery */}
