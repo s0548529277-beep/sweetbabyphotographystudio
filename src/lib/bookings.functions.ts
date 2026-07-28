@@ -109,7 +109,7 @@ export const placeBooking = createServerFn({ method: "POST" })
           guidanceFee > 0 ? `חבילת הדרכה: ${GUIDANCE_LABELS[guidanceKey]} (+₪${guidanceFee})` : null,
           data.notes,
         ].filter(Boolean).join("\n") || null,
-        reserved_items: data.reserved_items && data.reserved_items.length > 0 ? data.reserved_items : null,
+        reserved_items: data.reserved_items ?? [],
         terms_accepted_at: new Date().toISOString(),
       })
       .select("id, price")
