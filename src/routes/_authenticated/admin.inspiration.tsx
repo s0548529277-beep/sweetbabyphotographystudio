@@ -15,11 +15,7 @@ export const Route = createFileRoute("/_authenticated/admin/inspiration")({
 
 type CatalogItem = { sku: string; name?: string; img?: string; hasHand?: boolean };
 
-const ITEMS: CatalogItem[] = (
-  Array.isArray(catalog)
-    ? (catalog as any[])
-    : ((catalog as any).categories ?? []).flatMap((c: any) => c.items ?? [])
-) as CatalogItem[];
+const ITEMS: CatalogItem[] = (catalog as { items?: CatalogItem[] }[]).flatMap((c) => c.items ?? []);
 
 const POOL = michalPhotos as { url: string; title: string }[];
 
