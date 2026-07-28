@@ -52,8 +52,11 @@ export const placeBooking = createServerFn({ method: "POST" })
     const endMin = h * 60 + m + data.slots * 30;
     const endTime = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
 
-    const price = computeStudioPrice(data.slots, data.start_time);
-    const isMorning = data.slots === 6 && data.start_time === "08:00";
+    const basePrice = computeStudioPrice(data.slots, data.start_time);
+    const guidanceKey = (data.guidance ?? "basic") as keyof typeof GUIDANCE_FEES;
+    const guidanceFee = GUIDANCE_FEES[guidanceKey] ?? 0;
+    const price = basePrice + guidanceFee;
+    const isMorning = isMorningPackage(data.slots, data.start_time);
 
     // Overlap check
     const { data: existing, error: exErr } = await supabase
