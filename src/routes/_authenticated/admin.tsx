@@ -21,6 +21,7 @@ const links = [
   { to: "/admin/orders", label: "הזמנות", icon: ShoppingBag },
   { to: "/admin/calendar", label: "יומן", icon: CalendarDays },
   { to: "/admin/clients", label: "לקוחות", icon: Users },
+  { to: "/admin/finance", label: "הכנסות והוצאות", icon: Wallet },
   { to: "/admin/gallery", label: "גלריות", icon: Images },
   { to: "/admin/inspiration", label: "השראה למק״ט", icon: Camera },
 ];
