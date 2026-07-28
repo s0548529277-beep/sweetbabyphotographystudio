@@ -143,16 +143,46 @@ function ItemsAdmin() {
     else { qc.invalidateQueries({ queryKey: ["admin-items"] }); qc.invalidateQueries({ queryKey: ["items"] }); }
   };
 
-  const uploadImage = async (file: File) => {
-    setUploading(true);
+  // Uploads to the private "items" bucket and returns a long-lived signed URL.
+  const uploadToStorage = async (file: File) => {
     const ext = file.name.split(".").pop();
     const path = `${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage.from("items").upload(path, file, { upsert: false });
-    if (error) { toast.error(error.message); setUploading(false); return; }
-    const { data } = supabase.storage.from("items").getPublicUrl(path);
-    setForm((f) => ({ ...f, image_url: data.publicUrl }));
+    if (error) throw error;
+    const { data, error: signErr } = await supabase.storage
+      .from("items")
+      .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+    if (signErr || !data?.signedUrl) throw signErr ?? new Error("שגיאה ביצירת קישור לתמונה");
+    return data.signedUrl;
+  };
+
+  const uploadImage = async (file: File) => {
+    setUploading(true);
+    try {
+      const url = await uploadToStorage(file);
+      setForm((f) => ({ ...f, image_url: url }));
+    } catch (e: any) {
+      toast.error(e.message ?? "שגיאה בהעלאה");
+    }
     setUploading(false);
   };
+
+  // Quick per-row image upload straight from the table
+  const uploadRowImage = async (itemId: string, file: File) => {
+    setRowUploading(itemId);
+    try {
+      const url = await uploadToStorage(file);
+      const { error } = await supabase.from("items").update({ image_url: url }).eq("id", itemId);
+      if (error) throw error;
+      toast.success("התמונה עודכנה");
+      qc.invalidateQueries({ queryKey: ["admin-items"] });
+      qc.invalidateQueries({ queryKey: ["items"] });
+    } catch (e: any) {
+      toast.error(e.message ?? "שגיאה בהעלאה");
+    }
+    setRowUploading(null);
+  };
+
 
   const createCategory = async () => {
     const name = newCatName.trim();
