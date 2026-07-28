@@ -127,11 +127,29 @@ function AdminGalleryPage() {
         ))}
       </div>
 
+      {builtinPageImages(page).length > 0 && (
+        <div className="space-y-3">
+          <div className="text-sm text-muted-foreground">
+            תמונות שכבר מוטמעות בעמוד (מובנות באתר – לא ניתן למחוק, אבל הן מוצגות בגלריה):
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {builtinPageImages(page).map((url) => (
+              <div key={url} className="relative aspect-square overflow-hidden rounded-2xl border border-primary/10 bg-cream">
+                <img src={url} alt="תמונה מובנית" loading="lazy" className="h-full w-full object-cover" />
+                <span className="absolute bottom-2 right-2 rounded-full bg-black/60 text-white text-[11px] px-2 py-0.5">
+                  מובנית
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {images.isLoading ? (
         <div className="text-sm text-muted-foreground">טוען...</div>
       ) : (images.data?.length ?? 0) === 0 ? (
         <div className="rounded-2xl border border-dashed border-primary/20 p-10 text-center text-sm text-muted-foreground">
-          אין עדיין תמונות בגלריה הזו. לחצי על "העלאת תמונות".
+          אין עדיין תמונות שהועלו לגלריה הזו. לחצי על "העלאת תמונות".
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
