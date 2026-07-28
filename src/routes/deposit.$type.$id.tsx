@@ -60,6 +60,9 @@ function Deposit() {
   }, [type, id]);
 
   const total = record?.price ?? record?.total ?? 0;
+  // Studio rentals only require a ₪90 deposit up front; the rest is paid at the studio.
+  const payNow = isStudio ? Math.min(90, total) : total;
+  const balanceLeft = Math.max(0, total - payNow);
   const needsReceipt = method !== "cash";
 
   const submit = async () => {
@@ -84,9 +87,8 @@ function Deposit() {
           deposit_receipt_url: receiptPath,
           deposit_status: method === "cash" ? "cash_pending" : "submitted",
           balance_method: method,
-          // Full payment: the whole amount is now the paid deposit, nothing left over.
-          deposit_amount: total,
-          balance_amount: 0,
+          deposit_amount: payNow,
+          balance_amount: balanceLeft,
         })
         .eq("id", id);
       if (updErr) throw updErr;
@@ -112,7 +114,11 @@ function Deposit() {
           <h1 className="font-display text-5xl text-primary mb-3">סיום תשלום</h1>
           <p className="text-muted-foreground max-w-2xl mb-10">
             
-            לסיום ההזמנה יש להעביר תשלום מלא של <span className="text-primary font-semibold">{total}₪</span>.{" "}
+            {isStudio ? (
+              <>לשריון התאריך יש להעביר מקדמה של <span className="text-primary font-semibold">{payNow}₪</span> בלבד (היתרה {balanceLeft}₪ ביום הצילום).{" "}</>
+            ) : (
+              <>לסיום ההזמנה יש להעביר תשלום מלא של <span className="text-primary font-semibold">{total}₪</span>.{" "}</>
+            )}
             {isStudio
               ? "התשלום מתבצע בהעברה בנקאית או ב-Bit/PayBox עם צירוף אסמכתא."
               : "אפשר לשלם במזומן ביום האיסוף (ללא צורך באסמכתא) או בהעברה בנקאית / Bit עם צירוף אסמכתא."}
@@ -163,7 +169,7 @@ function Deposit() {
                       <Wallet className="h-4 w-4 text-blush-deep" /> תשלום במזומן ביום האיסוף
                     </div>
                     <p className="text-muted-foreground">
-                      אין צורך באסמכתא — פשוט אישרי את ההזמנה ונחכה לך עם הסכום ({total}₪) ביום האיסוף.
+                      אין צורך באסמכתא — פשוט אישרי את ההזמנה ונחכה לך עם הסכום ({payNow}₪) ביום האיסוף.
                     </p>
                   </div>
                 ) : (
@@ -176,8 +182,11 @@ function Deposit() {
                 )}
 
                 <div className="mt-2 p-4 rounded-2xl bg-primary text-primary-foreground text-center">
-                  <div className="text-blush text-xs tracking-[0.3em] uppercase mb-1">סכום לתשלום</div>
-                  <div className="font-display text-5xl text-blush">₪{total}</div>
+                  <div className="text-blush text-xs tracking-[0.3em] uppercase mb-1">{isStudio ? "מקדמה לתשלום עכשיו" : "סכום לתשלום"}</div>
+                  <div className="font-display text-5xl text-blush">₪{payNow}</div>
+                  {isStudio && balanceLeft > 0 && (
+                    <div className="text-blush/80 text-xs mt-2">יתרה ₪{balanceLeft} תשולם ביום הצילום</div>
+                  )}
                 </div>
               </div>
 
