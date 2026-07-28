@@ -45,40 +45,17 @@ const PHONE = "0548529277";
 const EMAIL = "s0548529277@gmail.com";
 const MICHAL_SITE = "https://michalsiboni.co.il/";
 
-const STUDIO_PHOTOS = [
-  "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04166_optimized-1-scaled.jpg",
-  "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04088_optimized-1-scaled.jpg",
-  "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc03989_optimized-1-scaled.jpg",
-  "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04141_optimized-1-scaled.jpg",
-  "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04290_optimized-scaled.jpg",
-  "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04418_optimized-1-scaled.jpg",
-  "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc07818_optimized-1-scaled.jpg",
-  "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc08152_optimized-scaled.jpg",
-  "https://michalsiboni.co.il/wp-content/uploads/2025/08/dsc04298_optimized-scaled.jpg",
-  "https://michalsiboni.co.il/wp-content/uploads/2025/08/dsc04579_optimized-scaled.jpg",
-];
-
-const OUTDOOR_PHOTOS = [
-  "https://michalsiboni.co.il/wp-content/uploads/2025/05/777-scaled.jpg",
-  "https://michalsiboni.co.il/wp-content/uploads/2025/05/DSC01673-scaled.jpg",
-  "https://michalsiboni.co.il/wp-content/uploads/2025/05/DSC04181-scaled.jpg",
-  "https://michalsiboni.co.il/wp-content/uploads/2025/05/DSC08770-scaled.jpg",
-  "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc01210_optimized-scaled.jpg",
-  "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc01367_optimized-scaled.jpg",
-  "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc01467_optimized-scaled.jpg",
-  "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc01597_optimized-scaled.jpg",
-  "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc01673_optimized-scaled.jpg",
-  "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc02946_optimized-scaled.jpg",
-];
+const STUDIO_PHOTOS = BUILTIN_PHOTOGRAPHY_STUDIO;
+const OUTDOOR_PHOTOS = BUILTIN_PHOTOGRAPHY_OUTDOOR;
 
 function StudioPhotographyPage() {
   const [tab, setTab] = useState<"studio" | "outdoor">("studio");
   const [lightbox, setLightbox] = useState<string | null>(null);
-  const extraStudio = usePageImages(PAGE_IMAGE_KEYS.photographyStudio);
-  const extraOutdoor = usePageImages(PAGE_IMAGE_KEYS.photographyOutdoor);
-  const extra = ((tab === "studio" ? extraStudio.data : extraOutdoor.data) ?? []).map((i: PageImage) => i.url);
-  // Built-in page photos are also seeded into the gallery table, so de-dupe by URL.
-  const photos = Array.from(new Set([...(tab === "studio" ? STUDIO_PHOTOS : OUTDOOR_PHOTOS), ...extra]));
+  const studioGallery = usePageGallery(PAGE_IMAGE_KEYS.photographyStudio);
+  const outdoorGallery = usePageGallery(PAGE_IMAGE_KEYS.photographyOutdoor);
+  // Built-ins + admin-managed photos, respecting deletions/order made in the admin gallery.
+  const photos = tab === "studio" ? studioGallery.images : outdoorGallery.images;
+
 
 
   const sessionMsg = tab === "studio"
