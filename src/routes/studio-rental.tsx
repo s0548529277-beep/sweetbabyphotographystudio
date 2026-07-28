@@ -264,6 +264,9 @@ function StudioRentalPage() {
                 <span className="text-xs text-[#2d3d2b]/60">/ שעה ראשונה</span>
               </div>
               <p className="mt-2 text-[12px] text-[#2d3d2b]/75">כל שעה נוספת 90 ₪ · חצאי שעות בחישוב יחסי · מינימום שעה</p>
+              <button type="button" onClick={() => setShowForm(true)} className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#2d3d2b] text-[#f8ede4] px-4 py-2 text-xs font-semibold">
+                בחירת חבילה זו <ArrowLeft className="h-3.5 w-3.5" />
+              </button>
             </div>
           </motion.div>
 
@@ -283,6 +286,9 @@ function StudioRentalPage() {
                 <span className="text-xs text-[#2d3d2b]/70">/ 3 שעות (8:00–13:00)</span>
               </div>
               <p className="mt-2 text-[12px] text-[#2d3d2b]/80">3 שעות רצופות · חיסכון משמעותי מול תעריף שעתי</p>
+              <button type="button" onClick={() => { upd("sessionType", "ניו-בורן"); setShowForm(true); }} className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#2d3d2b] text-[#f8ede4] px-4 py-2 text-xs font-semibold">
+                בחירת חבילה זו <ArrowLeft className="h-3.5 w-3.5" />
+              </button>
             </div>
           </motion.div>
         </div>
@@ -294,19 +300,26 @@ function StudioRentalPage() {
           <div className="text-center mb-5">
             <div className="text-[11px] tracking-[0.3em] uppercase text-[#6b8a63] mb-2">Add-ons</div>
             <h3 className="text-2xl md:text-3xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
-              חבילות הדרכה וליווי
+              חבילות הדרכה וליווי — בחרי חבילה והתחילי
             </h3>
+            <p className="mt-2 text-sm text-[#2d3d2b]/70 max-w-xl mx-auto">
+              החבילות הן תוספת חד-פעמית מעל מחיר השכרת החלל. לחיצה על חבילה פותחת את התהליך עם החבילה שנבחרה.
+            </p>
           </div>
-          <div className="grid md:grid-cols-3 gap-3 md:gap-4">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             {[
-              { tag: "Mini", price: 50, title: "הדרכה טכנית קצרצרה", desc: "עד 20 דק' בסטודיו: הפעלת פלאש, הגדרות מצלמה בסיסיות והתאמת סט אחד.", bg: "bg-white", accent: "border-[#2d3d2b]/10" },
-              { tag: "Plus", price: 100, title: "ליווי מקצועי ראשוני", desc: "התאמת 2 סטים לצילום כולל הכוונה יצירתית והדרכה טכנית.", bg: "bg-[#a8c4a2]/25", accent: "border-[#a8c4a2]/50", featured: true },
-              { tag: "Premium", price: 150, title: "מעטפת מלאה", desc: "הכנת חלל מאפס + זמינות במהלך כל השהות + סיוע בסידור אביזרים.", bg: "bg-[#f5d5cf]", accent: "border-[#f5d5cf]" },
+              { key: "basic", tag: "בסיסי", price: 0, title: "ללא הדרכה", desc: "השכרת החלל בלבד — הסבר קצר של עד 5 דק׳ בכפוף לזמינות.", bg: "bg-white", accent: "border-[#2d3d2b]/10" },
+              { key: "mini", tag: "Mini", price: 50, title: "הדרכה טכנית קצרצרה", desc: "עד 20 דק' בסטודיו: הפעלת פלאש, הגדרות מצלמה בסיסיות והתאמת סט אחד.", bg: "bg-white", accent: "border-[#2d3d2b]/10" },
+              { key: "plus", tag: "Plus", price: 100, title: "ליווי מקצועי ראשוני", desc: "התאמת 2 סטים לצילום כולל הכוונה יצירתית והדרכה טכנית.", bg: "bg-[#a8c4a2]/25", accent: "border-[#a8c4a2]/50", featured: true },
+              { key: "premium", tag: "Premium", price: 150, title: "מעטפת מלאה", desc: "הכנת חלל מאפס + זמינות במהלך כל השהות + סיוע בסידור אביזרים.", bg: "bg-[#f5d5cf]", accent: "border-[#f5d5cf]" },
 
             ].map((p, i) => (
-              <motion.div
+              <motion.button
+                type="button"
                 key={p.title} custom={i} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} variants={fadeUp}
-                className={`${p.bg} rounded-2xl p-5 border ${p.accent} relative`}
+                whileHover={{ y: -4 }}
+                onClick={() => { upd("guidance", p.key); setShowForm(true); }}
+                className={`${p.bg} rounded-2xl p-5 border ${p.accent} relative text-right cursor-pointer hover:shadow-lg transition-shadow`}
               >
                 {p.featured && (
                   <span className="absolute top-3 left-3 text-[9px] tracking-[0.22em] uppercase bg-[#2d3d2b] text-[#f8ede4] px-2.5 py-0.5 rounded-full font-semibold">
@@ -320,11 +333,14 @@ function StudioRentalPage() {
                   <span className="text-xs text-[#2d3d2b]/60">תוספת חד-פעמית</span>
                 </div>
                 <p className="mt-2 text-[13px] text-[#2d3d2b]/75 leading-relaxed">{p.desc}</p>
-              </motion.div>
+                <span className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#2d3d2b]">
+                  בחירה והתחלה <ArrowLeft className="h-3.5 w-3.5" />
+                </span>
+              </motion.button>
             ))}
           </div>
           <p className="mt-3 text-[11px] text-[#2d3d2b]/60 text-center">
-            יש לציין את החבילה הרצויה בטופס תיאום הציפיות.
+המחיר הסופי = השכרת החלל (₪120 שעה ראשונה / ₪90 לכל שעה נוספת, או מבצע בוקר ₪240) + חבילת ההדרכה שנבחרה.
           </p>
         </div>
       </section>
