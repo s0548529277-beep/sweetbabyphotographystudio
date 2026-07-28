@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Header } from "@/components/Header";
+import { usePageImages, PAGE_IMAGE_KEYS, type PageImage } from "@/lib/page-images";
+
 import { Camera, Sun, Trees, Sparkles, Clock, Phone, Mail, ExternalLink, ArrowLeft } from "lucide-react";
 
 export const Route = createFileRoute("/studio-photography")({
