@@ -1,0 +1,1 @@
+ALTER TABLE public.page_images ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'upload';
