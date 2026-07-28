@@ -251,6 +251,77 @@ function StudioPhotographyPage() {
         </AnimatePresence>
       </section>
 
+      {/* Book a session into the studio calendar */}
+      <section id="book-michal" className="max-w-4xl mx-auto px-6 pb-14 scroll-mt-24">
+        <div className="bg-white/85 backdrop-blur rounded-3xl border border-[#a8bfa1]/30 p-6 md:p-8 shadow-sm">
+          <div className="flex items-center gap-2 text-[#5b7a52] text-xs tracking-[0.28em] uppercase mb-2">
+            <CalendarDays size={14} /> Booking
+          </div>
+          <h2 className="text-2xl md:text-3xl mb-2" style={{ fontFamily: "'DM Serif Display', serif" }}>
+            קביעת צילומים עם מיכל ביומן הסטודיו
+          </h2>
+          <p className="text-sm text-[#4a5d43]/85 mb-5 leading-relaxed">
+            בוחרים תאריך, שעה ומשך הסשן — המועד נשמר ביומן הסטודיו.{" "}
+            <strong>המועד מאושר סופית לאחר תיאום עם הצלמת.</strong> תעריף: {PHOTOGRAPHY_HOURLY_RATE} ₪ לשעה.
+          </p>
+
+          <div className="grid sm:grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[#4a5d43]/80">שם מלא *</span>
+              <input className={bookInputCls} value={book.name} onChange={(e) => setBook({ ...book, name: e.target.value })} />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[#4a5d43]/80">טלפון *</span>
+              <input className={bookInputCls} dir="ltr" type="tel" value={book.phone} onChange={(e) => setBook({ ...book, phone: e.target.value })} />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[#4a5d43]/80">תאריך *</span>
+              <input className={bookInputCls} type="date" value={book.date} onChange={(e) => setBook({ ...book, date: e.target.value })} />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[#4a5d43]/80">שעת התחלה *</span>
+              <input className={bookInputCls} type="time" step={1800} value={book.time} onChange={(e) => setBook({ ...book, time: e.target.value })} />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[#4a5d43]/80">משך הסשן</span>
+              <select className={bookInputCls} value={book.hours} onChange={(e) => setBook({ ...book, hours: e.target.value })}>
+                {["0.5", "1", "1.5", "2", "3"].map((h) => (
+                  <option key={h} value={h}>
+                    {h} שעות · ₪{Math.round(PHOTOGRAPHY_HOURLY_RATE * Number(h))}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[#4a5d43]/80">סוג צילום</span>
+              <select className={bookInputCls} value={book.sessionType} onChange={(e) => setBook({ ...book, sessionType: e.target.value })}>
+                {["ניו-בורן", "משפחה", "הריון", "ילדים", "סמאש קייק", "אירוע", "אחר"].map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1.5 sm:col-span-2">
+              <span className="text-xs font-semibold text-[#4a5d43]/80">הערות</span>
+              <textarea className={bookInputCls} rows={2} value={book.notes} onChange={(e) => setBook({ ...book, notes: e.target.value })} />
+            </label>
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center gap-4">
+            <button
+              type="button"
+              onClick={submitBooking}
+              disabled={sending}
+              className="inline-flex items-center gap-2 bg-[#2d4a2b] text-white px-7 py-3.5 rounded-full hover:bg-[#3d5a3b] transition disabled:opacity-50"
+            >
+              <CalendarDays size={18} /> {sending ? "שולח…" : "קביעת מועד ביומן"}
+            </button>
+            <span className="text-sm text-[#4a5d43]/80">
+              עלות משוערת: <strong>₪{bookPrice}</strong> · לאחר תיאום עם הצלמת
+            </span>
+          </div>
+        </div>
+      </section>
+
       {/* Gallery */}
       <section className="max-w-6xl mx-auto px-6 pb-16">
         <div className="flex items-end justify-between mb-6">
