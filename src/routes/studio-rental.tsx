@@ -364,16 +364,22 @@ function StudioRentalPage() {
               </div>
             </div>
 
-            <div className="mt-6 flex flex-col items-center gap-2">
-              <button
+            <div className="mt-6 flex flex-col items-center gap-3">
+              <motion.button
                 type="button"
                 onClick={() => setShowForm(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#2d3d2b] text-[#f8ede4] px-9 py-4 text-sm font-semibold hover:bg-[#1f2b1e] transition-all"
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+                className="group relative inline-flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-[#f5d5cf] via-[#f8c4c0] to-[#f5d5cf] text-[#2d3d2b] px-12 py-5 text-[15px] font-bold shadow-[0_12px_40px_-12px_rgba(245,213,207,0.85)] hover:shadow-[0_18px_50px_-14px_rgba(245,213,207,1)] transition-all overflow-hidden"
               >
-                <CalendarDays className="h-4 w-4" />
-                <span>התחלת התהליך · שאלון וקביעת יומן</span>
-              </button>
-              <span className="text-[11px] text-[#2d3d2b]/55">שלב 1 מתוך 3 · לוקח כדקה</span>
+                <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/40 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                <span className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/60 text-[#6b8a63]">
+                  <CalendarDays className="h-5 w-5" />
+                </span>
+                <span className="relative">להתחיל את התהליך · שאלון וקביעת יומן</span>
+                <Sparkles className="relative h-4 w-4 text-[#6b8a63] opacity-70 group-hover:opacity-100 transition-opacity" />
+              </motion.button>
+              <span className="text-[12px] text-[#2d3d2b]/55 font-medium">שלב 1 מתוך 3 · לוקח כדקה</span>
             </div>
 
             <p className="mt-5 text-xs text-[#2d3d2b]/60 text-center">
