@@ -528,6 +528,7 @@ export type Database = {
           id: string
           page: string
           sort_order: number
+          source: string
           storage_path: string | null
           url: string
         }
@@ -537,6 +538,7 @@ export type Database = {
           id?: string
           page: string
           sort_order?: number
+          source?: string
           storage_path?: string | null
           url: string
         }
@@ -546,6 +548,7 @@ export type Database = {
           id?: string
           page?: string
           sort_order?: number
+          source?: string
           storage_path?: string | null
           url?: string
         }
