@@ -57,6 +57,7 @@ function ItemsAdmin() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<ItemForm>(empty);
   const [uploading, setUploading] = useState(false);
+  const [rowUploading, setRowUploading] = useState<string | null>(null);
   const [q, setQ] = useState("");
 
   // Bulk upload dialog
@@ -143,16 +144,46 @@ function ItemsAdmin() {
     else { qc.invalidateQueries({ queryKey: ["admin-items"] }); qc.invalidateQueries({ queryKey: ["items"] }); }
   };
 
-  const uploadImage = async (file: File) => {
-    setUploading(true);
+  // Uploads to the private "items" bucket and returns a long-lived signed URL.
+  const uploadToStorage = async (file: File) => {
     const ext = file.name.split(".").pop();
     const path = `${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage.from("items").upload(path, file, { upsert: false });
-    if (error) { toast.error(error.message); setUploading(false); return; }
-    const { data } = supabase.storage.from("items").getPublicUrl(path);
-    setForm((f) => ({ ...f, image_url: data.publicUrl }));
+    if (error) throw error;
+    const { data, error: signErr } = await supabase.storage
+      .from("items")
+      .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+    if (signErr || !data?.signedUrl) throw signErr ?? new Error("שגיאה ביצירת קישור לתמונה");
+    return data.signedUrl;
+  };
+
+  const uploadImage = async (file: File) => {
+    setUploading(true);
+    try {
+      const url = await uploadToStorage(file);
+      setForm((f) => ({ ...f, image_url: url }));
+    } catch (e: any) {
+      toast.error(e.message ?? "שגיאה בהעלאה");
+    }
     setUploading(false);
   };
+
+  // Quick per-row image upload straight from the table
+  const uploadRowImage = async (itemId: string, file: File) => {
+    setRowUploading(itemId);
+    try {
+      const url = await uploadToStorage(file);
+      const { error } = await supabase.from("items").update({ image_url: url }).eq("id", itemId);
+      if (error) throw error;
+      toast.success("התמונה עודכנה");
+      qc.invalidateQueries({ queryKey: ["admin-items"] });
+      qc.invalidateQueries({ queryKey: ["items"] });
+    } catch (e: any) {
+      toast.error(e.message ?? "שגיאה בהעלאה");
+    }
+    setRowUploading(null);
+  };
+
 
   const createCategory = async () => {
     const name = newCatName.trim();
@@ -177,16 +208,12 @@ function ItemsAdmin() {
     let ok = 0;
     for (const file of bulkFiles) {
       try {
-        const ext = file.name.split(".").pop();
-        const path = `${crypto.randomUUID()}.${ext}`;
-        const up = await supabase.storage.from("items").upload(path, file, { upsert: false });
-        if (up.error) throw up.error;
-        const { data: pub } = supabase.storage.from("items").getPublicUrl(path);
+        const url = await uploadToStorage(file);
         const sku = nextSkuFor(prefix, existing);
         existing.push(sku);
         const name = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim() || sku;
         const { error } = await supabase.from("items").insert({
-          sku, name, price: bulkPrice, image_url: pub.publicUrl, category_id: bulkCat, active: true,
+          sku, name, price: bulkPrice, image_url: url, category_id: bulkCat, active: true,
         });
         if (error) throw error;
         ok++;
@@ -382,10 +409,25 @@ function ItemsAdmin() {
             {filtered.map((i: any) => (
               <tr key={i.id} className="border-t border-border">
                 <td className="p-3">
-                  <div className="h-12 w-12 rounded-lg bg-cream overflow-hidden">
-                    {i.image_url ? <img src={i.image_url} alt="" className="w-full h-full object-cover" /> : null}
+                  <div className="flex flex-col items-center gap-1 w-16">
+                    <div className="h-12 w-12 rounded-lg bg-cream overflow-hidden flex items-center justify-center">
+                      {i.image_url
+                        ? <img src={i.image_url} alt={i.name} className="w-full h-full object-cover" />
+                        : <ImageIcon className="h-4 w-4 text-primary/30" />}
+                    </div>
+                    <label className="cursor-pointer text-[10px] text-forest hover:underline inline-flex items-center gap-1">
+                      <Upload className="h-3 w-3" />
+                      {rowUploading === i.id ? "מעלה…" : i.image_url ? "החלפה" : "העלאה"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => e.target.files?.[0] && uploadRowImage(i.id, e.target.files[0])}
+                      />
+                    </label>
                   </div>
                 </td>
+
                 <td className="p-3 tracking-wider text-xs">{i.sku}</td>
                 <td className="p-3 font-medium">{i.name}</td>
                 <td className="p-3 text-muted-foreground">{i.categories?.name ?? "—"}</td>
