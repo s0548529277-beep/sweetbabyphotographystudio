@@ -72,7 +72,8 @@ function StudioPhotographyPage() {
   const extraStudio = usePageImages(PAGE_IMAGE_KEYS.photographyStudio);
   const extraOutdoor = usePageImages(PAGE_IMAGE_KEYS.photographyOutdoor);
   const extra = ((tab === "studio" ? extraStudio.data : extraOutdoor.data) ?? []).map((i: PageImage) => i.url);
-  const photos = [...(tab === "studio" ? STUDIO_PHOTOS : OUTDOOR_PHOTOS), ...extra];
+  // Built-in page photos are also seeded into the gallery table, so de-dupe by URL.
+  const photos = Array.from(new Set([...(tab === "studio" ? STUDIO_PHOTOS : OUTDOOR_PHOTOS), ...extra]));
 
 
   const sessionMsg = tab === "studio"
