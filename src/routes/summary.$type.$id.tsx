@@ -153,8 +153,17 @@ function SummaryPage() {
               <div className="glass-card rounded-3xl p-6 sticky top-24">
                 <h3 className="font-display text-xl text-primary mb-4">סיכום תשלום</h3>
                 <div className="space-y-2 text-sm">
-                  <Row label="סה״כ לתשלום" value={`₪${total}`} strong />
+                  {type === "booking" ? (
+                    <>
+                      <Row label="סה״כ השכרה" value={`₪${total}`} muted />
+                      <Row label="מקדמה לתשלום עכשיו" value={`₪${deposit}`} strong />
+                      <Row label="יתרה ביום הצילום" value={`₪${balance}`} muted />
+                    </>
+                  ) : (
+                    <Row label="סה״כ לתשלום" value={`₪${total}`} strong />
+                  )}
                 </div>
+
 
                 <div className="mt-6 space-y-3">
                   <button
