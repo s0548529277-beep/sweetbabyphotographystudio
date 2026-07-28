@@ -541,11 +541,21 @@ function Booking() {
                 {date ? date.toLocaleDateString("he-IL", { day: "numeric", month: "long" }) : "לא נבחר תאריך"}
                 {startTime && ` · ${startTime}${endTimeStr ? `–${endTimeStr}` : ""}`}
               </div>
+              {morningActive && (
+                <div className="mb-2 text-[11px] text-[#f5d5cf]">חבילת ניו-בורן · 3 שעות</div>
+              )}
+              {guidanceFee > 0 && (
+                <div className="flex items-baseline justify-between text-[11px] text-[#f8ede4]/70 mb-1">
+                  <span>{GUIDANCE_LABELS[guidanceKey]}</span>
+                  <span>+₪{guidanceFee}</span>
+                </div>
+              )}
               <div className="flex items-baseline justify-between mb-3">
                 <span className="text-[#f8ede4]/70 text-xs">סה״כ</span>
                 <span className="font-display text-3xl text-[#f5d5cf]">₪{price}</span>
               </div>
               <div className="text-[10px] text-[#f8ede4]/55 mb-4">מתוכם 90₪ מקדמה לשריון</div>
+
               <Button
                 type="submit"
                 disabled={!canBook || busy}
