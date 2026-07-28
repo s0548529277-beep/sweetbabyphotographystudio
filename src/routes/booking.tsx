@@ -199,7 +199,7 @@ function Booking() {
     return `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
   }, [startTime, slots]);
 
-  const canBook = date && startTime && slots >= 2 && contactName && contactPhone && terms && user;
+  const canBook = date && startTime && slots >= 2 && contactName && contactPhone && user;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
