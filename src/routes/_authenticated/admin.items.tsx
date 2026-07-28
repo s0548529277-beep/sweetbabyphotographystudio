@@ -57,6 +57,7 @@ function ItemsAdmin() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<ItemForm>(empty);
   const [uploading, setUploading] = useState(false);
+  const [rowUploading, setRowUploading] = useState<string | null>(null);
   const [q, setQ] = useState("");
 
   // Bulk upload dialog
