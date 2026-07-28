@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { studioInspiration } from "@/lib/inspiration";
 
 export const PAGE_IMAGE_KEYS = {
   studioRental: "studio-rental",
@@ -37,4 +38,10 @@ export function usePageImages(page: string) {
     queryFn: () => fetchPageImages(page),
     staleTime: 60_000,
   });
+}
+
+/** Images that ship with the site (bundled assets) for a given page. Read-only in admin. */
+export function builtinPageImages(page: string): string[] {
+  if (page === PAGE_IMAGE_KEYS.studioRental) return studioInspiration();
+  return [];
 }
