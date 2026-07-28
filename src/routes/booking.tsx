@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/lib/auth";
 import { useProfilePrefill } from "@/hooks/use-profile";
 import { saveContactHandoff } from "@/lib/contact-handoff";
@@ -111,7 +110,6 @@ function Booking() {
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [notes, setNotes] = useState("");
-  const [terms, setTerms] = useState(false);
   const [busy, setBusy] = useState(false);
   const [reservedSkus, setReservedSkus] = useState<string[]>([]);
   const [propQuery, setPropQuery] = useState("");
@@ -199,7 +197,7 @@ function Booking() {
     return `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
   }, [startTime, slots]);
 
-  const canBook = date && startTime && slots >= 2 && contactName && contactPhone && terms && user;
+  const canBook = date && startTime && slots >= 2 && contactName && contactPhone && user;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -409,39 +407,16 @@ function Booking() {
             )}
           </div>
 
-          {/* Summary + contact */}
+          {/* Summary */}
           <aside className="space-y-4 lg:sticky lg:top-24">
             <div className="bg-white rounded-2xl border border-[#2d3d2b]/8 p-5 space-y-3 shadow-sm">
-              <h3 className="font-display text-lg text-[#2d3d2b]">פרטי יצירת קשר</h3>
-              {profile.loaded && profile.fullName && profile.phone ? (
-                <div className="rounded-xl bg-[#a8c4a2]/15 border border-[#a8c4a2]/40 px-3 py-2 text-xs text-[#2d3d2b]/80 leading-relaxed">
-                  <div><strong>{contactName}</strong></div>
-                  <div dir="ltr" className="text-right">{contactPhone}</div>
-                  {profile.email && <div dir="ltr" className="text-right">{profile.email}</div>}
-                  <div className="mt-1 text-[10px] text-[#6b8a63]">הפרטים נטענו מהאזור האישי / מהשאלון.</div>
-                </div>
-              ) : (
-                <>
-                  <div>
-                    <Label className="text-xs text-[#2d3d2b]/70">שם מלא *</Label>
-                    <Input required value={contactName} onChange={(e) => setContactName(e.target.value)} className="mt-1 h-9 text-sm" />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-[#2d3d2b]/70">טלפון *</Label>
-                    <Input required type="tel" dir="ltr" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} className="mt-1 h-9 text-sm" />
-                  </div>
-                </>
-              )}
-
+              <h3 className="font-display text-lg text-[#2d3d2b]">הערות לשריון</h3>
               <div>
-                <Label className="text-xs text-[#2d3d2b]/70">הערות</Label>
+                <Label className="text-xs text-[#2d3d2b]/70">הערות (אופציונלי)</Label>
                 <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} className="mt-1 text-sm" />
               </div>
-              <label className="flex items-start gap-2 text-[11px] text-[#2d3d2b]/70 cursor-pointer leading-relaxed">
-                <Checkbox checked={terms} onCheckedChange={(v) => setTerms(!!v)} className="mt-0.5" />
-                <span>אישרתי את תנאי הסטודיו ושליחת הסכם תיאום הציפיות בעמוד השכרת הסטודיו.</span>
-              </label>
             </div>
+
 
             {/* Reserve props (free with studio rental — up to 20) */}
             <div className="bg-white rounded-2xl border border-[#2d3d2b]/8 p-5 shadow-sm">
