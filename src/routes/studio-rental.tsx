@@ -33,13 +33,21 @@ type IntakeForm = {
   clientName: string; phone: string; email: string;
   sessionType: string; sessionDate: string; peopleCount: string; babyAge: string;
   cameraBrand: string; flashExperience: string; needProps: string; specialRequests: string;
+  guidance: string;
   agreed: boolean;
 };
 const emptyForm: IntakeForm = {
   clientName: "", phone: "", email: "", sessionType: "", sessionDate: "",
   peopleCount: "", babyAge: "", cameraBrand: "", flashExperience: "",
-  needProps: "", specialRequests: "", agreed: false,
+  needProps: "", specialRequests: "", guidance: "basic", agreed: false,
 };
+
+const guidanceOptions = [
+  { key: "basic", price: 0, tag: "בסיסי", title: "הדרכה קצרה (חינם)", desc: "עד 5 דקות, בכפוף לזמינות או בטלפון." },
+  { key: "mini", price: 50, tag: "MINI", title: "הדרכה טכנית קצרצרה", desc: "עד 20 דק׳ בסטודיו פנים אל פנים: הפעלת ציוד, הגדרות מצלמה בסיסיות והתאמת סט אחד." },
+  { key: "plus", price: 100, tag: "PLUS", title: "ליווי מקצועי ראשוני", desc: "התאמת 2 סטים לצילום כולל כוונה יצירתית והדרכה טכנית.", featured: true },
+  { key: "premium", price: 150, tag: "PREMIUM", title: "מעטפת מלאה", desc: "הכנת חלל מראש + זמינות במהלך כל השהות + סיוע בסידור אביזרים." },
+] as const;
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
