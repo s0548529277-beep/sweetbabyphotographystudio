@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Images, Loader2, Trash2, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchPageImages, PAGE_IMAGE_KEYS, type PageImage } from "@/lib/page-images";
+import { builtinPageImages, fetchPageImages, PAGE_IMAGE_KEYS, type PageImage } from "@/lib/page-images";
 
 export const Route = createFileRoute("/_authenticated/admin/gallery")({
   component: AdminGalleryPage,
