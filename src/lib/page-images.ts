@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { studioInspiration } from "@/lib/inspiration";
+import { studioInspirationMap } from "@/lib/inspiration";
 
 export const PAGE_IMAGE_KEYS = {
   studioRental: "studio-rental",
@@ -18,6 +18,7 @@ export type PageImage = {
   caption: string | null;
   sort_order: number;
   source: string;
+  hidden: boolean;
   created_at: string;
 };
 
@@ -47,6 +48,35 @@ export const BUILTIN_PHOTOGRAPHY_OUTDOOR = [
   "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc02946_optimized-scaled.jpg",
 ];
 
+/**
+ * Bundled images shipped with the site, keyed by a STABLE key.
+ * Studio photos are bundled assets whose URL changes between builds, so the
+ * source path is used as key and the URL resolved at runtime.
+ */
+export function builtinEntries(page: string): { key: string; url: string }[] {
+  if (page === PAGE_IMAGE_KEYS.studioRental) {
+    return Object.entries(studioInspirationMap()).map(([key, url]) => ({ key, url }));
+  }
+  if (page === PAGE_IMAGE_KEYS.photographyStudio) return BUILTIN_PHOTOGRAPHY_STUDIO.map((u) => ({ key: u, url: u }));
+  if (page === PAGE_IMAGE_KEYS.photographyOutdoor) return BUILTIN_PHOTOGRAPHY_OUTDOOR.map((u) => ({ key: u, url: u }));
+  return [];
+}
+
+export function builtinPageImages(page: string): string[] {
+  return builtinEntries(page).map((e) => e.url);
+}
+
+/** Current URL of a bundled image, by its stable key. */
+export function builtinUrl(page: string, key: string | null | undefined): string | null {
+  if (!key) return null;
+  return builtinEntries(page).find((e) => e.key === key)?.url ?? null;
+}
+
+/** The display URL for a gallery row (bundled rows resolve to their live asset URL). */
+export function rowUrl(page: string, row: PageImage): string {
+  return (row.source === "builtin" ? builtinUrl(page, row.storage_path) : null) ?? row.url;
+}
+
 export async function fetchPageImages(page: string): Promise<PageImage[]> {
   const { data, error } = await supabase
     .from("page_images")
@@ -67,24 +97,19 @@ export function usePageImages(page: string) {
   });
 }
 
-/** Images that ship with the site (bundled/hardcoded assets) for a given page. */
-export function builtinPageImages(page: string): string[] {
-  if (page === PAGE_IMAGE_KEYS.studioRental) return studioInspiration();
-  if (page === PAGE_IMAGE_KEYS.photographyStudio) return BUILTIN_PHOTOGRAPHY_STUDIO;
-  if (page === PAGE_IMAGE_KEYS.photographyOutdoor) return BUILTIN_PHOTOGRAPHY_OUTDOOR;
-  return [];
-}
-
 /**
- * Once the admin imports built-in photos into the gallery (rows with source='builtin'),
- * the gallery table becomes the single source of truth for that page — so deletions and
- * ordering apply to built-in photos too. Before that, built-ins are shown first.
+ * Gallery shown on the site: every managed row that isn't hidden, plus bundled
+ * photos that haven't been adopted into the gallery yet (first visit to admin
+ * adopts them, after which order + deletions are fully admin-controlled).
  */
 export function resolveGalleryImages(page: string, rows: PageImage[] | undefined): string[] {
   const list = rows ?? [];
-  const managed = list.some((r) => r.source === "builtin");
-  if (managed) return Array.from(new Set(list.map((r) => r.url)));
-  return Array.from(new Set([...builtinPageImages(page), ...list.map((r) => r.url)]));
+  const adoptedKeys = new Set(list.filter((r) => r.source === "builtin").map((r) => r.storage_path ?? ""));
+  const pending = builtinEntries(page)
+    .filter((e) => !adoptedKeys.has(e.key))
+    .map((e) => e.url);
+  const managed = list.filter((r) => !r.hidden).map((r) => rowUrl(page, r));
+  return Array.from(new Set([...pending, ...managed]));
 }
 
 /** Resolved, ordered gallery for a page (built-ins + uploads, respecting admin edits). */
