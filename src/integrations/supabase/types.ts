@@ -46,6 +46,8 @@ export type Database = {
           balance_amount: number | null
           balance_method: string | null
           cancellation_charge: number | null
+          contact_name: string | null
+          contact_phone: string | null
           created_at: string
           deposit_amount: number
           deposit_receipt_url: string | null
@@ -71,6 +73,8 @@ export type Database = {
           balance_amount?: number | null
           balance_method?: string | null
           cancellation_charge?: number | null
+          contact_name?: string | null
+          contact_phone?: string | null
           created_at?: string
           deposit_amount?: number
           deposit_receipt_url?: string | null
@@ -96,6 +100,8 @@ export type Database = {
           balance_amount?: number | null
           balance_method?: string | null
           cancellation_charge?: number | null
+          contact_name?: string | null
+          contact_phone?: string | null
           created_at?: string
           deposit_amount?: number
           deposit_receipt_url?: string | null
@@ -175,6 +181,7 @@ export type Database = {
       }
       item_availability: {
         Row: {
+          booking_id: string | null
           created_at: string
           date: string
           end_at: string | null
@@ -187,6 +194,7 @@ export type Database = {
           start_date: string
         }
         Insert: {
+          booking_id?: string | null
           created_at?: string
           date: string
           end_at?: string | null
@@ -199,6 +207,7 @@ export type Database = {
           start_date: string
         }
         Update: {
+          booking_id?: string | null
           created_at?: string
           date?: string
           end_at?: string | null
@@ -211,6 +220,13 @@ export type Database = {
           start_date?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "item_availability_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "item_availability_item_id_fkey"
             columns: ["item_id"]
