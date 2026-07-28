@@ -430,7 +430,7 @@ function StudioRentalPage() {
 
       <section id="studio-inspiration" className="container-page pb-12 scroll-mt-24">
         <InspirationStrip
-          images={[...studioInspiration(), ...(extraStudioImages.data ?? []).map((i) => i.url)]}
+          images={[...studioInspiration(), ...(extraStudioImages.data ?? []).map((i: PageImage) => i.url)]}
 
           title="השראה מהסטודיו"
           subtitle="ככה החלל נראה בפועל — תוכלי לקבל את אותה אווירה בצילומים שלך."
