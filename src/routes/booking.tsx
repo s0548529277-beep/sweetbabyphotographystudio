@@ -413,14 +413,26 @@ function Booking() {
           <aside className="space-y-4 lg:sticky lg:top-24">
             <div className="bg-white rounded-2xl border border-[#2d3d2b]/8 p-5 space-y-3 shadow-sm">
               <h3 className="font-display text-lg text-[#2d3d2b]">פרטי יצירת קשר</h3>
-              <div>
-                <Label className="text-xs text-[#2d3d2b]/70">שם מלא *</Label>
-                <Input required value={contactName} onChange={(e) => setContactName(e.target.value)} className="mt-1 h-9 text-sm" />
-              </div>
-              <div>
-                <Label className="text-xs text-[#2d3d2b]/70">טלפון *</Label>
-                <Input required type="tel" dir="ltr" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} className="mt-1 h-9 text-sm" />
-              </div>
+              {profile.loaded && profile.fullName && profile.phone ? (
+                <div className="rounded-xl bg-[#a8c4a2]/15 border border-[#a8c4a2]/40 px-3 py-2 text-xs text-[#2d3d2b]/80 leading-relaxed">
+                  <div><strong>{contactName}</strong></div>
+                  <div dir="ltr" className="text-right">{contactPhone}</div>
+                  {profile.email && <div dir="ltr" className="text-right">{profile.email}</div>}
+                  <div className="mt-1 text-[10px] text-[#6b8a63]">הפרטים נטענו מהאזור האישי / מהשאלון.</div>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <Label className="text-xs text-[#2d3d2b]/70">שם מלא *</Label>
+                    <Input required value={contactName} onChange={(e) => setContactName(e.target.value)} className="mt-1 h-9 text-sm" />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-[#2d3d2b]/70">טלפון *</Label>
+                    <Input required type="tel" dir="ltr" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} className="mt-1 h-9 text-sm" />
+                  </div>
+                </>
+              )}
+
               <div>
                 <Label className="text-xs text-[#2d3d2b]/70">הערות</Label>
                 <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} className="mt-1 text-sm" />
