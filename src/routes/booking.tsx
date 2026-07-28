@@ -455,8 +455,8 @@ function Booking() {
                     <Package className="h-4 w-4 text-[#6b8a63]" />
                   </div>
                   <div>
-                    <div className="font-display text-lg text-[#2d3d2b]">שריון אביזרים · חינם</div>
-                    <div className="text-[11px] text-[#2d3d2b]/60">עד 20 אביזרים כלולים בהשכרת הסטודיו</div>
+                    <div className="font-display text-lg text-[#2d3d2b]">שריון אביזרים · חינם (אופציונלי)</div>
+                    <div className="text-[11px] text-[#2d3d2b]/60">עד 20 אביזרים כלולים בהשכרת הסטודיו — אפשר גם לדלג</div>
                   </div>
                 </div>
                 <span className="text-xs text-[#6b8a63] font-medium">
