@@ -417,23 +417,35 @@ function RentalCatalogPage() {
             {subtotal > 0 && subtotal < 50 && (
               <p className="text-[#2d3d2b]/80 text-xs mt-2">מינימום 50 ₪ — הוסיפו ₪{(50 - subtotal).toFixed(0)}.</p>
             )}
-            <Link to="/checkout" className="block">
-              <button
-                type="button"
-                disabled={lines.length === 0 || subtotal < 50}
-                className="w-full mt-5 h-12 rounded-full bg-[#2d3d2b] text-[#f5d5cf] font-medium hover:bg-[#2d3d2b]/90 disabled:opacity-40 flex items-center justify-center gap-2"
-              >
-                המשך לקופה
-              </button>
-            </Link>
+            <div className="relative mt-6">
+              <span className="absolute -top-2.5 right-4 z-10 rounded-full bg-[#e8b4bc] px-3 py-0.5 text-[10px] font-semibold text-[#2d3d2b] shadow-sm">
+                מומלץ
+              </span>
+              <Link to="/checkout" className="block">
+                <button
+                  type="button"
+                  disabled={lines.length === 0 || subtotal < 50}
+                  className="w-full h-12 rounded-full bg-[#2d3d2b] text-[#f5d5cf] font-medium hover:bg-[#2d3d2b]/90 disabled:opacity-40 flex items-center justify-center gap-2"
+                >
+                  המשך להזמנה
+                </button>
+              </Link>
+              <p className="mt-1.5 text-center text-[11px] text-[#6b8a63]">
+                שריון מיידי של הפריטים לתאריך שנבחר.
+              </p>
+            </div>
             <button
               type="button"
               disabled={lines.length === 0}
               onClick={() => setShowOrderForm(true)}
-              className="w-full mt-2 h-11 rounded-full bg-white text-[#2d3d2b] font-medium border border-[#2d3d2b]/15 hover:bg-white/80 disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
+              className="w-full mt-4 h-11 rounded-full bg-white text-[#2d3d2b] font-medium border border-[#2d3d2b]/15 hover:bg-white/80 disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
             >
-              ✉️ שליחת הסל במייל (Gmail)
+              ✉️ שליחת הסל במייל ללא שריון
             </button>
+            <p className="mt-1.5 text-center text-[11px] text-[#8b3a2a]/80 leading-relaxed">
+              שימי לב: שליחה במייל אינה משריינת את הפריטים — הם עלולים להיתפס ולא להיות זמינים בתאריך שביקשת.
+            </p>
+
             <Link to="/cart" className="block text-center text-xs text-[#2d3d2b]/60 mt-3 hover:text-[#2d3d2b]">
               צפייה בסל המלא
             </Link>
