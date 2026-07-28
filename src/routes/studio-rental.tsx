@@ -146,6 +146,10 @@ function StudioRentalPage() {
       toast.error("נא למלא שם, טלפון ואימייל.");
       return;
     }
+    if (!form.sessionType.trim()) {
+      toast.error("נא לבחור את סוג הצילום.");
+      return;
+    }
     if (!form.agreed) {
       toast.error("יש לאשר את הסכם תיאום הציפיות לפני השליחה.");
       return;
@@ -156,6 +160,7 @@ function StudioRentalPage() {
       return;
     }
 
+    const guidanceLabel = guidanceOptions.find((g) => g.key === form.guidance);
     setSubmitting(true);
     try {
       await submitIntake({
@@ -169,13 +174,19 @@ function StudioRentalPage() {
           babyAge: "",
           cameraBrand: form.cameraBrand,
           flashExperience: form.flashExperience,
-          needProps: "",
+          needProps: guidanceLabel ? `${guidanceLabel.tag} · ${guidanceLabel.title}${guidanceLabel.price ? ` (+₪${guidanceLabel.price})` : ""}` : "",
           specialRequests: form.specialRequests,
 
           agreed: true,
         },
       });
-      saveContactHandoff({ fullName: form.clientName, phone: form.phone, email: form.email });
+      saveContactHandoff({
+        fullName: form.clientName,
+        phone: form.phone,
+        email: form.email,
+        sessionType: form.sessionType,
+        guidance: form.guidance,
+      });
       toast.success("ההסכם נשמר ✓ ממשיכות לשלב 2 — בחירת תאריך ושעה ביומן.");
       setShowForm(false);
       nav({ to: "/booking" });
