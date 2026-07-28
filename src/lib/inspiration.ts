@@ -38,3 +38,13 @@ export function inspirationFor(sku: string | number | null | undefined): string[
 export function studioInspiration(): string[] {
   return studio;
 }
+
+/** Studio inspiration images keyed by their stable source path (URLs change per build). */
+export function studioInspirationMap(): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [path, url] of Object.entries(modules)) {
+    const name = path.split("/").pop()!.toLowerCase();
+    if (/^studio-\d+\.(jpg|jpeg|png|webp|avif)$/i.test(name)) out[path] = url;
+  }
+  return out;
+}
