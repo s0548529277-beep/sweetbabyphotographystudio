@@ -1,7 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Header } from "@/components/Header";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import { useAuth } from "@/lib/auth";
+import { useProfilePrefill } from "@/hooks/use-profile";
+import { requestPhotographySession, PHOTOGRAPHY_HOURLY_RATE } from "@/lib/photography.functions";
 import {
   usePageGallery,
   PAGE_IMAGE_KEYS,
@@ -9,7 +14,7 @@ import {
   BUILTIN_PHOTOGRAPHY_OUTDOOR,
 } from "@/lib/page-images";
 
-import { Camera, Sun, Trees, Sparkles, Clock, Phone, Mail, ExternalLink, ArrowLeft } from "lucide-react";
+import { Camera, Sun, Trees, Sparkles, Clock, Phone, Mail, ExternalLink, ArrowLeft, CalendarDays } from "lucide-react";
 
 export const Route = createFileRoute("/studio-photography")({
   head: () => ({
