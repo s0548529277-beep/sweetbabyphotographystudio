@@ -56,19 +56,24 @@ export const chatWithBot = createServerFn({ method: "POST" })
     const personalized = data.isAuthenticated
       ? `\n\nהמשתמשת מחוברת לחשבון${data.userName ? ` בשם ${data.userName}` : ""}. את יכולה לפנות אליה בשמה.`
       : `\n\nהמשתמשת לא מחוברת. לביצוע הזמנה בפועל הציעי לה להתחבר בעמוד /auth — אבל בדיקת זמינות אפשר לעשות גם בלי התחברות.`;
-    const today = new Date().toISOString().slice(0, 10);
-    const toolRules = `\n\nהיום ${today}. יש לך גישה אמיתית ליומן ולמלאי:
-- לשאלה על זמינות הסטודיו בתאריך/שעה — חובה להשתמש בכלי check_studio_availability ולענות רק לפי התוצאה. אל תניחי שפנוי.
-- לשאלה אם אביזר מסוים פנוי (לפי מק״ט או שם) — חובה להשתמש בכלי check_prop_availability ולענות רק לפי התוצאה.
-- אם חסר תאריך — בקשי תאריך קודם. המירי ביטויים כמו "מחר" לתאריך מלא YYYY-MM-DD לפי היום הנוכחי.
-- אחרי תשובה חיובית — הציעי להמשיך: סטודיו בעמוד /studio-rental (טופס ואז יומן), אביזרים בעמוד /rental-catalog.`;
+    const now = israelNow();
+    const toolRules = `\n\nהיום ${now.date}, השעה בישראל ${now.time}. יש לך גישה אמיתית ליומן הסטודיו (כולל אירועים שהוזנו ישירות ביומן גוגל) ולמלאי האביזרים — הנתונים חיים ומדויקים לכל לקוחה, גם בלי התחברות:
+- זמינות סטודיו בתאריך/שעה — חובה check_studio_availability. ענִי אך ורק לפי התוצאה, לעולם אל תניחי שפנוי ואל תפני את הלקוחה "לבדוק בעמוד היומן" במקום לבדוק בעצמך.
+- "מתי יש לך פנוי?" בלי תאריך — השתמשי ב-find_next_available_days והציעי 2-3 מועדים קונקרטיים.
+- זמינות אביזר לפי מק״ט או שם — חובה check_prop_availability. לחיפוש כללי בקטלוג — search_catalog.
+- שאלת מחיר — חשבי עם quote_studio_price ואל תעריכי בעצמך.
+- ביטויים כמו "מחר"/"יום שלישי הקרוב" — המירי לתאריך YYYY-MM-DD לפי התאריך הנוכחי (אפשר current_datetime).
+- אם הכלי מחזיר calendarLinked=false — אמרי בעדינות שהבדיקה חלקית והציעי לאמת מול הסטודיו.
+- כשתפוס — אל תעצרי שם: הציעי מיד חלופות קרובות מהכלי.
+- אחרי תשובה חיובית — הזמיני להמשיך: סטודיו ב-/studio-rental (שאלון קצר ואז יומן), אביזרים ב-/rental-catalog.`;
     const { text } = await generateText({
       model: gateway("google/gemini-2.5-flash"),
       system: SYSTEM + personalized + toolRules,
       messages: data.messages,
       tools: buildAssistantTools(),
-      stopWhen: stepCountIs(5),
+      stopWhen: stepCountIs(8),
     });
+
     return { reply: text };
   });
 
