@@ -179,6 +179,39 @@ export type Database = {
         }
         Relationships: []
       }
+      expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          id: string
+          notes: string | null
+          spent_on: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          category?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          spent_on?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          spent_on?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       item_availability: {
         Row: {
           booking_id: string | null
