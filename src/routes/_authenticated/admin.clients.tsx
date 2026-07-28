@@ -19,13 +19,19 @@ function ClientsAdmin() {
     queryKey: ["admin-clients"],
     refetchOnWindowFocus: true,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("*, orders(id, total, status, scheduled_date, session_date, created_at), bookings(id, price, status, session_date, start_time, end_time, package, created_at)")
-        .order("created_at", { ascending: false });
-      return data ?? [];
+      const [profilesRes, ordersRes, bookingsRes] = await Promise.all([
+        supabase.from("profiles").select("*").order("created_at", { ascending: false }),
+        supabase.from("orders").select("id, user_id, total, status, scheduled_date, session_date, created_at"),
+        supabase.from("bookings").select("id, user_id, price, status, session_date, start_time, end_time, package, created_at"),
+      ]);
+      return (profilesRes.data ?? []).map((p: any) => ({
+        ...p,
+        orders: (ordersRes.data ?? []).filter((o: any) => o.user_id === p.id),
+        bookings: (bookingsRes.data ?? []).filter((b: any) => b.user_id === p.id),
+      }));
     },
   });
+
 
   const filtered = (clients.data ?? []).filter((c: any) =>
     !q || (c.full_name ?? "").toLowerCase().includes(q.toLowerCase()) || (c.phone ?? "").includes(q),
