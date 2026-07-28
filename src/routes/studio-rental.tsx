@@ -397,25 +397,35 @@ function StudioRentalPage() {
                 רוצה לשריין אביזרים ספציפיים? ציין/י אותם בהערות בטופס תיאום הציפיות.
               </p>
             </div>
-            <Link
-              to="/rental-catalog"
-              className="inline-flex items-center gap-2 bg-[#f5d5cf] text-[#2d3d2b] px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-[#f8ede4] transition-colors group whitespace-nowrap"
-            >
-              לצפייה בקטלוג
-              <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-1" />
-            </Link>
+            <div className="flex flex-col items-stretch gap-2">
+              <Link
+                to="/rental-catalog"
+                className="inline-flex items-center justify-center gap-2 bg-[#f5d5cf] text-[#2d3d2b] px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-[#f8ede4] transition-colors group whitespace-nowrap"
+              >
+                לצפייה בקטלוג
+                <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-1" />
+              </Link>
+              <a
+                href="#studio-inspiration"
+                className="inline-flex items-center justify-center gap-2 border border-[#f5d5cf]/60 text-[#f8ede4] px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-[#f8ede4]/10 transition-colors whitespace-nowrap"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                השראה מהסטודיו
+              </a>
+            </div>
           </div>
         </div>
 
       </section>
 
-      <section className="container-page pb-12">
+      <section id="studio-inspiration" className="container-page pb-12 scroll-mt-24">
         <InspirationStrip
           images={studioInspiration()}
           title="השראה מהסטודיו"
           subtitle="ככה החלל נראה בפועל — תוכלי לקבל את אותה אווירה בצילומים שלך."
         />
       </section>
+
 
       <Footer />
 
