@@ -173,10 +173,16 @@ function Booking() {
   const daySlots = useMemo(() => (date ? slotsForDate(date, closures) : []), [date, closures]);
   const grouped = useMemo(() => groupSlots(daySlots), [daySlots]);
 
-  const price = useMemo(() => {
+  const isNewborn = /ניו.?בורן/.test(profile.sessionType || "");
+  const guidanceKey = (profile.guidance || "basic") as keyof typeof GUIDANCE_FEES;
+  const guidanceFee = GUIDANCE_FEES[guidanceKey] ?? 0;
+
+  const basePrice = useMemo(() => {
     if (!startTime) return 0;
     try { return computeStudioPrice(slots, startTime); } catch { return 0; }
   }, [startTime, slots]);
+  const price = basePrice > 0 ? basePrice + guidanceFee : 0;
+  const morningActive = !!startTime && isMorningPackage(slots, startTime);
 
   const endTimeStr = useMemo(() => {
     if (!startTime) return null;
@@ -202,6 +208,7 @@ function Booking() {
           contact_phone: contactPhone,
           notes,
           reserved_items: reservedSkus,
+          guidance: guidanceKey,
           terms_accepted: true as const,
         },
       });
