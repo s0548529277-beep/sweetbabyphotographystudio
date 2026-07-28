@@ -409,10 +409,25 @@ function ItemsAdmin() {
             {filtered.map((i: any) => (
               <tr key={i.id} className="border-t border-border">
                 <td className="p-3">
-                  <div className="h-12 w-12 rounded-lg bg-cream overflow-hidden">
-                    {i.image_url ? <img src={i.image_url} alt="" className="w-full h-full object-cover" /> : null}
+                  <div className="flex flex-col items-center gap-1 w-16">
+                    <div className="h-12 w-12 rounded-lg bg-cream overflow-hidden flex items-center justify-center">
+                      {i.image_url
+                        ? <img src={i.image_url} alt={i.name} className="w-full h-full object-cover" />
+                        : <ImageIcon className="h-4 w-4 text-primary/30" />}
+                    </div>
+                    <label className="cursor-pointer text-[10px] text-forest hover:underline inline-flex items-center gap-1">
+                      <Upload className="h-3 w-3" />
+                      {rowUploading === i.id ? "מעלה…" : i.image_url ? "החלפה" : "העלאה"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => e.target.files?.[0] && uploadRowImage(i.id, e.target.files[0])}
+                      />
+                    </label>
                   </div>
                 </td>
+
                 <td className="p-3 tracking-wider text-xs">{i.sku}</td>
                 <td className="p-3 font-medium">{i.name}</td>
                 <td className="p-3 text-muted-foreground">{i.categories?.name ?? "—"}</td>
