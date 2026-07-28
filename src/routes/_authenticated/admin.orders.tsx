@@ -50,18 +50,22 @@ function OrdersAdmin() {
     refetchInterval: 15000,
     refetchOnWindowFocus: true,
     queryFn: async (): Promise<Row[]> => {
-      const [ordersRes, bookingsRes] = await Promise.all([
+      const [ordersRes, bookingsRes, profilesRes] = await Promise.all([
         supabase
           .from("orders")
-          .select("*, order_items(*), profiles(full_name, phone)")
+          .select("*, order_items(*)")
           .order("created_at", { ascending: false }),
         supabase
           .from("bookings")
-          .select("*, profiles(full_name, phone)")
+          .select("*")
           .order("created_at", { ascending: false }),
+        supabase.from("profiles").select("id, full_name, phone"),
       ]);
       if (ordersRes.error) throw ordersRes.error;
       if (bookingsRes.error) throw bookingsRes.error;
+
+      const byUser = new Map<string, any>((profilesRes.data ?? []).map((p: any) => [p.id, p]));
+
 
       const orders: Row[] = (ordersRes.data ?? []).map((o: any) => ({
         id: o.id,
