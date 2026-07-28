@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/lib/auth";
 import { useProfilePrefill } from "@/hooks/use-profile";
 import { saveContactHandoff } from "@/lib/contact-handoff";
@@ -111,7 +110,6 @@ function Booking() {
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [notes, setNotes] = useState("");
-  const [terms, setTerms] = useState(false);
   const [busy, setBusy] = useState(false);
   const [reservedSkus, setReservedSkus] = useState<string[]>([]);
   const [propQuery, setPropQuery] = useState("");
