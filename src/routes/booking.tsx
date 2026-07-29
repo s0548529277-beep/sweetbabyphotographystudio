@@ -101,6 +101,8 @@ function Booking() {
   const nav = useNavigate();
   const place = useServerFn(placeBooking);
   const checkAvail = useServerFn(checkItemsAvailability);
+  // Live catalog — reflects edits made in /admin/items right away.
+  const ALL_PROPS: CatItem[] = useCatalogItems();
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [existing, setExisting] = useState<Booking[]>([]);
   const [closures, setClosures] = useState<{ date: string; closed: boolean; open_time: string | null; close_time: string | null }[]>([]);
