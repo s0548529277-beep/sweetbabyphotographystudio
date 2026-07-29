@@ -69,11 +69,13 @@ export const requestPhotographySession = createServerFn({ method: "POST" })
         deposit_status: "pending",
         contact_name: data.contact_name,
         contact_phone: data.contact_phone,
+        balance_method: data.payment_method,
         reserved_items: [],
         terms_accepted_at: new Date().toISOString(),
         notes: [
           `📸 צילומים עם מיכל סיבוני (${data.location === "outdoor" ? "צילומי חוץ" : "בסטודיו"})`,
           data.session_type ? `סוג צילום: ${data.session_type}` : null,
+          `אמצעי תשלום: ${PAYMENT_LABELS[data.payment_method] ?? data.payment_method}`,
           "המועד ייקבע סופית לאחר תיאום עם הצלמת.",
           data.notes,
         ]
@@ -96,6 +98,8 @@ export const requestPhotographySession = createServerFn({ method: "POST" })
           hours: data.hours,
           price,
           phone: data.contact_phone,
+          email: data.contact_email ?? null,
+          payment_method: data.payment_method,
           location: data.location,
           session_type: data.session_type ?? null,
         },
@@ -104,5 +108,39 @@ export const requestPhotographySession = createServerFn({ method: "POST" })
       // notification failure must not block the booking
     }
 
+    // Confirmation email to the studio + the customer.
+    try {
+      const { data: userRes } = await supabase.auth.getUser();
+      const customerEmail = data.contact_email || userRes?.user?.email || undefined;
+      const row = (label: string, value: string) =>
+        `<tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>${label}</strong></td><td style="padding:6px 10px">${value}</td></tr>`;
+      const html = `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:600px;margin:auto">
+        <h2 style="color:#2d3d2b">בקשת צילומים עם מיכל סיבוני 📸</h2>
+        <p>שלום ${data.contact_name},</p>
+        <p>הבקשה נקלטה ביומן הסטודיו. <strong>המועד מאושר סופית לאחר תיאום עם הצלמת.</strong></p>
+        <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">
+          ${row("תאריך", data.session_date)}
+          ${row("שעה", `${data.start_time} - ${endTime}`)}
+          ${row("משך", `${data.hours} שעות`)}
+          ${row("מיקום", data.location === "outdoor" ? "צילומי חוץ" : "בסטודיו")}
+          ${data.session_type ? row("סוג צילום", String(data.session_type).replace(/</g, "&lt;")) : ""}
+          ${row("עלות משוערת", `₪${price}`)}
+          ${row("אמצעי תשלום", PAYMENT_LABELS[data.payment_method] ?? data.payment_method)}
+          ${row("טלפון", data.contact_phone)}
+          ${data.notes ? row("הערות", String(data.notes).replace(/</g, "&lt;")) : ""}
+        </table>
+        <p style="color:#6b8a63;font-size:13px;margin-top:16px">Sweetbaby · תלמוד ירושלמי 24, בית שמש · 054-8529277</p>
+      </div>`;
+      const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+      await sendStudioAndCustomer({
+        customerEmail,
+        subject: `בקשת צילומים · ${data.contact_name} · ${data.session_date}`,
+        html,
+      });
+    } catch (e) {
+      console.error("[SWEETBABY] photography email failed", e);
+    }
+
     return { id: booking.id, price, end_time: endTime };
+
   });
