@@ -1,16 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { PHOTOGRAPHY_HOURLY_RATE, PAYMENT_LABELS } from "@/lib/photography-options";
 
-/** Photography session with Michal, booked into the studio calendar. */
-export const PHOTOGRAPHY_HOURLY_RATE = 300;
-
-export const PAYMENT_LABELS: Record<string, string> = {
-  cash: "מזומן בסטודיו",
-  transfer: "העברה בנקאית",
-  bit: "ביט / פייבוקס",
-  later: "סגירה טלפונית עם הצלמת",
-};
 
 const schema = z.object({
   session_date: z.string().min(10),

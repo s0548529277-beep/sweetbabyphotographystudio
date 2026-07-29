@@ -6,7 +6,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { useProfilePrefill } from "@/hooks/use-profile";
-import { requestPhotographySession, PHOTOGRAPHY_HOURLY_RATE, PAYMENT_LABELS } from "@/lib/photography.functions";
+import { requestPhotographySession } from "@/lib/photography.functions";
+import { PHOTOGRAPHY_HOURLY_RATE, PAYMENT_LABELS } from "@/lib/photography-options";
 import {
   usePageGallery,
   PAGE_IMAGE_KEYS,
