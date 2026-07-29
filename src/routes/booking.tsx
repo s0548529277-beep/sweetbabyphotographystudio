@@ -130,7 +130,7 @@ function Booking() {
       .catch(() => { if (!cancelled) setPropAvail(null); })
       .finally(() => { if (!cancelled) setPropAvailLoading(false); });
     return () => { cancelled = true; };
-  }, [date, checkAvail]);
+  }, [date, checkAvail, ALL_PROPS]);
 
   // Drop props that became unavailable for the newly picked date.
   useEffect(() => {
@@ -156,7 +156,7 @@ function Booking() {
     return ALL_PROPS.filter((p) =>
       p.sku.includes(q) || (p.name || "").toLowerCase().includes(q) || (p.alt || "").toLowerCase().includes(q),
     ).slice(0, 60);
-  }, [propQuery]);
+  }, [propQuery, ALL_PROPS]);
   const toggleSku = (sku: string) =>
     setReservedSkus((prev) =>
       prev.includes(sku) ? prev.filter((s) => s !== sku) : prev.length >= 20 ? prev : [...prev, sku],
