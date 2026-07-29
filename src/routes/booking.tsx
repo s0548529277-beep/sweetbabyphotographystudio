@@ -30,7 +30,12 @@ import { useCatalogItems, type CatalogItem } from "@/lib/catalog";
 
 type CatItem = CatalogItem;
 
-
+function toLocalISODate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 export const Route = createFileRoute("/booking")({
   component: Booking,
   head: () => ({
@@ -46,7 +51,7 @@ export const Route = createFileRoute("/booking")({
 });
 
 function slotsForDate(d: Date, closures: { date: string; closed: boolean; open_time: string | null; close_time: string | null }[]): string[] {
-  const iso = d.toISOString().slice(0, 10);
+ const iso = toLocalISODate(d);
   const closure = closures.find((c) => c.date === iso);
   const day = d.getDay();
   let openMin = 8 * 60;
@@ -122,7 +127,7 @@ function Booking() {
   // rental-catalog / checkout inventory (items + item_availability).
   useEffect(() => {
     if (!date) { setPropAvail(null); return; }
-    const iso = date.toISOString().slice(0, 10);
+    const iso = toLocalISODate(date);
     let cancelled = false;
     setPropAvailLoading(true);
     checkAvail({ data: { skus: ALL_PROPS.map((p) => p.sku), from: iso, to: iso } })
@@ -168,7 +173,7 @@ function Booking() {
 
   useEffect(() => {
     if (!date) return;
-    const iso = date.toISOString().slice(0, 10);
+   const iso = toLocalISODate(date);
     supabase
       .from("booking_busy_slots" as never)
       .select("start_time, end_time")
@@ -208,7 +213,7 @@ function Booking() {
     try {
       const res = await place({
         data: {
-          session_date: date.toISOString().slice(0, 10),
+         session_date: toLocalISODate(date),
           start_time: startTime,
           slots,
           contact_name: contactName,
