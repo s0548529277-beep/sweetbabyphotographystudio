@@ -6,7 +6,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { useProfilePrefill } from "@/hooks/use-profile";
-import { requestPhotographySession, PHOTOGRAPHY_HOURLY_RATE } from "@/lib/photography.functions";
+import { requestPhotographySession, PHOTOGRAPHY_HOURLY_RATE, PAYMENT_LABELS } from "@/lib/photography.functions";
 import {
   usePageGallery,
   PAGE_IMAGE_KEYS,
@@ -74,6 +74,8 @@ function StudioPhotographyPage() {
     time: "10:00",
     hours: "1",
     sessionType: "ניו-בורן",
+    email: "",
+    payment: "cash",
     notes: "",
   });
   useEffect(() => {
@@ -102,6 +104,8 @@ function StudioPhotographyPage() {
           hours: Number(book.hours),
           contact_name: book.name.trim(),
           contact_phone: book.phone.trim(),
+          contact_email: book.email.trim() || null,
+          payment_method: book.payment as "cash" | "transfer" | "bit" | "later",
           session_type: book.sessionType,
           location: tab,
           notes: book.notes || null,
@@ -300,6 +304,18 @@ function StudioPhotographyPage() {
                 ))}
               </select>
             </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[#4a5d43]/80">אימייל לאישור</span>
+              <input className={bookInputCls} dir="ltr" type="email" value={book.email} onChange={(e) => setBook({ ...book, email: e.target.value })} placeholder="you@example.com" />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[#4a5d43]/80">אמצעי תשלום</span>
+              <select className={bookInputCls} value={book.payment} onChange={(e) => setBook({ ...book, payment: e.target.value })}>
+                {Object.entries(PAYMENT_LABELS).map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
+                ))}
+              </select>
+            </label>
             <label className="flex flex-col gap-1.5 sm:col-span-2">
               <span className="text-xs font-semibold text-[#4a5d43]/80">הערות</span>
               <textarea className={bookInputCls} rows={2} value={book.notes} onChange={(e) => setBook({ ...book, notes: e.target.value })} />
@@ -316,7 +332,7 @@ function StudioPhotographyPage() {
               <CalendarDays size={18} /> {sending ? "שולח…" : "קביעת מועד ביומן"}
             </button>
             <span className="text-sm text-[#4a5d43]/80">
-              עלות משוערת: <strong>₪{bookPrice}</strong> · לאחר תיאום עם הצלמת
+              עלות משוערת: <strong>₪{bookPrice}</strong> · תשלום ב{PAYMENT_LABELS[book.payment]} · אישור נשלח במייל
             </span>
           </div>
         </div>
