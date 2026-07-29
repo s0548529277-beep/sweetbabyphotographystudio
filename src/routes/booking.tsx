@@ -26,11 +26,10 @@ import { checkItemsAvailability } from "@/lib/orders.functions";
 import { toast } from "sonner";
 import { he } from "date-fns/locale";
 import { Lock, Clock, Sparkles, CalendarDays, Package, X, Search } from "lucide-react";
-import catalogData from "@/data/studio-catalog.json";
+import { useCatalogItems, type CatalogItem } from "@/lib/catalog";
 
-type CatItem = { sku: string; name: string; alt: string; price: number };
-type Cat = { title: string; items: CatItem[] };
-const ALL_PROPS: CatItem[] = (catalogData as Cat[]).flatMap((c) => c.items);
+type CatItem = CatalogItem;
+
 
 export const Route = createFileRoute("/booking")({
   component: Booking,
@@ -102,6 +101,8 @@ function Booking() {
   const nav = useNavigate();
   const place = useServerFn(placeBooking);
   const checkAvail = useServerFn(checkItemsAvailability);
+  // Live catalog — reflects edits made in /admin/items right away.
+  const ALL_PROPS: CatItem[] = useCatalogItems();
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [existing, setExisting] = useState<Booking[]>([]);
   const [closures, setClosures] = useState<{ date: string; closed: boolean; open_time: string | null; close_time: string | null }[]>([]);
@@ -129,7 +130,7 @@ function Booking() {
       .catch(() => { if (!cancelled) setPropAvail(null); })
       .finally(() => { if (!cancelled) setPropAvailLoading(false); });
     return () => { cancelled = true; };
-  }, [date, checkAvail]);
+  }, [date, checkAvail, ALL_PROPS]);
 
   // Drop props that became unavailable for the newly picked date.
   useEffect(() => {
@@ -155,7 +156,7 @@ function Booking() {
     return ALL_PROPS.filter((p) =>
       p.sku.includes(q) || (p.name || "").toLowerCase().includes(q) || (p.alt || "").toLowerCase().includes(q),
     ).slice(0, 60);
-  }, [propQuery]);
+  }, [propQuery, ALL_PROPS]);
   const toggleSku = (sku: string) =>
     setReservedSkus((prev) =>
       prev.includes(sku) ? prev.filter((s) => s !== sku) : prev.length >= 20 ? prev : [...prev, sku],

@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import catalogData from "@/data/studio-catalog.json";
 import { smartSearchItems } from "@/lib/ai.functions";
 import { checkItemsAvailability } from "@/lib/orders.functions";
 import { useCart } from "@/lib/cart";
@@ -32,12 +31,14 @@ export const Route = createFileRoute("/rental-catalog")({
 
 import { PropInspirationImage } from "@/components/PropInspirationImage";
 import { mergedInspiration, useItemInspiration } from "@/lib/item-inspiration";
+import { useCatalogCategories, type CatalogCategory, type CatalogItem } from "@/lib/catalog";
 
-type Item = { sku: string; name: string; price: number; img: string; alt: string; hasHand?: boolean };
-type Category = { title: string; items: Item[] };
-const categories = catalogData as Category[];
+type Item = CatalogItem;
+type Category = CatalogCategory;
 
 function RentalCatalogPage() {
+  // Live catalog — admin edits (name/price/category/image) show up here.
+  const categories = useCatalogCategories();
   const { lines, add, remove, subtotal, count } = useCart();
   const nav = useNavigate();
   const inCart = useMemo(() => new Set(lines.map((l) => l.id)), [lines]);
@@ -65,7 +66,7 @@ function RentalCatalogPage() {
 
 
   const remoteInspiration = useItemInspiration();
-  const allItems = useMemo(() => categories.flatMap((c) => c.items), []);
+  const allItems = useMemo(() => categories.flatMap((c) => c.items), [categories]);
   const inspirationImages = useMemo(
     () => allItems.filter((it) => it.hasHand && it.img).map((it) => it.img),
     [allItems],
@@ -117,7 +118,7 @@ function RentalCatalogPage() {
         }),
       }))
       .filter((c) => c.items.length > 0);
-  }, [query, aiSkus, activeCat]);
+  }, [query, aiSkus, activeCat, categories]);
 
   const doAiSearch = async () => {
     const q = query.trim();
