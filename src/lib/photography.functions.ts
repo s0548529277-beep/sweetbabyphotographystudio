@@ -5,16 +5,26 @@ import { z } from "zod";
 /** Photography session with Michal, booked into the studio calendar. */
 export const PHOTOGRAPHY_HOURLY_RATE = 300;
 
+export const PAYMENT_LABELS: Record<string, string> = {
+  cash: "מזומן בסטודיו",
+  transfer: "העברה בנקאית",
+  bit: "ביט / פייבוקס",
+  later: "סגירה טלפונית עם הצלמת",
+};
+
 const schema = z.object({
   session_date: z.string().min(10),
   start_time: z.string().regex(/^\d{2}:\d{2}$/),
   hours: z.number().min(0.5).max(8),
   contact_name: z.string().min(1).max(120),
   contact_phone: z.string().min(5).max(40),
+  contact_email: z.string().email().max(160).optional().nullable(),
+  payment_method: z.enum(["cash", "transfer", "bit", "later"]).default("cash"),
   session_type: z.string().max(80).optional().nullable(),
   location: z.enum(["studio", "outdoor"]).default("studio"),
   notes: z.string().max(1000).optional().nullable(),
 });
+
 
 export const requestPhotographySession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
