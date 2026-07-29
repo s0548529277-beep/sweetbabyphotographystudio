@@ -26,11 +26,10 @@ import { checkItemsAvailability } from "@/lib/orders.functions";
 import { toast } from "sonner";
 import { he } from "date-fns/locale";
 import { Lock, Clock, Sparkles, CalendarDays, Package, X, Search } from "lucide-react";
-import catalogData from "@/data/studio-catalog.json";
+import { useCatalogItems, type CatalogItem } from "@/lib/catalog";
 
-type CatItem = { sku: string; name: string; alt: string; price: number };
-type Cat = { title: string; items: CatItem[] };
-const ALL_PROPS: CatItem[] = (catalogData as Cat[]).flatMap((c) => c.items);
+type CatItem = CatalogItem;
+
 
 export const Route = createFileRoute("/booking")({
   component: Booking,
