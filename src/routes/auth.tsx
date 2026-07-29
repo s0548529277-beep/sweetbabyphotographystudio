@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth";
+import { MIN_PIN, authPasswordCandidates, toAuthPassword } from "@/lib/password";
 import { toast } from "sonner";
 
 const searchSchema = z.object({ redirect: z.string().optional() });
@@ -44,12 +45,16 @@ function AuthPage() {
     e.preventDefault();
     setBusy(true);
     const fd = new FormData(e.currentTarget);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: String(fd.get("email")),
-      password: String(fd.get("password")),
-    });
+    const email = String(fd.get("email"));
+    const typed = String(fd.get("password"));
+    let lastError: string | null = null;
+    for (const password of authPasswordCandidates(typed)) {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (!error) { lastError = null; break; }
+      lastError = error.message;
+    }
     setBusy(false);
-    if (error) toast.error(error.message);
+    if (lastError) toast.error(lastError);
   };
 
   const sendReset = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -75,7 +80,7 @@ function AuthPage() {
     const fd = new FormData(e.currentTarget);
     const { error } = await supabase.auth.signUp({
       email: String(fd.get("email")),
-      password: String(fd.get("password")),
+      password: toAuthPassword(String(fd.get("password"))),
       options: {
         emailRedirectTo: window.location.origin,
         data: {
@@ -120,7 +125,7 @@ function AuthPage() {
             <TabsContent value="signin">
               <form onSubmit={signIn} className="space-y-4 mt-6">
                 <Field label="אימייל" name="email" type="email" required />
-                <Field label="סיסמה" name="password" type="password" required />
+                <Field label="סיסמה / קוד סודי" name="password" type="password" required minLength={MIN_PIN} />
                 <Button type="submit" disabled={busy} className="w-full rounded-full h-11">
                   {busy ? "…" : "כניסה"}
                 </Button>
@@ -157,7 +162,7 @@ function AuthPage() {
                 <Field label="שם מלא" name="full_name" required />
                 <Field label="טלפון" name="phone" type="tel" required dir="ltr" />
                 <Field label="אימייל" name="email" type="email" required />
-                <Field label="סיסמה" name="password" type="password" required minLength={6} />
+                <Field label="קוד סודי (4 ספרות ומעלה)" name="password" type="password" required minLength={MIN_PIN} inputMode="numeric" placeholder="למשל 1234" />
                 <Button type="submit" disabled={busy} className="w-full rounded-full h-11">
                   {busy ? "…" : "צור חשבון"}
                 </Button>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { MIN_PIN, toAuthPassword } from "@/lib/password";
 
 export const Route = createFileRoute("/reset-password")({
   component: ResetPasswordPage,
@@ -50,8 +51,8 @@ function ResetPasswordPage() {
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (password.length < 6) {
-      toast.error("הסיסמה חייבת להכיל לפחות 6 תווים");
+    if (password.trim().length < MIN_PIN) {
+      toast.error("הקוד חייב להכיל לפחות 4 תווים");
       return;
     }
     if (password !== confirm) {
@@ -59,7 +60,7 @@ function ResetPasswordPage() {
       return;
     }
     setBusy(true);
-    const { error } = await supabase.auth.updateUser({ password });
+    const { error } = await supabase.auth.updateUser({ password: toAuthPassword(password) });
     setBusy(false);
     if (error) {
       toast.error(error.message);
@@ -99,7 +100,7 @@ function ResetPasswordPage() {
                   id="password"
                   type="password"
                   required
-                  minLength={6}
+                  minLength={MIN_PIN}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="mt-1"
@@ -111,7 +112,7 @@ function ResetPasswordPage() {
                   id="confirm"
                   type="password"
                   required
-                  minLength={6}
+                  minLength={MIN_PIN}
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   className="mt-1"
