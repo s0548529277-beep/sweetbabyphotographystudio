@@ -10,6 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { useProfilePrefill } from "@/hooks/use-profile";
+import { GuestContinueButton } from "@/components/GuestContinueButton";
+
 
 import { useServerFn } from "@tanstack/react-start";
 import { placeOrder, checkItemsAvailability } from "@/lib/orders.functions";
