@@ -187,7 +187,7 @@ function Booking() {
   const daySlots = useMemo(() => (date ? slotsForDate(date, closures) : []), [date, closures]);
   const grouped = useMemo(() => groupSlots(daySlots), [daySlots]);
 
-  const isNewborn = /ניו.?בורן/.test(profile.sessionType || "");
+  
   const guidanceKey = (profile.guidance || "basic") as keyof typeof GUIDANCE_FEES;
   const guidanceFee = GUIDANCE_FEES[guidanceKey] ?? 0;
 
