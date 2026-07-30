@@ -115,12 +115,16 @@ function Checkout() {
         <section className="container-page py-24 flex-1">
           <div className="max-w-md mx-auto text-center glass-card rounded-3xl p-10">
             <Lock className="h-8 w-8 text-primary/40 mx-auto mb-3" />
-            <h2 className="font-display text-3xl text-primary mb-2">התחברות נדרשת</h2>
-            <p className="text-muted-foreground text-sm mb-6">כדי לשמור את ההזמנה, יש להיכנס תחילה.</p>
+            <h2 className="font-display text-3xl text-primary mb-2">התחברות או מצב אורח</h2>
+            <p className="text-muted-foreground text-sm mb-6">אפשר להתחבר כדי לשמור היסטוריית הזמנות, או להמשיך ללא הרשמה.</p>
             <Link to="/auth" search={{ redirect: "/checkout" }}>
               <Button className="rounded-full w-full">התחברות</Button>
             </Link>
+            <div className="mt-3">
+              <GuestContinueButton />
+            </div>
           </div>
+
         </section>
         <Footer />
       </div>
