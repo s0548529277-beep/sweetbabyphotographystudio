@@ -302,16 +302,15 @@ function Booking() {
             </div>
             <p className="text-xs text-[#2d3d2b]/55 mb-4">
               מינימום שעה (2 חצאי שעות).
-              {isNewborn
-                ? ` חבילת ניו-בורן — 3 שעות ב-₪${MORNING_PACKAGE_PRICE}, בחלונות 08:00, 09:00 או 10:00 (עד 13:00).`
-                : ` חבילת בוקר ניו-בורן 3 שעות · ₪${MORNING_PACKAGE_PRICE} — זמינה למי שבחרה "ניו-בורן" בשאלון.`}
+              {` חבילת בוקר ניו-בורן — 3 שעות מלאות ב-₪${MORNING_PACKAGE_PRICE}, בחלונות 08:00, 09:00 או 10:00 (עד 13:00). בחירה בחבילה משריינת אוטומטית 3 שעות ביומן.`}
             </p>
 
-            {date && isNewborn && (
+            {date && (
               <div className="mb-5 rounded-2xl border border-[#e8b4bc] bg-[#e8b4bc]/15 p-4">
                 <div className="text-[10px] tracking-[0.28em] uppercase text-[#6b8a63] mb-2">
                   חבילת ניו-בורן · 3 שעות · ₪{MORNING_PACKAGE_PRICE}
                 </div>
+
                 <div className="flex flex-wrap gap-2">
                   {MORNING_PACKAGE_STARTS.map((s) => {
                     const taken = overlaps(s, 6, existing) || !daySlots.includes(s);
