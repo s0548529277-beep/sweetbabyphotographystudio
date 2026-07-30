@@ -162,6 +162,19 @@ function Deposit() {
                   ))}
                 </div>
 
+                {/* Credit card clearing is not live yet — shown but blocked. */}
+                <button
+                  type="button"
+                  disabled
+                  className="w-full h-12 rounded-xl text-sm border border-dashed border-border bg-muted/40 text-muted-foreground cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <CreditCard className="h-4 w-4" /> תשלום בכרטיס אשראי · בקרוב
+                </button>
+                <p className="text-[11px] text-muted-foreground -mt-2">
+                  סליקה באשראי תיפתח בקרוב. בינתיים אפשר לשלם בהעברה בנקאית או ב-Bit/PayBox{isStudio ? "" : " / מזומן"}.
+                </p>
+
+
                 {method === "cash" ? (
 
                   <div className="mt-2 p-5 rounded-2xl bg-blush/40 text-primary text-sm space-y-2">

@@ -27,6 +27,8 @@ import { toast } from "sonner";
 import { he } from "date-fns/locale";
 import { Lock, Clock, Sparkles, CalendarDays, Package, X, Search } from "lucide-react";
 import { useCatalogItems, type CatalogItem } from "@/lib/catalog";
+import { GuestContinueButton } from "@/components/GuestContinueButton";
+
 
 type CatItem = CatalogItem;
 
@@ -185,7 +187,7 @@ function Booking() {
   const daySlots = useMemo(() => (date ? slotsForDate(date, closures) : []), [date, closures]);
   const grouped = useMemo(() => groupSlots(daySlots), [daySlots]);
 
-  const isNewborn = /ניו.?בורן/.test(profile.sessionType || "");
+  
   const guidanceKey = (profile.guidance || "basic") as keyof typeof GUIDANCE_FEES;
   const guidanceFee = GUIDANCE_FEES[guidanceKey] ?? 0;
 
@@ -240,12 +242,16 @@ function Booking() {
         <section className="container-page py-24 flex-1" dir="rtl">
           <div className="max-w-md mx-auto text-center bg-white rounded-3xl p-10 border border-[#2d3d2b]/10 shadow-sm">
             <Lock className="h-8 w-8 text-[#6b8a63] mx-auto mb-3" />
-            <h2 className="font-display text-3xl text-[#2d3d2b] mb-2">התחברות נדרשת</h2>
-            <p className="text-[#2d3d2b]/60 text-sm mb-6">כדי לשריין את הסטודיו יש להיכנס לחשבון.</p>
+            <h2 className="font-display text-3xl text-[#2d3d2b] mb-2">התחברות או מצב אורח</h2>
+            <p className="text-[#2d3d2b]/60 text-sm mb-6">אפשר להתחבר לחשבון, או להמשיך לשריון ללא הרשמה.</p>
             <Link to="/auth" search={{ redirect: "/booking" }}>
               <Button className="rounded-full w-full bg-[#2d3d2b] hover:bg-[#1f2b1e] text-[#f8ede4]">התחברות</Button>
             </Link>
+            <div className="mt-3">
+              <GuestContinueButton />
+            </div>
           </div>
+
         </section>
         <Footer />
       </div>
@@ -296,16 +302,15 @@ function Booking() {
             </div>
             <p className="text-xs text-[#2d3d2b]/55 mb-4">
               מינימום שעה (2 חצאי שעות).
-              {isNewborn
-                ? ` חבילת ניו-בורן — 3 שעות ב-₪${MORNING_PACKAGE_PRICE}, בחלונות 08:00, 09:00 או 10:00 (עד 13:00).`
-                : ` חבילת בוקר ניו-בורן 3 שעות · ₪${MORNING_PACKAGE_PRICE} — זמינה למי שבחרה "ניו-בורן" בשאלון.`}
+              {` חבילת בוקר ניו-בורן — 3 שעות מלאות ב-₪${MORNING_PACKAGE_PRICE}, בחלונות 08:00, 09:00 או 10:00 (עד 13:00). בחירה בחבילה משריינת אוטומטית 3 שעות ביומן.`}
             </p>
 
-            {date && isNewborn && (
+            {date && (
               <div className="mb-5 rounded-2xl border border-[#e8b4bc] bg-[#e8b4bc]/15 p-4">
                 <div className="text-[10px] tracking-[0.28em] uppercase text-[#6b8a63] mb-2">
                   חבילת ניו-בורן · 3 שעות · ₪{MORNING_PACKAGE_PRICE}
                 </div>
+
                 <div className="flex flex-wrap gap-2">
                   {MORNING_PACKAGE_STARTS.map((s) => {
                     const taken = overlaps(s, 6, existing) || !daySlots.includes(s);
