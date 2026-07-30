@@ -27,6 +27,8 @@ import { toast } from "sonner";
 import { he } from "date-fns/locale";
 import { Lock, Clock, Sparkles, CalendarDays, Package, X, Search } from "lucide-react";
 import { useCatalogItems, type CatalogItem } from "@/lib/catalog";
+import { GuestContinueButton } from "@/components/GuestContinueButton";
+
 
 type CatItem = CatalogItem;
 
