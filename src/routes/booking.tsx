@@ -240,12 +240,16 @@ function Booking() {
         <section className="container-page py-24 flex-1" dir="rtl">
           <div className="max-w-md mx-auto text-center bg-white rounded-3xl p-10 border border-[#2d3d2b]/10 shadow-sm">
             <Lock className="h-8 w-8 text-[#6b8a63] mx-auto mb-3" />
-            <h2 className="font-display text-3xl text-[#2d3d2b] mb-2">התחברות נדרשת</h2>
-            <p className="text-[#2d3d2b]/60 text-sm mb-6">כדי לשריין את הסטודיו יש להיכנס לחשבון.</p>
+            <h2 className="font-display text-3xl text-[#2d3d2b] mb-2">התחברות או מצב אורח</h2>
+            <p className="text-[#2d3d2b]/60 text-sm mb-6">אפשר להתחבר לחשבון, או להמשיך לשריון ללא הרשמה.</p>
             <Link to="/auth" search={{ redirect: "/booking" }}>
               <Button className="rounded-full w-full bg-[#2d3d2b] hover:bg-[#1f2b1e] text-[#f8ede4]">התחברות</Button>
             </Link>
+            <div className="mt-3">
+              <GuestContinueButton />
+            </div>
           </div>
+
         </section>
         <Footer />
       </div>
