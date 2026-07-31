@@ -139,7 +139,9 @@ function Account() {
           </aside>
 
           <div className="space-y-8">
+            <GoogleCompleteCard phone={profile.phone} onPhoneSaved={(p) => setProfile((x) => ({ ...x, phone: p }))} />
             {/* Current cart */}
+
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-display text-3xl text-primary flex items-center gap-2">
