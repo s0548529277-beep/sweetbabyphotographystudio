@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
+import { ArrivalDirections } from "@/components/ArrivalDirections";
 import { Copy, Check, Upload, Banknote, CreditCard, Wallet } from "lucide-react";
 
 export const Route = createFileRoute("/deposit/$type/$id")({
@@ -64,6 +65,12 @@ function Deposit() {
   const payNow = isStudio ? Math.min(90, total) : total;
   const balanceLeft = Math.max(0, total - payNow);
   const needsReceipt = method !== "cash";
+  const timeText = record?.start_time
+    ? `${new Date(record.session_date ?? record.scheduled_date ?? Date.now()).toLocaleDateString("he-IL")} · ${String(record.start_time).slice(0, 5)}–${String(record.end_time).slice(0, 5)}`
+    : record?.scheduled_date
+      ? new Date(record.scheduled_date).toLocaleDateString("he-IL")
+      : "";
+
 
   const submit = async () => {
     if (!user) return;
