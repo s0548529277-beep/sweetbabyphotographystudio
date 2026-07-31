@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
 import { ProductImage } from "@/components/ProductImage";
+import { GoogleCompleteCard } from "@/components/GoogleCompleteCard";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { cancelBooking, cancelOrder } from "@/lib/bookings.functions";
@@ -139,7 +140,9 @@ function Account() {
           </aside>
 
           <div className="space-y-8">
+            <GoogleCompleteCard phone={profile.phone} onPhoneSaved={(p: string) => setProfile((x) => ({ ...x, phone: p }))} />
             {/* Current cart */}
+
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-display text-3xl text-primary flex items-center gap-2">

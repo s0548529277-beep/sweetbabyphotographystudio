@@ -26,6 +26,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
+import { Route as PhotoThanksIdRouteImport } from './routes/photo-thanks.$id'
 import { Route as ItemsIdRouteImport } from './routes/items.$id'
 import { Route as BlogEssentialNewbornPropsRouteImport } from './routes/blog.essential-newborn-props'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
@@ -124,6 +125,11 @@ const IndexRoute = IndexRouteImport.update({
 const BlogIndexRoute = BlogIndexRouteImport.update({
   id: '/blog/',
   path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PhotoThanksIdRoute = PhotoThanksIdRouteImport.update({
+  id: '/photo-thanks/$id',
+  path: '/photo-thanks/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ItemsIdRoute = ItemsIdRouteImport.update({
@@ -230,6 +236,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
   '/items/$id': typeof ItemsIdRoute
+  '/photo-thanks/$id': typeof PhotoThanksIdRoute
   '/blog/': typeof BlogIndexRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
@@ -262,6 +269,7 @@ export interface FileRoutesByTo {
   '/account': typeof AuthenticatedAccountRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
   '/items/$id': typeof ItemsIdRoute
+  '/photo-thanks/$id': typeof PhotoThanksIdRoute
   '/blog': typeof BlogIndexRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
@@ -297,6 +305,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
   '/items/$id': typeof ItemsIdRoute
+  '/photo-thanks/$id': typeof PhotoThanksIdRoute
   '/blog/': typeof BlogIndexRoute
   '/_authenticated/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/_authenticated/admin/clients': typeof AuthenticatedAdminClientsRoute
@@ -332,6 +341,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/blog/essential-newborn-props'
     | '/items/$id'
+    | '/photo-thanks/$id'
     | '/blog/'
     | '/admin/calendar'
     | '/admin/clients'
@@ -364,6 +374,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/blog/essential-newborn-props'
     | '/items/$id'
+    | '/photo-thanks/$id'
     | '/blog'
     | '/admin/calendar'
     | '/admin/clients'
@@ -398,6 +409,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/blog/essential-newborn-props'
     | '/items/$id'
+    | '/photo-thanks/$id'
     | '/blog/'
     | '/_authenticated/admin/calendar'
     | '/_authenticated/admin/clients'
@@ -431,6 +443,7 @@ export interface RootRouteChildren {
   TrackRoute: typeof TrackRoute
   BlogEssentialNewbornPropsRoute: typeof BlogEssentialNewbornPropsRoute
   ItemsIdRoute: typeof ItemsIdRoute
+  PhotoThanksIdRoute: typeof PhotoThanksIdRoute
   BlogIndexRoute: typeof BlogIndexRoute
   DepositTypeIdRoute: typeof DepositTypeIdRoute
   SummaryTypeIdRoute: typeof SummaryTypeIdRoute
@@ -555,6 +568,13 @@ declare module '@tanstack/react-router' {
       path: '/blog'
       fullPath: '/blog/'
       preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/photo-thanks/$id': {
+      id: '/photo-thanks/$id'
+      path: '/photo-thanks/$id'
+      fullPath: '/photo-thanks/$id'
+      preLoaderRoute: typeof PhotoThanksIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/items/$id': {
@@ -724,6 +744,7 @@ const rootRouteChildren: RootRouteChildren = {
   TrackRoute: TrackRoute,
   BlogEssentialNewbornPropsRoute: BlogEssentialNewbornPropsRoute,
   ItemsIdRoute: ItemsIdRoute,
+  PhotoThanksIdRoute: PhotoThanksIdRoute,
   BlogIndexRoute: BlogIndexRoute,
   DepositTypeIdRoute: DepositTypeIdRoute,
   SummaryTypeIdRoute: SummaryTypeIdRoute,

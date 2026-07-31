@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { PHOTOGRAPHY_HOURLY_RATE, PAYMENT_LABELS } from "@/lib/photography-options";
+import { ARRIVAL_TEXT_HE } from "@/lib/arrival";
 
 
 const schema = z.object({
@@ -135,4 +136,52 @@ export const requestPhotographySession = createServerFn({ method: "POST" })
 
     return { id: booking.id, price, end_time: endTime };
 
+  });
+
+/** Closes a photography booking from the thank-you page (cash on site / other) and mails the customer. */
+export const finalizePhotographySession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        payment_method: z.enum(["cash", "transfer", "bit", "later"]).default("cash"),
+        email: z.string().email().max(160).optional().nullable(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: booking, error } = await supabase
+      .from("bookings")
+      .update({ balance_method: data.payment_method, deposit_status: data.payment_method === "cash" ? "cash_pending" : "pending" })
+      .eq("id", data.id)
+      .select("*")
+      .single();
+    if (error || !booking) throw new Error(error?.message ?? "סגירת ההזמנה נכשלה");
+
+    try {
+      const { data: userRes } = await supabase.auth.getUser();
+      const customerEmail = data.email || userRes?.user?.email || undefined;
+      const hours = `${String(booking.start_time).slice(0, 5)}–${String(booking.end_time).slice(0, 5)}`;
+      const html = `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:600px;margin:auto">
+        <h2>ההזמנה אושרה ונשלחה במייל ✓</h2>
+        <p>שלום ${booking.contact_name ?? ""},</p>
+        <p>הסשן שלך נקבע לתאריך <strong>${booking.session_date}</strong>, בשעות <strong>${hours}</strong>.</p>
+        <p><strong>יש להקפיד על הזמנים.</strong></p>
+        <p>אמצעי תשלום: ${PAYMENT_LABELS[data.payment_method] ?? data.payment_method}</p>
+        <pre style="font-family:Arial,sans-serif;white-space:pre-wrap;background:#faf7f4;padding:12px;border-radius:8px">${ARRIVAL_TEXT_HE}</pre>
+        <p style="color:#6b8a63;font-size:13px">Sweetbaby · תלמוד ירושלמי 24, בית שמש · 054-8529277</p>
+      </div>`;
+      const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+      await sendStudioAndCustomer({
+        customerEmail,
+        subject: `אישור סשן צילום · ${booking.contact_name ?? ""} · ${booking.session_date}`,
+        html,
+      });
+    } catch (e) {
+      console.error("[SWEETBABY] finalize photography email failed", e);
+    }
+
+    return { ok: true, session_date: booking.session_date, start_time: booking.start_time, end_time: booking.end_time };
   });

@@ -5,7 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
-import { Camera, Package } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import { listClientEmails, setClientPassword, updateClientProfile } from "@/lib/admin-clients.functions";
+import { Camera, Package, Pencil } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/clients")({
   component: ClientsAdmin,
@@ -13,7 +16,10 @@ export const Route = createFileRoute("/_authenticated/admin/clients")({
 
 function ClientsAdmin() {
   const [q, setQ] = useState("");
-  const [open, setOpen] = useState<{ id: string; view: "order" | "booking" } | null>(null);
+  const [open, setOpen] = useState<{ id: string; view: "order" | "booking" | "edit" } | null>(null);
+  const fetchEmails = useServerFn(listClientEmails);
+  const emailsQ = useQuery({ queryKey: ["admin-client-emails"], queryFn: () => fetchEmails({ data: {} } as any) });
+  const emails: Record<string, string> = (emailsQ.data as any) ?? {};
 
   const clients = useQuery({
     queryKey: ["admin-clients"],
@@ -34,18 +40,22 @@ function ClientsAdmin() {
 
 
   const filtered = (clients.data ?? []).filter((c: any) =>
-    !q || (c.full_name ?? "").toLowerCase().includes(q.toLowerCase()) || (c.phone ?? "").includes(q),
+    !q ||
+    (c.full_name ?? "").toLowerCase().includes(q.toLowerCase()) ||
+    (c.phone ?? "").includes(q) ||
+    (emails[c.id] ?? "").toLowerCase().includes(q.toLowerCase()),
   );
 
   return (
     <div className="space-y-4">
-      <Input placeholder="חיפוש שם או טלפון…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm rounded-full" />
+      <Input placeholder="חיפוש שם, טלפון או אימייל…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm rounded-full" />
       <div className="bg-card rounded-2xl border border-primary/5 overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-cream/60 text-right">
             <tr>
               <th className="p-3 font-medium">שם</th>
               <th className="p-3 font-medium">טלפון</th>
+              <th className="p-3 font-medium">אימייל</th>
               <th className="p-3 font-medium">כתובת</th>
               <th className="p-3 font-medium">צפייה</th>
               <th className="p-3 font-medium">סה״כ צריכה</th>
@@ -66,6 +76,7 @@ function ClientsAdmin() {
                   <tr key={c.id} className="border-t border-border">
                     <td className="p-3 font-medium">{c.full_name || "—"}</td>
                     <td className="p-3" dir="ltr">{c.phone || "—"}</td>
+                    <td className="p-3 text-muted-foreground" dir="ltr">{emails[c.id] || "—"}</td>
                     <td className="p-3 text-muted-foreground">{c.address || "—"}</td>
                     <td className="p-3">
                       <div className="flex gap-2">
@@ -85,6 +96,14 @@ function ClientsAdmin() {
                         >
                           <Camera className="h-3.5 w-3.5" /> סטודיו ({bookings.length})
                         </Button>
+                        <Button
+                          size="sm"
+                          variant={isOpen && open!.view === "edit" ? "default" : "outline"}
+                          className="rounded-full gap-1.5 h-8"
+                          onClick={() => setOpen(isOpen && open!.view === "edit" ? null : { id: c.id, view: "edit" })}
+                        >
+                          <Pencil className="h-3.5 w-3.5" /> עריכה
+                        </Button>
                       </div>
                     </td>
                     <td className="p-3 font-display text-peach-deep">₪{total.toFixed(0)}</td>
@@ -92,8 +111,10 @@ function ClientsAdmin() {
                   </tr>
                   {isOpen && (
                     <tr className="bg-cream/40">
-                      <td colSpan={6} className="p-4">
-                        {list.length === 0 ? (
+                      <td colSpan={7} className="p-4">
+                        {open!.view === "edit" ? (
+                          <ClientEditor client={c} email={emails[c.id] ?? ""} onSaved={() => clients.refetch()} />
+                        ) : list.length === 0 ? (
                           <div className="text-muted-foreground text-sm">
                             {open!.view === "order" ? "אין הזמנות אביזרים" : "אין השכרות סטודיו"}
                           </div>
@@ -125,10 +146,59 @@ function ClientsAdmin() {
                 </>
               );
             })}
-            {filtered.length === 0 && <tr><td colSpan={6} className="p-16 text-center text-muted-foreground">אין לקוחות עדיין.</td></tr>}
+            {filtered.length === 0 && <tr><td colSpan={7} className="p-16 text-center text-muted-foreground">אין לקוחות עדיין.</td></tr>}
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+/** Admin editing of a client's details + password (email itself is immutable). */
+function ClientEditor({ client, email, onSaved }: { client: any; email: string; onSaved: () => void }) {
+  const [f, setF] = useState({
+    full_name: client.full_name ?? "",
+    phone: client.phone ?? "",
+    address: client.address ?? "",
+    city: client.city ?? "",
+    discount_code: client.discount_code ?? "",
+    notes: client.notes ?? "",
+  });
+  const [pw, setPw] = useState("");
+  const [busy, setBusy] = useState(false);
+  const saveProfile = useServerFn(updateClientProfile);
+  const savePassword = useServerFn(setClientPassword);
+
+  const submit = async () => {
+    setBusy(true);
+    try {
+      await saveProfile({ data: { user_id: client.id, ...f } });
+      if (pw.trim()) {
+        await savePassword({ data: { user_id: client.id, password: pw.trim().length >= 6 ? pw.trim() : pw.trim() + ".Sb1" } });
+        setPw("");
+      }
+      toast.success("פרטי הלקוח עודכנו");
+      onSaved();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "העדכון נכשל");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="text-xs text-muted-foreground">אימייל (לא ניתן לשינוי): <span dir="ltr">{email || "—"}</span></div>
+      <div className="grid sm:grid-cols-3 gap-3">
+        <Input placeholder="שם מלא" value={f.full_name} onChange={(e) => setF({ ...f, full_name: e.target.value })} />
+        <Input placeholder="טלפון" dir="ltr" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} />
+        <Input placeholder="כתובת" value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} />
+        <Input placeholder="עיר" value={f.city} onChange={(e) => setF({ ...f, city: e.target.value })} />
+        <Input placeholder="קוד הנחה" dir="ltr" value={f.discount_code} onChange={(e) => setF({ ...f, discount_code: e.target.value })} />
+        <Input placeholder="הערות" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />
+        <Input placeholder="סיסמה חדשה / קוד סודי" dir="ltr" value={pw} onChange={(e) => setPw(e.target.value)} />
+      </div>
+      <Button onClick={submit} disabled={busy} className="rounded-full">{busy ? "שומר…" : "שמירת שינויים"}</Button>
     </div>
   );
 }

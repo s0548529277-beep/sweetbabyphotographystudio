@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth";
 import { MIN_PIN, authPasswordCandidates, toAuthPassword } from "@/lib/password";
+import { GuestContinueButton } from "@/components/GuestContinueButton";
 import { toast } from "sonner";
 
 const searchSchema = z.object({ redirect: z.string().optional() });
@@ -113,9 +114,16 @@ function AuthPage() {
           <Button type="button" onClick={google} variant="outline" className="w-full h-11 rounded-full border-primary/20 gap-2">
             <GoogleIcon /> התחברות עם Google
           </Button>
+          <div className="mt-3">
+            <GuestContinueButton />
+          </div>
+          <p className="text-[11px] text-center text-muted-foreground mt-2">
+            אפשר להזמין גם ללא הרשמה — הפרטים יישמרו במצב אורח.
+          </p>
           <div className="flex items-center gap-3 my-6 text-xs text-muted-foreground">
             <span className="flex-1 h-px bg-border" /> או <span className="flex-1 h-px bg-border" />
           </div>
+
 
           <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
             <TabsList className="w-full grid grid-cols-2 bg-cream">

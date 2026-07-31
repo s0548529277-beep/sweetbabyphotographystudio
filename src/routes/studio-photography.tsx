@@ -98,7 +98,7 @@ function StudioPhotographyPage() {
     }
     setSending(true);
     try {
-      await bookSession({
+      const res = await bookSession({
         data: {
           session_date: book.date,
           start_time: book.time,
@@ -112,12 +112,14 @@ function StudioPhotographyPage() {
           notes: book.notes || null,
         },
       });
-      toast.success("הבקשה נקלטה ביומן הסטודיו ✓ המועד ייקבע סופית לאחר תיאום עם הצלמת.");
+      toast.success("הבקשה נקלטה ביומן הסטודיו ✓");
       setBook((b) => ({ ...b, notes: "" }));
+      nav({ to: "/photo-thanks/$id", params: { id: res.id } });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "קביעת המועד נכשלה");
     } finally {
       setSending(false);
+
     }
   };
 
