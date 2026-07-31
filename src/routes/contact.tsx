@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { ArrivalDirections } from "@/components/ArrivalDirections";
 import { Phone, Mail, MapPin } from "lucide-react";
 
 export const Route = createFileRoute("/contact")({
@@ -65,6 +66,9 @@ function Contact() {
             </a>
           ))}
         </div>
+
+        <ArrivalDirections className="mt-12" />
+
       </section>
       <Footer />
     </div>

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { ArrivalDirections } from "@/components/ArrivalDirections";
 import { Camera, Aperture, Clock, Sparkles, Phone, Mail, MapPin } from "lucide-react";
 
 export const Route = createFileRoute("/about")({
@@ -100,10 +101,13 @@ function About() {
           </div>
         </div>
 
+        <ArrivalDirections className="mt-14" />
+
         <div className="mt-16 flex gap-3">
           <Link to="/rental-catalog"><Button className="rounded-full px-7 h-12">לקטלוג</Button></Link>
           <Link to="/studio-rental"><Button variant="outline" className="rounded-full px-7 h-12">השכרת סטודיו</Button></Link>
         </div>
+
       </section>
       <Footer />
     </div>
