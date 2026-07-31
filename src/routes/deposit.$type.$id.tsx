@@ -126,23 +126,30 @@ function Deposit() {
 
 
           {done ? (
-            <div className="glass-card rounded-3xl p-10 text-center">
-              <div className="mx-auto h-14 w-14 rounded-full bg-forest/10 flex items-center justify-center mb-4">
-                <Check className="h-7 w-7 text-forest" />
+            <div className="space-y-6">
+              <div className="glass-card rounded-3xl p-10 text-center">
+                <div className="mx-auto h-14 w-14 rounded-full bg-forest/10 flex items-center justify-center mb-4">
+                  <Check className="h-7 w-7 text-forest" />
+                </div>
+                <h2 className="font-display text-3xl text-primary mb-2">ההזמנה אושרה ונשלחה במייל ✓</h2>
+                {timeText && (
+                  <p className="text-primary font-medium mb-2">
+                    השעות שלך הן <span dir="ltr">{timeText}</span> — יש להקפיד על הזמנים.
+                  </p>
+                )}
+                <p className="text-muted-foreground mb-6">
+                  {method === "cash"
+                    ? "התשלום יבוצע במזומן ביום האיסוף. אישור נשלח למייל."
+                    : "קיבלנו את האסמכתא ואישור נשלח למייל. מחכות לפגוש אותך!"}
+                </p>
+                <Link to="/account">
+                  <Button className="rounded-full">לחשבון שלי</Button>
+                </Link>
               </div>
-              <h2 className="font-display text-3xl text-primary mb-2">
-                {method === "cash" ? "ההזמנה נשמרה" : "קיבלנו את האסמכתא"}
-              </h2>
-              <p className="text-muted-foreground mb-6">
-                {method === "cash"
-                  ? "התשלום יבוצע במזומן ביום האיסוף. נשלח אישור למייל."
-                  : "נשלח לך אישור סופי במייל. מחכות לפגוש אותך!"}
-              </p>
-              <Link to="/account">
-                <Button className="rounded-full">לחשבון שלי</Button>
-              </Link>
+              <ArrivalDirections />
             </div>
           ) : (
+
             <div className="grid md:grid-cols-2 gap-6">
               <div className="glass-card rounded-3xl p-6 space-y-4">
                 <div className="flex items-center gap-2 mb-2">
