@@ -1,13 +1,6 @@
 import { Car, Bus, MapPin } from "lucide-react";
+export { ARRIVAL_ADDRESS, ARRIVAL_TEXT_HE } from "@/lib/arrival";
 
-export const ARRIVAL_ADDRESS = "תלמוד ירושלמי 24, בית שמש — חדר כחול בחניה";
-
-/** Plain-text version, reused inside emails / confirmations. */
-export const ARRIVAL_TEXT_HE = [
-  "דרכי הגעה:",
-  "ברכב — לרשום בוויז: תלמוד ירושלמי 24, בית שמש. הסטודיו נמצא בחדר הכחול בחניה.",
-  "באוטובוס — קווים 2 / 4 / 6, לרדת בתחנה פומפדיתא / שדרות האמוראים. משם לגשת לבית שדרות האמוראים 57-59, יש מעבר עם מדרגות; בסוף המעבר בצד ימין זה בניין 24. הסטודיו בחדר הכחול בחניה.",
-].join("\n");
 
 /** Shared arrival instructions block (car + bus) for the studio. */
 export function ArrivalDirections({ className = "" }: { className?: string }) {
