@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Images, Loader2, Trash2, Upload, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { builtinEntries, fetchPageImages, PAGE_IMAGE_KEYS, rowUrl, type PageImage } from "@/lib/page-images";
+import { builtinEntries, fetchPageImages, PAGE_IMAGE_KEYS, resolveAspect, rowUrl, saveAspect, type PageImage } from "@/lib/page-images";
 
 export const Route = createFileRoute("/_authenticated/admin/gallery")({
   component: AdminGalleryPage,
@@ -14,6 +14,8 @@ const TABS = [
   { key: PAGE_IMAGE_KEYS.studioRental, label: "השכרת סטודיו" },
   { key: PAGE_IMAGE_KEYS.photographyStudio, label: "צילומים – בסטודיו" },
   { key: PAGE_IMAGE_KEYS.photographyOutdoor, label: "צילומים – בטבע" },
+  { key: PAGE_IMAGE_KEYS.homeHero, label: "דף הבית – תמונות מתחלפות" },
+  { key: PAGE_IMAGE_KEYS.rentalInspiration, label: "השכרת אביזרים – תמונות מתחלפות" },
 ] as const;
 
 async function uploadToStorage(file: File) {

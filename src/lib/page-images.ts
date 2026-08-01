@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { studioInspirationMap } from "@/lib/inspiration";
+import { STATIC_CATALOG } from "@/lib/catalog";
 
 export const PAGE_IMAGE_KEYS = {
   studioRental: "studio-rental",
@@ -74,6 +75,11 @@ export function builtinEntries(page: string): { key: string; url: string }[] {
   if (page === PAGE_IMAGE_KEYS.photographyStudio) return BUILTIN_PHOTOGRAPHY_STUDIO.map((u) => ({ key: u, url: u }));
   if (page === PAGE_IMAGE_KEYS.photographyOutdoor) return BUILTIN_PHOTOGRAPHY_OUTDOOR.map((u) => ({ key: u, url: u }));
   if (page === PAGE_IMAGE_KEYS.homeHero) return builtinHomeHero();
+  if (page === PAGE_IMAGE_KEYS.rentalInspiration) {
+    return STATIC_CATALOG.flatMap((c) => c.items)
+      .filter((i) => i.hasHand && i.img)
+      .map((i) => ({ key: i.img, url: i.img }));
+  }
   return [];
 }
 
