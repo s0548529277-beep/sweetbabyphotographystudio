@@ -6,6 +6,8 @@ export const PAGE_IMAGE_KEYS = {
   studioRental: "studio-rental",
   photographyStudio: "photography-studio",
   photographyOutdoor: "photography-outdoor",
+  homeHero: "home-hero",
+  rentalInspiration: "rental-inspiration",
 } as const;
 
 export type PageImageKey = (typeof PAGE_IMAGE_KEYS)[keyof typeof PAGE_IMAGE_KEYS];
@@ -48,6 +50,18 @@ export const BUILTIN_PHOTOGRAPHY_OUTDOOR = [
   "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc02946_optimized-scaled.jpg",
 ];
 
+/** Bundled home-hero slides (the rotating rectangle on the homepage). */
+export function builtinHomeHero(): { key: string; url: string }[] {
+  const mods = import.meta.glob("@/assets/home-hero-*.asset.json", { eager: true }) as Record<
+    string,
+    { default?: { url: string }; url?: string }
+  >;
+  return Object.entries(mods)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, mod]) => ({ key, url: mod.default?.url ?? mod.url ?? "" }))
+    .filter((e) => e.url);
+}
+
 /**
  * Bundled images shipped with the site, keyed by a STABLE key.
  * Studio photos are bundled assets whose URL changes between builds, so the
@@ -59,6 +73,7 @@ export function builtinEntries(page: string): { key: string; url: string }[] {
   }
   if (page === PAGE_IMAGE_KEYS.photographyStudio) return BUILTIN_PHOTOGRAPHY_STUDIO.map((u) => ({ key: u, url: u }));
   if (page === PAGE_IMAGE_KEYS.photographyOutdoor) return BUILTIN_PHOTOGRAPHY_OUTDOOR.map((u) => ({ key: u, url: u }));
+  if (page === PAGE_IMAGE_KEYS.homeHero) return builtinHomeHero();
   return [];
 }
 
@@ -108,7 +123,7 @@ export function resolveGalleryImages(page: string, rows: PageImage[] | undefined
   const pending = builtinEntries(page)
     .filter((e) => !adoptedKeys.has(e.key))
     .map((e) => e.url);
-  const managed = list.filter((r) => !r.hidden).map((r) => rowUrl(page, r));
+  const managed = list.filter((r) => !r.hidden && r.source !== "config").map((r) => rowUrl(page, r));
   return Array.from(new Set([...pending, ...managed]));
 }
 
@@ -116,4 +131,36 @@ export function resolveGalleryImages(page: string, rows: PageImage[] | undefined
 export function usePageGallery(page: string) {
   const query = usePageImages(page);
   return { ...query, images: resolveGalleryImages(page, query.data) };
+}
+
+/** Layout setting rows (kept hidden so they never render in a gallery). */
+export type GalleryAspect = "portrait" | "landscape";
+
+export function resolveAspect(rows: PageImage[] | undefined): GalleryAspect {
+  const row = (rows ?? []).find((r) => r.source === "config");
+  return row?.caption === "landscape" ? "landscape" : "portrait";
+}
+
+export async function saveAspect(page: string, aspect: GalleryAspect) {
+  const rows = await fetchPageImages(page);
+  const existing = rows.find((r) => r.source === "config");
+  if (existing) {
+    const { error } = await supabase.from("page_images").update({ caption: aspect }).eq("id", existing.id);
+    if (error) throw error;
+    return;
+  }
+  const { error } = await supabase
+    .from("page_images")
+    .insert({ page, url: "", source: "config", caption: aspect, hidden: true, sort_order: 9999 });
+  if (error) throw error;
+}
+
+/** Resolved gallery + layout aspect for a page. */
+export function usePageGalleryWithAspect(page: string) {
+  const query = usePageImages(page);
+  return {
+    ...query,
+    images: resolveGalleryImages(page, query.data),
+    aspect: resolveAspect(query.data),
+  };
 }
