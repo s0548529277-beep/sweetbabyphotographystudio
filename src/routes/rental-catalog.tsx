@@ -163,7 +163,7 @@ function RentalCatalogPage() {
             </p>
           </div>
           {inspirationImages.length > 0 && (
-            <div className="relative w-full md:w-[320px] aspect-square rounded-3xl overflow-hidden shadow-xl bg-cream mx-auto">
+            <div className={`relative w-full md:w-[320px] ${inspirationGallery.aspect === "landscape" ? "aspect-[16/9]" : "aspect-square"} rounded-3xl overflow-hidden shadow-xl bg-cream mx-auto`}>
               <AnimatePresence mode="wait">
                 <motion.img
                   key={inspoIdx}
