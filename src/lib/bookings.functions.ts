@@ -147,6 +147,13 @@ export const placeBooking = createServerFn({ method: "POST" })
       }
     }
 
+    // Customer email — used both for the calendar invitation and the summary mail.
+    let customerEmail: string | undefined;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      customerEmail = user?.email ?? undefined;
+    } catch { /* ignore */ }
+
     try {
       const { createGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -161,6 +168,8 @@ export const placeBooking = createServerFn({ method: "POST" })
         ].filter(Boolean).join("\n"),
         startISO,
         endISO,
+        location: "תלמוד ירושלמי 24, בית שמש",
+        attendees: customerEmail ? [customerEmail] : [],
       });
       if (event) {
         await supabaseAdmin.from("bookings").update({ google_event_id: event.id }).eq("id", booking.id);
