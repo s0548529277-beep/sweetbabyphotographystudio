@@ -74,7 +74,7 @@ function RentalCatalogPage() {
       inspirationGallery.images.length > 0
         ? inspirationGallery.images
         : allItems.filter((it) => it.hasHand && it.img).map((it) => it.img),
-    [allItems],
+    [allItems, inspirationGallery.images],
   );
   const [inspoIdx, setInspoIdx] = useState(0);
   useEffect(() => {
