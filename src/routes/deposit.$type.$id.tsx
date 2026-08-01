@@ -65,10 +65,15 @@ function Deposit() {
   const payNow = isStudio ? Math.min(90, total) : total;
   const balanceLeft = Math.max(0, total - payNow);
   const needsReceipt = method !== "cash";
-  const timeText = record?.start_time
-    ? `${new Date(record.session_date ?? record.scheduled_date ?? Date.now()).toLocaleDateString("he-IL")} · ${String(record.start_time).slice(0, 5)}–${String(record.end_time).slice(0, 5)}`
-    : record?.scheduled_date
-      ? new Date(record.scheduled_date).toLocaleDateString("he-IL")
+  const pickupTime = record?.pickup_at
+    ? new Date(record.pickup_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
+    : null;
+  const timeText = isStudio
+    ? record?.start_time
+      ? `${new Date(record.session_date ?? Date.now()).toLocaleDateString("he-IL")} · ${String(record.start_time).slice(0, 5)}–${String(record.end_time).slice(0, 5)}`
+      : ""
+    : record?.session_date || record?.scheduled_date
+      ? `${new Date(record.session_date ?? record.scheduled_date).toLocaleDateString("he-IL")}${pickupTime ? ` · ${pickupTime}` : ""}`
       : "";
 
 
