@@ -31,6 +31,7 @@ export const Route = createFileRoute("/rental-catalog")({
 
 import { PropInspirationImage } from "@/components/PropInspirationImage";
 import { mergedInspiration, useItemInspiration } from "@/lib/item-inspiration";
+import { PAGE_IMAGE_KEYS, usePageGalleryWithAspect } from "@/lib/page-images";
 import { useCatalogCategories, type CatalogCategory, type CatalogItem } from "@/lib/catalog";
 
 type Item = CatalogItem;
@@ -67,8 +68,12 @@ function RentalCatalogPage() {
 
   const remoteInspiration = useItemInspiration();
   const allItems = useMemo(() => categories.flatMap((c) => c.items), [categories]);
+  const inspirationGallery = usePageGalleryWithAspect(PAGE_IMAGE_KEYS.rentalInspiration);
   const inspirationImages = useMemo(
-    () => allItems.filter((it) => it.hasHand && it.img).map((it) => it.img),
+    () =>
+      inspirationGallery.images.length > 0
+        ? inspirationGallery.images
+        : allItems.filter((it) => it.hasHand && it.img).map((it) => it.img),
     [allItems],
   );
   const [inspoIdx, setInspoIdx] = useState(0);
