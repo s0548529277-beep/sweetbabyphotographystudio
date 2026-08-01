@@ -205,7 +205,7 @@ function Deposit() {
                       <Wallet className="h-4 w-4 text-blush-deep" /> תשלום במזומן ביום האיסוף
                     </div>
                     <p className="text-muted-foreground">
-                      אין צורך באסמכתא — פשוט אישרי את ההזמנה ונחכה לך עם הסכום ({payNow}₪) ביום האיסוף.
+                      התשלום מראש — נא לבוא עם הסכום <span className="text-primary font-semibold">{payNow}₪</span> ולהביא סכום מדויק. אין צורך באסמכתא.
                     </p>
                   </div>
                 ) : (
