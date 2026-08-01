@@ -42,7 +42,8 @@ function AdminGalleryPage() {
     queryFn: () => fetchPageImages(page),
   });
 
-  const rows = images.data ?? [];
+  const rows = (images.data ?? []).filter((r) => r.source !== "config");
+  const aspect = resolveAspect(images.data);
   const refresh = () => qc.invalidateQueries({ queryKey: ["page-images", page] });
 
   // Bundled site photos are adopted into the gallery automatically, so every
