@@ -203,8 +203,8 @@ export const placeBooking = createServerFn({ method: "POST" })
 // Send confirmation emails (customer + studio) from the studio's Gmail.
     // Includes the signed coordination agreement so everything arrives together.
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const customerEmail = user?.email;
+
+
 
 
       // Latest signed intake for this user
