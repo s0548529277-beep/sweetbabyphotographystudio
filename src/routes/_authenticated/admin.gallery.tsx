@@ -184,6 +184,35 @@ function AdminGalleryPage() {
         ))}
       </div>
 
+      {(page === PAGE_IMAGE_KEYS.homeHero || page === PAGE_IMAGE_KEYS.rentalInspiration) && (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-primary/10 bg-card p-3">
+          <span className="text-sm text-muted-foreground">פורמט התמונות באתר:</span>
+          {([
+            { key: "portrait", label: "לגובה (4:5)" },
+            { key: "landscape", label: "לרוחב (16:9)" },
+          ] as const).map((o) => (
+            <button
+              key={o.key}
+              type="button"
+              onClick={async () => {
+                try {
+                  await saveAspect(page, o.key);
+                  refresh();
+                  toast.success("הפורמט עודכן");
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "שגיאה בעדכון");
+                }
+              }}
+              className={`px-4 h-9 rounded-full text-sm border ${
+                aspect === o.key ? "bg-primary text-primary-foreground border-primary" : "border-primary/15 hover:bg-cream"
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {images.isLoading ? (
         <div className="text-sm text-muted-foreground">טוען...</div>
       ) : rows.length === 0 ? (
