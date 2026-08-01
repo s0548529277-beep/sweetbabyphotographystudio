@@ -108,6 +108,8 @@ export const placeOrder = createServerFn({ method: "POST" })
         session_date: data.session_date,
         scheduled_date: data.session_date,
         return_date: endDate,
+        pickup_at: startISO,
+        return_at: endISO,
         contact_name: data.contact_name,
         contact_phone: data.contact_phone,
         camera_model: data.camera_model ?? null,
