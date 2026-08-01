@@ -147,6 +147,13 @@ export const placeBooking = createServerFn({ method: "POST" })
       }
     }
 
+    // Customer email — used both for the calendar invitation and the summary mail.
+    let customerEmail: string | undefined;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      customerEmail = user?.email ?? undefined;
+    } catch { /* ignore */ }
+
     try {
       const { createGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -161,6 +168,8 @@ export const placeBooking = createServerFn({ method: "POST" })
         ].filter(Boolean).join("\n"),
         startISO,
         endISO,
+        location: "תלמוד ירושלמי 24, בית שמש",
+        attendees: customerEmail ? [customerEmail] : [],
       });
       if (event) {
         await supabaseAdmin.from("bookings").update({ google_event_id: event.id }).eq("id", booking.id);
@@ -194,8 +203,8 @@ export const placeBooking = createServerFn({ method: "POST" })
 // Send confirmation emails (customer + studio) from the studio's Gmail.
     // Includes the signed coordination agreement so everything arrives together.
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const customerEmail = user?.email;
+
+
 
 
       // Latest signed intake for this user
@@ -224,7 +233,7 @@ export const placeBooking = createServerFn({ method: "POST" })
             .join("");
           intakeHtml = `<h3 style="color:#2d3d2b;margin-top:24px">הסכם תיאום ציפיות — חתום ✓</h3>
             <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">${rows}</table>
-            <p style="font-size:12px;color:#6b8a63">הלקוחה אישרה שקראה והסכימה לכללי הסטודיו: שעות פעילות, מחירון וחישוב שעות, מדיניות ביטולים, ניקיון, אחריות ונזקים.</p>`;
+            <p style="font-size:12px;color:#6b8a63">הלקוחה אישרה שקראה והסכימה לכללי הסטודיו: מחירון וחישוב שעות, מדיניות ביטולים, ניקיון, אחריות ונזקים.</p>`;
         }
       } catch (e) { console.error("[SWEETBABY] intake fetch for email failed", e); }
 

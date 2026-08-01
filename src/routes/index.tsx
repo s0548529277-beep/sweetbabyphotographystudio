@@ -6,6 +6,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CountUp } from "@/components/CountUp";
 import heroImg from "@/assets/hero-studio.jpg.asset.json";
+import { PAGE_IMAGE_KEYS, usePageGalleryWithAspect } from "@/lib/page-images";
 import hero0 from "@/assets/home-hero-0.png.asset.json";
 import hero1 from "@/assets/home-hero-1.png.asset.json";
 import hero2 from "@/assets/home-hero-2.png.asset.json";
@@ -70,10 +71,15 @@ const fadeUp = {
 
 function Home() {
   const [slide, setSlide] = useState(0);
+  // Hero slides are managed from /admin/gallery (add / remove / reorder,
+  // and portrait vs landscape); the bundled list is the fallback.
+  const heroGallery = usePageGalleryWithAspect(PAGE_IMAGE_KEYS.homeHero);
+  const slides = heroGallery.images.length > 0 ? heroGallery.images : HERO_SLIDES;
+  const heroAspect = heroGallery.aspect === "landscape" ? "aspect-[16/9]" : "aspect-[4/5]";
   useEffect(() => {
-    const id = setInterval(() => setSlide((s) => (s + 1) % HERO_SLIDES.length), 3800);
+    const id = setInterval(() => setSlide((s) => (s + 1) % slides.length), 3800);
     return () => clearInterval(id);
-  }, []);
+  }, [slides.length]);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f8ede4] text-[#2d3d2b] overflow-hidden" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
@@ -184,11 +190,11 @@ function Home() {
               initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
               className="lg:col-span-5 relative"
             >
-              <div className="relative aspect-[4/5] rounded-[2rem] overflow-hidden shadow-2xl bg-[#f5d5cf]">
+              <div className={`relative ${heroAspect} rounded-[2rem] overflow-hidden shadow-2xl bg-[#f5d5cf]`}>
                 <AnimatePresence mode="wait">
                   <motion.img
                     key={slide}
-                    src={HERO_SLIDES[slide]}
+                    src={slides[slide % slides.length]}
                     alt="רגעים מהסטודיו"
                     initial={{ opacity: 0, scale: 1.06 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -198,7 +204,7 @@ function Home() {
                   />
                 </AnimatePresence>
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-                  {HERO_SLIDES.map((_, i) => (
+                  {slides.map((_, i) => (
                     <button
                       key={i}
                       onClick={() => setSlide(i)}

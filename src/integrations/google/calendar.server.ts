@@ -25,6 +25,10 @@ export type CalendarEventInput = {
   endISO: string;
   timeZone?: string; // defaults to Asia/Jerusalem
   location?: string;
+  /** Emails invited to the event — Google sends them a calendar invitation. */
+  attendees?: string[];
+  /** true → event shows as "free" so it never blocks studio availability. */
+  transparent?: boolean;
 };
 
 export async function createGoogleCalendarEvent(
@@ -32,8 +36,11 @@ export async function createGoogleCalendarEvent(
 ): Promise<{ id: string; htmlLink: string } | null> {
   const calendarId = process.env.GOOGLE_CALENDAR_ID || "primary";
   const timeZone = input.timeZone || "Asia/Jerusalem";
+  const attendees = (input.attendees ?? []).filter(Boolean);
 
-  const res = await fetch(`${GATEWAY_URL}/calendars/${encodeURIComponent(calendarId)}/events`, {
+  const res = await fetch(
+    `${GATEWAY_URL}/calendars/${encodeURIComponent(calendarId)}/events?sendUpdates=all`,
+    {
     method: "POST",
     headers: gatewayHeaders(),
     body: JSON.stringify({
@@ -42,8 +49,11 @@ export async function createGoogleCalendarEvent(
       location: input.location,
       start: { dateTime: input.startISO, timeZone },
       end: { dateTime: input.endISO, timeZone },
+      ...(attendees.length ? { attendees: attendees.map((email) => ({ email })) } : {}),
+      ...(input.transparent ? { transparency: "transparent" } : {}),
     }),
-  });
+    },
+  );
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");

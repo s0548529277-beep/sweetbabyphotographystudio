@@ -31,6 +31,7 @@ export const Route = createFileRoute("/rental-catalog")({
 
 import { PropInspirationImage } from "@/components/PropInspirationImage";
 import { mergedInspiration, useItemInspiration } from "@/lib/item-inspiration";
+import { PAGE_IMAGE_KEYS, usePageGalleryWithAspect } from "@/lib/page-images";
 import { useCatalogCategories, type CatalogCategory, type CatalogItem } from "@/lib/catalog";
 
 type Item = CatalogItem;
@@ -67,9 +68,13 @@ function RentalCatalogPage() {
 
   const remoteInspiration = useItemInspiration();
   const allItems = useMemo(() => categories.flatMap((c) => c.items), [categories]);
+  const inspirationGallery = usePageGalleryWithAspect(PAGE_IMAGE_KEYS.rentalInspiration);
   const inspirationImages = useMemo(
-    () => allItems.filter((it) => it.hasHand && it.img).map((it) => it.img),
-    [allItems],
+    () =>
+      inspirationGallery.images.length > 0
+        ? inspirationGallery.images
+        : allItems.filter((it) => it.hasHand && it.img).map((it) => it.img),
+    [allItems, inspirationGallery.images],
   );
   const [inspoIdx, setInspoIdx] = useState(0);
   useEffect(() => {
@@ -158,7 +163,7 @@ function RentalCatalogPage() {
             </p>
           </div>
           {inspirationImages.length > 0 && (
-            <div className="relative w-full md:w-[320px] aspect-square rounded-3xl overflow-hidden shadow-xl bg-cream mx-auto">
+            <div className={`relative w-full md:w-[320px] ${inspirationGallery.aspect === "landscape" ? "aspect-[16/9]" : "aspect-square"} rounded-3xl overflow-hidden shadow-xl bg-cream mx-auto`}>
               <AnimatePresence mode="wait">
                 <motion.img
                   key={inspoIdx}

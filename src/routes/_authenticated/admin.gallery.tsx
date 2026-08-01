@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Images, Loader2, Trash2, Upload, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { builtinEntries, fetchPageImages, PAGE_IMAGE_KEYS, rowUrl, type PageImage } from "@/lib/page-images";
+import { builtinEntries, fetchPageImages, PAGE_IMAGE_KEYS, resolveAspect, rowUrl, saveAspect, type PageImage } from "@/lib/page-images";
 
 export const Route = createFileRoute("/_authenticated/admin/gallery")({
   component: AdminGalleryPage,
@@ -14,6 +14,8 @@ const TABS = [
   { key: PAGE_IMAGE_KEYS.studioRental, label: "השכרת סטודיו" },
   { key: PAGE_IMAGE_KEYS.photographyStudio, label: "צילומים – בסטודיו" },
   { key: PAGE_IMAGE_KEYS.photographyOutdoor, label: "צילומים – בטבע" },
+  { key: PAGE_IMAGE_KEYS.homeHero, label: "דף הבית – תמונות מתחלפות" },
+  { key: PAGE_IMAGE_KEYS.rentalInspiration, label: "השכרת אביזרים – תמונות מתחלפות" },
 ] as const;
 
 async function uploadToStorage(file: File) {
@@ -40,7 +42,8 @@ function AdminGalleryPage() {
     queryFn: () => fetchPageImages(page),
   });
 
-  const rows = images.data ?? [];
+  const rows = (images.data ?? []).filter((r) => r.source !== "config");
+  const aspect = resolveAspect(images.data);
   const refresh = () => qc.invalidateQueries({ queryKey: ["page-images", page] });
 
   // Bundled site photos are adopted into the gallery automatically, so every
@@ -181,6 +184,35 @@ function AdminGalleryPage() {
           </button>
         ))}
       </div>
+
+      {(page === PAGE_IMAGE_KEYS.homeHero || page === PAGE_IMAGE_KEYS.rentalInspiration) && (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-primary/10 bg-card p-3">
+          <span className="text-sm text-muted-foreground">פורמט התמונות באתר:</span>
+          {([
+            { key: "portrait", label: "לגובה (4:5)" },
+            { key: "landscape", label: "לרוחב (16:9)" },
+          ] as const).map((o) => (
+            <button
+              key={o.key}
+              type="button"
+              onClick={async () => {
+                try {
+                  await saveAspect(page, o.key);
+                  refresh();
+                  toast.success("הפורמט עודכן");
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "שגיאה בעדכון");
+                }
+              }}
+              className={`px-4 h-9 rounded-full text-sm border ${
+                aspect === o.key ? "bg-primary text-primary-foreground border-primary" : "border-primary/15 hover:bg-cream"
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {images.isLoading ? (
         <div className="text-sm text-muted-foreground">טוען...</div>

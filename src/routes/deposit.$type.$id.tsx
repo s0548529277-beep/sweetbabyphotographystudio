@@ -65,10 +65,15 @@ function Deposit() {
   const payNow = isStudio ? Math.min(90, total) : total;
   const balanceLeft = Math.max(0, total - payNow);
   const needsReceipt = method !== "cash";
-  const timeText = record?.start_time
-    ? `${new Date(record.session_date ?? record.scheduled_date ?? Date.now()).toLocaleDateString("he-IL")} · ${String(record.start_time).slice(0, 5)}–${String(record.end_time).slice(0, 5)}`
-    : record?.scheduled_date
-      ? new Date(record.scheduled_date).toLocaleDateString("he-IL")
+  const pickupTime = record?.pickup_at
+    ? new Date(record.pickup_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
+    : null;
+  const timeText = isStudio
+    ? record?.start_time
+      ? `${new Date(record.session_date ?? Date.now()).toLocaleDateString("he-IL")} · ${String(record.start_time).slice(0, 5)}–${String(record.end_time).slice(0, 5)}`
+      : ""
+    : record?.session_date || record?.scheduled_date
+      ? `${new Date(record.session_date ?? record.scheduled_date).toLocaleDateString("he-IL")}${pickupTime ? ` · ${pickupTime}` : ""}`
       : "";
 
 
@@ -141,12 +146,16 @@ function Deposit() {
                 <h2 className="font-display text-3xl text-primary mb-2">ההזמנה אושרה ונשלחה במייל ✓</h2>
                 {timeText && (
                   <p className="text-primary font-medium mb-2">
-                    השעות שלך הן <span dir="ltr">{timeText}</span> — יש להקפיד על הזמנים.
+                    {isStudio ? "השעות שלך הן " : "שעת האיסוף שלך: "}
+                    <span dir="ltr">{timeText}</span> — יש להקפיד על הזמנים.
                   </p>
+                )}
+                {!isStudio && (
+                  <p className="text-sm text-primary/80 mb-2">נא לתאם טלפונית איסוף אביזרים בשעה הרצויה · <span dir="ltr">054-8529277</span></p>
                 )}
                 <p className="text-muted-foreground mb-6">
                   {method === "cash"
-                    ? "התשלום יבוצע במזומן ביום האיסוף. אישור נשלח למייל."
+                    ? `התשלום מראש — נא לבוא עם הסכום ₪${payNow} ולהביא סכום מדויק. אישור נשלח למייל.`
                     : "קיבלנו את האסמכתא ואישור נשלח למייל. מחכות לפגוש אותך!"}
                 </p>
                 <Link to="/account">
@@ -196,7 +205,7 @@ function Deposit() {
                       <Wallet className="h-4 w-4 text-blush-deep" /> תשלום במזומן ביום האיסוף
                     </div>
                     <p className="text-muted-foreground">
-                      אין צורך באסמכתא — פשוט אישרי את ההזמנה ונחכה לך עם הסכום ({payNow}₪) ביום האיסוף.
+                      התשלום מראש — נא לבוא עם הסכום <span className="text-primary font-semibold">{payNow}₪</span> ולהביא סכום מדויק. אין צורך באסמכתא.
                     </p>
                   </div>
                 ) : (

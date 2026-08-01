@@ -108,6 +108,8 @@ export const placeOrder = createServerFn({ method: "POST" })
         session_date: data.session_date,
         scheduled_date: data.session_date,
         return_date: endDate,
+        pickup_at: startISO,
+        return_at: endISO,
         contact_name: data.contact_name,
         contact_phone: data.contact_phone,
         camera_model: data.camera_model ?? null,
@@ -204,19 +206,29 @@ export const placeOrder = createServerFn({ method: "POST" })
     }
 
     // Send confirmation emails (customer + studio) from the studio's Gmail.
+    const pickupTime = data.start_time ?? "09:00";
+    const returnTime = data.end_time ?? "18:00";
+    let customerEmail: string | undefined;
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const customerEmail = user?.email;
+      customerEmail = user?.email ?? undefined;
+    } catch { /* ignore */ }
+
+    try {
       const itemsHtml = orderLines
         .map((l) => `<tr><td style="padding:4px 8px">${l.item_name} (${l.item_sku})</td><td style="padding:4px 8px">×${l.quantity}</td><td style="padding:4px 8px;text-align:left">₪${(l.price * l.quantity).toFixed(0)}</td></tr>`)
         .join("");
+      const { ARRIVAL_TEXT_HE } = await import("@/lib/arrival");
       const html = `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:560px;margin:auto">
-        <h2 style="color:#2d3d2b">ההזמנה שלך התקבלה 💗</h2>
+        <h2 style="color:#2d3d2b">ההזמנה שלך אושרה ונשלחה במייל 💗</h2>
         <p>שלום ${data.contact_name},</p>
         <p>תודה על ההזמנה בסטודיו Sweetbaby. פרטי ההזמנה:</p>
-        <p><strong>איסוף:</strong> ${data.session_date} · <strong>החזרה:</strong> ${endDate}</p>
+        <p><strong>שעת האיסוף שלך:</strong> ${data.session_date} בשעה ${pickupTime}<br/>
+        <strong>החזרה:</strong> ${endDate} בשעה ${returnTime}</p>
+        <p style="background:#fdeef1;padding:10px;border-radius:8px">נא לתאם טלפונית איסוף אביזרים בשעה הרצויה · 054-8529277</p>
         <table style="width:100%;border-collapse:collapse;background:#faf7f4">${itemsHtml}</table>
-        <p style="margin-top:16px"><strong>סה״כ:</strong> ₪${total} · <strong>מקדמה:</strong> ₪${depositAmount} · <strong>יתרה:</strong> ₪${balanceAmount}</p>
+        <p style="margin-top:16px"><strong>סה״כ לתשלום:</strong> ₪${total}</p>
+        <p style="white-space:pre-line;color:#6b8a63;font-size:13px">${ARRIVAL_TEXT_HE}</p>
         <p style="color:#6b8a63;font-size:13px">כתובת הסטודיו: תלמוד ירושלמי 24, בית שמש · לשאלות: s0548529277@gmail.com / 054-8529277</p>
       </div>`;
       const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
@@ -229,7 +241,30 @@ export const placeOrder = createServerFn({ method: "POST" })
       console.error("[SWEETBABY] confirmation email failed", e);
     }
 
-
+    // Add the props pickup to the studio's Google Calendar. Marked
+    // "transparent" so it shows as free time and never blocks studio-rental
+    // availability, and the customer gets a calendar invitation.
+    try {
+      const { createGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
+      await createGoogleCalendarEvent({
+        summary: `איסוף אביזרים · ${data.contact_name}`,
+        description: [
+          `טלפון: ${data.contact_phone}`,
+          `איסוף: ${data.session_date} ${pickupTime} · החזרה: ${endDate} ${returnTime}`,
+          `סה״כ: ₪${total}`,
+          data.camera_model ? `מצלמה: ${data.camera_model}` : null,
+          `אביזרים: ${orderLines.map((l) => `${l.item_sku} ${l.item_name} ×${l.quantity}`).join(", ")}`,
+          data.notes ? `הערות: ${data.notes}` : null,
+        ].filter(Boolean).join("\n"),
+        startISO: `${startDate}T${pickupTime}:00`,
+        endISO: `${startDate}T${String(Math.min(23, Number(pickupTime.slice(0, 2)) + 1)).padStart(2, "0")}:${pickupTime.slice(3, 5)}:00`,
+        location: "תלמוד ירושלמי 24, בית שמש",
+        attendees: customerEmail ? [customerEmail] : [],
+        transparent: true,
+      });
+    } catch (e) {
+      console.error("[SWEETBABY] props calendar sync failed", e);
+    }
 
     return { id: order.id, total, deposit: depositAmount, balance: balanceAmount };
   });
