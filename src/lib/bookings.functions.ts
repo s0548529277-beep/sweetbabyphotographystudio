@@ -233,7 +233,7 @@ export const placeBooking = createServerFn({ method: "POST" })
             .join("");
           intakeHtml = `<h3 style="color:#2d3d2b;margin-top:24px">הסכם תיאום ציפיות — חתום ✓</h3>
             <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">${rows}</table>
-            <p style="font-size:12px;color:#6b8a63">הלקוחה אישרה שקראה והסכימה לכללי הסטודיו: שעות פעילות, מחירון וחישוב שעות, מדיניות ביטולים, ניקיון, אחריות ונזקים.</p>`;
+            <p style="font-size:12px;color:#6b8a63">הלקוחה אישרה שקראה והסכימה לכללי הסטודיו: מחירון וחישוב שעות, מדיניות ביטולים, ניקיון, אחריות ונזקים.</p>`;
         }
       } catch (e) { console.error("[SWEETBABY] intake fetch for email failed", e); }
 

@@ -58,11 +58,6 @@ const fadeUp = {
 // Full studio rules — shown inside the intake modal, matching the printed
 // coordination agreement so signing the checkbox = agreeing to everything.
 const rulesBlocks: { title: string; items: string[] }[] = [
-  { title: "🕒 שעות פעילות", items: [
-    "ימים א׳–ה׳: 8:00–23:00",
-    "יום ו׳ / ערב חג: 8:00 עד שעתיים לפני כניסת השבת/חג",
-    "מוצ״ש / חג: משעה אחרי צאת השבת/חג",
-  ]},
   { title: "💳 מחירון וחישוב שעות", items: [
     "שעת השכרה ראשונה: 120 ₪",
     "כל שעה נוספת: 90 ₪",
@@ -588,7 +583,7 @@ function StudioRentalPage() {
                 checked={form.agreed}
                 onChange={(e) => upd("agreed", e.target.checked)}
               />
-              <span><strong>קראתי והסכמתי</strong> להסכם תיאום הציפיות ולכל כללי הסטודיו המפורטים מעלה (שעות פעילות, מחירון, ביטולים, ניקיון, אחריות ונזקים).</span>
+              <span><strong>קראתי והסכמתי</strong> להסכם תיאום הציפיות ולכל כללי הסטודיו המפורטים מעלה (מחירון, ביטולים, ניקיון, אחריות ונזקים).</span>
             </label>
 
             <div className="mt-5 flex flex-wrap gap-3">
