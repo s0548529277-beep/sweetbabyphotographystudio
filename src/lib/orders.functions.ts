@@ -206,7 +206,6 @@ export const placeOrder = createServerFn({ method: "POST" })
     }
 
     // Send confirmation emails (customer + studio) from the studio's Gmail.
-    try {
     const pickupTime = data.start_time ?? "09:00";
     const returnTime = data.end_time ?? "18:00";
     let customerEmail: string | undefined;
