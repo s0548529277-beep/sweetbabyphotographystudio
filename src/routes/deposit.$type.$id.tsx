@@ -146,12 +146,16 @@ function Deposit() {
                 <h2 className="font-display text-3xl text-primary mb-2">ההזמנה אושרה ונשלחה במייל ✓</h2>
                 {timeText && (
                   <p className="text-primary font-medium mb-2">
-                    השעות שלך הן <span dir="ltr">{timeText}</span> — יש להקפיד על הזמנים.
+                    {isStudio ? "השעות שלך הן " : "שעת האיסוף שלך: "}
+                    <span dir="ltr">{timeText}</span> — יש להקפיד על הזמנים.
                   </p>
+                )}
+                {!isStudio && (
+                  <p className="text-sm text-primary/80 mb-2">נא לתאם טלפונית איסוף אביזרים בשעה הרצויה · <span dir="ltr">054-8529277</span></p>
                 )}
                 <p className="text-muted-foreground mb-6">
                   {method === "cash"
-                    ? "התשלום יבוצע במזומן ביום האיסוף. אישור נשלח למייל."
+                    ? `התשלום מראש — נא לבוא עם הסכום ₪${payNow} ולהביא סכום מדויק. אישור נשלח למייל.`
                     : "קיבלנו את האסמכתא ואישור נשלח למייל. מחכות לפגוש אותך!"}
                 </p>
                 <Link to="/account">
