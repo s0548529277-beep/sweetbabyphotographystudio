@@ -53,7 +53,7 @@ export const BUILTIN_PHOTOGRAPHY_OUTDOOR = [
 
 /** Bundled home-hero slides (the rotating rectangle on the homepage). */
 export function builtinHomeHero(): { key: string; url: string }[] {
-  const mods = import.meta.glob("@/assets/home-hero-*.asset.json", { eager: true }) as Record<
+  const mods = import.meta.glob("../assets/home-hero-*.asset.json", { eager: true }) as Record<
     string,
     { default?: { url: string }; url?: string }
   >;
