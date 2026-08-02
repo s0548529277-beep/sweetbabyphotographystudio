@@ -166,10 +166,11 @@ export const placeBooking = createServerFn({ method: "POST" })
     }
 
     // Customer email — used both for the calendar invitation and the summary mail.
-    let customerEmail: string | undefined;
+    let customerEmail: string | undefined = data.contact_email?.trim() || undefined;
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      customerEmail = user?.email ?? undefined;
+      customerEmail = customerEmail ?? user?.email ?? undefined;
+
     } catch { /* ignore */ }
 
     try {
