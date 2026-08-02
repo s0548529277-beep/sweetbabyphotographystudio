@@ -44,6 +44,8 @@ const inputSchema = z.object({
   slots: z.number().int().min(2).max(30),
   contact_name: z.string().min(1).max(120),
   contact_phone: z.string().min(5).max(40),
+  contact_email: z.string().email().max(160).optional().nullable(),
+
   notes: z.string().max(1000).optional().nullable(),
   reserved_items: z.array(z.string().min(1).max(24)).max(20).optional(),
   guidance: z.string().max(60).optional().nullable(),
