@@ -23,6 +23,8 @@ import {
   MORNING_PACKAGE_PRICE,
 } from "@/lib/bookings.functions";
 import { checkItemsAvailability } from "@/lib/orders.functions";
+import { getStudioDayBusy } from "@/lib/studio-availability.functions";
+
 import { toast } from "sonner";
 import { he } from "date-fns/locale";
 import { Lock, Clock, Sparkles, CalendarDays, Package, X, Search } from "lucide-react";
@@ -108,6 +110,8 @@ function Booking() {
   const nav = useNavigate();
   const place = useServerFn(placeBooking);
   const checkAvail = useServerFn(checkItemsAvailability);
+  const dayBusy = useServerFn(getStudioDayBusy);
+
   // Live catalog — reflects edits made in /admin/items right away.
   const ALL_PROPS: CatItem[] = useCatalogItems();
   const [date, setDate] = useState<Date | undefined>(undefined);
@@ -117,6 +121,8 @@ function Booking() {
   const [slots, setSlots] = useState(2);
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [reservedSkus, setReservedSkus] = useState<string[]>([]);
@@ -154,7 +160,9 @@ function Booking() {
     if (!profile.loaded) return;
     setContactName((v) => v || profile.fullName);
     setContactPhone((v) => v || profile.phone);
-  }, [profile.loaded, profile.fullName, profile.phone]);
+    setContactEmail((v) => v || (user?.email ?? ""));
+  }, [profile.loaded, profile.fullName, profile.phone, user]);
+
 
 
   const filteredProps = useMemo(() => {
@@ -175,14 +183,23 @@ function Booking() {
 
   useEffect(() => {
     if (!date) return;
-   const iso = toLocalISODate(date);
-    supabase
-      .from("booking_busy_slots" as never)
-      .select("start_time, end_time")
-      .eq("session_date", iso)
-      .then(({ data }) => setExisting(((data as unknown) as Booking[]) ?? []));
+    const iso = toLocalISODate(date);
+    let cancelled = false;
+    // Busy time = app bookings + real Google Calendar events (prop pickups are
+    // marked "free" there, so they never block the studio).
+    dayBusy({ data: { date: iso } })
+      .then((rows: Booking[]) => { if (!cancelled) setExisting(rows); })
+      .catch(async () => {
+        const { data: rows } = await supabase
+          .from("booking_busy_slots" as never)
+          .select("start_time, end_time")
+          .eq("session_date", iso);
+        if (!cancelled) setExisting(((rows as unknown) as Booking[]) ?? []);
+      });
     setStartTime(null);
-  }, [date]);
+    return () => { cancelled = true; };
+  }, [date, dayBusy]);
+
 
   const daySlots = useMemo(() => (date ? slotsForDate(date, closures) : []), [date, closures]);
   const grouped = useMemo(() => groupSlots(daySlots), [daySlots]);
@@ -220,6 +237,8 @@ function Booking() {
           slots,
           contact_name: contactName,
           contact_phone: contactPhone,
+          contact_email: contactEmail.trim() ? contactEmail.trim() : null,
+
           notes,
           reserved_items: reservedSkus,
           guidance: guidanceKey,
@@ -423,9 +442,22 @@ function Booking() {
             <div className="bg-white rounded-2xl border border-[#2d3d2b]/8 p-5 space-y-3 shadow-sm">
               <h3 className="font-display text-lg text-[#2d3d2b]">הערות לשריון</h3>
               <div>
+                <Label className="text-xs text-[#2d3d2b]/70">אימייל לקבלת הזמנה ליומן</Label>
+                <Input
+                  type="email"
+                  dir="ltr"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  className="mt-1 text-sm"
+                />
+                <p className="text-[11px] text-[#2d3d2b]/60 mt-1">נשלח אליך אישור והזמנה לאירוע ביומן Google.</p>
+              </div>
+              <div>
                 <Label className="text-xs text-[#2d3d2b]/70">הערות (אופציונלי)</Label>
                 <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} className="mt-1 text-sm" />
               </div>
+
             </div>
 
 

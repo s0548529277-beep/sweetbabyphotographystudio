@@ -44,6 +44,8 @@ const inputSchema = z.object({
   slots: z.number().int().min(2).max(30),
   contact_name: z.string().min(1).max(120),
   contact_phone: z.string().min(5).max(40),
+  contact_email: z.string().email().max(160).optional().nullable(),
+
   notes: z.string().max(1000).optional().nullable(),
   reserved_items: z.array(z.string().min(1).max(24)).max(20).optional(),
   guidance: z.string().max(60).optional().nullable(),
@@ -84,6 +86,24 @@ export const placeBooking = createServerFn({ method: "POST" })
         throw new Error("הזמן שבחרת כבר תפוס. בחרי שעה אחרת.");
       }
     }
+
+    // Also honour the studio owner's real Google Calendar: any non-transparent
+    // event (studio session, photography session, personal block) blocks the
+    // slot. Prop-rental pickups are created as transparent → they never block.
+    try {
+      const { listGoogleCalendarBusy } = await import("@/integrations/google/calendar.server");
+      const gbusy = await listGoogleCalendarBusy(data.session_date, data.session_date);
+      for (const [bs, be] of gbusy[data.session_date] ?? []) {
+        if (startMin < be && endMin > bs) {
+          throw new Error("הזמן שבחרת כבר תפוס ביומן הסטודיו. בחרי שעה אחרת.");
+        }
+      }
+    } catch (e) {
+      if (e instanceof Error && e.message.includes("תפוס")) throw e;
+      console.error("[SWEETBABY] calendar conflict check failed", e);
+    }
+
+
 
     const today = new Date().toISOString().slice(0, 10);
     const sameDay = data.session_date === today;
@@ -148,10 +168,11 @@ export const placeBooking = createServerFn({ method: "POST" })
     }
 
     // Customer email — used both for the calendar invitation and the summary mail.
-    let customerEmail: string | undefined;
+    let customerEmail: string | undefined = data.contact_email?.trim() || undefined;
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      customerEmail = user?.email ?? undefined;
+      customerEmail = customerEmail ?? user?.email ?? undefined;
+
     } catch { /* ignore */ }
 
     try {
