@@ -238,15 +238,42 @@ function AdminGalleryPage() {
           {rows.map((img, i) => (
             <div
               key={img.id}
-              className={`group relative aspect-square overflow-hidden rounded-2xl border border-primary/10 bg-cream ${
-                img.hidden ? "opacity-40" : ""
-              }`}
+              draggable
+              onDragStart={() => setDragIndex(i)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (dragIndex !== null) reorder(dragIndex, i);
+                setDragIndex(null);
+              }}
+              onDragEnd={() => setDragIndex(null)}
+              className={`group relative aspect-square overflow-hidden rounded-2xl border bg-cream cursor-grab active:cursor-grabbing ${
+                dragIndex === i ? "border-peach-deep ring-2 ring-peach-deep/40" : "border-primary/10"
+              } ${img.hidden ? "opacity-40" : ""}`}
             >
-              <img src={rowUrl(page, img)} alt={img.caption ?? "תמונה"} loading="lazy" className="h-full w-full object-cover" />
-              <span className="absolute top-2 right-2 rounded-full bg-black/50 text-white text-[11px] px-2 py-0.5">
-                {i + 1}
-                {img.hidden ? " · מוסתרת" : ""}
-              </span>
+              <img src={rowUrl(page, img)} alt={img.caption ?? "תמונה"} loading="lazy" className="h-full w-full object-cover pointer-events-none" />
+              <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/55 text-white text-[11px] px-2 py-0.5">
+                <GripVertical className="h-3 w-3 opacity-70" />
+                <input
+                  type="number"
+                  min={1}
+                  max={rows.length}
+                  defaultValue={i + 1}
+                  key={`pos-${img.id}-${i}`}
+                  disabled={busy}
+                  onClick={(e) => e.stopPropagation()}
+                  onDragStart={(e) => e.preventDefault()}
+                  onBlur={(e) => {
+                    const to = Number(e.target.value) - 1;
+                    if (!Number.isNaN(to)) reorder(i, to);
+                  }}
+                  onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                  className="w-9 bg-transparent text-center outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                  aria-label="מיקום התמונה"
+                />
+                {img.hidden ? <span>· מוסתרת</span> : null}
+              </div>
+
               {img.hidden ? (
                 <button
                   type="button"
