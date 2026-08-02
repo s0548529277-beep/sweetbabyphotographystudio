@@ -23,6 +23,8 @@ import {
   MORNING_PACKAGE_PRICE,
 } from "@/lib/bookings.functions";
 import { checkItemsAvailability } from "@/lib/orders.functions";
+import { getStudioDayBusy } from "@/lib/studio-availability.functions";
+
 import { toast } from "sonner";
 import { he } from "date-fns/locale";
 import { Lock, Clock, Sparkles, CalendarDays, Package, X, Search } from "lucide-react";
