@@ -384,6 +384,23 @@ function Home() {
         </div>
       </section>
 
+      {/* ONLINE PAYMENT */}
+      <section className="container-page pb-4" dir="rtl">
+        <div className="rounded-[2rem] bg-white border border-[#2d3d2b]/10 p-8 md:p-10 flex flex-wrap items-center justify-between gap-6">
+          <div>
+            <div className="text-[11px] tracking-[0.28em] uppercase text-[#6b8a63] mb-2">Payment</div>
+            <h2 className="text-3xl md:text-4xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+              תשלום מקדמה / השכרה
+            </h2>
+            <p className="text-sm text-[#2d3d2b]/70 mt-2 max-w-md leading-relaxed">
+              שריון מועד מתבצע עם מקדמה של ₪90. ניתן לשלם כאן באופן מאובטח, והיתרה בסיום הסשן.
+            </p>
+          </div>
+          <PayOnlineButton />
+        </div>
+      </section>
+
+
       {/* TRUST STRIP */}
       <section className="container-page pb-16 md:pb-24" dir="rtl">
         <div className="rounded-[2rem] bg-[#f5d5cf] p-8 md:p-12 relative overflow-hidden">
