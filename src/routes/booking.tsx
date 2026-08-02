@@ -160,7 +160,9 @@ function Booking() {
     if (!profile.loaded) return;
     setContactName((v) => v || profile.fullName);
     setContactPhone((v) => v || profile.phone);
-  }, [profile.loaded, profile.fullName, profile.phone]);
+    setContactEmail((v) => v || (user?.email ?? ""));
+  }, [profile.loaded, profile.fullName, profile.phone, user]);
+
 
 
   const filteredProps = useMemo(() => {
