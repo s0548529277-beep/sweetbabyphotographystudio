@@ -123,19 +123,32 @@ function AdminGalleryPage() {
     refresh();
   };
 
-  /** Move an image one position earlier/later by swapping sort_order values. */
-  const move = async (index: number, dir: -1 | 1) => {
-    const target = index + dir;
-    if (target < 0 || target >= rows.length) return;
-    const a = rows[index];
-    const b = rows[target];
+  /** Persist a full ordering (0..n-1) for the current page. */
+  const persistOrder = async (ordered: PageImage[]) => {
     setBusy(true);
-    const { error: e1 } = await supabase.from("page_images").update({ sort_order: b.sort_order }).eq("id", a.id);
-    const { error: e2 } = await supabase.from("page_images").update({ sort_order: a.sort_order }).eq("id", b.id);
+    for (let i = 0; i < ordered.length; i++) {
+      if (ordered[i].sort_order === i) continue;
+      const { error } = await supabase.from("page_images").update({ sort_order: i }).eq("id", ordered[i].id);
+      if (error) {
+        setBusy(false);
+        return toast.error(error.message);
+      }
+    }
     setBusy(false);
-    if (e1 || e2) return toast.error((e1 ?? e2)!.message);
     refresh();
   };
+
+  /** Move the image at `from` to position `to` (drag & drop or number input). */
+  const reorder = async (from: number, to: number) => {
+    if (from === to || to < 0 || to >= rows.length) return;
+    const next = [...rows];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    await persistOrder(next);
+  };
+
+  const move = (index: number, dir: -1 | 1) => reorder(index, index + dir);
+
 
   return (
     <div dir="rtl" className="space-y-6">
