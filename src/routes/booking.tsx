@@ -440,9 +440,22 @@ function Booking() {
             <div className="bg-white rounded-2xl border border-[#2d3d2b]/8 p-5 space-y-3 shadow-sm">
               <h3 className="font-display text-lg text-[#2d3d2b]">הערות לשריון</h3>
               <div>
+                <Label className="text-xs text-[#2d3d2b]/70">אימייל לקבלת הזמנה ליומן</Label>
+                <Input
+                  type="email"
+                  dir="ltr"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  className="mt-1 text-sm"
+                />
+                <p className="text-[11px] text-[#2d3d2b]/60 mt-1">נשלח אליך אישור והזמנה לאירוע ביומן Google.</p>
+              </div>
+              <div>
                 <Label className="text-xs text-[#2d3d2b]/70">הערות (אופציונלי)</Label>
                 <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} className="mt-1 text-sm" />
               </div>
+
             </div>
 
 
