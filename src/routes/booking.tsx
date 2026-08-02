@@ -121,6 +121,8 @@ function Booking() {
   const [slots, setSlots] = useState(2);
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [reservedSkus, setReservedSkus] = useState<string[]>([]);
