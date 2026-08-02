@@ -5,6 +5,8 @@ import { Camera, Home as HomeIcon, Sparkles, ArrowLeft, MapPin, Star, Heart, Clo
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CountUp } from "@/components/CountUp";
+import { PayOnlineButton } from "@/components/PayOnlineButton";
+
 import heroImg from "@/assets/hero-studio.jpg.asset.json";
 import { PAGE_IMAGE_KEYS, usePageGalleryWithAspect } from "@/lib/page-images";
 import hero0 from "@/assets/home-hero-0.png.asset.json";
