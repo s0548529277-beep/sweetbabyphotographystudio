@@ -175,14 +175,23 @@ function Booking() {
 
   useEffect(() => {
     if (!date) return;
-   const iso = toLocalISODate(date);
-    supabase
-      .from("booking_busy_slots" as never)
-      .select("start_time, end_time")
-      .eq("session_date", iso)
-      .then(({ data }) => setExisting(((data as unknown) as Booking[]) ?? []));
+    const iso = toLocalISODate(date);
+    let cancelled = false;
+    // Busy time = app bookings + real Google Calendar events (prop pickups are
+    // marked "free" there, so they never block the studio).
+    dayBusy({ data: { date: iso } })
+      .then((rows) => { if (!cancelled) setExisting(rows as Booking[]); })
+      .catch(async () => {
+        const { data: rows } = await supabase
+          .from("booking_busy_slots" as never)
+          .select("start_time, end_time")
+          .eq("session_date", iso);
+        if (!cancelled) setExisting(((rows as unknown) as Booking[]) ?? []);
+      });
     setStartTime(null);
-  }, [date]);
+    return () => { cancelled = true; };
+  }, [date, dayBusy]);
+
 
   const daySlots = useMemo(() => (date ? slotsForDate(date, closures) : []), [date, closures]);
   const grouped = useMemo(() => groupSlots(daySlots), [daySlots]);
