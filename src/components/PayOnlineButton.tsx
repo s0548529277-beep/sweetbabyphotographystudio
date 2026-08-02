@@ -1,6 +1,6 @@
 import { CreditCard } from "lucide-react";
 
-export const PAY_URL = "https://paypage.takbull.co.il/40KSd";
+const PAY_URL = "https://paypage.takbull.co.il/4fk6g";
 
 type Props = {
   className?: string;
