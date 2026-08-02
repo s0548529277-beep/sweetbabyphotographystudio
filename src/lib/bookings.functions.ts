@@ -85,6 +85,24 @@ export const placeBooking = createServerFn({ method: "POST" })
       }
     }
 
+    // Also honour the studio owner's real Google Calendar: any non-transparent
+    // event (studio session, photography session, personal block) blocks the
+    // slot. Prop-rental pickups are created as transparent → they never block.
+    try {
+      const { listGoogleCalendarBusy } = await import("@/integrations/google/calendar.server");
+      const gbusy = await listGoogleCalendarBusy(data.session_date, data.session_date);
+      for (const [bs, be] of gbusy[data.session_date] ?? []) {
+        if (startMin < be && endMin > bs) {
+          throw new Error("הזמן שבחרת כבר תפוס ביומן הסטודיו. בחרי שעה אחרת.");
+        }
+      }
+    } catch (e) {
+      if (e instanceof Error && e.message.includes("תפוס")) throw e;
+      console.error("[SWEETBABY] calendar conflict check failed", e);
+    }
+
+
+
     const today = new Date().toISOString().slice(0, 10);
     const sameDay = data.session_date === today;
     const deposit = sameDay ? price : 90;
