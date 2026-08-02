@@ -184,7 +184,7 @@ function Booking() {
     // Busy time = app bookings + real Google Calendar events (prop pickups are
     // marked "free" there, so they never block the studio).
     dayBusy({ data: { date: iso } })
-      .then((rows) => { if (!cancelled) setExisting(rows as Booking[]); })
+      .then((rows: Booking[]) => { if (!cancelled) setExisting(rows); })
       .catch(async () => {
         const { data: rows } = await supabase
           .from("booking_busy_slots" as never)
