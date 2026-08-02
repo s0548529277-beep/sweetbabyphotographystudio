@@ -235,6 +235,8 @@ function Booking() {
           slots,
           contact_name: contactName,
           contact_phone: contactPhone,
+          contact_email: contactEmail.trim() ? contactEmail.trim() : null,
+
           notes,
           reserved_items: reservedSkus,
           guidance: guidanceKey,
