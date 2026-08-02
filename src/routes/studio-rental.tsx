@@ -12,6 +12,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { InspirationStrip } from "@/components/InspirationStrip";
 import { usePageGallery, PAGE_IMAGE_KEYS } from "@/lib/page-images";
+import { PayOnlineButton } from "@/components/PayOnlineButton";
+
 
 
 export const Route = createFileRoute("/studio-rental")({
