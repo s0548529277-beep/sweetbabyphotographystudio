@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { PayOnlineButton } from "@/components/PayOnlineButton";
+import { CheckSquare } from "lucide-react";
 
 const CANONICAL = "https://sweetbabyphoto.shop/terms";
-const TITLE = "תנאים והגבלות | Sweetbaby";
-const DESCRIPTION = "תנאי השכרת אביזרים ושימוש בסטודיו Sweetbaby. קראו את כללי ההזמנה, הביטול והאחריות לפני השכרה.";
+const TITLE = "תקנון ותנאי שימוש | Sweetbaby";
+const DESCRIPTION = "תקנון סטודיו Sweetbaby — מחירון וחישוב שעות, מדיניות תשלום וביטולים, ציוד ותאורה, רקעים, ניקיון, אחריות ונזקים ומדיניות שירות ואספקה.";
 
 export const Route = createFileRoute("/terms")({
   component: Terms,
@@ -25,40 +27,67 @@ export const Route = createFileRoute("/terms")({
   }),
 });
 
-const SECTIONS = [
+const SECTIONS: { title: string; items: string[] }[] = [
   {
-    title: "השכרת אביזרים",
+    title: "מחירון וחישוב שעות",
     items: [
-      "מינימום להזמנה 50 ש״ח. התשלום מתבצע לפני איסוף האביזרים.",
-      "איסוף והחזרת האביזרים תוך 24 שעות. כל יום נוסף — חיוב השכרה מלא.",
-      "איחור מעל 3 שעות מהזמן שנקבע להחזרה — חיוב חצי מסכום ההשכרה.",
-      "הלקוחה נושאת באחריות מלאה על האביזרים שבהשכרתה. נזק, אבדן או שבירה יחויבו במחיר המלא של הפריט.",
-      "הזמנת אביזרים נחשבת להסכמה לתנאים אלו.",
+      "שעת השכרה ראשונה: 120 ₪",
+      "כל שעה נוספת: 90 ₪",
+      "חצי שעה = חצי מהתעריף המתאים",
+      "מבצע 8:00–13:00 (ניו-בורן): 3 שעות ב-240 ₪",
+      "מינימום הזמנה: שעה (2 חצאי שעות)",
+      "עיכוב של 15 דק׳ ומעלה — יחויב כחצי שעה נוספת",
+      "עיכוב של 45 דק׳ ומעלה — יחויב כשעה מלאה נוספת",
+      "ספירת הזמן כוללת התארגנות וניקיון בסיום",
     ],
   },
   {
-    title: "סטודיו Sweetbaby",
+    title: "תשלום ומדיניות ביטולים",
     items: [
-      "מינימום הזמנה לסטודיו הוא שעה אחת (שתי סלוטים של 30 דקות).",
-      "הזמנת סטודיו כוללת שימוש בחלל, הרקעים והאביזרים הבסיסיים המוצעים במסלול שבחרתם.",
-      "אביזרים נוספים מעבר למה שכולל במסלול ניתן להזמין דרך קטלוג ההשכרה ולשלם בנפרד.",
+      "שריון מועד: מקדמה 90 ₪ (לא מוחזרת)",
+      "הזמנה ליום ההגעה: תשלום מלא מראש",
+      "יתרה: פייבוקס / העברה / מזומן בסיום",
+      "ביטול/שינוי עד ליום האירוע — המקדמה לא מוחזרת",
+      "ביטול ביום האירוע — חיוב מלא (100%)",
     ],
   },
   {
-    title: "ביטולים ודחיות",
+    title: "ציוד ותאורה",
     items: [
-      "ביטול עד יום האירוע — המקדמה לא תוחזר.",
-      "ביטול ביום האירוע עצמו — חיוב מלא (100%) מסכום ההזמנה.",
-      "השכרת אביזרים שבוטלה לאחר שהפריטים נשלפו מהמלאי — לא תזוכה.",
+      "פלאש Godox AD200 PRO (סוללה נטענת)",
+      "משדרים ל-Canon ול-Sony",
+      "סופטבוקס בקוטר 1.65 מטר",
+      "מיזוג + מפזר חום ייעודי לניו-בורן",
+      "שידת החתלה חדשה עם עיטופים ובדים",
+      "קופסת ציוד: משדר, סוללה, שוֶשר, דבקים, אטבים",
+      "השימוש בפלאש דורש ידע מוקדם",
     ],
   },
   {
-    title: "חריגות זמן ותשלומים",
+    title: "רקעים ורצפות",
     items: [
-      "חריגה של 15–44 דקות מעל הזמן המוזמן — חיוב חצי שעה נוספת.",
-      "חריגה של 45 דקות ומעלה — חיוב שעה מלאה נוספת.",
-      "התשלום נעשה באמצעות העברה בנקאית לפני קבלת האביזרים או כניסה לסטודיו.",
-      "בעתיד תתאפשר גם סליקת אשראי בטוחה דרך Stripe או Meshulam.",
+      "רקעים: ירוק, לבן (2.7), כחול, חום בהיר, חום כהה, צהוב (1.5)",
+      "רקעי נייר — לקירות בלבד",
+      "שימוש ברקע נייר גם כרצפה: +50 ₪ (יש לתאם מראש)",
+      "רקע שהתלכלך/נהרס: 100 ₪ למטר",
+      "רצפות ללא תוספת: פורמייקה, עץ, פרקט, קורות עץ",
+    ],
+  },
+  {
+    title: "סדר וניקיון",
+    items: [
+      "הסטודיו נמסר נקי ומסודר — יש להחזירו למצבו המקורי",
+      "בלגן/לכלוך משמעותי — חיוב 150 ₪ דמי ניקיון",
+      "שירותים בקומה 5, דירה 18",
+    ],
+  },
+  {
+    title: "אחריות ונזקים",
+    items: [
+      "נזק לרכוש: עלות תיקון/רכישה + 20% דמי טיפול",
+      "הבטיחות באחריות השוכר/ת בלבד",
+      "השארת אור/מזגן דולק — 7 ₪ לשעה עד 8:00 בבוקר למחרת",
+      "חפצים שיישכחו מעל 30 יום — יעברו למאגר הסטודיו",
     ],
   },
 ];
@@ -68,14 +97,14 @@ function Terms() {
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       <main className="flex-1">
-        <section className="container-page py-16 md:py-24">
+        <section className="container-page py-16 md:py-24" dir="rtl">
           <div className="max-w-3xl">
             <div className="eyebrow mb-4">Studio Terms</div>
             <h1 className="font-display text-5xl md:text-7xl text-primary leading-none">
-              תנאים וה<span className="italic text-peach-deep">גבלות</span>
+              תקנון ותנאי <span className="italic text-peach-deep">שימוש</span>
             </h1>
             <p className="text-muted-foreground mt-6 leading-relaxed">
-              דף זה מופעל ומתעדכן על ידי סטודיו Sweetbaby כדי להסביר את כללי השכרת האביזרים ושימוש בסטודיו. מומלץ לקרוא אותו לפני כל הזמנה.
+              דף זה מרכז את כללי השכרת הסטודיו והאביזרים של Sweetbaby. מומלץ לקרוא אותו לפני כל הזמנה או תשלום.
             </p>
 
             <div className="mt-12 space-y-12">
@@ -92,10 +121,45 @@ function Terms() {
                   </ul>
                 </div>
               ))}
+
+              <div>
+                <h2 className="font-display text-2xl md:text-3xl text-primary mb-4">מיקום</h2>
+                <p className="leading-relaxed text-foreground/90">תלמוד ירושלמי 24, בית שמש</p>
+              </div>
+
+              <div>
+                <h2 className="font-display text-2xl md:text-3xl text-primary mb-4">מדיניות שירות ואספקה</h2>
+                <p className="leading-relaxed text-foreground/90">
+                  השירות ניתן במקום — הלקוח/ה מגיע/ה פיזית לסטודיו בכתובת תלמוד ירושלמי 24, בית שמש, לצורך שימוש
+                  בסטודיו ובאביזרים המושכרים. אין משלוח או אספקה מרחוק — כל האיסוף וההחזרה של ציוד/אביזרים מתבצעים
+                  במקום, בהתאם למועד ולשעות שסוכמו מראש.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-dashed border-primary/25 bg-cream/40 p-6">
+                <div className="text-xs tracking-widest uppercase text-peach-deep mb-2">לעדכן · TODO</div>
+                <h2 className="font-display text-2xl text-primary mb-2">מדיניות פרטיות</h2>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  סעיף זה יושלם בהמשך (מומלץ בליווי בדיקה משפטית) ויכלול: אילו פרטים נאספים, לאיזו מטרה, שמירת מידע,
+                  שיתוף עם צדדים שלישיים (סליקה, יומן, דיוור) וזכות לעיון/מחיקה.
+                </p>
+              </div>
             </div>
 
-            <div className="mt-16 pt-8 border-t border-border text-sm text-muted-foreground">
-              <p>עודכן לאחרונה: יולי 2026</p>
+            {/* Payment + agreement confirmation */}
+            <div className="mt-16 rounded-3xl border border-primary/10 bg-card p-7">
+              <div className="flex items-start gap-3">
+                <CheckSquare className="h-5 w-5 text-peach-deep shrink-0 mt-0.5" />
+                <p className="text-sm text-foreground/90 leading-relaxed">
+                  אני מאשר/ת שקראתי והבנתי את תנאי השימוש. השימוש בדף התשלום ותשלום מקדמה/השכרה מהווים הסכמה לתקנון זה
+                  על כל סעיפיו.
+                </p>
+              </div>
+              <PayOnlineButton className="mt-6" label="תשלום מקדמה / השכרה" />
+            </div>
+
+            <div className="mt-12 pt-8 border-t border-border text-sm text-muted-foreground">
+              <p>עודכן לאחרונה: אוגוסט 2026</p>
               <p className="mt-2">
                 שאלות? ניתן לפנות אלינו דרך{" "}
                 <Link to="/contact" className="underline underline-offset-4 text-foreground hover:text-peach-deep">
