@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { PayOnlineButton } from "@/components/PayOnlineButton";
 import { CreditCard, Banknote, Camera, CalendarDays, User, Phone, Aperture, ShieldCheck, Sparkles, Clock } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,13 +32,6 @@ function SummaryPage() {
       setLoading(false);
     })();
   }, [type, id]);
-
-  const handleCard = () => {
-    toast("סליקה בכרטיס אשראי – בקרוב", {
-      description: "אנחנו בשלבי חיבור אחרונים ל-Stripe / משולם. בינתיים ניתן להשלים את השריון בהעברה בנקאית או ב-Bit.",
-      icon: <Sparkles className="h-4 w-4 text-blush-deep" />,
-    });
-  };
 
   if (loading) {
     return (
