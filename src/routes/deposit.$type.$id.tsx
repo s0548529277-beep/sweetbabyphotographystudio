@@ -110,12 +110,22 @@ function Deposit() {
         })
         .eq("id", id);
       if (updErr) throw updErr;
+      // The studio slot is written to the calendar only now — after the
+      // deposit was actually transferred / a receipt was uploaded.
+      if (isStudio && method !== "cash") {
+        try {
+          await confirmDeposit({ data: { id } });
+        } catch (e) {
+          console.error("[SWEETBABY] calendar sync after deposit failed", e);
+        }
+      }
       toast.success(
         method === "cash"
           ? "מעולה! נחכה לך עם התשלום במזומן ביום האיסוף."
-          : "האסמכתא נשלחה. נאשר לך במייל תוך זמן קצר.",
+          : "האסמכתא נשלחה והמועד נשמר ביומן. נאשר לך במייל תוך זמן קצר.",
       );
       setDone(true);
+
     } catch (err: any) {
       toast.error(err?.message ?? "שגיאה בשליחה");
     } finally {
