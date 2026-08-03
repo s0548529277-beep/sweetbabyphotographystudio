@@ -53,6 +53,8 @@ function Deposit() {
   const [method, setMethod] = useState<"cash" | "transfer" | "bit">(isStudio ? "transfer" : "cash");
   const [uploading, setUploading] = useState(false);
   const [done, setDone] = useState(false);
+  const confirmDeposit = useServerFn(confirmBookingDeposit);
+
 
 
   useEffect(() => {
