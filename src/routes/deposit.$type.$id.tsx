@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { ArrivalDirections } from "@/components/ArrivalDirections";
+import { PayOnlineButton } from "@/components/PayOnlineButton";
+import { confirmBookingDeposit } from "@/lib/bookings.functions";
 import { Copy, Check, Upload, Banknote, CreditCard, Wallet } from "lucide-react";
+
 
 export const Route = createFileRoute("/deposit/$type/$id")({
   component: Deposit,
