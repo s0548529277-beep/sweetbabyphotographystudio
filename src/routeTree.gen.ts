@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrackRouteImport } from './routes/track'
+import { Route as ThankYouRouteImport } from './routes/thank-you'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as StudioRentalRouteImport } from './routes/studio-rental'
 import { Route as StudioPhotographyRouteImport } from './routes/studio-photography'
@@ -46,6 +47,11 @@ import { Route as AuthenticatedOrdersIdReceiptRouteImport } from './routes/_auth
 const TrackRoute = TrackRouteImport.update({
   id: '/track',
   path: '/track',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ThankYouRoute = ThankYouRouteImport.update({
+  id: '/thank-you',
+  path: '/thank-you',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TermsRoute = TermsRouteImport.update({
@@ -231,6 +237,7 @@ export interface FileRoutesByFullPath {
   '/studio-photography': typeof StudioPhotographyRoute
   '/studio-rental': typeof StudioRentalRoute
   '/terms': typeof TermsRoute
+  '/thank-you': typeof ThankYouRoute
   '/track': typeof TrackRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
@@ -265,6 +272,7 @@ export interface FileRoutesByTo {
   '/studio-photography': typeof StudioPhotographyRoute
   '/studio-rental': typeof StudioRentalRoute
   '/terms': typeof TermsRoute
+  '/thank-you': typeof ThankYouRoute
   '/track': typeof TrackRoute
   '/account': typeof AuthenticatedAccountRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
@@ -300,6 +308,7 @@ export interface FileRoutesById {
   '/studio-photography': typeof StudioPhotographyRoute
   '/studio-rental': typeof StudioRentalRoute
   '/terms': typeof TermsRoute
+  '/thank-you': typeof ThankYouRoute
   '/track': typeof TrackRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
@@ -336,6 +345,7 @@ export interface FileRouteTypes {
     | '/studio-photography'
     | '/studio-rental'
     | '/terms'
+    | '/thank-you'
     | '/track'
     | '/account'
     | '/admin'
@@ -370,6 +380,7 @@ export interface FileRouteTypes {
     | '/studio-photography'
     | '/studio-rental'
     | '/terms'
+    | '/thank-you'
     | '/track'
     | '/account'
     | '/blog/essential-newborn-props'
@@ -404,6 +415,7 @@ export interface FileRouteTypes {
     | '/studio-photography'
     | '/studio-rental'
     | '/terms'
+    | '/thank-you'
     | '/track'
     | '/_authenticated/account'
     | '/_authenticated/admin'
@@ -440,6 +452,7 @@ export interface RootRouteChildren {
   StudioPhotographyRoute: typeof StudioPhotographyRoute
   StudioRentalRoute: typeof StudioRentalRoute
   TermsRoute: typeof TermsRoute
+  ThankYouRoute: typeof ThankYouRoute
   TrackRoute: typeof TrackRoute
   BlogEssentialNewbornPropsRoute: typeof BlogEssentialNewbornPropsRoute
   ItemsIdRoute: typeof ItemsIdRoute
@@ -456,6 +469,13 @@ declare module '@tanstack/react-router' {
       path: '/track'
       fullPath: '/track'
       preLoaderRoute: typeof TrackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/thank-you': {
+      id: '/thank-you'
+      path: '/thank-you'
+      fullPath: '/thank-you'
+      preLoaderRoute: typeof ThankYouRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/terms': {
@@ -741,6 +761,7 @@ const rootRouteChildren: RootRouteChildren = {
   StudioPhotographyRoute: StudioPhotographyRoute,
   StudioRentalRoute: StudioRentalRoute,
   TermsRoute: TermsRoute,
+  ThankYouRoute: ThankYouRoute,
   TrackRoute: TrackRoute,
   BlogEssentialNewbornPropsRoute: BlogEssentialNewbornPropsRoute,
   ItemsIdRoute: ItemsIdRoute,
