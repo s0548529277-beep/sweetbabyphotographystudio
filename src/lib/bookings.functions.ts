@@ -345,3 +345,57 @@ export const cancelOrder = createServerFn({ method: "POST" })
     if (upErr) throw new Error(upErr.message);
     return { ok: true };
   });
+
+// ---------- Calendar sync after the deposit is paid ----------
+
+/**
+ * Writes the studio booking into the Google Calendar. Called only once the
+ * customer has actually paid the deposit (bank transfer / Bit receipt or an
+ * online card payment), so unpaid holds never block the calendar.
+ */
+export const confirmBookingDeposit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: b, error } = await supabase
+      .from("bookings")
+      .select("id, user_id, session_date, start_time, end_time, price, notes, contact_name, contact_phone, google_event_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error || !b) throw new Error("השריון לא נמצא");
+    if (b.user_id !== userId) throw new Error("אין הרשאה");
+    if (b.google_event_id) return { ok: true, already: true };
+
+    let customerEmail: string | undefined;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      customerEmail = user?.email ?? undefined;
+    } catch { /* ignore */ }
+
+    try {
+      const { createGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const event = await createGoogleCalendarEvent({
+        summary: `סטודיו · ${b.contact_name ?? ""}`.trim(),
+        description: [
+          `טלפון: ${b.contact_phone ?? ""}`,
+          `מחיר: ₪${b.price}`,
+          "מקדמה שולמה ✓",
+          b.notes ? `הערות: ${b.notes}` : null,
+        ].filter(Boolean).join("\n"),
+        startISO: `${b.session_date}T${String(b.start_time).slice(0, 5)}:00`,
+        endISO: `${b.session_date}T${String(b.end_time).slice(0, 5)}:00`,
+        location: "תלמוד ירושלמי 24, בית שמש",
+        attendees: customerEmail ? [customerEmail] : [],
+      });
+      if (event) {
+        await supabaseAdmin.from("bookings").update({ google_event_id: event.id }).eq("id", b.id);
+      }
+      return { ok: true, already: false };
+    } catch (e) {
+      console.error("[SWEETBABY] deposit calendar sync failed", e);
+      return { ok: false, already: false };
+    }
+  });
+
