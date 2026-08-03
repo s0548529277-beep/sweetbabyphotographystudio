@@ -175,31 +175,11 @@ export const placeBooking = createServerFn({ method: "POST" })
 
     } catch { /* ignore */ }
 
-    try {
-      const { createGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const startISO = `${data.session_date}T${data.start_time}:00`;
-      const endISO = `${data.session_date}T${endTime}:00`;
-      const event = await createGoogleCalendarEvent({
-        summary: `סטודיו · ${data.contact_name}`,
-        description: [
-          `טלפון: ${data.contact_phone}`,
-          `מחיר: ₪${price}`,
-          data.notes ? `הערות: ${data.notes}` : null,
-        ].filter(Boolean).join("\n"),
-        startISO,
-        endISO,
-        location: "תלמוד ירושלמי 24, בית שמש",
-        attendees: customerEmail ? [customerEmail] : [],
-      });
-      if (event) {
-        await supabaseAdmin.from("bookings").update({ google_event_id: event.id }).eq("id", booking.id);
-      }
-    } catch (e) {
-      // Never fail the booking itself if the calendar sync has an issue —
-      // the booking is already saved; just log it for follow-up.
-      console.error("[SWEETBABY] Google Calendar sync failed", e);
-    }
+    // NOTE: the Google Calendar event is intentionally NOT created here.
+    // The slot is only written to the studio calendar after the deposit is
+    // paid (bank transfer / Bit receipt uploaded, or online card payment) —
+    // see `confirmBookingDeposit` below, called from the payment page.
+
 
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
