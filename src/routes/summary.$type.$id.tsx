@@ -5,7 +5,7 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { PayOnlineButton } from "@/components/PayOnlineButton";
-import { CreditCard, Banknote, Camera, CalendarDays, User, Phone, Aperture, ShieldCheck, Sparkles, Clock } from "lucide-react";
+import { CreditCard, Banknote, Camera, CalendarDays, User, Phone, Aperture, ShieldCheck, Clock } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/summary/$type/$id")({
