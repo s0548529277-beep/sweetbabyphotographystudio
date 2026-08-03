@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrackRouteImport } from './routes/track'
+import { Route as ThankYouRouteImport } from './routes/thank-you'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as StudioRentalRouteImport } from './routes/studio-rental'
 import { Route as StudioPhotographyRouteImport } from './routes/studio-photography'
@@ -17,6 +18,7 @@ import { Route as StartRouteImport } from './routes/start'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RentalCatalogRouteImport } from './routes/rental-catalog'
+import { Route as PaymentFailedRouteImport } from './routes/payment-failed'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CartRouteImport } from './routes/cart'
@@ -46,6 +48,11 @@ import { Route as AuthenticatedOrdersIdReceiptRouteImport } from './routes/_auth
 const TrackRoute = TrackRouteImport.update({
   id: '/track',
   path: '/track',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ThankYouRoute = ThankYouRouteImport.update({
+  id: '/thank-you',
+  path: '/thank-you',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TermsRoute = TermsRouteImport.update({
@@ -81,6 +88,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const RentalCatalogRoute = RentalCatalogRouteImport.update({
   id: '/rental-catalog',
   path: '/rental-catalog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentFailedRoute = PaymentFailedRouteImport.update({
+  id: '/payment-failed',
+  path: '/payment-failed',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -224,6 +236,7 @@ export interface FileRoutesByFullPath {
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
+  '/payment-failed': typeof PaymentFailedRoute
   '/rental-catalog': typeof RentalCatalogRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -231,6 +244,7 @@ export interface FileRoutesByFullPath {
   '/studio-photography': typeof StudioPhotographyRoute
   '/studio-rental': typeof StudioRentalRoute
   '/terms': typeof TermsRoute
+  '/thank-you': typeof ThankYouRoute
   '/track': typeof TrackRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
@@ -258,6 +272,7 @@ export interface FileRoutesByTo {
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
+  '/payment-failed': typeof PaymentFailedRoute
   '/rental-catalog': typeof RentalCatalogRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -265,6 +280,7 @@ export interface FileRoutesByTo {
   '/studio-photography': typeof StudioPhotographyRoute
   '/studio-rental': typeof StudioRentalRoute
   '/terms': typeof TermsRoute
+  '/thank-you': typeof ThankYouRoute
   '/track': typeof TrackRoute
   '/account': typeof AuthenticatedAccountRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
@@ -293,6 +309,7 @@ export interface FileRoutesById {
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
+  '/payment-failed': typeof PaymentFailedRoute
   '/rental-catalog': typeof RentalCatalogRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -300,6 +317,7 @@ export interface FileRoutesById {
   '/studio-photography': typeof StudioPhotographyRoute
   '/studio-rental': typeof StudioRentalRoute
   '/terms': typeof TermsRoute
+  '/thank-you': typeof ThankYouRoute
   '/track': typeof TrackRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
@@ -329,6 +347,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/checkout'
     | '/contact'
+    | '/payment-failed'
     | '/rental-catalog'
     | '/reset-password'
     | '/sitemap.xml'
@@ -336,6 +355,7 @@ export interface FileRouteTypes {
     | '/studio-photography'
     | '/studio-rental'
     | '/terms'
+    | '/thank-you'
     | '/track'
     | '/account'
     | '/admin'
@@ -363,6 +383,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/checkout'
     | '/contact'
+    | '/payment-failed'
     | '/rental-catalog'
     | '/reset-password'
     | '/sitemap.xml'
@@ -370,6 +391,7 @@ export interface FileRouteTypes {
     | '/studio-photography'
     | '/studio-rental'
     | '/terms'
+    | '/thank-you'
     | '/track'
     | '/account'
     | '/blog/essential-newborn-props'
@@ -397,6 +419,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/checkout'
     | '/contact'
+    | '/payment-failed'
     | '/rental-catalog'
     | '/reset-password'
     | '/sitemap.xml'
@@ -404,6 +427,7 @@ export interface FileRouteTypes {
     | '/studio-photography'
     | '/studio-rental'
     | '/terms'
+    | '/thank-you'
     | '/track'
     | '/_authenticated/account'
     | '/_authenticated/admin'
@@ -433,6 +457,7 @@ export interface RootRouteChildren {
   CartRoute: typeof CartRoute
   CheckoutRoute: typeof CheckoutRoute
   ContactRoute: typeof ContactRoute
+  PaymentFailedRoute: typeof PaymentFailedRoute
   RentalCatalogRoute: typeof RentalCatalogRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -440,6 +465,7 @@ export interface RootRouteChildren {
   StudioPhotographyRoute: typeof StudioPhotographyRoute
   StudioRentalRoute: typeof StudioRentalRoute
   TermsRoute: typeof TermsRoute
+  ThankYouRoute: typeof ThankYouRoute
   TrackRoute: typeof TrackRoute
   BlogEssentialNewbornPropsRoute: typeof BlogEssentialNewbornPropsRoute
   ItemsIdRoute: typeof ItemsIdRoute
@@ -456,6 +482,13 @@ declare module '@tanstack/react-router' {
       path: '/track'
       fullPath: '/track'
       preLoaderRoute: typeof TrackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/thank-you': {
+      id: '/thank-you'
+      path: '/thank-you'
+      fullPath: '/thank-you'
+      preLoaderRoute: typeof ThankYouRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/terms': {
@@ -505,6 +538,13 @@ declare module '@tanstack/react-router' {
       path: '/rental-catalog'
       fullPath: '/rental-catalog'
       preLoaderRoute: typeof RentalCatalogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payment-failed': {
+      id: '/payment-failed'
+      path: '/payment-failed'
+      fullPath: '/payment-failed'
+      preLoaderRoute: typeof PaymentFailedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -734,6 +774,7 @@ const rootRouteChildren: RootRouteChildren = {
   CartRoute: CartRoute,
   CheckoutRoute: CheckoutRoute,
   ContactRoute: ContactRoute,
+  PaymentFailedRoute: PaymentFailedRoute,
   RentalCatalogRoute: RentalCatalogRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
@@ -741,6 +782,7 @@ const rootRouteChildren: RootRouteChildren = {
   StudioPhotographyRoute: StudioPhotographyRoute,
   StudioRentalRoute: StudioRentalRoute,
   TermsRoute: TermsRoute,
+  ThankYouRoute: ThankYouRoute,
   TrackRoute: TrackRoute,
   BlogEssentialNewbornPropsRoute: BlogEssentialNewbornPropsRoute,
   ItemsIdRoute: ItemsIdRoute,

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { ArrivalDirections } from "@/components/ArrivalDirections";
+import { PayOnlineButton } from "@/components/PayOnlineButton";
+import { confirmBookingDeposit } from "@/lib/bookings.functions";
 import { Copy, Check, Upload, Banknote, CreditCard, Wallet } from "lucide-react";
+
 
 export const Route = createFileRoute("/deposit/$type/$id")({
   component: Deposit,
@@ -49,6 +53,8 @@ function Deposit() {
   const [method, setMethod] = useState<"cash" | "transfer" | "bit">(isStudio ? "transfer" : "cash");
   const [uploading, setUploading] = useState(false);
   const [done, setDone] = useState(false);
+  const confirmDeposit = useServerFn(confirmBookingDeposit);
+
 
 
   useEffect(() => {
@@ -104,12 +110,22 @@ function Deposit() {
         })
         .eq("id", id);
       if (updErr) throw updErr;
+      // The studio slot is written to the calendar only now — after the
+      // deposit was actually transferred / a receipt was uploaded.
+      if (isStudio && method !== "cash") {
+        try {
+          await confirmDeposit({ data: { id } });
+        } catch (e) {
+          console.error("[SWEETBABY] calendar sync after deposit failed", e);
+        }
+      }
       toast.success(
         method === "cash"
           ? "מעולה! נחכה לך עם התשלום במזומן ביום האיסוף."
-          : "האסמכתא נשלחה. נאשר לך במייל תוך זמן קצר.",
+          : "האסמכתא נשלחה והמועד נשמר ביומן. נאשר לך במייל תוך זמן קצר.",
       );
       setDone(true);
+
     } catch (err: any) {
       toast.error(err?.message ?? "שגיאה בשליחה");
     } finally {
@@ -185,17 +201,15 @@ function Deposit() {
                   ))}
                 </div>
 
-                {/* Credit card clearing is not live yet — shown but blocked. */}
-                <button
-                  type="button"
-                  disabled
-                  className="w-full h-12 rounded-xl text-sm border border-dashed border-border bg-muted/40 text-muted-foreground cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  <CreditCard className="h-4 w-4" /> תשלום בכרטיס אשראי · בקרוב
-                </button>
-                <p className="text-[11px] text-muted-foreground -mt-2">
-                  סליקה באשראי תיפתח בקרוב. בינתיים אפשר לשלם בהעברה בנקאית או ב-Bit/PayBox{isStudio ? "" : " / מזומן"}.
-                </p>
+                {/* Secure card payment — opens in a modal inside the site. */}
+                <div className="rounded-2xl border border-border p-4">
+                  <PayOnlineButton
+                    className="w-full"
+                    label={`תשלום מאובטח באשראי · ₪${payNow}`}
+                    note="החלון נפתח בתוך האתר. לאחר התשלום נא להעלות/לצרף אישור התשלום כאן למטה."
+                  />
+                </div>
+
 
 
                 {method === "cash" ? (

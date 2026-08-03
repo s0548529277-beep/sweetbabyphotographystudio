@@ -4,7 +4,8 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { CreditCard, Banknote, Camera, CalendarDays, User, Phone, Aperture, ShieldCheck, Sparkles, Clock } from "lucide-react";
+import { PayOnlineButton } from "@/components/PayOnlineButton";
+import { CreditCard, Banknote, Camera, CalendarDays, User, Phone, Aperture, ShieldCheck, Clock } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/summary/$type/$id")({
@@ -31,13 +32,6 @@ function SummaryPage() {
       setLoading(false);
     })();
   }, [type, id]);
-
-  const handleCard = () => {
-    toast("סליקה בכרטיס אשראי – בקרוב", {
-      description: "אנחנו בשלבי חיבור אחרונים ל-Stripe / משולם. בינתיים ניתן להשלים את השריון בהעברה בנקאית או ב-Bit.",
-      icon: <Sparkles className="h-4 w-4 text-blush-deep" />,
-    });
-  };
 
   if (loading) {
     return (
@@ -166,26 +160,23 @@ function SummaryPage() {
 
 
                 <div className="mt-6 space-y-3">
-                  <button
-                    type="button"
-                    onClick={handleCard}
-                    className="group relative w-full overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-forest-deep text-primary-foreground p-4 text-right shadow-[var(--shadow-soft)] transition-transform hover:scale-[1.01]"
-                  >
+                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-forest-deep text-primary-foreground p-4 text-right shadow-[var(--shadow-soft)]">
                     <div className="absolute -left-6 -top-6 h-24 w-24 rounded-full bg-blush/25 blur-2xl" />
-                    <div className="relative flex items-center justify-between">
+                    <div className="relative flex items-center justify-between mb-4">
                       <div>
                         <div className="text-[10px] tracking-[0.3em] uppercase text-blush/90 mb-1">Secure checkout</div>
-                        <div className="font-display text-2xl leading-tight">סליקה בכרטיס אשראי</div>
-                        <div className="text-xs text-blush/80 mt-1">Stripe · משולם — בקרוב</div>
+                        <div className="font-display text-2xl leading-tight">תשלום מאובטח באשראי</div>
+                        <div className="text-xs text-blush/80 mt-1">החלון נפתח בתוך האתר</div>
                       </div>
                       <div className="h-11 w-11 rounded-full bg-blush/20 flex items-center justify-center">
                         <CreditCard className="h-5 w-5 text-blush" />
                       </div>
                     </div>
-                    <div className="relative mt-3 flex items-center gap-2 text-[10px] text-blush/75">
-                      <Sparkles className="h-3 w-3" /> חיבור בשלבי הטמעה — לחצי לפרטים
+                    <div className="relative">
+                      <PayOnlineButton label="מעבר לתשלום" note={null} />
                     </div>
-                  </button>
+                  </div>
+
 
                   <Button
                     onClick={() => nav({ to: "/deposit/$type/$id", params: { type, id } })}

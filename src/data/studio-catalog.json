@@ -3,6 +3,14 @@
     "title": "אביזרים חדשים 2026",
     "items": [
       {
+        "sku": "460",
+        "name": "חצאית טוטו צבעונית",
+        "price": 10,
+        "img": "/catalog-images/460.jpg",
+        "alt": "אביזרים חדשים 2026 #460",
+        "hasHand": false
+      },
+      {
         "sku": "461",
         "name": "אופניים לילדים",
         "price": 40,
@@ -21,7 +29,7 @@
       {
         "sku": "463",
         "name": "קטנוע צעצוע מעץ",
-        "price": 35,
+        "price": 45,
         "img": "/catalog-images/463.jpg",
         "alt": "אביזרים חדשים 2026 #463",
         "hasHand": false
@@ -32,6 +40,14 @@
         "price": 35,
         "img": "/catalog-images/464.jpg",
         "alt": "אביזרים חדשים 2026 #464",
+        "hasHand": true
+      },
+      {
+        "sku": "465",
+        "name": "סירת עץ עם משוטים – חוץ",
+        "price": 70,
+        "img": "/catalog-images/465.jpg",
+        "alt": "אביזרים חדשים 2026 #465",
         "hasHand": true
       },
       {
@@ -53,7 +69,7 @@
       {
         "sku": "468",
         "name": "כיסא אוכל",
-        "price": 30,
+        "price": 15,
         "img": "/catalog-images/468.jpg",
         "alt": "אביזרים חדשים 2026 #468",
         "hasHand": false
@@ -64,6 +80,14 @@
         "price": 30,
         "img": "/catalog-images/469.jpg",
         "alt": "אביזרים חדשים 2026 #469",
+        "hasHand": false
+      },
+      {
+        "sku": "470",
+        "name": "שולחן עץ לבן",
+        "price": 45,
+        "img": "/catalog-images/470.jpg",
+        "alt": "אביזרים חדשים 2026 #470",
         "hasHand": false
       },
       {
@@ -85,7 +109,7 @@
       {
         "sku": "473",
         "name": "כובע ג'ינס",
-        "price": 5,
+        "price": 15,
         "img": "/catalog-images/473.jpg",
         "alt": "אביזרים חדשים 2026 #473",
         "hasHand": false
@@ -133,7 +157,7 @@
       {
         "sku": "479",
         "name": "שולחן מגש במבוק",
-        "price": 20,
+        "price": 25,
         "img": "/catalog-images/479.jpg",
         "alt": "אביזרים חדשים 2026 #479",
         "hasHand": false
@@ -171,9 +195,17 @@
         "hasHand": false
       },
       {
+        "sku": "484",
+        "name": "מכונית רכיבה אדומה",
+        "price": 60,
+        "img": "/catalog-images/484.jpg",
+        "alt": "אביזרים חדשים 2026 #484",
+        "hasHand": false
+      },
+      {
         "sku": "485",
         "name": "לוח עץ",
-        "price": 35,
+        "price": 15,
         "img": "/catalog-images/485.jpg",
         "alt": "אביזרים חדשים 2026 #485",
         "hasHand": false
@@ -202,7 +234,7 @@
       {
         "sku": "100",
         "name": "מעיל צהוב",
-        "price": 25,
+        "price": 15,
         "img": "/catalog-images/100.jpg",
         "alt": "מעיל גשם צהוב לילדים – חוץ #100",
         "hasHand": true
@@ -234,7 +266,7 @@
       {
         "sku": "120",
         "name": "סטנדר",
-        "price": 15,
+        "price": 25,
         "img": "/catalog-images/120.jpg",
         "alt": "סטנדר תאורה מתכת #120",
         "hasHand": false
@@ -242,7 +274,7 @@
       {
         "sku": "122",
         "name": "מחבט",
-        "price": 15,
+        "price": 20,
         "img": "/catalog-images/122.jpg",
         "alt": "מחבט וינטג׳ #122",
         "hasHand": false
@@ -266,7 +298,7 @@
       {
         "sku": "134",
         "name": "מזוודה",
-        "price": 15,
+        "price": 35,
         "img": "/catalog-images/134.jpg",
         "alt": "מזוודה קטנה וינטג׳ #134",
         "hasHand": false
@@ -274,7 +306,7 @@
       {
         "sku": "136",
         "name": "כיסא אדום",
-        "price": 20,
+        "price": 25,
         "img": "/catalog-images/136.jpg",
         "alt": "כיסא עץ אדום קטן #136",
         "hasHand": false
@@ -282,7 +314,7 @@
       {
         "sku": "137",
         "name": "עששית אדומה",
-        "price": 10,
+        "price": 20,
         "img": "/catalog-images/137.jpg",
         "alt": "עששית אדומה #137",
         "hasHand": false
@@ -298,7 +330,7 @@
       {
         "sku": "201",
         "name": "סט מזוודות",
-        "price": 25,
+        "price": 40,
         "img": "/catalog-images/201.jpg",
         "alt": "סט 3 מזוודות וינטג׳ #201",
         "hasHand": false
@@ -306,7 +338,7 @@
       {
         "sku": "412",
         "name": "אמבטיה צהובה עם לימונים",
-        "price": 30,
+        "price": 25,
         "img": "/catalog-images/412.jpg",
         "alt": "אמבטיה צהובה עם לימונים #412",
         "hasHand": true
@@ -359,7 +391,7 @@
       {
         "sku": "106",
         "name": "שלט Welcome On Board",
-        "price": 15,
+        "price": 10,
         "img": "/catalog-images/106.jpg",
         "alt": "כללי ואביזרים גדולים #106",
         "hasHand": false
@@ -407,7 +439,7 @@
       {
         "sku": "112",
         "name": "כיסא עץ כהה",
-        "price": 20,
+        "price": 15,
         "img": "/catalog-images/112.jpg",
         "alt": "כללי ואביזרים גדולים #112",
         "hasHand": false
@@ -479,7 +511,7 @@
       {
         "sku": "127",
         "name": "שלט Don't Be Rude XOXO",
-        "price": 15,
+        "price": 20,
         "img": "/catalog-images/127.jpg",
         "alt": "כללי ואביזרים גדולים #127",
         "hasHand": false
@@ -487,7 +519,7 @@
       {
         "sku": "128",
         "name": "סקייטבורד קטן",
-        "price": 25,
+        "price": 10,
         "img": "/catalog-images/128.jpg",
         "alt": "כללי ואביזרים גדולים #128",
         "hasHand": false
@@ -495,7 +527,7 @@
       {
         "sku": "129",
         "name": "רמקול נייד גרפיטי",
-        "price": 25,
+        "price": 15,
         "img": "/catalog-images/129.jpg",
         "alt": "כללי ואביזרים גדולים #129",
         "hasHand": false
@@ -612,7 +644,7 @@
       {
         "sku": "146",
         "name": "ערימת ספרים וינטג׳",
-        "price": 15,
+        "price": 5,
         "img": "/catalog-images/146.jpg",
         "alt": "Vintage #146",
         "hasHand": false
@@ -1003,7 +1035,7 @@
       {
         "sku": "203",
         "name": "מזוודת עץ",
-        "price": 10,
+        "price": 15,
         "img": "/catalog-images/203.jpg",
         "alt": "מזוודות #203",
         "hasHand": false
@@ -1019,7 +1051,7 @@
       {
         "sku": "205",
         "name": "שלט Grateful Thankful Blessed",
-        "price": 10,
+        "price": 15,
         "img": "/catalog-images/205.jpg",
         "alt": "מזוודות #205",
         "hasHand": false
@@ -1035,7 +1067,7 @@
       {
         "sku": "207",
         "name": "תיק קלוע",
-        "price": 10,
+        "price": 5,
         "img": "/catalog-images/207.jpg",
         "alt": "מזוודות #207",
         "hasHand": false
@@ -1093,7 +1125,7 @@
       {
         "sku": "213",
         "name": "לוכד חלומות סרוג לבן",
-        "price": 5,
+        "price": 15,
         "img": "/catalog-images/213.jpg",
         "alt": "Lifestyle #213",
         "hasHand": false
@@ -1141,7 +1173,7 @@
       {
         "sku": "219",
         "name": "צנצנת זכוכית עטופה מקרמה",
-        "price": 5,
+        "price": 15,
         "img": "/catalog-images/219.jpg",
         "alt": "Lifestyle #219",
         "hasHand": false
@@ -1596,7 +1628,7 @@
       {
         "sku": "274",
         "name": "בלומרס סרוג ורוד עם סרט",
-        "price": 35,
+        "price": 5,
         "img": "/catalog-images/274.jpg",
         "alt": "בגדים #274",
         "hasHand": false
@@ -1604,7 +1636,7 @@
       {
         "sku": "275",
         "name": "סרבל תחרה לבן",
-        "price": 35,
+        "price": 5,
         "img": "/catalog-images/275.jpg",
         "alt": "בגדים #275",
         "hasHand": false
@@ -2134,7 +2166,7 @@
       {
         "sku": "340",
         "name": "שטיח פרווה אפור",
-        "price": 0,
+        "price": 30,
         "img": "/catalog-images/340.jpg",
         "alt": "שמיכות ופרוות #340",
         "hasHand": false
@@ -2142,9 +2174,17 @@
       {
         "sku": "341",
         "name": "סדין פרווה כחול",
-        "price": 0,
+        "price": 30,
         "img": "/catalog-images/341.jpg",
         "alt": "שמיכות ופרוות #341",
+        "hasHand": false
+      },
+      {
+        "sku": "342",
+        "name": "שמיכת פרווה תכלת",
+        "price": 30,
+        "img": "/catalog-images/342.jpg",
+        "alt": "שמיכות ופרוות #342",
         "hasHand": false
       },
       {
@@ -2507,6 +2547,14 @@
         "hasHand": false
       },
       {
+        "sku": "386",
+        "name": "בובות סרוגות – פיל, ארנב וקואלה",
+        "price": 10,
+        "img": "/catalog-images/386.jpg",
+        "alt": "דובונים ואביזרים משלימים #386",
+        "hasHand": false
+      },
+      {
         "sku": "387",
         "name": "מכשיר רעש לבן",
         "price": 15,
@@ -2848,6 +2896,14 @@
         "img": "/catalog-images/415.jpg",
         "alt": "גיל שנה - אמבטיות #415",
         "hasHand": false
+      },
+      {
+        "sku": "416",
+        "name": "מכונית רכיבה טורקיז",
+        "price": 25,
+        "img": "/catalog-images/416.jpg",
+        "alt": "גיל שנה - אמבטיות #416",
+        "hasHand": false
       }
     ]
   },
@@ -2878,7 +2934,7 @@
       {
         "sku": "419",
         "name": "תבנית סיליקון",
-        "price": 20,
+        "price": 5,
         "img": "/catalog-images/419.jpg",
         "alt": "אביזרים משלימים #419",
         "hasHand": false
@@ -2894,7 +2950,7 @@
       {
         "sku": "421",
         "name": "מעמד עוגה",
-        "price": 10,
+        "price": 15,
         "img": "/catalog-images/421.jpg",
         "alt": "אביזרים משלימים #421",
         "hasHand": false
@@ -2926,7 +2982,7 @@
       {
         "sku": "425",
         "name": "חלילית עץ, פלסטיק",
-        "price": 5,
+        "price": 15,
         "img": "/catalog-images/425.jpg",
         "alt": "אביזרים משלימים #425",
         "hasHand": false
@@ -2942,7 +2998,7 @@
       {
         "sku": "427",
         "name": "צעצוע עץ צבעוני",
-        "price": 10,
+        "price": 5,
         "img": "/catalog-images/427.jpg",
         "alt": "אביזרים משלימים #427",
         "hasHand": false
@@ -3004,6 +3060,14 @@
         "hasHand": false
       },
       {
+        "sku": "435",
+        "name": "קוביות עץ BABY",
+        "price": 5,
+        "img": "/catalog-images/435.jpg",
+        "alt": "אביזרים משלימים #435",
+        "hasHand": false
+      },
+      {
         "sku": "436",
         "name": "זר דגלים משולשים",
         "price": 5,
@@ -3017,6 +3081,14 @@
         "price": 5,
         "img": "/catalog-images/437.jpg",
         "alt": "אביזרים משלימים #437",
+        "hasHand": false
+      },
+      {
+        "sku": "438",
+        "name": "שרשרת דגלונים בז' ואפור",
+        "price": 5,
+        "img": "/catalog-images/438.jpg",
+        "alt": "אביזרים משלימים #438",
         "hasHand": false
       },
       {
