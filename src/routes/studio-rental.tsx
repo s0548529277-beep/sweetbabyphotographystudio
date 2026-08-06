@@ -249,7 +249,7 @@ function StudioRentalPage() {
             >
               <PlayCircle className="h-4 w-4" /> הדרכה לשימוש בסטודיו
            </button>
-            
+<a
               href="#studio-inspiration"
               className="mt-5 inline-flex items-center gap-2 h-12 px-6 rounded-full bg-[#f5d5cf] text-[#2d3d2b] text-sm font-semibold hover:bg-[#efc7c0] transition-colors"
             >
