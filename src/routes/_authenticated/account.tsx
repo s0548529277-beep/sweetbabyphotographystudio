@@ -1,3 +1,4 @@
+import { heError } from "@/lib/he-errors";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -43,14 +44,14 @@ function Account() {
     if (!confirm("לבטל את השריון?")) return;
     setCancelling(id);
     try { await cancelB({ data: { id } }); toast.success("השריון בוטל"); bookings.refetch(); }
-    catch (e) { toast.error(e instanceof Error ? e.message : "ביטול נכשל"); }
+    catch (e) { toast.error(heError(e, "ביטול נכשל")); }
     finally { setCancelling(null); }
   };
   const doCancelOrder = async (id: string) => {
     if (!confirm("לבטל את ההזמנה?")) return;
     setCancelling(id);
     try { await cancelO({ data: { id } }); toast.success("ההזמנה בוטלה"); orders.refetch(); }
-    catch (e) { toast.error(e instanceof Error ? e.message : "ביטול נכשל"); }
+    catch (e) { toast.error(heError(e, "ביטול נכשל")); }
     finally { setCancelling(null); }
   };
 

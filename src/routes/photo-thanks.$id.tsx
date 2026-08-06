@@ -1,3 +1,4 @@
+import { heError } from "@/lib/he-errors";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -43,7 +44,7 @@ function PhotoThanks() {
       toast.success("ההזמנה אושרה ונשלחה במייל ✓");
       setDone(true);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "סגירת ההזמנה נכשלה");
+      toast.error(heError(e, "סגירת ההזמנה נכשלה"));
     } finally {
       setBusy(false);
     }

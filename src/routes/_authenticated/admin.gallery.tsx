@@ -1,3 +1,4 @@
+import { heError } from "@/lib/he-errors";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -215,7 +216,7 @@ function AdminGalleryPage() {
                   refresh();
                   toast.success("הפורמט עודכן");
                 } catch (e) {
-                  toast.error(e instanceof Error ? e.message : "שגיאה בעדכון");
+                  toast.error(heError(e, "שגיאה בעדכון"));
                 }
               }}
               className={`px-4 h-9 rounded-full text-sm border ${

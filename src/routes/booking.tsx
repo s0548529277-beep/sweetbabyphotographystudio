@@ -1,3 +1,4 @@
+import { heError } from "@/lib/he-errors";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Header } from "@/components/Header";
@@ -248,7 +249,7 @@ function Booking() {
       toast.success("השריון נוצר! ממשיכות לתשלום המקדמה.");
       nav({ to: "/summary/$type/$id", params: { type: "booking", id: res.id } });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "שגיאה בשריון");
+      toast.error(heError(err, "שגיאה בשריון"));
     } finally {
       setBusy(false);
     }

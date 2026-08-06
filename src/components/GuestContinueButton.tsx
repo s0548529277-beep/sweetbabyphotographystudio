@@ -1,3 +1,4 @@
+import { heError } from "@/lib/he-errors";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,7 @@ export function GuestContinueButton({ className = "" }: { className?: string }) 
       if (error) throw error;
       toast.success("ממשיכים ללא הרשמה — ההזמנה תישמר במצב אורח.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "לא הצלחנו להמשיך במצב אורח");
+      toast.error(heError(e, "לא הצלחנו להמשיך במצב אורח"));
     } finally {
       setBusy(false);
     }
