@@ -116,9 +116,10 @@ function StudioPhotographyPage() {
       });
       toast.success("הבקשה נקלטה ביומן הסטודיו ✓");
       setBook((b) => ({ ...b, notes: "" }));
+      setWizard(false);
       nav({ to: "/photo-thanks/$id", params: { id: res.id } });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "קביעת המועד נכשלה");
+      toast.error(heError(e, "קביעת המועד נכשלה"));
     } finally {
       setSending(false);
 
