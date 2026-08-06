@@ -201,14 +201,17 @@ function Deposit() {
                   ))}
                 </div>
 
-                {/* Secure card payment — opens in a modal inside the site. */}
-                <div className="rounded-2xl border border-border p-4">
-                  <PayOnlineButton
-                    className="w-full"
-                    label={`תשלום מאובטח באשראי · ₪${payNow}`}
-                    note="החלון נפתח בתוך האתר. לאחר התשלום נא להעלות/לצרף אישור התשלום כאן למטה."
-                  />
-                </div>
+                {/* Secure card payment — studio rental only. */}
+                {isStudio && (
+                  <div className="rounded-2xl border border-border p-4">
+                    <PayOnlineButton
+                      className="w-full"
+                      label={`תשלום מאובטח באשראי · ₪${payNow}`}
+                      note="החלון נפתח בתוך האתר. לאחר התשלום נא להעלות/לצרף אישור התשלום כאן למטה."
+                    />
+                  </div>
+                )}
+
 
 
 

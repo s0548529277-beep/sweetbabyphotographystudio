@@ -160,6 +160,7 @@ function SummaryPage() {
 
 
                 <div className="mt-6 space-y-3">
+                  {type === "booking" && (
                   <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-forest-deep text-primary-foreground p-4 text-right shadow-[var(--shadow-soft)]">
                     <div className="absolute -left-6 -top-6 h-24 w-24 rounded-full bg-blush/25 blur-2xl" />
                     <div className="relative flex items-center justify-between mb-4">
@@ -176,6 +177,8 @@ function SummaryPage() {
                       <PayOnlineButton label="מעבר לתשלום" note={null} />
                     </div>
                   </div>
+                  )}
+
 
 
                   <Button

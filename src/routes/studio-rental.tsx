@@ -35,13 +35,13 @@ const EMAIL_TO = "s0548529277@gmail.com";
 type IntakeForm = {
   clientName: string; phone: string; email: string;
   sessionType: string; sessionDate: string; peopleCount: string; babyAge: string;
-  cameraBrand: string; flashExperience: string; needProps: string; specialRequests: string;
+  cameraBrand: string; cameraNeed: string; flashExperience: string; needProps: string; specialRequests: string;
   guidance: string;
   agreed: boolean;
 };
 const emptyForm: IntakeForm = {
   clientName: "", phone: "", email: "", sessionType: "", sessionDate: "",
-  peopleCount: "", babyAge: "", cameraBrand: "", flashExperience: "",
+  peopleCount: "", babyAge: "", cameraBrand: "", cameraNeed: "", flashExperience: "",
   needProps: "", specialRequests: "", guidance: "basic", agreed: false,
 };
 
@@ -49,7 +49,7 @@ const guidanceOptions = [
   { key: "basic", price: 0, tag: "בסיסי", title: "הדרכה קצרה (חינם)", desc: "עד 5 דקות, בכפוף לזמינות או בטלפון." },
   { key: "mini", price: 50, tag: "MINI", title: "הדרכה טכנית קצרצרה", desc: "עד 20 דק׳ בסטודיו פנים אל פנים: הפעלת ציוד, הגדרות מצלמה בסיסיות והתאמת סט אחד." },
   { key: "plus", price: 100, tag: "PLUS", title: "ליווי מקצועי ראשוני", desc: "התאמת 2 סטים לצילום כולל כוונה יצירתית והדרכה טכנית.", featured: true },
-  { key: "premium", price: 150, tag: "PREMIUM", title: "מעטפת מלאה", desc: "הכנת חלל מראש + זמינות במהלך כל השהות + סיוע בסידור אביזרים." },
+  { key: "premium", price: 300, tag: "PREMIUM", title: "צלמת בסטודיו", desc: "אופציה לצלמת בסטודיו — 2 סטים יפים בהתאמה אישית, עד שעה." },
 ] as const;
 
 const fadeUp = {
@@ -172,7 +172,7 @@ function StudioRentalPage() {
           sessionDate: "",
           peopleCount: "",
           babyAge: "",
-          cameraBrand: form.cameraBrand,
+          cameraBrand: [form.cameraBrand, form.cameraNeed && `מצלמה: ${form.cameraNeed}`].filter(Boolean).join(" · "),
           flashExperience: form.flashExperience,
           needProps: guidanceLabel ? `${guidanceLabel.tag} · ${guidanceLabel.title}${guidanceLabel.price ? ` (+₪${guidanceLabel.price})` : ""}` : "",
           specialRequests: form.specialRequests,
@@ -326,7 +326,7 @@ function StudioRentalPage() {
               { key: "basic", tag: "בסיסי", price: 0, title: "ללא הדרכה", desc: "השכרת החלל בלבד — הסבר קצר של עד 5 דק׳ בכפוף לזמינות.", bg: "bg-white", accent: "border-[#2d3d2b]/10" },
               { key: "mini", tag: "Mini", price: 50, title: "הדרכה טכנית קצרצרה", desc: "עד 20 דק' בסטודיו: הפעלת פלאש, הגדרות מצלמה בסיסיות והתאמת סט אחד.", bg: "bg-white", accent: "border-[#2d3d2b]/10" },
               { key: "plus", tag: "Plus", price: 100, title: "ליווי מקצועי ראשוני", desc: "התאמת 2 סטים לצילום כולל הכוונה יצירתית והדרכה טכנית.", bg: "bg-[#a8c4a2]/25", accent: "border-[#a8c4a2]/50", featured: true },
-              { key: "premium", tag: "Premium", price: 150, title: "מעטפת מלאה", desc: "הכנת חלל מאפס + זמינות במהלך כל השהות + סיוע בסידור אביזרים.", bg: "bg-[#f5d5cf]", accent: "border-[#f5d5cf]" },
+              { key: "premium", tag: "Premium", price: 300, title: "צלמת בסטודיו", desc: "אופציה לצלמת בסטודיו — 2 סטים יפים בהתאמה אישית, עד שעה.", bg: "bg-[#f5d5cf]", accent: "border-[#f5d5cf]" },
 
             ].map((p, i) => (
               <motion.button
@@ -546,6 +546,18 @@ function StudioRentalPage() {
               </Field>
               <Field label="מותג / דגם מצלמה">
                 <input className={inputCls} value={form.cameraBrand} onChange={(e) => upd("cameraBrand", e.target.value)} />
+              </Field>
+              <Field label="יש לך מצלמה או שצריכה מצלמה?">
+                <select className={inputCls} value={form.cameraNeed} onChange={(e) => upd("cameraNeed", e.target.value)}>
+                  <option value="">בחרי…</option>
+                  <option>יש לי מצלמה משלי</option>
+                  <option>צריכה מצלמה — Canon 5D Mark III מהסטודיו</option>
+                </select>
+                {form.cameraNeed.includes("צריכה") && (
+                  <span className="mt-1 block text-[11px] text-[#8b3a2a]">
+                    ניתן להכין עבורך מצלמת Canon 5D Mark III — חובה להביא כרטיס זיכרון.
+                  </span>
+                )}
               </Field>
               <Field label="ניסיון עם פלאש / סטודיו" full>
                 <select className={inputCls} value={form.flashExperience} onChange={(e) => upd("flashExperience", e.target.value)}>

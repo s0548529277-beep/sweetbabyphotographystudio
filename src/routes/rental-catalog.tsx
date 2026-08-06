@@ -7,7 +7,8 @@ import { Footer } from "@/components/Footer";
 import { smartSearchItems } from "@/lib/ai.functions";
 import { checkItemsAvailability } from "@/lib/orders.functions";
 import { useCart } from "@/lib/cart";
-import { Sparkles, Search, X, ShoppingBag, Check, Plus, Trash2, ZoomIn, CalendarDays } from "lucide-react";
+import { Sparkles, Search, X, ShoppingBag, Check, Plus, Trash2, ZoomIn, CalendarDays, PlayCircle } from "lucide-react";
+import { StudioGuideModal } from "@/components/StudioGuideModal";
 
 
 
@@ -77,6 +78,8 @@ function RentalCatalogPage() {
     [allItems, inspirationGallery.images],
   );
   const [inspoIdx, setInspoIdx] = useState(0);
+  const [showInspo, setShowInspo] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   useEffect(() => {
     if (inspirationImages.length < 2) return;
     const id = setInterval(() => setInspoIdx((i) => (i + 1) % inspirationImages.length), 3200);
@@ -161,7 +164,24 @@ function RentalCatalogPage() {
             <p className="text-muted-foreground max-w-xl md:mx-0 mx-auto">
               {allItems.length}+ אביזרים · {categories.length} קטגוריות · מינימום הזמנה 50 ₪
             </p>
+            <div className="mt-5 flex flex-wrap gap-3 justify-center md:justify-start">
+              <button
+                type="button"
+                onClick={() => setShowInspo(true)}
+                className="inline-flex items-center gap-2 h-12 px-6 rounded-full bg-[#f5d5cf] text-primary text-sm font-semibold hover:bg-[#efc7c0] transition-colors"
+              >
+                <Sparkles className="h-4 w-4" /> השראות מהסטודיו
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowGuide(true)}
+                className="inline-flex items-center gap-2 h-12 px-6 rounded-full bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
+              >
+                <PlayCircle className="h-4 w-4" /> הדרכה לשימוש בסטודיו
+              </button>
+            </div>
           </div>
+
           {inspirationImages.length > 0 && (
             <div className={`relative w-full md:w-[320px] ${inspirationGallery.aspect === "landscape" ? "aspect-[16/9]" : "aspect-square"} rounded-3xl overflow-hidden shadow-xl bg-cream mx-auto`}>
               <AnimatePresence mode="wait">
@@ -755,7 +775,32 @@ function RentalCatalogPage() {
       </section>
 
       
+      <StudioGuideModal open={showGuide} onClose={() => setShowGuide(false)} />
+
+      {showInspo && inspirationImages.length > 0 && (
+        <div
+          dir="rtl"
+          className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setShowInspo(false)}
+        >
+          <div className="w-full max-w-5xl max-h-[88vh] overflow-y-auto bg-cream rounded-3xl p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-display text-2xl text-primary">השראות מהסטודיו</h3>
+              <button type="button" aria-label="סגירה" onClick={() => setShowInspo(false)} className="h-9 w-9 rounded-full hover:bg-primary/10 flex items-center justify-center text-primary">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {inspirationImages.map((src, i) => (
+                <img key={`${src}-${i}`} src={src} alt="השראה מהסטודיו" loading="lazy" className="w-full aspect-square object-cover rounded-2xl" />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer />
+
     </div>
   );
 }
