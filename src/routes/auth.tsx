@@ -53,7 +53,7 @@ function AuthPage() {
     for (const password of authPasswordCandidates(typed)) {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (!error) { lastError = null; break; }
-      lastError = error.message;
+      lastError = heError(error);
     }
     setBusy(false);
     if (lastError) toast.error(lastError);
@@ -68,7 +68,7 @@ function AuthPage() {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     setBusy(false);
-    if (error) toast.error(error.message);
+    if (error) toast.error(heError(error));
     else {
       toast.success("שלחנו קישור לאיפוס סיסמה למייל שלך");
       setForgotOpen(false);
@@ -92,7 +92,7 @@ function AuthPage() {
       },
     });
     setBusy(false);
-    if (error) toast.error(error.message);
+    if (error) toast.error(heError(error));
     else toast.success("החשבון נוצר! ניתן להתחבר.");
   };
 
