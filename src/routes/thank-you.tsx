@@ -34,9 +34,11 @@ function ThankYou() {
             <p className="text-muted-foreground leading-relaxed mb-2">
               תודה רבה! התשלום נקלט במערכת וההזמנה שלכם נשמרה.
             </p>
-            <p className="text-muted-foreground leading-relaxed mb-8">
+            <p className="text-muted-foreground leading-relaxed mb-3">
               אישור מפורט נשלח אליכם למייל. נחזור אליכם לתיאום סופי של המועד — ואם יש שאלה, אנחנו כאן.
             </p>
+            <p className="text-sm text-primary/70 mb-8">{fullHebrewDate()}</p>
+
 
             <div className="flex flex-wrap items-center justify-center gap-3 mb-8 text-sm">
               <a
