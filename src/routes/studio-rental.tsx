@@ -13,7 +13,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { InspirationStrip } from "@/components/InspirationStrip";
 import { usePageGallery, PAGE_IMAGE_KEYS } from "@/lib/page-images";
-import { PayOnlineButton } from "@/components/PayOnlineButton";
 
 
 
@@ -293,21 +292,7 @@ function StudioRentalPage() {
       </section>
 
       {/* ONLINE PAYMENT */}
-      <section className="container-page pb-6" dir="rtl">
-        <div className="max-w-3xl mx-auto rounded-2xl bg-white border border-[#2d3d2b]/10 p-5 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h3 className="text-lg text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
-              תשלום מקדמה / השכרה
-            </h3>
-            <p className="text-[12px] text-[#2d3d2b]/75 mt-1">
-              מקדמה לשריון מועד ₪90 · היתרה בסיום. התשלום מהווה הסכמה ל
-              <Link to="/terms" className="underline underline-offset-2">תקנון</Link>.
-            </p>
-          </div>
-          <PayOnlineButton />
-        </div>
-      </section>
-
+    
 
 
       {/* GUIDANCE ADD-ONS */}
