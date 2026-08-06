@@ -2,8 +2,8 @@ import { heError } from "@/lib/he-errors";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Clock, CreditCard, CalendarDays, Sparkles, ArrowLeft, X, MapPin, Star, AlertTriangle } from "lucide-react";
-import { Header } from "@/components/Header";
+import { Clock, CreditCard, CalendarDays, Sparkles, ArrowLeft, X, MapPin, Star, AlertTriangle, PlayCircle } from "lucide-react";import { Header } from "@/components/Header";
+import { StudioGuideModal } from "@/components/StudioGuideModal";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/lib/auth";
 import { useProfilePrefill } from "@/hooks/use-profile";
@@ -120,7 +120,8 @@ function StudioRentalPage() {
   const [showForm, setShowForm] = useState(false);
 
   const [form, setForm] = useState<IntakeForm>(emptyForm);
-  const [submitting, setSubmitting] = useState(false);
+ const [submitting, setSubmitting] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const nav = useNavigate();
   const { user } = useAuth();
   const profile = useProfilePrefill();
@@ -240,7 +241,14 @@ function StudioRentalPage() {
                 <MapPin className="h-3.5 w-3.5 text-[#6b8a63]" />
                 <span>תלמוד ירושלמי 24</span>
               </div>
-            </div>
+           </div>
+            <button
+              type="button"
+              onClick={() => setShowGuide(true)}
+              className="mt-5 inline-flex items-center gap-2 h-12 px-6 rounded-full bg-[#2d3d2b] text-[#f8ede4] text-sm font-semibold hover:bg-[#2d3d2b]/90 transition-colors"
+            >
+              <PlayCircle className="h-4 w-4" /> הדרכה לשימוש בסטודיו
+            </button>
           </motion.div>
         </div>
       </section>
@@ -454,6 +462,7 @@ function StudioRentalPage() {
       </section>
 
 
+    <StudioGuideModal open={showGuide} onClose={() => setShowGuide(false)} />
       <Footer />
 
       {/* INTAKE MODAL — includes the full studio rules */}
