@@ -248,7 +248,13 @@ function StudioRentalPage() {
               className="mt-5 inline-flex items-center gap-2 h-12 px-6 rounded-full bg-[#2d3d2b] text-[#f8ede4] text-sm font-semibold hover:bg-[#2d3d2b]/90 transition-colors"
             >
               <PlayCircle className="h-4 w-4" /> הדרכה לשימוש בסטודיו
-            </button>
+           </button>
+            
+              href="#studio-inspiration"
+              className="mt-5 inline-flex items-center gap-2 h-12 px-6 rounded-full bg-[#f5d5cf] text-[#2d3d2b] text-sm font-semibold hover:bg-[#efc7c0] transition-colors"
+            >
+              <Sparkles className="h-4 w-4" /> השראה מהסטודיו
+            </a>
           </motion.div>
         </div>
       </section>
