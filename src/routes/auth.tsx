@@ -1,3 +1,4 @@
+import { heError } from "@/lib/he-errors";
 import { createFileRoute, useNavigate, useSearch, Link } from "@tanstack/react-router";
 import { z } from "zod";
 import { useEffect, useState } from "react";

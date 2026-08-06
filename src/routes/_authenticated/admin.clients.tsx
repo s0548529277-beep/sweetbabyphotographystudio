@@ -1,3 +1,4 @@
+import { heError } from "@/lib/he-errors";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -180,7 +181,7 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
       toast.success("פרטי הלקוח עודכנו");
       onSaved();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "העדכון נכשל");
+      toast.error(heError(e, "העדכון נכשל"));
     } finally {
       setBusy(false);
     }

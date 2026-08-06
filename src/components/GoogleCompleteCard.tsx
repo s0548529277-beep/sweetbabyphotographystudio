@@ -1,3 +1,4 @@
+import { heError } from "@/lib/he-errors";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -47,7 +48,7 @@ export function GoogleCompleteCard({
       toast.success("הפרטים נשמרו — אפשר להתחבר גם בלי Google");
       setDismissed(true);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "השמירה נכשלה");
+      toast.error(heError(e, "השמירה נכשלה"));
     } finally {
       setBusy(false);
     }

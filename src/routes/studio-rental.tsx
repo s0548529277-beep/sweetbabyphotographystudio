@@ -1,3 +1,4 @@
+import { heError } from "@/lib/he-errors";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
@@ -191,7 +192,7 @@ function StudioRentalPage() {
       setShowForm(false);
       nav({ to: "/booking" });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "שליחה נכשלה");
+      toast.error(heError(e, "שליחה נכשלה"));
     } finally {
       setSubmitting(false);
     }

@@ -1,3 +1,4 @@
+import { heError } from "@/lib/he-errors";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
@@ -156,7 +157,7 @@ function Checkout() {
       clear();
       nav({ to: "/summary/$type/$id", params: { type: "order", id: res.id } });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "שגיאה בשליחת ההזמנה");
+      toast.error(heError(err, "שגיאה בשליחת ההזמנה"));
     } finally {
       setBusy(false);
     }
