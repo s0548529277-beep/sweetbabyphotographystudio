@@ -217,7 +217,22 @@ function StudioRentalPage() {
           transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        <div className="relative container-page pt-10 pb-8">
+        <div className="relative container-page pt-6 pb-8">
+          <div className="flex flex-wrap gap-3 justify-end mb-5">
+            <a
+              href="#studio-inspiration"
+              className="inline-flex items-center gap-2 h-11 px-5 rounded-full bg-[#f5d5cf] text-[#2d3d2b] text-sm font-semibold hover:bg-[#efc7c0] transition-colors"
+            >
+              <Sparkles className="h-4 w-4" /> השראה מהסטודיו
+            </a>
+            <button
+              type="button"
+              onClick={() => setShowGuide(true)}
+              className="inline-flex items-center gap-2 h-11 px-5 rounded-full bg-[#2d3d2b] text-[#f8ede4] text-sm font-semibold hover:bg-[#2d3d2b]/90 transition-colors"
+            >
+              <PlayCircle className="h-4 w-4" /> הדרכה לשימוש בסטודיו
+            </button>
+          </div>
           <motion.div initial="hidden" animate="show" variants={fadeUp} className="max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/70 backdrop-blur px-4 py-1.5 border border-[#2d3d2b]/10">
               <Star className="h-3.5 w-3.5 fill-[#a8c4a2] text-[#a8c4a2]" />
@@ -242,22 +257,10 @@ function StudioRentalPage() {
                 <span>תלמוד ירושלמי 24</span>
               </div>
            </div>
-            <button
-              type="button"
-              onClick={() => setShowGuide(true)}
-              className="mt-5 inline-flex items-center gap-2 h-12 px-6 rounded-full bg-[#2d3d2b] text-[#f8ede4] text-sm font-semibold hover:bg-[#2d3d2b]/90 transition-colors"
-            >
-              <PlayCircle className="h-4 w-4" /> הדרכה לשימוש בסטודיו
-           </button>
-<a
-              href="#studio-inspiration"
-              className="mt-5 inline-flex items-center gap-2 h-12 px-6 rounded-full bg-[#f5d5cf] text-[#2d3d2b] text-sm font-semibold hover:bg-[#efc7c0] transition-colors"
-            >
-              <Sparkles className="h-4 w-4" /> השראה מהסטודיו
-            </a>
           </motion.div>
         </div>
       </section>
+
 
       {/* PRICING */}
       <section className="container-page pb-6" dir="rtl">
@@ -276,7 +279,7 @@ function StudioRentalPage() {
               </div>
               <p className="mt-2 text-[12px] text-[#2d3d2b]/75">כל שעה נוספת 90 ₪ · חצאי שעות בחישוב יחסי · מינימום שעה</p>
               <button type="button" onClick={() => setShowForm(true)} className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#2d3d2b] text-[#f8ede4] px-4 py-2 text-xs font-semibold">
-                בחירת חבילה זו <ArrowLeft className="h-3.5 w-3.5" />
+                לקביעת מועד <ArrowLeft className="h-3.5 w-3.5" />
               </button>
             </div>
           </motion.div>
@@ -298,7 +301,7 @@ function StudioRentalPage() {
               </div>
               <p className="mt-2 text-[12px] text-[#2d3d2b]/80">3 שעות רצופות · חיסכון משמעותי מול תעריף שעתי</p>
               <button type="button" onClick={() => { upd("sessionType", "ניו-בורן"); setShowForm(true); }} className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#2d3d2b] text-[#f8ede4] px-4 py-2 text-xs font-semibold">
-                בחירת חבילה זו <ArrowLeft className="h-3.5 w-3.5" />
+                לקביעת מועד <ArrowLeft className="h-3.5 w-3.5" />
               </button>
             </div>
           </motion.div>
@@ -309,56 +312,8 @@ function StudioRentalPage() {
     
 
 
-      {/* GUIDANCE ADD-ONS */}
-      <section className="container-page pb-6" dir="rtl">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-5">
-            <div className="text-[11px] tracking-[0.3em] uppercase text-[#6b8a63] mb-2">Add-ons</div>
-            <h3 className="text-2xl md:text-3xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
-              חבילות הדרכה וליווי — בחרי חבילה והתחילי
-            </h3>
-            <p className="mt-2 text-sm text-[#2d3d2b]/70 max-w-xl mx-auto">
-              החבילות הן תוספת חד-פעמית מעל מחיר השכרת החלל. לחיצה על חבילה פותחת את התהליך עם החבילה שנבחרה.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-            {[
-              { key: "basic", tag: "בסיסי", price: 0, title: "ללא הדרכה", desc: "השכרת החלל בלבד — הסבר קצר של עד 5 דק׳ בכפוף לזמינות.", bg: "bg-white", accent: "border-[#2d3d2b]/10" },
-              { key: "mini", tag: "Mini", price: 50, title: "הדרכה טכנית קצרצרה", desc: "עד 20 דק' בסטודיו: הפעלת פלאש, הגדרות מצלמה בסיסיות והתאמת סט אחד.", bg: "bg-white", accent: "border-[#2d3d2b]/10" },
-              { key: "plus", tag: "Plus", price: 100, title: "ליווי מקצועי ראשוני", desc: "התאמת 2 סטים לצילום כולל הכוונה יצירתית והדרכה טכנית.", bg: "bg-[#a8c4a2]/25", accent: "border-[#a8c4a2]/50", featured: true },
-              { key: "premium", tag: "Premium", price: 300, title: "צלמת בסטודיו", desc: "אופציה לצלמת בסטודיו — 2 סטים יפים בהתאמה אישית, עד שעה.", bg: "bg-[#f5d5cf]", accent: "border-[#f5d5cf]" },
+      {/* Guidance packages are chosen inside the intake form only */}
 
-            ].map((p, i) => (
-              <motion.button
-                type="button"
-                key={p.title} custom={i} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} variants={fadeUp}
-                whileHover={{ y: -4 }}
-                onClick={() => { upd("guidance", p.key); setShowForm(true); }}
-                className={`${p.bg} rounded-2xl p-5 border ${p.accent} relative text-right cursor-pointer hover:shadow-lg transition-shadow`}
-              >
-                {p.featured && (
-                  <span className="absolute top-3 left-3 text-[9px] tracking-[0.22em] uppercase bg-[#2d3d2b] text-[#f8ede4] px-2.5 py-0.5 rounded-full font-semibold">
-                    פופולרי
-                  </span>
-                )}
-                <div className="text-[10px] tracking-[0.28em] uppercase text-[#6b8a63] mb-1">{p.tag}</div>
-                <h4 className="text-lg text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>{p.title}</h4>
-                <div className="mt-2 flex items-baseline gap-1">
-                  <span className="text-2xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>₪{p.price}</span>
-                  <span className="text-xs text-[#2d3d2b]/60">תוספת חד-פעמית</span>
-                </div>
-                <p className="mt-2 text-[13px] text-[#2d3d2b]/75 leading-relaxed">{p.desc}</p>
-                <span className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#2d3d2b]">
-                  בחירה והתחלה <ArrowLeft className="h-3.5 w-3.5" />
-                </span>
-              </motion.button>
-            ))}
-          </div>
-          <p className="mt-3 text-[11px] text-[#2d3d2b]/60 text-center">
-המחיר הסופי = השכרת החלל (₪120 שעה ראשונה / ₪90 לכל שעה נוספת, או מבצע בוקר ₪240) + חבילת ההדרכה שנבחרה.
-          </p>
-        </div>
-      </section>
 
       {/* BOOKING PROCESS */}
       <section className="container-page pb-14" dir="rtl">
