@@ -22,7 +22,7 @@ await renderMedia({
   composition,
   serveUrl: bundled,
   codec: "h264",
-  outputLocation: "/mnt/documents/studio-guide.mp4",
+  outputLocation: "/tmp/studio-guide.mp4",
   puppeteerInstance: browser,
   muted: true,
   concurrency: 1,

@@ -7,8 +7,7 @@ import { Footer } from "@/components/Footer";
 import { smartSearchItems } from "@/lib/ai.functions";
 import { checkItemsAvailability } from "@/lib/orders.functions";
 import { useCart } from "@/lib/cart";
-import { Sparkles, Search, X, ShoppingBag, Check, Plus, Trash2, ZoomIn, CalendarDays, PlayCircle } from "lucide-react";
-import { StudioGuideModal } from "@/components/StudioGuideModal";
+import { Sparkles, Search, X, ShoppingBag, Check, Plus, Trash2, ZoomIn, CalendarDays } from "lucide-react";
 
 
 
@@ -79,7 +78,6 @@ function RentalCatalogPage() {
   );
   const [inspoIdx, setInspoIdx] = useState(0);
   const [showInspo, setShowInspo] = useState(false);
-  const [showGuide, setShowGuide] = useState(false);
   useEffect(() => {
     if (inspirationImages.length < 2) return;
     const id = setInterval(() => setInspoIdx((i) => (i + 1) % inspirationImages.length), 3200);
@@ -164,22 +162,6 @@ function RentalCatalogPage() {
             <p className="text-muted-foreground max-w-xl md:mx-0 mx-auto">
               {allItems.length}+ אביזרים · {categories.length} קטגוריות · מינימום הזמנה 50 ₪
             </p>
-            <div className="mt-5 flex flex-wrap gap-3 justify-center md:justify-start">
-              <button
-                type="button"
-                onClick={() => setShowInspo(true)}
-                className="inline-flex items-center gap-2 h-12 px-6 rounded-full bg-[#f5d5cf] text-primary text-sm font-semibold hover:bg-[#efc7c0] transition-colors"
-              >
-                <Sparkles className="h-4 w-4" /> השראות מהסטודיו
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowGuide(true)}
-                className="inline-flex items-center gap-2 h-12 px-6 rounded-full bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
-              >
-                <PlayCircle className="h-4 w-4" /> הדרכה לשימוש בסטודיו
-              </button>
-            </div>
           </div>
 
           {inspirationImages.length > 0 && (
@@ -775,7 +757,6 @@ function RentalCatalogPage() {
       </section>
 
       
-      <StudioGuideModal open={showGuide} onClose={() => setShowGuide(false)} />
 
       {showInspo && inspirationImages.length > 0 && (
         <div
