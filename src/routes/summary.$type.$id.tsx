@@ -160,24 +160,8 @@ function SummaryPage() {
 
 
                 <div className="mt-6 space-y-3">
-                  {type === "booking" && (
-                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-forest-deep text-primary-foreground p-4 text-right shadow-[var(--shadow-soft)]">
-                    <div className="absolute -left-6 -top-6 h-24 w-24 rounded-full bg-blush/25 blur-2xl" />
-                    <div className="relative flex items-center justify-between mb-4">
-                      <div>
-                        <div className="text-[10px] tracking-[0.3em] uppercase text-blush/90 mb-1">Secure checkout</div>
-                        <div className="font-display text-2xl leading-tight">תשלום מאובטח באשראי</div>
-                        <div className="text-xs text-blush/80 mt-1">החלון נפתח בתוך האתר</div>
-                      </div>
-                      <div className="h-11 w-11 rounded-full bg-blush/20 flex items-center justify-center">
-                        <CreditCard className="h-5 w-5 text-blush" />
-                      </div>
-                    </div>
-                    <div className="relative">
-                      <PayOnlineButton label="מעבר לתשלום" note={null} />
-                    </div>
-                  </div>
-                  )}
+                  {/* Card payment lives only on the receipt / deposit page. */}
+
 
 
 
