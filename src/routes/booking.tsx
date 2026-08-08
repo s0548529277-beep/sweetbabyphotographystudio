@@ -214,6 +214,32 @@ function Booking() {
     try { return computeStudioPrice(slots, startTime); } catch { return 0; }
   }, [startTime, slots]);
   const price = basePrice > 0 ? basePrice + guidanceFee : 0;
+
+  // Discount code (e.g. BYBY10 / SWEETBABY10 → 10%)
+  const [coupon, setCoupon] = useState("");
+  const [couponOff, setCouponOff] = useState(0);
+  const [couponMsg, setCouponMsg] = useState<string | null>(null);
+  const finalPrice = Math.max(0, price - couponOff);
+
+  const applyCoupon = async () => {
+    const code = coupon.trim().toUpperCase();
+    if (!code) return;
+    if (price <= 0) { setCouponMsg("בחרי קודם תאריך ושעה"); return; }
+    const { data } = await supabase
+      .from("coupons")
+      .select("code, discount_percent, discount_amount, active, expires_at")
+      .eq("code", code)
+      .maybeSingle();
+    const valid = data && data.active && (!data.expires_at || new Date(data.expires_at) > new Date());
+    if (!valid) { setCouponOff(0); setCouponMsg("קוד לא תקף"); return; }
+    const off = Math.min(
+      price,
+      Math.round((price * (Number(data!.discount_percent) || 0)) / 100 + (Number(data!.discount_amount) || 0)),
+    );
+    setCouponOff(off);
+    setCouponMsg(`הקוד הופעל · הנחה ₪${off}`);
+  };
+
   const morningActive = !!startTime && isMorningPackage(slots, startTime);
 
   const endTimeStr = useMemo(() => {
