@@ -80,10 +80,49 @@ function ItemsAdmin() {
   const items = useQuery({
     queryKey: ["admin-items"],
     queryFn: async () => {
-      const { data } = await supabase.from("items").select("*, categories(name, slug)").order("created_at", { ascending: false });
+      const { data } = await supabase
+        .from("items")
+        .select("*, categories(name, slug)")
+        .order("sort_order", { ascending: true })
+        .order("sku", { ascending: true });
       return data ?? [];
     },
   });
+
+  // Drag & drop ordering — the same order is used by the public catalog.
+  const [dragSku, setDragSku] = useState<string | null>(null);
+  const [savingOrder, setSavingOrder] = useState(false);
+
+  const persistOrder = async (ordered: any[]) => {
+    setSavingOrder(true);
+    try {
+      await Promise.all(
+        ordered.map((row, idx) =>
+          supabase.from("items").update({ sort_order: (idx + 1) * 10 }).eq("id", row.id),
+        ),
+      );
+      await qc.invalidateQueries({ queryKey: ["admin-items"] });
+      await qc.invalidateQueries({ queryKey: ["items"] });
+      toast.success("הסדר נשמר ועודכן גם בקטלוג");
+    } catch {
+      toast.error("שמירת הסדר נכשלה");
+    } finally {
+      setSavingOrder(false);
+    }
+  };
+
+  const dropOn = async (targetId: string) => {
+    const all = [...(items.data ?? [])] as any[];
+    const fromIdx = all.findIndex((r) => r.id === dragSku);
+    const toIdx = all.findIndex((r) => r.id === targetId);
+    setDragSku(null);
+    if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx) return;
+    const [moved] = all.splice(fromIdx, 1);
+    all.splice(toIdx, 0, moved);
+    qc.setQueryData(["admin-items"], all);
+    await persistOrder(all);
+  };
+
 
   const skusByCategory = useMemo(() => {
     const map = new Map<string, string[]>();
