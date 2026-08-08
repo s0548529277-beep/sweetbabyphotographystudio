@@ -172,8 +172,9 @@ function StudioRentalPage() {
       return;
     }
     if (!user) {
-      toast.error("יש להתחבר לפני שליחת הטופס.");
-      nav({ to: "/auth" });
+      try { localStorage.setItem(INTAKE_DRAFT_KEY, JSON.stringify(form)); } catch { /* ignore */ }
+      toast.error("יש להתחבר או להמשיך כאורח — נחזור בדיוק לכאן.");
+      nav({ to: "/auth", search: { redirect: "/studio-rental" } });
       return;
     }
 
