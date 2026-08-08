@@ -33,6 +33,8 @@ export const Route = createFileRoute("/about")({
           telephone: "+972-54-8529277",
           email: "s0548529277@gmail.com",
           priceRange: "₪₪",
+          description:
+            "סטודיו לצילום להשכרה לפי שעות והשכרת אביזרי צילום לפי שעות בבית שמש — ניוברן, גיל שנה, חלאקה ומשפחה.",
           address: {
             "@type": "PostalAddress",
             streetAddress: "תלמוד ירושלמי 24",
@@ -40,6 +42,22 @@ export const Route = createFileRoute("/about")({
             addressCountry: "IL",
           },
           areaServed: "IL",
+          makesOffer: [
+            {
+              "@type": "Offer",
+              name: "השכרת סטודיו לצילום לפי שעות",
+              priceCurrency: "ILS",
+              price: "120",
+              description: "שעת השכרה ראשונה 120 ₪, כל שעה נוספת 90 ₪.",
+            },
+            {
+              "@type": "Offer",
+              name: "השכרת אביזרי צילום לפי שעות",
+              priceCurrency: "ILS",
+              description: "מעל 400 אביזרי צילום מעוצבים להשכרה לפי שעות, מינימום הזמנה 50 ₪.",
+            },
+          ],
+
         }),
       },
     ],
