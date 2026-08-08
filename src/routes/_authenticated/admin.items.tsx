@@ -432,9 +432,14 @@ function ItemsAdmin() {
       </Dialog>
 
       <div className="bg-card rounded-2xl border border-primary/5 overflow-hidden">
+        <div className="px-4 py-2 text-xs text-muted-foreground border-b border-border">
+          גררו שורות כדי לשנות את סדר האביזרים — הסדר מתעדכן אוטומטית בקטלוג ובכל דפי האביזרים.
+          {savingOrder ? " · שומר…" : ""}
+        </div>
         <table className="w-full text-sm">
           <thead className="bg-cream/60 text-right">
             <tr>
+              <th className="p-3 font-medium w-8" />
               <th className="p-3 font-medium">תמונה</th>
               <th className="p-3 font-medium">מק״ט</th>
               <th className="p-3 font-medium">שם</th>
@@ -446,7 +451,18 @@ function ItemsAdmin() {
           </thead>
           <tbody>
             {filtered.map((i: any) => (
-              <tr key={i.id} className="border-t border-border">
+              <tr
+                key={i.id}
+                draggable
+                onDragStart={() => setDragSku(i.id)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => dropOn(i.id)}
+                className={`border-t border-border ${dragSku === i.id ? "opacity-50" : ""}`}
+              >
+                <td className="p-3 text-muted-foreground cursor-grab active:cursor-grabbing">
+                  <GripVertical className="h-4 w-4" />
+                </td>
+
                 <td className="p-3">
                   <div className="flex flex-col items-center gap-1 w-16">
                     <div className="h-12 w-12 rounded-lg bg-cream overflow-hidden flex items-center justify-center">
