@@ -569,11 +569,39 @@ function Booking() {
                   <span>+₪{guidanceFee}</span>
                 </div>
               )}
+              {couponOff > 0 && (
+                <div className="flex items-baseline justify-between text-[11px] text-[#f5d5cf] mb-1">
+                  <span>קוד קופון {coupon.trim().toUpperCase()}</span>
+                  <span>-₪{couponOff}</span>
+                </div>
+              )}
               <div className="flex items-baseline justify-between mb-3">
                 <span className="text-[#f8ede4]/70 text-xs">סה״כ</span>
-                <span className="font-display text-3xl text-[#f5d5cf]">₪{price}</span>
+                <span className="font-display text-3xl text-[#f5d5cf]">₪{finalPrice}</span>
               </div>
+
+              {/* Discount code */}
+              <div className="mb-4">
+                <div className="flex gap-2">
+                  <input
+                    value={coupon}
+                    onChange={(e) => { setCoupon(e.target.value); setCouponOff(0); setCouponMsg(null); }}
+                    placeholder="קוד קופון"
+                    className="flex-1 h-9 rounded-full px-3 text-xs bg-[#f8ede4] text-[#2d3d2b] placeholder:text-[#2d3d2b]/40 outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={applyCoupon}
+                    className="h-9 px-4 rounded-full text-xs bg-[#f5d5cf] text-[#2d3d2b] font-medium"
+                  >
+                    החלה
+                  </button>
+                </div>
+                {couponMsg && <div className="text-[10px] mt-1.5 text-[#f8ede4]/70">{couponMsg}</div>}
+              </div>
+
               <div className="text-[10px] text-[#f8ede4]/55 mb-4">מתוכם 90₪ מקדמה לשריון</div>
+
 
               <Button
                 type="submit"
