@@ -9,13 +9,17 @@ export const Route = createFileRoute("/about")({
   component: About,
   head: () => ({
     meta: [
-      { title: "אודות ויצירת קשר | Sweetbaby" },
-      { name: "description", content: "Sweetbaby — סטודיו ומחסן אביזרי צילום מעוצבים בבית שמש. צילומי ניוברן, גיל שנה, חלאקה ומשפחה. טלפון, אימייל וכתובת." },
-      { property: "og:title", content: "אודות ויצירת קשר | Sweetbaby" },
-      { property: "og:description", content: "Sweetbaby — סטודיו ומחסן אביזרי צילום מעוצבים בבית שמש. יצירת קשר, כתובת ושעות." },
+      { title: "סטודיו לצילום להשכרה לפי שעות בבית שמש | Sweetbaby" },
+      { name: "description", content: "Sweetbaby — סטודיו לצילום להשכרה לפי שעות והשכרת אביזרי צילום לפי שעות בבית שמש. ניוברן, גיל שנה, חלאקה ומשפחה. 400+ אביזרים, תאורה מקצועית ורקעים." },
+      { name: "keywords", content: "סטודיו לצילום להשכרה לפי שעות, השכרת אביזרי צילום לפי שעות, סטודיו ניוברן בית שמש, השכרת סטודיו צילום, אביזרים לצילום ניוברן" },
+      { property: "og:title", content: "סטודיו לצילום להשכרה לפי שעות | Sweetbaby" },
+      { property: "og:description", content: "השכרת סטודיו לצילום לפי שעות והשכרת אביזרי צילום לפי שעות בבית שמש." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { property: "og:url", content: "https://sweetbabyphoto.shop/about" },
     ],
     links: [{ rel: "canonical", href: "https://sweetbabyphoto.shop/about" }],
+
     scripts: [
       {
         type: "application/ld+json",
