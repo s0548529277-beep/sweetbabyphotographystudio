@@ -149,7 +149,9 @@ export const placeBooking = createServerFn({ method: "POST" })
         contact_phone: data.contact_phone,
         notes: [
           guidanceFee > 0 ? `חבילת הדרכה: ${GUIDANCE_LABELS[guidanceKey]} (+₪${guidanceFee})` : null,
+          couponNote,
           data.notes,
+
         ].filter(Boolean).join("\n") || null,
         reserved_items: data.reserved_items ?? [],
         terms_accepted_at: new Date().toISOString(),
