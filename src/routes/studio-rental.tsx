@@ -115,7 +115,10 @@ const quickFacts = [
   { icon: Sparkles, label: "Godox AD200 PRO" },
 ];
 
+const INTAKE_DRAFT_KEY = "sb_studio_intake_draft";
+
 function StudioRentalPage() {
+
   const studioGallery = usePageGallery(PAGE_IMAGE_KEYS.studioRental);
   const [showForm, setShowForm] = useState(false);
 
