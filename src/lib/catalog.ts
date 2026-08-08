@@ -102,7 +102,19 @@ export function useCatalogCategories(): CatalogCategory[] {
       });
     }
 
-    return order.map((title) => ({ title, items: buckets.get(title) ?? [] })).filter((c) => c.items.length > 0);
+    // Respect the drag-and-drop order set in /admin/items.
+    const rank = (sku: string) => {
+      const so = bySku.get(sku)?.sort_order;
+      return so == null ? Number.MAX_SAFE_INTEGER : Number(so);
+    };
+
+    return order
+      .map((title) => ({
+        title,
+        items: [...(buckets.get(title) ?? [])].sort((a, b) => rank(a.sku) - rank(b.sku)),
+      }))
+      .filter((c) => c.items.length > 0);
+
   }, [db.data]);
 }
 
