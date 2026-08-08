@@ -320,6 +320,7 @@ export type Database = {
           name: string
           price: number
           sku: string
+          sort_order: number
           stock_quantity: number
           updated_at: string
         }
@@ -333,6 +334,7 @@ export type Database = {
           name: string
           price?: number
           sku: string
+          sort_order?: number
           stock_quantity?: number
           updated_at?: string
         }
@@ -346,6 +348,7 @@ export type Database = {
           name?: string
           price?: number
           sku?: string
+          sort_order?: number
           stock_quantity?: number
           updated_at?: string
         }
