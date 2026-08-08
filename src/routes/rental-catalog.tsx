@@ -282,11 +282,14 @@ function RentalCatalogPage() {
                   </button>
                 )}
               </div>
-              {aiSkus && (
+              {(aiSkus || query.trim()) && (
                 <div className="mt-3 text-xs text-forest/70">
-                  ✨ תוצאות חיפוש חכם: {aiSkus.size} פריטים
+                  {resultCount > 0
+                    ? `${aiSkus ? "✨ תוצאות חיפוש חכם" : "תוצאות חיפוש"}: ${resultCount} פריטים`
+                    : "לא נמצאו אביזרים מתאימים — נסי מילה אחרת."}
                 </div>
               )}
+
               {/* Category chips */}
               <div className="flex flex-wrap gap-2 mt-4">
                 <Chip active={activeCat === "all"} onClick={() => setActiveCat("all")}>הכל</Chip>
