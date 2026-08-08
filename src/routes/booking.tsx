@@ -269,6 +269,8 @@ function Booking() {
           notes,
           reserved_items: reservedSkus,
           guidance: guidanceKey,
+          coupon: coupon.trim() ? coupon.trim().toUpperCase() : null,
+
           terms_accepted: true as const,
         },
       });
