@@ -49,6 +49,8 @@ const inputSchema = z.object({
   notes: z.string().max(1000).optional().nullable(),
   reserved_items: z.array(z.string().min(1).max(24)).max(20).optional(),
   guidance: z.string().max(60).optional().nullable(),
+  coupon: z.string().max(40).optional().nullable(),
+
   terms_accepted: z.literal(true),
 });
 
