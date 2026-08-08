@@ -50,7 +50,7 @@ function Deposit() {
   const [record, setRecord] = useState<any>(null);
   const [file, setFile] = useState<File | null>(null);
   // Studio rentals are digital-payment only — no cash deposit.
-  const [method, setMethod] = useState<"cash" | "transfer" | "bit">(isStudio ? "transfer" : "cash");
+  const [method, setMethod] = useState<"cash" | "transfer" | "bit" | "card">(isStudio ? "transfer" : "cash");
   const [uploading, setUploading] = useState(false);
   const [done, setDone] = useState(false);
   const confirmDeposit = useServerFn(confirmBookingDeposit);
@@ -188,29 +188,28 @@ function Deposit() {
                   <CreditCard className="h-5 w-5 text-blush-deep" />
                   <h2 className="font-display text-xl text-primary">אופן תשלום</h2>
                 </div>
-                <div className={`grid gap-2 ${isStudio ? "grid-cols-2" : "grid-cols-3"}`}>
-                  {(isStudio ? (["transfer", "bit"] as const) : (["cash", "transfer", "bit"] as const)).map((m) => (
+                <div className={`grid gap-2 ${isStudio ? "grid-cols-3" : "grid-cols-4"}`}>
+                  {(isStudio ? (["transfer", "bit", "card"] as const) : (["cash", "transfer", "bit", "card"] as const)).map((m) => (
                     <button
                       key={m}
                       type="button"
                       onClick={() => setMethod(m)}
                       className={`h-12 rounded-xl text-sm border transition-colors ${method === m ? "bg-primary text-primary-foreground border-primary" : "border-border bg-card hover:border-primary"}`}
                     >
-                      {m === "cash" ? "מזומן" : m === "transfer" ? "העברה" : "Bit/PayBox"}
+                      {m === "cash" ? "מזומן" : m === "transfer" ? "העברה" : m === "bit" ? "Bit/PayBox" : "אשראי"}
                     </button>
                   ))}
                 </div>
 
-                {/* Secure card payment — studio rental only. */}
-                {isStudio && (
-                  <div className="rounded-2xl border border-border p-4">
-                    <PayOnlineButton
-                      className="w-full"
-                      label={`תשלום מאובטח באשראי · ₪${payNow}`}
-                      note="החלון נפתח בתוך האתר. לאחר התשלום נא להעלות/לצרף אישור התשלום כאן למטה."
-                    />
-                  </div>
-                )}
+                {/* Secure card payment — studio rental and prop rental alike. */}
+                <div className="rounded-2xl border border-border p-4">
+                  <PayOnlineButton
+                    className="w-full"
+                    label={`תשלום מאובטח באשראי · ₪${payNow}`}
+                    note="החלון נפתח בתוך האתר. מיד לאחר התשלום אפשר לצרף כאן את אישור התשלום ולסיים את ההזמנה."
+                  />
+                </div>
+
 
 
 
@@ -226,13 +225,19 @@ function Deposit() {
                     </p>
                   </div>
                 ) : (
+                  method === "card" ? (
+                  <div className="mt-2 p-5 rounded-2xl bg-blush/40 text-primary text-sm">
+                    שילמתי באשראי דרך הכפתור למעלה — נא לצרף צילום מסך של אישור התשלום ולסיים את ההזמנה.
+                  </div>
+                ) : (
                   <div className="space-y-3 pt-2">
                     <CopyRow label="בנק" value={BANK.bank} />
                     <CopyRow label="סניף" value={BANK.branch} />
                     <CopyRow label="חשבון" value={BANK.account} />
                     <CopyRow label="על שם" value={BANK.name} />
                   </div>
-                )}
+                ))}
+
 
                 <div className="mt-2 p-4 rounded-2xl bg-primary text-primary-foreground text-center">
                   <div className="text-blush text-xs tracking-[0.3em] uppercase mb-1">{isStudio ? "מקדמה לתשלום עכשיו" : "סכום לתשלום"}</div>

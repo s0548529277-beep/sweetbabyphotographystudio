@@ -115,7 +115,10 @@ const quickFacts = [
   { icon: Sparkles, label: "Godox AD200 PRO" },
 ];
 
+const INTAKE_DRAFT_KEY = "sb_studio_intake_draft";
+
 function StudioRentalPage() {
+
   const studioGallery = usePageGallery(PAGE_IMAGE_KEYS.studioRental);
   const [showForm, setShowForm] = useState(false);
 
@@ -139,6 +142,19 @@ function StudioRentalPage() {
     }));
   }, [profile.loaded, profile.fullName, profile.phone, profile.email]);
 
+  // If the customer had to sign in mid-way, bring them back to exactly
+  // where they were — same form, same answers.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(INTAKE_DRAFT_KEY);
+      if (!raw) return;
+      localStorage.removeItem(INTAKE_DRAFT_KEY);
+      setForm((f) => ({ ...f, ...(JSON.parse(raw) as Partial<IntakeForm>) }));
+      setShowForm(true);
+    } catch { /* ignore */ }
+  }, []);
+
+
 
 
 
@@ -156,8 +172,9 @@ function StudioRentalPage() {
       return;
     }
     if (!user) {
-      toast.error("יש להתחבר לפני שליחת הטופס.");
-      nav({ to: "/auth" });
+      try { localStorage.setItem(INTAKE_DRAFT_KEY, JSON.stringify(form)); } catch { /* ignore */ }
+      toast.error("יש להתחבר או להמשיך כאורח — נחזור בדיוק לכאן.");
+      nav({ to: "/auth", search: { redirect: "/studio-rental" } });
       return;
     }
 

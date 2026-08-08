@@ -23,25 +23,29 @@ type DbItem = {
   price: number | string;
   image_url: string | null;
   active: boolean;
+  sort_order?: number | null;
   categories: { name: string } | null;
 };
 
 /**
  * Live catalog: the bundled catalog merged with whatever the studio edits in
- * /admin/items. Anything changed there (name, price, category, image, active)
- * immediately changes every page that renders the catalog.
+ * /admin/items. Anything changed there (name, price, category, image, active,
+ * drag-and-drop order) immediately changes every page that renders the catalog.
  */
 export function useCatalogCategories(): CatalogCategory[] {
   const db = useQuery({
     queryKey: ["items"],
-    staleTime: 30_000,
+    staleTime: 5_000,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data } = await supabase
         .from("items")
-        .select("id, sku, name, description, price, image_url, active, categories(name)");
+        .select("id, sku, name, description, price, image_url, active, sort_order, categories(name)")
+        .order("sort_order", { ascending: true });
       return (data ?? []) as unknown as DbItem[];
     },
   });
+
 
   return useMemo(() => {
     const rows = db.data ?? [];
@@ -98,7 +102,19 @@ export function useCatalogCategories(): CatalogCategory[] {
       });
     }
 
-    return order.map((title) => ({ title, items: buckets.get(title) ?? [] })).filter((c) => c.items.length > 0);
+    // Respect the drag-and-drop order set in /admin/items.
+    const rank = (sku: string) => {
+      const so = bySku.get(sku)?.sort_order;
+      return so == null ? Number.MAX_SAFE_INTEGER : Number(so);
+    };
+
+    return order
+      .map((title) => ({
+        title,
+        items: [...(buckets.get(title) ?? [])].sort((a, b) => rank(a.sku) - rank(b.sku)),
+      }))
+      .filter((c) => c.items.length > 0);
+
   }, [db.data]);
 }
 

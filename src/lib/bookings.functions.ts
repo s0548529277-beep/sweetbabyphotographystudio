@@ -49,6 +49,8 @@ const inputSchema = z.object({
   notes: z.string().max(1000).optional().nullable(),
   reserved_items: z.array(z.string().min(1).max(24)).max(20).optional(),
   guidance: z.string().max(60).optional().nullable(),
+  coupon: z.string().max(40).optional().nullable(),
+
   terms_accepted: z.literal(true),
 });
 
@@ -66,8 +68,28 @@ export const placeBooking = createServerFn({ method: "POST" })
     const basePrice = computeStudioPrice(data.slots, data.start_time);
     const guidanceKey = (data.guidance ?? "basic") as keyof typeof GUIDANCE_FEES;
     const guidanceFee = GUIDANCE_FEES[guidanceKey] ?? 0;
-    const price = basePrice + guidanceFee;
+    let price = basePrice + guidanceFee;
+
+    // Optional discount code (e.g. BYBY10 / SWEETBABY10 → 10%).
+    let couponNote: string | null = null;
+    const couponCode = (data.coupon ?? "").trim().toUpperCase();
+    if (couponCode) {
+      const { data: c } = await supabase
+        .from("coupons")
+        .select("code, discount_percent, discount_amount, active, expires_at")
+        .eq("code", couponCode)
+        .maybeSingle();
+      const valid = c && c.active && (!c.expires_at || new Date(c.expires_at) > new Date());
+      if (!valid) throw new Error("קוד הקופון אינו תקף");
+      const off = Math.min(
+        price,
+        Math.round((price * (Number(c!.discount_percent) || 0)) / 100 + (Number(c!.discount_amount) || 0)),
+      );
+      price = Math.max(0, price - off);
+      couponNote = `קוד קופון ${c!.code} · הנחה ₪${off}`;
+    }
     const isMorning = isMorningPackage(data.slots, data.start_time);
+
 
     // Overlap check
     const { data: existing, error: exErr } = await supabase
@@ -127,7 +149,9 @@ export const placeBooking = createServerFn({ method: "POST" })
         contact_phone: data.contact_phone,
         notes: [
           guidanceFee > 0 ? `חבילת הדרכה: ${GUIDANCE_LABELS[guidanceKey]} (+₪${guidanceFee})` : null,
+          couponNote,
           data.notes,
+
         ].filter(Boolean).join("\n") || null,
         reserved_items: data.reserved_items ?? [],
         terms_accepted_at: new Date().toISOString(),

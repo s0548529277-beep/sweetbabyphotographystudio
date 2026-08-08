@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, ImageIcon, Upload, Download, FolderPlus } from "lucide-react";
+import { Plus, Pencil, Trash2, ImageIcon, Upload, Download, FolderPlus, GripVertical } from "lucide-react";
 import { toCSV, downloadCSV } from "@/lib/csv";
 
 export const Route = createFileRoute("/_authenticated/admin/items")({
@@ -80,10 +80,49 @@ function ItemsAdmin() {
   const items = useQuery({
     queryKey: ["admin-items"],
     queryFn: async () => {
-      const { data } = await supabase.from("items").select("*, categories(name, slug)").order("created_at", { ascending: false });
+      const { data } = await supabase
+        .from("items")
+        .select("*, categories(name, slug)")
+        .order("sort_order", { ascending: true })
+        .order("sku", { ascending: true });
       return data ?? [];
     },
   });
+
+  // Drag & drop ordering — the same order is used by the public catalog.
+  const [dragSku, setDragSku] = useState<string | null>(null);
+  const [savingOrder, setSavingOrder] = useState(false);
+
+  const persistOrder = async (ordered: any[]) => {
+    setSavingOrder(true);
+    try {
+      await Promise.all(
+        ordered.map((row, idx) =>
+          supabase.from("items").update({ sort_order: (idx + 1) * 10 }).eq("id", row.id),
+        ),
+      );
+      await qc.invalidateQueries({ queryKey: ["admin-items"] });
+      await qc.invalidateQueries({ queryKey: ["items"] });
+      toast.success("הסדר נשמר ועודכן גם בקטלוג");
+    } catch {
+      toast.error("שמירת הסדר נכשלה");
+    } finally {
+      setSavingOrder(false);
+    }
+  };
+
+  const dropOn = async (targetId: string) => {
+    const all = [...(items.data ?? [])] as any[];
+    const fromIdx = all.findIndex((r) => r.id === dragSku);
+    const toIdx = all.findIndex((r) => r.id === targetId);
+    setDragSku(null);
+    if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx) return;
+    const [moved] = all.splice(fromIdx, 1);
+    all.splice(toIdx, 0, moved);
+    qc.setQueryData(["admin-items"], all);
+    await persistOrder(all);
+  };
+
 
   const skusByCategory = useMemo(() => {
     const map = new Map<string, string[]>();
@@ -393,9 +432,14 @@ function ItemsAdmin() {
       </Dialog>
 
       <div className="bg-card rounded-2xl border border-primary/5 overflow-hidden">
+        <div className="px-4 py-2 text-xs text-muted-foreground border-b border-border">
+          גררו שורות כדי לשנות את סדר האביזרים — הסדר מתעדכן אוטומטית בקטלוג ובכל דפי האביזרים.
+          {savingOrder ? " · שומר…" : ""}
+        </div>
         <table className="w-full text-sm">
           <thead className="bg-cream/60 text-right">
             <tr>
+              <th className="p-3 font-medium w-8" />
               <th className="p-3 font-medium">תמונה</th>
               <th className="p-3 font-medium">מק״ט</th>
               <th className="p-3 font-medium">שם</th>
@@ -407,7 +451,18 @@ function ItemsAdmin() {
           </thead>
           <tbody>
             {filtered.map((i: any) => (
-              <tr key={i.id} className="border-t border-border">
+              <tr
+                key={i.id}
+                draggable
+                onDragStart={() => setDragSku(i.id)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => dropOn(i.id)}
+                className={`border-t border-border ${dragSku === i.id ? "opacity-50" : ""}`}
+              >
+                <td className="p-3 text-muted-foreground cursor-grab active:cursor-grabbing">
+                  <GripVertical className="h-4 w-4" />
+                </td>
+
                 <td className="p-3">
                   <div className="flex flex-col items-center gap-1 w-16">
                     <div className="h-12 w-12 rounded-lg bg-cream overflow-hidden flex items-center justify-center">
@@ -442,7 +497,7 @@ function ItemsAdmin() {
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={7} className="p-16 text-center text-muted-foreground">אין אביזרים עדיין. לחצו על "אביזר חדש".</td></tr>
+              <tr><td colSpan={8} className="p-16 text-center text-muted-foreground">אין אביזרים עדיין. לחצו על "אביזר חדש".</td></tr>
             )}
           </tbody>
         </table>

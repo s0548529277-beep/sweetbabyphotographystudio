@@ -111,25 +111,36 @@ function RentalCatalogPage() {
 
 
   const filtered = useMemo(() => {
-    const q = query.trim();
+    const q = query.trim().toLowerCase();
+    const searching = !!aiSkus || !!q;
     return categories
-      .filter((c) => activeCat === "all" || c.title === activeCat)
+      // While searching we look across every category, otherwise the result
+      // can be counted but never rendered (it lives in another category).
+      .filter((c) => searching || activeCat === "all" || c.title === activeCat)
       .map((c) => ({
         ...c,
         items: c.items.filter((it) => {
           if (it.hasHand) return false;
-          if (aiSkus) return aiSkus.has(it.sku);
+          if (aiSkus?.has(it.sku)) return true;
+          if (aiSkus && !q) return false;
           if (!q) return true;
-          return it.sku.includes(q) || it.name.includes(q) || it.alt.includes(q);
+          const hay = `${it.sku} ${it.name} ${it.alt}`.toLowerCase();
+          return hay.includes(q);
         }),
       }))
       .filter((c) => c.items.length > 0);
   }, [query, aiSkus, activeCat, categories]);
 
+  const resultCount = useMemo(
+    () => filtered.reduce((n, c) => n + c.items.length, 0),
+    [filtered],
+  );
+
   const doAiSearch = async () => {
     const q = query.trim();
     if (!q) return;
     setAiLoading(true);
+    setActiveCat("all");
     try {
       const { skus } = await runSmartSearch({ data: { query: q } });
       setAiSkus(new Set(skus));
@@ -139,6 +150,7 @@ function RentalCatalogPage() {
       setAiLoading(false);
     }
   };
+
   const clearSearch = () => { setAiSkus(null); setQuery(""); };
 
   const toggleCart = (it: Item) => {
@@ -270,11 +282,14 @@ function RentalCatalogPage() {
                   </button>
                 )}
               </div>
-              {aiSkus && (
+              {(aiSkus || query.trim()) && (
                 <div className="mt-3 text-xs text-forest/70">
-                  ✨ תוצאות חיפוש חכם: {aiSkus.size} פריטים
+                  {resultCount > 0
+                    ? `${aiSkus ? "✨ תוצאות חיפוש חכם" : "תוצאות חיפוש"}: ${resultCount} פריטים`
+                    : "לא נמצאו אביזרים מתאימים — נסי מילה אחרת."}
                 </div>
               )}
+
               {/* Category chips */}
               <div className="flex flex-wrap gap-2 mt-4">
                 <Chip active={activeCat === "all"} onClick={() => setActiveCat("all")}>הכל</Chip>

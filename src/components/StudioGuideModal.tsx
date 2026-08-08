@@ -15,7 +15,7 @@ const slides = [s1, s2, s3, s4, s5, s6, s7, s8, s9].map((s) => s.url);
 
 /** "הדרכה לשימוש בסטודיו" — סרטון מונפש או מצגת שעוברת תמונה-תמונה, בתוך האתר. */
 export function StudioGuideModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [tab, setTab] = useState<"video" | "deck">("video");
+  const [tab, setTab] = useState<"video" | "deck">("deck");
   const [idx, setIdx] = useState(0);
   if (!open) return null;
 
@@ -36,11 +36,11 @@ export function StudioGuideModal({ open, onClose }: { open: boolean; onClose: ()
       >
         <div className="flex items-center justify-between gap-3 px-5 h-14 border-b border-[#2d3d2b]/10 bg-[#fdf7f1]">
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => setTab("video")} className={tabCls(tab === "video")}>
-              <PlayCircle className="h-4 w-4" /> סרטון הדרכה
-            </button>
             <button type="button" onClick={() => setTab("deck")} className={tabCls(tab === "deck")}>
               <Images className="h-4 w-4" /> מצגת בתמונות
+            </button>
+            <button type="button" onClick={() => setTab("video")} className={tabCls(tab === "video")}>
+              <PlayCircle className="h-4 w-4" /> סרטון הדרכה
             </button>
           </div>
           <button
@@ -56,7 +56,7 @@ export function StudioGuideModal({ open, onClose }: { open: boolean; onClose: ()
         {tab === "video" ? (
           <div className="flex-1 bg-black flex items-center justify-center">
             {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-            <video src={guideVideo.url} controls autoPlay playsInline className="max-h-full max-w-full" />
+            <video src={guideVideo.url} controls playsInline className="max-h-full max-w-full" />
           </div>
         ) : (
           <div className="flex-1 flex flex-col bg-[#f8ede4] p-4 gap-3 min-h-0">
