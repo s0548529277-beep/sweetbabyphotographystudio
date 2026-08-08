@@ -139,6 +139,19 @@ function StudioRentalPage() {
     }));
   }, [profile.loaded, profile.fullName, profile.phone, profile.email]);
 
+  // If the customer had to sign in mid-way, bring them back to exactly
+  // where they were — same form, same answers.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(INTAKE_DRAFT_KEY);
+      if (!raw) return;
+      localStorage.removeItem(INTAKE_DRAFT_KEY);
+      setForm((f) => ({ ...f, ...(JSON.parse(raw) as Partial<IntakeForm>) }));
+      setShowForm(true);
+    } catch { /* ignore */ }
+  }, []);
+
+
 
 
 
