@@ -236,7 +236,8 @@ function Deposit() {
                     <CopyRow label="חשבון" value={BANK.account} />
                     <CopyRow label="על שם" value={BANK.name} />
                   </div>
-                )}
+                ))}
+
 
                 <div className="mt-2 p-4 rounded-2xl bg-primary text-primary-foreground text-center">
                   <div className="text-blush text-xs tracking-[0.3em] uppercase mb-1">{isStudio ? "מקדמה לתשלום עכשיו" : "סכום לתשלום"}</div>
