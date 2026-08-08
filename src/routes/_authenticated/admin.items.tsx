@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, ImageIcon, Upload, Download, FolderPlus } from "lucide-react";
+import { Plus, Pencil, Trash2, ImageIcon, Upload, Download, FolderPlus, GripVertical } from "lucide-react";
 import { toCSV, downloadCSV } from "@/lib/csv";
 
 export const Route = createFileRoute("/_authenticated/admin/items")({
