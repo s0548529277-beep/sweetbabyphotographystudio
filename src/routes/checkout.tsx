@@ -283,7 +283,7 @@ function Checkout() {
             {dayMultiplier > 1 && (
               <div className="text-[11px] text-blush/90 mt-1">מבוסס על ₪{subtotal.toFixed(0)} × {dayMultiplier} יח׳ של 24 שעות</div>
             )}
-            <div className="text-[11px] text-primary-foreground/60 mt-2">מינימום 50₪ · תשלום מלא בסיום ההזמנה (מזומן/העברה/Bit).</div>
+            <div className="text-[11px] text-primary-foreground/60 mt-2">מינימום 50₪ · תשלום מלא בסיום ההזמנה (מזומן/אשראי/העברה/Bit).</div>
             <Button
               type="submit"
               disabled={disabled || busy || !form.terms_accepted || !form.session_date || !form.return_date || anyUnavailable}
