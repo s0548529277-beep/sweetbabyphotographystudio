@@ -148,7 +148,7 @@ function Deposit() {
               <>לסיום ההזמנה יש להעביר תשלום מלא של <span className="text-primary font-semibold">{total}₪</span>.{" "}</>
             )}
             {isStudio
-              ? "התשלום מתבצע בהעברה בנקאית או ב-Bit/PayBox עם צירוף אסמכתא."
+              ? "התשלום מתבצע בהעברה בנקאית או ב-Bit/אשראי/PayBox עם צירוף אסמכתא."
               : "אפשר לשלם במזומן ביום האיסוף (ללא צורך באסמכתא) או בהעברה בנקאית / Bit עם צירוף אסמכתא."}
           </p>
 
@@ -196,7 +196,7 @@ function Deposit() {
                       onClick={() => setMethod(m)}
                       className={`h-12 rounded-xl text-sm border transition-colors ${method === m ? "bg-primary text-primary-foreground border-primary" : "border-border bg-card hover:border-primary"}`}
                     >
-                      {m === "cash" ? "מזומן" : m === "transfer" ? "העברה" : m === "bit" ? "Bit/PayBox" : "אשראי"}
+                      {m === "cash" ? "מזומן" : m === "transfer" ? "העברה" : m === "bit" ? "Bit/אשראי/PayBox" : "אשראי"}
                     </button>
                   ))}
                 </div>
