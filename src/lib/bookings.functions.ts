@@ -92,11 +92,12 @@ export const placeBooking = createServerFn({ method: "POST" })
 
 
     // Overlap check
-    const { data: existing, error: exErr } = await supabase
-      .from("bookings")
-      .select("id, start_time, end_time")
-      .eq("session_date", data.session_date)
-      .neq("status", "cancelled");
+  const { data: existing, error: exErr } = await supabase
+  .from("bookings")
+  .select("id, start_time, end_time")
+  .eq("session_date", data.session_date)
+  .neq("status", "cancelled")
+  .neq("deposit_status", "pending");
     if (exErr) throw new Error(exErr.message);
     const startMin = h * 60 + m;
     for (const b of existing ?? []) {
