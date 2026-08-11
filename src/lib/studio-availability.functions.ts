@@ -20,7 +20,8 @@ export const getStudioDayBusy = createServerFn({ method: "POST" })
       .from("bookings")
       .select("start_time, end_time, status")
       .eq("session_date", data.date)
-      .neq("status", "cancelled");
+.neq("status", "cancelled")
+.neq("deposit_status", "pending");
     for (const b of rows ?? []) {
       out.push({ start_time: String(b.start_time).slice(0, 5), end_time: String(b.end_time).slice(0, 5) });
     }
