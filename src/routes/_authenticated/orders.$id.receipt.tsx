@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowRight, Loader2 } from "lucide-react";
+import { Printer, ArrowRight, Loader2, PlayCircle } from "lucide-react";
+import { StudioGuideModal } from "@/components/StudioGuideModal";
 
 export const Route = createFileRoute("/_authenticated/orders/$id/receipt")({
   component: ReceiptPage,
@@ -35,6 +36,7 @@ function ReceiptPage() {
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -242,7 +244,24 @@ function ReceiptPage() {
             </p>
           </div>
         </div>
+
+        {order.track === "studio" && (
+          <div className="no-print flex flex-col items-center gap-2 mt-8 text-center">
+            <button
+              type="button"
+              onClick={() => setShowGuide(true)}
+              className="inline-flex items-center gap-2 h-11 px-6 rounded-full bg-[#2d3d2b] text-[#f8ede4] text-sm font-semibold hover:bg-[#2d3d2b]/90 transition-colors"
+            >
+              <PlayCircle className="h-4 w-4" /> הדרכה מהסטודיו
+            </button>
+            <p className="text-xs text-muted-foreground max-w-sm">
+              לפני ההגעה, כדאי לצפות בהדרכה הקצרה שלנו — איך להשתמש בציוד ובחלל הסטודיו, כדי שהצילום יזרום בלי הפתעות.
+            </p>
+          </div>
+        )}
       </div>
+
+      <StudioGuideModal open={showGuide} onClose={() => setShowGuide(false)} />
     </div>
   );
 }
