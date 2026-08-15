@@ -10,7 +10,8 @@ import { toast } from "sonner";
 import { ArrivalDirections } from "@/components/ArrivalDirections";
 import { PayOnlineButton } from "@/components/PayOnlineButton";
 import { confirmBookingDeposit } from "@/lib/bookings.functions";
-import { Copy, Check, Upload, Banknote, CreditCard, Wallet } from "lucide-react";
+import { Copy, Check, Upload, Banknote, CreditCard, Wallet, PlayCircle } from "lucide-react";
+import { StudioGuideModal } from "@/components/StudioGuideModal";
 
 
 export const Route = createFileRoute("/deposit/$type/$id")({
@@ -54,6 +55,7 @@ function Deposit() {
   const [uploading, setUploading] = useState(false);
   const [done, setDone] = useState(false);
   const [confirmedPaid, setConfirmedPaid] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const confirmDeposit = useServerFn(confirmBookingDeposit);
 
 
@@ -184,6 +186,20 @@ function Deposit() {
                 <Link to="/account">
                   <Button className="rounded-full">לחשבון שלי</Button>
                 </Link>
+                {isStudio && (
+                  <div className="mt-6 pt-6 border-t border-primary/10 flex flex-col items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowGuide(true)}
+                      className="inline-flex items-center gap-2 h-11 px-6 rounded-full bg-[#2d3d2b] text-[#f8ede4] text-sm font-semibold hover:bg-[#2d3d2b]/90 transition-colors"
+                    >
+                      <PlayCircle className="h-4 w-4" /> הדרכה מהסטודיו
+                    </button>
+                    <p className="text-xs text-muted-foreground max-w-sm text-center">
+                      לפני ההגעה, כדאי לצפות בהדרכה הקצרה שלנו — איך להשתמש בציוד ובחלל הסטודיו.
+                    </p>
+                  </div>
+                )}
               </div>
               <ArrivalDirections />
             </div>
@@ -328,6 +344,7 @@ function Deposit() {
         </div>
       </section>
       <Footer />
+      <StudioGuideModal open={showGuide} onClose={() => setShowGuide(false)} />
     </div>
   );
 }
