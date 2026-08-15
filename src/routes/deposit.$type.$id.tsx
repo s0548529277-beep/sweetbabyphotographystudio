@@ -53,6 +53,7 @@ function Deposit() {
   const [method, setMethod] = useState<"cash" | "transfer" | "bit" | "card">(isStudio ? "transfer" : "cash");
   const [uploading, setUploading] = useState(false);
   const [done, setDone] = useState(false);
+  const [confirmedPaid, setConfirmedPaid] = useState(false);
   const confirmDeposit = useServerFn(confirmBookingDeposit);
 
 
@@ -70,7 +71,9 @@ function Deposit() {
   // Studio rentals only require a ₪90 deposit up front; the rest is paid at the studio.
   const payNow = isStudio ? Math.min(90, total) : total;
   const balanceLeft = Math.max(0, total - payNow);
-  const needsReceipt = method !== "cash";
+  // Non-cash payments only reserve the date once a receipt is attached
+  // OR the customer explicitly confirms the payment was made.
+  const showReceiptUpload = method !== "cash";
   const pickupTime = record?.pickup_at
     ? new Date(record.pickup_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
     : null;
@@ -85,15 +88,15 @@ function Deposit() {
 
   const submit = async () => {
     if (!user) return;
-    if (needsReceipt && !file) {
-      toast.error("יש להעלות אסמכתא לתשלום שאינו במזומן");
+    if (showReceiptUpload && !file && !confirmedPaid) {
+      toast.error("יש לצרף אסמכתא או לאשר שהתשלום בוצע כדי לשריין את התאריך");
       return;
     }
     setUploading(true);
     try {
       const table = type === "booking" ? "bookings" : "orders";
       let receiptPath: string | null = null;
-      if (needsReceipt && file) {
+      if (showReceiptUpload && file) {
         const ext =
           file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "bin";
         receiptPath = `${user.id}/${type}-${id}-${Date.now()}.${ext}`;
@@ -122,7 +125,9 @@ function Deposit() {
       toast.success(
         method === "cash"
           ? "מעולה! נחכה לך עם התשלום במזומן ביום האיסוף."
-          : "האסמכתא נשלחה והמועד נשמר ביומן. נאשר לך במייל תוך זמן קצר.",
+          : receiptPath
+            ? "האסמכתא נשלחה והמועד נשמר ביומן. נאשר לך במייל תוך זמן קצר."
+            : "התאריך נשמר ביומן. התשלום יאומת ויסומן כ'שולם' בהמשך, עד לסיום ההזמנה.",
       );
       setDone(true);
 
@@ -148,8 +153,8 @@ function Deposit() {
               <>לסיום ההזמנה יש להעביר תשלום מלא של <span className="text-primary font-semibold">{total}₪</span>.{" "}</>
             )}
             {isStudio
-              ? "התשלום מתבצע בהעברה בנקאית/אשראי או ב-Bit/PayBox עם צירוף אסמכתא."
-              : "אפשר לשלם במזומן ביום האיסוף (ללא צורך באסמכתא) או אשראי / העברה בנקאית / Bit עם צירוף אסמכתא."}
+              ? "התשלום מתבצע בהעברה בנקאית/אשראי או ב-Bit/PayBox. מומלץ לצרף אסמכתא — לחלופין אפשר לאשר שהתשלום בוצע. התאריך משתריין רק לאחר אחת מהשתיים."
+              : "אפשר לשלם במזומן ביום האיסוף (ללא צורך באסמכתא) או אשראי / העברה בנקאית / Bit. מומלץ לצרף אסמכתא — לחלופין אפשר לאשר שהתשלום בוצע."}
           </p>
 
 
@@ -172,7 +177,9 @@ function Deposit() {
                 <p className="text-muted-foreground mb-6">
                   {method === "cash"
                     ? `התשלום מראש — נא לבוא עם הסכום ₪${payNow} ולהביא סכום מדויק. אישור נשלח למייל.`
-                    : "קיבלנו את האסמכתא ואישור נשלח למייל. מחכות לפגוש אותך!"}
+                    : file
+                      ? "קיבלנו את האסמכתא ואישור נשלח למייל. מחכות לפגוש אותך!"
+                      : "התאריך נשמר ואישור נשלח למייל. התשלום יאומת ויסומן כ'שולם' בהמשך, עד לסיום ההזמנה."}
                 </p>
                 <Link to="/account">
                   <Button className="rounded-full">לחשבון שלי</Button>
@@ -227,7 +234,7 @@ function Deposit() {
                 ) : (
                   method === "card" ? (
                   <div className="mt-2 p-5 rounded-2xl bg-blush/40 text-primary text-sm">
-                    שילמתי באשראי דרך הכפתור למעלה — נא לצרף צילום מסך של אישור התשלום ולסיים את ההזמנה.
+                    שילמתי באשראי דרך הכפתור למעלה — אפשר לצרף צילום מסך של אישור התשלום (מומלץ), או לאשר למטה שהתשלום בוצע. התאריך משתריין רק לאחר אחת מהשתיים.
                   </div>
                 ) : (
                   <div className="space-y-3 pt-2">
@@ -251,7 +258,7 @@ function Deposit() {
               <div className="glass-card rounded-3xl p-6 space-y-4">
                 <h2 className="font-display text-xl text-primary flex items-center gap-2">
                   <Upload className="h-5 w-5 text-blush-deep" />
-                  {method === "cash" ? "אישור הזמנה" : "העלאת אסמכתא"}
+                  {method === "cash" ? "אישור הזמנה" : "העלאת אסמכתא (מומלץ, לא חובה)"}
                 </h2>
 
                 {method === "cash" ? (
@@ -261,30 +268,56 @@ function Deposit() {
                     לחצי על "אישור הזמנה" למטה ונמתין לך ביום האיסוף.
                   </div>
                 ) : (
-                  <label className="block border-2 border-dashed border-border rounded-2xl p-8 text-center cursor-pointer hover:border-primary transition-colors">
-                    <input
-                      type="file"
-                      accept="image/*,application/pdf"
-                      className="hidden"
-                      onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                    />
-                    {file ? (
-                      <div className="text-primary font-medium">{file.name}</div>
-                    ) : (
-                      <>
-                        <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                        <div className="text-sm text-muted-foreground">צילום מסך של ההעברה (PDF/JPG/PNG)</div>
-                      </>
+                  <>
+                    <label className="block border-2 border-dashed border-border rounded-2xl p-8 text-center cursor-pointer hover:border-primary transition-colors">
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        className="hidden"
+                        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                      />
+                      {file ? (
+                        <div className="text-primary font-medium">{file.name}</div>
+                      ) : (
+                        <>
+                          <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                          <div className="text-sm text-muted-foreground">צילום מסך של ההעברה (מומלץ, לא חובה)</div>
+                        </>
+                      )}
+                    </label>
+
+                    {!file && (
+                      <label className="flex items-start gap-2 p-4 rounded-2xl border border-border bg-card cursor-pointer text-sm">
+                        <input
+                          type="checkbox"
+                          checked={confirmedPaid}
+                          onChange={(e) => setConfirmedPaid(e.target.checked)}
+                          className="mt-0.5 h-4 w-4 accent-primary"
+                        />
+                        <span className="text-muted-foreground">
+                          אני מאשר/ת שביצעתי את התשלום ({method === "card" ? "אשראי" : method === "bit" ? "Bit/PayBox" : "העברה בנקאית"}) — בלי לצרף אסמכתא כרגע.
+                        </span>
+                      </label>
                     )}
-                  </label>
+
+                    <p className="text-xs text-muted-foreground text-center">
+                      התאריך משתריין רק לאחר צירוף אסמכתא או אישור שהתשלום בוצע. התשלום עצמו יסומן כ'שולם' בהמשך, עד לסיום ההזמנה.
+                    </p>
+                  </>
                 )}
 
                 <Button
-                  disabled={uploading || (needsReceipt && !file)}
+                  disabled={uploading || (showReceiptUpload && !file && !confirmedPaid)}
                   onClick={submit}
                   className="w-full h-12 rounded-full"
                 >
-                  {uploading ? "שולח…" : method === "cash" ? "אישור הזמנה במזומן" : "שליחת אסמכתא"}
+                  {uploading
+                    ? "שולח…"
+                    : method === "cash"
+                      ? "אישור הזמנה במזומן"
+                      : file
+                        ? "שליחת אסמכתא"
+                        : "אישור תשלום ושריון התאריך"}
                 </Button>
                 <p className="text-[11px] text-muted-foreground text-center flex items-center justify-center gap-1">
                   <Banknote className="h-3 w-3" /> ביטול עד יום האירוע – ללא חיוב. ביום עצמו – חיוב מלא.
