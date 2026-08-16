@@ -146,18 +146,7 @@ function Deposit() {
       <section className="container-page py-14 flex-1">
         <div className="max-w-4xl mx-auto">
           <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-3">Step 3 · Payment</div>
-          <h1 className="font-display text-5xl text-primary mb-3">סיום תשלום</h1>
-          <p className="text-muted-foreground max-w-2xl mb-10">
-            
-            {isStudio ? (
-              <>לשריון התאריך יש להעביר מקדמה של <span className="text-primary font-semibold">{payNow}₪</span> בלבד (היתרה {balanceLeft}₪ ביום הצילום).{" "}</>
-            ) : (
-              <>לסיום ההזמנה יש להעביר תשלום מלא של <span className="text-primary font-semibold">{total}₪</span>.{" "}</>
-            )}
-            {isStudio
-              ? "התשלום מתבצע בהעברה בנקאית/אשראי או ב-Bit/PayBox. מומלץ לצרף אסמכתא — לחלופין אפשר לאשר שהתשלום בוצע. התאריך משתריין רק לאחר אחת מהשתיים."
-              : "אפשר לשלם במזומן ביום האיסוף (ללא צורך באסמכתא) או אשראי / העברה בנקאית / Bit. מומלץ לצרף אסמכתא — לחלופין אפשר לאשר שהתשלום בוצע."}
-          </p>
+          <h1 className="font-display text-5xl text-primary mb-10">סיום תשלום</h1>
 
 
           {done ? (
