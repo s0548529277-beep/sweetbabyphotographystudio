@@ -268,15 +268,15 @@ export const placeBooking = createServerFn({ method: "POST" })
           ? `<p><strong>אביזרים ששוריינו:</strong> ${data.reserved_items.map((s) => `#${s}`).join(", ")}</p>`
           : "";
         const html = `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:600px;margin:auto">
-          <h2 style="color:#2d3d2b">סיכום הזמנה · הסטודיו שוריין 💗</h2>
+          <h2 style="color:#2d3d2b">בקשת השריון התקבלה 📋</h2>
           <p>שלום ${data.contact_name},</p>
-          <p>תודה שקבעת תור בסטודיו Sweetbaby. להלן סיכום מלא — הסכם, שריון, אביזרים ותשלום.</p>
-          <h3 style="color:#2d3d2b">פרטי התור</h3>
+          <p>קיבלנו את בקשת השריון שלך לסטודיו Sweetbaby. <strong>התאריך עדיין לא סופי</strong> — כדי לאשר ולשריין אותו בפועל, יש להשלים את תשלום המקדמה (או לצרף אסמכתא לתשלום) בעמוד הבא. ברגע שהתשלום יאושר, יישלח אליך אישור שריון נוסף.</p>
+          <h3 style="color:#2d3d2b">פרטי הבקשה</h3>
           <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">
             <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>תאריך</strong></td><td style="padding:6px 10px">${data.session_date}</td></tr>
             <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>שעה</strong></td><td style="padding:6px 10px">${data.start_time} - ${endTime}</td></tr>
             <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>מחיר</strong></td><td style="padding:6px 10px">₪${price}</td></tr>
-            <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>מקדמה</strong></td><td style="padding:6px 10px">₪${deposit}</td></tr>
+            <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>מקדמה לתשלום</strong></td><td style="padding:6px 10px">₪${deposit}</td></tr>
             <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>יתרה לתשלום</strong></td><td style="padding:6px 10px">₪${Math.max(0, price - deposit)}</td></tr>
             ${data.notes ? `<tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>הערות</strong></td><td style="padding:6px 10px">${String(data.notes).replace(/</g, "&lt;")}</td></tr>` : ""}
           </table>
@@ -287,7 +287,7 @@ export const placeBooking = createServerFn({ method: "POST" })
         const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
         await sendStudioAndCustomer({
           customerEmail,
-          subject: `סיכום הזמנה #${booking.id.slice(0, 8)} · Sweetbaby`,
+          subject: `בקשת שריון #${booking.id.slice(0, 8)} · Sweetbaby`,
           html,
         });
       }
@@ -417,10 +417,32 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
       if (event) {
         await supabaseAdmin.from("bookings").update({ google_event_id: event.id }).eq("id", b.id);
       }
+
+      // This is the actual "you're reserved" confirmation — sent only now,
+      // after payment/receipt was confirmed, never earlier.
+      try {
+        const html = `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:600px;margin:auto">
+          <h2 style="color:#2d3d2b">התאריך שוריין ✓</h2>
+          <p>שלום ${b.contact_name ?? ""},</p>
+          <p>קיבלנו את התשלום/האסמכתא, והתאריך שוריין עבורך בפועל ביומן הסטודיו. מחכות לפגוש אותך!</p>
+          <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">
+            <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>תאריך</strong></td><td style="padding:6px 10px">${b.session_date}</td></tr>
+            <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>שעה</strong></td><td style="padding:6px 10px">${String(b.start_time).slice(0, 5)} - ${String(b.end_time).slice(0, 5)}</td></tr>
+            <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>מחיר</strong></td><td style="padding:6px 10px">₪${b.price}</td></tr>
+          </table>
+          <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: תלמוד ירושלמי 24, בית שמש · לשאלות: s0548529277@gmail.com / 054-8529277</p>
+        </div>`;
+        const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+        await sendStudioAndCustomer({
+          customerEmail,
+          subject: `התאריך שוריין #${b.id.slice(0, 8)} · Sweetbaby`,
+          html,
+        });
+      } catch (e) { console.error("[SWEETBABY] deposit confirmation email failed", e); }
+
       return { ok: true, already: false };
     } catch (e) {
       console.error("[SWEETBABY] deposit calendar sync failed", e);
       return { ok: false, already: false };
     }
   });
-
