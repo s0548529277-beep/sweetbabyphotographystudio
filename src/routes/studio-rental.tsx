@@ -13,7 +13,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { InspirationStrip } from "@/components/InspirationStrip";
 import { usePageGallery, PAGE_IMAGE_KEYS } from "@/lib/page-images";
-
+import { ArrivalDirections } from "@/components/ArrivalDirections";
 
 
 export const Route = createFileRoute("/studio-rental")({
@@ -429,7 +429,9 @@ function StudioRentalPage() {
         </div>
 
       </section>
-
+<section className="container-page pb-4" dir="rtl">
+        <ArrivalDirections className="max-w-4xl mx-auto" />
+      </section>
       <section id="studio-inspiration" className="container-page pb-12 scroll-mt-24">
         <InspirationStrip
           images={studioGallery.images}
