@@ -641,6 +641,7 @@ function Booking() {
             </div>
           </aside>
         </form>
+     <ArrivalDirections className="mt-10" />
       </section>
       <Footer />
     </div>
