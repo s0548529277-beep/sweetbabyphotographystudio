@@ -408,7 +408,7 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
     const { data: b, error } = await supabase
       .from("bookings")
       .select(
-        "id, user_id, session_date, start_time, end_time, price, deposit_amount, balance_amount, notes, reserved_items, contact_name, contact_phone, deposit_receipt_url, google_event_id",
+        "id, user_id, session_date, start_time, end_time, price, deposit_amount, balance_amount, balance_method, notes, reserved_items, contact_name, contact_phone, deposit_receipt_url, google_event_id",
       )
       .eq("id", data.id)
       .maybeSingle();
@@ -457,9 +457,9 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
         const receiptAttachment = await fetchReceiptAttachment(supabaseAdmin, b.deposit_receipt_url as string | null);
 
         const html = buildBookingSummaryHtml({
-          heading: "התאריך שוריין ✓",
+          heading: "אישור הזמנה — השכרת סטודיו ✓",
           intro:
-            "קיבלנו את התשלום/האסמכתא, והתאריך שוריין עבורך בפועל ביומן הסטודיו. למטה תמצאי סיכום מלא של ההזמנה, פרטי הגעה, וקובץ האסמכתא ששלחת מצורף להמשך תיעוד. מחכות לפגוש אותך!",
+            "קיבלנו את התשלום/האסמכתא, וההזמנה מאושרת — התאריך שוריין עבורך בפועל ביומן הסטודיו. למטה תמצאי סיכום מלא של ההזמנה, פרטי הגעה, וקובץ האסמכתא ששלחת מצורף להמשך תיעוד. מחכות לפגוש אותך!",
           booking: {
             id: b.id,
             contact_name: b.contact_name,
@@ -469,6 +469,7 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
             price: b.price,
             deposit_amount: b.deposit_amount,
             balance_amount: b.balance_amount,
+            balance_method: b.balance_method,
             notes: b.notes,
             reserved_items: (b.reserved_items as string[] | null) ?? [],
           },
@@ -479,7 +480,7 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
         const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
         await sendStudioAndCustomer({
           customerEmail,
-          subject: `התאריך שוריין #${b.id.slice(0, 8)} · Sweetbaby`,
+          subject: `אישור הזמנה — השכרת סטודיו #${b.id.slice(0, 8)} · Sweetbaby`,
           html,
           attachments: receiptAttachment ? [receiptAttachment] : undefined,
         });
@@ -518,7 +519,7 @@ export async function runDueBookingReminders(): Promise<{ checked: number; sent:
   const { data: candidates, error } = await supabaseAdmin
     .from("bookings")
     .select(
-      "id, user_id, session_date, start_time, end_time, price, deposit_amount, balance_amount, notes, reserved_items, contact_name, google_event_id, reminder_sent_at, status",
+      "id, user_id, session_date, start_time, end_time, price, deposit_amount, balance_amount, balance_method, notes, reserved_items, contact_name, google_event_id, reminder_sent_at, status",
     )
     .is("reminder_sent_at", null)
     .neq("status", "cancelled")
@@ -560,6 +561,7 @@ export async function runDueBookingReminders(): Promise<{ checked: number; sent:
           price: b.price,
           deposit_amount: b.deposit_amount,
           balance_amount: b.balance_amount,
+          balance_method: b.balance_method,
           notes: b.notes,
           reserved_items: (b.reserved_items as string[] | null) ?? [],
         },

@@ -56,6 +56,15 @@ export type SummaryBooking = {
   balance_amount?: number | null;
   notes?: string | null;
   reserved_items?: string[] | null;
+  /** How the customer paid the deposit: "transfer" | "bit" | "card" | "cash". */
+  balance_method?: string | null;
+};
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  transfer: "העברה בנקאית",
+  bit: "Bit / PayBox",
+  card: "אשראי (תשלום מאובטח באתר)",
+  cash: "מזומן",
 };
 
 /**
@@ -94,6 +103,7 @@ export function buildBookingSummaryHtml(opts: {
       ${row("שעה", `${String(b.start_time).slice(0, 5)} - ${String(b.end_time).slice(0, 5)}`)}
       ${row("מחיר כולל", `₪${b.price}`)}
       ${b.deposit_amount != null ? row("מקדמה ששולמה", `₪${b.deposit_amount}`) : ""}
+      ${b.balance_method ? row("אמצעי תשלום", PAYMENT_METHOD_LABELS[b.balance_method] ?? escapeHtml(b.balance_method)) : ""}
       ${row("יתרה לתשלום בסטודיו", `₪${balance}`)}
       ${b.notes ? row("הערות", escapeHtml(String(b.notes))) : ""}
     </table>
