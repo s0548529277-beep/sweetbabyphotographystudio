@@ -3,8 +3,7 @@ import { ARRIVAL_TEXT_HE } from "@/lib/arrival";
 /**
  * Maps the raw studio-intake questionnaire payload (studio_intake_forms.payload)
  * to Hebrew labels, in display order. Shared so every email that shows the
- * questionnaire (booking-request email, reservation-confirmed email, and any
- * future email) renders it identically.
+ * questionnaire renders it identically.
  */
 export const INTAKE_LABELS: Array<[label: string, key: string]> = [
   ["שם מלא", "clientName"],
@@ -18,6 +17,14 @@ export const INTAKE_LABELS: Array<[label: string, key: string]> = [
   ["אביזרים בהשכרה", "needProps"],
   ["בקשות מיוחדות", "specialRequests"],
 ];
+
+/** How a customer paid: shared across studio-booking and props-order emails. */
+export const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  transfer: "העברה בנקאית",
+  bit: "Bit / PayBox",
+  card: "אשראי (תשלום מאובטח באתר)",
+  cash: "מזומן",
+};
 
 function escapeHtml(value: string): string {
   return value.replace(/</g, "&lt;");
@@ -45,6 +52,8 @@ export function buildArrivalHtml(): string {
     )}</div>`;
 }
 
+// ---------- Studio-booking summary ----------
+
 export type SummaryBooking = {
   id: string;
   contact_name?: string | null;
@@ -60,19 +69,13 @@ export type SummaryBooking = {
   balance_method?: string | null;
 };
 
-const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  transfer: "העברה בנקאית",
-  bit: "Bit / PayBox",
-  card: "אשראי (תשלום מאובטח באתר)",
-  cash: "מזומן",
-};
-
 /**
- * Builds the full HTML body for a booking-related email: greeting, a
- * complete price/date/time table, the reserved-items list (if any), the
- * full intake questionnaire (if available), and the arrival directions.
- * Every booking email (request-received / reservation-confirmed / reminder)
- * renders from this single function so they never drift out of sync.
+ * Builds the full HTML body for a studio-booking email: greeting, a
+ * complete price/date/time table (incl. chosen payment method once known),
+ * the reserved-items list (if any), the full intake questionnaire (if
+ * available), and the arrival directions. Every booking email
+ * (request-received / reservation-confirmed / reminder) renders from this
+ * single function so they never drift out of sync.
  */
 export function buildBookingSummaryHtml(opts: {
   heading: string;
@@ -109,6 +112,72 @@ export function buildBookingSummaryHtml(opts: {
     </table>
     ${itemsHtml}
     ${includeIntake ? buildIntakeHtml(intakePayload) : ""}
+    ${includeArrival ? buildArrivalHtml() : ""}
+    ${footerNote ? `<p style="color:#6b8a63;font-size:13px;margin-top:16px">${footerNote}</p>` : ""}
+    <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: תלמוד ירושלמי 24, בית שמש · לשאלות: s0548529277@gmail.com / 054-8529277</p>
+  </div>`;
+}
+
+// ---------- Props/equipment-rental order summary ----------
+
+/** One rented item line, as stored on order_items. */
+export type SummaryOrderLine = {
+  item_name: string;
+  item_sku: string;
+  quantity: number;
+  price: number; // line total (already ×quantity and ×day-multiplier)
+};
+
+export type SummaryOrder = {
+  id: string;
+  contact_name?: string | null;
+  session_date: string; // pickup date
+  pickup_time?: string | null;
+  return_date: string;
+  return_time?: string | null;
+  total: number;
+  notes?: string | null;
+  /** How the customer paid: "transfer" | "bit" | "card" | "cash". */
+  balance_method?: string | null;
+  lines: SummaryOrderLine[];
+};
+
+/**
+ * Builds the full HTML body for a props/equipment-rental order email:
+ * greeting, pickup/return date+time, the full item list with prices,
+ * payment method (once chosen), and arrival directions.
+ */
+export function buildPropsOrderSummaryHtml(opts: {
+  heading: string;
+  intro: string;
+  order: SummaryOrder;
+  includeArrival?: boolean;
+  footerNote?: string;
+}): string {
+  const { heading, intro, order: o, includeArrival = true, footerNote } = opts;
+
+  const itemsRows = o.lines
+    .map(
+      (l) =>
+        `<tr><td style="padding:6px 10px">${escapeHtml(l.item_name)} (${escapeHtml(l.item_sku)})</td><td style="padding:6px 10px;text-align:center">×${l.quantity}</td><td style="padding:6px 10px;text-align:left">₪${l.price.toFixed(0)}</td></tr>`,
+    )
+    .join("");
+
+  return `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:600px;margin:auto">
+    <h2 style="color:#2d3d2b">${escapeHtml(heading)}</h2>
+    <p>שלום ${escapeHtml(o.contact_name ?? "")},</p>
+    <p>${intro}</p>
+    <h3 style="color:#2d3d2b">סיכום הזמנה</h3>
+    <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">
+      <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>מספר הזמנה</strong></td><td style="padding:6px 10px" dir="ltr">#${o.id.slice(0, 8)}</td></tr>
+      ${row("איסוף", `${o.session_date}${o.pickup_time ? ` בשעה ${o.pickup_time}` : ""}`)}
+      ${row("החזרה", `${o.return_date}${o.return_time ? ` בשעה ${o.return_time}` : ""}`)}
+      ${o.balance_method ? row("אמצעי תשלום", PAYMENT_METHOD_LABELS[o.balance_method] ?? escapeHtml(o.balance_method)) : ""}
+      ${o.notes ? row("הערות", escapeHtml(String(o.notes))) : ""}
+    </table>
+    <h3 style="color:#2d3d2b;margin-top:24px">פריטים</h3>
+    <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">${itemsRows}</table>
+    <p style="margin-top:12px"><strong>סה״כ לתשלום:</strong> ₪${o.total}</p>
     ${includeArrival ? buildArrivalHtml() : ""}
     ${footerNote ? `<p style="color:#6b8a63;font-size:13px;margin-top:16px">${footerNote}</p>` : ""}
     <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: תלמוד ירושלמי 24, בית שמש · לשאלות: s0548529277@gmail.com / 054-8529277</p>

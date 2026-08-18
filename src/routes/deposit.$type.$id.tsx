@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { ArrivalDirections } from "@/components/ArrivalDirections";
 import { PayOnlineButton } from "@/components/PayOnlineButton";
 import { confirmBookingDeposit } from "@/lib/bookings.functions";
+import { confirmOrderDeposit } from "@/lib/orders.functions";
 import { Copy, Check, Upload, Banknote, CreditCard, Wallet, PlayCircle } from "lucide-react";
 import { StudioGuideModal } from "@/components/StudioGuideModal";
 
@@ -57,6 +58,7 @@ function Deposit() {
   const [confirmedPaid, setConfirmedPaid] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const confirmDeposit = useServerFn(confirmBookingDeposit);
+  const confirmOrder = useServerFn(confirmOrderDeposit);
 
 
 
@@ -122,6 +124,16 @@ function Deposit() {
           await confirmDeposit({ data: { id } });
         } catch (e) {
           console.error("[SWEETBABY] calendar sync after deposit failed", e);
+        }
+      }
+      // Props/equipment orders: send the final "אישור הזמנה — השכרת אביזרים"
+      // email (with the receipt attached, if one was uploaded) once payment
+      // is completed — any method, cash included.
+      if (!isStudio) {
+        try {
+          await confirmOrder({ data: { id } });
+        } catch (e) {
+          console.error("[SWEETBABY] order confirmation email trigger failed", e);
         }
       }
       toast.success(
