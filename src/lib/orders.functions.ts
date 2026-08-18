@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { buildPropsOrderSummaryHtml, type SummaryOrderLine } from "@/lib/orderSummary";
 
 const lineSchema = z.object({
   id: z.string().min(1),
@@ -215,26 +216,32 @@ export const placeOrder = createServerFn({ method: "POST" })
     } catch { /* ignore */ }
 
     try {
-      const itemsHtml = orderLines
-        .map((l) => `<tr><td style="padding:4px 8px">${l.item_name} (${l.item_sku})</td><td style="padding:4px 8px">×${l.quantity}</td><td style="padding:4px 8px;text-align:left">₪${(l.price * l.quantity).toFixed(0)}</td></tr>`)
-        .join("");
-      const { ARRIVAL_TEXT_HE } = await import("@/lib/arrival");
-      const html = `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:560px;margin:auto">
-        <h2 style="color:#2d3d2b">ההזמנה שלך אושרה ונשלחה במייל 💗</h2>
-        <p>שלום ${data.contact_name},</p>
-        <p>תודה על ההזמנה בסטודיו Sweetbaby. פרטי ההזמנה:</p>
-        <p><strong>שעת האיסוף שלך:</strong> ${data.session_date} בשעה ${pickupTime}<br/>
-        <strong>החזרה:</strong> ${endDate} בשעה ${returnTime}</p>
-        <p style="background:#fdeef1;padding:10px;border-radius:8px">נא לתאם טלפונית איסוף אביזרים בשעה הרצויה · 054-8529277</p>
-        <table style="width:100%;border-collapse:collapse;background:#faf7f4">${itemsHtml}</table>
-        <p style="margin-top:16px"><strong>סה״כ לתשלום:</strong> ₪${total}</p>
-        <p style="white-space:pre-line;color:#6b8a63;font-size:13px">${ARRIVAL_TEXT_HE}</p>
-        <p style="color:#6b8a63;font-size:13px">כתובת הסטודיו: תלמוד ירושלמי 24, בית שמש · לשאלות: s0548529277@gmail.com / 054-8529277</p>
-      </div>`;
+      const lines: SummaryOrderLine[] = orderLines.map((l) => ({
+        item_name: l.item_name,
+        item_sku: l.item_sku,
+        quantity: l.quantity,
+        price: l.price * l.quantity,
+      }));
+      const html = buildPropsOrderSummaryHtml({
+        heading: "בקשת הזמנה התקבלה 📦",
+        intro:
+          "קיבלנו את בקשת ההזמנה שלך להשכרת אביזרים מסטודיו Sweetbaby. <strong>ההזמנה עדיין לא סופית</strong> — כדי לאשר אותה בפועל, יש להשלים את התשלום (או לצרף אסמכתא לתשלום) בעמוד הבא. ברגע שהתשלום יאושר, יישלח אליך אישור הזמנה נוסף עם סיכום מלא.",
+        order: {
+          id: order.id,
+          contact_name: data.contact_name,
+          session_date: data.session_date,
+          pickup_time: pickupTime,
+          return_date: endDate,
+          return_time: returnTime,
+          total,
+          notes: data.notes,
+          lines,
+        },
+      });
       const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
       await sendStudioAndCustomer({
         customerEmail,
-        subject: `אישור הזמנה #${order.id.slice(0, 8)} · Sweetbaby`,
+        subject: `בקשת הזמנה #${order.id.slice(0, 8)} · Sweetbaby`,
         html,
       });
     } catch (e) {
@@ -267,6 +274,135 @@ export const placeOrder = createServerFn({ method: "POST" })
     }
 
     return { id: order.id, total, deposit: depositAmount, balance: balanceAmount };
+  });
+
+/** Guesses a MIME type for the uploaded receipt from its file extension. */
+function receiptContentType(path: string): string {
+  const ext = path.split(".").pop()?.toLowerCase() ?? "";
+  const map: Record<string, string> = {
+    pdf: "application/pdf",
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    webp: "image/webp",
+    heic: "image/heic",
+  };
+  return map[ext] ?? "application/octet-stream";
+}
+
+/** Downloads the uploaded payment receipt from the `receipts` bucket and base64-encodes it for email attachment (best-effort). */
+async function fetchReceiptAttachment(
+  supabaseAdmin: any,
+  path: string | null | undefined,
+): Promise<{ filename: string; contentType: string; base64Data: string } | null> {
+  if (!path) return null;
+  try {
+    const { data: blob, error } = await supabaseAdmin.storage.from("receipts").download(path);
+    if (error || !blob) {
+      console.error("[SWEETBABY] receipt download failed", error);
+      return null;
+    }
+    const buf = new Uint8Array(await blob.arrayBuffer());
+    let bin = "";
+    for (const b of buf) bin += String.fromCharCode(b);
+    const base64Data = btoa(bin);
+    const filename = path.split("/").pop() || "receipt";
+    return { filename, contentType: receiptContentType(path), base64Data };
+  } catch (e) {
+    console.error("[SWEETBABY] receipt attachment build failed", e);
+    return null;
+  }
+}
+
+/**
+ * Sends the FULL "אישור הזמנה — השכרת אביזרים" confirmation email — price
+ * breakdown, full item list, the chosen payment method, arrival details, and
+ * the uploaded payment receipt attached as a file. Called from the payment
+ * page once the customer finishes paying / attaching a receipt (any payment
+ * method, cash included), mirroring `confirmBookingDeposit` for studio
+ * bookings. Never throws — a mail hiccup must never block the order.
+ */
+export const confirmOrderDeposit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: o, error } = await supabase
+      .from("orders")
+      .select(
+        "id, user_id, session_date, return_date, pickup_at, return_at, total, notes, contact_name, deposit_receipt_url, balance_method, confirmation_sent_at",
+      )
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error || !o) throw new Error("ההזמנה לא נמצאה");
+    if (o.user_id !== userId) throw new Error("אין הרשאה");
+    if (o.confirmation_sent_at) return { ok: true, already: true };
+
+    const { data: itemRows } = await supabase
+      .from("order_items")
+      .select("item_name, item_sku, quantity, price")
+      .eq("order_id", o.id);
+    const lines: SummaryOrderLine[] = (itemRows ?? []).map((l: any) => ({
+      item_name: l.item_name,
+      item_sku: l.item_sku,
+      quantity: l.quantity,
+      price: Number(l.price) * Number(l.quantity),
+    }));
+
+    let customerEmail: string | undefined;
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      customerEmail = user?.email ?? undefined;
+    } catch {
+      /* ignore */
+    }
+
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const receiptAttachment = await fetchReceiptAttachment(supabaseAdmin, o.deposit_receipt_url as string | null);
+
+      const pickupTime = o.pickup_at
+        ? new Date(o.pickup_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
+        : null;
+      const returnTime = o.return_at
+        ? new Date(o.return_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
+        : null;
+
+      const html = buildPropsOrderSummaryHtml({
+        heading: "אישור הזמנה — השכרת אביזרים ✓",
+        intro:
+          "קיבלנו את התשלום/האסמכתא, וההזמנה מאושרת. למטה תמצאי סיכום מלא של ההזמנה, פרטי הגעה, וקובץ האסמכתא ששלחת מצורף להמשך תיעוד. נא לתאם טלפונית שעת איסוף מדויקת · 054-8529277.",
+        order: {
+          id: o.id,
+          contact_name: o.contact_name,
+          session_date: o.session_date,
+          pickup_time: pickupTime,
+          return_date: o.return_date,
+          return_time: returnTime,
+          total: o.total,
+          notes: o.notes,
+          balance_method: o.balance_method,
+          lines,
+        },
+        footerNote: receiptAttachment ? "קובץ האסמכתא שצירפת מופיע כקובץ מצורף למייל זה." : undefined,
+      });
+
+      const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+      await sendStudioAndCustomer({
+        customerEmail,
+        subject: `אישור הזמנה — השכרת אביזרים #${o.id.slice(0, 8)} · Sweetbaby`,
+        html,
+        attachments: receiptAttachment ? [receiptAttachment] : undefined,
+      });
+
+      await supabaseAdmin.from("orders").update({ confirmation_sent_at: new Date().toISOString() }).eq("id", o.id);
+    } catch (e) {
+      console.error("[SWEETBABY] order confirmation email failed", e);
+    }
+
+    return { ok: true, already: false };
   });
 
 // Public availability check server fn (client uses it to disable unavailable items)
