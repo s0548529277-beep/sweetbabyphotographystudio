@@ -20,19 +20,80 @@ function encodeHeader(value: string): string {
   return `=?UTF-8?B?${padded}?=`;
 }
 
+function chunk76(b64: string): string {
+  return b64.replace(/(.{76})/g, "$1\r\n");
+}
+
+/** An attachment to include on an outgoing email. base64Data is raw base64 (no data: prefix). */
+export type GmailAttachment = {
+  filename: string;
+  contentType: string;
+  base64Data: string;
+};
+
 export type GmailMessage = {
   to: string;
   subject: string;
   html: string;
   fromName?: string;
+  attachments?: GmailAttachment[];
 };
 
+function buildMime({ to, subject, html, fromName = "Sweetbaby", attachments = [] }: GmailMessage): string {
+  const htmlB64 = chunk76(toBase64Url(new TextEncoder().encode(html)).replace(/-/g, "+").replace(/_/g, "/"));
+  const htmlB64Padded = htmlB64 + "=".repeat((4 - (htmlB64.replace(/\r\n/g, "").length % 4)) % 4);
+
+  const headers = [
+    `From: ${encodeHeader(fromName)} <s0548529277@gmail.com>`,
+    `To: ${to}`,
+    `Subject: ${encodeHeader(subject)}`,
+    "MIME-Version: 1.0",
+  ];
+
+  if (attachments.length === 0) {
+    return [
+      ...headers,
+      'Content-Type: text/html; charset="UTF-8"',
+      "Content-Transfer-Encoding: base64",
+      "",
+      htmlB64Padded,
+    ].join("\r\n");
+  }
+
+  // multipart/mixed: one text/html part + one part per attachment.
+  const boundary = `sweetbaby_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  const parts: string[] = [
+    `--${boundary}`,
+    'Content-Type: text/html; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    htmlB64Padded,
+    "",
+  ];
+
+  for (const att of attachments) {
+    const padded = att.base64Data + "=".repeat((4 - (att.base64Data.length % 4)) % 4);
+    parts.push(
+      `--${boundary}`,
+      `Content-Type: ${att.contentType}; name="${att.filename}"`,
+      "Content-Transfer-Encoding: base64",
+      `Content-Disposition: attachment; filename="${att.filename}"`,
+      "",
+      chunk76(padded),
+      "",
+    );
+  }
+  parts.push(`--${boundary}--`);
+
+  return [...headers, `Content-Type: multipart/mixed; boundary="${boundary}"`, "", ...parts].join("\r\n");
+}
+
 /**
- * Sends one HTML email via the studio's Gmail account.
- * Returns true on success; logs and returns false on failure (never throws,
- * so a mail problem can't break an order/booking).
+ * Sends one HTML email (optionally with file attachments) via the studio's
+ * Gmail account. Returns true on success; logs and returns false on failure
+ * (never throws, so a mail problem can't break an order/booking).
  */
-export async function sendGmail({ to, subject, html, fromName = "Sweetbaby" }: GmailMessage): Promise<boolean> {
+export async function sendGmail(message: GmailMessage): Promise<boolean> {
   const lovableKey = process.env.LOVABLE_API_KEY;
   const connKey = process.env.GOOGLE_MAIL_API_KEY;
   if (!lovableKey || !connKey) {
@@ -40,22 +101,7 @@ export async function sendGmail({ to, subject, html, fromName = "Sweetbaby" }: G
     return false;
   }
 
-  const mime = [
-    `From: ${encodeHeader(fromName)} <s0548529277@gmail.com>`,
-    `To: ${to}`,
-    `Subject: ${encodeHeader(subject)}`,
-    "MIME-Version: 1.0",
-    'Content-Type: text/html; charset="UTF-8"',
-    "Content-Transfer-Encoding: base64",
-    "",
-    // base64 body keeps UTF-8 intact across the wire
-    (() => {
-      const b64 = toBase64Url(new TextEncoder().encode(html)).replace(/-/g, "+").replace(/_/g, "/");
-      const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-      return padded.replace(/(.{76})/g, "$1\r\n");
-    })(),
-  ].join("\r\n");
-
+  const mime = buildMime(message);
   const raw = toBase64Url(new TextEncoder().encode(mime));
 
   try {
@@ -69,25 +115,26 @@ export async function sendGmail({ to, subject, html, fromName = "Sweetbaby" }: G
       body: JSON.stringify({ raw }),
     });
     if (!res.ok) {
-      console.error("[SWEETBABY] gmail send error", to, res.status, await res.text());
+      console.error("[SWEETBABY] gmail send error", message.to, res.status, await res.text());
       return false;
     }
     return true;
   } catch (e) {
-    console.error("[SWEETBABY] gmail send failed", to, e);
+    console.error("[SWEETBABY] gmail send failed", message.to, e);
     return false;
   }
 }
 
-/** Sends the same message to the studio inbox plus (optionally) the customer. */
+/** Sends the same message (optionally with attachments) to the studio inbox plus (optionally) the customer. */
 export async function sendStudioAndCustomer(opts: {
   customerEmail?: string | null;
   subject: string;
   html: string;
+  attachments?: GmailAttachment[];
 }): Promise<void> {
   const recipients = ["s0548529277@gmail.com"];
   if (opts.customerEmail && !recipients.includes(opts.customerEmail)) recipients.push(opts.customerEmail);
   for (const to of recipients) {
-    await sendGmail({ to, subject: opts.subject, html: opts.html });
+    await sendGmail({ to, subject: opts.subject, html: opts.html, attachments: opts.attachments });
   }
 }
