@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { buildBookingSummaryHtml } from "@/lib/orderSummary";
 
 // Studio pricing rules
 // - Minimum 2 half-hour slots (1 hour)
@@ -36,6 +37,26 @@ export function computeStudioPrice(slots: number, startTime: string): number {
   const firstHourSlots = Math.min(slots, 2);
   const extraSlots = slots - firstHourSlots;
   return firstHourSlots * 60 + extraSlots * 45;
+}
+
+/** Fetches the latest signed intake questionnaire payload for a user (best-effort, never throws). */
+async function fetchLatestIntake(
+  supabase: any,
+  userId: string,
+): Promise<Record<string, string> | null> {
+  try {
+    const { data: intake } = await supabase
+      .from("studio_intake_forms")
+      .select("payload, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return (intake?.payload ?? null) as Record<string, string> | null;
+  } catch (e) {
+    console.error("[SWEETBABY] intake fetch for email failed", e);
+    return null;
+  }
 }
 
 const inputSchema = z.object({
@@ -90,14 +111,13 @@ export const placeBooking = createServerFn({ method: "POST" })
     }
     const isMorning = isMorningPackage(data.slots, data.start_time);
 
-
     // Overlap check
-  const { data: existing, error: exErr } = await supabase
-  .from("bookings")
-  .select("id, start_time, end_time")
-  .eq("session_date", data.session_date)
-  .neq("status", "cancelled")
-  .neq("deposit_status", "pending");
+    const { data: existing, error: exErr } = await supabase
+      .from("bookings")
+      .select("id, start_time, end_time")
+      .eq("session_date", data.session_date)
+      .neq("status", "cancelled")
+      .neq("deposit_status", "pending");
     if (exErr) throw new Error(exErr.message);
     const startMin = h * 60 + m;
     for (const b of existing ?? []) {
@@ -126,8 +146,6 @@ export const placeBooking = createServerFn({ method: "POST" })
       console.error("[SWEETBABY] calendar conflict check failed", e);
     }
 
-
-
     const today = new Date().toISOString().slice(0, 10);
     const sameDay = data.session_date === today;
     const deposit = sameDay ? price : 90;
@@ -152,8 +170,9 @@ export const placeBooking = createServerFn({ method: "POST" })
           guidanceFee > 0 ? `חבילת הדרכה: ${GUIDANCE_LABELS[guidanceKey]} (+₪${guidanceFee})` : null,
           couponNote,
           data.notes,
-
-        ].filter(Boolean).join("\n") || null,
+        ]
+          .filter(Boolean)
+          .join("\n") || null,
         reserved_items: data.reserved_items ?? [],
         terms_accepted_at: new Date().toISOString(),
       })
@@ -195,16 +214,18 @@ export const placeBooking = createServerFn({ method: "POST" })
     // Customer email — used both for the calendar invitation and the summary mail.
     let customerEmail: string | undefined = data.contact_email?.trim() || undefined;
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       customerEmail = customerEmail ?? user?.email ?? undefined;
-
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     // NOTE: the Google Calendar event is intentionally NOT created here.
     // The slot is only written to the studio calendar after the deposit is
     // paid (bank transfer / Bit receipt uploaded, or online card payment) —
     // see `confirmBookingDeposit` below, called from the payment page.
-
 
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -218,80 +239,48 @@ export const placeBooking = createServerFn({ method: "POST" })
           end_time: endTime,
           slots: data.slots,
           package: isMorning ? "morning" : "regular",
-          price, deposit,
+          price,
+          deposit,
           contact_name: data.contact_name,
           contact_phone: data.contact_phone,
           notes: data.notes ?? null,
         },
       });
       console.log("[SWEETBABY] New booking", { id: booking.id, price, deposit });
-    } catch (e) { console.error("[SWEETBABY] admin notify failed", e); }
-// Send confirmation emails (customer + studio) from the studio's Gmail.
-    // Includes the signed coordination agreement so everything arrives together.
+    } catch (e) {
+      console.error("[SWEETBABY] admin notify failed", e);
+    }
+
+    // Send the "request received" summary email (customer + studio). The date
+    // is NOT reserved yet at this point — that only happens once the deposit
+    // is paid/receipted, in confirmBookingDeposit below, which sends its own
+    // (fuller) confirmation email with the receipt attached.
     try {
-
-
-
-
-      // Latest signed intake for this user
-      let intakeHtml = "";
-      try {
-        const { data: intake } = await supabase
-          .from("studio_intake_forms")
-          .select("payload, created_at")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        const p = (intake?.payload ?? null) as Record<string, string> | null;
-        if (p) {
-          const labels: Array<[string, string]> = [
-            ["שם מלא", "clientName"], ["טלפון", "phone"], ["אימייל", "email"],
-            ["סוג הצילום", "sessionType"], ["מספר משתתפים", "peopleCount"],
-            ["גיל התינוק", "babyAge"], ["מותג מצלמה", "cameraBrand"],
-            ["ניסיון פלאש/סטודיו", "flashExperience"], ["אביזרים בהשכרה", "needProps"],
-            ["בקשות מיוחדות", "specialRequests"],
-          ];
-          const rows = labels
-            .filter(([, k]) => p[k] && String(p[k]).trim().length > 0)
-            .map(([label, k]) =>
-              `<tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>${label}</strong></td><td style="padding:6px 10px">${String(p[k]).replace(/</g, "&lt;")}</td></tr>`)
-            .join("");
-          intakeHtml = `<h3 style="color:#2d3d2b;margin-top:24px">הסכם תיאום ציפיות — חתום ✓</h3>
-            <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">${rows}</table>
-            <p style="font-size:12px;color:#6b8a63">הלקוחה אישרה שקראה והסכימה לכללי הסטודיו: מחירון וחישוב שעות, מדיניות ביטולים, ניקיון, אחריות ונזקים.</p>`;
-        }
-      } catch (e) { console.error("[SWEETBABY] intake fetch for email failed", e); }
-
-      {
-        const itemsHtml = data.reserved_items && data.reserved_items.length > 0
-          ? `<p><strong>אביזרים ששוריינו:</strong> ${data.reserved_items.map((s) => `#${s}`).join(", ")}</p>`
-          : "";
-        const html = `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:600px;margin:auto">
-          <h2 style="color:#2d3d2b">בקשת השריון התקבלה 📋</h2>
-          <p>שלום ${data.contact_name},</p>
-          <p>קיבלנו את בקשת השריון שלך לסטודיו Sweetbaby. <strong>התאריך עדיין לא סופי</strong> — כדי לאשר ולשריין אותו בפועל, יש להשלים את תשלום המקדמה (או לצרף אסמכתא לתשלום) בעמוד הבא. ברגע שהתשלום יאושר, יישלח אליך אישור שריון נוסף.</p>
-          <h3 style="color:#2d3d2b">פרטי הבקשה</h3>
-          <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">
-            <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>תאריך</strong></td><td style="padding:6px 10px">${data.session_date}</td></tr>
-            <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>שעה</strong></td><td style="padding:6px 10px">${data.start_time} - ${endTime}</td></tr>
-            <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>מחיר</strong></td><td style="padding:6px 10px">₪${price}</td></tr>
-            <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>מקדמה לתשלום</strong></td><td style="padding:6px 10px">₪${deposit}</td></tr>
-            <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>יתרה לתשלום</strong></td><td style="padding:6px 10px">₪${Math.max(0, price - deposit)}</td></tr>
-            ${data.notes ? `<tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>הערות</strong></td><td style="padding:6px 10px">${String(data.notes).replace(/</g, "&lt;")}</td></tr>` : ""}
-          </table>
-          ${itemsHtml}
-          ${intakeHtml}
-          <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: תלמוד ירושלמי 24, בית שמש · לשאלות: s0548529277@gmail.com / 054-8529277</p>
-        </div>`;
-        const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
-        await sendStudioAndCustomer({
-          customerEmail,
-          subject: `בקשת שריון #${booking.id.slice(0, 8)} · Sweetbaby`,
-          html,
-        });
-      }
-
+      const intakePayload = await fetchLatestIntake(supabase, userId);
+      const html = buildBookingSummaryHtml({
+        heading: "בקשת השריון התקבלה 📋",
+        intro:
+          "קיבלנו את בקשת השריון שלך לסטודיו Sweetbaby. <strong>התאריך עדיין לא סופי</strong> — כדי לאשר ולשריין אותו בפועל, יש להשלים את תשלום המקדמה (או לצרף אסמכתא לתשלום) בעמוד הבא. ברגע שהתשלום יאושר, יישלח אליך אישור שריון נוסף עם סיכום מלא.",
+        booking: {
+          id: booking.id,
+          contact_name: data.contact_name,
+          session_date: data.session_date,
+          start_time: data.start_time,
+          end_time: endTime,
+          price,
+          deposit_amount: deposit,
+          balance_amount: Math.max(0, price - deposit),
+          notes: data.notes,
+          reserved_items: data.reserved_items ?? [],
+        },
+        intakePayload,
+      });
+      const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+      await sendStudioAndCustomer({
+        customerEmail,
+        subject: `בקשת שריון #${booking.id.slice(0, 8)} · Sweetbaby`,
+        html,
+      });
     } catch (e) {
       console.error("[SWEETBABY] booking confirmation email failed", e);
     }
@@ -305,7 +294,6 @@ async function deleteGoogleEvent(eventId: string) {
   const { deleteGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
   await deleteGoogleCalendarEvent(eventId);
 }
-
 
 export const cancelBooking = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -328,15 +316,15 @@ export const cancelBooking = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await supabaseAdmin.from("item_availability").delete().eq("booking_id", data.id);
 
-    const { error: upErr } = await supabase
-      .from("bookings")
-      .update({ status: "cancelled" })
-      .eq("id", data.id);
+    const { error: upErr } = await supabase.from("bookings").update({ status: "cancelled" }).eq("id", data.id);
     if (upErr) throw new Error(upErr.message);
 
     if ((b as { google_event_id?: string }).google_event_id) {
-      try { await deleteGoogleEvent((b as { google_event_id: string }).google_event_id); }
-      catch (e) { console.error("[SWEETBABY] gcal delete failed", e); }
+      try {
+        await deleteGoogleEvent((b as { google_event_id: string }).google_event_id);
+      } catch (e) {
+        console.error("[SWEETBABY] gcal delete failed", e);
+      }
     }
     return { ok: true };
   });
@@ -346,11 +334,7 @@ export const cancelOrder = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { data: o, error } = await supabase
-      .from("orders")
-      .select("id, user_id, status")
-      .eq("id", data.id)
-      .maybeSingle();
+    const { data: o, error } = await supabase.from("orders").select("id, user_id, status").eq("id", data.id).maybeSingle();
     if (error || !o) throw new Error("ההזמנה לא נמצאה");
     if (o.user_id !== userId) throw new Error("אין הרשאה לבטל הזמנה זו");
     if (o.status === "cancelled") return { ok: true };
@@ -363,20 +347,58 @@ export const cancelOrder = createServerFn({ method: "POST" })
     // availability rows are removed regardless of policy scoping.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await supabaseAdmin.from("item_availability").delete().eq("order_id", data.id);
-    const { error: upErr } = await supabaseAdmin
-      .from("orders")
-      .update({ status: "cancelled" })
-      .eq("id", data.id);
+    const { error: upErr } = await supabaseAdmin.from("orders").update({ status: "cancelled" }).eq("id", data.id);
     if (upErr) throw new Error(upErr.message);
     return { ok: true };
   });
 
-// ---------- Calendar sync after the deposit is paid ----------
+// ---------- Calendar sync + full reservation-confirmed email after the deposit is paid ----------
+
+/** Guesses a MIME type for the uploaded receipt from its file extension. */
+function receiptContentType(path: string): string {
+  const ext = path.split(".").pop()?.toLowerCase() ?? "";
+  const map: Record<string, string> = {
+    pdf: "application/pdf",
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    webp: "image/webp",
+    heic: "image/heic",
+  };
+  return map[ext] ?? "application/octet-stream";
+}
+
+/** Downloads the uploaded payment receipt from the `receipts` bucket and base64-encodes it for email attachment (best-effort). */
+async function fetchReceiptAttachment(
+  supabaseAdmin: any,
+  path: string | null | undefined,
+): Promise<{ filename: string; contentType: string; base64Data: string } | null> {
+  if (!path) return null;
+  try {
+    const { data: blob, error } = await supabaseAdmin.storage.from("receipts").download(path);
+    if (error || !blob) {
+      console.error("[SWEETBABY] receipt download failed", error);
+      return null;
+    }
+    const buf = new Uint8Array(await blob.arrayBuffer());
+    let bin = "";
+    for (const b of buf) bin += String.fromCharCode(b);
+    const base64Data = btoa(bin);
+    const filename = path.split("/").pop() || "receipt";
+    return { filename, contentType: receiptContentType(path), base64Data };
+  } catch (e) {
+    console.error("[SWEETBABY] receipt attachment build failed", e);
+    return null;
+  }
+}
 
 /**
- * Writes the studio booking into the Google Calendar. Called only once the
- * customer has actually paid the deposit (bank transfer / Bit receipt or an
- * online card payment), so unpaid holds never block the calendar.
+ * Writes the studio booking into the Google Calendar and sends the FULL
+ * order-summary "reservation confirmed" email (price breakdown, questionnaire,
+ * arrival details, and the uploaded payment receipt attached as a file).
+ * Called only once the customer has actually paid the deposit (bank transfer
+ * / Bit receipt or an online card payment), so unpaid holds never block the
+ * calendar or trigger this email.
  */
 export const confirmBookingDeposit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -385,7 +407,9 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: b, error } = await supabase
       .from("bookings")
-      .select("id, user_id, session_date, start_time, end_time, price, notes, contact_name, contact_phone, google_event_id")
+      .select(
+        "id, user_id, session_date, start_time, end_time, price, deposit_amount, balance_amount, notes, reserved_items, contact_name, contact_phone, deposit_receipt_url, google_event_id",
+      )
       .eq("id", data.id)
       .maybeSingle();
     if (error || !b) throw new Error("השריון לא נמצא");
@@ -394,9 +418,13 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
 
     let customerEmail: string | undefined;
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       customerEmail = user?.email ?? undefined;
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     try {
       const { createGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
@@ -408,7 +436,9 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
           `מחיר: ₪${b.price}`,
           "מקדמה שולמה ✓",
           b.notes ? `הערות: ${b.notes}` : null,
-        ].filter(Boolean).join("\n"),
+        ]
+          .filter(Boolean)
+          .join("\n"),
         startISO: `${b.session_date}T${String(b.start_time).slice(0, 5)}:00`,
         endISO: `${b.session_date}T${String(b.end_time).slice(0, 5)}:00`,
         location: "תלמוד ירושלמי 24, בית שמש",
@@ -419,26 +449,43 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
       }
 
       // This is the actual "you're reserved" confirmation — sent only now,
-      // after payment/receipt was confirmed, never earlier.
+      // after payment/receipt was confirmed, never earlier. It's a FULL
+      // order summary: price breakdown, the signed questionnaire, arrival
+      // directions, and the uploaded payment receipt attached as a file.
       try {
-        const html = `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:600px;margin:auto">
-          <h2 style="color:#2d3d2b">התאריך שוריין ✓</h2>
-          <p>שלום ${b.contact_name ?? ""},</p>
-          <p>קיבלנו את התשלום/האסמכתא, והתאריך שוריין עבורך בפועל ביומן הסטודיו. מחכות לפגוש אותך!</p>
-          <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">
-            <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>תאריך</strong></td><td style="padding:6px 10px">${b.session_date}</td></tr>
-            <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>שעה</strong></td><td style="padding:6px 10px">${String(b.start_time).slice(0, 5)} - ${String(b.end_time).slice(0, 5)}</td></tr>
-            <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>מחיר</strong></td><td style="padding:6px 10px">₪${b.price}</td></tr>
-          </table>
-          <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: תלמוד ירושלמי 24, בית שמש · לשאלות: s0548529277@gmail.com / 054-8529277</p>
-        </div>`;
+        const intakePayload = await fetchLatestIntake(supabase, userId);
+        const receiptAttachment = await fetchReceiptAttachment(supabaseAdmin, b.deposit_receipt_url as string | null);
+
+        const html = buildBookingSummaryHtml({
+          heading: "התאריך שוריין ✓",
+          intro:
+            "קיבלנו את התשלום/האסמכתא, והתאריך שוריין עבורך בפועל ביומן הסטודיו. למטה תמצאי סיכום מלא של ההזמנה, פרטי הגעה, וקובץ האסמכתא ששלחת מצורף להמשך תיעוד. מחכות לפגוש אותך!",
+          booking: {
+            id: b.id,
+            contact_name: b.contact_name,
+            session_date: b.session_date,
+            start_time: b.start_time,
+            end_time: b.end_time,
+            price: b.price,
+            deposit_amount: b.deposit_amount,
+            balance_amount: b.balance_amount,
+            notes: b.notes,
+            reserved_items: (b.reserved_items as string[] | null) ?? [],
+          },
+          intakePayload,
+          footerNote: receiptAttachment ? "קובץ האסמכתא שצירפת מופיע כקובץ מצורף למייל זה." : undefined,
+        });
+
         const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
         await sendStudioAndCustomer({
           customerEmail,
           subject: `התאריך שוריין #${b.id.slice(0, 8)} · Sweetbaby`,
           html,
+          attachments: receiptAttachment ? [receiptAttachment] : undefined,
         });
-      } catch (e) { console.error("[SWEETBABY] deposit confirmation email failed", e); }
+      } catch (e) {
+        console.error("[SWEETBABY] deposit confirmation email failed", e);
+      }
 
       return { ok: true, already: false };
     } catch (e) {
@@ -446,3 +493,92 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
       return { ok: false, already: false };
     }
   });
+
+// ---------- 12-hours-before-session reminder email ----------
+
+const REMINDER_WINDOW_MIN_HOURS = 11.5;
+const REMINDER_WINDOW_MAX_HOURS = 12.5;
+
+/**
+ * Scans for confirmed bookings whose session starts in ~12 hours and haven't
+ * had a reminder sent yet, and emails the customer a reminder (order summary
+ * + arrival details). Meant to be called periodically (e.g. every 30 min) by
+ * an external scheduler hitting /api/send-booking-reminders — see that route.
+ * Not wrapped in createServerFn/requireSupabaseAuth on purpose: this runs as
+ * a trusted service job, not on behalf of a logged-in user.
+ */
+export async function runDueBookingReminders(): Promise<{ checked: number; sent: number }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  // Bound the query to the next 2 days so we don't scan the whole table;
+  // the precise 12h window is checked in JS below since it spans a date+time.
+  const today = new Date();
+  const windowEnd = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  const { data: candidates, error } = await supabaseAdmin
+    .from("bookings")
+    .select(
+      "id, user_id, session_date, start_time, end_time, price, deposit_amount, balance_amount, notes, reserved_items, contact_name, google_event_id, reminder_sent_at, status",
+    )
+    .is("reminder_sent_at", null)
+    .neq("status", "cancelled")
+    .not("google_event_id", "is", null) // only actually-confirmed bookings
+    .gte("session_date", today.toISOString().slice(0, 10))
+    .lte("session_date", windowEnd);
+
+  if (error) {
+    console.error("[SWEETBABY] reminder scan failed", error);
+    return { checked: 0, sent: 0 };
+  }
+
+  const now = Date.now();
+  let sent = 0;
+
+  for (const b of candidates ?? []) {
+    const startISO = `${b.session_date}T${String(b.start_time).slice(0, 5)}:00`;
+    const startMs = new Date(startISO).getTime();
+    const hoursUntil = (startMs - now) / (1000 * 60 * 60);
+    if (hoursUntil < REMINDER_WINDOW_MIN_HOURS || hoursUntil > REMINDER_WINDOW_MAX_HOURS) continue;
+
+    try {
+      const {
+        data: { user },
+      } = await supabaseAdmin.auth.admin.getUserById(b.user_id);
+      const customerEmail = user?.email ?? undefined;
+
+      const intakePayload = await fetchLatestIntake(supabaseAdmin, b.user_id);
+      const html = buildBookingSummaryHtml({
+        heading: "תזכורת: הצילומים שלך היום ⏰",
+        intro:
+          "רק תזכורת חמה — הצילומים שלך בסטודיו Sweetbaby מתקיימים בעוד כ-12 שעות. למטה סיכום ההזמנה ופרטי ההגעה, שיהיה קל להתארגן.",
+        booking: {
+          id: b.id,
+          contact_name: b.contact_name,
+          session_date: b.session_date,
+          start_time: b.start_time,
+          end_time: b.end_time,
+          price: b.price,
+          deposit_amount: b.deposit_amount,
+          balance_amount: b.balance_amount,
+          notes: b.notes,
+          reserved_items: (b.reserved_items as string[] | null) ?? [],
+        },
+        intakePayload,
+      });
+
+      const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+      await sendStudioAndCustomer({
+        customerEmail,
+        subject: `תזכורת לצילומים היום #${b.id.slice(0, 8)} · Sweetbaby`,
+        html,
+      });
+
+      await supabaseAdmin.from("bookings").update({ reminder_sent_at: new Date().toISOString() }).eq("id", b.id);
+      sent += 1;
+    } catch (e) {
+      console.error("[SWEETBABY] reminder send failed for booking", b.id, e);
+    }
+  }
+
+  return { checked: (candidates ?? []).length, sent };
+}
