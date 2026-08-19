@@ -437,7 +437,7 @@ function StudioRentalPage() {
           images={studioGallery.images}
 
           title="השראה מהסטודיו"
-          subtitle="השכרת סטודיו ככה החלל נראה בפועל — תוכלי לקבל את אותה אווירה בצילומים שלך."
+          subtitle="השכרת סטודיו — כך החלל נראה בפועל — תוכלי לקבל את אותה אווירה בצילומים שלך."
         />
       </section>
 
