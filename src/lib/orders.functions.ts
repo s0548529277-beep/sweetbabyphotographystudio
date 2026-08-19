@@ -248,30 +248,11 @@ export const placeOrder = createServerFn({ method: "POST" })
       console.error("[SWEETBABY] confirmation email failed", e);
     }
 
-    // Add the props pickup to the studio's Google Calendar. Marked
-    // "transparent" so it shows as free time and never blocks studio-rental
-    // availability, and the customer gets a calendar invitation.
-    try {
-      const { createGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
-      await createGoogleCalendarEvent({
-        summary: `איסוף אביזרים · ${data.contact_name}`,
-        description: [
-          `טלפון: ${data.contact_phone}`,
-          `איסוף: ${data.session_date} ${pickupTime} · החזרה: ${endDate} ${returnTime}`,
-          `סה״כ: ₪${total}`,
-          data.camera_model ? `מצלמה: ${data.camera_model}` : null,
-          `אביזרים: ${orderLines.map((l) => `${l.item_sku} ${l.item_name} ×${l.quantity}`).join(", ")}`,
-          data.notes ? `הערות: ${data.notes}` : null,
-        ].filter(Boolean).join("\n"),
-        startISO: `${startDate}T${pickupTime}:00`,
-        endISO: `${startDate}T${String(Math.min(23, Number(pickupTime.slice(0, 2)) + 1)).padStart(2, "0")}:${pickupTime.slice(3, 5)}:00`,
-        location: "תלמוד ירושלמי 24, בית שמש",
-        attendees: customerEmail ? [customerEmail] : [],
-        transparent: true,
-      });
-    } catch (e) {
-      console.error("[SWEETBABY] props calendar sync failed", e);
-    }
+    // NOTE: the Google Calendar event (and its automatic invite email to the
+    // customer) is intentionally NOT created here. It's created only after
+    // payment is confirmed — see confirmOrderDeposit below — mirroring the
+    // studio-booking flow, so the calendar invite never arrives before (or
+    // instead of) the actual paid confirmation.
 
     return { id: order.id, total, deposit: depositAmount, balance: balanceAmount };
   });
@@ -330,7 +311,7 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
     const { data: o, error } = await supabase
       .from("orders")
       .select(
-        "id, user_id, session_date, return_date, pickup_at, return_at, total, notes, contact_name, deposit_receipt_url, balance_method, confirmation_sent_at",
+        "id, user_id, session_date, return_date, pickup_at, return_at, total, notes, contact_name, contact_phone, camera_model, deposit_receipt_url, balance_method, confirmation_sent_at, google_event_id",
       )
       .eq("id", data.id)
       .maybeSingle();
@@ -400,6 +381,56 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
       await supabaseAdmin.from("orders").update({ confirmation_sent_at: new Date().toISOString() }).eq("id", o.id);
     } catch (e) {
       console.error("[SWEETBABY] order confirmation email failed", e);
+    }
+
+    // Add the props pickup to the studio's Google Calendar — only now, after
+    // payment is confirmed, so the (unstyled) Google invite email never
+    // arrives before or instead of our own branded confirmation. Marked
+    // "transparent" so it shows as free time and never blocks studio-rental
+    // availability.
+    if (!o.google_event_id) {
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { createGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
+        const { data: itemRows2 } = await supabase
+          .from("order_items")
+          .select("item_name, item_sku, quantity")
+          .eq("order_id", o.id);
+        const pickupTime = o.pickup_at
+          ? new Date(o.pickup_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
+          : "09:00";
+        const returnTime = o.return_at
+          ? new Date(o.return_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
+          : "18:00";
+        const event = await createGoogleCalendarEvent({
+          summary: `איסוף אביזרים · ${o.contact_name ?? ""}`,
+          description: [
+            `טלפון: ${o.contact_phone ?? ""}`,
+            `איסוף: ${o.session_date} ${pickupTime} · החזרה: ${o.return_date} ${returnTime}`,
+            `סה״כ: ₪${o.total}`,
+            o.camera_model ? `מצלמה: ${o.camera_model}` : null,
+            (itemRows2 ?? []).length
+              ? `אביזרים: ${(itemRows2 ?? []).map((l: any) => `${l.item_sku} ${l.item_name} ×${l.quantity}`).join(", ")}`
+              : null,
+            o.notes ? `הערות: ${o.notes}` : null,
+          ]
+            .filter(Boolean)
+            .join("\n"),
+          startISO: `${o.pickup_at ?? `${o.session_date}T${pickupTime}:00`}`,
+          endISO: `${o.pickup_at ?? `${o.session_date}T${pickupTime}:00`}`.replace(
+            /T\d{2}:/,
+            `T${String(Math.min(23, Number(pickupTime.slice(0, 2)) + 1)).padStart(2, "0")}:`,
+          ),
+          location: "תלמוד ירושלמי 24, בית שמש",
+          attendees: customerEmail ? [customerEmail] : [],
+          transparent: true,
+        });
+        if (event) {
+          await supabaseAdmin.from("orders").update({ google_event_id: event.id }).eq("id", o.id);
+        }
+      } catch (e) {
+        console.error("[SWEETBABY] props calendar sync failed", e);
+      }
     }
 
     return { ok: true, already: false };
