@@ -167,7 +167,9 @@ function Deposit() {
                 <div className="mx-auto h-14 w-14 rounded-full bg-forest/10 flex items-center justify-center mb-4">
                   <Check className="h-7 w-7 text-forest" />
                 </div>
-                <h2 className="font-display text-3xl text-primary mb-2">ההזמנה אושרה ונשלחה במייל ✓</h2>
+                <h2 className="font-display text-3xl text-primary mb-2">
+                  {isStudio ? "אישור הזמנה — השכרת סטודיו ✓" : "אישור הזמנה — השכרת אביזרים ✓"}
+                </h2>
                 {timeText && (
                   <p className="text-primary font-medium mb-2">
                     {isStudio ? "השעות שלך הן " : "שעת האיסוף שלך: "}
