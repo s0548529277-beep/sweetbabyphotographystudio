@@ -125,15 +125,22 @@ export async function sendGmail(message: GmailMessage): Promise<boolean> {
   }
 }
 
-/** Sends the same message (optionally with attachments) to the studio inbox plus (optionally) the customer. */
+/** Sends the same message (optionally with attachments) to the studio inbox plus (optionally) the customer — deduped case-insensitively so a test order using the studio's own address (in any casing) never sends the same email twice to one inbox. */
 export async function sendStudioAndCustomer(opts: {
   customerEmail?: string | null;
   subject: string;
   html: string;
   attachments?: GmailAttachment[];
 }): Promise<void> {
-  const recipients = ["s0548529277@gmail.com"];
-  if (opts.customerEmail && !recipients.includes(opts.customerEmail)) recipients.push(opts.customerEmail);
+  const seen = new Set<string>();
+  const recipients: string[] = [];
+  for (const raw of ["s0548529277@gmail.com", opts.customerEmail]) {
+    if (!raw) continue;
+    const normalized = raw.trim().toLowerCase();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    recipients.push(raw.trim());
+  }
   for (const to of recipients) {
     await sendGmail({ to, subject: opts.subject, html: opts.html, attachments: opts.attachments });
   }
