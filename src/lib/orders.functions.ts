@@ -405,6 +405,108 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
     return { ok: true, already: false };
   });
 
+// ---------- 12-hours-before-pickup reminder email (props/equipment orders) ----------
+
+const ORDER_REMINDER_WINDOW_MIN_HOURS = 11.5;
+const ORDER_REMINDER_WINDOW_MAX_HOURS = 12.5;
+
+/**
+ * Scans for confirmed props/equipment orders whose pickup is in ~12 hours and
+ * haven't had a reminder sent yet, and emails the customer a reminder (order
+ * summary + arrival details). Mirrors `runDueBookingReminders` for studio
+ * bookings. Meant to be called periodically by /api/send-booking-reminders.
+ * Not wrapped in createServerFn/requireSupabaseAuth on purpose: this runs as
+ * a trusted service job, not on behalf of a logged-in user.
+ */
+export async function runDueOrderReminders(): Promise<{ checked: number; sent: number }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  const today = new Date();
+  const windowEnd = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  const { data: candidates, error } = await supabaseAdmin
+    .from("orders")
+    .select(
+      "id, user_id, session_date, return_date, pickup_at, return_at, total, notes, contact_name, balance_method, confirmation_sent_at, reminder_sent_at, status",
+    )
+    .is("reminder_sent_at", null)
+    .neq("status", "cancelled")
+    .not("confirmation_sent_at", "is", null) // only actually-confirmed (paid) orders
+    .gte("session_date", today.toISOString().slice(0, 10))
+    .lte("session_date", windowEnd);
+
+  if (error) {
+    console.error("[SWEETBABY] order reminder scan failed", error);
+    return { checked: 0, sent: 0 };
+  }
+
+  const now = Date.now();
+  let sent = 0;
+
+  for (const o of candidates ?? []) {
+    if (!o.pickup_at) continue;
+    const hoursUntil = (new Date(o.pickup_at).getTime() - now) / (1000 * 60 * 60);
+    if (hoursUntil < ORDER_REMINDER_WINDOW_MIN_HOURS || hoursUntil > ORDER_REMINDER_WINDOW_MAX_HOURS) continue;
+
+    try {
+      const {
+        data: { user },
+      } = await supabaseAdmin.auth.admin.getUserById(o.user_id);
+      const customerEmail = user?.email ?? undefined;
+
+      const { data: itemRows } = await supabaseAdmin
+        .from("order_items")
+        .select("item_name, item_sku, quantity, price")
+        .eq("order_id", o.id);
+      const lines: SummaryOrderLine[] = (itemRows ?? []).map((l: any) => ({
+        item_name: l.item_name,
+        item_sku: l.item_sku,
+        quantity: l.quantity,
+        price: Number(l.price) * Number(l.quantity),
+      }));
+
+      const pickupTime = o.pickup_at
+        ? new Date(o.pickup_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
+        : null;
+      const returnTime = o.return_at
+        ? new Date(o.return_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
+        : null;
+
+      const html = buildPropsOrderSummaryHtml({
+        heading: "תזכורת: איסוף האביזרים היום ⏰",
+        intro:
+          "רק תזכורת חמה — איסוף האביזרים ששכרת מסטודיו Sweetbaby מתוכנן בעוד כ-12 שעות. למטה סיכום ההזמנה ופרטי ההגעה, שיהיה קל להתארגן.",
+        order: {
+          id: o.id,
+          contact_name: o.contact_name,
+          session_date: o.session_date,
+          pickup_time: pickupTime,
+          return_date: o.return_date,
+          return_time: returnTime,
+          total: o.total,
+          notes: o.notes,
+          balance_method: o.balance_method,
+          lines,
+        },
+      });
+
+      const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+      await sendStudioAndCustomer({
+        customerEmail,
+        subject: `תזכורת לאיסוף היום #${o.id.slice(0, 8)} · Sweetbaby`,
+        html,
+      });
+
+      await supabaseAdmin.from("orders").update({ reminder_sent_at: new Date().toISOString() }).eq("id", o.id);
+      sent += 1;
+    } catch (e) {
+      console.error("[SWEETBABY] order reminder send failed for order", o.id, e);
+    }
+  }
+
+  return { checked: (candidates ?? []).length, sent };
+}
+
 // Public availability check server fn (client uses it to disable unavailable items)
 const availSchema = z.object({
   skus: z.array(z.string().min(1)).min(1).max(600),

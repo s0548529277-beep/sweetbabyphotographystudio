@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 import { runDueBookingReminders } from "@/lib/bookings.functions";
+import { runDueOrderReminders } from "@/lib/orders.functions";
 
 // Called periodically (every 15-30 min recommended) by an external
 // scheduler — e.g. a free cron service like cron-job.org, or Supabase
-// pg_cron + pg_net — to send the "session starts in ~12 hours" reminder
-// email to customers with a confirmed booking.
+// pg_cron + pg_net — to send the "starts in ~12 hours" reminder email to
+// customers with a confirmed studio booking OR a confirmed props/equipment
+// order (pickup).
 //
 // Protected by a shared-secret query param so it can't be triggered by
 // randoms: set REMINDER_CRON_SECRET in the project's environment variables,
@@ -26,8 +28,8 @@ export const Route = createFileRoute("/api/send-booking-reminders")({
           });
         }
 
-        const result = await runDueBookingReminders();
-        return new Response(JSON.stringify(result), {
+        const [bookings, orders] = await Promise.all([runDueBookingReminders(), runDueOrderReminders()]);
+        return new Response(JSON.stringify({ bookings, orders }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         });

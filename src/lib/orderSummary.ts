@@ -49,7 +49,8 @@ export function buildArrivalHtml(): string {
   return `<h3 style="color:#2d3d2b;margin-top:24px">פרטי הגעה</h3>
     <div style="background:#faf7f4;border-radius:8px;padding:12px 16px;white-space:pre-line;line-height:1.6">${escapeHtml(
       ARRIVAL_TEXT_HE,
-    )}</div>`;
+    )}</div>
+    <p style="color:#6b8a63;font-size:13px;margin-top:8px">נא לתאם טלפונית לפני ההגעה · 054-8529277</p>`;
 }
 
 // ---------- Studio-booking summary ----------
