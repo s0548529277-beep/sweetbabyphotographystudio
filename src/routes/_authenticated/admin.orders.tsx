@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { adminSetStatus } from "@/lib/admin-orders.functions";
+import { heError } from "@/lib/he-errors";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -96,14 +99,15 @@ function OrdersAdmin() {
 
   const rows = (q.data ?? []).filter((r) => tab === "all" || r.kind === tab);
 
+  const doSetStatus = useServerFn(adminSetStatus);
   const setStatus = async (row: Row, status: string) => {
-    const table = row.kind === "order" ? "orders" : "bookings";
-    const { error } = await supabase.from(table as any).update({ status } as any).eq("id", row.id);
-    if (error) toast.error(error.message);
-    else {
+    try {
+      await doSetStatus({ data: { kind: row.kind, id: row.id, status } });
       toast.success("סטטוס עודכן");
       qc.invalidateQueries({ queryKey: ["admin-all-orders"] });
       qc.invalidateQueries({ queryKey: ["calendar-entries"] });
+    } catch (e) {
+      toast.error(heError(e, "עדכון הסטטוס נכשל"));
     }
   };
 

@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { listClientEmails, setClientPassword, updateClientProfile, setCustomerLoyalty } from "@/lib/admin-clients.functions";
+import { listClientEmails, setClientPassword, updateClientProfile, setCustomerLoyalty, grantManualCredit } from "@/lib/admin-clients.functions";
 import { Camera, Package, Pencil, Gift } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/clients")({
@@ -171,6 +171,7 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
   const saveProfile = useServerFn(updateClientProfile);
   const savePassword = useServerFn(setClientPassword);
   const saveLoyalty = useServerFn(setCustomerLoyalty);
+  const grantCredit = useServerFn(grantManualCredit);
 
   const loyalty = useQuery({
     queryKey: ["admin-client-loyalty", client.id],
@@ -180,6 +181,8 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
     },
   });
   const [lf, setLf] = useState({ cashback_percent: "0", cashback_expires_at: "" });
+  const [manualAmount, setManualAmount] = useState("");
+  const [grantBusy, setGrantBusy] = useState(false);
   useEffect(() => {
     if (loyalty.data) {
       setLf({
@@ -211,6 +214,23 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
       toast.error(heError(e, "העדכון נכשל"));
     } finally {
       setBusy(false);
+    }
+  };
+
+  /** Immediate credit adjustment — independent of the profile/cashback-% form above, applied instantly on click (not on "שמירת שינויים"). */
+  const handleGrant = async (sign: 1 | -1) => {
+    const amount = Math.abs(Number(manualAmount));
+    if (!amount) return toast.error("להזין סכום");
+    setGrantBusy(true);
+    try {
+      const res = await grantCredit({ data: { user_id: client.id, amount: sign * amount } });
+      toast.success(sign === 1 ? `נוספו ₪${amount} ליתרה` : `נוכו ₪${amount} מהיתרה`);
+      setManualAmount("");
+      loyalty.refetch();
+    } catch (e) {
+      toast.error(heError(e, "הפעולה נכשלה"));
+    } finally {
+      setGrantBusy(false);
     }
   };
 
@@ -257,6 +277,30 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
               ₪{Number(loyalty.data?.credit_balance ?? 0).toFixed(0)}
             </div>
           </div>
+        </div>
+
+        <div className="pt-2 border-t border-border">
+          <Label className="text-xs text-muted-foreground">הענקת קרדיט ידנית (מיידי, לא תלוי תשלום)</Label>
+          <div className="flex items-center gap-2 mt-1">
+            <Input
+              type="number"
+              min={0}
+              dir="ltr"
+              placeholder="₪ סכום"
+              value={manualAmount}
+              onChange={(e) => setManualAmount(e.target.value)}
+              className="max-w-[140px]"
+            />
+            <Button type="button" size="sm" variant="secondary" disabled={grantBusy} onClick={() => handleGrant(1)}>
+              {grantBusy ? "מבצע…" : "+ הוספה"}
+            </Button>
+            <Button type="button" size="sm" variant="ghost" disabled={grantBusy} onClick={() => handleGrant(-1)}>
+              − ניכוי
+            </Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            פועל מיד עם הלחיצה, בנפרד מ"שמירת שינויים" למעלה. לא קשור לאחוז ה-Cashback.
+          </p>
         </div>
       </div>
 

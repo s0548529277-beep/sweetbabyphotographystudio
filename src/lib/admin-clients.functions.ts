@@ -94,3 +94,33 @@ export const setCustomerLoyalty = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/**
+ * Immediately grants (or removes, if amount is negative) a one-off manual
+ * credit adjustment to a customer's balance — independent of the ongoing
+ * cashback-% program, e.g. as a gesture, correction, or refund substitute.
+ * Applied atomically via adjust_loyalty_credit (upsert + row lock), so it
+ * can never race with a concurrent cashback award/deduction from a payment
+ * confirming at the same moment, and it works even for a customer who has
+ * no customer_loyalty row yet.
+ */
+export const grantManualCredit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        user_id: z.string().uuid(),
+        amount: z.number().refine((n) => n !== 0, "סכום לא יכול להיות 0"),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: newBalance, error } = await supabaseAdmin.rpc("adjust_loyalty_credit", {
+      p_user_id: data.user_id,
+      p_delta: data.amount,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true, credit_balance: newBalance };
+  });

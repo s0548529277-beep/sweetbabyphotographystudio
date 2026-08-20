@@ -160,6 +160,7 @@ export const placeOrder = createServerFn({ method: "POST" })
         deposit_amount: depositAmount,
         balance_amount: balanceAmount,
         deposit_status: "pending",
+        credit_used: creditUsed,
         terms_accepted_at: new Date().toISOString(),
       })
       .select("id")
