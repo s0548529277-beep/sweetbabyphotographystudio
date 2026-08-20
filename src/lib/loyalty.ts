@@ -16,17 +16,19 @@ export async function awardCashback(supabaseAdmin: any, userId: string, amount: 
   try {
     const { data: loyalty } = await supabaseAdmin
       .from("customer_loyalty")
-      .select("cashback_percent, cashback_expires_at, credit_balance")
+      .select("cashback_percent, cashback_expires_at")
       .eq("user_id", userId)
       .maybeSingle();
     if (!loyalty || !loyalty.cashback_percent) return;
     if (loyalty.cashback_expires_at && new Date(loyalty.cashback_expires_at) < new Date()) return;
     const earned = Math.round(amount * loyalty.cashback_percent) / 100;
     if (earned <= 0) return;
-    await supabaseAdmin
-      .from("customer_loyalty")
-      .update({ credit_balance: Number(loyalty.credit_balance) + earned, updated_at: new Date().toISOString() })
-      .eq("user_id", userId);
+    // Atomic +earned on credit_balance (single UPDATE, row-locked) instead
+    // of read-then-write, so a concurrent award/deduction for this same
+    // customer can never clobber this one. See migration
+    // 20260820090000_atomic_loyalty_credit_adjust.sql.
+    const { error } = await supabaseAdmin.rpc("adjust_loyalty_credit", { p_user_id: userId, p_delta: earned });
+    if (error) throw error;
   } catch (e) {
     console.error("[SWEETBABY] cashback award failed", e);
   }
@@ -65,17 +67,10 @@ export async function previewCreditUse(
 export async function deductCredit(supabaseAdmin: any, userId: string, amount: number): Promise<void> {
   if (!amount || amount <= 0) return;
   try {
-    const { data: loyalty } = await supabaseAdmin
-      .from("customer_loyalty")
-      .select("credit_balance")
-      .eq("user_id", userId)
-      .maybeSingle();
-    const balance = Number(loyalty?.credit_balance ?? 0);
-    const next = Math.max(0, balance - amount);
-    await supabaseAdmin
-      .from("customer_loyalty")
-      .update({ credit_balance: next, updated_at: new Date().toISOString() })
-      .eq("user_id", userId);
+    // Atomic -amount on credit_balance — see awardCashback above for why
+    // this is a single RPC call instead of a read-then-write pair.
+    const { error } = await supabaseAdmin.rpc("adjust_loyalty_credit", { p_user_id: userId, p_delta: -amount });
+    if (error) throw error;
   } catch (e) {
     console.error("[SWEETBABY] credit deduction failed", e);
   }
