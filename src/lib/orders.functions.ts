@@ -21,6 +21,7 @@ const inputSchema = z.object({
   contact_phone: z.string().min(5).max(40),
   camera_model: z.string().min(1).max(120).optional().nullable(),
   notes: z.string().max(1000).optional().nullable(),
+  coupon: z.string().max(40).optional().nullable(),
   terms_accepted: z.literal(true),
 });
 
@@ -74,6 +75,26 @@ export const placeOrder = createServerFn({ method: "POST" })
 
     if (total < 50) throw new Error("מינימום הזמנה 50 ש״ח");
 
+    // Optional discount code (e.g. BYBY10 / SWEETBABY10 → 10%), same coupons
+    // table used by studio-rental checkout.
+    let couponNote: string | null = null;
+    const couponCode = (data.coupon ?? "").trim().toUpperCase();
+    if (couponCode) {
+      const { data: c } = await supabase
+        .from("coupons")
+        .select("code, discount_percent, discount_amount, active, expires_at")
+        .eq("code", couponCode)
+        .maybeSingle();
+      const valid = c && c.active && (!c.expires_at || new Date(c.expires_at) > new Date());
+      if (!valid) throw new Error("קוד הקופון אינו תקף");
+      const off = Math.min(
+        total,
+        Math.round((total * (Number(c!.discount_percent) || 0)) / 100 + (Number(c!.discount_amount) || 0)),
+      );
+      total = Math.max(0, total - off);
+      couponNote = `קוד קופון ${c!.code} · הנחה ₪${off}`;
+    }
+
     // Date-range availability check: any existing reservation whose range
     // overlaps [startDate, endDate] counts as taken for that item.
     const { supabaseAdmin: adminForCount } = await import("@/integrations/supabase/client.server");
@@ -118,6 +139,7 @@ export const placeOrder = createServerFn({ method: "POST" })
           data.start_time && data.end_time
             ? `שעות השכרה: ${data.start_time}–${data.end_time} · ${dayMultiplier} יח׳ של 24ש (מכפיל x${dayMultiplier})`
             : null,
+          couponNote,
           data.notes,
         ].filter(Boolean).join("\n") || null,
         deposit_amount: depositAmount,
