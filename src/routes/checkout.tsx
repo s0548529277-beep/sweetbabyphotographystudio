@@ -29,7 +29,7 @@ export const Route = createFileRoute("/checkout")({
 });
 
 function Checkout() {
-  const { lines, subtotal, clear } = useCart();
+  const { lines, subtotal, coupon, clear } = useCart();
   const { user } = useAuth();
   const nav = useNavigate();
   const place = useServerFn(placeOrder);
@@ -89,6 +89,10 @@ function Checkout() {
     return Math.max(1, Math.ceil((e - s) / (1000 * 60 * 60 * 24)));
   })();
   const chargedTotal = subtotal * dayMultiplier;
+  const discount = coupon
+    ? Math.min(chargedTotal, (chargedTotal * (coupon.discount_percent || 0)) / 100 + (coupon.discount_amount || 0))
+    : 0;
+  const finalTotal = Math.max(0, chargedTotal - discount);
 
   const disabled = lines.length === 0 || subtotal < 50;
 
@@ -150,6 +154,7 @@ function Checkout() {
           return_date: form.return_date,
           end_time: form.end_time || undefined,
           notes: form.notes,
+          coupon: coupon?.code ?? null,
           terms_accepted: true as const,
         },
       });
@@ -276,9 +281,15 @@ function Checkout() {
               ))}
             </div>
             <div className="h-px bg-primary-foreground/20 my-4" />
+            {coupon && (
+              <div className="flex justify-between text-sm text-blush mb-2">
+                <span>הנחה ({coupon.code})</span>
+                <span>-₪{discount.toFixed(0)}</span>
+              </div>
+            )}
             <div className="flex justify-between items-baseline">
               <span className="text-primary-foreground/70">סה״כ</span>
-              <span className="font-display text-3xl text-blush">₪{chargedTotal.toFixed(0)}</span>
+              <span className="font-display text-3xl text-blush">₪{finalTotal.toFixed(0)}</span>
             </div>
             {dayMultiplier > 1 && (
               <div className="text-[11px] text-blush/90 mt-1">מבוסס על ₪{subtotal.toFixed(0)} × {dayMultiplier} יח׳ של 24 שעות</div>
