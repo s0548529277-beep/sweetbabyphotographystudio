@@ -8,25 +8,31 @@
 -- result, and the second write clobbers the first — one of the two credits
 -- silently vanishes.
 --
--- This function does the read-modify-write as a single atomic UPDATE
+-- This function does the read-modify-write as a single atomic UPSERT
 -- statement inside one round trip. Postgres takes a row lock for the
--- duration of the UPDATE, so a second concurrent call for the same user_id
--- waits for the first to commit and then applies on top of the already
--- up-to-date balance — no lost update is possible.
+-- duration of the statement, so a second concurrent call for the same
+-- user_id waits for the first to commit and then applies on top of the
+-- already up-to-date balance — no lost update is possible.
 --
--- `delta` is signed: positive to award cashback, negative to deduct credit.
--- The balance is clamped at 0 so a deduction can never drive it negative
--- (mirrors the previous Math.max(0, ...) in application code).
+-- Upsert (not plain UPDATE) so this also works for a customer who has no
+-- customer_loyalty row yet — e.g. a manual credit grant to someone who was
+-- never enrolled in the cashback-% program. INSERT with cashback_percent=0
+-- means "no ongoing cashback %, just this one-off credit".
+--
+-- `delta` is signed: positive to award cashback / grant credit, negative to
+-- deduct. The balance is clamped at 0 so a deduction can never drive it
+-- negative (mirrors the previous Math.max(0, ...) in application code).
 create or replace function public.adjust_loyalty_credit(p_user_id uuid, p_delta numeric)
 returns numeric
 language sql
 security definer
 set search_path = public
 as $$
-  update public.customer_loyalty
-  set credit_balance = greatest(0, credit_balance + p_delta),
-      updated_at = now()
-  where user_id = p_user_id
+  insert into public.customer_loyalty (user_id, cashback_percent, credit_balance, updated_at)
+  values (p_user_id, 0, greatest(0, p_delta), now())
+  on conflict (user_id) do update
+    set credit_balance = greatest(0, public.customer_loyalty.credit_balance + p_delta),
+        updated_at = now()
   returning credit_balance;
 $$;
 

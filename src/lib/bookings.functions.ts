@@ -178,6 +178,7 @@ export const placeBooking = createServerFn({ method: "POST" })
         balance_amount: Math.max(0, price - deposit),
         status: "pending",
         deposit_status: "pending",
+        credit_used: creditUsed,
         contact_name: data.contact_name,
         contact_phone: data.contact_phone,
         notes: [
@@ -323,7 +324,7 @@ export const cancelBooking = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: b, error } = await supabase
       .from("bookings")
-      .select("id, user_id, status, google_event_id")
+      .select("id, user_id, status, google_event_id, credit_used")
       .eq("id", data.id)
       .maybeSingle();
     if (error || !b) throw new Error("השריון לא נמצא");
@@ -340,6 +341,17 @@ export const cancelBooking = createServerFn({ method: "POST" })
     const { error: upErr } = await supabase.from("bookings").update({ status: "cancelled" }).eq("id", data.id);
     if (upErr) throw new Error(upErr.message);
 
+    // Refund any loyalty credit that was applied at checkout — atomic +delta,
+    // so it can't race with a concurrent award/deduction for this customer.
+    const creditUsed = Number((b as { credit_used?: number }).credit_used ?? 0);
+    if (creditUsed > 0) {
+      try {
+        await supabaseAdmin.rpc("adjust_loyalty_credit", { p_user_id: userId, p_delta: creditUsed });
+      } catch (e) {
+        console.error("[SWEETBABY] credit refund on booking cancel failed", e);
+      }
+    }
+
     if ((b as { google_event_id?: string }).google_event_id) {
       try {
         await deleteGoogleEvent((b as { google_event_id: string }).google_event_id);
@@ -355,7 +367,7 @@ export const cancelOrder = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { data: o, error } = await supabase.from("orders").select("id, user_id, status").eq("id", data.id).maybeSingle();
+    const { data: o, error } = await supabase.from("orders").select("id, user_id, status, credit_used").eq("id", data.id).maybeSingle();
     if (error || !o) throw new Error("ההזמנה לא נמצאה");
     if (o.user_id !== userId) throw new Error("אין הרשאה לבטל הזמנה זו");
     if (o.status === "cancelled") return { ok: true };
@@ -370,6 +382,18 @@ export const cancelOrder = createServerFn({ method: "POST" })
     await supabaseAdmin.from("item_availability").delete().eq("order_id", data.id);
     const { error: upErr } = await supabaseAdmin.from("orders").update({ status: "cancelled" }).eq("id", data.id);
     if (upErr) throw new Error(upErr.message);
+
+    // Refund any loyalty credit that was applied at checkout — atomic +delta,
+    // so it can't race with a concurrent award/deduction for this customer.
+    const creditUsed = Number((o as { credit_used?: number }).credit_used ?? 0);
+    if (creditUsed > 0) {
+      try {
+        await supabaseAdmin.rpc("adjust_loyalty_credit", { p_user_id: userId, p_delta: creditUsed });
+      } catch (e) {
+        console.error("[SWEETBABY] credit refund on order cancel failed", e);
+      }
+    }
+
     return { ok: true };
   });
 
