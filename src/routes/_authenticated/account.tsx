@@ -103,6 +103,15 @@ function Account() {
     enabled: !!user,
   });
 
+  const loyaltyQ = useQuery({
+    queryKey: ["my-loyalty", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("customer_loyalty").select("credit_balance").eq("user_id", user!.id).maybeSingle();
+      return data;
+    },
+    enabled: !!user,
+  });
+
   const save = async () => {
     setBusy(true);
     const { error } = await supabase.from("profiles").upsert({ id: user!.id, ...profile });
@@ -129,6 +138,12 @@ function Account() {
                 <div className="text-xs text-muted-foreground">{user?.email}</div>
               </div>
             </div>
+            {Number(loyaltyQ.data?.credit_balance ?? 0) > 0 && (
+              <div className="mb-4 rounded-2xl bg-peach/30 border border-peach px-4 py-3">
+                <div className="text-xs text-muted-foreground">קרדיט זמין להזמנות הבאות</div>
+                <div className="font-display text-2xl text-primary">₪{Number(loyaltyQ.data!.credit_balance).toFixed(0)}</div>
+              </div>
+            )}
             <div className="space-y-3">
               <div><Label>שם מלא</Label><Input value={profile.full_name} onChange={(e) => setProfile({ ...profile, full_name: e.target.value })} className="mt-1" /></div>
               <div><Label>טלפון</Label><Input value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} className="mt-1" dir="ltr" /></div>

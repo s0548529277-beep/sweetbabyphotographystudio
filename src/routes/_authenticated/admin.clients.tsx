@@ -5,11 +5,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
+import { Label } from "@/components/ui/label";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { listClientEmails, setClientPassword, updateClientProfile } from "@/lib/admin-clients.functions";
-import { Camera, Package, Pencil } from "lucide-react";
+import { listClientEmails, setClientPassword, updateClientProfile, setCustomerLoyalty } from "@/lib/admin-clients.functions";
+import { Camera, Package, Pencil, Gift } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/clients")({
   component: ClientsAdmin,
@@ -169,16 +170,42 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
   const [busy, setBusy] = useState(false);
   const saveProfile = useServerFn(updateClientProfile);
   const savePassword = useServerFn(setClientPassword);
+  const saveLoyalty = useServerFn(setCustomerLoyalty);
+
+  const loyalty = useQuery({
+    queryKey: ["admin-client-loyalty", client.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("customer_loyalty").select("*").eq("user_id", client.id).maybeSingle();
+      return data;
+    },
+  });
+  const [lf, setLf] = useState({ cashback_percent: "0", cashback_expires_at: "" });
+  useEffect(() => {
+    if (loyalty.data) {
+      setLf({
+        cashback_percent: String(loyalty.data.cashback_percent ?? 0),
+        cashback_expires_at: loyalty.data.cashback_expires_at ? String(loyalty.data.cashback_expires_at).slice(0, 10) : "",
+      });
+    }
+  }, [loyalty.data]);
 
   const submit = async () => {
     setBusy(true);
     try {
       await saveProfile({ data: { user_id: client.id, ...f } });
+      await saveLoyalty({
+        data: {
+          user_id: client.id,
+          cashback_percent: Math.max(0, Math.min(100, Math.floor(Number(lf.cashback_percent) || 0))),
+          cashback_expires_at: lf.cashback_expires_at || null,
+        },
+      });
       if (pw.trim()) {
         await savePassword({ data: { user_id: client.id, password: pw.trim().length >= 6 ? pw.trim() : pw.trim() + ".Sb1" } });
         setPw("");
       }
       toast.success("פרטי הלקוח עודכנו");
+      loyalty.refetch();
       onSaved();
     } catch (e) {
       toast.error(heError(e, "העדכון נכשל"));
@@ -199,6 +226,40 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
         <Input placeholder="הערות" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />
         <Input placeholder="סיסמה חדשה / קוד סודי" dir="ltr" value={pw} onChange={(e) => setPw(e.target.value)} />
       </div>
+
+      <div className="rounded-xl bg-card p-3 space-y-2">
+        <div className="flex items-center gap-1.5 text-sm font-medium text-forest">
+          <Gift className="h-4 w-4" /> צבירת קרדיט (Cashback)
+        </div>
+        <div className="grid sm:grid-cols-3 gap-3">
+          <div>
+            <Label className="text-xs text-muted-foreground">אחוז צבירה (%)</Label>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              dir="ltr"
+              value={lf.cashback_percent}
+              onChange={(e) => setLf({ ...lf, cashback_percent: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">תוקף הצבירה (ריק = ללא הגבלה)</Label>
+            <Input
+              type="date"
+              value={lf.cashback_expires_at}
+              onChange={(e) => setLf({ ...lf, cashback_expires_at: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">יתרת קרדיט נוכחית</Label>
+            <div className="h-10 flex items-center font-display text-lg text-peach-deep">
+              ₪{Number(loyalty.data?.credit_balance ?? 0).toFixed(0)}
+            </div>
+          </div>
+        </div>
+      </div>
+
       <Button onClick={submit} disabled={busy} className="rounded-full">{busy ? "שומר…" : "שמירת שינויים"}</Button>
     </div>
   );

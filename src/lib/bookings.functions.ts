@@ -71,6 +71,7 @@ const inputSchema = z.object({
   reserved_items: z.array(z.string().min(1).max(24)).max(20).optional(),
   guidance: z.string().max(60).optional().nullable(),
   coupon: z.string().max(40).optional().nullable(),
+  use_credit: z.number().nonnegative().max(100000).optional(),
 
   terms_accepted: z.literal(true),
 });
@@ -108,6 +109,19 @@ export const placeBooking = createServerFn({ method: "POST" })
       );
       price = Math.max(0, price - off);
       couponNote = `קוד קופון ${c!.code} · הנחה ₪${off}`;
+    }
+
+    // Optional store credit from the customer's cashback loyalty balance.
+    let creditUsed = 0;
+    let creditNote: string | null = null;
+    if (data.use_credit && data.use_credit > 0) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { previewCreditUse } = await import("@/lib/loyalty");
+      creditUsed = await previewCreditUse(supabaseAdmin, userId, data.use_credit, price);
+      if (creditUsed > 0) {
+        price = Math.max(0, price - creditUsed);
+        creditNote = `קרדיט לקוחה · ₪${creditUsed}`;
+      }
     }
     const isMorning = isMorningPackage(data.slots, data.start_time);
 
@@ -169,6 +183,7 @@ export const placeBooking = createServerFn({ method: "POST" })
         notes: [
           guidanceFee > 0 ? `חבילת הדרכה: ${GUIDANCE_LABELS[guidanceKey]} (+₪${guidanceFee})` : null,
           couponNote,
+          creditNote,
           data.notes,
         ]
           .filter(Boolean)
@@ -179,6 +194,12 @@ export const placeBooking = createServerFn({ method: "POST" })
       .select("id, price")
       .single();
     if (error || !booking) throw new Error(error?.message ?? "יצירת שריון נכשלה");
+
+    if (creditUsed > 0) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { deductCredit } = await import("@/lib/loyalty");
+      await deductCredit(supabaseAdmin, userId, creditUsed);
+    }
 
     // Lock the reserved props for the session date so the separate props
     // rental catalog can't double-book the exact same items.
@@ -446,6 +467,15 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
       });
       if (event) {
         await supabaseAdmin.from("bookings").update({ google_event_id: event.id }).eq("id", b.id);
+      }
+
+      // Award cashback loyalty credit (if this customer is enrolled) on the
+      // real amount paid, now that payment is actually confirmed.
+      try {
+        const { awardCashback } = await import("@/lib/loyalty");
+        await awardCashback(supabaseAdmin, userId, Number(b.price));
+      } catch (e) {
+        console.error("[SWEETBABY] cashback award (booking) failed", e);
       }
 
       // This is the actual "you're reserved" confirmation — sent only now,

@@ -22,6 +22,7 @@ const inputSchema = z.object({
   camera_model: z.string().min(1).max(120).optional().nullable(),
   notes: z.string().max(1000).optional().nullable(),
   coupon: z.string().max(40).optional().nullable(),
+  use_credit: z.number().nonnegative().max(100000).optional(),
   terms_accepted: z.literal(true),
 });
 
@@ -95,6 +96,19 @@ export const placeOrder = createServerFn({ method: "POST" })
       couponNote = `קוד קופון ${c!.code} · הנחה ₪${off}`;
     }
 
+    // Optional store credit from the customer's cashback loyalty balance.
+    let creditUsed = 0;
+    let creditNote: string | null = null;
+    if (data.use_credit && data.use_credit > 0) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { previewCreditUse } = await import("@/lib/loyalty");
+      creditUsed = await previewCreditUse(supabaseAdmin, userId, data.use_credit, total);
+      if (creditUsed > 0) {
+        total = Math.max(0, total - creditUsed);
+        creditNote = `קרדיט לקוחה · ₪${creditUsed}`;
+      }
+    }
+
     // Date-range availability check: any existing reservation whose range
     // overlaps [startDate, endDate] counts as taken for that item.
     const { supabaseAdmin: adminForCount } = await import("@/integrations/supabase/client.server");
@@ -140,6 +154,7 @@ export const placeOrder = createServerFn({ method: "POST" })
             ? `שעות השכרה: ${data.start_time}–${data.end_time} · ${dayMultiplier} יח׳ של 24ש (מכפיל x${dayMultiplier})`
             : null,
           couponNote,
+          creditNote,
           data.notes,
         ].filter(Boolean).join("\n") || null,
         deposit_amount: depositAmount,
@@ -150,6 +165,12 @@ export const placeOrder = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (orderErr || !order) throw new Error(orderErr?.message ?? "יצירת הזמנה נכשלה");
+
+    if (creditUsed > 0) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { deductCredit } = await import("@/lib/loyalty");
+      await deductCredit(supabaseAdmin, userId, creditUsed);
+    }
 
     const { error: linesErr } = await supabase.from("order_items").insert(
       orderLines.map((l) => ({
@@ -365,6 +386,15 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const receiptAttachment = await fetchReceiptAttachment(supabaseAdmin, o.deposit_receipt_url as string | null);
+
+      // Award cashback loyalty credit (if this customer is enrolled) on the
+      // real amount paid, now that payment is actually confirmed.
+      try {
+        const { awardCashback } = await import("@/lib/loyalty");
+        await awardCashback(supabaseAdmin, userId, Number(o.total));
+      } catch (e) {
+        console.error("[SWEETBABY] cashback award (order) failed", e);
+      }
 
       const pickupTime = o.pickup_at
         ? new Date(o.pickup_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
