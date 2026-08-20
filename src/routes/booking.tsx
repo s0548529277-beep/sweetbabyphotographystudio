@@ -219,7 +219,23 @@ function Booking() {
   const [coupon, setCoupon] = useState("");
   const [couponOff, setCouponOff] = useState(0);
   const [couponMsg, setCouponMsg] = useState<string | null>(null);
-  const finalPrice = Math.max(0, price - couponOff);
+
+  // Store credit from the customer's cashback loyalty balance (admin-enrolled only).
+  const [creditBalance, setCreditBalance] = useState(0);
+  const [useCredit, setUseCredit] = useState(false);
+  useEffect(() => {
+    if (!user) { setCreditBalance(0); return; }
+    supabase
+      .from("customer_loyalty")
+      .select("credit_balance")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setCreditBalance(Number(data?.credit_balance ?? 0)));
+  }, [user]);
+
+  const afterCoupon = Math.max(0, price - couponOff);
+  const creditApplied = useCredit ? Math.min(creditBalance, afterCoupon) : 0;
+  const finalPrice = Math.max(0, afterCoupon - creditApplied);
 
   const applyCoupon = async () => {
     const code = coupon.trim().toUpperCase();
@@ -270,6 +286,7 @@ function Booking() {
           reserved_items: reservedSkus,
           guidance: guidanceKey,
           coupon: coupon.trim() ? coupon.trim().toUpperCase() : null,
+          use_credit: creditApplied > 0 ? creditApplied : undefined,
 
           terms_accepted: true as const,
         },
@@ -603,10 +620,28 @@ function Booking() {
                   <span>-₪{couponOff}</span>
                 </div>
               )}
+              {creditApplied > 0 && (
+                <div className="flex items-baseline justify-between text-[11px] text-[#f5d5cf] mb-1">
+                  <span>קרדיט לקוחה</span>
+                  <span>-₪{creditApplied}</span>
+                </div>
+              )}
               <div className="flex items-baseline justify-between mb-3">
                 <span className="text-[#f8ede4]/70 text-xs">סה״כ</span>
                 <span className="font-display text-3xl text-[#f5d5cf]">₪{finalPrice}</span>
               </div>
+
+              {creditBalance > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setUseCredit((v) => !v)}
+                  className={`w-full mb-3 h-9 rounded-full text-xs font-medium transition-colors ${
+                    useCredit ? "bg-[#f5d5cf] text-[#2d3d2b]" : "bg-transparent border border-[#f5d5cf]/50 text-[#f5d5cf]"
+                  }`}
+                >
+                  {useCredit ? `✓ ` : ""}השתמשי בקרדיט שלך (₪{creditBalance.toFixed(0)})
+                </button>
+              )}
 
               {/* Discount code */}
               <div className="mb-4">

@@ -60,3 +60,37 @@ export const updateClientProfile = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/**
+ * Enrolls (or updates) a customer in the cashback loyalty program: she earns
+ * `cashback_percent`% of every paid studio booking / props order as credit
+ * toward future orders, until `cashback_expires_at` (or forever if null).
+ * Never touches credit_balance — that's only ever adjusted by the earn/spend
+ * server logic, never reset by re-saving the enrollment settings.
+ */
+export const setCustomerLoyalty = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        user_id: z.string().uuid(),
+        cashback_percent: z.number().int().min(0).max(100),
+        cashback_expires_at: z.string().max(10).optional().nullable(), // yyyy-mm-dd, empty/null = no expiry
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("customer_loyalty").upsert(
+      {
+        user_id: data.user_id,
+        cashback_percent: data.cashback_percent,
+        cashback_expires_at: data.cashback_expires_at ? new Date(data.cashback_expires_at).toISOString() : null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

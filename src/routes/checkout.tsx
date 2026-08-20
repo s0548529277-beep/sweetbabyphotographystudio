@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCart } from "@/lib/cart";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useProfilePrefill } from "@/hooks/use-profile";
 import { GuestContinueButton } from "@/components/GuestContinueButton";
@@ -92,7 +93,22 @@ function Checkout() {
   const discount = coupon
     ? Math.min(chargedTotal, (chargedTotal * (coupon.discount_percent || 0)) / 100 + (coupon.discount_amount || 0))
     : 0;
-  const finalTotal = Math.max(0, chargedTotal - discount);
+  const afterCoupon = Math.max(0, chargedTotal - discount);
+
+  // Store credit from the customer's cashback loyalty balance (admin-enrolled only).
+  const [creditBalance, setCreditBalance] = useState(0);
+  const [useCredit, setUseCredit] = useState(false);
+  useEffect(() => {
+    if (!user) { setCreditBalance(0); return; }
+    supabase
+      .from("customer_loyalty")
+      .select("credit_balance")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setCreditBalance(Number(data?.credit_balance ?? 0)));
+  }, [user]);
+  const creditApplied = useCredit ? Math.min(creditBalance, afterCoupon) : 0;
+  const finalTotal = Math.max(0, afterCoupon - creditApplied);
 
   const disabled = lines.length === 0 || subtotal < 50;
 
@@ -155,6 +171,7 @@ function Checkout() {
           end_time: form.end_time || undefined,
           notes: form.notes,
           coupon: coupon?.code ?? null,
+          use_credit: creditApplied > 0 ? creditApplied : undefined,
           terms_accepted: true as const,
         },
       });
@@ -287,12 +304,29 @@ function Checkout() {
                 <span>-₪{discount.toFixed(0)}</span>
               </div>
             )}
+            {creditApplied > 0 && (
+              <div className="flex justify-between text-sm text-blush mb-2">
+                <span>קרדיט לקוחה</span>
+                <span>-₪{creditApplied.toFixed(0)}</span>
+              </div>
+            )}
             <div className="flex justify-between items-baseline">
               <span className="text-primary-foreground/70">סה״כ</span>
               <span className="font-display text-3xl text-blush">₪{finalTotal.toFixed(0)}</span>
             </div>
             {dayMultiplier > 1 && (
               <div className="text-[11px] text-blush/90 mt-1">מבוסס על ₪{subtotal.toFixed(0)} × {dayMultiplier} יח׳ של 24 שעות</div>
+            )}
+            {creditBalance > 0 && (
+              <button
+                type="button"
+                onClick={() => setUseCredit((v) => !v)}
+                className={`w-full mt-3 h-9 rounded-full text-xs font-medium transition-colors ${
+                  useCredit ? "bg-blush text-primary" : "bg-transparent border border-blush/50 text-blush"
+                }`}
+              >
+                {useCredit ? "✓ " : ""}השתמשי בקרדיט שלך (₪{creditBalance.toFixed(0)})
+              </button>
             )}
             <div className="text-[11px] text-primary-foreground/60 mt-2">מינימום 50₪ · תשלום מלא בסיום ההזמנה (מזומן/אשראי/העברה/Bit).</div>
             <Button
