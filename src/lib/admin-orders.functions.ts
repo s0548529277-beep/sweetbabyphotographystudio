@@ -41,7 +41,7 @@ export const adminSetStatus = createServerFn({ method: "POST" })
 
     const { data: row, error: fetchErr } = await supabaseAdmin
       .from(table)
-      .select(data.kind === "order" ? "id, user_id, status, credit_used" : "id, user_id, status, credit_used, google_event_id")
+      .select("id, user_id, status, credit_used, google_event_id")
       .eq("id", data.id)
       .maybeSingle();
     if (fetchErr || !row) throw new Error("הרשומה לא נמצאה");
@@ -67,8 +67,11 @@ export const adminSetStatus = createServerFn({ method: "POST" })
         }
       }
 
+      // Both bookings AND props orders get a Google Calendar event once
+      // payment is confirmed (see confirmBookingDeposit / confirmOrderDeposit)
+      // — so both need the event deleted on cancel, not just bookings.
       const googleEventId = (row as { google_event_id?: string }).google_event_id;
-      if (data.kind === "booking" && googleEventId) {
+      if (googleEventId) {
         try {
           const { deleteGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
           await deleteGoogleCalendarEvent(googleEventId);
