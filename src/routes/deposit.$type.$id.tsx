@@ -158,7 +158,7 @@ function Deposit() {
       <section className="container-page py-14 flex-1">
         <div className="max-w-4xl mx-auto">
           <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-3">Step 3 · Payment</div>
-          <h1 className="font-display text-5xl text-primary mb-10">סיום תשלום</h1>
+          <h1 className="font-display text-5xl text-primary mb-10">{done ? "ההזמנה אושרה ✓" : "סיום תשלום"}</h1>
 
 
           {done ? (
