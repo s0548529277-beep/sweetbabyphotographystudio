@@ -18,7 +18,7 @@ import { GuestContinueButton } from "@/components/GuestContinueButton";
 import { useServerFn } from "@tanstack/react-start";
 import { placeOrder, checkItemsAvailability } from "@/lib/orders.functions";
 import { toast } from "sonner";
-import { Lock, Camera, CalendarDays, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Lock, Camera, CalendarDays, CheckCircle2, AlertTriangle, Tag, X } from "lucide-react";
 
 export const Route = createFileRoute("/checkout")({
   component: Checkout,
@@ -30,12 +30,21 @@ export const Route = createFileRoute("/checkout")({
 });
 
 function Checkout() {
-  const { lines, subtotal, coupon, clear } = useCart();
+  const { lines, subtotal, coupon, clear, applyCoupon, removeCoupon } = useCart();
   const { user } = useAuth();
   const nav = useNavigate();
   const place = useServerFn(placeOrder);
   const checkAvail = useServerFn(checkItemsAvailability);
   const [busy, setBusy] = useState(false);
+  const [couponInput, setCouponInput] = useState("");
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const onApplyCoupon = async () => {
+    setApplyingCoupon(true);
+    const res = await applyCoupon(couponInput);
+    setApplyingCoupon(false);
+    if (res.ok) { toast.success(res.message); setCouponInput(""); }
+    else toast.error(res.message);
+  };
   const [form, setForm] = useState({
     contact_name: "",
     contact_phone: "",
@@ -298,10 +307,34 @@ function Checkout() {
               ))}
             </div>
             <div className="h-px bg-primary-foreground/20 my-4" />
-            {coupon && (
-              <div className="flex justify-between text-sm text-blush mb-2">
-                <span>הנחה ({coupon.code})</span>
-                <span>-₪{discount.toFixed(0)}</span>
+            {coupon ? (
+              <div className="flex items-center justify-between text-sm text-blush mb-3 bg-primary-foreground/10 rounded-xl px-3 py-2">
+                <span>
+                  <Tag className="h-3.5 w-3.5 inline ml-1" />
+                  קופון {coupon.code} · -₪{discount.toFixed(0)}
+                </span>
+                <button type="button" onClick={removeCoupon} aria-label="הסרת קופון" className="text-blush/80 hover:text-blush">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2 mb-3">
+                <Input
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value)}
+                  placeholder="קוד קופון"
+                  dir="ltr"
+                  className="uppercase h-9 bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/50"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={onApplyCoupon}
+                  disabled={applyingCoupon || !couponInput.trim()}
+                  className="h-9 rounded-full shrink-0 bg-blush text-primary hover:bg-blush-deep"
+                >
+                  {applyingCoupon ? "בודקת…" : "החל"}
+                </Button>
               </div>
             )}
             {creditApplied > 0 && (
