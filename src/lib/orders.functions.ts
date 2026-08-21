@@ -160,7 +160,6 @@ export const placeOrder = createServerFn({ method: "POST" })
         deposit_amount: depositAmount,
         balance_amount: balanceAmount,
         deposit_status: "pending",
-        credit_used: creditUsed,
         terms_accepted_at: new Date().toISOString(),
       })
       .select("id")
@@ -170,7 +169,14 @@ export const placeOrder = createServerFn({ method: "POST" })
     if (creditUsed > 0) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { deductCredit } = await import("@/lib/loyalty");
-      await deductCredit(supabaseAdmin, userId, creditUsed);
+      const { spentCashback, spentManual } = await deductCredit(supabaseAdmin, userId, creditUsed);
+      // Record which bucket the credit actually came from, so a later
+      // cancellation can refund into the same bucket. credit_used itself
+      // is a generated column (sum of these two).
+      await supabaseAdmin
+        .from("orders")
+        .update({ credit_used_cashback: spentCashback, credit_used_manual: spentManual })
+        .eq("id", order.id);
     }
 
     const { error: linesErr } = await supabase.from("order_items").insert(
