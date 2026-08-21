@@ -56,6 +56,9 @@ function SummaryPage() {
   }
 
   const total = record.price ?? record.total ?? 0;
+  const couponDiscount = Number(record.coupon_discount ?? 0);
+  const creditUsed = Number(record.credit_used ?? 0);
+  const preDiscountTotal = total + couponDiscount + creditUsed;
   // Studio rentals are secured with a ₪90 deposit; the balance is paid at the studio.
   const deposit = type === "booking" ? Math.min(90, total) : total;
   const balance = Math.max(0, total - deposit);
@@ -146,6 +149,13 @@ function SummaryPage() {
               <div className="glass-card rounded-3xl p-6 sticky top-24">
                 <h3 className="font-display text-xl text-primary mb-4">סיכום תשלום</h3>
                 <div className="space-y-2 text-sm">
+                  {(couponDiscount > 0 || creditUsed > 0) && (
+                    <Row label={type === "booking" ? "סה״כ לפני הנחות" : "סה״כ פריטים"} value={`₪${preDiscountTotal.toFixed(0)}`} muted />
+                  )}
+                  {couponDiscount > 0 && (
+                    <Row label={`הנחת קופון${record.coupon_code ? ` (${record.coupon_code})` : ""}`} value={`-₪${couponDiscount.toFixed(0)}`} muted />
+                  )}
+                  {creditUsed > 0 && <Row label="קרדיט לקוחה" value={`-₪${creditUsed.toFixed(0)}`} muted />}
                   {type === "booking" ? (
                     <>
                       <Row label="סה״כ השכרה" value={`₪${total}`} muted />

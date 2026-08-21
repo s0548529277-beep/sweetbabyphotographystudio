@@ -94,6 +94,8 @@ export const placeBooking = createServerFn({ method: "POST" })
 
     // Optional discount code (e.g. BYBY10 / SWEETBABY10 → 10%).
     let couponNote: string | null = null;
+    let couponCodeUsed: string | null = null;
+    let couponDiscount = 0;
     const couponCode = (data.coupon ?? "").trim().toUpperCase();
     if (couponCode) {
       const { data: c } = await supabase
@@ -109,6 +111,8 @@ export const placeBooking = createServerFn({ method: "POST" })
       );
       price = Math.max(0, price - off);
       couponNote = `קוד קופון ${c!.code} · הנחה ₪${off}`;
+      couponCodeUsed = c!.code;
+      couponDiscount = off;
     }
 
     // Optional store credit from the customer's cashback loyalty balance.
@@ -178,6 +182,8 @@ export const placeBooking = createServerFn({ method: "POST" })
         balance_amount: Math.max(0, price - deposit),
         status: "pending",
         deposit_status: "pending",
+        coupon_code: couponCodeUsed,
+        coupon_discount: couponDiscount,
         contact_name: data.contact_name,
         contact_phone: data.contact_phone,
         notes: [
