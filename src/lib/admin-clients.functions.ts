@@ -117,10 +117,17 @@ export const grantManualCredit = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: newBalance, error } = await supabaseAdmin.rpc("adjust_loyalty_credit", {
+    const { data: result, error } = await supabaseAdmin.rpc("adjust_loyalty_credit", {
       p_user_id: data.user_id,
       p_delta: data.amount,
+      p_source: "manual",
     });
     if (error) throw new Error(error.message);
-    return { ok: true, credit_balance: newBalance };
+    const row = Array.isArray(result) ? result[0] : result;
+    return {
+      ok: true,
+      credit_balance: Number(row?.credit_balance ?? 0),
+      cashback_credit_balance: Number(row?.cashback_credit_balance ?? 0),
+      manual_credit_balance: Number(row?.manual_credit_balance ?? 0),
+    };
   });

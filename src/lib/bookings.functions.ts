@@ -94,6 +94,8 @@ export const placeBooking = createServerFn({ method: "POST" })
 
     // Optional discount code (e.g. BYBY10 / SWEETBABY10 → 10%).
     let couponNote: string | null = null;
+    let couponCodeUsed: string | null = null;
+    let couponDiscount = 0;
     const couponCode = (data.coupon ?? "").trim().toUpperCase();
     if (couponCode) {
       const { data: c } = await supabase
@@ -109,6 +111,8 @@ export const placeBooking = createServerFn({ method: "POST" })
       );
       price = Math.max(0, price - off);
       couponNote = `קוד קופון ${c!.code} · הנחה ₪${off}`;
+      couponCodeUsed = c!.code;
+      couponDiscount = off;
     }
 
     // Optional store credit from the customer's cashback loyalty balance.
@@ -178,7 +182,8 @@ export const placeBooking = createServerFn({ method: "POST" })
         balance_amount: Math.max(0, price - deposit),
         status: "pending",
         deposit_status: "pending",
-        credit_used: creditUsed,
+        coupon_code: couponCodeUsed,
+        coupon_discount: couponDiscount,
         contact_name: data.contact_name,
         contact_phone: data.contact_phone,
         notes: [
@@ -199,7 +204,11 @@ export const placeBooking = createServerFn({ method: "POST" })
     if (creditUsed > 0) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { deductCredit } = await import("@/lib/loyalty");
-      await deductCredit(supabaseAdmin, userId, creditUsed);
+      const { spentCashback, spentManual } = await deductCredit(supabaseAdmin, userId, creditUsed);
+      await supabaseAdmin
+        .from("bookings")
+        .update({ credit_used_cashback: spentCashback, credit_used_manual: spentManual })
+        .eq("id", booking.id);
     }
 
     // Lock the reserved props for the session date so the separate props
@@ -324,7 +333,7 @@ export const cancelBooking = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: b, error } = await supabase
       .from("bookings")
-      .select("id, user_id, status, google_event_id, credit_used")
+      .select("id, user_id, status, google_event_id, credit_used_cashback, credit_used_manual")
       .eq("id", data.id)
       .maybeSingle();
     if (error || !b) throw new Error("השריון לא נמצא");
@@ -341,15 +350,20 @@ export const cancelBooking = createServerFn({ method: "POST" })
     const { error: upErr } = await supabase.from("bookings").update({ status: "cancelled" }).eq("id", data.id);
     if (upErr) throw new Error(upErr.message);
 
-    // Refund any loyalty credit that was applied at checkout — atomic +delta,
-    // so it can't race with a concurrent award/deduction for this customer.
-    const creditUsed = Number((b as { credit_used?: number }).credit_used ?? 0);
-    if (creditUsed > 0) {
-      try {
-        await supabaseAdmin.rpc("adjust_loyalty_credit", { p_user_id: userId, p_delta: creditUsed });
-      } catch (e) {
-        console.error("[SWEETBABY] credit refund on booking cancel failed", e);
+    // Refund any loyalty credit applied at checkout — into whichever bucket
+    // it actually came from (see credit_used_cashback/manual), each an
+    // atomic +delta so it can't race with a concurrent award/grant/spend.
+    const refundCashback = Number((b as { credit_used_cashback?: number }).credit_used_cashback ?? 0);
+    const refundManual = Number((b as { credit_used_manual?: number }).credit_used_manual ?? 0);
+    try {
+      if (refundCashback > 0) {
+        await supabaseAdmin.rpc("adjust_loyalty_credit", { p_user_id: userId, p_delta: refundCashback, p_source: "cashback" });
       }
+      if (refundManual > 0) {
+        await supabaseAdmin.rpc("adjust_loyalty_credit", { p_user_id: userId, p_delta: refundManual, p_source: "manual" });
+      }
+    } catch (e) {
+      console.error("[SWEETBABY] credit refund on booking cancel failed", e);
     }
 
     if ((b as { google_event_id?: string }).google_event_id) {
@@ -367,7 +381,11 @@ export const cancelOrder = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { data: o, error } = await supabase.from("orders").select("id, user_id, status, credit_used").eq("id", data.id).maybeSingle();
+    const { data: o, error } = await supabase
+      .from("orders")
+      .select("id, user_id, status, credit_used_cashback, credit_used_manual")
+      .eq("id", data.id)
+      .maybeSingle();
     if (error || !o) throw new Error("ההזמנה לא נמצאה");
     if (o.user_id !== userId) throw new Error("אין הרשאה לבטל הזמנה זו");
     if (o.status === "cancelled") return { ok: true };
@@ -383,15 +401,19 @@ export const cancelOrder = createServerFn({ method: "POST" })
     const { error: upErr } = await supabaseAdmin.from("orders").update({ status: "cancelled" }).eq("id", data.id);
     if (upErr) throw new Error(upErr.message);
 
-    // Refund any loyalty credit that was applied at checkout — atomic +delta,
-    // so it can't race with a concurrent award/deduction for this customer.
-    const creditUsed = Number((o as { credit_used?: number }).credit_used ?? 0);
-    if (creditUsed > 0) {
-      try {
-        await supabaseAdmin.rpc("adjust_loyalty_credit", { p_user_id: userId, p_delta: creditUsed });
-      } catch (e) {
-        console.error("[SWEETBABY] credit refund on order cancel failed", e);
+    // Refund any loyalty credit applied at checkout — into whichever bucket
+    // it actually came from, each an atomic +delta.
+    const refundCashback = Number((o as { credit_used_cashback?: number }).credit_used_cashback ?? 0);
+    const refundManual = Number((o as { credit_used_manual?: number }).credit_used_manual ?? 0);
+    try {
+      if (refundCashback > 0) {
+        await supabaseAdmin.rpc("adjust_loyalty_credit", { p_user_id: userId, p_delta: refundCashback, p_source: "cashback" });
       }
+      if (refundManual > 0) {
+        await supabaseAdmin.rpc("adjust_loyalty_credit", { p_user_id: userId, p_delta: refundManual, p_source: "manual" });
+      }
+    } catch (e) {
+      console.error("[SWEETBABY] credit refund on order cancel failed", e);
     }
 
     return { ok: true };

@@ -276,6 +276,10 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
             <div className="h-10 flex items-center font-display text-lg text-peach-deep">
               ₪{Number(loyalty.data?.credit_balance ?? 0).toFixed(0)}
             </div>
+            <div className="text-[11px] text-muted-foreground flex gap-3 -mt-1">
+              <span>מ-Cashback: ₪{Number(loyalty.data?.cashback_credit_balance ?? 0).toFixed(0)}</span>
+              <span>ידני: ₪{Number(loyalty.data?.manual_credit_balance ?? 0).toFixed(0)}</span>
+            </div>
           </div>
         </div>
 

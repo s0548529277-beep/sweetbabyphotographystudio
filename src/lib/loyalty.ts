@@ -63,15 +63,22 @@ export async function previewCreditUse(
   }
 }
 
-/** Deducts `amount` from the customer's credit balance. Call only after the booking/order it paid for was successfully created. */
-export async function deductCredit(supabaseAdmin: any, userId: string, amount: number): Promise<void> {
-  if (!amount || amount <= 0) return;
+/** Deducts `amount` from the customer's credit balance, drawing from her cashback credit first, then manual credit. Call only after the booking/order it paid for was successfully created. Returns the actual split so the caller can record it (needed to refund the right bucket on cancellation). */
+export async function deductCredit(
+  supabaseAdmin: any,
+  userId: string,
+  amount: number,
+): Promise<{ spentCashback: number; spentManual: number }> {
+  if (!amount || amount <= 0) return { spentCashback: 0, spentManual: 0 };
   try {
-    // Atomic -amount on credit_balance — see awardCashback above for why
-    // this is a single RPC call instead of a read-then-write pair.
-    const { error } = await supabaseAdmin.rpc("adjust_loyalty_credit", { p_user_id: userId, p_delta: -amount });
+    // Atomic, row-locked split across both buckets in one statement — see
+    // spend_loyalty_credit in 20260822090000_split_loyalty_credit_by_source.sql.
+    const { data, error } = await supabaseAdmin.rpc("spend_loyalty_credit", { p_user_id: userId, p_amount: amount });
     if (error) throw error;
+    const row = Array.isArray(data) ? data[0] : data;
+    return { spentCashback: Number(row?.spent_cashback ?? 0), spentManual: Number(row?.spent_manual ?? 0) };
   } catch (e) {
     console.error("[SWEETBABY] credit deduction failed", e);
+    return { spentCashback: 0, spentManual: 0 };
   }
 }

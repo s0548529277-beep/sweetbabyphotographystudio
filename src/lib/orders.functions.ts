@@ -79,6 +79,8 @@ export const placeOrder = createServerFn({ method: "POST" })
     // Optional discount code (e.g. BYBY10 / SWEETBABY10 → 10%), same coupons
     // table used by studio-rental checkout.
     let couponNote: string | null = null;
+    let couponCodeUsed: string | null = null;
+    let couponDiscount = 0;
     const couponCode = (data.coupon ?? "").trim().toUpperCase();
     if (couponCode) {
       const { data: c } = await supabase
@@ -94,6 +96,8 @@ export const placeOrder = createServerFn({ method: "POST" })
       );
       total = Math.max(0, total - off);
       couponNote = `קוד קופון ${c!.code} · הנחה ₪${off}`;
+      couponCodeUsed = c!.code;
+      couponDiscount = off;
     }
 
     // Optional store credit from the customer's cashback loyalty balance.
@@ -160,7 +164,8 @@ export const placeOrder = createServerFn({ method: "POST" })
         deposit_amount: depositAmount,
         balance_amount: balanceAmount,
         deposit_status: "pending",
-        credit_used: creditUsed,
+        coupon_code: couponCodeUsed,
+        coupon_discount: couponDiscount,
         terms_accepted_at: new Date().toISOString(),
       })
       .select("id")
@@ -170,7 +175,14 @@ export const placeOrder = createServerFn({ method: "POST" })
     if (creditUsed > 0) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { deductCredit } = await import("@/lib/loyalty");
-      await deductCredit(supabaseAdmin, userId, creditUsed);
+      const { spentCashback, spentManual } = await deductCredit(supabaseAdmin, userId, creditUsed);
+      // Record which bucket the credit actually came from, so a later
+      // cancellation can refund into the same bucket. credit_used itself
+      // is a generated column (sum of these two).
+      await supabaseAdmin
+        .from("orders")
+        .update({ credit_used_cashback: spentCashback, credit_used_manual: spentManual })
+        .eq("id", order.id);
     }
 
     const { error: linesErr } = await supabase.from("order_items").insert(

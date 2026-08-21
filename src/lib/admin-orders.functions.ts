@@ -41,7 +41,11 @@ export const adminSetStatus = createServerFn({ method: "POST" })
 
     const { data: row, error: fetchErr } = await supabaseAdmin
       .from(table)
-      .select("id, user_id, status, credit_used, google_event_id")
+      .select(
+        data.kind === "order"
+          ? "id, user_id, status, credit_used_cashback, credit_used_manual"
+          : "id, user_id, status, credit_used_cashback, credit_used_manual, google_event_id",
+      )
       .eq("id", data.id)
       .maybeSingle();
     if (fetchErr || !row) throw new Error("הרשומה לא נמצאה");
@@ -58,20 +62,22 @@ export const adminSetStatus = createServerFn({ method: "POST" })
       const idColumn = data.kind === "order" ? "order_id" : "booking_id";
       await supabaseAdmin.from("item_availability").delete().eq(idColumn, data.id);
 
-      const creditUsed = Number((row as { credit_used?: number }).credit_used ?? 0);
-      if (creditUsed > 0) {
-        try {
-          await supabaseAdmin.rpc("adjust_loyalty_credit", { p_user_id: row.user_id, p_delta: creditUsed });
-        } catch (e) {
-          console.error("[SWEETBABY] credit refund on admin cancel failed", e);
+      // Refund into whichever bucket the credit actually came from.
+      const refundCashback = Number((row as { credit_used_cashback?: number }).credit_used_cashback ?? 0);
+      const refundManual = Number((row as { credit_used_manual?: number }).credit_used_manual ?? 0);
+      try {
+        if (refundCashback > 0) {
+          await supabaseAdmin.rpc("adjust_loyalty_credit", { p_user_id: row.user_id, p_delta: refundCashback, p_source: "cashback" });
         }
+        if (refundManual > 0) {
+          await supabaseAdmin.rpc("adjust_loyalty_credit", { p_user_id: row.user_id, p_delta: refundManual, p_source: "manual" });
+        }
+      } catch (e) {
+        console.error("[SWEETBABY] credit refund on admin cancel failed", e);
       }
 
-      // Both bookings AND props orders get a Google Calendar event once
-      // payment is confirmed (see confirmBookingDeposit / confirmOrderDeposit)
-      // — so both need the event deleted on cancel, not just bookings.
       const googleEventId = (row as { google_event_id?: string }).google_event_id;
-      if (googleEventId) {
+      if (data.kind === "booking" && googleEventId) {
         try {
           const { deleteGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
           await deleteGoogleCalendarEvent(googleEventId);
