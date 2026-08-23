@@ -275,6 +275,8 @@ function ItemsAdmin() {
       name: i.name,
       price: Number(i.price).toFixed(2),
       image_url: i.image_url ?? "",
+      stock_quantity: Number(i.stock_quantity ?? 1),
+      sort_order: Number(i.sort_order ?? 0),
     }));
     const csv = toCSV(rows, [
       { key: "sku", label: "מק״ט" },
@@ -282,15 +284,19 @@ function ItemsAdmin() {
       { key: "name", label: "שם" },
       { key: "price", label: "מחיר" },
       { key: "image_url", label: "קישור לתמונה" },
+      { key: "stock_quantity", label: "כמות במלאי" },
+      { key: "sort_order", label: "סדר תצוגה" },
     ]);
     downloadCSV(`catalog-${new Date().toISOString().slice(0, 10)}.csv`, csv);
   };
 
-  // Same columns as exportCsv (מק״ט, קטגוריה, שם, מחיר, קישור לתמונה) —
-  // download, edit in Excel/Sheets, re-upload here. Matches by SKU: an
-  // existing SKU is updated in place, a new one is created. A category
-  // name that doesn't exist yet is created on the fly. Doesn't touch
-  // active/stock_quantity/sort_order — those stay whatever they were.
+  // Same columns as exportCsv (מק״ט, קטגוריה, שם, מחיר, קישור לתמונה, כמות
+  // במלאי, סדר תצוגה) — download, edit in Excel/Sheets, re-upload here.
+  // Matches by SKU: an existing SKU is updated in place, a new one is
+  // created. A category name that doesn't exist yet is created on the
+  // fly. If the quantity/order cells are left blank (e.g. an older
+  // export without those columns), the item's current value is kept
+  // instead of being reset. Doesn't touch "active".
   const importCsv = async (file: File) => {
     setImporting(true);
     try {
@@ -311,6 +317,8 @@ function ItemsAdmin() {
         const name = (r["שם"] || "").trim();
         const price = Number((r["מחיר"] || "0").trim()) || 0;
         const image_url = (r["קישור לתמונה"] || "").trim() || null;
+        const stockRaw = (r["כמות במלאי"] || "").trim();
+        const sortRaw = (r["סדר תצוגה"] || "").trim();
         if (!sku || !name) { failed++; continue; }
 
         let category_id: string | null = null;
@@ -330,12 +338,26 @@ function ItemsAdmin() {
           }
         }
 
-        const { data: existing } = await supabase.from("items").select("id").eq("sku", sku).maybeSingle();
+        const { data: existing } = await supabase
+          .from("items")
+          .select("id, stock_quantity, sort_order")
+          .eq("sku", sku)
+          .maybeSingle();
+
+        const stock_quantity =
+          stockRaw !== "" ? Math.max(1, Math.floor(Number(stockRaw)) || 1) : Number(existing?.stock_quantity ?? 1);
+        const sort_order = sortRaw !== "" ? Math.floor(Number(sortRaw)) || 0 : Number(existing?.sort_order ?? 0);
+
         if (existing) {
-          const { error } = await supabase.from("items").update({ name, price, image_url, category_id }).eq("id", existing.id);
+          const { error } = await supabase
+            .from("items")
+            .update({ name, price, image_url, category_id, stock_quantity, sort_order })
+            .eq("id", existing.id);
           if (error) failed++; else updated++;
         } else {
-          const { error } = await supabase.from("items").insert({ sku, name, price, image_url, category_id, active: true, stock_quantity: 1 });
+          const { error } = await supabase
+            .from("items")
+            .insert({ sku, name, price, image_url, category_id, active: true, stock_quantity, sort_order });
           if (error) failed++; else created++;
         }
       }
