@@ -161,6 +161,107 @@ export const proposeSiteChange = createServerFn({ method: "POST" })
     }
   });
 
+/** Asks Claude to write a single read-only SELECT that answers the question, given a fixed summary of the schema. */
+async function askClaudeForSql(question: string): Promise<string> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY לא מוגדר ב-Supabase secrets");
+
+  const schema = `טבלאות רלוונטיות (סכמה ציבורית, PostgreSQL):
+- orders(id, user_id, contact_name, total, credit_used_cashback, credit_used_manual, coupon_code, coupon_discount, balance_method, status, deposit_status, scheduled_date, created_at)
+- bookings(id, user_id, contact_name, price, credit_used_cashback, credit_used_manual, coupon_code, coupon_discount, balance_method, package, status, session_date, created_at)
+- expenses(id, title, amount, category, spent_on)
+- manual_income(id, title, amount, category, notes, received_on)
+- customer_loyalty(user_id, cashback_percent, cashback_credit_balance, manual_credit_balance, credit_balance, cashback_expires_at, updated_at)
+- coupons(id, code, discount_percent, discount_amount, active, expires_at)
+- items(id, name, category_id, price_per_day, active)
+- profiles(id, full_name, phone, email)
+- user_roles(user_id, role)
+
+הערות חשובות:
+- balance_method הערכים: 'cash','card','transfer','bit' (card = אשראי).
+- הכנסה בפועל = orders.total + bookings.price של רשומות עם status != 'cancelled'.
+- תאריכים מסוג date/timestamptz — להשתמש ב-date_trunc / >= / < לטווחי זמן ('חודש שעבר' וכו').`;
+
+  const system = `אתה כותב שאילתות SQL קריאה-בלבד (SELECT/WITH) עבור מסד נתונים PostgreSQL של אתר סטודיו צילום, לפי שאלה בעברית מהמנהלת. ${schema}
+
+כללים:
+- אך ורק שאילתת SELECT/WITH אחת. אסור INSERT/UPDATE/DELETE/DROP/כל שינוי.
+- אל תוסיף LIMIT — זה מתווסף אוטומטית.
+- אל תמציא עמודות/טבלאות שלא ברשימה למעלה.
+- החזר אך ורק JSON: {"sql": "<השאילתה>"}, בלי טקסט נוסף, בלי markdown fences.`;
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1000,
+      system,
+      messages: [{ role: "user", content: question }],
+    }),
+  });
+  if (!res.ok) throw new Error(`Anthropic API ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  const data = await res.json();
+  const text = (data.content ?? []).map((b: any) => b.text ?? "").join("");
+  let parsed: { sql: string };
+  try {
+    parsed = JSON.parse(text.replace(/^```json\s*|\s*```$/g, "").trim());
+  } catch {
+    throw new Error("ה-AI לא החזיר שאילתה תקינה — נסה לנסח את השאלה אחרת");
+  }
+  if (!parsed.sql) throw new Error("ה-AI לא החזיר שאילתה");
+  return parsed.sql;
+}
+
+/** Asks Claude to phrase the query result as a short Hebrew answer. */
+async function askClaudeToSummarize(question: string, rows: unknown): Promise<string> {
+  const apiKey = process.env.ANTHROPIC_API_KEY!;
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 500,
+      system: "אתה עונה בעברית, בקצרה ובבירור, על שאלה של מנהלת סטודיו צילום, בהתבסס אך ורק על תוצאות ה-JSON שמצורפות. אם התוצאה ריקה, אמור זאת בפשטות. תמיד תן מספרים מדויקים (₪ בעברית), לא הערכות.",
+      messages: [{ role: "user", content: `שאלה: ${question}\n\nתוצאות מה-DB (JSON):\n${JSON.stringify(rows).slice(0, 6000)}` }],
+    }),
+  });
+  if (!res.ok) throw new Error(`Anthropic API ${res.status}`);
+  const data = await res.json();
+  return (data.content ?? []).map((b: any) => b.text ?? "").join("").trim();
+}
+
+/** Read-only Q&A over the site's data — never writes anything, enforced both by prompt and by DB-level role permissions (see run_readonly_query). */
+export const askSiteData = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ question: z.string().min(3, "צריך לשאול משהו") }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    let sql = "";
+    try {
+      sql = await askClaudeForSql(data.question);
+      const { data: rows, error } = await supabaseAdmin.rpc("run_readonly_query", { q: sql });
+      if (error) throw new Error(error.message);
+      const answer = await askClaudeToSummarize(data.question, rows);
+
+      await supabaseAdmin.from("site_bot_questions").insert({ created_by: context.userId, question: data.question, sql_used: sql, answer });
+      return { ok: true, answer, sql };
+    } catch (e: any) {
+      await supabaseAdmin.from("site_bot_questions").insert({ created_by: context.userId, question: data.question, sql_used: sql || null, error: String(e?.message ?? e) });
+      throw new Error(e?.message ?? "השאלה נכשלה");
+    }
+  });
+
+export const listSiteQuestions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data } = await context.supabase.from("site_bot_questions").select("*").order("created_at", { ascending: false }).limit(30);
+    return data ?? [];
+  });
+
 export const listSiteChanges = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
