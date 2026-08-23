@@ -1,4 +1,4 @@
-import { Link, useRouter } from "@tanstack/react-router";
+import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { ShoppingBag, User as UserIcon, LogOut, Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart";
@@ -26,6 +26,7 @@ export function Header() {
   const { count } = useCart();
   const { user, isAdmin, signOut } = useAuth();
   const router = useRouter();
+  const isHome = useRouterState({ select: (s) => s.location.pathname === "/" });
   const [open, setOpen] = useState(false);
   const [displayName, setDisplayName] = useState<string>("");
   const [showBetaBanner, setShowBetaBanner] = useState(false);
@@ -61,7 +62,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 backdrop-blur-xl bg-background/80 border-b border-border">
-      {showBetaBanner && (
+      {isHome && showBetaBanner && (
         <div className="relative bg-[#f5d5cf] text-[#2d3d2b] text-center text-[12px] tracking-[0.2em] uppercase py-1.5 px-10">
           ✨ האתר בהרצה — ייתכנו שינויים ותקלות ✨
           <button
