@@ -31,6 +31,10 @@ function githubHeaders() {
     Authorization: `Bearer ${token}`,
     Accept: "application/vnd.github+json",
     "Content-Type": "application/json",
+    // GitHub's REST API rejects requests with no User-Agent (403
+    // "Request forbidden by administrative rules") — the runtime's
+    // built-in fetch doesn't set one by default.
+    "User-Agent": "sweetbaby-site-bot",
   };
 }
 
