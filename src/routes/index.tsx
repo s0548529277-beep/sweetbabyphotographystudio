@@ -82,6 +82,17 @@ function Home() {
     return () => clearInterval(id);
   }, [slides.length]);
 
+  // Arriving from another page via the header's "המלצות" link lands here
+  // with #testimonials in the URL — scroll to it once mounted.
+  useEffect(() => {
+    if (window.location.hash === "#testimonials") {
+      const t = setTimeout(() => {
+        document.getElementById("testimonials")?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+      return () => clearTimeout(t);
+    }
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col bg-[#f8ede4] text-[#2d3d2b] overflow-hidden" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
       <Header />
@@ -425,7 +436,7 @@ function Home() {
       </section>
 
       {/* TESTIMONIALS */}
-      <section className="container-page pb-16 md:pb-24" dir="rtl">
+      <section id="testimonials" className="container-page pb-16 md:pb-24 scroll-mt-28" dir="rtl">
         <div className="text-center mb-12">
           <div className="text-xs tracking-[0.3em] uppercase text-[#6b8a63] font-medium mb-3">
             מה אומרות המשפחות
@@ -438,14 +449,17 @@ function Home() {
           {[
             {
               name: "שרה שפירו",
+              initial: "ש",
               text: "הגענו לצילומי ניוברן כשהיינו מותשים אחרי הלידה, ומיכל ידעה בדיוק איך להרגיע את כולנו. התמונות יצאו מעבר לציפיות — ממש יצירות אמנות.",
             },
             {
               name: "חני גוטליב",
+              initial: "ג",
               text: "שכרנו את הסטודיו לחלאקה של הבן שלנו והאווירה הייתה חמה ומושקעת. כל פינה מעוצבת עד הפרט האחרון, וקיבלנו תמונות שנשארות איתנו לתמיד.",
             },
             {
               name: "שירה כהן",
+              initial: "כ",
               text: "השכרתי אביזרים לצילומי גיל שנה בבית והתהליך היה קל ומהיר — בחירה אונליין, איסוף נוח, והכל הגיע נקי ומטופל. ממליצה בחום!",
             },
           ].map((t, i) => (
@@ -460,7 +474,15 @@ function Home() {
                 ))}
               </div>
               <p className="text-sm text-[#2d3d2b]/80 leading-relaxed flex-grow">&ldquo;{t.text}&rdquo;</p>
-              <div className="mt-6 pt-6 border-t border-[#2d3d2b]/10 text-sm font-medium text-[#2d3d2b]">{t.name}</div>
+              <div className="mt-6 pt-6 border-t border-[#2d3d2b]/10 flex items-center gap-3">
+                <div
+                  className="h-10 w-10 rounded-full bg-[#a8c4a2] text-[#2d3d2b] flex items-center justify-center shrink-0"
+                  style={{ fontFamily: "'DM Serif Display', serif" }}
+                >
+                  {t.initial}
+                </div>
+                <div className="text-sm font-medium text-[#2d3d2b]">{t.name}</div>
+              </div>
             </motion.div>
           ))}
         </div>

@@ -1,6 +1,6 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { ShoppingBag, User as UserIcon, LogOut, Menu, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,8 +16,21 @@ const nav = [
   { to: "/studio-photography", label: "צילומים בסטודיו" },
   { to: "/studio-rental", label: "השכרת סטודיו" },
   { to: "/rental-catalog", label: "קטלוג אביזרים להשכרה" },
+  { to: "/", label: "המלצות", hash: "testimonials" },
   { to: "/about", label: "אודות ויצירת קשר" },
 ];
+
+// Testimonials live in a section on the home page — from any other page
+// this is a normal SPA navigation to "/#testimonials"; already on "/" it
+// just scrolls (no navigation needed, no page reload).
+function scrollToHash(hash?: string) {
+  return (e: MouseEvent) => {
+    if (hash && window.location.pathname === "/") {
+      e.preventDefault();
+      document.getElementById(hash)?.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+}
 
 const BETA_BANNER_KEY = "sweetbaby-beta-banner-dismissed";
 
@@ -83,8 +96,10 @@ export function Header() {
 
           {nav.map((n) => (
             <Link
-              key={n.to}
+              key={n.label}
               to={n.to}
+              hash={n.hash}
+              onClick={scrollToHash(n.hash)}
               className="text-foreground/70 hover:text-foreground transition-colors relative py-1"
               activeProps={{ className: "text-foreground" }}
             >
@@ -161,7 +176,13 @@ export function Header() {
             <SheetContent side="right" className="w-72">
               <div className="flex flex-col gap-4 pt-8">
                 {nav.map((n) => (
-                  <Link key={n.to} to={n.to} onClick={() => setOpen(false)} className="text-lg font-display">
+                  <Link
+                    key={n.label}
+                    to={n.to}
+                    hash={n.hash}
+                    onClick={(e) => { scrollToHash(n.hash)(e); setOpen(false); }}
+                    className="text-lg font-display"
+                  >
                     {n.label}
                   </Link>
                 ))}
