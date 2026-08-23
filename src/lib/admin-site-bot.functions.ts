@@ -110,7 +110,13 @@ export const proposeSiteChange = createServerFn({ method: "POST" })
 
     const { data: logRow, error: logErr } = await supabaseAdmin
       .from("site_bot_requests")
-      .insert({ created_by: context.userId, instruction: data.instruction, target_path: data.target_path, status: "proposing" })
+      .insert({
+        created_by: context.userId,
+        instruction: data.instruction,
+        target_path: data.target_path,
+        status: "proposing",
+        messages: [{ role: "user", text: data.instruction }],
+      })
       .select("id")
       .single();
     // Fail loudly instead of silently continuing with a broken logId — a
@@ -161,7 +167,14 @@ export const proposeSiteChange = createServerFn({ method: "POST" })
 
       const { error: doneErr } = await supabaseAdmin
         .from("site_bot_requests")
-        .update({ status: "proposed", branch_name: branchName, pr_number: pr.number, pr_url: pr.html_url, summary })
+        .update({
+          status: "proposed",
+          branch_name: branchName,
+          pr_number: pr.number,
+          pr_url: pr.html_url,
+          summary,
+          messages: [{ role: "user", text: data.instruction }, { role: "bot", text: summary }],
+        })
         .eq("id", logId);
       // The PR is already live on GitHub at this point — if the log update
       // itself fails, still tell the admin (rather than a false "success"
@@ -169,10 +182,76 @@ export const proposeSiteChange = createServerFn({ method: "POST" })
       // point her straight at the PR since the actual work is done.
       if (doneErr) throw new Error(`הטיוטה נוצרה בגיטהאב (${pr.html_url}) אך עדכון הרשומה נכשל: ${doneErr.message}`);
 
-      return { ok: true, pr_url: pr.html_url, summary };
+      return { ok: true, id: logId, pr_url: pr.html_url, summary };
     } catch (e: any) {
-      await supabaseAdmin.from("site_bot_requests").update({ status: "failed", error: String(e?.message ?? e) }).eq("id", logId);
+      await supabaseAdmin
+        .from("site_bot_requests")
+        .update({
+          status: "failed",
+          error: String(e?.message ?? e),
+          messages: [{ role: "user", text: data.instruction }, { role: "bot", text: `שגיאה: ${String(e?.message ?? e)}` }],
+        })
+        .eq("id", logId);
       throw new Error(e?.message ?? "השינוי נכשל");
+    }
+  });
+
+/**
+ * Continues an open draft's conversation: takes the file as it currently
+ * stands on the draft's own branch (not main), asks Claude to revise it per
+ * a follow-up instruction, and pushes another commit to that SAME branch —
+ * so a multi-turn "still not right, make it X" conversation refines one PR
+ * instead of spawning a new one per message.
+ */
+export const reviseSiteChange = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string().uuid(), instruction: z.string().min(2, "צריך לתאר מה לשנות") }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: row, error: rowErr } = await supabaseAdmin.from("site_bot_requests").select("*").eq("id", data.id).maybeSingle();
+    if (rowErr || !row) throw new Error("הבקשה לא נמצאה");
+    if (row.status !== "proposed" || !row.branch_name) throw new Error("אפשר להמשיך שיחה רק על טיוטה שממתינה לאישור");
+
+    const priorMessages = Array.isArray((row as any).messages) ? (row as any).messages : [];
+    const userTurn = { role: "user", text: data.instruction };
+
+    try {
+      // Read the branch's current version of the file — not main — so this
+      // builds on whatever the last turn already changed.
+      const fileRes = await gh(`/repos/${REPO}/contents/${encodeURIComponent(row.target_path)}?ref=${row.branch_name}`);
+      const currentContent = Buffer.from(fileRes.content, "base64").toString("utf-8");
+
+      const { newContent, summary } = await askClaudeForFileEdit(currentContent, row.target_path, data.instruction);
+      if (newContent === currentContent) throw new Error("אין שינוי בפועל — נסה לנסח את הבקשה ביתר פירוט");
+
+      await gh(`/repos/${REPO}/contents/${encodeURIComponent(row.target_path)}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          message: `site-bot: ${summary}`,
+          content: Buffer.from(newContent, "utf-8").toString("base64"),
+          sha: fileRes.sha,
+          branch: row.branch_name,
+        }),
+      });
+
+      const { error: doneErr } = await supabaseAdmin
+        .from("site_bot_requests")
+        .update({ summary, messages: [...priorMessages, userTurn, { role: "bot", text: summary }] })
+        .eq("id", data.id);
+      if (doneErr) throw new Error(`השינוי נדחף לגיטהאב אך עדכון הרשומה נכשל: ${doneErr.message}`);
+
+      return { ok: true, summary };
+    } catch (e: any) {
+      const errText = String(e?.message ?? e);
+      await supabaseAdmin
+        .from("site_bot_requests")
+        .update({ messages: [...priorMessages, userTurn, { role: "bot", text: `שגיאה: ${errText}` }] })
+        .eq("id", data.id);
+      throw new Error(errText);
     }
   });
 
