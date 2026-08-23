@@ -1,20 +1,11 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Mail, Check, Copy } from "lucide-react";
 import { subscribeNewsletter } from "@/lib/newsletter.functions";
-import { supabase } from "@/integrations/supabase/client";
+import { useFeaturedCoupon, discountLabel } from "@/hooks/use-featured-coupon";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-
-type FeaturedCoupon = { code: string; discount_percent: number; discount_amount: number };
-
-function discountLabel(c: FeaturedCoupon): string {
-  const parts: string[] = [];
-  if (c.discount_percent > 0) parts.push(`${c.discount_percent}%`);
-  if (c.discount_amount > 0) parts.push(`₪${c.discount_amount}`);
-  return parts.join(" + ");
-}
 
 export function NewsletterSignup({ className = "" }: { className?: string }) {
   const [email, setEmail] = useState("");
@@ -22,24 +13,8 @@ export function NewsletterSignup({ className = "" }: { className?: string }) {
   const [done, setDone] = useState(false);
   // Which coupon (if any) to advertise/reveal is picked by an admin from
   // /admin/coupons ("newsletter_default"), not hardcoded here.
-  const [coupon, setCoupon] = useState<FeaturedCoupon | null>(null);
+  const coupon = useFeaturedCoupon();
   const subscribe = useServerFn(subscribeNewsletter);
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      const { data } = await supabase
-        .from("coupons")
-        .select("code, discount_percent, discount_amount")
-        .eq("newsletter_default", true)
-        .eq("active", true)
-        .maybeSingle();
-      if (mounted && data) setCoupon(data as FeaturedCoupon);
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();

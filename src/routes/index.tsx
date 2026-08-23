@@ -424,6 +424,48 @@ function Home() {
         </div>
       </section>
 
+      {/* TESTIMONIALS */}
+      <section className="container-page pb-16 md:pb-24" dir="rtl">
+        <div className="text-center mb-12">
+          <div className="text-xs tracking-[0.3em] uppercase text-[#6b8a63] font-medium mb-3">
+            מה אומרות המשפחות
+          </div>
+          <h2 className="text-4xl md:text-5xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+            חוויות מהסטודיו
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+          {[
+            {
+              name: "שרה שפירו",
+              text: "הגענו לצילומי ניוברן כשהיינו מותשים אחרי הלידה, ומיכל ידעה בדיוק איך להרגיע את כולנו. התמונות יצאו מעבר לציפיות — ממש יצירות אמנות.",
+            },
+            {
+              name: "חני גוטליב",
+              text: "שכרנו את הסטודיו לחלאקה של הבן שלנו והאווירה הייתה חמה ומושקעת. כל פינה מעוצבת עד הפרט האחרון, וקיבלנו תמונות שנשארות איתנו לתמיד.",
+            },
+            {
+              name: "שירה כהן",
+              text: "השכרתי אביזרים לצילומי גיל שנה בבית והתהליך היה קל ומהיר — בחירה אונליין, איסוף נוח, והכל הגיע נקי ומטופל. ממליצה בחום!",
+            },
+          ].map((t, i) => (
+            <motion.div
+              key={t.name}
+              initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={i} variants={fadeUp}
+              className="bg-white rounded-[2rem] p-8 border border-[#2d3d2b]/5 flex flex-col"
+            >
+              <div className="flex gap-0.5 mb-4">
+                {Array.from({ length: 5 }).map((_, s) => (
+                  <Star key={s} className="h-4 w-4 fill-[#f5d5cf] text-[#f5d5cf]" />
+                ))}
+              </div>
+              <p className="text-sm text-[#2d3d2b]/80 leading-relaxed flex-grow">&ldquo;{t.text}&rdquo;</p>
+              <div className="mt-6 pt-6 border-t border-[#2d3d2b]/10 text-sm font-medium text-[#2d3d2b]">{t.name}</div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
       <Footer />
     </div>
   );

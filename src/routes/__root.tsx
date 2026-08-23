@@ -17,6 +17,7 @@ import { CartProvider } from "@/lib/cart";
 import { Toaster } from "@/components/ui/sonner";
 import { ChatBot } from "@/components/ChatBot";
 import { Analytics } from "@/components/Analytics";
+import { NewsletterPopup } from "@/components/NewsletterPopup";
 import { supabase } from "@/integrations/supabase/client";
 
 function NotFoundComponent() {
@@ -157,6 +158,7 @@ function RootComponent() {
           <Toaster position="top-center" richColors />
           <ChatBot />
           <Analytics />
+          <NewsletterPopup />
         </CartProvider>
       </AuthProvider>
     </QueryClientProvider>
