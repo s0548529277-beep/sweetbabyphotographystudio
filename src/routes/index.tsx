@@ -73,7 +73,7 @@ const fadeUp = {
 function Home() {
   const [slide, setSlide] = useState(0);
   // Hero slides are managed from /admin/gallery (add / remove / reorder,
-  // and portrait vs landscape); the bundled list is the fallback.
+  // and portrait vs landscape).
   const heroGallery = usePageGalleryWithAspect(PAGE_IMAGE_KEYS.homeHero);
   const slides = heroGallery.images.length > 0 ? heroGallery.images : HERO_SLIDES;
   const heroAspect = heroGallery.aspect === "landscape" ? "aspect-[16/9]" : "aspect-[4/5]";
@@ -85,7 +85,7 @@ function Home() {
   // Arriving from another page via the header's "המלצות" link lands here
   // with #testimonials in the URL — scroll to it once mounted.
   useEffect(() => {
-    if (window.location.hash === "#testimonials") {
+    if (typeof window !== "undefined" && window.location.hash === "#testimonials") {
       const t = setTimeout(() => {
         document.getElementById("testimonials")?.scrollIntoView({ behavior: "smooth" });
       }, 100);
@@ -98,7 +98,7 @@ function Home() {
       <Header />
 
       {/* HERO */}
-      <section className="relative overflow-hidden">
+      <section className="relative overflow-hidden pt-12 md:pt-16 lg:pt-24">
         {/* Soft editorial gradient like the reference */}
         <div
           aria-hidden
@@ -122,7 +122,7 @@ function Home() {
           transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        <div className="relative container-page pt-14 md:pt-20 pb-10" dir="rtl">
+        <div className="relative container-page pt-10 md:pt-16 pb-16 md:pb-20" dir="rtl">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
             <motion.div
               initial="hidden" animate="show" variants={fadeUp}
@@ -136,7 +136,7 @@ function Home() {
               </div>
 
               <h1
-                className="mt-6 text-[2.9rem] leading-[1.05] md:text-[4.8rem] md:leading-[1.02] text-[#2d3d2b]"
+                className="mt-6 text-[3rem] leading-[1.05] md:text-[5.2rem] md:leading-[1.02] text-[#2d3d2b] tracking-tight"
                 style={{ fontFamily: "'DM Serif Display', serif" }}
               >
                 <span className="block">סוויט בייבי</span>
@@ -178,7 +178,7 @@ function Home() {
 
               {/* Animated stats */}
               <div className="mt-14 grid grid-cols-3 gap-4 md:gap-8 max-w-lg">
-                {[
+                {[ 
                   { end: 400, suffix: "+", label: "אביזרים", icon: Sparkles },
                   { end: 3, suffix: "+ שנים", label: "מ-2023", icon: Clock },
                   { end: 1200, suffix: "+", label: "משפחות", icon: Heart },
@@ -200,9 +200,9 @@ function Home() {
             {/* Hero image collage */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-              className="lg:col-span-5 relative"
+              className="lg:col-span-5 relative lg:p-4"
             >
-              <div className={`relative ${heroAspect} rounded-[2rem] overflow-hidden shadow-2xl bg-[#f5d5cf]`}>
+              <div className={`relative ${heroAspect} rounded-[2.5rem] overflow-hidden shadow-2xl bg-[#f5d5cf]`}>
                 <AnimatePresence mode="wait">
                   <motion.img
                     key={slide}
@@ -292,46 +292,46 @@ function Home() {
       </section>
 
       {/* THREE OFFERINGS */}
-      <section className="container-page py-16 md:py-24" dir="rtl">
-        <div className="flex items-end justify-between flex-wrap gap-6 mb-12">
+      <section className="container-page py-20 md:py-32" dir="rtl">
+        <div className="flex items-end justify-between flex-wrap gap-6 mb-16">
           <div>
-            <div className="text-xs tracking-[0.3em] uppercase text-[#6b8a63] font-medium mb-3">
+            <div className="text-sm tracking-[0.25em] uppercase text-[#6b8a63] font-medium mb-4 leading-tight">
               שלוש דרכים לצייר את הזיכרון
             </div>
-            <h2 className="text-4xl md:text-6xl text-[#2d3d2b] max-w-2xl leading-tight" style={{ fontFamily: "'DM Serif Display', serif" }}>
+            <h2 className="text-4xl md:text-6xl text-[#2d3d2b] max-w-2xl leading-tight tracking-tight" style={{ fontFamily: "'DM Serif Display', serif" }}>
               איך תרצי לצלם השבוע?
             </h2>
           </div>
-          <div className="text-sm text-[#2d3d2b]/70 max-w-xs leading-relaxed">
-            סטודיו מאובזר, צלמת אישית או קטלוג אביזרים — בחרי את השילוב שלך.
-          </div>
+          <p className="text-base text-[#2d3d2b]/70 max-w-sm leading-relaxed">
+            סטודיו מאובזר, צלמת אישית או קטלוג אביזרים — בחרי את השילוב המושלם עבורך ועבור הזיכרונות החדשים שלך.
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10">
           {/* Photography */}
           <motion.div initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={0} variants={fadeUp}>
-            <Link to="/studio-photography" className="group block bg-white rounded-[2rem] overflow-hidden border border-[#2d3d2b]/5 h-full flex flex-col hover:shadow-2xl transition-all hover:-translate-y-1">
-              <div className="h-64 relative overflow-hidden bg-[#f5d5cf]">
+            <Link to="/studio-photography" className="group block bg-white rounded-[2.5rem] overflow-hidden border border-[#2d3d2b]/5 h-full flex flex-col hover:shadow-2xl transition-all hover:-translate-y-2">
+              <div className="h-72 relative overflow-hidden bg-[#f5d5cf]">
                 <img src={hero3.url} alt="צילום של מיכל סיבוני" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
                 <img src={hero4.url} alt="צילום נוסף של מיכל סיבוני" className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500" loading="lazy" />
-                <div className="absolute top-4 right-4 h-12 w-12 rounded-full bg-white/90 backdrop-blur flex items-center justify-center">
+                <div className="absolute top-6 right-6 h-12 w-12 rounded-full bg-white/90 backdrop-blur flex items-center justify-center">
                   <Camera className="h-5 w-5 text-[#2d3d2b]" />
                 </div>
               </div>
-              <div className="p-7 flex flex-col flex-grow">
-                <div className="text-[11px] tracking-[0.28em] uppercase text-[#6b8a63] mb-2">01 · Photography</div>
-                <h3 className="text-2xl text-[#2d3d2b] mb-3" style={{ fontFamily: "'DM Serif Display', serif" }}>
+              <div className="p-8 flex flex-col flex-grow">
+                <div className="text-xs tracking-[0.2em] uppercase text-[#6b8a63] mb-3">01 · Photography</div>
+                <h3 className="text-2xl text-[#2d3d2b] mb-4" style={{ fontFamily: "'DM Serif Display', serif" }}>
                   צילומים עם מיכל סיבוני
                 </h3>
-                <p className="text-sm text-[#2d3d2b]/70 leading-relaxed flex-grow">
-                  סשן אישי, רגוע ומקצועי בסטודיו המאובזר — כולל אפשרות לחצי שעה ובניית סטים בהתאמה.
+                <p className="text-base text-[#2d3d2b]/70 leading-relaxed flex-grow">
+                  סשן אישי, רגוע ומקצועי בסטודיו המאובזר — כולל אפשרות לחצי שעה ובניית סטים בהתאמה אישית לכל לקוח.
                 </p>
-                <div className="mt-6 flex items-end justify-between pt-6 border-t border-[#2d3d2b]/10">
+                <div className="mt-8 flex items-end justify-between pt-8 border-t border-[#2d3d2b]/10">
                   <div>
-                    <div className="text-[10px] uppercase tracking-wider text-[#2d3d2b]/50">החל מ-</div>
+                    <div className="text-xs uppercase tracking-wider text-[#2d3d2b]/50">החל מ-</div>
                     <div className="text-2xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>₪300 <span className="text-xs text-[#2d3d2b]/60">/ שעה</span></div>
                   </div>
-                  <div className="h-10 w-10 rounded-full border border-[#2d3d2b]/20 flex items-center justify-center group-hover:bg-[#2d3d2b] group-hover:text-[#f8ede4] transition-colors">
+                  <div className="h-11 w-11 rounded-full border border-[#2d3d2b]/20 flex items-center justify-center group-hover:bg-[#2d3d2b] group-hover:text-[#f8ede4] transition-colors">
                     <ArrowLeft className="h-4 w-4" />
                   </div>
                 </div>
@@ -341,28 +341,28 @@ function Home() {
 
           {/* Studio Rental — actual studio space photos */}
           <motion.div initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={1} variants={fadeUp}>
-            <Link to="/studio-rental" className="group block bg-[#a8c4a2]/20 rounded-[2rem] overflow-hidden border border-[#a8c4a2]/40 h-full flex flex-col hover:shadow-2xl transition-all hover:-translate-y-1">
-              <div className="h-64 relative overflow-hidden">
+            <Link to="/studio-rental" className="group block bg-[#a8c4a2]/10 rounded-[2.5rem] overflow-hidden border border-[#a8c4a2]/20 h-full flex flex-col hover:shadow-2xl transition-all hover:-translate-y-2">
+              <div className="h-72 relative overflow-hidden">
                 <img src={heroImg.url} alt="חלל הסטודיו" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
                 <img src={hero0.url} alt="פינת רקעים בסטודיו" className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500" loading="lazy" />
-                <div className="absolute top-4 right-4 h-12 w-12 rounded-full bg-white/90 backdrop-blur flex items-center justify-center">
+                <div className="absolute top-6 right-6 h-12 w-12 rounded-full bg-white/90 backdrop-blur flex items-center justify-center">
                   <HomeIcon className="h-5 w-5 text-[#2d3d2b]" />
                 </div>
               </div>
-              <div className="p-7 flex flex-col flex-grow">
-                <div className="text-[11px] tracking-[0.28em] uppercase text-[#6b8a63] mb-2">02 · Space</div>
-                <h3 className="text-2xl text-[#2d3d2b] mb-3" style={{ fontFamily: "'DM Serif Display', serif" }}>
+              <div className="p-8 flex flex-col flex-grow">
+                <div className="text-xs tracking-[0.2em] uppercase text-[#6b8a63] mb-3">02 · Space</div>
+                <h3 className="text-2xl text-[#2d3d2b] mb-4" style={{ fontFamily: "'DM Serif Display', serif" }}>
                   השכרת הסטודיו
                 </h3>
-                <p className="text-sm text-[#2d3d2b]/70 leading-relaxed flex-grow">
-                  חלל בוטיק לצלמים — תאורה טבעית, אווירה שקטה ומגוון רקעים. חבילת בוקר ניוברן: 240₪ ל-3 שעות.
+                <p className="text-base text-[#2d3d2b]/70 leading-relaxed flex-grow">
+                  חלל בוטיק מאובזר לצלמים מקצועיים — תאורה טבעית, אווירה שקטה ומגוון רקעים ייחודיים. חבילת בוקר ניוברן אטרקטיבית.
                 </p>
-                <div className="mt-6 flex items-end justify-between pt-6 border-t border-[#2d3d2b]/10">
+                <div className="mt-8 flex items-end justify-between pt-8 border-t border-[#2d3d2b]/10">
                   <div>
-                    <div className="text-[10px] uppercase tracking-wider text-[#2d3d2b]/50">החל מ-</div>
+                    <div className="text-xs uppercase tracking-wider text-[#2d3d2b]/50">החל מ-</div>
                     <div className="text-2xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>₪120 <span className="text-xs text-[#2d3d2b]/60">/ שעה</span></div>
                   </div>
-                  <div className="h-10 w-10 rounded-full border border-[#2d3d2b]/20 flex items-center justify-center group-hover:bg-[#2d3d2b] group-hover:text-[#f8ede4] transition-colors">
+                  <div className="h-11 w-11 rounded-full border border-[#2d3d2b]/20 flex items-center justify-center group-hover:bg-[#2d3d2b] group-hover:text-[#f8ede4] transition-colors">
                     <ArrowLeft className="h-4 w-4" />
                   </div>
                 </div>
@@ -372,26 +372,26 @@ function Home() {
 
           {/* Catalog */}
           <motion.div initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={2} variants={fadeUp}>
-            <Link to="/rental-catalog" className="group block bg-[#2d3d2b] text-[#f8ede4] rounded-[2rem] overflow-hidden h-full flex flex-col hover:shadow-2xl transition-all hover:-translate-y-1 relative">
+            <Link to="/rental-catalog" className="group block bg-[#2d3d2b] text-[#f8ede4] rounded-[2.5rem] overflow-hidden h-full flex flex-col hover:shadow-2xl transition-all hover:-translate-y-2 relative">
               <div className="absolute inset-0 opacity-20">
                 <div className="absolute top-10 right-10 h-32 w-32 rounded-full bg-[#a8c4a2] blur-2xl" />
                 <div className="absolute bottom-10 left-10 h-40 w-40 rounded-full bg-[#f5d5cf] blur-2xl" />
               </div>
-              <div className="p-7 flex flex-col flex-grow relative">
+              <div className="p-8 flex flex-col flex-grow relative">
                 <div className="flex justify-between items-start">
-                  <div className="text-[11px] tracking-[0.28em] uppercase text-[#a8c4a2] mb-2">03 · Collection</div>
+                  <div className="text-xs tracking-[0.2em] uppercase text-[#a8c4a2] mb-3">03 · Collection</div>
                   <div className="h-12 w-12 rounded-full bg-white/10 backdrop-blur flex items-center justify-center">
                     <Sparkles className="h-5 w-5 text-[#a8c4a2]" />
                   </div>
                 </div>
-                <h3 className="text-3xl mt-3" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                <h3 className="text-3xl mt-4" style={{ fontFamily: "'DM Serif Display', serif" }}>
                   קטלוג האביזרים
                 </h3>
-                <p className="text-sm text-[#f8ede4]/70 mt-3 leading-relaxed">
+                <p className="text-base text-[#f8ede4]/70 mt-4 leading-relaxed">
                   מעל <CountUp end={400} suffix="" className="text-[#a8c4a2] font-semibold" /> פריטים ייחודיים לצילומי ניוברן, ילדים והריון — וינטג׳, מקרמה, סרוגים ועבודות יד.
                 </p>
 
-                <div className="mt-8 grid grid-cols-3 gap-2 text-center">
+                <div className="mt-8 grid grid-cols-3 gap-3 text-center">
                   {["וינטג׳", "מקרמה", "סרוגים"].map((t) => (
                     <div key={t} className="rounded-full border border-white/15 py-2 text-[11px] tracking-wider">{t}</div>
                   ))}
@@ -399,7 +399,7 @@ function Home() {
 
                 <div className="mt-auto pt-8 flex items-end justify-between border-t border-white/10">
                   <div>
-                    <div className="text-[10px] uppercase tracking-wider text-[#a8c4a2]/70">החל מ-</div>
+                    <div className="text-xs uppercase tracking-wider text-[#a8c4a2]/70">החל מ-</div>
                     <div className="text-2xl" style={{ fontFamily: "'DM Serif Display', serif" }}>₪50</div>
                   </div>
                   <span className="inline-flex items-center gap-2 bg-[#f5d5cf] text-[#2d3d2b] px-5 py-2.5 rounded-full text-sm font-semibold group-hover:bg-[#f8ede4] transition-colors">
@@ -415,29 +415,29 @@ function Home() {
 
 
       {/* TRUST STRIP */}
-      <section className="container-page pb-16 md:pb-24" dir="rtl">
-        <div className="rounded-[2rem] bg-[#f5d5cf] p-8 md:p-12 relative overflow-hidden">
+      <section className="container-page pb-20 md:pb-32" dir="rtl">
+        <div className="rounded-[2.5rem] bg-[#f5d5cf] p-10 md:p-16 relative overflow-hidden">
           <motion.div
             aria-hidden
             animate={{ rotate: 360 }} transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
             className="absolute -top-16 -left-16 h-64 w-64 rounded-full border-2 border-dashed border-[#2d3d2b]/15"
           />
-          <div className="grid md:grid-cols-4 gap-8 items-center relative">
+          <div className="grid md:grid-cols-4 gap-10 items-start relative">
             {[
-              { icon: Heart, title: "רגעים אמיתיים", desc: "אווירה רגועה שמאפשרת לילד להיות עצמו" },
-              { icon: Sparkles, title: "עיצוב מוקפד", desc: "אביזרים בעבודת יד וטקסטורות ייחודיות" },
-              { icon: Camera, title: "אמנות ולא רק צילום", desc: "כל תמונה נבנית כמו יצירה" },
-              { icon: MapPin, title: "בלב בית שמש", desc: "חנייה נוחה, כניסה נגישה, חלל אינטימי" },
+              { icon: Heart, title: "רגעים אמיתיים", desc: "אווירה רגועה שמאפשרת לילד להיות עצמו ולבטא רגשות טבעיים." },
+              { icon: Sparkles, title: "עיצוב מוקפד", desc: "אביזרים ייחודיים בעבודת יד וטקסטורות עשירות המעניקות עומק." },
+              { icon: Camera, title: "אמנות ולא רק צילום", desc: "כל תמונה נבנית בקפידה ותשומת לב כפריט אמנות יחיד במינו." },
+              { icon: MapPin, title: "בלב בית שמש", desc: "חנייה נוחה ונגישה, כניסה פרטית, וחלל אינטימי מזמין." },
             ].map((f, i) => (
               <motion.div
                 key={f.title} custom={i} initial="hidden" whileInView="show" viewport={{ once: true }} variants={fadeUp}
                 className="text-[#2d3d2b]"
               >
-                <div className="h-12 w-12 rounded-2xl bg-white/60 backdrop-blur flex items-center justify-center mb-4">
-                  <f.icon className="h-5 w-5" />
+                <div className="h-14 w-14 rounded-2xl bg-white/70 backdrop-blur flex items-center justify-center mb-5">
+                  <f.icon className="h-6 w-6" />
                 </div>
-                <div className="text-lg font-semibold" style={{ fontFamily: "'DM Serif Display', serif" }}>{f.title}</div>
-                <div className="text-sm text-[#2d3d2b]/70 mt-1 leading-relaxed">{f.desc}</div>
+                <div className="text-xl font-semibold" style={{ fontFamily: "'DM Serif Display', serif" }}>{f.title}</div>
+                <div className="text-base text-[#2d3d2b]/70 mt-2 leading-relaxed">{f.desc}</div>
               </motion.div>
             ))}
           </div>
@@ -445,21 +445,21 @@ function Home() {
       </section>
 
       {/* TESTIMONIALS */}
-      <section id="testimonials" className="container-page pb-16 md:pb-24 scroll-mt-28" dir="rtl">
-        <div className="text-center mb-12">
-          <div className="text-xs tracking-[0.3em] uppercase text-[#6b8a63] font-medium mb-3">
+      <section id="testimonials" className="container-page pb-20 md:pb-32 scroll-mt-28" dir="rtl">
+        <div className="text-center mb-16">
+          <div className="text-sm tracking-[0.25em] uppercase text-[#6b8a63] font-medium mb-4">
             מה אומרות המשפחות
           </div>
-          <h2 className="text-4xl md:text-5xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+          <h2 className="text-4xl md:text-5xl text-[#2d3d2b] tracking-tight" style={{ fontFamily: "'DM Serif Display', serif" }}>
             חוויות מהסטודיו
           </h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10">
           {[
             {
               name: "מיכל אזולאי",
               initial: "א",
-              text: "הגענו לצילומי ניוברן כשהיינו מותשים אחרי הלידה, ומיכל ידעה בדיוק איך להרגיע את כולנו. התמונות יצאו מעבר לציפיות — ממש יצירות אמנות.",
+              text: "הגענו לצילומי ניוברן כשהיינו מותשים אחרי הלידה, ומיכל ידעה בדיוק איך להרגיע את כולנו. התמונות יצאו מעבר לציפיות — ממש יצירות אמנות המנציחות רגעים קסומים.",
             },
             {
               name: "חני גוטליב",
@@ -475,22 +475,22 @@ function Home() {
             <motion.div
               key={t.name}
               initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={i} variants={fadeUp}
-              className="bg-white rounded-[2rem] p-8 border border-[#2d3d2b]/5 flex flex-col"
+              className="bg-white rounded-[2.5rem] p-10 border border-[#2d3d2b]/5 flex flex-col"
             >
-              <div className="flex gap-0.5 mb-4">
+              <div className="flex gap-0.5 mb-5">
                 {Array.from({ length: 5 }).map((_, s) => (
                   <Star key={s} className="h-4 w-4 fill-[#f5d5cf] text-[#f5d5cf]" />
                 ))}
               </div>
-              <p className="text-sm text-[#2d3d2b]/80 leading-relaxed flex-grow">&ldquo;{t.text}&rdquo;</p>
-              <div className="mt-6 pt-6 border-t border-[#2d3d2b]/10 flex items-center gap-3">
+              <p className="text-base text-[#2d3d2b]/80 leading-relaxed flex-grow">&ldquo;{t.text}&rdquo;</p>
+              <div className="mt-8 pt-8 border-t border-[#2d3d2b]/10 flex items-center gap-3">
                 <div
-                  className="h-10 w-10 rounded-full bg-[#a8c4a2] text-[#2d3d2b] flex items-center justify-center shrink-0"
+                  className="h-11 w-11 rounded-full bg-[#a8c4a2] text-[#2d3d2b] flex items-center justify-center shrink-0"
                   style={{ fontFamily: "'DM Serif Display', serif" }}
                 >
                   {t.initial}
                 </div>
-                <div className="text-sm font-medium text-[#2d3d2b]">{t.name}</div>
+                <div className="text-base font-medium text-[#2d3d2b] tracking-wide">{t.name}</div>
               </div>
             </motion.div>
           ))}
