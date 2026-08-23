@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, Link, redirect, useRouterState } from "@tansta
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { Package, Users, CalendarDays, ShoppingBag, LayoutDashboard, Images, Camera, Wallet, Ticket, Bot } from "lucide-react";
+import { Package, Users, CalendarDays, ShoppingBag, LayoutDashboard, Images, Camera, Wallet, Ticket, Bot, MessageCircleQuestion } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   ssr: false,
@@ -24,6 +24,7 @@ const links = [
   { to: "/admin/finance", label: "הכנסות והוצאות", icon: Wallet },
   { to: "/admin/coupons", label: "קופונים", icon: Ticket },
   { to: "/admin/site-bot", label: "בוט עריכה", icon: Bot },
+  { to: "/admin/site-bot-ask", label: "בוט מידע כללי", icon: MessageCircleQuestion },
   { to: "/admin/gallery", label: "גלריות", icon: Images },
   { to: "/admin/inspiration", label: "השראה למק״ט", icon: Camera },
 ];
@@ -41,8 +42,7 @@ function AdminLayout() {
           <aside className="bg-card rounded-2xl p-3 border border-primary/5 h-fit sticky top-24">
             <nav className="flex flex-col gap-1">
               {links.map((l) => {
-                const active = l.exact ? path === l.to : path.startsWith(l.to) && path !== "/admin";
-                const isActive = l.exact ? path === "/admin" : active;
+                const isActive = l.exact ? path === l.to : path === l.to || path.startsWith(`${l.to}/`);
                 return (
                   <Link
                     key={l.to}
