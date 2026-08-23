@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Ticket } from "lucide-react";
+import { Plus, Pencil, Trash2, Ticket, Gift } from "lucide-react";
 import { heError } from "@/lib/he-errors";
 
 export const Route = createFileRoute("/_authenticated/admin/coupons")({
@@ -24,6 +24,7 @@ type Coupon = {
   active: boolean;
   expires_at: string | null;
   created_at: string;
+  newsletter_default: boolean;
 };
 
 type CouponForm = {
@@ -33,9 +34,17 @@ type CouponForm = {
   discount_amount: number;
   active: boolean;
   expires_at: string; // yyyy-mm-dd, empty = no expiry
+  newsletter_default: boolean;
 };
 
-const empty: CouponForm = { code: "", discount_percent: 10, discount_amount: 0, active: true, expires_at: "" };
+const empty: CouponForm = {
+  code: "",
+  discount_percent: 10,
+  discount_amount: 0,
+  active: true,
+  expires_at: "",
+  newsletter_default: false,
+};
 
 function CouponsAdmin() {
   const qc = useQueryClient();
@@ -65,6 +74,7 @@ function CouponsAdmin() {
       discount_amount: Number(c.discount_amount),
       active: c.active,
       expires_at: c.expires_at ? c.expires_at.slice(0, 10) : "",
+      newsletter_default: c.newsletter_default,
     });
     setOpen(true);
   };
@@ -76,12 +86,18 @@ function CouponsAdmin() {
       return toast.error("יש להזין אחוז הנחה ו/או סכום הנחה גדול מ-0");
     }
     setSaving(true);
+    // Only one coupon can be the newsletter default at a time — clear any
+    // previous one before this save takes the spot.
+    if (form.newsletter_default) {
+      await supabase.from("coupons").update({ newsletter_default: false }).eq("newsletter_default", true);
+    }
     const payload = {
       code,
       discount_percent: Math.max(0, Math.min(100, Math.floor(form.discount_percent || 0))),
       discount_amount: Math.max(0, Number(form.discount_amount || 0)),
       active: form.active,
       expires_at: form.expires_at ? new Date(form.expires_at).toISOString() : null,
+      newsletter_default: form.newsletter_default,
     };
     const { error } = form.id
       ? await supabase.from("coupons").update(payload).eq("id", form.id)
@@ -96,6 +112,17 @@ function CouponsAdmin() {
   const toggleActive = async (c: Coupon) => {
     const { error } = await supabase.from("coupons").update({ active: !c.active }).eq("id", c.id);
     if (error) return toast.error(heError(error.message));
+    qc.invalidateQueries({ queryKey: ["admin-coupons"] });
+  };
+
+  const toggleNewsletterDefault = async (c: Coupon) => {
+    const next = !c.newsletter_default;
+    if (next) {
+      await supabase.from("coupons").update({ newsletter_default: false }).eq("newsletter_default", true);
+    }
+    const { error } = await supabase.from("coupons").update({ newsletter_default: next }).eq("id", c.id);
+    if (error) return toast.error(heError(error.message));
+    toast.success(next ? `${c.code} יוצג בטופס ההרשמה בתחתית האתר` : "הוסר מטופס ההרשמה");
     qc.invalidateQueries({ queryKey: ["admin-coupons"] });
   };
 
@@ -129,6 +156,7 @@ function CouponsAdmin() {
 
       <p className="text-sm text-forest/70">
         קופונים תקפים גם בהשכרת סטודיו וגם בהשכרת אביזרים. קוד לא פעיל, או שפג תוקפו, יידחה אוטומטית בקופה.
+        סמנו קופון אחד כ"ברירת מחדל לניוזלטר" כדי שהוא יוצג ויתגלה בטופס ההרשמה בתחתית האתר.
       </p>
 
       <div className="bg-card rounded-2xl border border-primary/5 overflow-x-auto">
@@ -139,6 +167,7 @@ function CouponsAdmin() {
               <th className="p-3 font-medium">הנחה</th>
               <th className="p-3 font-medium">תוקף</th>
               <th className="p-3 font-medium">פעיל</th>
+              <th className="p-3 font-medium">ניוזלטר</th>
               <th className="p-3 font-medium">פעולות</th>
             </tr>
           </thead>
@@ -167,6 +196,19 @@ function CouponsAdmin() {
                   </button>
                 </td>
                 <td className="p-3">
+                  <button
+                    onClick={() => toggleNewsletterDefault(c)}
+                    title="הצג/הסתר בטופס ההרשמה לניוזלטר בתחתית האתר"
+                  >
+                    <Badge
+                      variant={c.newsletter_default ? "default" : "outline"}
+                      className="cursor-pointer gap-1"
+                    >
+                      <Gift className="h-3 w-3" /> {c.newsletter_default ? "מוצג" : "כבוי"}
+                    </Badge>
+                  </button>
+                </td>
+                <td className="p-3">
                   <div className="flex items-center gap-1">
                     <Button size="icon" variant="ghost" onClick={() => openEdit(c)}>
                       <Pencil className="h-4 w-4" />
@@ -180,7 +222,7 @@ function CouponsAdmin() {
             ))}
             {coupons.data?.length === 0 && (
               <tr>
-                <td colSpan={5} className="p-6 text-center text-forest/60">
+                <td colSpan={6} className="p-6 text-center text-forest/60">
                   אין קופונים עדיין
                 </td>
               </tr>
@@ -236,6 +278,13 @@ function CouponsAdmin() {
             <div className="flex items-center gap-2">
               <Switch checked={form.active} onCheckedChange={(v) => setForm((f) => ({ ...f, active: v }))} />
               <Label>פעיל</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={form.newsletter_default}
+                onCheckedChange={(v) => setForm((f) => ({ ...f, newsletter_default: v }))}
+              />
+              <Label>ברירת מחדל לניוזלטר (מוצג בטופס ההרשמה בתחתית האתר)</Label>
             </div>
           </div>
           <DialogFooter>
