@@ -44,7 +44,13 @@ export const adminSetStatus = createServerFn({ method: "POST" })
       // Both bookings AND props orders get a Google Calendar event once
       // payment is confirmed (see confirmBookingDeposit / confirmOrderDeposit),
       // so google_event_id is selected for both kinds, not just bookings.
-      .select("id, user_id, status, credit_used_cashback, credit_used_manual, google_event_id")
+      // subscription_pass_id only exists on bookings, not orders (props
+      // rental never touches a studio-visit pass).
+      .select(
+        data.kind === "booking"
+          ? "id, user_id, status, credit_used_cashback, credit_used_manual, google_event_id, subscription_pass_id"
+          : "id, user_id, status, credit_used_cashback, credit_used_manual, google_event_id",
+      )
       .eq("id", data.id)
       .maybeSingle();
     if (fetchErr || !row) throw new Error("הרשומה לא נמצאה");
@@ -73,6 +79,17 @@ export const adminSetStatus = createServerFn({ method: "POST" })
         }
       } catch (e) {
         console.error("[SWEETBABY] credit refund on admin cancel failed", e);
+      }
+
+      const passId = (row as { subscription_pass_id?: string | null }).subscription_pass_id;
+      if (passId) {
+        const { data: p } = await supabaseAdmin.from("subscription_passes").select("entries_used").eq("id", passId).maybeSingle();
+        if (p) {
+          await supabaseAdmin
+            .from("subscription_passes")
+            .update({ entries_used: Math.max(0, Number(p.entries_used) - 1) })
+            .eq("id", passId);
+        }
       }
 
       const googleEventId = (row as { google_event_id?: string }).google_event_id;

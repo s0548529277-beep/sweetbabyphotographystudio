@@ -233,9 +233,32 @@ function Booking() {
       .then(({ data }) => setCreditBalance(Number(data?.credit_balance ?? 0)));
   }, [user]);
 
+  // "SWEET 10+1" style studio-visit pass — covers the first hour if the
+  // customer has an active pass with entries left (admin-issued manually,
+  // see /admin/subscriptions). Deduction order mirrors the server
+  // (placeBooking): coupon, then pass, then credit — so this preview
+  // matches what actually gets charged.
+  const [passRemaining, setPassRemaining] = useState<number | null>(null);
+  const [usePass, setUsePass] = useState(false);
+  useEffect(() => {
+    if (!user) { setPassRemaining(null); return; }
+    supabase
+      .from("subscription_passes" as never)
+      .select("total_entries, entries_used")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .then(({ data }) => {
+        const rows = (data ?? []) as unknown as { total_entries: number; entries_used: number }[];
+        const remaining = rows.reduce((sum, p) => sum + Math.max(0, Number(p.total_entries) - Number(p.entries_used)), 0);
+        setPassRemaining(remaining > 0 ? remaining : null);
+      });
+  }, [user]);
+
   const afterCoupon = Math.max(0, price - couponOff);
-  const creditApplied = useCredit ? Math.min(creditBalance, afterCoupon) : 0;
-  const finalPrice = Math.max(0, afterCoupon - creditApplied);
+  const passApplied = usePass && passRemaining ? Math.min(afterCoupon, Math.min(slots, 2) * 60) : 0;
+  const afterPass = Math.max(0, afterCoupon - passApplied);
+  const creditApplied = useCredit ? Math.min(creditBalance, afterPass) : 0;
+  const finalPrice = Math.max(0, afterPass - creditApplied);
 
   const applyCoupon = async () => {
     const code = coupon.trim().toUpperCase();
@@ -286,6 +309,7 @@ function Booking() {
           reserved_items: reservedSkus,
           guidance: guidanceKey,
           coupon: coupon.trim() ? coupon.trim().toUpperCase() : null,
+          use_pass: passApplied > 0 ? true : undefined,
           use_credit: creditApplied > 0 ? creditApplied : undefined,
 
           terms_accepted: true as const,
@@ -620,6 +644,12 @@ function Booking() {
                   <span>-₪{couponOff}</span>
                 </div>
               )}
+              {passApplied > 0 && (
+                <div className="flex items-baseline justify-between text-[11px] text-[#f5d5cf] mb-1">
+                  <span>כניסה מהכרטיסייה · שעה ראשונה</span>
+                  <span>-₪{passApplied}</span>
+                </div>
+              )}
               {creditApplied > 0 && (
                 <div className="flex items-baseline justify-between text-[11px] text-[#f5d5cf] mb-1">
                   <span>קרדיט לקוחה</span>
@@ -630,6 +660,18 @@ function Booking() {
                 <span className="text-[#f8ede4]/70 text-xs">סה״כ</span>
                 <span className="font-display text-3xl text-[#f5d5cf]">₪{finalPrice}</span>
               </div>
+
+              {passRemaining !== null && passRemaining > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setUsePass((v) => !v)}
+                  className={`w-full mb-3 h-9 rounded-full text-xs font-medium transition-colors ${
+                    usePass ? "bg-[#f5d5cf] text-[#2d3d2b]" : "bg-transparent border border-[#f5d5cf]/50 text-[#f5d5cf]"
+                  }`}
+                >
+                  {usePass ? "✓ " : ""}השתמשי בכרטיסייה שלך (נותרו {passRemaining} כניסות)
+                </button>
+              )}
 
               {creditBalance > 0 && (
                 <button

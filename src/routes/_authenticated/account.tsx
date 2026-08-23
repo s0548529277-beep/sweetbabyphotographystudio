@@ -112,6 +112,23 @@ function Account() {
     enabled: !!user,
   });
 
+  // Studio-visit passes (e.g. "SWEET 10+1") — admin-issued after a manual
+  // bank transfer, see /admin/subscriptions. Shown here so a customer can
+  // see how many entries she has left; active ones with entries remaining
+  // also power the "השתמשי בכרטיסייה שלך" toggle in /booking.
+  const passesQ = useQuery({
+    queryKey: ["my-passes", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("subscription_passes" as never)
+        .select("*")
+        .order("purchased_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as { id: string; plan_name: string; total_entries: number; entries_used: number; status: string; purchased_at: string }[];
+    },
+    enabled: !!user,
+  });
+
   const save = async () => {
     setBusy(true);
     const { error } = await supabase.from("profiles").upsert({ id: user!.id, ...profile });
@@ -142,6 +159,17 @@ function Account() {
               <div className="mb-4 rounded-2xl bg-peach/30 border border-peach px-4 py-3">
                 <div className="text-xs text-muted-foreground">קרדיט זמין להזמנות הבאות</div>
                 <div className="font-display text-2xl text-primary">₪{Number(loyaltyQ.data!.credit_balance).toFixed(0)}</div>
+              </div>
+            )}
+            {(passesQ.data?.length ?? 0) > 0 && (
+              <div className="mb-4 rounded-2xl bg-cream/60 border border-primary/10 px-4 py-3 space-y-2">
+                <div className="text-xs text-muted-foreground">כרטיסיית כניסות (SWEET 10+1)</div>
+                {passesQ.data!.map((p) => (
+                  <div key={p.id} className={`flex items-center justify-between ${p.status === "cancelled" ? "opacity-50" : ""}`}>
+                    <span className="text-sm text-primary">{p.plan_name}{p.status === "cancelled" ? " · בוטלה" : ""}</span>
+                    <span className="font-display text-lg text-primary">{Math.max(0, p.total_entries - p.entries_used)} / {p.total_entries}</span>
+                  </div>
+                ))}
               </div>
             )}
             <div className="space-y-3">

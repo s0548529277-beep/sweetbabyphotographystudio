@@ -72,6 +72,7 @@ const inputSchema = z.object({
   guidance: z.string().max(60).optional().nullable(),
   coupon: z.string().max(40).optional().nullable(),
   use_credit: z.number().nonnegative().max(100000).optional(),
+  use_pass: z.boolean().optional(),
 
   terms_accepted: z.literal(true),
 });
@@ -116,6 +117,27 @@ export const placeBooking = createServerFn({ method: "POST" })
       couponCodeUsed = c!.code;
       couponDiscount = off;
       if (c!.single_use) couponIdToRedeem = c!.id;
+    }
+
+    // Optional: cover the first hour using an active studio-visit pass
+    // (e.g. "SWEET 10+1") instead of paying for it. Extra hours beyond the
+    // first are never covered — always paid separately, per the offer.
+    let passIdToRedeem: string | null = null;
+    let passNote: string | null = null;
+    if (data.use_pass) {
+      const { data: passes } = await supabase
+        .from("subscription_passes")
+        .select("id, total_entries, entries_used")
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .order("purchased_at", { ascending: true })
+        .limit(50);
+      const usable = (passes ?? []).find((p: any) => Number(p.entries_used) < Number(p.total_entries));
+      if (!usable) throw new Error("אין לך כרטיסייה פעילה עם כניסות זמינות");
+      const firstHourValue = Math.min(price, Math.min(data.slots, 2) * 60);
+      price = Math.max(0, price - firstHourValue);
+      passNote = `כניסה מהכרטיסייה · שעה ראשונה מכוסה (₪${firstHourValue})`;
+      passIdToRedeem = usable.id;
     }
 
     // Optional store credit from the customer's cashback loyalty balance.
@@ -187,11 +209,13 @@ export const placeBooking = createServerFn({ method: "POST" })
         deposit_status: "pending",
         coupon_code: couponCodeUsed,
         coupon_discount: couponDiscount,
+        subscription_pass_id: passIdToRedeem,
         contact_name: data.contact_name,
         contact_phone: data.contact_phone,
         notes: [
           guidanceFee > 0 ? `חבילת הדרכה: ${GUIDANCE_LABELS[guidanceKey]} (+₪${guidanceFee})` : null,
           couponNote,
+          passNote,
           creditNote,
           data.notes,
         ]
@@ -209,6 +233,17 @@ export const placeBooking = createServerFn({ method: "POST" })
     if (couponIdToRedeem) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       await supabaseAdmin.from("coupons").update({ redeemed_at: new Date().toISOString() }).eq("id", couponIdToRedeem);
+    }
+
+    // Same for the pass entry — increment its usage now that the booking
+    // that consumed it really exists.
+    if (passIdToRedeem) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: p } = await supabaseAdmin.from("subscription_passes").select("entries_used").eq("id", passIdToRedeem).maybeSingle();
+      await supabaseAdmin
+        .from("subscription_passes")
+        .update({ entries_used: Number(p?.entries_used ?? 0) + 1 })
+        .eq("id", passIdToRedeem);
     }
 
     if (creditUsed > 0) {
@@ -343,7 +378,7 @@ export const cancelBooking = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: b, error } = await supabase
       .from("bookings")
-      .select("id, user_id, status, google_event_id, credit_used_cashback, credit_used_manual")
+      .select("id, user_id, status, google_event_id, credit_used_cashback, credit_used_manual, subscription_pass_id")
       .eq("id", data.id)
       .maybeSingle();
     if (error || !b) throw new Error("השריון לא נמצא");
@@ -359,6 +394,18 @@ export const cancelBooking = createServerFn({ method: "POST" })
 
     const { error: upErr } = await supabase.from("bookings").update({ status: "cancelled" }).eq("id", data.id);
     if (upErr) throw new Error(upErr.message);
+
+    // Refund the pass entry this booking consumed, if any.
+    const passId = (b as { subscription_pass_id?: string | null }).subscription_pass_id;
+    if (passId) {
+      const { data: p } = await supabaseAdmin.from("subscription_passes").select("entries_used").eq("id", passId).maybeSingle();
+      if (p) {
+        await supabaseAdmin
+          .from("subscription_passes")
+          .update({ entries_used: Math.max(0, Number(p.entries_used) - 1) })
+          .eq("id", passId);
+      }
+    }
 
     // Refund any loyalty credit applied at checkout — into whichever bucket
     // it actually came from (see credit_used_cashback/manual), each an
