@@ -177,6 +177,15 @@ function ItemsAdmin() {
     qc.invalidateQueries({ queryKey: ["items"] });
   };
 
+  // Inline, spreadsheet-style edits straight from the table cells — no
+  // dialog needed for the fields people change most often.
+  const updateItemField = async (id: string, patch: Record<string, unknown>) => {
+    const { error } = await supabase.from("items").update(patch).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    qc.invalidateQueries({ queryKey: ["admin-items"] });
+    qc.invalidateQueries({ queryKey: ["items"] });
+  };
+
   const del = async (id: string) => {
     if (!confirm("למחוק?")) return;
     const { error } = await supabase.from("items").delete().eq("id", id);
@@ -575,7 +584,7 @@ function ItemsAdmin() {
 
       <div className="bg-card rounded-2xl border border-primary/5 overflow-hidden">
         <div className="px-4 py-2 text-xs text-muted-foreground border-b border-border">
-          גררו שורות כדי לשנות את סדר האביזרים — הסדר מתעדכן אוטומטית בקטלוג ובכל דפי האביזרים.
+          לחצו על שם, קטגוריה, מחיר, כמות או מצב בטבלה כדי לערוך ישירות — נשמר אוטומטית. גררו שורות כדי לשנות את הסדר — הסדר מתעדכן אוטומטית בקטלוג ובכל דפי האביזרים.
           {savingOrder ? " · שומר…" : ""}
         </div>
         <table className="w-full text-sm">
@@ -587,6 +596,7 @@ function ItemsAdmin() {
               <th className="p-3 font-medium">שם</th>
               <th className="p-3 font-medium">קטגוריה</th>
               <th className="p-3 font-medium">מחיר</th>
+              <th className="p-3 font-medium">כמות</th>
               <th className="p-3 font-medium">מצב</th>
               <th className="p-3" />
             </tr>
@@ -626,10 +636,72 @@ function ItemsAdmin() {
                 </td>
 
                 <td className="p-3 tracking-wider text-xs">{i.sku}</td>
-                <td className="p-3 font-medium">{i.name}</td>
-                <td className="p-3 text-muted-foreground">{i.categories?.name ?? "—"}</td>
-                <td className="p-3 font-display text-peach-deep">₪{Number(i.price).toFixed(0)}</td>
-                <td className="p-3">{i.active ? <Badge variant="secondary">פעיל</Badge> : <Badge variant="outline">מוסתר</Badge>}</td>
+
+                <td className="p-3">
+                  <Input
+                    key={`name-${i.id}-${i.name}`}
+                    defaultValue={i.name}
+                    onBlur={(e) => {
+                      const v = e.target.value.trim();
+                      if (v && v !== i.name) updateItemField(i.id, { name: v });
+                    }}
+                    className="h-8 min-w-[8rem] border-transparent bg-transparent hover:border-input focus:border-input"
+                  />
+                </td>
+
+                <td className="p-3">
+                  <Select
+                    value={i.category_id ?? "none"}
+                    onValueChange={(v) => updateItemField(i.id, { category_id: v === "none" ? null : v })}
+                  >
+                    <SelectTrigger className="h-8 w-36 border-transparent bg-transparent hover:border-input">
+                      <SelectValue placeholder="בחר קטגוריה" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">— ללא —</SelectItem>
+                      {categories.data?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </td>
+
+                <td className="p-3">
+                  <div className="flex items-center gap-1">
+                    <span className="text-muted-foreground text-xs">₪</span>
+                    <Input
+                      key={`price-${i.id}-${i.price}`}
+                      type="number"
+                      defaultValue={Number(i.price)}
+                      onBlur={(e) => {
+                        const v = Number(e.target.value);
+                        if (!Number.isNaN(v) && v !== Number(i.price)) updateItemField(i.id, { price: v });
+                      }}
+                      className="h-8 w-20 border-transparent bg-transparent hover:border-input focus:border-input"
+                    />
+                  </div>
+                </td>
+
+                <td className="p-3">
+                  <Input
+                    key={`stock-${i.id}-${i.stock_quantity}`}
+                    type="number"
+                    min={1}
+                    defaultValue={Number(i.stock_quantity ?? 1)}
+                    onBlur={(e) => {
+                      const v = Math.max(1, Math.floor(Number(e.target.value)) || 1);
+                      if (v !== Number(i.stock_quantity ?? 1)) updateItemField(i.id, { stock_quantity: v });
+                    }}
+                    className="h-8 w-16 border-transparent bg-transparent hover:border-input focus:border-input"
+                  />
+                </td>
+
+                <td className="p-3">
+                  <button onClick={() => updateItemField(i.id, { active: !i.active })}>
+                    <Badge variant={i.active ? "secondary" : "outline"} className="cursor-pointer">
+                      {i.active ? "פעיל" : "מוסתר"}
+                    </Badge>
+                  </button>
+                </td>
+
                 <td className="p-3 text-left">
                   <div className="inline-flex gap-1">
                     <Button size="icon" variant="ghost" onClick={() => editItem(i)}><Pencil className="h-4 w-4" /></Button>
@@ -639,7 +711,7 @@ function ItemsAdmin() {
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={8} className="p-16 text-center text-muted-foreground">אין אביזרים עדיין. לחצו על "אביזר חדש".</td></tr>
+              <tr><td colSpan={9} className="p-16 text-center text-muted-foreground">אין אביזרים עדיין. לחצו על "אביזר חדש".</td></tr>
             )}
           </tbody>
         </table>
