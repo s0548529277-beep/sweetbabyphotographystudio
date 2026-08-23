@@ -2,14 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { proposeSiteChange, listSiteChanges, mergeSiteChange, rejectSiteChange, askSiteData, listSiteQuestions } from "@/lib/admin-site-bot.functions";
+import { proposeSiteChange, listSiteChanges, mergeSiteChange, rejectSiteChange } from "@/lib/admin-site-bot.functions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Sparkles, ExternalLink, Check, X, Bot, MessageCircleQuestion, Code2 } from "lucide-react";
+import { Sparkles, ExternalLink, Check, X, Bot } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/site-bot")({
   component: SiteBotAdmin,
@@ -42,27 +42,6 @@ function SiteBotAdmin() {
   const list = useServerFn(listSiteChanges);
   const merge = useServerFn(mergeSiteChange);
   const reject = useServerFn(rejectSiteChange);
-  const ask = useServerFn(askSiteData);
-  const listQuestions = useServerFn(listSiteQuestions);
-
-  const [tab, setTab] = useState<"edit" | "ask">("edit");
-  const [question, setQuestion] = useState("");
-  const [asking, setAsking] = useState(false);
-  const questions = useQuery({ queryKey: ["site-bot-questions"], queryFn: () => listQuestions({}), enabled: tab === "ask" });
-
-  const submitQuestion = async () => {
-    if (!question.trim()) return toast.error("צריך לשאול משהו");
-    setAsking(true);
-    try {
-      await ask({ data: { question: question.trim() } });
-      setQuestion("");
-      qc.invalidateQueries({ queryKey: ["site-bot-questions"] });
-    } catch (e: any) {
-      toast.error(e?.message ?? "השאלה נכשלה");
-    } finally {
-      setAsking(false);
-    }
-  };
 
   const [targetChoice, setTargetChoice] = useState(COMMON_TARGETS[0].path);
   const [customPath, setCustomPath] = useState("");
@@ -78,7 +57,7 @@ function SiteBotAdmin() {
     if (!targetPath.trim()) return toast.error("צריך לבחור או להקליד קובץ יעד");
     setBusy(true);
     try {
-      const res = await propose({ data: { instruction: instruction.trim(), target_path: targetPath.trim() } });
+      await propose({ data: { instruction: instruction.trim(), target_path: targetPath.trim() } });
       toast.success("נוצרה טיוטה — סקור ואשר למטה");
       setInstruction("");
       qc.invalidateQueries({ queryKey: ["site-bot-requests"] });
@@ -111,67 +90,6 @@ function SiteBotAdmin() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setTab("edit")}
-          className={`text-sm px-4 py-2 rounded-full border flex items-center gap-1.5 transition ${
-            tab === "edit" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/40"
-          }`}
-        >
-          <Code2 className="h-3.5 w-3.5" /> עריכת קוד/עיצוב
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("ask")}
-          className={`text-sm px-4 py-2 rounded-full border flex items-center gap-1.5 transition ${
-            tab === "ask" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/40"
-          }`}
-        >
-          <MessageCircleQuestion className="h-3.5 w-3.5" /> שאלות על הנתונים
-        </button>
-      </div>
-
-      {tab === "ask" && (
-        <div className="space-y-6">
-          <div className="bg-card rounded-2xl border border-primary/5 p-5">
-            <h2 className="font-display text-xl text-primary mb-1 flex items-center gap-2">
-              <MessageCircleQuestion className="h-5 w-5" /> שאלות על הנתונים
-            </h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              שואלים בעברית, מקבלים תשובה מספרים אמיתיים מה-DB. <b>קריאה בלבד</b> — לא ניתן לשנות/למחוק כלום דרך כאן, גם לא ברמת מסד הנתונים.
-            </p>
-            <div className="flex gap-2">
-              <Textarea
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                placeholder='למשל: "כמה הרווחתי באשראי בחודש שעבר?" או "כמה לקוחות חדשים נרשמו השבוע?"'
-                rows={2}
-                className="flex-1"
-              />
-            </div>
-            <Button onClick={submitQuestion} disabled={asking} className="rounded-full gap-2 mt-3">
-              <Sparkles className="h-4 w-4" /> {asking ? "בודקת…" : "שאל"}
-            </Button>
-          </div>
-
-          <div className="space-y-2">
-            {(questions.data ?? []).map((q: any) => (
-              <div key={q.id} className="bg-card rounded-xl border border-primary/5 p-4">
-                <p className="text-sm font-medium mb-1">{q.question}</p>
-                {q.error ? (
-                  <p className="text-xs text-destructive">{q.error}</p>
-                ) : (
-                  <p className="text-sm text-muted-foreground whitespace-pre-line">{q.answer}</p>
-                )}
-              </div>
-            ))}
-            {(questions.data ?? []).length === 0 && <p className="text-sm text-muted-foreground text-center py-10">עדיין לא נשאלו שאלות.</p>}
-          </div>
-        </div>
-      )}
-
-      {tab === "edit" && (
       <div className="bg-card rounded-2xl border border-primary/5 p-5">
         <h2 className="font-display text-xl text-primary mb-1 flex items-center gap-2">
           <Bot className="h-5 w-5" /> בוט עריכת אתר
@@ -267,7 +185,6 @@ function SiteBotAdmin() {
           {(requests.data ?? []).length === 0 && <p className="text-sm text-muted-foreground text-center py-10">אין עדיין בקשות שינוי.</p>}
         </div>
       </div>
-      )}
     </div>
   );
 }
