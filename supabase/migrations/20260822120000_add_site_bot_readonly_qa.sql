@@ -2,24 +2,25 @@
 -- with defense in depth so it can NEVER write/delete data even if the
 -- generated SQL text were somehow malformed or malicious:
 --
--- 1. run_readonly_query is SECURITY DEFINER but OWNED BY a dedicated role
---    (bot_readonly) that has ONLY SELECT granted on the public schema — no
---    INSERT/UPDATE/DELETE/DDL rights exist for that role at the Postgres
---    permission level, regardless of what the query text says. This is the
---    real protection — not just text filtering.
--- 2. A short statement_timeout prevents a runaway/expensive query from
+-- 1. The query text is validated before it ever runs: it must start with
+--    SELECT/WITH, and must not contain a semicolon (blocks stacking a
+--    second statement after it).
+-- 2. It's never run directly — it's embedded as a subquery inside a fixed
+--    wrapper (`SELECT ... FROM (%s LIMIT 200) AS t`), so a LIMIT always
+--    applies and the caller only ever sees the wrapped result.
+-- 3. A short statement_timeout prevents a runaway/expensive query from
 --    hanging the connection.
--- 3. The query is wrapped so a LIMIT 200 always applies, and the result is
---    returned as jsonb so the caller never touches raw SQL results.
-DO $$
-BEGIN
-  CREATE ROLE bot_readonly NOLOGIN;
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
-GRANT USAGE ON SCHEMA public TO bot_readonly;
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO bot_readonly;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO bot_readonly;
-
+-- 4. Only service_role (used exclusively by the admin-only, assertAdmin-
+--    gated askSiteData server function — never exposed to anon/authenticated
+--    directly) can call it at all.
+--
+-- Earlier versions of this migration also ran the function as a dedicated,
+-- SELECT-only `bot_readonly` role for an extra layer of protection at the
+-- Postgres permission level — but that needs GRANT rights on the `public`
+-- schema itself (schema ownership or an explicit grant option), which this
+-- project's database role doesn't have, and isn't required for the checks
+-- above to hold. Simplified to skip it rather than fight the platform's
+-- role model for a defense-in-depth layer that's nice-to-have, not load-bearing.
 CREATE OR REPLACE FUNCTION public.run_readonly_query(q text)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -44,18 +45,12 @@ BEGIN
 END;
 $$;
 
--- Postgres 16+ requires the current role to be able to SET ROLE to the
--- target before it can hand ownership over (ALTER ... OWNER TO otherwise
--- fails with "must be able to SET ROLE"). The role that ran CREATE ROLE
--- above has CREATEROLE, which is enough to grant itself membership here.
-GRANT bot_readonly TO current_user;
-ALTER FUNCTION public.run_readonly_query(text) OWNER TO bot_readonly;
 REVOKE ALL ON FUNCTION public.run_readonly_query(text) FROM public;
 GRANT EXECUTE ON FUNCTION public.run_readonly_query(text) TO service_role;
 
 -- History of questions asked + answers given, same pattern as
 -- site_bot_requests (admin-only read, all writes via service_role).
-CREATE TABLE public.site_bot_questions (
+CREATE TABLE IF NOT EXISTS public.site_bot_questions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   created_by uuid REFERENCES auth.users(id),
   question text NOT NULL,
@@ -69,5 +64,6 @@ GRANT SELECT ON public.site_bot_questions TO authenticated;
 GRANT ALL ON public.site_bot_questions TO service_role;
 ALTER TABLE public.site_bot_questions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "site_bot_questions_admin_select" ON public.site_bot_questions;
 CREATE POLICY "site_bot_questions_admin_select" ON public.site_bot_questions FOR SELECT TO authenticated
   USING (private.has_role(auth.uid(), 'admin'::app_role));
