@@ -197,6 +197,13 @@ function Home() {
                     key={slide}
                     src={slides[slide % slides.length]}
                     alt="רגעים מהסטודיו"
+                    // The first slide is the page's LCP element (it's SSR'd
+                    // and visible above the fold before any interaction) —
+                    // fetch it eagerly and with high priority; later slides
+                    // swap in after load, so they don't need the hint.
+                    fetchPriority={slide === 0 ? "high" : "auto"}
+                    loading="eager"
+                    decoding="async"
                     initial={{ opacity: 0, scale: 1.06 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 1.02 }}

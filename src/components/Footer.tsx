@@ -31,7 +31,7 @@ export function Footer() {
           <Link to="/terms" className="hover:text-background transition-colors">
             תנאים והגבלות
           </Link>
-          <span>Photography Props · Est. 2020</span>
+          <span>Photography Props · Est. 2023</span>
         </div>
       </div>
     </footer>
