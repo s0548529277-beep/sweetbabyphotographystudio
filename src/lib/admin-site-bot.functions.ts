@@ -166,8 +166,17 @@ export const proposeSiteChange = createServerFn({ method: "POST" })
     }
   });
 
-/** Asks Claude to write a single read-only SELECT that answers the question, given a fixed summary of the schema. */
-async function askClaudeForSql(question: string): Promise<string> {
+type ChatTurn = { question: string; answer: string };
+
+function historyBlock(history: ChatTurn[]): string {
+  if (!history.length) return "";
+  return `\n\nהיסטוריית השיחה עד כה (לצורך הקשר בלבד — אם השאלה הנוכחית היא המשך/מתייחסת ל"זה", "אותו דבר", "וגם", "ומה לגבי" וכו', הכוונה להקשר הזה):\n${history
+    .map((h, i) => `${i + 1}. ש: ${h.question}\n   ת: ${h.answer}`)
+    .join("\n")}`;
+}
+
+/** Asks Claude to write a single read-only SELECT that answers the question, given a fixed summary of the schema and the recent conversation for context. */
+async function askClaudeForSql(question: string, history: ChatTurn[]): Promise<string> {
   const gateway = aiGateway();
 
   const schema = `טבלאות רלוונטיות (סכמה ציבורית, PostgreSQL) — הרשימה המלאה, אל תניחי עמודות שלא מפורטות כאן:
@@ -204,7 +213,7 @@ async function askClaudeForSql(question: string): Promise<string> {
   const { text } = await generateText({
     model: gateway(AI_MODEL),
     system,
-    messages: [{ role: "user", content: question }],
+    messages: [{ role: "user", content: question + historyBlock(history) }],
   });
 
   let parsed: { sql: string };
@@ -217,31 +226,46 @@ async function askClaudeForSql(question: string): Promise<string> {
   return parsed.sql;
 }
 
-/** Asks the AI to phrase the query result as a short Hebrew answer. */
-async function askClaudeToSummarize(question: string, rows: unknown): Promise<string> {
+/** Asks the AI to phrase the query result as a short Hebrew answer, as a reply in an ongoing chat (not a one-off). */
+async function askClaudeToSummarize(question: string, rows: unknown, history: ChatTurn[]): Promise<string> {
   const gateway = aiGateway();
   const { text } = await generateText({
     model: gateway(AI_MODEL),
-    system: "אתה עונה בעברית, בקצרה ובבירור, על שאלה של מנהלת סטודיו צילום, בהתבסס אך ורק על תוצאות ה-JSON שמצורפות. אם התוצאה ריקה, אמור זאת בפשטות. תמיד תן מספרים מדויקים (₪ בעברית), לא הערכות.",
-    messages: [{ role: "user", content: `שאלה: ${question}\n\nתוצאות מה-DB (JSON):\n${JSON.stringify(rows).slice(0, 6000)}` }],
+    system:
+      "אתה עונה בעברית, בקצרה ובבירור, על שאלה של מנהלת סטודיו צילום, בהתבסס אך ורק על תוצאות ה-JSON שמצורפות — זו שיחת צ'אט מתמשכת, לא שאלה בודדת, אז אפשר להתייחס לדברים שנאמרו קודם בשיחה. אם התוצאה ריקה, אמור זאת בפשטות. תמיד תן מספרים מדויקים (₪ בעברית), לא הערכות.",
+    messages: [{ role: "user", content: `שאלה: ${question}${historyBlock(history)}\n\nתוצאות מה-DB עבור השאלה הנוכחית (JSON):\n${JSON.stringify(rows).slice(0, 6000)}` }],
   });
   return text.trim();
 }
 
-/** Read-only Q&A over the site's data — never writes anything, enforced both by prompt and by DB-level role permissions (see run_readonly_query). */
+/**
+ * Read-only Q&A over the site's data — never writes anything, enforced both
+ * by prompt and by DB-level role permissions (see run_readonly_query). The
+ * client passes the last few turns as `history` so this behaves like an
+ * actual chat (follow-ups like "ומה לגבי החודש הקודם") instead of a bot with
+ * no memory between questions.
+ */
 export const askSiteData = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ question: z.string().min(3, "צריך לשאול משהו") }).parse(d))
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        question: z.string().min(3, "צריך לשאול משהו"),
+        history: z.array(z.object({ question: z.string(), answer: z.string() })).max(8).optional(),
+      })
+      .parse(d),
+  )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const history = data.history ?? [];
 
     let sql = "";
     try {
-      sql = await askClaudeForSql(data.question);
+      sql = await askClaudeForSql(data.question, history);
       const { data: rows, error } = await supabaseAdmin.rpc("run_readonly_query", { q: sql });
       if (error) throw new Error(error.message);
-      const answer = await askClaudeToSummarize(data.question, rows);
+      const answer = await askClaudeToSummarize(data.question, rows, history);
 
       await supabaseAdmin.from("site_bot_questions").insert({ created_by: context.userId, question: data.question, sql_used: sql, answer });
       return { ok: true, answer, sql };

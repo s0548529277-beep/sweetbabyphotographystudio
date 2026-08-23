@@ -31,16 +31,23 @@ import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as PhotoThanksIdRouteImport } from './routes/photo-thanks.$id'
 import { Route as ItemsIdRouteImport } from './routes/items.$id'
 import { Route as BlogEssentialNewbornPropsRouteImport } from './routes/blog.essential-newborn-props'
+import { Route as BlogChalakahPhotoshootGuideRouteImport } from './routes/blog.chalakah-photoshoot-guide'
+import { Route as ApiSendBookingRemindersRouteImport } from './routes/api.send-booking-reminders'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as SummaryTypeIdRouteImport } from './routes/summary.$type.$id'
 import { Route as DepositTypeIdRouteImport } from './routes/deposit.$type.$id'
+import { Route as AuthenticatedAdminSubscriptionsRouteImport } from './routes/_authenticated/admin.subscriptions'
+import { Route as AuthenticatedAdminSiteBotAskRouteImport } from './routes/_authenticated/admin.site-bot-ask'
+import { Route as AuthenticatedAdminSiteBotRouteImport } from './routes/_authenticated/admin.site-bot'
 import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenticated/admin.orders'
+import { Route as AuthenticatedAdminNewsletterRouteImport } from './routes/_authenticated/admin.newsletter'
 import { Route as AuthenticatedAdminItemsRouteImport } from './routes/_authenticated/admin.items'
 import { Route as AuthenticatedAdminInspirationRouteImport } from './routes/_authenticated/admin.inspiration'
 import { Route as AuthenticatedAdminGalleryRouteImport } from './routes/_authenticated/admin.gallery'
 import { Route as AuthenticatedAdminFinanceRouteImport } from './routes/_authenticated/admin.finance'
+import { Route as AuthenticatedAdminCouponsRouteImport } from './routes/_authenticated/admin.coupons'
 import { Route as AuthenticatedAdminClientsRouteImport } from './routes/_authenticated/admin.clients'
 import { Route as AuthenticatedAdminCalendarRouteImport } from './routes/_authenticated/admin.calendar'
 import { Route as AuthenticatedOrdersIdReceiptRouteImport } from './routes/_authenticated/orders.$id.receipt'
@@ -155,6 +162,17 @@ const BlogEssentialNewbornPropsRoute =
     path: '/blog/essential-newborn-props',
     getParentRoute: () => rootRouteImport,
   } as any)
+const BlogChalakahPhotoshootGuideRoute =
+  BlogChalakahPhotoshootGuideRouteImport.update({
+    id: '/blog/chalakah-photoshoot-guide',
+    path: '/blog/chalakah-photoshoot-guide',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiSendBookingRemindersRoute = ApiSendBookingRemindersRouteImport.update({
+  id: '/api/send-booking-reminders',
+  path: '/api/send-booking-reminders',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -180,10 +198,34 @@ const DepositTypeIdRoute = DepositTypeIdRouteImport.update({
   path: '/deposit/$type/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAdminSubscriptionsRoute =
+  AuthenticatedAdminSubscriptionsRouteImport.update({
+    id: '/subscriptions',
+    path: '/subscriptions',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminSiteBotAskRoute =
+  AuthenticatedAdminSiteBotAskRouteImport.update({
+    id: '/site-bot-ask',
+    path: '/site-bot-ask',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminSiteBotRoute =
+  AuthenticatedAdminSiteBotRouteImport.update({
+    id: '/site-bot',
+    path: '/site-bot',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminOrdersRoute =
   AuthenticatedAdminOrdersRouteImport.update({
     id: '/orders',
     path: '/orders',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminNewsletterRoute =
+  AuthenticatedAdminNewsletterRouteImport.update({
+    id: '/newsletter',
+    path: '/newsletter',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminItemsRoute = AuthenticatedAdminItemsRouteImport.update({
@@ -207,6 +249,12 @@ const AuthenticatedAdminFinanceRoute =
   AuthenticatedAdminFinanceRouteImport.update({
     id: '/finance',
     path: '/finance',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminCouponsRoute =
+  AuthenticatedAdminCouponsRouteImport.update({
+    id: '/coupons',
+    path: '/coupons',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminClientsRoute =
@@ -248,17 +296,24 @@ export interface FileRoutesByFullPath {
   '/track': typeof TrackRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
+  '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
   '/items/$id': typeof ItemsIdRoute
   '/photo-thanks/$id': typeof PhotoThanksIdRoute
   '/blog/': typeof BlogIndexRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
+  '/admin/coupons': typeof AuthenticatedAdminCouponsRoute
   '/admin/finance': typeof AuthenticatedAdminFinanceRoute
   '/admin/gallery': typeof AuthenticatedAdminGalleryRoute
   '/admin/inspiration': typeof AuthenticatedAdminInspirationRoute
   '/admin/items': typeof AuthenticatedAdminItemsRoute
+  '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
+  '/admin/site-bot': typeof AuthenticatedAdminSiteBotRoute
+  '/admin/site-bot-ask': typeof AuthenticatedAdminSiteBotAskRoute
+  '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -283,17 +338,24 @@ export interface FileRoutesByTo {
   '/thank-you': typeof ThankYouRoute
   '/track': typeof TrackRoute
   '/account': typeof AuthenticatedAccountRoute
+  '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
+  '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
   '/items/$id': typeof ItemsIdRoute
   '/photo-thanks/$id': typeof PhotoThanksIdRoute
   '/blog': typeof BlogIndexRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
+  '/admin/coupons': typeof AuthenticatedAdminCouponsRoute
   '/admin/finance': typeof AuthenticatedAdminFinanceRoute
   '/admin/gallery': typeof AuthenticatedAdminGalleryRoute
   '/admin/inspiration': typeof AuthenticatedAdminInspirationRoute
   '/admin/items': typeof AuthenticatedAdminItemsRoute
+  '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
+  '/admin/site-bot': typeof AuthenticatedAdminSiteBotRoute
+  '/admin/site-bot-ask': typeof AuthenticatedAdminSiteBotAskRoute
+  '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -321,17 +383,24 @@ export interface FileRoutesById {
   '/track': typeof TrackRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
+  '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
   '/items/$id': typeof ItemsIdRoute
   '/photo-thanks/$id': typeof PhotoThanksIdRoute
   '/blog/': typeof BlogIndexRoute
   '/_authenticated/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/_authenticated/admin/clients': typeof AuthenticatedAdminClientsRoute
+  '/_authenticated/admin/coupons': typeof AuthenticatedAdminCouponsRoute
   '/_authenticated/admin/finance': typeof AuthenticatedAdminFinanceRoute
   '/_authenticated/admin/gallery': typeof AuthenticatedAdminGalleryRoute
   '/_authenticated/admin/inspiration': typeof AuthenticatedAdminInspirationRoute
   '/_authenticated/admin/items': typeof AuthenticatedAdminItemsRoute
+  '/_authenticated/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/_authenticated/admin/orders': typeof AuthenticatedAdminOrdersRoute
+  '/_authenticated/admin/site-bot': typeof AuthenticatedAdminSiteBotRoute
+  '/_authenticated/admin/site-bot-ask': typeof AuthenticatedAdminSiteBotAskRoute
+  '/_authenticated/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -359,17 +428,24 @@ export interface FileRouteTypes {
     | '/track'
     | '/account'
     | '/admin'
+    | '/api/send-booking-reminders'
+    | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
     | '/items/$id'
     | '/photo-thanks/$id'
     | '/blog/'
     | '/admin/calendar'
     | '/admin/clients'
+    | '/admin/coupons'
     | '/admin/finance'
     | '/admin/gallery'
     | '/admin/inspiration'
     | '/admin/items'
+    | '/admin/newsletter'
     | '/admin/orders'
+    | '/admin/site-bot'
+    | '/admin/site-bot-ask'
+    | '/admin/subscriptions'
     | '/deposit/$type/$id'
     | '/summary/$type/$id'
     | '/admin/'
@@ -394,17 +470,24 @@ export interface FileRouteTypes {
     | '/thank-you'
     | '/track'
     | '/account'
+    | '/api/send-booking-reminders'
+    | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
     | '/items/$id'
     | '/photo-thanks/$id'
     | '/blog'
     | '/admin/calendar'
     | '/admin/clients'
+    | '/admin/coupons'
     | '/admin/finance'
     | '/admin/gallery'
     | '/admin/inspiration'
     | '/admin/items'
+    | '/admin/newsletter'
     | '/admin/orders'
+    | '/admin/site-bot'
+    | '/admin/site-bot-ask'
+    | '/admin/subscriptions'
     | '/deposit/$type/$id'
     | '/summary/$type/$id'
     | '/admin'
@@ -431,17 +514,24 @@ export interface FileRouteTypes {
     | '/track'
     | '/_authenticated/account'
     | '/_authenticated/admin'
+    | '/api/send-booking-reminders'
+    | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
     | '/items/$id'
     | '/photo-thanks/$id'
     | '/blog/'
     | '/_authenticated/admin/calendar'
     | '/_authenticated/admin/clients'
+    | '/_authenticated/admin/coupons'
     | '/_authenticated/admin/finance'
     | '/_authenticated/admin/gallery'
     | '/_authenticated/admin/inspiration'
     | '/_authenticated/admin/items'
+    | '/_authenticated/admin/newsletter'
     | '/_authenticated/admin/orders'
+    | '/_authenticated/admin/site-bot'
+    | '/_authenticated/admin/site-bot-ask'
+    | '/_authenticated/admin/subscriptions'
     | '/deposit/$type/$id'
     | '/summary/$type/$id'
     | '/_authenticated/admin/'
@@ -467,6 +557,8 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   ThankYouRoute: typeof ThankYouRoute
   TrackRoute: typeof TrackRoute
+  ApiSendBookingRemindersRoute: typeof ApiSendBookingRemindersRoute
+  BlogChalakahPhotoshootGuideRoute: typeof BlogChalakahPhotoshootGuideRoute
   BlogEssentialNewbornPropsRoute: typeof BlogEssentialNewbornPropsRoute
   ItemsIdRoute: typeof ItemsIdRoute
   PhotoThanksIdRoute: typeof PhotoThanksIdRoute
@@ -631,6 +723,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogEssentialNewbornPropsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/blog/chalakah-photoshoot-guide': {
+      id: '/blog/chalakah-photoshoot-guide'
+      path: '/blog/chalakah-photoshoot-guide'
+      fullPath: '/blog/chalakah-photoshoot-guide'
+      preLoaderRoute: typeof BlogChalakahPhotoshootGuideRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/send-booking-reminders': {
+      id: '/api/send-booking-reminders'
+      path: '/api/send-booking-reminders'
+      fullPath: '/api/send-booking-reminders'
+      preLoaderRoute: typeof ApiSendBookingRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
@@ -666,11 +772,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DepositTypeIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/admin/subscriptions': {
+      id: '/_authenticated/admin/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/admin/subscriptions'
+      preLoaderRoute: typeof AuthenticatedAdminSubscriptionsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/site-bot-ask': {
+      id: '/_authenticated/admin/site-bot-ask'
+      path: '/site-bot-ask'
+      fullPath: '/admin/site-bot-ask'
+      preLoaderRoute: typeof AuthenticatedAdminSiteBotAskRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/site-bot': {
+      id: '/_authenticated/admin/site-bot'
+      path: '/site-bot'
+      fullPath: '/admin/site-bot'
+      preLoaderRoute: typeof AuthenticatedAdminSiteBotRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/orders': {
       id: '/_authenticated/admin/orders'
       path: '/orders'
       fullPath: '/admin/orders'
       preLoaderRoute: typeof AuthenticatedAdminOrdersRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/newsletter': {
+      id: '/_authenticated/admin/newsletter'
+      path: '/newsletter'
+      fullPath: '/admin/newsletter'
+      preLoaderRoute: typeof AuthenticatedAdminNewsletterRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/items': {
@@ -701,6 +835,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminFinanceRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/coupons': {
+      id: '/_authenticated/admin/coupons'
+      path: '/coupons'
+      fullPath: '/admin/coupons'
+      preLoaderRoute: typeof AuthenticatedAdminCouponsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/clients': {
       id: '/_authenticated/admin/clients'
       path: '/clients'
@@ -728,22 +869,32 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminCalendarRoute: typeof AuthenticatedAdminCalendarRoute
   AuthenticatedAdminClientsRoute: typeof AuthenticatedAdminClientsRoute
+  AuthenticatedAdminCouponsRoute: typeof AuthenticatedAdminCouponsRoute
   AuthenticatedAdminFinanceRoute: typeof AuthenticatedAdminFinanceRoute
   AuthenticatedAdminGalleryRoute: typeof AuthenticatedAdminGalleryRoute
   AuthenticatedAdminInspirationRoute: typeof AuthenticatedAdminInspirationRoute
   AuthenticatedAdminItemsRoute: typeof AuthenticatedAdminItemsRoute
+  AuthenticatedAdminNewsletterRoute: typeof AuthenticatedAdminNewsletterRoute
   AuthenticatedAdminOrdersRoute: typeof AuthenticatedAdminOrdersRoute
+  AuthenticatedAdminSiteBotRoute: typeof AuthenticatedAdminSiteBotRoute
+  AuthenticatedAdminSiteBotAskRoute: typeof AuthenticatedAdminSiteBotAskRoute
+  AuthenticatedAdminSubscriptionsRoute: typeof AuthenticatedAdminSubscriptionsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminCalendarRoute: AuthenticatedAdminCalendarRoute,
   AuthenticatedAdminClientsRoute: AuthenticatedAdminClientsRoute,
+  AuthenticatedAdminCouponsRoute: AuthenticatedAdminCouponsRoute,
   AuthenticatedAdminFinanceRoute: AuthenticatedAdminFinanceRoute,
   AuthenticatedAdminGalleryRoute: AuthenticatedAdminGalleryRoute,
   AuthenticatedAdminInspirationRoute: AuthenticatedAdminInspirationRoute,
   AuthenticatedAdminItemsRoute: AuthenticatedAdminItemsRoute,
+  AuthenticatedAdminNewsletterRoute: AuthenticatedAdminNewsletterRoute,
   AuthenticatedAdminOrdersRoute: AuthenticatedAdminOrdersRoute,
+  AuthenticatedAdminSiteBotRoute: AuthenticatedAdminSiteBotRoute,
+  AuthenticatedAdminSiteBotAskRoute: AuthenticatedAdminSiteBotAskRoute,
+  AuthenticatedAdminSubscriptionsRoute: AuthenticatedAdminSubscriptionsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }
 
@@ -784,6 +935,8 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   ThankYouRoute: ThankYouRoute,
   TrackRoute: TrackRoute,
+  ApiSendBookingRemindersRoute: ApiSendBookingRemindersRoute,
+  BlogChalakahPhotoshootGuideRoute: BlogChalakahPhotoshootGuideRoute,
   BlogEssentialNewbornPropsRoute: BlogEssentialNewbornPropsRoute,
   ItemsIdRoute: ItemsIdRoute,
   PhotoThanksIdRoute: PhotoThanksIdRoute,
@@ -794,3 +947,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
