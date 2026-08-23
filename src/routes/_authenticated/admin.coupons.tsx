@@ -55,7 +55,14 @@ function CouponsAdmin() {
   const coupons = useQuery({
     queryKey: ["admin-coupons"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("coupons").select("*").order("created_at", { ascending: false });
+      // Personal single-use codes (auto-minted per newsletter subscriber,
+      // see newsletter.functions.ts) are excluded here — this list is for
+      // the shared/template coupons an admin manages by hand.
+      const { data, error } = await supabase
+        .from("coupons")
+        .select("*")
+        .eq("single_use", false)
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Coupon[];
     },

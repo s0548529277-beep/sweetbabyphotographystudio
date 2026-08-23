@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Mail, Check, Copy } from "lucide-react";
 import { subscribeNewsletter } from "@/lib/newsletter.functions";
-import { useFeaturedCoupon, discountLabel } from "@/hooks/use-featured-coupon";
+import { useFeaturedCoupon, discountLabel, type FeaturedCoupon } from "@/hooks/use-featured-coupon";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -10,10 +10,13 @@ import { toast } from "sonner";
 export function NewsletterSignup({ className = "" }: { className?: string }) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState(false);
-  // Which coupon (if any) to advertise/reveal is picked by an admin from
-  // /admin/coupons ("newsletter_default"), not hardcoded here.
-  const coupon = useFeaturedCoupon();
+  // Before signup this is just the shared template (for the teaser
+  // text/percentage) — after signup it's replaced with the personal,
+  // single-use code the server minted for this email.
+  const featured = useFeaturedCoupon();
+  const [submitted, setSubmitted] = useState(false);
+  const [issued, setIssued] = useState<FeaturedCoupon | null>(null);
+  const coupon = submitted ? issued : featured;
   const subscribe = useServerFn(subscribeNewsletter);
 
   const submit = async (e: FormEvent) => {
@@ -22,8 +25,9 @@ export function NewsletterSignup({ className = "" }: { className?: string }) {
     if (!trimmed || loading) return;
     setLoading(true);
     try {
-      await subscribe({ data: { email: trimmed, source: "footer" } });
-      setDone(true);
+      const res = await subscribe({ data: { email: trimmed, source: "footer" } });
+      setIssued(res.coupon ?? null);
+      setSubmitted(true);
     } catch {
       toast.error("לא הצלחנו לרשום אותך, נסי שוב בעוד רגע");
     } finally {
@@ -40,7 +44,7 @@ export function NewsletterSignup({ className = "" }: { className?: string }) {
     }
   };
 
-  if (done) {
+  if (submitted) {
     return (
       <div className={className}>
         <h4 className="text-[10px] tracking-[0.35em] uppercase text-sand mb-4">תודה שנרשמת!</h4>
