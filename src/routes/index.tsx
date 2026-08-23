@@ -233,15 +233,24 @@ function Home() {
                   ))}
                 </div>
               </div>
-              <motion.div
+              <motion.button
+                type="button"
+                onClick={() => document.getElementById("testimonials")?.scrollIntoView({ behavior: "smooth" })}
+                aria-label="מעבר להמלצות משפחות"
                 animate={{ y: [0, -10, 0], rotate: [-3, -6, -3] }}
                 transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -top-6 -left-6 md:-left-10 bg-[#f5d5cf] rounded-3xl px-5 py-4 shadow-xl border border-white/50"
+                className="absolute -top-6 -left-6 md:-left-10 bg-[#f5d5cf] rounded-3xl px-5 py-4 shadow-xl border border-white/50 cursor-pointer text-right"
               >
                 <div className="flex items-center gap-2">
                   <div className="flex -space-x-1">
-                    {[0, 1, 2].map((i) => (
-                      <div key={i} className="h-7 w-7 rounded-full bg-[#a8c4a2] border-2 border-[#f5d5cf]" />
+                    {["א", "ג", "כ"].map((letter) => (
+                      <div
+                        key={letter}
+                        className="h-7 w-7 rounded-full bg-[#a8c4a2] border-2 border-[#f5d5cf] text-[#2d3d2b] text-xs flex items-center justify-center"
+                        style={{ fontFamily: "'DM Serif Display', serif" }}
+                      >
+                        {letter}
+                      </div>
                     ))}
                   </div>
                   <div>
@@ -249,7 +258,7 @@ function Home() {
                     <div className="text-lg text-[#2d3d2b] font-medium" style={{ fontFamily: "'DM Serif Display', serif" }}>★ 5.0</div>
                   </div>
                 </div>
-              </motion.div>
+              </motion.button>
               <motion.div
                 animate={{ y: [0, 12, 0], rotate: [4, 8, 4] }}
                 transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
