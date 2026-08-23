@@ -29,7 +29,13 @@ SET search_path = public
 AS $$
 DECLARE
   result jsonb;
-  trimmed text := trim(q);
+  -- Strip a single trailing semicolon (+ trailing whitespace) — the model
+  -- writing this SQL routinely ends a perfectly ordinary single query with
+  -- one, and that's not a multi-statement attempt. Any semicolon left after
+  -- this strip is either in the middle of the query (a real second
+  -- statement) or a doubled-up trailing one, and both should still be
+  -- rejected below.
+  trimmed text := regexp_replace(trim(q), ';\s*$', '');
 BEGIN
   IF trimmed !~* '^(select|with)\s' THEN
     RAISE EXCEPTION 'only SELECT/WITH queries are allowed';
