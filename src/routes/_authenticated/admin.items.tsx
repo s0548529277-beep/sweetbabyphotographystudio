@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, ImageIcon, Upload, Download, FolderPlus, GripVertical } from "lucide-react";
-import { toCSV, downloadCSV } from "@/lib/csv";
+import { toCSV, downloadCSV, parseCSVRecords } from "@/lib/csv";
 
 export const Route = createFileRoute("/_authenticated/admin/items")({
   component: ItemsAdmin,
@@ -58,6 +58,7 @@ function ItemsAdmin() {
   const [form, setForm] = useState<ItemForm>(empty);
   const [uploading, setUploading] = useState(false);
   const [rowUploading, setRowUploading] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
   const [q, setQ] = useState("");
 
   // Bulk upload dialog
@@ -285,6 +286,75 @@ function ItemsAdmin() {
     downloadCSV(`catalog-${new Date().toISOString().slice(0, 10)}.csv`, csv);
   };
 
+  // Same columns as exportCsv (מק״ט, קטגוריה, שם, מחיר, קישור לתמונה) —
+  // download, edit in Excel/Sheets, re-upload here. Matches by SKU: an
+  // existing SKU is updated in place, a new one is created. A category
+  // name that doesn't exist yet is created on the fly. Doesn't touch
+  // active/stock_quantity/sort_order — those stay whatever they were.
+  const importCsv = async (file: File) => {
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const records = parseCSVRecords(text);
+      if (records.length === 0) {
+        toast.error("הקובץ ריק או שלא זוהו שורות");
+        return;
+      }
+
+      const catByName = new Map<string, string>();
+      for (const c of categories.data ?? []) catByName.set(c.name, c.id);
+
+      let created = 0, updated = 0, catsCreated = 0, failed = 0;
+      for (const r of records) {
+        const sku = (r["מק״ט"] || r["מקט"] || "").trim();
+        const catName = (r["קטגוריה"] || "").trim();
+        const name = (r["שם"] || "").trim();
+        const price = Number((r["מחיר"] || "0").trim()) || 0;
+        const image_url = (r["קישור לתמונה"] || "").trim() || null;
+        if (!sku || !name) { failed++; continue; }
+
+        let category_id: string | null = null;
+        if (catName) {
+          category_id = catByName.get(catName) ?? null;
+          if (!category_id) {
+            const { data, error } = await supabase
+              .from("categories")
+              .insert({ name: catName, slug: catName })
+              .select("id")
+              .single();
+            if (!error && data) {
+              category_id = data.id;
+              catByName.set(catName, data.id);
+              catsCreated++;
+            }
+          }
+        }
+
+        const { data: existing } = await supabase.from("items").select("id").eq("sku", sku).maybeSingle();
+        if (existing) {
+          const { error } = await supabase.from("items").update({ name, price, image_url, category_id }).eq("id", existing.id);
+          if (error) failed++; else updated++;
+        } else {
+          const { error } = await supabase.from("items").insert({ sku, name, price, image_url, category_id, active: true, stock_quantity: 1 });
+          if (error) failed++; else created++;
+        }
+      }
+
+      toast.success(
+        `עודכנו ${updated}, נוספו ${created}` +
+          (catsCreated ? `, ${catsCreated} קטגוריות חדשות` : "") +
+          (failed ? `, ${failed} שורות נכשלו` : ""),
+      );
+      qc.invalidateQueries({ queryKey: ["admin-items"] });
+      qc.invalidateQueries({ queryKey: ["items"] });
+      qc.invalidateQueries({ queryKey: ["categories"] });
+    } catch (e: any) {
+      toast.error(e.message ?? "ייבוא נכשל");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const filtered = (items.data ?? []).filter((i: any) =>
     !q || i.name.toLowerCase().includes(q.toLowerCase()) || i.sku.toLowerCase().includes(q.toLowerCase()),
   );
@@ -297,6 +367,19 @@ function ItemsAdmin() {
           <Button variant="outline" className="rounded-full gap-2" onClick={exportCsv}>
             <Download className="h-4 w-4" /> ייצוא CSV
           </Button>
+          <label className="cursor-pointer inline-flex items-center gap-2 rounded-full border border-input px-4 h-9 text-sm hover:bg-accent">
+            <Upload className="h-4 w-4" /> {importing ? "מייבא…" : "ייבוא CSV"}
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) importCsv(f);
+                e.target.value = "";
+              }}
+            />
+          </label>
           <Button variant="outline" className="rounded-full gap-2" onClick={() => setBulkOpen(true)}>
             <Upload className="h-4 w-4" /> העלאה מרובה
           </Button>
