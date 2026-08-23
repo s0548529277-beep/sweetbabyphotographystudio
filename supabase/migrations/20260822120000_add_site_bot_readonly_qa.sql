@@ -11,7 +11,11 @@
 --    hanging the connection.
 -- 3. The query is wrapped so a LIMIT 200 always applies, and the result is
 --    returned as jsonb so the caller never touches raw SQL results.
-CREATE ROLE bot_readonly NOLOGIN;
+DO $$
+BEGIN
+  CREATE ROLE bot_readonly NOLOGIN;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 GRANT USAGE ON SCHEMA public TO bot_readonly;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO bot_readonly;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO bot_readonly;
@@ -40,6 +44,11 @@ BEGIN
 END;
 $$;
 
+-- Postgres 16+ requires the current role to be able to SET ROLE to the
+-- target before it can hand ownership over (ALTER ... OWNER TO otherwise
+-- fails with "must be able to SET ROLE"). The role that ran CREATE ROLE
+-- above has CREATEROLE, which is enough to grant itself membership here.
+GRANT bot_readonly TO current_user;
 ALTER FUNCTION public.run_readonly_query(text) OWNER TO bot_readonly;
 REVOKE ALL ON FUNCTION public.run_readonly_query(text) FROM public;
 GRANT EXECUTE ON FUNCTION public.run_readonly_query(text) TO service_role;
