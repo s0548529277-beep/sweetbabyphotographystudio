@@ -108,12 +108,17 @@ export const proposeSiteChange = createServerFn({ method: "POST" })
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: logRow } = await supabaseAdmin
+    const { data: logRow, error: logErr } = await supabaseAdmin
       .from("site_bot_requests")
       .insert({ created_by: context.userId, instruction: data.instruction, target_path: data.target_path, status: "proposing" })
       .select("id")
       .single();
-    const logId = logRow?.id;
+    // Fail loudly instead of silently continuing with a broken logId — a
+    // request that isn't logged can still succeed on GitHub's side (branch
+    // + PR created) while never showing up in the "history" list below,
+    // which looks like nothing happened at all.
+    if (logErr || !logRow) throw new Error(`לא ניתן היה לתעד את הבקשה: ${logErr?.message ?? "unknown error"}`);
+    const logId = logRow.id;
 
     try {
       // 1. Current file content + sha (needed for the commit) straight from main.
@@ -154,10 +159,15 @@ export const proposeSiteChange = createServerFn({ method: "POST" })
         }),
       });
 
-      await supabaseAdmin
+      const { error: doneErr } = await supabaseAdmin
         .from("site_bot_requests")
         .update({ status: "proposed", branch_name: branchName, pr_number: pr.number, pr_url: pr.html_url, summary })
         .eq("id", logId);
+      // The PR is already live on GitHub at this point — if the log update
+      // itself fails, still tell the admin (rather than a false "success"
+      // toast for a request that won't show up in the history list), but
+      // point her straight at the PR since the actual work is done.
+      if (doneErr) throw new Error(`הטיוטה נוצרה בגיטהאב (${pr.html_url}) אך עדכון הרשומה נכשל: ${doneErr.message}`);
 
       return { ok: true, pr_url: pr.html_url, summary };
     } catch (e: any) {
@@ -279,7 +289,8 @@ export const listSiteQuestions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.supabase, context.userId);
-    const { data } = await context.supabase.from("site_bot_questions").select("*").order("created_at", { ascending: false }).limit(30);
+    const { data, error } = await context.supabase.from("site_bot_questions").select("*").order("created_at", { ascending: false }).limit(30);
+    if (error) throw new Error(error.message);
     return data ?? [];
   });
 
@@ -287,7 +298,8 @@ export const listSiteChanges = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.supabase, context.userId);
-    const { data } = await context.supabase.from("site_bot_requests").select("*").order("created_at", { ascending: false }).limit(50);
+    const { data, error } = await context.supabase.from("site_bot_requests").select("*").order("created_at", { ascending: false }).limit(50);
+    if (error) throw new Error(error.message);
     return data ?? [];
   });
 
