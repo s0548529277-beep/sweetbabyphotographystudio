@@ -232,10 +232,27 @@ function ItemsAdmin() {
     const { data, error } = await supabase.from("categories").insert({ name, slug, sort_order: (categories.data?.length ?? 0) + 1 }).select().single();
     if (error) return toast.error(error.message);
     toast.success("קטגוריה נוצרה");
-    setNewCatName(""); setNewCatSlug(""); setCatOpen(false);
+    setNewCatName(""); setNewCatSlug("");
     await qc.invalidateQueries({ queryKey: ["categories"] });
     setForm((f) => ({ ...f, category_id: data.id }));
     setBulkCat(data.id);
+  };
+
+  // Deleting a category is safe for items: items.category_id has
+  // ON DELETE SET NULL, so affected items just fall back to "ללא קטגוריה"
+  // instead of being deleted or blocked.
+  const deleteCategory = async (cat: { id: string; name: string }) => {
+    const affected = (items.data ?? []).filter((i: any) => i.category_id === cat.id).length;
+    const msg = affected > 0
+      ? `למחוק את הקטגוריה "${cat.name}"? ${affected} פריטים ישויכו ל"ללא קטגוריה".`
+      : `למחוק את הקטגוריה "${cat.name}"?`;
+    if (!confirm(msg)) return;
+    const { error } = await supabase.from("categories").delete().eq("id", cat.id);
+    if (error) return toast.error(error.message);
+    toast.success("הקטגוריה נמחקה");
+    qc.invalidateQueries({ queryKey: ["categories"] });
+    qc.invalidateQueries({ queryKey: ["admin-items"] });
+    qc.invalidateQueries({ queryKey: ["items"] });
   };
 
   const runBulkUpload = async () => {
@@ -521,17 +538,37 @@ function ItemsAdmin() {
         </DialogContent>
       </Dialog>
 
-      {/* New category dialog */}
+      {/* Manage categories dialog: existing list (with delete) + add new */}
       <Dialog open={catOpen} onOpenChange={setCatOpen}>
         <DialogContent className="max-w-md" dir="rtl">
-          <DialogHeader><DialogTitle className="font-display text-2xl">קטגוריה חדשה</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div><Label>שם</Label><Input value={newCatName} onChange={(e) => setNewCatName(e.target.value)} className="mt-1" placeholder="לדוגמה: Vintage" /></div>
-            <div><Label>קוד (slug)</Label><Input value={newCatSlug} onChange={(e) => setNewCatSlug(e.target.value)} className="mt-1" placeholder="vintage" /></div>
+          <DialogHeader><DialogTitle className="font-display text-2xl">ניהול קטגוריות</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            {(categories.data?.length ?? 0) > 0 && (
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {categories.data?.map((c) => (
+                  <div key={c.id} className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-cream">
+                    <span className="text-sm">{c.name}</span>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-destructive"
+                      onClick={() => deleteCategory(c)}
+                      aria-label={`מחיקת קטגוריית ${c.name}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="space-y-3 border-t border-primary/10 pt-4">
+              <div><Label>שם קטגוריה חדשה</Label><Input value={newCatName} onChange={(e) => setNewCatName(e.target.value)} className="mt-1" placeholder="לדוגמה: Vintage" /></div>
+              <div><Label>קוד (slug)</Label><Input value={newCatSlug} onChange={(e) => setNewCatSlug(e.target.value)} className="mt-1" placeholder="vintage" /></div>
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setCatOpen(false)}>ביטול</Button>
-            <Button onClick={createCategory}>שמור</Button>
+            <Button variant="ghost" onClick={() => setCatOpen(false)}>סגירה</Button>
+            <Button onClick={createCategory}>הוסף קטגוריה</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
