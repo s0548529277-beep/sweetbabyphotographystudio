@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Trash2, TrendingUp, TrendingDown, Wallet, Search } from "lucide-react";
+import { Trash2, TrendingUp, TrendingDown, Wallet, Search, CreditCard } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/finance")({
   component: FinanceAdmin,
@@ -33,6 +33,7 @@ type Txn = {
   date: string;
   amount: number;
   removable: null | "manual_income" | "expenses";
+  payment_method: string | null;
 };
 
 function FinanceAdmin() {
@@ -50,8 +51,8 @@ function FinanceAdmin() {
     queryKey: ["admin-finance"],
     queryFn: async () => {
       const [ordersRes, bookingsRes, expensesRes, manualRes] = await Promise.all([
-        supabase.from("orders").select("id,total,status,created_at,scheduled_date,contact_name"),
-        supabase.from("bookings").select("id,price,status,created_at,session_date,contact_name,package"),
+        supabase.from("orders").select("id,total,status,created_at,scheduled_date,contact_name,balance_method"),
+        supabase.from("bookings").select("id,price,status,created_at,session_date,contact_name,package,balance_method"),
         supabase.from("expenses").select("*").order("spent_on", { ascending: false }),
         supabase.from("manual_income").select("*").order("received_on", { ascending: false }),
       ]);
@@ -76,6 +77,7 @@ function FinanceAdmin() {
         client: o.contact_name ?? "",
         date: String(o.scheduled_date ?? o.created_at).slice(0, 10),
         amount: Number(o.total ?? 0), removable: null,
+        payment_method: o.balance_method ?? null,
       });
     }
     for (const b of data.data?.bookings ?? []) {
@@ -87,6 +89,7 @@ function FinanceAdmin() {
         client: b.contact_name ?? "",
         date: String(b.session_date ?? b.created_at).slice(0, 10),
         amount: Number(b.price ?? 0), removable: null,
+        payment_method: b.balance_method ?? null,
       });
     }
     for (const mi of data.data?.manual ?? []) {
@@ -95,6 +98,7 @@ function FinanceAdmin() {
         title: mi.title, client: (mi.notes as string) ?? "",
         date: String(mi.received_on).slice(0, 10),
         amount: Number(mi.amount ?? 0), removable: "manual_income",
+        payment_method: null,
       });
     }
     for (const e of data.data?.expenses ?? []) {
@@ -103,6 +107,7 @@ function FinanceAdmin() {
         title: e.title, client: (e.notes as string) ?? "",
         date: String(e.spent_on).slice(0, 10),
         amount: Number(e.amount ?? 0), removable: "expenses",
+        payment_method: null,
       });
     }
     return out.sort((a, b) => b.date.localeCompare(a.date));
@@ -147,6 +152,20 @@ function FinanceAdmin() {
       ),
     [txns],
   );
+
+  const PAYMENT_LABELS: Record<string, string> = { cash: "מזומן", transfer: "העברה בנקאית", bit: "Bit/PayBox", card: "אשראי" };
+  /** Income only, grouped by how the customer actually paid — respects the same date/client/type filters as everything else on this page. */
+  const byPaymentMethod = useMemo(() => {
+    const acc: Record<string, number> = {};
+    for (const t of txns) {
+      if (t.kind !== "income") continue;
+      const key = t.payment_method && PAYMENT_LABELS[t.payment_method] ? t.payment_method : "other";
+      acc[key] = (acc[key] ?? 0) + t.amount;
+    }
+    return (["card", "cash", "transfer", "bit", "other"] as const)
+      .map((k) => ({ key: k, label: k === "other" ? "אחר / הכנסה ידנית" : PAYMENT_LABELS[k], value: acc[k] ?? 0 }))
+      .filter((r) => r.value > 0);
+  }, [txns]);
 
   const maxBar = Math.max(1, ...months.map((m) => Math.max(m.props + m.studio + m.photo + m.manual, m.expenses)));
 
@@ -251,6 +270,23 @@ function FinanceAdmin() {
           </div>
         ))}
       </div>
+
+      {byPaymentMethod.length > 0 && (
+        <div className="bg-card rounded-2xl border border-primary/5 p-5">
+          <h3 className="font-display text-lg mb-4 flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-muted-foreground" /> הכנסות לפי אמצעי תשלום
+          </h3>
+          <p className="text-xs text-muted-foreground -mt-3 mb-4">מתעדכן לפי אותו סינון תאריכים/לקוח/סוג שבחרת למעלה.</p>
+          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-3">
+            {byPaymentMethod.map((r) => (
+              <div key={r.key} className="rounded-xl border border-border p-3">
+                <div className="text-xs text-muted-foreground mb-1">{r.label}</div>
+                <div className="font-display text-xl text-primary">{ils(r.value)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="bg-card rounded-2xl border border-primary/5 p-5">
         <h3 className="font-display text-lg mb-4">פירוט לפי חודשים</h3>
