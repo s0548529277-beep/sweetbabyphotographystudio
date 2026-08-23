@@ -181,7 +181,7 @@ function Home() {
                 {[
                   { end: 400, suffix: "+", label: "אביזרים", icon: Sparkles },
                   { end: 3, suffix: "+ שנים", label: "מ-2023", icon: Clock },
-                  { end: 1200, suffix: "+", label: "משפחות", icon: Heart },
+                  { end: 1200, suffix: "+", label: "לקוחות", icon: Heart },
                 ].map((s, i) => (
                   <motion.div
                     key={s.label} custom={i} initial="hidden" animate="show" variants={fadeUp}
@@ -236,7 +236,7 @@ function Home() {
               <motion.button
                 type="button"
                 onClick={() => document.getElementById("testimonials")?.scrollIntoView({ behavior: "smooth" })}
-                aria-label="מעבר להמלצות משפחות"
+                aria-label="מעבר להמלצות לקוחות"
                 animate={{ y: [0, -10, 0], rotate: [-3, -6, -3] }}
                 transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
                 className="absolute -top-6 -left-6 md:-left-10 bg-[#f5d5cf] rounded-3xl px-5 py-4 shadow-xl border border-white/50 cursor-pointer text-right"
@@ -254,7 +254,7 @@ function Home() {
                     ))}
                   </div>
                   <div>
-                    <div className="text-xs text-[#2d3d2b]/60">משפחות מרוצות</div>
+                    <div className="text-xs text-[#2d3d2b]/60">לקוחות מרוצים</div>
                     <div className="text-lg text-[#2d3d2b] font-medium" style={{ fontFamily: "'DM Serif Display', serif" }}>★ 5.0</div>
                   </div>
                 </div>
@@ -423,8 +423,7 @@ function Home() {
             className="absolute -top-16 -left-16 h-64 w-64 rounded-full border-2 border-dashed border-[#2d3d2b]/15"
           />
           <div className="grid md:grid-cols-4 gap-8 items-center relative">
-            {[
-              { icon: Heart, title: "רגעים אמיתיים", desc: "אווירה רגועה שמאפשרת לילד להיות עצמו" },
+            {[n              { icon: Heart, title: "רגעים אמיתיים", desc: "אווירה רגועה שמאפשרת לילד להיות עצמו" },
               { icon: Sparkles, title: "עיצוב מוקפד", desc: "אביזרים בעבודת יד וטקסטורות ייחודיות" },
               { icon: Camera, title: "אמנות ולא רק צילום", desc: "כל תמונה נבנית כמו יצירה" },
               { icon: MapPin, title: "בלב בית שמש", desc: "חנייה נוחה, כניסה נגישה, חלל אינטימי" },
@@ -448,15 +447,14 @@ function Home() {
       <section id="testimonials" className="container-page pb-16 md:pb-24 scroll-mt-28" dir="rtl">
         <div className="text-center mb-12">
           <div className="text-xs tracking-[0.3em] uppercase text-[#6b8a63] font-medium mb-3">
-            מה אומרות המשפחות
+            מה אומרות הלקוחות
           </div>
           <h2 className="text-4xl md:text-5xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
             חוויות מהסטודיו
           </h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-          {[
-            {
+          {[n            {
               name: "מיכל אזולאי",
               initial: "א",
               text: "הגענו לצילומי ניוברן כשהיינו מותשים אחרי הלידה, ומיכל ידעה בדיוק איך להרגיע את כולנו. התמונות יצאו מעבר לציפיות — ממש יצירות אמנות.",
