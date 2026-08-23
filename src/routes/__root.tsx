@@ -11,10 +11,12 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import defaultOgImage from "@/assets/home-hero-0.png.asset.json";
 import { AuthProvider } from "@/lib/auth";
 import { CartProvider } from "@/lib/cart";
 import { Toaster } from "@/components/ui/sonner";
 import { ChatBot } from "@/components/ChatBot";
+import { Analytics } from "@/components/Analytics";
 import { supabase } from "@/integrations/supabase/client";
 
 function NotFoundComponent() {
@@ -72,8 +74,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "סטודיו לצילום להשכרה - סוויט בייבי - צלמת מיכל סיבוני" },
       { name: "twitter:description", content: "סטודיו לצילום להשכרה סוויט בייבי — התמונה הראשונה שלי. סטודיו בוטיק להשכרה בבית שמש השכרת אביזרים לצילום ניוברן חלאקה סמאש קיק ועוד, סשן צילום -הצלמת מיכל סיבוני" },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f6289e61-8ced-4114-a05d-0d663b3f6782/id-preview-e15289a5--7f3ae80d-8585-4972-a43d-424c2a2cc887.lovable.app-1784667774798.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f6289e61-8ced-4114-a05d-0d663b3f6782/id-preview-e15289a5--7f3ae80d-8585-4972-a43d-424c2a2cc887.lovable.app-1784667774798.png" },
+      { property: "og:image", content: `https://sweetbabyphoto.shop${defaultOgImage.url}` },
+      { name: "twitter:image", content: `https://sweetbabyphoto.shop${defaultOgImage.url}` },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -154,6 +156,7 @@ function RootComponent() {
           <Outlet />
           <Toaster position="top-center" richColors />
           <ChatBot />
+          <Analytics />
         </CartProvider>
       </AuthProvider>
     </QueryClientProvider>

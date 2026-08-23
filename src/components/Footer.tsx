@@ -1,5 +1,6 @@
 import logo from "@/assets/logo-peach.png";
 import { Link } from "@tanstack/react-router";
+import { NewsletterSignup } from "@/components/NewsletterSignup";
 
 export function Footer() {
   return (
@@ -24,12 +25,13 @@ export function Footer() {
             <p className="text-background/85">מינימום הזמנה 50 ש״ח</p>
           </div>
         </div>
+        <NewsletterSignup className="border-b border-background/15 py-12" />
         <div className="flex flex-col md:flex-row justify-between gap-4 pt-8 text-[11px] tracking-[0.28em] uppercase text-background/50">
           <span>© {new Date().getFullYear()} Sweetbaby Studio</span>
           <Link to="/terms" className="hover:text-background transition-colors">
             תנאים והגבלות
           </Link>
-          <span>Photography Props · Est. 2020</span>
+          <span>Photography Props · Est. 2023</span>
         </div>
       </div>
     </footer>

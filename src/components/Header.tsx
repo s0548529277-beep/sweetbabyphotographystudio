@@ -1,5 +1,5 @@
-import { Link, useRouter } from "@tanstack/react-router";
-import { ShoppingBag, User as UserIcon, LogOut, Menu } from "lucide-react";
+import { Link, useRouter, useRouterState } from "@tanstack/react-router";
+import { ShoppingBag, User as UserIcon, LogOut, Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
@@ -19,13 +19,34 @@ const nav = [
   { to: "/about", label: "אודות ויצירת קשר" },
 ];
 
+const BETA_BANNER_KEY = "sweetbaby-beta-banner-dismissed";
+
 
 export function Header() {
   const { count } = useCart();
   const { user, isAdmin, signOut } = useAuth();
   const router = useRouter();
+  const isHome = useRouterState({ select: (s) => s.location.pathname === "/" });
   const [open, setOpen] = useState(false);
   const [displayName, setDisplayName] = useState<string>("");
+  const [showBetaBanner, setShowBetaBanner] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem(BETA_BANNER_KEY)) setShowBetaBanner(true);
+    } catch {
+      setShowBetaBanner(true);
+    }
+  }, []);
+
+  const dismissBetaBanner = () => {
+    setShowBetaBanner(false);
+    try {
+      localStorage.setItem(BETA_BANNER_KEY, "1");
+    } catch {
+      // ignore storage errors (e.g. private browsing)
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -41,9 +62,18 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 backdrop-blur-xl bg-background/80 border-b border-border">
-      <div className="bg-[#f5d5cf] text-[#2d3d2b] text-center text-[12px] tracking-[0.2em] uppercase py-1.5">
-        ✨ האתר בהרצה — ייתכנו שינויים ותקלות ✨
-      </div>
+      {isHome && showBetaBanner && (
+        <div className="relative bg-[#f5d5cf] text-[#2d3d2b] text-center text-[12px] tracking-[0.2em] uppercase py-1.5 px-10">
+          ✨ האתר בהרצה — ייתכנו שינויים ותקלות ✨
+          <button
+            onClick={dismissBetaBanner}
+            aria-label="סגירת הודעה"
+            className="absolute left-3 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full hover:bg-[#2d3d2b]/10 transition-colors"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
       <div className="container-page flex items-center justify-between h-28 gap-6">
         <Link to="/" className="flex items-center gap-3 shrink-0">
           <img src={logo} alt="Sweetbaby" className="h-16 md:h-20 w-auto" />
