@@ -73,7 +73,7 @@ const fadeUp = {
 function Home() {
   const [slide, setSlide] = useState(0);
   // Hero slides are managed from /admin/gallery (add / remove / reorder,
-  // and portrait vs landscape); the bundled list is the fallback.
+  // and portrait vs landscape);
   const heroGallery = usePageGalleryWithAspect(PAGE_IMAGE_KEYS.homeHero);
   const slides = heroGallery.images.length > 0 ? heroGallery.images : HERO_SLIDES;
   const heroAspect = heroGallery.aspect === "landscape" ? "aspect-[16/9]" : "aspect-[4/5]";
@@ -181,7 +181,7 @@ function Home() {
                 {[
                   { end: 400, suffix: "+", label: "אביזרים", icon: Sparkles },
                   { end: 3, suffix: "+ שנים", label: "מ-2023", icon: Clock },
-                  { end: 1200, suffix: "+", label: "משפחות", icon: Heart },
+                  { end: 1200, suffix: "+", label: "לקוחות", icon: Heart },
                 ].map((s, i) => (
                   <motion.div
                     key={s.label} custom={i} initial="hidden" animate="show" variants={fadeUp}
@@ -236,7 +236,7 @@ function Home() {
               <motion.button
                 type="button"
                 onClick={() => document.getElementById("testimonials")?.scrollIntoView({ behavior: "smooth" })}
-                aria-label="מעבר להמלצות משפחות"
+                aria-label="מעבר להמלצות לקוחות"
                 animate={{ y: [0, -10, 0], rotate: [-3, -6, -3] }}
                 transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
                 className="absolute -top-6 -left-6 md:-left-10 bg-[#f5d5cf] rounded-3xl px-5 py-4 shadow-xl border border-white/50 cursor-pointer text-right"
@@ -254,7 +254,7 @@ function Home() {
                     ))}
                   </div>
                   <div>
-                    <div className="text-xs text-[#2d3d2b]/60">משפחות מרוצות</div>
+                    <div className="text-xs text-[#2d3d2b]/60">לקוחות מרוצים</div>
                     <div className="text-lg text-[#2d3d2b] font-medium" style={{ fontFamily: "'DM Serif Display', serif" }}>★ 5.0</div>
                   </div>
                 </div>
@@ -448,7 +448,7 @@ function Home() {
       <section id="testimonials" className="container-page pb-16 md:pb-24 scroll-mt-28" dir="rtl">
         <div className="text-center mb-12">
           <div className="text-xs tracking-[0.3em] uppercase text-[#6b8a63] font-medium mb-3">
-            מה אומרות המשפחות
+            מה אומרות הלקוחות
           </div>
           <h2 className="text-4xl md:text-5xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
             חוויות מהסטודיו
