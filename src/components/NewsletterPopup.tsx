@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useRouterState } from "@tanstack/react-router";
 import { Mail, Check, Copy, Sparkles } from "lucide-react";
 import { subscribeNewsletter } from "@/lib/newsletter.functions";
-import { useFeaturedCoupon, discountLabel } from "@/hooks/use-featured-coupon";
+import { useFeaturedCoupon, discountLabel, type FeaturedCoupon } from "@/hooks/use-featured-coupon";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,16 +17,18 @@ const SKIP_PREFIXES = ["/admin", "/auth", "/checkout", "/cart", "/account", "/re
 
 export function NewsletterPopup() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const coupon = useFeaturedCoupon();
+  const featured = useFeaturedCoupon();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [issued, setIssued] = useState<FeaturedCoupon | null>(null);
+  const coupon = done ? (issued ?? featured) : featured;
   const subscribe = useServerFn(subscribeNewsletter);
 
   useEffect(() => {
     if (SKIP_PREFIXES.some((p) => pathname.startsWith(p))) return;
-    if (!coupon) return; // nothing to offer -> don't interrupt visitors
+    if (!featured) return; // nothing to offer -> don't interrupt visitors
     try {
       if (localStorage.getItem(POPUP_KEY)) return;
     } catch {
@@ -37,7 +39,7 @@ export function NewsletterPopup() {
     // Only re-evaluate when the coupon first loads or the route changes —
     // not on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coupon, pathname]);
+  }, [featured, pathname]);
 
   const dismiss = () => {
     setOpen(false);
@@ -54,7 +56,8 @@ export function NewsletterPopup() {
     if (!trimmed || loading) return;
     setLoading(true);
     try {
-      await subscribe({ data: { email: trimmed, source: "popup" } });
+      const res = await subscribe({ data: { email: trimmed, source: "popup" } });
+      setIssued(res.coupon ?? null);
       setDone(true);
       try {
         localStorage.setItem(POPUP_KEY, "1");

@@ -81,14 +81,16 @@ export const placeOrder = createServerFn({ method: "POST" })
     let couponNote: string | null = null;
     let couponCodeUsed: string | null = null;
     let couponDiscount = 0;
+    let couponIdToRedeem: string | null = null;
     const couponCode = (data.coupon ?? "").trim().toUpperCase();
     if (couponCode) {
       const { data: c } = await supabase
         .from("coupons")
-        .select("code, discount_percent, discount_amount, active, expires_at")
+        .select("id, code, discount_percent, discount_amount, active, expires_at, single_use, redeemed_at")
         .eq("code", couponCode)
         .maybeSingle();
-      const valid = c && c.active && (!c.expires_at || new Date(c.expires_at) > new Date());
+      const valid =
+        c && c.active && (!c.expires_at || new Date(c.expires_at) > new Date()) && (!c.single_use || !c.redeemed_at);
       if (!valid) throw new Error("קוד הקופון אינו תקף");
       const off = Math.min(
         total,
@@ -98,6 +100,7 @@ export const placeOrder = createServerFn({ method: "POST" })
       couponNote = `קוד קופון ${c!.code} · הנחה ₪${off}`;
       couponCodeUsed = c!.code;
       couponDiscount = off;
+      if (c!.single_use) couponIdToRedeem = c!.id;
     }
 
     // Optional store credit from the customer's cashback loyalty balance.
@@ -236,6 +239,12 @@ export const placeOrder = createServerFn({ method: "POST" })
       await adminForCount.from("item_availability").delete().eq("order_id", order.id);
       await supabase.from("orders").delete().eq("id", order.id);
       throw e;
+    }
+
+    // Order is committed at this point — burn the single-use coupon so it
+    // can't be redeemed again.
+    if (couponIdToRedeem) {
+      await adminForCount.from("coupons").update({ redeemed_at: new Date().toISOString() }).eq("id", couponIdToRedeem);
     }
 
     try {
