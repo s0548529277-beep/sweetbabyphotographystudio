@@ -1,6 +1,19 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { generateText } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { createLovableAiGatewayProvider } from "./ai-gateway.server";
+
+// Routed through the same Lovable AI Gateway the customer-facing ChatBot
+// already uses (see ai.functions.ts) — reuses the existing LOVABLE_API_KEY
+// secret instead of requiring a separate ANTHROPIC_API_KEY to be added.
+const AI_MODEL = "google/gemini-2.5-flash";
+
+function aiGateway() {
+  const key = process.env.LOVABLE_API_KEY;
+  if (!key) throw new Error("LOVABLE_API_KEY לא מוגדר ב-Supabase secrets");
+  return createLovableAiGatewayProvider(key);
+}
 
 async function assertAdmin(supabase: any, userId: string) {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
@@ -30,10 +43,9 @@ async function gh(path: string, init?: RequestInit) {
   return res.json();
 }
 
-/** Asks Claude to rewrite one file's full contents per the admin's instruction. Returns the new file text and a one-line summary of what changed. */
+/** Asks the AI to rewrite one file's full contents per the admin's instruction. Returns the new file text and a one-line summary of what changed. */
 async function askClaudeForFileEdit(currentContent: string, targetPath: string, instruction: string): Promise<{ newContent: string; summary: string }> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY לא מוגדר ב-Supabase secrets");
+  const gateway = aiGateway();
 
   const system = `אתה עורך קוד עבור אתר סטודיו צילום (React + TanStack Start + Tailwind, RTL בעברית). תפקידך: לקבל תוכן קובץ קיים ובקשת שינוי בעברית, ולהחזיר את הקובץ המלא אחרי השינוי — בלי לשבור קוד עובד.
 
@@ -56,23 +68,12 @@ ${currentContent}
 
 בקשת השינוי: ${instruction}`;
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 8000,
-      system,
-      messages: [{ role: "user", content: user }],
-    }),
+  const { text } = await generateText({
+    model: gateway(AI_MODEL),
+    system,
+    messages: [{ role: "user", content: user }],
   });
-  if (!res.ok) throw new Error(`Anthropic API ${res.status}: ${(await res.text()).slice(0, 300)}`);
-  const data = await res.json();
-  const text = (data.content ?? []).map((b: any) => b.text ?? "").join("");
+
   let parsed: { new_content: string; summary: string };
   try {
     parsed = JSON.parse(text.replace(/^```json\s*|\s*```$/g, "").trim());
@@ -163,8 +164,7 @@ export const proposeSiteChange = createServerFn({ method: "POST" })
 
 /** Asks Claude to write a single read-only SELECT that answers the question, given a fixed summary of the schema. */
 async function askClaudeForSql(question: string): Promise<string> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY לא מוגדר ב-Supabase secrets");
+  const gateway = aiGateway();
 
   const schema = `טבלאות רלוונטיות (סכמה ציבורית, PostgreSQL):
 - orders(id, user_id, contact_name, total, credit_used_cashback, credit_used_manual, coupon_code, coupon_discount, balance_method, status, deposit_status, scheduled_date, created_at)
@@ -190,19 +190,12 @@ async function askClaudeForSql(question: string): Promise<string> {
 - אל תמציא עמודות/טבלאות שלא ברשימה למעלה.
 - החזר אך ורק JSON: {"sql": "<השאילתה>"}, בלי טקסט נוסף, בלי markdown fences.`;
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1000,
-      system,
-      messages: [{ role: "user", content: question }],
-    }),
+  const { text } = await generateText({
+    model: gateway(AI_MODEL),
+    system,
+    messages: [{ role: "user", content: question }],
   });
-  if (!res.ok) throw new Error(`Anthropic API ${res.status}: ${(await res.text()).slice(0, 300)}`);
-  const data = await res.json();
-  const text = (data.content ?? []).map((b: any) => b.text ?? "").join("");
+
   let parsed: { sql: string };
   try {
     parsed = JSON.parse(text.replace(/^```json\s*|\s*```$/g, "").trim());
@@ -213,22 +206,15 @@ async function askClaudeForSql(question: string): Promise<string> {
   return parsed.sql;
 }
 
-/** Asks Claude to phrase the query result as a short Hebrew answer. */
+/** Asks the AI to phrase the query result as a short Hebrew answer. */
 async function askClaudeToSummarize(question: string, rows: unknown): Promise<string> {
-  const apiKey = process.env.ANTHROPIC_API_KEY!;
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 500,
-      system: "אתה עונה בעברית, בקצרה ובבירור, על שאלה של מנהלת סטודיו צילום, בהתבסס אך ורק על תוצאות ה-JSON שמצורפות. אם התוצאה ריקה, אמור זאת בפשטות. תמיד תן מספרים מדויקים (₪ בעברית), לא הערכות.",
-      messages: [{ role: "user", content: `שאלה: ${question}\n\nתוצאות מה-DB (JSON):\n${JSON.stringify(rows).slice(0, 6000)}` }],
-    }),
+  const gateway = aiGateway();
+  const { text } = await generateText({
+    model: gateway(AI_MODEL),
+    system: "אתה עונה בעברית, בקצרה ובבירור, על שאלה של מנהלת סטודיו צילום, בהתבסס אך ורק על תוצאות ה-JSON שמצורפות. אם התוצאה ריקה, אמור זאת בפשטות. תמיד תן מספרים מדויקים (₪ בעברית), לא הערכות.",
+    messages: [{ role: "user", content: `שאלה: ${question}\n\nתוצאות מה-DB (JSON):\n${JSON.stringify(rows).slice(0, 6000)}` }],
   });
-  if (!res.ok) throw new Error(`Anthropic API ${res.status}`);
-  const data = await res.json();
-  return (data.content ?? []).map((b: any) => b.text ?? "").join("").trim();
+  return text.trim();
 }
 
 /** Read-only Q&A over the site's data — never writes anything, enforced both by prompt and by DB-level role permissions (see run_readonly_query). */
