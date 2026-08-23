@@ -170,21 +170,28 @@ export const proposeSiteChange = createServerFn({ method: "POST" })
 async function askClaudeForSql(question: string): Promise<string> {
   const gateway = aiGateway();
 
-  const schema = `טבלאות רלוונטיות (סכמה ציבורית, PostgreSQL):
-- orders(id, user_id, contact_name, total, credit_used_cashback, credit_used_manual, coupon_code, coupon_discount, balance_method, status, deposit_status, scheduled_date, created_at)
-- bookings(id, user_id, contact_name, price, credit_used_cashback, credit_used_manual, coupon_code, coupon_discount, balance_method, package, status, session_date, created_at)
-- expenses(id, title, amount, category, spent_on)
-- manual_income(id, title, amount, category, notes, received_on)
-- customer_loyalty(user_id, cashback_percent, cashback_credit_balance, manual_credit_balance, credit_balance, cashback_expires_at, updated_at)
-- coupons(id, code, discount_percent, discount_amount, active, expires_at)
-- items(id, name, category_id, price_per_day, active)
-- profiles(id, full_name, phone, email)
-- user_roles(user_id, role)
+  const schema = `טבלאות רלוונטיות (סכמה ציבורית, PostgreSQL) — הרשימה המלאה, אל תניחי עמודות שלא מפורטות כאן:
+
+- orders — הזמנות אביזרים (props). id, user_id, track, status ('pending'/'confirmed'/'active'/'returned'/'cancelled'), total, deposit_amount, balance_amount, deposit_status, balance_method ('cash'/'card'/'transfer'/'bit'), coupon_code, coupon_discount, credit_used_cashback, credit_used_manual, contact_name, contact_phone, camera_model, session_date, scheduled_date, return_date, pickup_at, return_at, notes, google_event_id, terms_accepted_at, created_at, updated_at.
+- order_items — שורות פריטים בתוך הזמנת אביזרים. id, order_id, item_id, item_name, item_sku, quantity, price, created_at.
+- bookings — הזמנות/שריוני סטודיו. id, user_id, status, package ('regular'/'morning'), slots, start_time, end_time, session_date, price, deposit_amount, balance_amount, deposit_status, balance_method, coupon_code, coupon_discount, credit_used_cashback, credit_used_manual, contact_name, contact_phone, reserved_items (jsonb — מק"טי אביזרים ששוריינו יחד עם הסטודיו), subscription_pass_id, google_event_id, notes, terms_accepted_at, created_at, updated_at.
+- items — קטלוג אביזרים להשכרה. id, sku, name, description, price, image_url, category_id, active, stock_quantity, sort_order, created_at, updated_at.
+- categories — קטגוריות אביזרים. id, name, slug, sort_order, created_at.
+- coupons — קופונים. id, code, discount_percent, discount_amount, active, expires_at, single_use (בוליאני — קוד אישי חד-פעמי), redeemed_at, issued_to_email, newsletter_default (בוליאני — הקופון שמוצג בטופס ההרשמה לניוזלטר).
+- customer_loyalty — מועדון קאשבק. user_id, cashback_percent, cashback_expires_at, cashback_credit_balance, manual_credit_balance, credit_balance (= סכום שתי הקודמות), updated_at.
+- expenses — הוצאות. id, title, amount, category, notes, spent_on, created_at.
+- manual_income — הכנסות ידניות (לא הזמנות/שריונים). id, title, amount, category, notes, received_on, created_at.
+- newsletter_signups — נרשמות לניוזלטר בפוטר. id, email, source, created_at.
+- subscription_plans — תבניות חבילות מנוי (למשל "SWEET 10+1"). id, name, total_entries, price, active, created_at.
+- subscription_passes — כרטיסיות מנוי שנרכשו בפועל ע"י לקוחות. id, user_id, plan_id, plan_name, total_entries, entries_used, price_paid, status ('active'/'cancelled'), notes, purchased_at.
+- profiles — פרטי לקוחות (לא כולל אימייל — אימייל נמצא בטבלת auth.users הפנימית שאינה נגישה כאן; לשאלות שדורשות אימייל, ענה שהמידע הזה לא זמין בשאילתה). id (= user_id), full_name, phone, address, city, discount_code, notes, created_at, updated_at.
+- user_roles — הרשאות. user_id, role ('admin' וכו').
 
 הערות חשובות:
-- balance_method הערכים: 'cash','card','transfer','bit' (card = אשראי).
 - הכנסה בפועל = orders.total + bookings.price של רשומות עם status != 'cancelled'.
-- תאריכים מסוג date/timestamptz — להשתמש ב-date_trunc / >= / < לטווחי זמן ('חודש שעבר' וכו').`;
+- "לקוחות" = טבלת profiles (JOIN לפי id = user_id בטבלאות אחרות).
+- תאריכים מסוג date/timestamptz — להשתמש ב-date_trunc / >= / < לטווחי זמן ('חודש שעבר' וכו').
+- אם השאלה דורשת אימייל של לקוח/ה — אין לך גישה לזה, ציין זאת בתשובה במקום להמציא עמודה.`;
 
   const system = `אתה כותב שאילתות SQL קריאה-בלבד (SELECT/WITH) עבור מסד נתונים PostgreSQL של אתר סטודיו צילום, לפי שאלה בעברית מהמנהלת. ${schema}
 
