@@ -67,6 +67,11 @@ export const updateClientProfile = createServerFn({ method: "POST" })
  * toward future orders, until `cashback_expires_at` (or forever if null).
  * Never touches credit_balance — that's only ever adjusted by the earn/spend
  * server logic, never reset by re-saving the enrollment settings.
+ *
+ * Also carries `custom_hourly_rate` — a personal negotiated studio rate for
+ * this customer (e.g. for a recurring weekly client), applied automatically
+ * instead of the standard price list on every booking she places. null/0
+ * clears it back to standard pricing.
  */
 export const setCustomerLoyalty = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -76,6 +81,7 @@ export const setCustomerLoyalty = createServerFn({ method: "POST" })
         user_id: z.string().uuid(),
         cashback_percent: z.number().int().min(0).max(100),
         cashback_expires_at: z.string().max(10).optional().nullable(), // yyyy-mm-dd, empty/null = no expiry
+        custom_hourly_rate: z.number().nonnegative().max(10000).optional().nullable(),
       })
       .parse(d),
   )
@@ -87,6 +93,7 @@ export const setCustomerLoyalty = createServerFn({ method: "POST" })
         user_id: data.user_id,
         cashback_percent: data.cashback_percent,
         cashback_expires_at: data.cashback_expires_at ? new Date(data.cashback_expires_at).toISOString() : null,
+        custom_hourly_rate: data.custom_hourly_rate || null,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id" },

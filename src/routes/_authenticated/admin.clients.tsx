@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { listClientEmails, setClientPassword, updateClientProfile, setCustomerLoyalty, grantManualCredit } from "@/lib/admin-clients.functions";
-import { Camera, Package, Pencil, Gift } from "lucide-react";
+import { Camera, Package, Pencil, Gift, Tag } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/clients")({
   component: ClientsAdmin,
@@ -180,7 +180,7 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
       return data;
     },
   });
-  const [lf, setLf] = useState({ cashback_percent: "0", cashback_expires_at: "" });
+  const [lf, setLf] = useState({ cashback_percent: "0", cashback_expires_at: "", custom_hourly_rate: "" });
   const [manualAmount, setManualAmount] = useState("");
   const [grantBusy, setGrantBusy] = useState(false);
   useEffect(() => {
@@ -188,6 +188,7 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
       setLf({
         cashback_percent: String(loyalty.data.cashback_percent ?? 0),
         cashback_expires_at: loyalty.data.cashback_expires_at ? String(loyalty.data.cashback_expires_at).slice(0, 10) : "",
+        custom_hourly_rate: (loyalty.data as any).custom_hourly_rate ? String((loyalty.data as any).custom_hourly_rate) : "",
       });
     }
   }, [loyalty.data]);
@@ -201,6 +202,7 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
           user_id: client.id,
           cashback_percent: Math.max(0, Math.min(100, Math.floor(Number(lf.cashback_percent) || 0))),
           cashback_expires_at: lf.cashback_expires_at || null,
+          custom_hourly_rate: lf.custom_hourly_rate.trim() ? Math.max(0, Number(lf.custom_hourly_rate)) : null,
         },
       });
       if (pw.trim()) {
@@ -245,6 +247,26 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
         <Input placeholder="קוד הנחה" dir="ltr" value={f.discount_code} onChange={(e) => setF({ ...f, discount_code: e.target.value })} />
         <Input placeholder="הערות" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />
         <Input placeholder="סיסמה חדשה / קוד סודי" dir="ltr" value={pw} onChange={(e) => setPw(e.target.value)} />
+      </div>
+
+      <div className="rounded-xl bg-card p-3 space-y-2">
+        <div className="flex items-center gap-1.5 text-sm font-medium text-forest">
+          <Tag className="h-4 w-4" /> תעריף אישי לשעת סטודיו
+        </div>
+        <p className="text-xs text-muted-foreground">
+          אם מוגדר, מחליף לגמרי את מחירון השעות הרגיל (וגם את מבצע הבוקר) בכל שריון סטודיו שהלקוחה הזו תעשה — כולל בסדרות שבועיות חוזרות. השאירי ריק לחזרה למחירון הרגיל.
+        </p>
+        <div className="max-w-[200px]">
+          <Label className="text-xs text-muted-foreground">תעריף (₪ לשעה)</Label>
+          <Input
+            type="number"
+            min={0}
+            dir="ltr"
+            placeholder="ריק = מחירון רגיל"
+            value={lf.custom_hourly_rate}
+            onChange={(e) => setLf({ ...lf, custom_hourly_rate: e.target.value })}
+          />
+        </div>
       </div>
 
       <div className="rounded-xl bg-card p-3 space-y-2">
