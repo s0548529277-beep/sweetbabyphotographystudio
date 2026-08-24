@@ -12,11 +12,35 @@ async function assertAdmin(supabase: any, userId: string) {
 // sketches/examples come in. Each preset only describes a color/light/mood
 // treatment — never new content — precisely because the model must not
 // invent anything that wasn't in the original photo.
-export const PHOTO_EDIT_STYLES: Record<string, { label: string; prompt: string }> = {
+export const PHOTO_EDIT_STYLES: Record<string, { label: string; prompt: string; allowCleanup?: boolean }> = {
+  newborn: {
+    label: "ניו-בורן — רך וחמים",
+    prompt:
+      "טונים רכים וחמימים אופייניים לצילומי ניו-בורן: גווני בז'/קרם/פסטל, עור טבעי וחלק, תאורה רכה ומפוזרת, ניגודיות נמוכה ועדינה, אווירה שקטה, נקייה ורגועה.",
+  },
   warm_forest: {
     label: "יער חם — טונים חמים וקולנועיים",
     prompt:
       "גוונים חמים (חום-כתום-זהב), תאורה רכה ומוזהבת שנראית כאילו מגיעה מאחור (backlight), ניגודיות עדינה עם צללים עמוקים אך חמים, רקע מעט חלומי ומטושטש קלות, אווירה קולנועית ורגועה.",
+  },
+  river: {
+    label: "נחל — גוונים טבעיים ורעננים",
+    prompt:
+      "גוונים טבעיים ורעננים של ירוק וכחול-טורקיז, אור יום רך וטבעי, ניגודיות עדינה, תחושת רעננות וטבע, מים בהירים ומבריקים בעדינות ברקע.",
+  },
+  outdoor_general: {
+    label: "חוץ כללי — טבעי ומאוזן",
+    prompt: "גוונים טבעיים ומאוזנים, אור יום משופר קלות, ניגודיות בינונית, מראה נקי וטבעי המתאים לכל רקע חוץ.",
+  },
+  studio_clean: {
+    label: "סטודיו — ניקוי רקע וציוד",
+    prompt:
+      "רקע סטודיו נקי ואחיד. יש להסיר מהקצוות ומהרקע כל ציוד צילום לא רלוונטי שנתפס בטעות בפריים (סטנד פלאש, כבלים, רפלקטור, חלקי תפאורה שלא קשורים לצילום עצמו) — בלי לגעת באדם/בתינוק/בעצם המרכזי של הצילום.",
+    allowCleanup: true,
+  },
+  custom: {
+    label: "עיבוד חופשי — לפי הוראה בטקסט",
+    prompt: "",
   },
 };
 
@@ -25,9 +49,13 @@ const editSchema = z.object({
   style: z.enum(Object.keys(PHOTO_EDIT_STYLES) as [string, ...string[]]),
   includeFace: z.boolean(),
   intensity: z.enum(["light", "strong"]),
+  // Extra free-text instructions — always available alongside any preset
+  // style, not only in "custom" mode, so a preset can be nudged/refined
+  // without needing a brand-new preset for every small variation.
+  customInstructions: z.string().max(500).optional(),
 });
 
-function buildEditPrompt(style: string, includeFace: boolean, intensity: "light" | "strong"): string {
+function buildEditPrompt(style: string, includeFace: boolean, intensity: "light" | "strong", customInstructions?: string): string {
   const stylePrompt = PHOTO_EDIT_STYLES[style]?.prompt ?? "";
   const facePrompt = includeFace
     ? "אפשר גם רטוש עור עדין ואחיד לפנים — החלקה קלה בלבד. אסור לשנות תווי פנים, גיל, זהות, הבעה או צורת הפנים."
@@ -36,10 +64,16 @@ function buildEditPrompt(style: string, includeFace: boolean, intensity: "light"
     intensity === "strong"
       ? "עוצמת עיבוד ברורה וחזקה יחסית, אבל עדיין ריאליסטית."
       : "עוצמת עיבוד עדינה ומינימלית — שינוי קל בלבד.";
+  const customPrompt = customInstructions?.trim() ? `הוראה נוספת מהצלמת: ${customInstructions.trim()}` : "";
+  const allowCleanup = PHOTO_EDIT_STYLES[style]?.allowCleanup;
+  const contentRule = allowCleanup
+    ? "חשוב מאוד: שמרי בדיוק על האדם/התינוק/העצם המרכזי של התמונה — אותה זהות, אותה תנוחה, אותם תווי פנים. אל תמציאי ואל תוסיפי שום פרט חדש. מותר ורצוי להסיר מהרקע ומהקצוות ציוד צילום לא רלוונטי כמפורט למטה, אבל לא לשנות את הנושא המרכזי עצמו."
+    : "חשוב מאוד: שמרי בדיוק על התוכן המקורי של התמונה — אותם אנשים, אותה זהות, אותה תנוחה, אותם עצמים ואותו רקע פיזי. אל תמציאי ואל תוסיפי שום פרט חדש שלא היה בתמונה המקורית. רק עבדי צבע, תאורה, גוון ומרקם.";
   return [
     "את עורכת תמונות מקצועית של סטודיו צילום ניו-בורן ומשפחה.",
-    "חשוב מאוד: שמרי בדיוק על התוכן המקורי של התמונה — אותם אנשים, אותה זהות, אותה תנוחה, אותם עצמים ואותו רקע פיזי. אל תמציאי ואל תוסיפי שום פרט חדש שלא היה בתמונה המקורית. רק עבדי צבע, תאורה, גוון ומרקם.",
+    contentRule,
     stylePrompt,
+    customPrompt,
     facePrompt,
     intensityPrompt,
     "החזירי אך ורק את התמונה הערוכה, בלי טקסט נלווה.",
@@ -69,6 +103,7 @@ export const editPhoto = createServerFn({ method: "POST" })
         style: data.style,
         include_face: data.includeFace,
         intensity: data.intensity,
+        custom_instructions: data.customInstructions?.trim() || null,
         original_url: data.imageUrl,
         status: "processing",
       })
@@ -79,7 +114,7 @@ export const editPhoto = createServerFn({ method: "POST" })
     try {
       const key = process.env.LOVABLE_API_KEY;
       if (!key) throw new Error("Missing LOVABLE_API_KEY");
-      const prompt = buildEditPrompt(data.style, data.includeFace, data.intensity);
+      const prompt = buildEditPrompt(data.style, data.includeFace, data.intensity, data.customInstructions);
 
       // Calling the gateway directly (not through the `ai` SDK's generateText)
       // for this one — image-output from an OpenAI-compatible chat endpoint
