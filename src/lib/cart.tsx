@@ -83,13 +83,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!code) return { ok: false, message: "יש להזין קוד" };
     const { data, error } = await supabase
       .from("coupons")
-      .select("code, discount_percent, discount_amount, active, expires_at")
+      .select("code, discount_percent, discount_amount, active, expires_at, single_use, redeemed_at")
       .eq("code", code)
       .maybeSingle();
     if (error || !data) return { ok: false, message: "קוד לא נמצא" };
     if (!data.active) return { ok: false, message: "הקוד אינו פעיל" };
     if (data.expires_at && new Date(data.expires_at) < new Date())
       return { ok: false, message: "פג תוקף הקוד" };
+    if (data.single_use && data.redeemed_at) return { ok: false, message: "הקוד כבר נוצל בעבר" };
     setCoupon({
       code: data.code,
       discount_percent: Number(data.discount_percent) || 0,
