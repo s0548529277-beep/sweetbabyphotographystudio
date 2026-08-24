@@ -79,6 +79,20 @@ async function sendWelcomeEmail(email: string, coupon: IssuedCoupon | null) {
   }
 }
 
+// Lets the popup/footer form skip already-subscribed visitors (e.g. a
+// logged-in customer who joined before) instead of pitching them again.
+export const isNewsletterSubscribed = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => z.object({ email: z.string().min(3).max(200).email() }).parse(data))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row } = await supabaseAdmin
+      .from("newsletter_signups")
+      .select("email")
+      .eq("email", data.email.trim().toLowerCase())
+      .maybeSingle();
+    return { subscribed: !!row };
+  });
+
 // Public lead-capture endpoint (no auth) — backs the "get 15% off" email
 // signup in the footer/popup. Writes go through the service-role client so
 // newsletter_signups needs no anon insert policy (see its migration).
