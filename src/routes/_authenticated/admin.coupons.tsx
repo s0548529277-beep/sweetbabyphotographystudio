@@ -227,7 +227,14 @@ function CouponsAdmin() {
                 </td>
               </tr>
             ))}
-            {coupons.data?.length === 0 && (
+            {coupons.isError && (
+              <tr>
+                <td colSpan={6} className="p-6 text-center text-destructive">
+                  שגיאה בטעינת הקופונים: {(coupons.error as any)?.message ?? "שגיאה לא ידועה"}
+                </td>
+              </tr>
+            )}
+            {!coupons.isError && coupons.data?.length === 0 && (
               <tr>
                 <td colSpan={6} className="p-6 text-center text-forest/60">
                   אין קופונים עדיין
