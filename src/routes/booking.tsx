@@ -364,7 +364,7 @@ function Booking() {
           terms_accepted: true as const,
         },
       });
-      toast.success("הבקשה נשלחה! עוד רגע נשלים את התשלום כדי לשריין את התאריך.");
+      toast.success("הבקשה נשלחה! התאריך שמור לך לשעה — נשלים את התשלום עכשיו כדי לשריין אותו סופית.");
       nav({ to: "/summary/$type/$id", params: { type: "booking", id: res.id } });
     } catch (err) {
       toast.error(heError(err, "שגיאה בשריון"));

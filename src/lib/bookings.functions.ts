@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { buildBookingSummaryHtml } from "@/lib/orderSummary";
+import { bookingBlocksSlot, PENDING_HOLD_MINUTES } from "@/lib/availability.server";
 
 // Studio pricing rules
 // - Minimum 2 half-hour slots (1 hour)
@@ -184,16 +185,17 @@ export const placeBooking = createServerFn({ method: "POST" })
       }
     }
 
-    // Overlap check
+    // Overlap check — uses the same bookingBlocksSlot rule as the public
+    // calendar and the chat's availability check, so all three can never
+    // disagree about whether a given pending-deposit hold still counts.
     const { data: existing, error: exErr } = await supabase
       .from("bookings")
-      .select("id, start_time, end_time")
+      .select("id, start_time, end_time, status, deposit_status, created_at")
       .eq("session_date", data.session_date)
-      .neq("status", "cancelled")
-      .neq("deposit_status", "pending");
+      .neq("status", "cancelled");
     if (exErr) throw new Error(exErr.message);
     const startMin = h * 60 + m;
-    for (const b of existing ?? []) {
+    for (const b of (existing ?? []).filter((b) => bookingBlocksSlot(b))) {
       const [bh, bm] = String(b.start_time).split(":").map(Number);
       const [eh, em] = String(b.end_time).split(":").map(Number);
       const bs = bh * 60 + bm;
@@ -366,8 +368,7 @@ export const placeBooking = createServerFn({ method: "POST" })
       const intakePayload = await fetchLatestIntake(supabase, userId);
       const html = buildBookingSummaryHtml({
         heading: "בקשת השריון התקבלה 📋",
-        intro:
-          "קיבלנו את בקשת השריון שלך לסטודיו Sweetbaby. <strong>התאריך עדיין לא סופי</strong> — כדי לאשר ולשריין אותו בפועל, יש להשלים את תשלום המקדמה (או לצרף אסמכתא לתשלום) בעמוד הבא. ברגע שהתשלום יאושר, יישלח אליך אישור שריון נוסף עם סיכום מלא.",
+        intro: `קיבלנו את בקשת השריון שלך לסטודיו Sweetbaby. <strong>התאריך עדיין לא סופי</strong> — כדי לאשר ולשריין אותו בפועל, יש להשלים את תשלום המקדמה (או לצרף אסמכתא לתשלום) בעמוד הבא <strong>תוך ${PENDING_HOLD_MINUTES / 60} שעה</strong>, אחרת התאריך עלול להשתחרר ללקוחות אחרות. ברגע שהתשלום יאושר, יישלח אליך אישור שריון נוסף עם סיכום מלא.`,
         booking: {
           id: booking.id,
           contact_name: data.contact_name,
