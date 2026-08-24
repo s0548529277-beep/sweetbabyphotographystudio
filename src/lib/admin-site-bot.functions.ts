@@ -256,6 +256,24 @@ export const reviseSiteChange = createServerFn({ method: "POST" })
   });
 
 /** Fetches the unified diff GitHub already computed for this draft's PR, so the admin can see exactly what changed before approving — no separate preview deployment needed. */
+/**
+ * Translates a raw code diff into a plain-Hebrew description of what a site
+ * visitor would actually SEE differently — not a real rendered preview (this
+ * project has no per-branch preview deployment to point at), but the
+ * closest thing achievable without one: "מה ישתנה בעין" instead of +/- lines
+ * of code an admin who doesn't read code can't judge.
+ */
+async function describeVisibleChange(patch: string, targetPath: string): Promise<string> {
+  if (!patch) return "";
+  const gateway = aiGateway();
+  const { text } = await generateText({
+    model: gateway(AI_MODEL),
+    system: `את מסבירה למנהלת סטודיו צילום שלא קוראת קוד מה בדיוק ישתנה למי שיבקר באתר, על סמך diff של קובץ. תתמקדי אך ורק במה שרואים: טקסט/מילים שהשתנו (תני ציטוט "היה" → "יהיה"), אלמנטים שנוספו/הוסרו, שינויי עיצוב מורגשים (צבע, גודל, מרווח, מיקום). אל תסבירי קוד, שמות משתנים, לוגיקה טכנית, או דברים שלא משפיעים על מה שרואים בעין. אם השינוי טכני לגמרי בלי השפעה נראית לעין (תיקון קוד פנימי, לוגיקה) — תגידי את זה במפורש בפשטות. תשובה קצרה, נקודות ברורות, בלי מבוא.`,
+    messages: [{ role: "user", content: `קובץ: ${targetPath}\n\ndiff:\n${patch.slice(0, 8000)}` }],
+  });
+  return text.trim();
+}
+
 export const getSiteChangeDiff = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
@@ -270,7 +288,14 @@ export const getSiteChangeDiff = createServerFn({ method: "POST" })
     // GitHub omits `patch` for very large diffs/files — no way around that
     // short of diffing the raw blobs ourselves, so the UI falls back to a
     // "view on GitHub" link in that case.
-    return { patch: file?.patch ?? "", filename: file?.filename ?? row.target_path, additions: file?.additions ?? 0, deletions: file?.deletions ?? 0 };
+    const patch = file?.patch ?? "";
+    let plainSummary = "";
+    try {
+      plainSummary = await describeVisibleChange(patch, file?.filename ?? row.target_path);
+    } catch (e) {
+      console.error("[SWEETBABY] plain-language diff summary failed", e);
+    }
+    return { patch, plainSummary, filename: file?.filename ?? row.target_path, additions: file?.additions ?? 0, deletions: file?.deletions ?? 0 };
   });
 
 /**
