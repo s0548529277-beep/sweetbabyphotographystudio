@@ -1,8 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import { generateText } from "ai";
-import { createLovableAiGatewayProvider } from "./ai-gateway.server";
 
 async function assertAdmin(supabase: any, userId: string) {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
@@ -81,31 +79,60 @@ export const editPhoto = createServerFn({ method: "POST" })
     try {
       const key = process.env.LOVABLE_API_KEY;
       if (!key) throw new Error("Missing LOVABLE_API_KEY");
-      const gateway = createLovableAiGatewayProvider(key);
       const prompt = buildEditPrompt(data.style, data.includeFace, data.intensity);
 
-      const result = await generateText({
-        model: gateway("google/gemini-2.5-flash-image"),
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              { type: "image", image: data.imageUrl },
-            ],
-          },
-        ],
+      // Calling the gateway directly (not through the `ai` SDK's generateText)
+      // for this one — image-output from an OpenAI-compatible chat endpoint
+      // isn't a Vercel-AI-SDK first-class concept the way it is for a native
+      // image-generation provider, so it's safer to read the raw JSON
+      // ourselves and check the couple of shapes different gateways use for
+      // this (message.images[].image_url.url, or a data: URI embedded in
+      // message.content), and — if neither matches — surface a chunk of the
+      // real raw response so a mismatch can be diagnosed from what actually
+      // came back instead of a generic message.
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-image",
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: prompt },
+                { type: "image_url", image_url: { url: data.imageUrl } },
+              ],
+            },
+          ],
+        }),
       });
+      const raw = await res.text();
+      if (!res.ok) throw new Error(`שגיאה מהמודל (${res.status}): ${raw.slice(0, 500)}`);
+      const json = JSON.parse(raw);
+      const message = json?.choices?.[0]?.message;
 
-      const generatedImage = result.files?.find((f) => f.mediaType?.startsWith("image/"));
-      if (!generatedImage) throw new Error("המודל לא החזיר תמונה מעובדת — ייתכן שצריך לכוונן את החיבור למודל");
+      let mediaType = "image/png";
+      let base64: string | null = null;
+      const fromImagesField = message?.images?.[0]?.image_url?.url as string | undefined;
+      const fromContentField = typeof message?.content === "string" ? message.content : null;
+      const dataUri = fromImagesField ?? fromContentField ?? "";
+      const match = dataUri.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/s);
+      if (match) {
+        mediaType = match[1];
+        base64 = match[2];
+      }
 
-      const ext = generatedImage.mediaType?.split("/")[1]?.split("+")[0] ?? "png";
+      if (!base64) {
+        const snippet = JSON.stringify(json).slice(0, 500);
+        throw new Error(`המודל לא החזיר תמונה מעובדת. תגובה גולמית: ${snippet}`);
+      }
+
+      const ext = mediaType.split("/")[1]?.split("+")[0] ?? "png";
       const path = `photo-editor/${historyRow.id}.${ext}`;
-      const bytes = generatedImage.uint8Array ?? Buffer.from(generatedImage.base64 ?? "", "base64");
+      const bytes = Buffer.from(base64, "base64");
       const { error: upErr } = await supabaseAdmin.storage
         .from("items")
-        .upload(path, bytes, { contentType: generatedImage.mediaType ?? "image/png", upsert: true });
+        .upload(path, bytes, { contentType: mediaType, upsert: true });
       if (upErr) throw new Error(upErr.message);
 
       const { data: signed, error: signErr } = await supabaseAdmin.storage
