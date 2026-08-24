@@ -16,7 +16,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import {
   placeBooking,
+  placeRecurringBooking,
   computeStudioPrice,
+  priceForBooking,
   isMorningPackage,
   GUIDANCE_FEES,
   GUIDANCE_LABELS,
@@ -110,6 +112,7 @@ function Booking() {
   const profile = useProfilePrefill();
   const nav = useNavigate();
   const place = useServerFn(placeBooking);
+  const placeRecurring = useServerFn(placeRecurringBooking);
   const checkAvail = useServerFn(checkItemsAvailability);
   const dayBusy = useServerFn(getStudioDayBusy);
 
@@ -209,10 +212,16 @@ function Booking() {
   const guidanceKey = (profile.guidance || "basic") as keyof typeof GUIDANCE_FEES;
   const guidanceFee = GUIDANCE_FEES[guidanceKey] ?? 0;
 
+  // A personal negotiated hourly rate (admin-set for this customer, see
+  // /admin/clients) replaces the standard price list entirely if present —
+  // fetched alongside credit_balance so the preview matches what the
+  // server will actually charge.
+  const [customHourlyRate, setCustomHourlyRate] = useState<number | null>(null);
+
   const basePrice = useMemo(() => {
     if (!startTime) return 0;
-    try { return computeStudioPrice(slots, startTime); } catch { return 0; }
-  }, [startTime, slots]);
+    try { return priceForBooking(slots, startTime, customHourlyRate); } catch { return 0; }
+  }, [startTime, slots, customHourlyRate]);
   const price = basePrice > 0 ? basePrice + guidanceFee : 0;
 
   // Discount code (e.g. BYBY10 / SWEETBABY10 → 10%)
@@ -224,13 +233,17 @@ function Booking() {
   const [creditBalance, setCreditBalance] = useState(0);
   const [useCredit, setUseCredit] = useState(false);
   useEffect(() => {
-    if (!user) { setCreditBalance(0); return; }
+    if (!user) { setCreditBalance(0); setCustomHourlyRate(null); return; }
     supabase
-      .from("customer_loyalty")
-      .select("credit_balance")
+      .from("customer_loyalty" as never)
+      .select("credit_balance, custom_hourly_rate")
       .eq("user_id", user.id)
       .maybeSingle()
-      .then(({ data }) => setCreditBalance(Number(data?.credit_balance ?? 0)));
+      .then(({ data }) => {
+        const row = data as unknown as { credit_balance?: number; custom_hourly_rate?: number | null } | null;
+        setCreditBalance(Number(row?.credit_balance ?? 0));
+        setCustomHourlyRate(row?.custom_hourly_rate ? Number(row.custom_hourly_rate) : null);
+      });
   }, [user]);
 
   // "SWEET 10+1" style studio-visit pass — covers the first hour if the
@@ -279,7 +292,7 @@ function Booking() {
     setCouponMsg(`הקוד הופעל · הנחה ₪${off}`);
   };
 
-  const morningActive = !!startTime && isMorningPackage(slots, startTime);
+  const morningActive = !customHourlyRate && !!startTime && isMorningPackage(slots, startTime);
 
   const endTimeStr = useMemo(() => {
     if (!startTime) return null;
@@ -287,6 +300,13 @@ function Booking() {
     const endMin = h * 60 + m + slots * 30;
     return `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
   }, [startTime, slots]);
+
+  // Recurring weekly series: same day-of-week/time, once a week, for
+  // several weeks booked in one action — for a customer with a standing
+  // weekly need instead of booking each week separately. Coupon/credit/pass
+  // aren't offered in this mode (kept simple — see placeRecurringBooking).
+  const [recurring, setRecurring] = useState(false);
+  const [recurWeeks, setRecurWeeks] = useState(4);
 
   const canBook = date && startTime && slots >= 2 && contactName && contactPhone && user;
 
@@ -296,6 +316,30 @@ function Booking() {
     setBusy(true);
     saveContactHandoff({ fullName: contactName, phone: contactPhone });
     try {
+      if (recurring) {
+        const res = await placeRecurring({
+          data: {
+            start_date: toLocalISODate(date),
+            start_time: startTime,
+            slots,
+            weeks: recurWeeks,
+            contact_name: contactName,
+            contact_phone: contactPhone,
+            contact_email: contactEmail.trim() ? contactEmail.trim() : null,
+            notes,
+            guidance: guidanceKey,
+            terms_accepted: true as const,
+          },
+        });
+        if (res.skipped.length > 0) {
+          toast.success(`נקבעו ${res.created.length} מתוך ${recurWeeks} מפגשים — ${res.skipped.length} תאריכים היו תפוסים ולא נקבעו.`);
+        } else {
+          toast.success(`נקבעו כל ${res.created.length} המפגשים בסדרה! עוד רגע נשלים את התשלום.`);
+        }
+        nav({ to: "/account" });
+        return;
+      }
+
       const res = await place({
         data: {
          session_date: toLocalISODate(date),
@@ -638,30 +682,36 @@ function Booking() {
                   <span>+₪{guidanceFee}</span>
                 </div>
               )}
-              {couponOff > 0 && (
+              {!recurring && couponOff > 0 && (
                 <div className="flex items-baseline justify-between text-[11px] text-[#f5d5cf] mb-1">
                   <span>קוד קופון {coupon.trim().toUpperCase()}</span>
                   <span>-₪{couponOff}</span>
                 </div>
               )}
-              {passApplied > 0 && (
+              {!recurring && passApplied > 0 && (
                 <div className="flex items-baseline justify-between text-[11px] text-[#f5d5cf] mb-1">
                   <span>כניסה מהכרטיסייה · שעה ראשונה</span>
                   <span>-₪{passApplied}</span>
                 </div>
               )}
-              {creditApplied > 0 && (
+              {!recurring && creditApplied > 0 && (
                 <div className="flex items-baseline justify-between text-[11px] text-[#f5d5cf] mb-1">
                   <span>קרדיט לקוחה</span>
                   <span>-₪{creditApplied}</span>
                 </div>
               )}
-              <div className="flex items-baseline justify-between mb-3">
-                <span className="text-[#f8ede4]/70 text-xs">סה״כ</span>
-                <span className="font-display text-3xl text-[#f5d5cf]">₪{finalPrice}</span>
+              <div className="flex items-baseline justify-between mb-1">
+                <span className="text-[#f8ede4]/70 text-xs">{recurring ? "סה״כ למפגש" : "סה״כ"}</span>
+                <span className="font-display text-3xl text-[#f5d5cf]">₪{recurring ? price : finalPrice}</span>
               </div>
+              {recurring && (
+                <div className="text-[11px] text-[#f8ede4]/70 mb-3">
+                  × {recurWeeks} מפגשים שבועיים = ₪{price * recurWeeks} סה״כ לסדרה
+                </div>
+              )}
+              {!recurring && <div className="mb-3" />}
 
-              {passRemaining !== null && passRemaining > 0 && (
+              {!recurring && passRemaining !== null && passRemaining > 0 && (
                 <button
                   type="button"
                   onClick={() => setUsePass((v) => !v)}
@@ -673,7 +723,7 @@ function Booking() {
                 </button>
               )}
 
-              {creditBalance > 0 && (
+              {!recurring && creditBalance > 0 && (
                 <button
                   type="button"
                   onClick={() => setUseCredit((v) => !v)}
@@ -685,35 +735,67 @@ function Booking() {
                 </button>
               )}
 
-              {/* Discount code */}
-              <div className="mb-4">
-                <div className="flex gap-2">
-                  <input
-                    value={coupon}
-                    onChange={(e) => { setCoupon(e.target.value); setCouponOff(0); setCouponMsg(null); }}
-                    placeholder="קוד קופון"
-                    className="flex-1 h-9 rounded-full px-3 text-xs bg-[#f8ede4] text-[#2d3d2b] placeholder:text-[#2d3d2b]/40 outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={applyCoupon}
-                    className="h-9 px-4 rounded-full text-xs bg-[#f5d5cf] text-[#2d3d2b] font-medium"
-                  >
-                    החלה
-                  </button>
+              {!recurring && (
+                <div className="mb-4">
+                  <div className="flex gap-2">
+                    <input
+                      value={coupon}
+                      onChange={(e) => { setCoupon(e.target.value); setCouponOff(0); setCouponMsg(null); }}
+                      placeholder="קוד קופון"
+                      className="flex-1 h-9 rounded-full px-3 text-xs bg-[#f8ede4] text-[#2d3d2b] placeholder:text-[#2d3d2b]/40 outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={applyCoupon}
+                      className="h-9 px-4 rounded-full text-xs bg-[#f5d5cf] text-[#2d3d2b] font-medium"
+                    >
+                      החלה
+                    </button>
+                  </div>
+                  {couponMsg && <div className="text-[10px] mt-1.5 text-[#f8ede4]/70">{couponMsg}</div>}
                 </div>
-                {couponMsg && <div className="text-[10px] mt-1.5 text-[#f8ede4]/70">{couponMsg}</div>}
+              )}
+
+              {/* Recurring weekly series toggle */}
+              <div className="mb-4 rounded-xl border border-[#f5d5cf]/30 p-3">
+                <button
+                  type="button"
+                  onClick={() => setRecurring((v) => !v)}
+                  className={`w-full h-9 rounded-full text-xs font-medium transition-colors ${
+                    recurring ? "bg-[#f5d5cf] text-[#2d3d2b]" : "bg-transparent border border-[#f5d5cf]/50 text-[#f5d5cf]"
+                  }`}
+                >
+                  {recurring ? "✓ " : ""}סדרה שבועית חוזרת (אותה שעה, כל שבוע)
+                </button>
+                {recurring && (
+                  <div className="mt-3 flex items-center justify-between gap-2 text-xs text-[#f8ede4]/80">
+                    <span>כמה שבועות ברצף</span>
+                    <input
+                      type="number"
+                      min={2}
+                      max={26}
+                      value={recurWeeks}
+                      onChange={(e) => setRecurWeeks(Math.max(2, Math.min(26, Number(e.target.value) || 2)))}
+                      dir="ltr"
+                      className="w-16 h-8 rounded-lg px-2 bg-[#f8ede4] text-[#2d3d2b] text-center outline-none"
+                    />
+                  </div>
+                )}
+                {recurring && (
+                  <p className="text-[10px] text-[#f8ede4]/55 mt-2">
+                    כל מפגש הוא שריון נפרד (אפשר לבטל אחד בלי לפגוע בשאר) — כל אחד דורש מקדמה נפרדת של ₪90 כדי להתאשר. קופון/קרדיט/כרטיסייה לא זמינים במצב זה. תאריכים תפוסים בסדרה פשוט ידולגו.
+                  </p>
+                )}
               </div>
 
-              <div className="text-[10px] text-[#f8ede4]/55 mb-4">מתוכם 90₪ מקדמה לשריון</div>
-
+              {!recurring && <div className="text-[10px] text-[#f8ede4]/55 mb-4">מתוכם 90₪ מקדמה לשריון</div>}
 
               <Button
                 type="submit"
                 disabled={!canBook || busy}
                 className="w-full rounded-full h-11 bg-[#f5d5cf] text-[#2d3d2b] hover:bg-[#f8ede4] font-medium disabled:opacity-40"
               >
-                {busy ? "רגע…" : "המשך לתשלום מקדמה"}
+                {busy ? "רגע…" : recurring ? `קביעת ${recurWeeks} מפגשים` : "המשך לתשלום מקדמה"}
               </Button>
             </div>
           </aside>

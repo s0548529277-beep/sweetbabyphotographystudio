@@ -39,6 +39,21 @@ export function computeStudioPrice(slots: number, startTime: string): number {
   return firstHourSlots * 60 + extraSlots * 45;
 }
 
+/**
+ * Price for one session, honoring a customer's personal negotiated hourly
+ * rate (admin-set on her customer_loyalty row, e.g. for a recurring weekly
+ * client) if she has one — a flat rate × duration, replacing the standard
+ * tiered pricing AND the newborn-morning discount entirely, since a
+ * personal rate is meant as a full override of the normal price list.
+ * Falls back to the standard computeStudioPrice when no custom rate is set.
+ */
+export function priceForBooking(slots: number, startTime: string, customHourlyRate: number | null | undefined): number {
+  if (customHourlyRate && customHourlyRate > 0) {
+    return Math.round((slots / 2) * customHourlyRate * 100) / 100;
+  }
+  return computeStudioPrice(slots, startTime);
+}
+
 /** Fetches the latest signed intake questionnaire payload for a user (best-effort, never throws). */
 async function fetchLatestIntake(
   supabase: any,
@@ -88,10 +103,16 @@ export const placeBooking = createServerFn({ method: "POST" })
     const endMin = h * 60 + m + data.slots * 30;
     const endTime = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
 
-    const basePrice = computeStudioPrice(data.slots, data.start_time);
+    // A personal negotiated hourly rate (set by the admin on this
+    // customer's loyalty row) overrides the standard price list entirely.
+    const { data: loyaltyRow } = await supabase.from("customer_loyalty").select("custom_hourly_rate").eq("user_id", userId).maybeSingle();
+    const customHourlyRate = loyaltyRow?.custom_hourly_rate ? Number(loyaltyRow.custom_hourly_rate) : null;
+
+    const basePrice = priceForBooking(data.slots, data.start_time, customHourlyRate);
     const guidanceKey = (data.guidance ?? "basic") as keyof typeof GUIDANCE_FEES;
     const guidanceFee = GUIDANCE_FEES[guidanceKey] ?? 0;
     let price = basePrice + guidanceFee;
+    const customRateNote = customHourlyRate ? `תעריף אישי: ₪${customHourlyRate}/שעה` : null;
 
     // Optional discount code (e.g. BYBY10 / SWEETBABY10 → 10%).
     let couponNote: string | null = null;
@@ -152,7 +173,10 @@ export const placeBooking = createServerFn({ method: "POST" })
         creditNote = `קרדיט לקוחה · ₪${creditUsed}`;
       }
     }
-    const isMorning = isMorningPackage(data.slots, data.start_time);
+    // A custom rate replaces the whole standard price list, including the
+    // morning-package discount — so don't record it as "morning" package
+    // when one applied, even if the time happens to match that window.
+    const isMorning = !customHourlyRate && isMorningPackage(data.slots, data.start_time);
 
     // Overlap check
     const { data: existing, error: exErr } = await supabase
@@ -214,6 +238,7 @@ export const placeBooking = createServerFn({ method: "POST" })
         contact_phone: data.contact_phone,
         notes: [
           guidanceFee > 0 ? `חבילת הדרכה: ${GUIDANCE_LABELS[guidanceKey]} (+₪${guidanceFee})` : null,
+          customRateNote,
           couponNote,
           passNote,
           creditNote,
@@ -362,6 +387,165 @@ export const placeBooking = createServerFn({ method: "POST" })
     }
 
     return { id: booking.id, price, deposit, balance: Math.max(0, price - deposit), end_time: endTime };
+  });
+
+// ---------- Recurring weekly series ----------
+
+const recurringInputSchema = z.object({
+  start_date: z.string().min(10), // first session, YYYY-MM-DD
+  start_time: z.string().regex(/^\d{2}:\d{2}$/),
+  slots: z.number().int().min(2).max(30),
+  weeks: z.number().int().min(2).max(26), // total sessions, one per week
+  contact_name: z.string().min(1).max(120),
+  contact_phone: z.string().min(5).max(40),
+  contact_email: z.string().email().max(160).optional().nullable(),
+  notes: z.string().max(1000).optional().nullable(),
+  guidance: z.string().max(60).optional().nullable(),
+  terms_accepted: z.literal(true),
+});
+
+/**
+ * Books the same weekly time slot, once a week, for N weeks in one go — for
+ * a customer who needs a standing recurring session (e.g. a weekly class or
+ * project) instead of booking each week separately. Deliberately scoped
+ * down from placeBooking: no coupon/credit/subscription-pass redemption
+ * here (ambiguous whether those should apply once or per session — keep the
+ * series simple), and no reserved props. Honors a personal custom hourly
+ * rate exactly like placeBooking does. Each week becomes its own normal
+ * `bookings` row (own status/deposit/cancellation — a customer can cancel
+ * a single occurrence without touching the rest of the series), tagged with
+ * a shared `recurring_series_id` so they're visibly grouped together.
+ * Dates that turn out to be unavailable are skipped, not fatal — the
+ * response lists what was actually booked vs. skipped so the UI can show
+ * the customer exactly what happened.
+ */
+export const placeRecurringBooking = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => recurringInputSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { studioAvailability } = await import("./availability.server");
+
+    const { data: loyaltyRow } = await supabase.from("customer_loyalty").select("custom_hourly_rate").eq("user_id", userId).maybeSingle();
+    const customHourlyRate = loyaltyRow?.custom_hourly_rate ? Number(loyaltyRow.custom_hourly_rate) : null;
+
+    const [h, m] = data.start_time.split(":").map(Number);
+    const endMin = h * 60 + m + data.slots * 30;
+    const endTime = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
+    const wantedSlots = Array.from({ length: data.slots }, (_, i) => {
+      const t = h * 60 + m + i * 30;
+      return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
+    });
+
+    const guidanceKey = (data.guidance ?? "basic") as keyof typeof GUIDANCE_FEES;
+    const guidanceFee = GUIDANCE_FEES[guidanceKey] ?? 0;
+    const price = priceForBooking(data.slots, data.start_time, customHourlyRate) + guidanceFee;
+
+    const seriesId = crypto.randomUUID();
+    const created: { id: string; date: string }[] = [];
+    const skipped: { date: string; reason: string }[] = [];
+    const today = new Date().toISOString().slice(0, 10);
+
+    const base = new Date(`${data.start_date}T00:00:00`);
+    for (let i = 0; i < data.weeks; i++) {
+      const d = new Date(base);
+      d.setDate(d.getDate() + i * 7);
+      const iso = d.toISOString().slice(0, 10);
+
+      try {
+        const avail = await studioAvailability(iso, data.start_time);
+        if (avail.closed) {
+          skipped.push({ date: iso, reason: "הסטודיו סגור בתאריך זה" });
+          continue;
+        }
+        if (!wantedSlots.every((slot) => avail.freeSlots.includes(slot))) {
+          skipped.push({ date: iso, reason: "התאריך/שעה תפוסים" });
+          continue;
+        }
+
+        const deposit = iso === today ? price : 90;
+        const { data: booking, error } = await supabase
+          .from("bookings")
+          .insert({
+            user_id: userId,
+            session_date: iso,
+            start_time: data.start_time,
+            end_time: endTime,
+            slots: data.slots,
+            package: "regular",
+            price,
+            deposit_amount: deposit,
+            balance_amount: Math.max(0, price - deposit),
+            status: "pending",
+            deposit_status: "pending",
+            contact_name: data.contact_name,
+            contact_phone: data.contact_phone,
+            notes: [
+              guidanceFee > 0 ? `חבילת הדרכה: ${GUIDANCE_LABELS[guidanceKey]} (+₪${guidanceFee})` : null,
+              customHourlyRate ? `תעריף אישי: ₪${customHourlyRate}/שעה` : null,
+              `סדרה שבועית · מפגש ${i + 1} מתוך ${data.weeks}`,
+              data.notes,
+            ]
+              .filter(Boolean)
+              .join("\n") || null,
+            reserved_items: [],
+            terms_accepted_at: new Date().toISOString(),
+            recurring_series_id: seriesId,
+          })
+          .select("id")
+          .single();
+        if (error || !booking) {
+          skipped.push({ date: iso, reason: error?.message ?? "יצירת השריון נכשלה" });
+          continue;
+        }
+        created.push({ id: booking.id, date: iso });
+      } catch (e: any) {
+        skipped.push({ date: iso, reason: String(e?.message ?? e) });
+      }
+    }
+
+    if (created.length === 0) {
+      throw new Error("לא נוצר אף שריון בסדרה — כל התאריכים תפוסים או לא זמינים. נסי תאריך התחלה או שעה אחרת.");
+    }
+
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin.from("admin_notifications").insert({
+        type: "booking",
+        title: `סדרה שבועית חדשה · ${created.length} מפגשים · ₪${price} כל אחד`,
+        body: { series_id: seriesId, contact_name: data.contact_name, contact_phone: data.contact_phone, created, skipped, price },
+      });
+    } catch (e) {
+      console.error("[SWEETBABY] admin notify for recurring series failed", e);
+    }
+
+    try {
+      let customerEmail = data.contact_email?.trim() || undefined;
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        customerEmail = customerEmail ?? user?.email ?? undefined;
+      } catch {
+        /* ignore */
+      }
+      const dateLines = created.map((c) => `<li>${new Date(c.date).toLocaleDateString("he-IL")} · ${data.start_time}–${endTime}</li>`).join("");
+      const skippedLines = skipped.length
+        ? `<p>לא נוצרו (תפוסים/לא זמינים): ${skipped.map((s) => new Date(s.date).toLocaleDateString("he-IL")).join(", ")}</p>`
+        : "";
+      const html = `<div dir="rtl" style="font-family:sans-serif">
+        <h2>סדרת שריונים שבועית התקבלה 📋</h2>
+        <p>נקבעו ${created.length} מפגשים שבועיים, ₪${price} כל אחד. <strong>עדיין לא מאושרים</strong> — יש לשלם מקדמה של ₪90 לכל מפגש (או את מלוא הסכום למפגש שהוא היום) כדי לאשר אותו סופית, דרך "השריונים שלי" בעמוד /account.</p>
+        <ul>${dateLines}</ul>
+        ${skippedLines}
+      </div>`;
+      const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+      await sendStudioAndCustomer({ customerEmail, subject: `סדרת שריונים שבועית · Sweetbaby`, html });
+    } catch (e) {
+      console.error("[SWEETBABY] recurring series confirmation email failed", e);
+    }
+
+    return { ok: true, seriesId, price, created, skipped };
   });
 
 // ---------- Cancellation ----------
