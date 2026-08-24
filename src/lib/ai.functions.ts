@@ -5,6 +5,44 @@ import { createLovableAiGatewayProvider } from "./ai-gateway.server";
 import { buildAssistantTools } from "./ai-tools.server";
 import catalogData from "@/data/studio-catalog.json";
 
+/**
+ * Reads the real Authorization bearer token off the current request (if
+ * any) and validates it directly — same JWT-claims check requireSupabaseAuth
+ * does, but tolerant of a missing/invalid token (returns nulls) instead of
+ * throwing, since this endpoint must keep working for anonymous visitors.
+ * Used to know whether the visitor genuinely has a personal account —
+ * `isAnonymous` is also true for a real Supabase anonymous-auth session
+ * (the "continue as guest" flow on /booking), which create_studio_booking
+ * deliberately does NOT accept: booking through the chat, unsupervised,
+ * for an identity that isn't a real account is a real risk the normal
+ * /booking guest flow doesn't have (a human fills the form there herself).
+ */
+async function getRealAuthState(): Promise<{ userId: string | null; isRealAccount: boolean }> {
+  try {
+    const { getRequest } = await import("@tanstack/react-start/server");
+    const authHeader = getRequest()?.headers?.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) return { userId: null, isRealAccount: false };
+    const token = authHeader.slice("Bearer ".length);
+    if (token.split(".").length !== 3) return { userId: null, isRealAccount: false };
+
+    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
+    if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) return { userId: null, isRealAccount: false };
+
+    const { createClient } = await import("@supabase/supabase-js");
+    const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data, error } = await supabase.auth.getClaims(token);
+    if (error || !data?.claims?.sub) return { userId: null, isRealAccount: false };
+    const isAnonymous = !!(data.claims as Record<string, unknown>).is_anonymous;
+    return { userId: data.claims.sub as string, isRealAccount: !isAnonymous };
+  } catch {
+    return { userId: null, isRealAccount: false };
+  }
+}
+
 
 const SYSTEM = `את "נועה", העוזרת האישית של סטודיו Sweetbaby — סטודיו בוטיק בבית שמש להשכרת סטודיו, השכרת אביזרים וצילומי ניו-בורן/משפחה.
 סגנון: עברית חמה, נעימה ואישית, בגובה העיניים, משפטים קצרים, אימוג׳י עדין פה ושם (💗 ✨) בלי להגזים. פני ללקוחה בלשון נקבה. תמיד תני תשובה מועילה וקונקרטית, ואל תסתפקי ב"אני לא יודעת" — קודם נסי לבדוק עם הכלים שלך.
@@ -22,7 +60,13 @@ const SYSTEM = `את "נועה", העוזרת האישית של סטודיו Swe
 - חבילות הדרכה (תוספת חד-פעמית לשריון סטודיו): בסיסי חינם (עד 5 דק׳ הכוונה) · MINI 50₪ (עד 20 דק׳ הדרכה טכנית, סט אחד) · PLUS 100₪ (ליווי מקצועי ראשוני, הכי פופולרי) · PREMIUM 300₪ (הצלמת מיכל איתך בסטודיו — 2 סטים יפים בהתאמה אישית, עד שעה)
 - כרטיסיית מנוי SWEET 10+1 (11 כניסות סטודיו בתשלום מראש, כניסה = שעה ראשונה בהשכרת סטודיו): לא נרכשת אונליין — מי שמתעניינת, הפני אותה ליצירת קשר ישיר עם הסטודיו לתיאום. אם ללקוחה המחוברת יש כרטיסייה פעילה, אפשר להזכיר לה שיש לה כניסות זמינות ושהיא יכולה לסמן "השתמשי בכרטיסייה שלך" בעמוד /booking.
 - תהליך הזמנת סטודיו: 1) הסכם תיאום ציפיות בעמוד /studio-rental → 2) בחירת תאריך ושעה בעמוד /booking → 3) תשלום מקדמה. פרטי הקשר עוברים אוטומטית בין השלבים.
-- אם לקוחה מחוברת ממש מתקשה להשלים את התהליך לבד (למשל בעיה טכנית, או פשוט מעדיפה שתעשי את זה בשבילה) — יש לך אפשרות ליצור עבורה שריון בפועל דרך create_studio_booking, בכפוף לכל התנאים המפורטים בתיאור הכלי (אישור מפורש שלה על תנאי השימוש והמקדמה, פרטי קשר, ובדיקת זמינות קודם). זה לא ברירת מחדל — קודם כל תמיד הציעי לה להשלים בעצמה דרך /booking, והשתמשי בכלי הזה רק אם היא ממש מבקשת עזרה בביצוע בפועל.
+- אם לקוחה עם חשבון אישי אמיתי (לא אורחת) ממש מתקשה להשלים את התהליך לבד (למשל בעיה טכנית, או פשוט מעדיפה שתעשי את זה בשבילה) — יש לך אפשרות ליצור עבורה שריון בפועל דרך create_studio_booking, בכפוף לכל התנאים המפורטים בתיאור הכלי. זה לא ברירת מחדל — קודם כל תמיד הציעי לה להשלים בעצמה דרך /booking, והשתמשי בכלי הזה רק אם היא ממש מבקשת עזרה בביצוע בפועל. לפני שקוראים לכלי, את חייבת:
+  1. לוודא זמינות אמיתית עם check_studio_availability.
+  2. לשאול ולקבל: שם מלא, טלפון, אימייל (חובה — לשם נשלח אישור וכל ההתכתבות, בדיוק כמו בהזמנה רגילה).
+  3. לשאול את פרטי השאלון המקוצר (כמו בעמוד /studio-rental): סוג הצילום (משפחתי/ניו-בורן/חלאקה/אחר), כמה אנשים בערך, גיל התינוק/ת אם רלוונטי, האם יש מצלמה או צריך המלצה, ניסיון עם פלאש, האם צריך אביזרים, ובקשות מיוחדות (הכל אופציונלי חוץ מסוג הצילום — אם לקוחה לא יודעת/לא רוצה לענות על שדה מסוים, אפשר לדלג).
+  4. להציג לה בפירוש (לא רק לינק!) את התנאים המרכזיים לפני שמבקשים אישור: המקדמה 90₪ שלא מוחזרת בביטול, ביטול ביום האירוע עצמו = 100% מהסכום, נזק = עלות תיקון/רכישה +20% דמי טיפול, ניקיון לא תקין = 150₪. ואז לקבל ממנה הודעה מפורשת שהיא מסכימה לכל זה.
+  5. לשאול איך היא מתכננת לשלם את המקדמה — האם היא כבר העבירה/תעביר עכשיו (ואם כן דרך מה: העברה בנקאית או ביט), או שהיא תשלם אחר כך. בכל מקרה תסבירי לה בסוף שהשריון מאושר סופית רק אחרי שהמקדמה בפועל התקבלה/אושרה, ושהיא צריכה לוודא זאת דרך /account.
+  לקוחה שהיא "אורחת"/לא מחוברת עם חשבון אמיתי — לעולם אל תשתמשי בכלי הזה, גם אם היא מתעקשת. הסבירי בעדינות שליצירת שריון דרך הצ'אט צריך חשבון אישי אמיתי (לא כניסת אורח), והציעי לה להירשם ב-/auth או להזמין לבד ב-/booking (שם אפשר גם כאורחת).
 
 אביזרים להשכרה:
 - 400+ אביזרים בקטלוג /rental-catalog · מינימום הזמנה 50₪
@@ -47,6 +91,10 @@ const ChatInput = z.object({
     .max(20),
   userName: z.string().max(80).optional(),
   isAuthenticated: z.boolean().optional(),
+  // Client-generated (crypto.randomUUID, kept in sessionStorage) so the
+  // whole conversation logs as one growing row instead of one per message —
+  // see customer_chat_logs / listChatLogs.
+  sessionId: z.string().max(80).optional(),
 });
 
 export const chatWithBot = createServerFn({ method: "POST" })
@@ -55,6 +103,10 @@ export const chatWithBot = createServerFn({ method: "POST" })
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("Missing LOVABLE_API_KEY");
     const gateway = createLovableAiGatewayProvider(key);
+    // The client's `isAuthenticated` flag is only used for tone/wording —
+    // it's untrusted. Whether create_studio_booking is actually allowed to
+    // run is decided below from the real, server-verified token.
+    const { userId: realUserId, isRealAccount } = await getRealAuthState();
     const personalized = data.isAuthenticated
       ? `\n\nהמשתמשת מחוברת לחשבון${data.userName ? ` בשם ${data.userName}` : ""}. את יכולה לפנות אליה בשמה.`
       : `\n\nהמשתמשת לא מחוברת. לביצוע הזמנה בפועל הציעי לה להתחבר בעמוד /auth — אבל בדיקת זמינות אפשר לעשות גם בלי התחברות.`;
@@ -76,9 +128,29 @@ export const chatWithBot = createServerFn({ method: "POST" })
       model: gateway("google/gemini-2.5-flash"),
       system: SYSTEM + personalized + toolRules,
       messages: data.messages,
-      tools: buildAssistantTools({ isAuthenticated: !!data.isAuthenticated }),
+      tools: buildAssistantTools({ isAuthenticated: isRealAccount }),
       stopWhen: stepCountIs(8),
     });
+
+    // Log the whole conversation so far (every visit, not just ones that
+    // book something) — one upserted row per browser session, not one
+    // insert per message.
+    if (data.sessionId) {
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        await supabaseAdmin.from("customer_chat_logs").upsert(
+          {
+            session_id: data.sessionId,
+            user_id: realUserId,
+            messages: [...data.messages, { role: "assistant", content: text }],
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "session_id" },
+        );
+      } catch (e) {
+        console.error("[SWEETBABY] chat log upsert failed", e);
+      }
+    }
 
     return { reply: text };
   });

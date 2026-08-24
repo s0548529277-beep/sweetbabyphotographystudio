@@ -156,11 +156,13 @@ export function buildAssistantTools(opts?: { isAuthenticated?: boolean }) {
     }),
 
     create_studio_booking: tool({
-      description: `יוצרת שריון סטודיו אמיתי (לא רק בדיקה!) עבור לקוחה שמתקשה להשלים את התהליך לבד באתר. זה כלי רציני — לפני שמשתמשים בו חובה:
+      description: `יוצרת שריון סטודיו אמיתי (לא רק בדיקה!) עבור לקוחה עם חשבון אישי אמיתי שמתקשה להשלים את התהליך לבד באתר. זה כלי רציני — לפני שמשתמשים בו חובה:
 1. לבדוק זמינות אמיתית עם check_studio_availability ולוודא שהתאריך/שעה באמת פנויים.
-2. לקבל מהלקוחה בפירוש: שם מלא וטלפון.
-3. לקבל מהלקוחה אישור מפורש בהודעה בצ'אט שהיא מסכימה לתנאי השימוש (יש קישור בעמוד /terms) ושהיא מבינה שצריך לשלם מקדמה של 90₪ (לא מוחזרת בביטול) בהעברה בנקאית/ביט כדי לשריין בפועל — ורק אז לשלוח termsAccepted=true.
-${!opts?.isAuthenticated ? "הלקוחה הנוכחית לא מחוברת — אסור לקרוא לכלי הזה, יש להציע לה להתחבר קודם ב-/auth ואז לחזור." : "הלקוחה מחוברת, אפשר להשתמש בכלי אחרי שהתנאים לעיל התקיימו."}
+2. לקבל מהלקוחה בפירוש: שם מלא, טלפון, ואימייל (חובה — לשם יישלח אישור ההזמנה, בדיוק כמו בהזמנה רגילה).
+3. לשאול (בקצרה, אפשר לדלג על מה שלא רלוונטי) את פרטי השאלון: סוג הצילום, כמה אנשים בערך, גיל התינוק/ת אם ניו-בורן, האם יש מצלמה/צריך המלצה, ניסיון עם פלאש, האם צריך אביזרים, בקשות מיוחדות.
+4. להציג לה בהודעה בצ'אט (לא רק לינק) את התנאים המרכזיים ולקבל הסכמה מפורשת: מקדמה 90₪ שלא מוחזרת בביטול, ביטול ביום האירוע = 100%, נזק = עלות תיקון/רכישה +20% דמי טיפול, בלגן/ניקיון לא תקין = 150₪.
+5. לשאול איך היא מתכננת לשלם את המקדמה (depositPlan).
+${!opts?.isAuthenticated ? "הלקוחה הנוכחית היא אורחת/לא מחוברת בחשבון אמיתי — אסור בהחלט לקרוא לכלי הזה, יש להסביר בעדינות שצריך חשבון אישי אמיתי (לא כניסת אורח) וליצור/להתחבר ב-/auth, או להזמין לבד ב-/booking." : "הלקוחה מחוברת בחשבון אמיתי, אפשר להשתמש בכלי אחרי שכל התנאים לעיל התקיימו."}
 השריון נוצר במצב 'ממתין' — עדיין דורש תשלום מקדמה כדי להתאשר סופית, בדיוק כמו הזמנה רגילה דרך /booking.`,
       inputSchema: z.object({
         date: z.string().describe("YYYY-MM-DD"),
@@ -168,20 +170,30 @@ ${!opts?.isAuthenticated ? "הלקוחה הנוכחית לא מחוברת — א
         hours: z.number().describe("משך בשעות, אפשר 1.5"),
         contactName: z.string(),
         contactPhone: z.string(),
+        contactEmail: z.string().min(3).describe("אימייל תקין — חובה, כדי שיישלחו כל המיילים כמו בהזמנה רגילה"),
         guidance: z.enum(["basic", "mini", "plus", "premium"]).optional(),
+        sessionType: z.string().optional().describe("סוג הצילום, למשל משפחתי / ניו-בורן / חלאקה"),
+        peopleCount: z.string().optional(),
+        babyAge: z.string().optional(),
+        cameraNeed: z.string().optional().describe("יש מצלמה משלה או צריכה המלצה"),
+        flashExperience: z.string().optional(),
+        needProps: z.string().optional().describe("האם מעוניינת גם באביזרים"),
+        specialRequests: z.string().optional(),
+        depositPlan: z.enum(["already_paid", "will_pay_now", "will_pay_later"]).describe("איך הלקוחה מתכננת/כבר שילמה את המקדמה"),
         notes: z.string().optional(),
-        termsAccepted: z.boolean().describe("true רק אם הלקוחה אישרה בפירוש בהודעה בצ'אט את התנאים והמקדמה"),
+        termsAccepted: z.boolean().describe("true רק אם הלקוחה אישרה בפירוש בהודעה בצ'אט את התנאים המרכזיים שהוצגו לה והמקדמה"),
       }),
       execute: async (args) => {
         if (!opts?.isAuthenticated) {
-          return { ok: false, message: "הלקוחה לא מחוברת — אי אפשר ליצור עבורה שריון. יש להציע לה להתחבר ב-/auth ואז לנסות שוב." };
+          return { ok: false, message: "הלקוחה אורחת / לא מחוברת בחשבון אמיתי — אי אפשר ליצור עבורה שריון דרך הצ'אט. יש להציע לה להתחבר/להירשם ב-/auth, או להזמין בעצמה כאורחת ב-/booking." };
         }
         if (!args.termsAccepted) {
-          return { ok: false, message: "חסר אישור מפורש מהלקוחה לתנאי השימוש ולמקדמה — יש לבקש את זה קודם, לא ליצור שריון בלי אישור." };
+          return { ok: false, message: "חסר אישור מפורש מהלקוחה לתנאים המרכזיים שהוצגו לה ולמקדמה — יש לבקש את זה קודם, לא ליצור שריון בלי אישור." };
         }
         try {
           const { placeBooking } = await import("./bookings.functions");
           const slots = Math.max(2, Math.round(args.hours * 2));
+          const depositLabel = { already_paid: "כבר שילמה/העבירה", will_pay_now: "תשלם עכשיו", will_pay_later: "תשלם בהמשך" }[args.depositPlan];
           const res = await placeBooking({
             data: {
               session_date: args.date,
@@ -189,18 +201,45 @@ ${!opts?.isAuthenticated ? "הלקוחה הנוכחית לא מחוברת — א
               slots,
               contact_name: args.contactName,
               contact_phone: args.contactPhone,
-              contact_email: null,
-              notes: args.notes || null,
+              contact_email: args.contactEmail || null,
+              notes: [args.notes, `מקדמה (דרך הצ'אט): ${depositLabel}`].filter(Boolean).join("\n"),
               guidance: args.guidance ?? "basic",
               terms_accepted: true,
             },
           });
+
+          // Best-effort — same questionnaire the /studio-rental page saves,
+          // so this booking shows up in the admin exactly like a normal one.
+          try {
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            await supabaseAdmin.from("studio_intake_forms").insert({
+              booking_id: res.id,
+              payload: {
+                clientName: args.contactName,
+                phone: args.contactPhone,
+                email: args.contactEmail,
+                sessionType: args.sessionType ?? "",
+                peopleCount: args.peopleCount ?? "",
+                babyAge: args.babyAge ?? "",
+                cameraNeed: args.cameraNeed ?? "",
+                flashExperience: args.flashExperience ?? "",
+                needProps: args.needProps ?? "",
+                specialRequests: args.specialRequests ?? "",
+                guidance: args.guidance ?? "basic",
+                source: "chat",
+              },
+            });
+          } catch (e) {
+            console.error("[SWEETBABY] chat-booking intake save failed", e);
+          }
+
           return {
             ok: true,
             bookingId: res.id,
             price: res.price,
             deposit: res.deposit,
-            message: "השריון נוצר במצב ממתין לתשלום מקדמה. חשוב להפנות את הלקוחה עכשיו לעמוד סיכום ההזמנה כדי שתשלים את תשלום המקדמה ותאשר את השריון סופית.",
+            message:
+              "השריון נוצר במצב ממתין לתשלום מקדמה. חשוב להפנות את הלקוחה עכשיו לעמוד סיכום ההזמנה כדי שתשלים/תאשר את תשלום המקדמה — השריון מתאשר סופית רק אחרי שהמקדמה בפועל מתקבלת ומאושרת, אפשר לעקוב אחרי זה ב-/account.",
           };
         } catch (e: any) {
           return {
