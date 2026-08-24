@@ -49,6 +49,36 @@ async function issuePersonalCoupon(supabaseAdmin: any, email: string): Promise<I
   return minted as IssuedCoupon;
 }
 
+function discountLine(coupon: IssuedCoupon): string {
+  const parts: string[] = [];
+  if (Number(coupon.discount_percent) > 0) parts.push(`${coupon.discount_percent}% הנחה`);
+  if (Number(coupon.discount_amount) > 0) parts.push(`₪${coupon.discount_amount} הנחה`);
+  return parts.join(" + ") || "הנחה";
+}
+
+/** Welcome email to the new subscriber (+ a copy to the studio) — congratulations, and her personal one-time code if one was issued. */
+async function sendWelcomeEmail(email: string, coupon: IssuedCoupon | null) {
+  const codeBlock = coupon
+    ? `<div style="background:#faf2ee;border-radius:14px;padding:18px 22px;margin:18px 0;text-align:center">
+         <div style="font-size:13px;color:#6b5b53;margin-bottom:6px">קוד ההנחה האישי שלך</div>
+         <div style="font-size:28px;font-weight:700;letter-spacing:2px;color:#2d3d2b">${coupon.code}</div>
+         <div style="font-size:13px;color:#6b5b53;margin-top:6px">${discountLine(coupon)} · קוד חד-פעמי — כדאי לנצל אותו בהזמנה הראשונה שלך! 🎁</div>
+       </div>`
+    : "";
+  const html = `<div dir="rtl" style="font-family:sans-serif;color:#2d3d2b;max-width:520px;margin:0 auto">
+    <h2>ברוכה הבאה למשפחת Sweetbaby! 💗</h2>
+    <p>שמחות שהצטרפת לניוזלטר שלנו — עדכונים, מבצעים והשראה לצילומים ישירות אלייך.</p>
+    ${codeBlock}
+    <p style="font-size:13px;color:#6b5b53">אפשר להשתמש בקוד בהשכרת סטודיו או בהשכרת אביזרים, בעמוד התשלום.</p>
+  </div>`;
+  try {
+    const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+    await sendStudioAndCustomer({ customerEmail: email, subject: "ברוכה הבאה ל-Sweetbaby 💗 + קוד הנחה אישי", html });
+  } catch (e) {
+    console.error("[SWEETBABY] newsletter welcome email failed", e);
+  }
+}
+
 // Public lead-capture endpoint (no auth) — backs the "get 15% off" email
 // signup in the footer/popup. Writes go through the service-role client so
 // newsletter_signups needs no anon insert policy (see its migration).
@@ -57,11 +87,16 @@ export const subscribeNewsletter = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const email = data.email.trim().toLowerCase();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin
+    const { data: upserted, error } = await supabaseAdmin
       .from("newsletter_signups")
-      .upsert({ email, source: data.source ?? null }, { onConflict: "email", ignoreDuplicates: true });
+      .upsert({ email, source: data.source ?? null }, { onConflict: "email", ignoreDuplicates: true })
+      .select("email");
     if (error) throw new Error("ההרשמה נכשלה, נסי שוב");
 
     const coupon = await issuePersonalCoupon(supabaseAdmin, email);
+    // ignoreDuplicates means an already-subscribed email returns no row —
+    // only send the welcome email for a genuinely new signup, not every
+    // resubmit of the same address.
+    if (upserted && upserted.length > 0) await sendWelcomeEmail(email, coupon);
     return { ok: true, coupon };
   });
