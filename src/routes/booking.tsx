@@ -286,9 +286,10 @@ function Booking() {
     if (price <= 0) { setCouponMsg("בחרי קודם תאריך ושעה"); return; }
     const { data } = await supabase
       .from("coupons")
-      .select("code, discount_percent, discount_amount, active, expires_at")
+      .select("code, discount_percent, discount_amount, active, expires_at, single_use, redeemed_at")
       .eq("code", code)
       .maybeSingle();
+    if (data?.single_use && data.redeemed_at) { setCouponOff(0); setCouponMsg("הקוד כבר נוצל בעבר"); return; }
     const valid = data && data.active && (!data.expires_at || new Date(data.expires_at) > new Date());
     if (!valid) { setCouponOff(0); setCouponMsg("קוד לא תקף"); return; }
     const off = Math.min(
