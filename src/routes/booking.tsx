@@ -232,17 +232,19 @@ function Booking() {
   // Store credit from the customer's cashback loyalty balance (admin-enrolled only).
   const [creditBalance, setCreditBalance] = useState(0);
   const [useCredit, setUseCredit] = useState(false);
+  const [canBookRecurring, setCanBookRecurring] = useState(false);
   useEffect(() => {
-    if (!user) { setCreditBalance(0); setCustomHourlyRate(null); return; }
+    if (!user) { setCreditBalance(0); setCustomHourlyRate(null); setCanBookRecurring(false); return; }
     supabase
       .from("customer_loyalty" as never)
-      .select("credit_balance, custom_hourly_rate")
+      .select("credit_balance, custom_hourly_rate, can_book_recurring")
       .eq("user_id", user.id)
       .maybeSingle()
       .then(({ data }) => {
-        const row = data as unknown as { credit_balance?: number; custom_hourly_rate?: number | null } | null;
+        const row = data as unknown as { credit_balance?: number; custom_hourly_rate?: number | null; can_book_recurring?: boolean } | null;
         setCreditBalance(Number(row?.credit_balance ?? 0));
         setCustomHourlyRate(row?.custom_hourly_rate ? Number(row.custom_hourly_rate) : null);
+        setCanBookRecurring(!!row?.can_book_recurring);
       });
   }, [user]);
 
@@ -756,37 +758,39 @@ function Booking() {
                 </div>
               )}
 
-              {/* Recurring weekly series toggle */}
-              <div className="mb-4 rounded-xl border border-[#f5d5cf]/30 p-3">
-                <button
-                  type="button"
-                  onClick={() => setRecurring((v) => !v)}
-                  className={`w-full h-9 rounded-full text-xs font-medium transition-colors ${
-                    recurring ? "bg-[#f5d5cf] text-[#2d3d2b]" : "bg-transparent border border-[#f5d5cf]/50 text-[#f5d5cf]"
-                  }`}
-                >
-                  {recurring ? "✓ " : ""}סדרה שבועית חוזרת (אותה שעה, כל שבוע)
-                </button>
-                {recurring && (
-                  <div className="mt-3 flex items-center justify-between gap-2 text-xs text-[#f8ede4]/80">
-                    <span>כמה שבועות ברצף</span>
-                    <input
-                      type="number"
-                      min={2}
-                      max={26}
-                      value={recurWeeks}
-                      onChange={(e) => setRecurWeeks(Math.max(2, Math.min(26, Number(e.target.value) || 2)))}
-                      dir="ltr"
-                      className="w-16 h-8 rounded-lg px-2 bg-[#f8ede4] text-[#2d3d2b] text-center outline-none"
-                    />
-                  </div>
-                )}
-                {recurring && (
-                  <p className="text-[10px] text-[#f8ede4]/55 mt-2">
-                    כל מפגש הוא שריון נפרד (אפשר לבטל אחד בלי לפגוע בשאר) — כל אחד דורש מקדמה נפרדת של ₪90 כדי להתאשר. קופון/קרדיט/כרטיסייה לא זמינים במצב זה. תאריכים תפוסים בסדרה פשוט ידולגו.
-                  </p>
-                )}
-              </div>
+              {/* Recurring weekly series toggle — approved customers only */}
+              {canBookRecurring && (
+                <div className="mb-4 rounded-xl border border-[#f5d5cf]/30 p-3">
+                  <button
+                    type="button"
+                    onClick={() => setRecurring((v) => !v)}
+                    className={`w-full h-9 rounded-full text-xs font-medium transition-colors ${
+                      recurring ? "bg-[#f5d5cf] text-[#2d3d2b]" : "bg-transparent border border-[#f5d5cf]/50 text-[#f5d5cf]"
+                    }`}
+                  >
+                    {recurring ? "✓ " : ""}סדרה שבועית חוזרת (אותה שעה, כל שבוע)
+                  </button>
+                  {recurring && (
+                    <div className="mt-3 flex items-center justify-between gap-2 text-xs text-[#f8ede4]/80">
+                      <span>כמה שבועות ברצף (עד 3 חודשים)</span>
+                      <input
+                        type="number"
+                        min={2}
+                        max={13}
+                        value={recurWeeks}
+                        onChange={(e) => setRecurWeeks(Math.max(2, Math.min(13, Number(e.target.value) || 2)))}
+                        dir="ltr"
+                        className="w-16 h-8 rounded-lg px-2 bg-[#f8ede4] text-[#2d3d2b] text-center outline-none"
+                      />
+                    </div>
+                  )}
+                  {recurring && (
+                    <p className="text-[10px] text-[#f8ede4]/55 mt-2">
+                      כל מפגש הוא שריון נפרד (אפשר לבטל אחד בלי לפגוע בשאר) — כל אחד דורש מקדמה נפרדת של ₪90 כדי להתאשר. קופון/קרדיט/כרטיסייה לא זמינים במצב זה. תאריכים תפוסים בסדרה פשוט ידולגו.
+                    </p>
+                  )}
+                </div>
+              )}
 
               {!recurring && <div className="text-[10px] text-[#f8ede4]/55 mb-4">מתוכם 90₪ מקדמה לשריון</div>}
 

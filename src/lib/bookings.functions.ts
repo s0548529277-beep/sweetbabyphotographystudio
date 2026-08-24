@@ -395,7 +395,7 @@ const recurringInputSchema = z.object({
   start_date: z.string().min(10), // first session, YYYY-MM-DD
   start_time: z.string().regex(/^\d{2}:\d{2}$/),
   slots: z.number().int().min(2).max(30),
-  weeks: z.number().int().min(2).max(26), // total sessions, one per week
+  weeks: z.number().int().min(2).max(13), // total sessions, one per week — capped so a series can't run past ~3 months
   contact_name: z.string().min(1).max(120),
   contact_phone: z.string().min(5).max(40),
   contact_email: z.string().email().max(160).optional().nullable(),
@@ -426,8 +426,26 @@ export const placeRecurringBooking = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { studioAvailability } = await import("./availability.server");
 
-    const { data: loyaltyRow } = await supabase.from("customer_loyalty").select("custom_hourly_rate").eq("user_id", userId).maybeSingle();
+    const { data: loyaltyRow } = await supabase
+      .from("customer_loyalty")
+      .select("custom_hourly_rate, can_book_recurring")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (!loyaltyRow?.can_book_recurring) {
+      throw new Error("סדרה שבועית חוזרת פתוחה רק ללקוחות מאושרות — פני לסטודיו כדי לבקש אישור.");
+    }
     const customHourlyRate = loyaltyRow?.custom_hourly_rate ? Number(loyaltyRow.custom_hourly_rate) : null;
+
+    // The whole series must land within ~3 months out, not just be ≤13
+    // sessions — a start_date already far in the future could otherwise
+    // still push the last session well past that window.
+    const lastSessionDate = new Date(`${data.start_date}T00:00:00`);
+    lastSessionDate.setDate(lastSessionDate.getDate() + (data.weeks - 1) * 7);
+    const threeMonthsOut = new Date();
+    threeMonthsOut.setDate(threeMonthsOut.getDate() + 92);
+    if (lastSessionDate.getTime() > threeMonthsOut.getTime()) {
+      throw new Error("סדרה שבועית יכולה להשתרע עד 3 חודשים קדימה בלבד — תבחרי פחות שבועות או תאריך התחלה קרוב יותר.");
+    }
 
     const [h, m] = data.start_time.split(":").map(Number);
     const endMin = h * 60 + m + data.slots * 30;

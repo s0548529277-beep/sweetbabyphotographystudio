@@ -72,6 +72,10 @@ export const updateClientProfile = createServerFn({ method: "POST" })
  * this customer (e.g. for a recurring weekly client), applied automatically
  * instead of the standard price list on every booking she places. null/0
  * clears it back to standard pricing.
+ *
+ * And `can_book_recurring` — whether this customer is allowed to use the
+ * weekly recurring series booking flow at all (opt-in, admin-approved
+ * per customer, not open to every logged-in visitor).
  */
 export const setCustomerLoyalty = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -82,6 +86,7 @@ export const setCustomerLoyalty = createServerFn({ method: "POST" })
         cashback_percent: z.number().int().min(0).max(100),
         cashback_expires_at: z.string().max(10).optional().nullable(), // yyyy-mm-dd, empty/null = no expiry
         custom_hourly_rate: z.number().nonnegative().max(10000).optional().nullable(),
+        can_book_recurring: z.boolean().optional(),
       })
       .parse(d),
   )
@@ -94,6 +99,7 @@ export const setCustomerLoyalty = createServerFn({ method: "POST" })
         cashback_percent: data.cashback_percent,
         cashback_expires_at: data.cashback_expires_at ? new Date(data.cashback_expires_at).toISOString() : null,
         custom_hourly_rate: data.custom_hourly_rate || null,
+        can_book_recurring: !!data.can_book_recurring,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id" },
