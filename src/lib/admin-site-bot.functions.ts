@@ -255,6 +255,63 @@ export const reviseSiteChange = createServerFn({ method: "POST" })
     }
   });
 
+/** Fetches the unified diff GitHub already computed for this draft's PR, so the admin can see exactly what changed before approving — no separate preview deployment needed. */
+export const getSiteChangeDiff = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row } = await supabaseAdmin.from("site_bot_requests").select("pr_number, target_path").eq("id", data.id).maybeSingle();
+    if (!row?.pr_number) throw new Error("אין עדיין טיוטה בגיטהאב לבקשה הזו");
+
+    const files = await gh(`/repos/${REPO}/pulls/${row.pr_number}/files`);
+    const file = (files as any[]).find((f) => f.filename === row.target_path) ?? files[0];
+    // GitHub omits `patch` for very large diffs/files — no way around that
+    // short of diffing the raw blobs ourselves, so the UI falls back to a
+    // "view on GitHub" link in that case.
+    return { patch: file?.patch ?? "", filename: file?.filename ?? row.target_path, additions: file?.additions ?? 0, deletions: file?.deletions ?? 0 };
+  });
+
+/**
+ * Reverts an already-published change: asks GitHub to open a new PR that
+ * undoes the merged PR's commit, then logs it as a normal new request
+ * (status "proposed") so it goes through the exact same explicit
+ * approve/reject review as any other change — reverting never touches
+ * main directly either.
+ */
+export const revertSiteChange = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row } = await supabaseAdmin.from("site_bot_requests").select("*").eq("id", data.id).maybeSingle();
+    if (!row || row.status !== "merged" || !row.pr_number) throw new Error("אפשר להחזיר רק שינוי שכבר פורסם");
+
+    const revertPr = await gh(`/repos/${REPO}/pulls/${row.pr_number}/revert`, { method: "POST" });
+    const label = (row as any).summary || (row as any).instruction;
+
+    const { data: logRow, error: logErr } = await supabaseAdmin
+      .from("site_bot_requests")
+      .insert({
+        created_by: context.userId,
+        instruction: `החזרה למצב שלפני: ${label}`,
+        target_path: (row as any).target_path,
+        status: "proposed",
+        branch_name: revertPr.head?.ref ?? null,
+        pr_number: revertPr.number,
+        pr_url: revertPr.html_url,
+        summary: `ביטול "${label}"`,
+        messages: [{ role: "bot", text: `נוצרה טיוטת החזרה למצב שלפני "${label}". אפשר לסקור ולאשר כמו כל טיוטה אחרת.` }],
+      })
+      .select("id")
+      .single();
+    if (logErr || !logRow) throw new Error(`טיוטת ההחזרה נוצרה בגיטהאב (${revertPr.html_url}) אך עדכון הרשומה נכשל: ${logErr?.message}`);
+
+    return { ok: true, id: logRow.id, pr_url: revertPr.html_url };
+  });
+
 type ChatTurn = { question: string; answer: string };
 
 function historyBlock(history: ChatTurn[]): string {

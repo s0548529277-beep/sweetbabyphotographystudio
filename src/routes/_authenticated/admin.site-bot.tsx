@@ -2,14 +2,56 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { proposeSiteChange, reviseSiteChange, listSiteChanges, mergeSiteChange, rejectSiteChange } from "@/lib/admin-site-bot.functions";
+import {
+  proposeSiteChange,
+  reviseSiteChange,
+  listSiteChanges,
+  mergeSiteChange,
+  rejectSiteChange,
+  getSiteChangeDiff,
+  revertSiteChange,
+} from "@/lib/admin-site-bot.functions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Sparkles, ExternalLink, Check, X, Bot, Send, Plus } from "lucide-react";
+import { Sparkles, ExternalLink, Check, X, Bot, Send, Plus, Eye, Undo2 } from "lucide-react";
+
+/** Renders GitHub's unified diff text with +/- lines colored, like a normal code review view. */
+function DiffView({ patch }: { patch: string }) {
+  if (!patch) {
+    return <p className="text-sm text-muted-foreground py-6 text-center">אין diff להצגה כאן (קובץ חדש/גדול מדי) — אפשר לצפות ב-PR בגיטהאב.</p>;
+  }
+  const lines = patch.split("\n");
+  return (
+    <div dir="ltr" className="text-xs font-mono rounded-lg overflow-x-auto max-h-[60vh] overflow-y-auto border border-primary/5">
+      {lines.map((line, i) => {
+        const isAdd = line.startsWith("+") && !line.startsWith("+++");
+        const isDel = line.startsWith("-") && !line.startsWith("---");
+        const isHunk = line.startsWith("@@");
+        return (
+          <div
+            key={i}
+            className={`px-3 py-0.5 whitespace-pre ${
+              isAdd
+                ? "bg-green-500/15 text-green-800 dark:text-green-300"
+                : isDel
+                  ? "bg-red-500/15 text-red-800 dark:text-red-300"
+                  : isHunk
+                    ? "bg-primary/5 text-muted-foreground"
+                    : ""
+            }`}
+          >
+            {line || " "}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/_authenticated/admin/site-bot")({
   component: SiteBotAdmin,
@@ -45,13 +87,22 @@ function SiteBotAdmin() {
   const list = useServerFn(listSiteChanges);
   const merge = useServerFn(mergeSiteChange);
   const reject = useServerFn(rejectSiteChange);
+  const fetchDiff = useServerFn(getSiteChangeDiff);
+  const revert = useServerFn(revertSiteChange);
 
   const [targetChoice, setTargetChoice] = useState(COMMON_TARGETS[0].path);
   const [customPath, setCustomPath] = useState("");
   const [draft, setDraft] = useState(""); // textarea content, reused for both "start" and "follow-up" input
   const [busy, setBusy] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [diffForId, setDiffForId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const diffQ = useQuery({
+    queryKey: ["site-bot-diff", diffForId],
+    queryFn: () => fetchDiff({ data: { id: diffForId! } }),
+    enabled: !!diffForId,
+  });
 
   const targetPath = targetChoice || customPath;
 
@@ -122,6 +173,18 @@ function SiteBotAdmin() {
       qc.invalidateQueries({ queryKey: ["site-bot-requests"] });
     } catch (e: any) {
       toast.error(e?.message ?? "הפעולה נכשלה");
+    }
+  };
+
+  const doRevert = async (id: string) => {
+    if (!confirm("ליצור טיוטת החזרה למצב שלפני השינוי הזה? היא תצטרך אישור נפרד כמו כל טיוטה.")) return;
+    try {
+      const res = await revert({ data: { id } });
+      toast.success("נוצרה טיוטת החזרה — סקרי ואשרי כדי לפרסם");
+      setActiveId((res as any).id ?? null);
+      qc.invalidateQueries({ queryKey: ["site-bot-requests"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "ההחזרה נכשלה");
     }
   };
 
@@ -207,6 +270,9 @@ function SiteBotAdmin() {
                 </a>
               )}
               <div className="flex gap-2 mr-auto">
+                <Button size="sm" variant="outline" className="gap-1" onClick={() => setDiffForId(active.id)}>
+                  <Eye className="h-3.5 w-3.5" /> תצוגה מקדימה
+                </Button>
                 <Button size="sm" variant="secondary" className="gap-1" onClick={() => doMerge(active.id)}>
                   <Check className="h-3.5 w-3.5" /> אשר ופרסם
                 </Button>
@@ -269,17 +335,43 @@ function SiteBotAdmin() {
                       {s.label}
                     </Badge>
                   </div>
-                  {r.pr_url && (
-                    <a
-                      href={r.pr_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-xs text-primary underline flex items-center gap-1 mt-2 w-fit"
-                    >
-                      צפייה ב-PR <ExternalLink className="h-3 w-3" />
-                    </a>
-                  )}
+                  <div className="flex items-center gap-3 mt-2 flex-wrap">
+                    {r.pr_url && (
+                      <a
+                        href={r.pr_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-xs text-primary underline flex items-center gap-1 w-fit"
+                      >
+                        צפייה ב-PR <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                    {r.pr_number && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDiffForId(r.id);
+                        }}
+                        className="text-xs text-muted-foreground hover:text-primary underline flex items-center gap-1 w-fit"
+                      >
+                        <Eye className="h-3 w-3" /> מה השתנה
+                      </button>
+                    )}
+                    {r.status === "merged" && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          doRevert(r.id);
+                        }}
+                        className="text-xs text-muted-foreground hover:text-destructive underline flex items-center gap-1 w-fit"
+                      >
+                        <Undo2 className="h-3 w-3" /> החזר למצב קודם
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -288,6 +380,23 @@ function SiteBotAdmin() {
           )}
         </div>
       </div>
+
+      <Dialog open={!!diffForId} onOpenChange={(o) => !o && setDiffForId(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle dir="ltr" className="text-sm font-mono text-right">
+              {diffQ.data?.filename ?? "טוען…"}
+            </DialogTitle>
+          </DialogHeader>
+          {diffQ.isLoading ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">טוענת diff…</p>
+          ) : diffQ.isError ? (
+            <p className="text-sm text-destructive py-6 text-center">{(diffQ.error as any)?.message ?? "שגיאה בטעינת ה-diff"}</p>
+          ) : (
+            <DiffView patch={diffQ.data?.patch ?? ""} />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
