@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { bookingBlocksSlot } from "./availability.server";
 
 const minToTime = (n: number) =>
   `${String(Math.floor(n / 60)).padStart(2, "0")}:${String(n % 60).padStart(2, "0")}`;
@@ -18,11 +19,12 @@ export const getStudioDayBusy = createServerFn({ method: "POST" })
 
     const { data: rows } = await supabaseAdmin
       .from("bookings")
-      .select("start_time, end_time, status")
+      .select("start_time, end_time, status, deposit_status, created_at")
       .eq("session_date", data.date)
-.neq("status", "cancelled")
-.neq("deposit_status", "pending");
+      .neq("status", "cancelled");
+    const now = Date.now();
     for (const b of rows ?? []) {
+      if (!bookingBlocksSlot(b as any, now)) continue;
       out.push({ start_time: String(b.start_time).slice(0, 5), end_time: String(b.end_time).slice(0, 5) });
     }
 

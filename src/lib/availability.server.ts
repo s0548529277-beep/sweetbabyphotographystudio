@@ -6,6 +6,37 @@ type Cat = { title: string; items: CatItem[] };
 
 export const CATALOG_ITEMS: CatItem[] = (catalogData as Cat[]).flatMap((c) => c.items);
 
+// A brand-new booking with nothing submitted toward the deposit yet holds
+// its slot for this long before being treated as abandoned. Long enough
+// that a customer mid-checkout never loses her own slot; short enough that
+// someone who opens the page, requests a slot, and never comes back to pay
+// doesn't block it forever. Once she submits a receipt or the deposit is
+// confirmed, the hold no longer depends on time at all — see bookingBlocksSlot.
+export const PENDING_HOLD_MINUTES = 60;
+
+/**
+ * Whether a booking should count as occupying its time slot right now.
+ * Cancelled bookings never block. An untouched pending-deposit hold (nothing
+ * submitted, i.e. deposit_status still literally "pending") stops blocking
+ * once it's older than PENDING_HOLD_MINUTES — anything beyond that (a
+ * receipt submitted, cash marked pending, deposit confirmed) blocks
+ * regardless of age, since the customer already took her half of the action.
+ * Shared by every place that decides whether a slot is free — the chat's
+ * check_studio_availability, the public /booking calendar, and placeBooking's
+ * own overlap check — so they can never disagree with each other again.
+ */
+export function bookingBlocksSlot(
+  b: { status: string; deposit_status?: string | null; created_at?: string | null },
+  nowMs: number = Date.now(),
+): boolean {
+  if (b.status === "cancelled") return false;
+  if (b.deposit_status === "pending" && b.created_at) {
+    const ageMinutes = (nowMs - new Date(b.created_at).getTime()) / 60000;
+    if (ageMinutes > PENDING_HOLD_MINUTES) return false;
+  }
+  return true;
+}
+
 export function findSkusByText(query: string, limit = 8): CatItem[] {
   const q = query.trim().toLowerCase();
   if (!q) return [];
@@ -88,14 +119,17 @@ export async function studioAvailability(date: string, wantedTime?: string) {
 
   const bookingsRes = await supabaseAdmin
     .from("bookings")
-    .select("start_time, end_time, status")
+    .select("start_time, end_time, status, deposit_status, created_at")
     .eq("session_date", date)
     .neq("status", "cancelled");
-  const busy: Array<[number, number]> = (bookingsRes.data ?? []).map((b) => {
-    const [bh, bm] = String(b.start_time).split(":").map(Number);
-    const [eh, em] = String(b.end_time).split(":").map(Number);
-    return [bh * 60 + bm, eh * 60 + em];
-  });
+  const now = Date.now();
+  const busy: Array<[number, number]> = (bookingsRes.data ?? [])
+    .filter((b: any) => bookingBlocksSlot(b, now))
+    .map((b) => {
+      const [bh, bm] = String(b.start_time).split(":").map(Number);
+      const [eh, em] = String(b.end_time).split(":").map(Number);
+      return [bh * 60 + bm, eh * 60 + em];
+    });
 
   // Merge in the studio owner's real Google Calendar so manually-added events
   // (personal blocks, sessions booked over the phone) also count as busy.
