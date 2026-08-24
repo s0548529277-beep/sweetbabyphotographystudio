@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, Link, redirect, useRouterState } from "@tansta
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { Package, Users, CalendarDays, ShoppingBag, LayoutDashboard, Images, Camera, Wallet, Ticket, Bot, MessageCircleQuestion, Mail, CreditCard } from "lucide-react";
+import { Package, Users, CalendarDays, ShoppingBag, LayoutDashboard, Images, Camera, Wallet, Ticket, Bot, MessageCircleQuestion, Mail, CreditCard, MessageCircle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   ssr: false,
@@ -27,6 +27,7 @@ const links = [
   { to: "/admin/newsletter", label: "ניוזלטר", icon: Mail },
   { to: "/admin/site-bot", label: "בוט עריכה", icon: Bot },
   { to: "/admin/site-bot-ask", label: "בוט מידע כללי", icon: MessageCircleQuestion },
+  { to: "/admin/chat-logs", label: "שיחות צ'אט לקוחות", icon: MessageCircle },
   { to: "/admin/gallery", label: "גלריות", icon: Images },
   { to: "/admin/inspiration", label: "השראה למק״ט", icon: Camera },
 ];

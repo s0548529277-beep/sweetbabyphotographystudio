@@ -21,6 +21,21 @@ export function ChatBot() {
     : `שלום! אני העוזרת של Sweetbaby 💬 אפשר לשאול אותי ישירות "האם הסטודיו פנוי ב-12.8 בשעה 9:00?" או "האם מק״ט 461 פנוי מחר?" — אני בודקת ביומן ובמלאי בזמן אמת.`;
 
   const [messages, setMessages] = useState<Msg[]>([{ role: "assistant", content: greeting }]);
+  // One id per browser tab's chat session (kept in sessionStorage so it
+  // survives a page reload within the same visit) — lets the admin see the
+  // whole conversation as one log entry instead of scattered messages.
+  const [sessionId] = useState(() => {
+    try {
+      const key = "sweetbaby-chat-session-id";
+      const existing = sessionStorage.getItem(key);
+      if (existing) return existing;
+      const fresh = crypto.randomUUID();
+      sessionStorage.setItem(key, fresh);
+      return fresh;
+    } catch {
+      return crypto.randomUUID();
+    }
+  });
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [availOpen, setAvailOpen] = useState(false);
@@ -44,7 +59,7 @@ export function ChatBot() {
     setInput("");
     setLoading(true);
     try {
-      const { reply } = await chat({ data: { messages: next, userName, isAuthenticated: isAuth } });
+      const { reply } = await chat({ data: { messages: next, userName, isAuthenticated: isAuth, sessionId } });
       setMessages([...next, { role: "assistant", content: reply }]);
     } catch {
       setMessages([...next, { role: "assistant", content: "מצטערת, יש תקלה זמנית. נסי שוב." }]);
