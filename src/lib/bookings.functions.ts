@@ -114,6 +114,14 @@ export const placeBooking = createServerFn({ method: "POST" })
     let price = basePrice + guidanceFee;
     const customRateNote = customHourlyRate ? `תעריף אישי: ₪${customHourlyRate}/שעה` : null;
 
+    // Computed up front (not down by the overlap check, where this used to
+    // live) because the coupon/pass blocks below need to know it: the
+    // morning package is a fixed bundled price, so it doesn't combine with
+    // either — a custom rate replaces the whole standard price list
+    // (including this discount), so don't treat it as "morning" then even
+    // if the time happens to match that window.
+    const isMorning = !customHourlyRate && isMorningPackage(data.slots, data.start_time);
+
     // Optional discount code (e.g. BYBY10 / SWEETBABY10 → 10%).
     let couponNote: string | null = null;
     let couponCodeUsed: string | null = null;
@@ -121,6 +129,7 @@ export const placeBooking = createServerFn({ method: "POST" })
     let couponIdToRedeem: string | null = null;
     const couponCode = (data.coupon ?? "").trim().toUpperCase();
     if (couponCode) {
+      if (isMorning) throw new Error("מבצע ניו-בורן בוקר הוא מחיר קבוע וסופי — לא ניתן לשלב אותו עם קוד קופון");
       const { data: c } = await supabase
         .from("coupons")
         .select("id, code, discount_percent, discount_amount, active, expires_at, single_use, redeemed_at")
@@ -146,6 +155,7 @@ export const placeBooking = createServerFn({ method: "POST" })
     let passIdToRedeem: string | null = null;
     let passNote: string | null = null;
     if (data.use_pass) {
+      if (isMorning) throw new Error("מבצע ניו-בורן בוקר הוא מחיר קבוע וסופי — לא ניתן לשלב אותו עם כרטיסייה");
       const { data: passes } = await supabase
         .from("subscription_passes")
         .select("id, total_entries, entries_used")
@@ -173,10 +183,6 @@ export const placeBooking = createServerFn({ method: "POST" })
         creditNote = `קרדיט לקוחה · ₪${creditUsed}`;
       }
     }
-    // A custom rate replaces the whole standard price list, including the
-    // morning-package discount — so don't record it as "morning" package
-    // when one applied, even if the time happens to match that window.
-    const isMorning = !customHourlyRate && isMorningPackage(data.slots, data.start_time);
 
     // Overlap check
     const { data: existing, error: exErr } = await supabase
