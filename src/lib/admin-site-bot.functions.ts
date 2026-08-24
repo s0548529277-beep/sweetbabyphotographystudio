@@ -322,7 +322,7 @@ function historyBlock(history: ChatTurn[]): string {
 }
 
 /** Asks Claude to write a single read-only SELECT that answers the question, given a fixed summary of the schema and the recent conversation for context. */
-async function askClaudeForSql(question: string, history: ChatTurn[]): Promise<string> {
+async function askClaudeForSql(question: string, history: ChatTurn[]): Promise<string | null> {
   const gateway = aiGateway();
 
   const schema = `טבלאות רלוונטיות (סכמה ציבורית, PostgreSQL) — הרשימה המלאה, אל תניחי עמודות שלא מפורטות כאן:
@@ -341,6 +341,9 @@ async function askClaudeForSql(question: string, history: ChatTurn[]): Promise<s
 - subscription_passes — כרטיסיות מנוי שנרכשו בפועל ע"י לקוחות. id, user_id, plan_id, plan_name, total_entries, entries_used, price_paid, status ('active'/'cancelled'), notes, purchased_at.
 - profiles — פרטי לקוחות (לא כולל אימייל — אימייל נמצא בטבלת auth.users הפנימית שאינה נגישה כאן; לשאלות שדורשות אימייל, ענה שהמידע הזה לא זמין בשאילתה). id (= user_id), full_name, phone, address, city, discount_code, notes, created_at, updated_at.
 - user_roles — הרשאות. user_id, role ('admin' וכו').
+- leads — פניות מטופס יצירת קשר/עניין באתר. id, user_id, email, full_name, phone, referral_source (איך שמעו עלינו), created_at.
+- subscription_requests — בקשות עניין ישנות במנוי (לפני שהיה ניהול כרטיסיות מלא). id, user_id, full_name, phone, email, plan, notes, status ('pending' וכו'), created_at.
+- studio_closures — ימים סגורים/שעות מיוחדות בסטודיו. id, date, closed (בוליאני), open_time, close_time, note.
 
 הערות חשובות:
 - הכנסה בפועל = orders.total + bookings.price של רשומות עם status != 'cancelled'.
@@ -354,7 +357,8 @@ async function askClaudeForSql(question: string, history: ChatTurn[]): Promise<s
 - אך ורק שאילתת SELECT/WITH אחת. אסור INSERT/UPDATE/DELETE/DROP/כל שינוי.
 - אל תוסיף LIMIT — זה מתווסף אוטומטית.
 - אל תמציא עמודות/טבלאות שלא ברשימה למעלה.
-- החזר אך ורק JSON: {"sql": "<השאילתה>"}, בלי טקסט נוסף, בלי markdown fences.`;
+- אם השאלה היא לא שאלה על הנתונים בכלל — שיחת חולין, ברכה, "תודה", "מה נשמע", בקשה לעזרה כללית וכו' — אל תמציא שאילתה מלאכותית. החזירי {"sql": null}.
+- אחרת החזירי אך ורק JSON: {"sql": "<השאילתה>"}, בלי טקסט נוסף, בלי markdown fences.`;
 
   const { text } = await generateText({
     model: gateway(AI_MODEL),
@@ -362,24 +366,36 @@ async function askClaudeForSql(question: string, history: ChatTurn[]): Promise<s
     messages: [{ role: "user", content: question + historyBlock(history) }],
   });
 
-  let parsed: { sql: string };
+  let parsed: { sql: string | null };
   try {
     parsed = JSON.parse(text.replace(/^```json\s*|\s*```$/g, "").trim());
   } catch {
     throw new Error("ה-AI לא החזיר שאילתה תקינה — נסה לנסח את השאלה אחרת");
   }
-  if (!parsed.sql) throw new Error("ה-AI לא החזיר שאילתה");
-  return parsed.sql;
+  return parsed.sql || null;
 }
+
+const CHAT_PERSONA =
+  "את העוזרת האישית של מיכל, מנהלת סטודיו הצילום סוויט בייבי — לא בוט יבש, אלא קולגה חמה, נעימה וחכמה שבאמת עוזרת. עני בעברית, בטון קליל, אישי וידידותי, אבל תמיד מדויקת ואמינה.";
 
 /** Asks the AI to phrase the query result as a short Hebrew answer, as a reply in an ongoing chat (not a one-off). */
 async function askClaudeToSummarize(question: string, rows: unknown, history: ChatTurn[]): Promise<string> {
   const gateway = aiGateway();
   const { text } = await generateText({
     model: gateway(AI_MODEL),
-    system:
-      "אתה עונה בעברית, בקצרה ובבירור, על שאלה של מנהלת סטודיו צילום, בהתבסס אך ורק על תוצאות ה-JSON שמצורפות — זו שיחת צ'אט מתמשכת, לא שאלה בודדת, אז אפשר להתייחס לדברים שנאמרו קודם בשיחה. אם התוצאה ריקה, אמור זאת בפשטות. תמיד תן מספרים מדויקים (₪ בעברית), לא הערכות.",
+    system: `${CHAT_PERSONA} עני על שאלה של מיכל בהתבסס אך ורק על תוצאות ה-JSON שמצורפות — לעולם אל תמציאי או תעריכי מספר שלא נמצא שם. תמיד תני מספרים מדויקים (₪ בעברית). זו שיחת צ'אט מתמשכת, לא שאלה בודדת — אפשר ורצוי להתייחס לדברים שנאמרו קודם בשיחה ("כמו ששאלת קודם...", "בהמשך לזה..."). אם יש בתוצאה משהו שכדאי להבליט (מגמה בולטת, חריגה) אפשר להוסיף משפט קצר על זה — אבל רק אם זה נתמך ישירות בנתונים. אם התוצאה ריקה, אמרי זאת בפשטות ובנעימות, לא בהתנצלות יבשה.`,
     messages: [{ role: "user", content: `שאלה: ${question}${historyBlock(history)}\n\nתוצאות מה-DB עבור השאלה הנוכחית (JSON):\n${JSON.stringify(rows).slice(0, 6000)}` }],
+  });
+  return text.trim();
+}
+
+/** Handles a message that isn't actually a data question (greeting, thanks, small talk) — warm and human, without touching the DB. */
+async function askClaudeSmallTalk(question: string, history: ChatTurn[]): Promise<string> {
+  const gateway = aiGateway();
+  const { text } = await generateText({
+    model: gateway(AI_MODEL),
+    system: `${CHAT_PERSONA} ההודעה הזו לא שאלה על נתוני הסטודיו — ענה לה בטבעיות (ברכה, תודה, שיחת חולין קצרה), ואם רלוונטי הזכירי בעדינות שאת יכולה גם לענות על שאלות עם מספרים אמיתיים מהעסק (הזמנות, הכנסות, לקוחות וכו'). קצר, חם, בלי להישמע רובוטי.`,
+    messages: [{ role: "user", content: question + historyBlock(history) }],
   });
   return text.trim();
 }
@@ -408,12 +424,20 @@ export const askSiteData = createServerFn({ method: "POST" })
 
     let sql = "";
     try {
-      sql = await askClaudeForSql(data.question, history);
-      const { data: rows, error } = await supabaseAdmin.rpc("run_readonly_query", { q: sql });
-      if (error) throw new Error(error.message);
-      const answer = await askClaudeToSummarize(data.question, rows, history);
+      const generatedSql = await askClaudeForSql(data.question, history);
+      let answer: string;
+      if (!generatedSql) {
+        // Not actually a data question (greeting, thanks, chit-chat) — no
+        // need to hit the DB at all.
+        answer = await askClaudeSmallTalk(data.question, history);
+      } else {
+        sql = generatedSql;
+        const { data: rows, error } = await supabaseAdmin.rpc("run_readonly_query", { q: sql });
+        if (error) throw new Error(error.message);
+        answer = await askClaudeToSummarize(data.question, rows, history);
+      }
 
-      await supabaseAdmin.from("site_bot_questions").insert({ created_by: context.userId, question: data.question, sql_used: sql, answer });
+      await supabaseAdmin.from("site_bot_questions").insert({ created_by: context.userId, question: data.question, sql_used: sql || null, answer });
       return { ok: true, answer, sql };
     } catch (e: any) {
       await supabaseAdmin.from("site_bot_questions").insert({ created_by: context.userId, question: data.question, sql_used: sql || null, error: String(e?.message ?? e) });
