@@ -16,6 +16,7 @@ const nav = [
   { to: "/studio-photography", label: "צילומים בסטודיו" },
   { to: "/studio-rental", label: "השכרת סטודיו" },
   { to: "/rental-catalog", label: "קטלוג אביזרים להשכרה" },
+  { to: "/photo-retouch", label: "עיבוד תמונות AI" },
   { to: "/", label: "המלצות", hash: "testimonials" },
   { to: "/about", label: "אודות ויצירת קשר" },
 ];
