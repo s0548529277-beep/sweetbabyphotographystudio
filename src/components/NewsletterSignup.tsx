@@ -1,15 +1,23 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Mail, Check, Copy } from "lucide-react";
 import { subscribeNewsletter } from "@/lib/newsletter.functions";
 import { useFeaturedCoupon, discountLabel, type FeaturedCoupon } from "@/hooks/use-featured-coupon";
+import { useAuth } from "@/lib/auth";
+import { EmailDatalist } from "@/components/EmailDatalist";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 export function NewsletterSignup({ className = "" }: { className?: string }) {
+  const { user } = useAuth();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // A logged-in customer — no need to make her retype her own email.
+  useEffect(() => {
+    if (user && !user.is_anonymous && user.email) setEmail((v) => v || user.email!);
+  }, [user]);
   // Before signup this is just the shared template (for the teaser
   // text/percentage) — after signup it's replaced with the personal,
   // single-use code the server minted for this email.
@@ -81,6 +89,7 @@ export function NewsletterSignup({ className = "" }: { className?: string }) {
         <Input
           type="email"
           required
+          list="email-suggest-newsletter-footer"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="האימייל שלך"
@@ -88,6 +97,7 @@ export function NewsletterSignup({ className = "" }: { className?: string }) {
           aria-label="אימייל להרשמה לרשימת התפוצה"
           className="bg-background/10 border-background/25 text-background placeholder:text-background/50"
         />
+        <EmailDatalist id="email-suggest-newsletter-footer" value={email} />
         <Button
           type="submit"
           disabled={loading}

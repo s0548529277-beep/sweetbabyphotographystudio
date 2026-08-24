@@ -7,6 +7,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { useProfilePrefill } from "@/hooks/use-profile";
+import { EmailDatalist } from "@/components/EmailDatalist";
 import { requestPhotographySession } from "@/lib/photography.functions";
 import { PHOTOGRAPHY_HOURLY_RATE, PAYMENT_LABELS } from "@/lib/photography-options";
 import {
@@ -84,8 +85,8 @@ function StudioPhotographyPage() {
   });
   useEffect(() => {
     if (!profile.loaded) return;
-    setBook((b) => ({ ...b, name: b.name || profile.fullName, phone: b.phone || profile.phone }));
-  }, [profile.loaded, profile.fullName, profile.phone]);
+    setBook((b) => ({ ...b, name: b.name || profile.fullName, phone: b.phone || profile.phone, email: b.email || profile.email }));
+  }, [profile.loaded, profile.fullName, profile.phone, profile.email]);
 
   const bookPrice = Math.round(PHOTOGRAPHY_HOURLY_RATE * Number(book.hours || 0));
 
@@ -348,7 +349,8 @@ function StudioPhotographyPage() {
                 </label>
                 <label className="flex flex-col gap-1.5">
                   <span className="text-xs font-semibold text-[#4a5d43]/80">אימייל לאישור</span>
-                  <input className={bookInputCls} dir="ltr" type="email" value={book.email} onChange={(e) => setBook({ ...book, email: e.target.value })} placeholder="you@example.com" />
+                  <input className={bookInputCls} dir="ltr" type="email" list="email-suggest-studio-photography" value={book.email} onChange={(e) => setBook({ ...book, email: e.target.value })} placeholder="you@example.com" />
+                  <EmailDatalist id="email-suggest-studio-photography" value={book.email} />
                 </label>
                 <label className="flex flex-col gap-1.5">
                   <span className="text-xs font-semibold text-[#4a5d43]/80">אמצעי תשלום</span>

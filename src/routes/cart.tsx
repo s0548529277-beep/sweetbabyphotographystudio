@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ProductImage } from "@/components/ProductImage";
+import { EmailDatalist } from "@/components/EmailDatalist";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +41,12 @@ function Cart() {
     email: user?.email ?? "", name: "", phone: "", referral: "", pickup: "",
     payment: "מזומן במקום", amount: "", agree: false, suggestion: "",
   });
+
+  // Auth resolves asynchronously — sync in an effect too, in case the form
+  // rendered before the session finished loading.
+  useEffect(() => {
+    if (user?.email) setForm((f) => ({ ...f, email: f.email || user.email! }));
+  }, [user]);
 
   const onApply = async () => {
     setApplying(true);
@@ -236,7 +243,11 @@ function Cart() {
                   <option>החזרת אביזרים</option>
                 </select>
               </div>
-              <div><Label>1. מייל</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="mt-1" /></div>
+              <div>
+                <Label>1. מייל</Label>
+                <Input type="email" list="email-suggest-cart-order" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="mt-1" />
+                <EmailDatalist id="email-suggest-cart-order" value={form.email} />
+              </div>
               <div><Label>2. שם *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1" /></div>
               <div><Label>3. טלפון *</Label><Input required type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="mt-1" /></div>
               <div><Label>4. איך הגעת אלינו? 📍</Label><Input value={form.referral} onChange={(e) => setForm({ ...form, referral: e.target.value })} placeholder="חברה, אינסטגרם, גוגל…" className="mt-1" /></div>
@@ -313,6 +324,10 @@ function SubscriptionCard({ user }: { user: { id: string; email?: string } | nul
     notes: "",
   });
 
+  useEffect(() => {
+    if (user?.email) setForm((f) => ({ ...f, email: f.email || user.email! }));
+  }, [user]);
+
   const submit = async () => {
     if (!form.full_name.trim() || !form.phone.trim()) {
       toast.error("שם וטלפון הם שדות חובה");
@@ -359,7 +374,11 @@ function SubscriptionCard({ user }: { user: { id: string; email?: string } | nul
               <div className="space-y-3">
                 <div><Label>שם מלא *</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} className="mt-1" /></div>
                 <div><Label>טלפון *</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} dir="ltr" className="mt-1" /></div>
-                <div><Label>אימייל</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} dir="ltr" className="mt-1" /></div>
+                <div>
+                  <Label>אימייל</Label>
+                  <Input type="email" list="email-suggest-cart-subscription" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} dir="ltr" className="mt-1" />
+                  <EmailDatalist id="email-suggest-cart-subscription" value={form.email} />
+                </div>
                 <div>
                   <Label>מסלול</Label>
                   <select

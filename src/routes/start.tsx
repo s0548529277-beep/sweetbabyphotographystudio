@@ -5,6 +5,7 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { EmailDatalist } from "@/components/EmailDatalist";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Camera, Sparkles } from "lucide-react";
@@ -77,7 +78,8 @@ function Start() {
             </div>
             <div>
               <Label>אימייל <span className="text-blush-deep">*</span></Label>
-              <Input required type="email" dir="ltr" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="mt-1 h-11" />
+              <Input required type="email" dir="ltr" list="email-suggest-start" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="mt-1 h-11" />
+              <EmailDatalist id="email-suggest-start" value={form.email} />
             </div>
             <div>
               <Label>מספר טלפון <span className="text-blush-deep">*</span></Label>
