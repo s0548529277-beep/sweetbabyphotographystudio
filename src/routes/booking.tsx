@@ -224,6 +224,11 @@ function Booking() {
   }, [startTime, slots, customHourlyRate]);
   const price = basePrice > 0 ? basePrice + guidanceFee : 0;
 
+  // Fixed bundled price — never combines with a coupon or a pass (a custom
+  // rate overrides the whole standard price list, morning package included,
+  // so it's never "morning" in that case even at a matching time).
+  const morningActive = !customHourlyRate && !!startTime && isMorningPackage(slots, startTime);
+
   // Discount code (e.g. BYBY10 / SWEETBABY10 → 10%)
   const [coupon, setCoupon] = useState("");
   const [couponOff, setCouponOff] = useState(0);
@@ -269,8 +274,8 @@ function Booking() {
       });
   }, [user]);
 
-  const afterCoupon = Math.max(0, price - couponOff);
-  const passApplied = usePass && passRemaining ? Math.min(afterCoupon, Math.min(slots, 2) * 60) : 0;
+  const afterCoupon = morningActive ? price : Math.max(0, price - couponOff);
+  const passApplied = !morningActive && usePass && passRemaining ? Math.min(afterCoupon, Math.min(slots, 2) * 60) : 0;
   const afterPass = Math.max(0, afterCoupon - passApplied);
   const creditApplied = useCredit ? Math.min(creditBalance, afterPass) : 0;
   const finalPrice = Math.max(0, afterPass - creditApplied);
@@ -293,8 +298,6 @@ function Booking() {
     setCouponOff(off);
     setCouponMsg(`הקוד הופעל · הנחה ₪${off}`);
   };
-
-  const morningActive = !customHourlyRate && !!startTime && isMorningPackage(slots, startTime);
 
   const endTimeStr = useMemo(() => {
     if (!startTime) return null;
@@ -354,7 +357,7 @@ function Booking() {
           notes,
           reserved_items: reservedSkus,
           guidance: guidanceKey,
-          coupon: coupon.trim() ? coupon.trim().toUpperCase() : null,
+          coupon: !morningActive && coupon.trim() ? coupon.trim().toUpperCase() : null,
           use_pass: passApplied > 0 ? true : undefined,
           use_credit: creditApplied > 0 ? creditApplied : undefined,
 
@@ -684,13 +687,13 @@ function Booking() {
                   <span>+₪{guidanceFee}</span>
                 </div>
               )}
-              {!recurring && couponOff > 0 && (
+              {!recurring && !morningActive && couponOff > 0 && (
                 <div className="flex items-baseline justify-between text-[11px] text-[#f5d5cf] mb-1">
                   <span>קוד קופון {coupon.trim().toUpperCase()}</span>
                   <span>-₪{couponOff}</span>
                 </div>
               )}
-              {!recurring && passApplied > 0 && (
+              {!recurring && !morningActive && passApplied > 0 && (
                 <div className="flex items-baseline justify-between text-[11px] text-[#f5d5cf] mb-1">
                   <span>כניסה מהכרטיסייה · שעה ראשונה</span>
                   <span>-₪{passApplied}</span>
@@ -713,7 +716,7 @@ function Booking() {
               )}
               {!recurring && <div className="mb-3" />}
 
-              {!recurring && passRemaining !== null && passRemaining > 0 && (
+              {!recurring && !morningActive && passRemaining !== null && passRemaining > 0 && (
                 <button
                   type="button"
                   onClick={() => setUsePass((v) => !v)}
@@ -737,7 +740,7 @@ function Booking() {
                 </button>
               )}
 
-              {!recurring && (
+              {!recurring && !morningActive && (
                 <div className="mb-4">
                   <div className="flex gap-2">
                     <input
@@ -756,6 +759,9 @@ function Booking() {
                   </div>
                   {couponMsg && <div className="text-[10px] mt-1.5 text-[#f8ede4]/70">{couponMsg}</div>}
                 </div>
+              )}
+              {!recurring && morningActive && (
+                <p className="text-[10px] text-[#f8ede4]/55 mb-4">מבצע ניו-בורן בוקר הוא מחיר קבוע — לא ניתן לשלב עם קוד קופון או כרטיסייה.</p>
               )}
 
               {/* Recurring weekly series toggle — approved customers only */}
