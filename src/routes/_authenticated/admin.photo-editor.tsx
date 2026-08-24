@@ -45,6 +45,7 @@ function PhotoEditorAdmin() {
   const [style, setStyle] = useState<string>(Object.keys(PHOTO_EDIT_STYLES)[0]);
   const [includeFace, setIncludeFace] = useState(false);
   const [intensity, setIntensity] = useState<"light" | "strong">("light");
+  const [customInstructions, setCustomInstructions] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ originalUrl: string; editedUrl: string } | null>(null);
 
@@ -60,7 +61,9 @@ function PhotoEditorAdmin() {
     setResult(null);
     try {
       const originalUrl = await uploadOriginal(file);
-      const res = await runEdit({ data: { imageUrl: originalUrl, style, includeFace, intensity } });
+      const res = await runEdit({
+        data: { imageUrl: originalUrl, style, includeFace, intensity, customInstructions: customInstructions.trim() || undefined },
+      });
       setResult({ originalUrl, editedUrl: res.editedUrl });
       toast.success("העיבוד הושלם");
       qc.invalidateQueries({ queryKey: ["photo-edit-history"] });
@@ -128,6 +131,20 @@ function PhotoEditorAdmin() {
               כולל רטוש פנים עדין
             </label>
           </div>
+        </div>
+
+        <div>
+          <label className="text-sm font-medium">הוראה נוספת בטקסט חופשי (אופציונלי)</label>
+          <textarea
+            value={customInstructions}
+            onChange={(e) => setCustomInstructions(e.target.value)}
+            placeholder='למשל: "עוד קצת יותר בהיר", "רקע לבן נקי", "בלי לגעת בבגדים"...'
+            className="mt-1 w-full min-h-[70px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            maxLength={500}
+          />
+          <p className="text-[11px] text-muted-foreground mt-1">
+            נוסף על הסגנון שנבחר למעלה — אפשר להשתמש בזה גם כדי לדייק/לשפר סגנון קיים, וגם לבד עם הסגנון "עיבוד חופשי".
+          </p>
         </div>
 
         {previewUrl && (

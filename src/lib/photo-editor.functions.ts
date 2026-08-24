@@ -18,6 +18,10 @@ export const PHOTO_EDIT_STYLES: Record<string, { label: string; prompt: string }
     prompt:
       "גוונים חמים (חום-כתום-זהב), תאורה רכה ומוזהבת שנראית כאילו מגיעה מאחור (backlight), ניגודיות עדינה עם צללים עמוקים אך חמים, רקע מעט חלומי ומטושטש קלות, אווירה קולנועית ורגועה.",
   },
+  custom: {
+    label: "עיבוד חופשי — לפי הוראה בטקסט",
+    prompt: "",
+  },
 };
 
 const editSchema = z.object({
@@ -25,9 +29,13 @@ const editSchema = z.object({
   style: z.enum(Object.keys(PHOTO_EDIT_STYLES) as [string, ...string[]]),
   includeFace: z.boolean(),
   intensity: z.enum(["light", "strong"]),
+  // Extra free-text instructions — always available alongside any preset
+  // style, not only in "custom" mode, so a preset can be nudged/refined
+  // without needing a brand-new preset for every small variation.
+  customInstructions: z.string().max(500).optional(),
 });
 
-function buildEditPrompt(style: string, includeFace: boolean, intensity: "light" | "strong"): string {
+function buildEditPrompt(style: string, includeFace: boolean, intensity: "light" | "strong", customInstructions?: string): string {
   const stylePrompt = PHOTO_EDIT_STYLES[style]?.prompt ?? "";
   const facePrompt = includeFace
     ? "אפשר גם רטוש עור עדין ואחיד לפנים — החלקה קלה בלבד. אסור לשנות תווי פנים, גיל, זהות, הבעה או צורת הפנים."
@@ -36,10 +44,12 @@ function buildEditPrompt(style: string, includeFace: boolean, intensity: "light"
     intensity === "strong"
       ? "עוצמת עיבוד ברורה וחזקה יחסית, אבל עדיין ריאליסטית."
       : "עוצמת עיבוד עדינה ומינימלית — שינוי קל בלבד.";
+  const customPrompt = customInstructions?.trim() ? `הוראה נוספת מהצלמת: ${customInstructions.trim()}` : "";
   return [
     "את עורכת תמונות מקצועית של סטודיו צילום ניו-בורן ומשפחה.",
     "חשוב מאוד: שמרי בדיוק על התוכן המקורי של התמונה — אותם אנשים, אותה זהות, אותה תנוחה, אותם עצמים ואותו רקע פיזי. אל תמציאי ואל תוסיפי שום פרט חדש שלא היה בתמונה המקורית. רק עבדי צבע, תאורה, גוון ומרקם.",
     stylePrompt,
+    customPrompt,
     facePrompt,
     intensityPrompt,
     "החזירי אך ורק את התמונה הערוכה, בלי טקסט נלווה.",
@@ -69,6 +79,7 @@ export const editPhoto = createServerFn({ method: "POST" })
         style: data.style,
         include_face: data.includeFace,
         intensity: data.intensity,
+        custom_instructions: data.customInstructions?.trim() || null,
         original_url: data.imageUrl,
         status: "processing",
       })
@@ -79,7 +90,7 @@ export const editPhoto = createServerFn({ method: "POST" })
     try {
       const key = process.env.LOVABLE_API_KEY;
       if (!key) throw new Error("Missing LOVABLE_API_KEY");
-      const prompt = buildEditPrompt(data.style, data.includeFace, data.intensity);
+      const prompt = buildEditPrompt(data.style, data.includeFace, data.intensity, data.customInstructions);
 
       // Calling the gateway directly (not through the `ai` SDK's generateText)
       // for this one — image-output from an OpenAI-compatible chat endpoint
