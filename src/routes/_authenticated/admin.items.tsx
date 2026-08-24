@@ -11,8 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, ImageIcon, Upload, Download, FolderPlus, GripVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, ImageIcon, Upload, Download, FolderPlus, GripVertical, Sparkles } from "lucide-react";
 import { toCSV, downloadCSV, parseCSVRecords } from "@/lib/csv";
+import { fetchItemInspiration, type ItemInspirationImage } from "@/lib/item-inspiration";
 
 export const Route = createFileRoute("/_authenticated/admin/items")({
   component: ItemsAdmin,
@@ -58,6 +59,7 @@ function ItemsAdmin() {
   const [form, setForm] = useState<ItemForm>(empty);
   const [uploading, setUploading] = useState(false);
   const [rowUploading, setRowUploading] = useState<string | null>(null);
+  const [rowUploadingInspiration, setRowUploadingInspiration] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [q, setQ] = useState("");
 
@@ -89,6 +91,16 @@ function ItemsAdmin() {
       return data ?? [];
     },
   });
+
+  // First inspiration photo per SKU, for the quick inline thumbnail — the
+  // full gallery (multiple photos per SKU) is still managed on
+  // /admin/inspiration, this is just a fast add/replace shortcut.
+  const inspirationRows = useQuery({ queryKey: ["item-inspiration"], queryFn: fetchItemInspiration });
+  const inspirationBySku = useMemo(() => {
+    const map: Record<string, ItemInspirationImage> = {};
+    for (const r of inspirationRows.data ?? []) if (!map[r.sku]) map[r.sku] = r;
+    return map;
+  }, [inspirationRows.data]);
 
   // Drag & drop ordering — the same order is used by the public catalog.
   const [dragSku, setDragSku] = useState<string | null>(null);
@@ -194,22 +206,22 @@ function ItemsAdmin() {
   };
 
   // Uploads to the private "items" bucket and returns a long-lived signed URL.
-  const uploadToStorage = async (file: File) => {
+  const uploadToStorage = async (file: File, prefix = "") => {
     const ext = file.name.split(".").pop();
-    const path = `${crypto.randomUUID()}.${ext}`;
+    const path = `${prefix}${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage.from("items").upload(path, file, { upsert: false });
     if (error) throw error;
     const { data, error: signErr } = await supabase.storage
       .from("items")
       .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
     if (signErr || !data?.signedUrl) throw signErr ?? new Error("שגיאה ביצירת קישור לתמונה");
-    return data.signedUrl;
+    return { url: data.signedUrl, path };
   };
 
   const uploadImage = async (file: File) => {
     setUploading(true);
     try {
-      const url = await uploadToStorage(file);
+      const { url } = await uploadToStorage(file);
       setForm((f) => ({ ...f, image_url: url }));
     } catch (e: any) {
       toast.error(e.message ?? "שגיאה בהעלאה");
@@ -221,7 +233,7 @@ function ItemsAdmin() {
   const uploadRowImage = async (itemId: string, file: File) => {
     setRowUploading(itemId);
     try {
-      const url = await uploadToStorage(file);
+      const { url } = await uploadToStorage(file);
       const { error } = await supabase.from("items").update({ image_url: url }).eq("id", itemId);
       if (error) throw error;
       toast.success("התמונה עודכנה");
@@ -231,6 +243,38 @@ function ItemsAdmin() {
       toast.error(e.message ?? "שגיאה בהעלאה");
     }
     setRowUploading(null);
+  };
+
+  // Quick per-row inspiration-photo add/replace, straight from the table —
+  // the full multi-photo gallery per SKU still lives on /admin/inspiration,
+  // this always keeps just the one most-recent photo (replaces, doesn't
+  // pile up), so it behaves like the product-photo upload right next to it.
+  const uploadRowInspiration = async (sku: string, file: File) => {
+    setRowUploadingInspiration(sku);
+    try {
+      const { url, path } = await uploadToStorage(file, "inspiration/");
+      const existing = (inspirationRows.data ?? []).filter((r) => r.sku === sku);
+      const { error } = await supabase.from("item_inspiration_images").insert({
+        sku,
+        url,
+        storage_path: path,
+        caption: file.name.replace(/\.[^.]+$/, ""),
+        source: "upload",
+        sort_order: 1,
+      });
+      if (error) throw error;
+      // Replace, not accumulate — remove whatever was there before.
+      for (const old of existing) {
+        await supabase.from("item_inspiration_images").delete().eq("id", old.id);
+        if (old.storage_path) await supabase.storage.from("items").remove([old.storage_path]);
+      }
+      toast.success("תמונת ההשראה עודכנה");
+      qc.invalidateQueries({ queryKey: ["item-inspiration"] });
+      qc.invalidateQueries({ queryKey: ["item-inspiration-admin"] });
+    } catch (e: any) {
+      toast.error(e.message ?? "שגיאה בהעלאה");
+    }
+    setRowUploadingInspiration(null);
   };
 
 
@@ -274,7 +318,7 @@ function ItemsAdmin() {
     let ok = 0;
     for (const file of bulkFiles) {
       try {
-        const url = await uploadToStorage(file);
+        const { url } = await uploadToStorage(file);
         const sku = nextSkuFor(prefix, existing);
         existing.push(sku);
         const name = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim() || sku;
@@ -592,6 +636,7 @@ function ItemsAdmin() {
             <tr>
               <th className="p-3 font-medium w-8" />
               <th className="p-3 font-medium">תמונה</th>
+              <th className="p-3 font-medium">השראה</th>
               <th className="p-3 font-medium">מק״ט</th>
               <th className="p-3 font-medium">שם</th>
               <th className="p-3 font-medium">קטגוריה</th>
@@ -630,6 +675,26 @@ function ItemsAdmin() {
                         accept="image/*"
                         className="hidden"
                         onChange={(e) => e.target.files?.[0] && uploadRowImage(i.id, e.target.files[0])}
+                      />
+                    </label>
+                  </div>
+                </td>
+
+                <td className="p-3">
+                  <div className="flex flex-col items-center gap-1 w-16">
+                    <div className="h-12 w-12 rounded-lg bg-cream overflow-hidden flex items-center justify-center">
+                      {inspirationBySku[i.sku]
+                        ? <img src={inspirationBySku[i.sku].url} alt="" className="w-full h-full object-cover" />
+                        : <Sparkles className="h-4 w-4 text-primary/30" />}
+                    </div>
+                    <label className="cursor-pointer text-[10px] text-forest hover:underline inline-flex items-center gap-1">
+                      <Upload className="h-3 w-3" />
+                      {rowUploadingInspiration === i.sku ? "מעלה…" : inspirationBySku[i.sku] ? "החלפה" : "הוספה"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => e.target.files?.[0] && uploadRowInspiration(i.sku, e.target.files[0])}
                       />
                     </label>
                   </div>
@@ -711,7 +776,7 @@ function ItemsAdmin() {
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={9} className="p-16 text-center text-muted-foreground">אין אביזרים עדיין. לחצו על "אביזר חדש".</td></tr>
+              <tr><td colSpan={10} className="p-16 text-center text-muted-foreground">אין אביזרים עדיין. לחצו על "אביזר חדש".</td></tr>
             )}
           </tbody>
         </table>
