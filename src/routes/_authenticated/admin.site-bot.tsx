@@ -59,14 +59,27 @@ export const Route = createFileRoute("/_authenticated/admin/site-bot")({
 
 // A short menu of common targets so the admin doesn't need to know exact
 // repo paths by heart. "אחר" lets them type any path directly.
+// Covers every real customer-facing page, so the admin never has to know
+// (or type) a file path herself — see src/routes for the full list this is
+// kept in sync with.
 const COMMON_TARGETS = [
   { label: "עמוד הבית", path: "src/routes/index.tsx" },
-  { label: "כרטיס אביזר (עמוד מוצר)", path: "src/routes/items.$id.tsx" },
+  { label: "קטלוג השכרת אביזרים", path: "src/routes/rental-catalog.tsx" },
+  { label: "כרטיס אביזר (עמוד מוצר בודד)", path: "src/routes/items.$id.tsx" },
   { label: "עגלת קניות", path: "src/routes/cart.tsx" },
   { label: "תשלום (הזמנת אביזרים)", path: "src/routes/checkout.tsx" },
-  { label: "הזמנת סטודיו", path: "src/routes/booking.tsx" },
+  { label: "השכרת סטודיו — שאלון תיאום ציפיות", path: "src/routes/studio-rental.tsx" },
+  { label: "השכרת סטודיו — בחירת תאריך ושעה", path: "src/routes/booking.tsx" },
+  { label: "צילומים בסטודיו עם מיכל", path: "src/routes/studio-photography.tsx" },
   { label: "עמוד אודות", path: "src/routes/about.tsx" },
-  { label: "כותרת/תפריט (ניווט)", path: "src/components/SiteHeader.tsx" },
+  { label: "יצירת קשר", path: "src/routes/contact.tsx" },
+  { label: "תנאי שימוש", path: "src/routes/terms.tsx" },
+  { label: "מעקב הזמנה", path: "src/routes/track.tsx" },
+  { label: "עמוד תודה (אחרי הזמנה)", path: "src/routes/thank-you.tsx" },
+  { label: "בלוג — רשימת מאמרים", path: "src/routes/blog.index.tsx" },
+  { label: "כותרת/תפריט עליון (ניווט)", path: "src/components/Header.tsx" },
+  { label: "פוטר (תחתית האתר)", path: "src/components/Footer.tsx" },
+  { label: "צ'אט הלקוחות (הבועה בפינה)", path: "src/components/ChatBot.tsx" },
   { label: "אחר (הקלד נתיב)", path: "" },
 ];
 
@@ -96,6 +109,7 @@ function SiteBotAdmin() {
   const [busy, setBusy] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [diffForId, setDiffForId] = useState<string | null>(null);
+  const [showCode, setShowCode] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const diffQ = useQuery({
@@ -381,19 +395,41 @@ function SiteBotAdmin() {
         </div>
       </div>
 
-      <Dialog open={!!diffForId} onOpenChange={(o) => !o && setDiffForId(null)}>
+      <Dialog open={!!diffForId} onOpenChange={(o) => { if (!o) { setDiffForId(null); setShowCode(false); } }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle dir="ltr" className="text-sm font-mono text-right">
-              {diffQ.data?.filename ?? "טוען…"}
-            </DialogTitle>
+            <DialogTitle>מה ישתנה</DialogTitle>
           </DialogHeader>
           {diffQ.isLoading ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">טוענת diff…</p>
+            <p className="text-sm text-muted-foreground py-6 text-center">בודקת מה ישתנה בעין…</p>
           ) : diffQ.isError ? (
-            <p className="text-sm text-destructive py-6 text-center">{(diffQ.error as any)?.message ?? "שגיאה בטעינת ה-diff"}</p>
+            <p className="text-sm text-destructive py-6 text-center">{(diffQ.error as any)?.message ?? "שגיאה בטעינת השינוי"}</p>
           ) : (
-            <DiffView patch={diffQ.data?.patch ?? ""} />
+            <div className="space-y-4">
+              <p className="text-xs text-muted-foreground" dir="ltr">
+                {diffQ.data?.filename}
+              </p>
+              {diffQ.data?.plainSummary ? (
+                <div className="bg-cream/50 rounded-xl border border-primary/10 p-4 text-sm whitespace-pre-line leading-relaxed">
+                  {diffQ.data.plainSummary}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  לא הצלחתי להסביר את השינוי בשפה פשוטה — זה עדיין קוד אמיתי (למטה) שכן ישתקף באתר בדיוק כמו שכתוב, רק שאין לי תיאור מילולי שלו.
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                זו לא תצוגה חזותית אמיתית של האתר (כדי לבנות את זה צריך שרת תצוגה מקדימה נפרד לכל טיוטה, שהאתר הזה עדיין לא מוגדר לו) — זה תיאור במילים של מה שישתנה, על סמך הקוד עצמו.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowCode((v) => !v)}
+                className="text-xs text-primary underline"
+              >
+                {showCode ? "הסתירי את הקוד" : "הצגת הקוד המדויק (למי שרוצה)"}
+              </button>
+              {showCode && <DiffView patch={diffQ.data?.patch ?? ""} />}
+            </div>
           )}
         </DialogContent>
       </Dialog>
