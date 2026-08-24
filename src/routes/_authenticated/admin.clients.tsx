@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -180,7 +181,7 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
       return data;
     },
   });
-  const [lf, setLf] = useState({ cashback_percent: "0", cashback_expires_at: "", custom_hourly_rate: "" });
+  const [lf, setLf] = useState({ cashback_percent: "0", cashback_expires_at: "", custom_hourly_rate: "", can_book_recurring: false });
   const [manualAmount, setManualAmount] = useState("");
   const [grantBusy, setGrantBusy] = useState(false);
   useEffect(() => {
@@ -189,6 +190,7 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
         cashback_percent: String(loyalty.data.cashback_percent ?? 0),
         cashback_expires_at: loyalty.data.cashback_expires_at ? String(loyalty.data.cashback_expires_at).slice(0, 10) : "",
         custom_hourly_rate: (loyalty.data as any).custom_hourly_rate ? String((loyalty.data as any).custom_hourly_rate) : "",
+        can_book_recurring: !!(loyalty.data as any).can_book_recurring,
       });
     }
   }, [loyalty.data]);
@@ -203,6 +205,7 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
           cashback_percent: Math.max(0, Math.min(100, Math.floor(Number(lf.cashback_percent) || 0))),
           cashback_expires_at: lf.cashback_expires_at || null,
           custom_hourly_rate: lf.custom_hourly_rate.trim() ? Math.max(0, Number(lf.custom_hourly_rate)) : null,
+          can_book_recurring: lf.can_book_recurring,
         },
       });
       if (pw.trim()) {
@@ -266,6 +269,13 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
             value={lf.custom_hourly_rate}
             onChange={(e) => setLf({ ...lf, custom_hourly_rate: e.target.value })}
           />
+        </div>
+        <div className="pt-2 border-t border-border flex items-center justify-between gap-3">
+          <div>
+            <div className="text-xs font-medium">מאושרת לסדרה שבועית חוזרת</div>
+            <div className="text-[11px] text-muted-foreground">רק לקוחות מאושרות יכולות לקבוע סדרת שריונים שבועית (עד 3 חודשים קדימה) ב-/booking.</div>
+          </div>
+          <Switch checked={lf.can_book_recurring} onCheckedChange={(v) => setLf({ ...lf, can_book_recurring: v })} />
         </div>
       </div>
 
