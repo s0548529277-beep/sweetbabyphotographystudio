@@ -14,27 +14,90 @@ export const CATALOG_ITEMS: CatItem[] = (catalogData as Cat[]).flatMap((c) => c.
 // confirmed, the hold no longer depends on time at all — see bookingBlocksSlot.
 export const PENDING_HOLD_MINUTES = 60;
 
+// Props orders don't require prepayment the way a studio booking's deposit
+// does, so an untouched one is held for a shorter window before it's
+// treated as abandoned.
+export const PROPS_HOLD_MINUTES = 30;
+
 /**
- * Whether a booking should count as occupying its time slot right now.
- * Cancelled bookings never block. An untouched pending-deposit hold (nothing
- * submitted, i.e. deposit_status still literally "pending") stops blocking
- * once it's older than PENDING_HOLD_MINUTES — anything beyond that (a
+ * Whether a booking/order should count as occupying its slot right now.
+ * Cancelled ones never block. An untouched pending-deposit/payment hold
+ * (nothing submitted, i.e. deposit_status still literally "pending") stops
+ * blocking once it's older than `holdMinutes` — anything beyond that (a
  * receipt submitted, cash marked pending, deposit confirmed) blocks
  * regardless of age, since the customer already took her half of the action.
- * Shared by every place that decides whether a slot is free — the chat's
- * check_studio_availability, the public /booking calendar, and placeBooking's
- * own overlap check — so they can never disagree with each other again.
+ * Shared by every place that decides whether a slot/item is free — the
+ * chat's check_studio_availability, the public /booking calendar,
+ * placeBooking's own overlap check, and propsAvailability/order locking —
+ * so they can never disagree with each other again.
  */
 export function bookingBlocksSlot(
   b: { status: string; deposit_status?: string | null; created_at?: string | null },
   nowMs: number = Date.now(),
+  holdMinutes: number = PENDING_HOLD_MINUTES,
 ): boolean {
   if (b.status === "cancelled") return false;
   if (b.deposit_status === "pending" && b.created_at) {
     const ageMinutes = (nowMs - new Date(b.created_at).getTime()) / 60000;
-    if (ageMinutes > PENDING_HOLD_MINUTES) return false;
+    if (ageMinutes > holdMinutes) return false;
   }
   return true;
+}
+
+/** Loads {status, deposit_status, created_at} for a set of order/booking ids, keyed by id — used to resolve who "owns" an item_availability row. */
+async function loadOwners(supabaseAdmin: any, table: "orders" | "bookings", ids: string[]) {
+  const map = new Map<string, { status: string; deposit_status?: string | null; created_at?: string | null }>();
+  if (ids.length === 0) return map;
+  const { data } = await supabaseAdmin.from(table).select("id, status, deposit_status, created_at").in("id", ids);
+  for (const row of data ?? []) map.set(row.id, row);
+  return map;
+}
+
+/**
+ * Deletes item_availability rows (within the given items/date range) whose
+ * owning order/booking is an abandoned, untouched pending hold older than
+ * its hold window (PROPS_HOLD_MINUTES for a props order, PENDING_HOLD_MINUTES
+ * for a studio booking's reserved items) — freeing the slot immediately for
+ * a new order/booking instead of leaving it locked behind a hold nobody
+ * ever paid or cancelled. Call this right before attempting to lock new
+ * slots for the same items/range. Best-effort: never throws, since this is
+ * proactive cleanup ahead of a real lock attempt, not something that should
+ * block the request if it fails.
+ */
+export async function releaseAbandonedItemLocks(itemIds: string[], from: string, to: string): Promise<void> {
+  if (itemIds.length === 0) return;
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows } = await supabaseAdmin
+      .from("item_availability")
+      .select("id, order_id, booking_id")
+      .in("item_id", itemIds)
+      .lte("start_date", to)
+      .gte("end_date", from);
+    const candidates = (rows ?? []).filter((r: any) => r.order_id || r.booking_id);
+    if (candidates.length === 0) return;
+
+    const orderIds = Array.from(new Set(candidates.map((r: any) => r.order_id).filter(Boolean))) as string[];
+    const bookingIds = Array.from(new Set(candidates.map((r: any) => r.booking_id).filter(Boolean))) as string[];
+    const [ordersMap, bookingsMap] = await Promise.all([
+      loadOwners(supabaseAdmin, "orders", orderIds),
+      loadOwners(supabaseAdmin, "bookings", bookingIds),
+    ]);
+
+    const now = Date.now();
+    const staleIds: string[] = [];
+    for (const r of candidates as any[]) {
+      const owner = r.order_id ? ordersMap.get(r.order_id) : bookingsMap.get(r.booking_id);
+      if (!owner) continue; // shouldn't happen (FK-guaranteed) — leave it blocking to be safe
+      const holdMinutes = r.order_id ? PROPS_HOLD_MINUTES : PENDING_HOLD_MINUTES;
+      if (!bookingBlocksSlot(owner, now, holdMinutes)) staleIds.push(r.id);
+    }
+    if (staleIds.length > 0) {
+      await supabaseAdmin.from("item_availability").delete().in("id", staleIds);
+    }
+  } catch (e) {
+    console.error("[SWEETBABY] releaseAbandonedItemLocks failed", e);
+  }
 }
 
 export function findSkusByText(query: string, limit = 8): CatItem[] {
@@ -64,12 +127,30 @@ export async function propsAvailability(skus: string[], from: string, to: string
   if (realIds.length > 0) {
     const avail = await supabaseAdmin
       .from("item_availability")
-      .select("item_id")
+      .select("item_id, order_id, booking_id")
       .in("item_id", realIds)
       .lte("start_date", end)
       .gte("end_date", from);
     if (avail.error) throw new Error(avail.error.message);
-    for (const r of avail.data ?? []) busyById.set(r.item_id, (busyById.get(r.item_id) ?? 0) + 1);
+    const rows = avail.data ?? [];
+
+    // Same abandoned-hold rule as studio bookings: an item_availability row
+    // only counts as actually busy if its owning order/booking still
+    // "blocks" per bookingBlocksSlot (an untouched pending hold older than
+    // its window is treated as freed, not real).
+    const orderIds = Array.from(new Set(rows.map((r: any) => r.order_id).filter(Boolean))) as string[];
+    const bookingIds = Array.from(new Set(rows.map((r: any) => r.booking_id).filter(Boolean))) as string[];
+    const [ordersMap, bookingsMap] = await Promise.all([
+      loadOwners(supabaseAdmin, "orders", orderIds),
+      loadOwners(supabaseAdmin, "bookings", bookingIds),
+    ]);
+    const now = Date.now();
+    for (const r of rows as any[]) {
+      const owner = r.order_id ? ordersMap.get(r.order_id) : bookingsMap.get(r.booking_id);
+      const holdMinutes = r.order_id ? PROPS_HOLD_MINUTES : PENDING_HOLD_MINUTES;
+      if (owner && !bookingBlocksSlot(owner, now, holdMinutes)) continue;
+      busyById.set(r.item_id, (busyById.get(r.item_id) ?? 0) + 1);
+    }
   }
 
   return skus.map((sku) => {

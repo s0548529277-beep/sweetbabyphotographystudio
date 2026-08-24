@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { buildPropsOrderSummaryHtml, type SummaryOrderLine } from "@/lib/orderSummary";
+import { releaseAbandonedItemLocks } from "@/lib/availability.server";
 
 const lineSchema = z.object({
   id: z.string().min(1),
@@ -118,6 +119,11 @@ export const placeOrder = createServerFn({ method: "POST" })
 
     // Date-range availability check: any existing reservation whose range
     // overlaps [startDate, endDate] counts as taken for that item.
+    // Free any locks left behind by abandoned orders (created, never paid,
+    // never cancelled) for these exact items/dates first — otherwise a stale
+    // hold both inflates this count AND blocks the retry loop below forever.
+    await releaseAbandonedItemLocks(orderLines.map((l) => l.item_id), startDate, endDate);
+
     const { supabaseAdmin: adminForCount } = await import("@/integrations/supabase/client.server");
     const takenCount = new Map<string, number>();
     for (const l of orderLines) {
