@@ -7,6 +7,8 @@ import { Footer } from "@/components/Footer";
 import { smartSearchItems } from "@/lib/ai.functions";
 import { checkItemsAvailability } from "@/lib/orders.functions";
 import { useCart } from "@/lib/cart";
+import { useAuth } from "@/lib/auth";
+import { EmailDatalist } from "@/components/EmailDatalist";
 import { Sparkles, Search, X, ShoppingBag, Check, Plus, Trash2, ZoomIn, CalendarDays } from "lucide-react";
 
 
@@ -41,6 +43,7 @@ function RentalCatalogPage() {
   // Live catalog — admin edits (name/price/category/image) show up here.
   const categories = useCatalogCategories();
   const { lines, add, remove, subtotal, count } = useCart();
+  const { user } = useAuth();
   const nav = useNavigate();
   const inCart = useMemo(() => new Set(lines.map((l) => l.id)), [lines]);
 
@@ -62,6 +65,9 @@ function RentalCatalogPage() {
     email: "", name: "", phone: "", referral: "", pickup: "",
     payment: "מזומן במקום", amount: "", agree: false, suggestion: "",
   });
+  useEffect(() => {
+    if (user?.email) setForm((f) => ({ ...f, email: f.email || user.email! }));
+  }, [user]);
   const runSmartSearch = useServerFn(smartSearchItems);
   const runCheckAvail = useServerFn(checkItemsAvailability);
 
@@ -585,7 +591,8 @@ function RentalCatalogPage() {
                 </select>
               </Field>
               <Field label="1. מייל" >
-                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="input-field" />
+                <input type="email" list="email-suggest-rental-catalog-modal" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="input-field" />
+                <EmailDatalist id="email-suggest-rental-catalog-modal" value={form.email} />
               </Field>
               <Field label="2. שם *">
                 <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input-field" />
@@ -701,7 +708,8 @@ function RentalCatalogPage() {
           </Field>
           <div className="grid md:grid-cols-2 gap-4">
             <Field label="1. מייל">
-              <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="input-field" />
+              <input type="email" list="email-suggest-rental-catalog-inline" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="input-field" />
+              <EmailDatalist id="email-suggest-rental-catalog-inline" value={form.email} />
             </Field>
             <Field label="2. שם *">
               <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input-field" />

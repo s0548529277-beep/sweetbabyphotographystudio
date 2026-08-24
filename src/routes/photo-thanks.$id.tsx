@@ -8,6 +8,7 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrivalDirections } from "@/components/ArrivalDirections";
+import { EmailDatalist } from "@/components/EmailDatalist";
 import { finalizePhotographySession } from "@/lib/photography.functions";
 import { PAYMENT_LABELS } from "@/lib/photography-options";
 import { Check, Clock, CalendarDays, Wallet, Mail } from "lucide-react";
@@ -112,11 +113,13 @@ function PhotoThanks() {
                 <input
                   dir="ltr"
                   type="email"
+                  list="email-suggest-photo-thanks"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   className="mt-1 w-full h-11 rounded-xl border border-border bg-card px-3"
                 />
+                <EmailDatalist id="email-suggest-photo-thanks" value={email} />
               </div>
               <Button onClick={close} disabled={busy} className="w-full h-12 rounded-full gap-2">
                 <Mail className="h-4 w-4" /> {busy ? "שולח…" : "סגירת הזמנה ושליחת אישור למייל"}

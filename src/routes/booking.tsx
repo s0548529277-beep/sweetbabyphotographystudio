@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
+import { EmailDatalist } from "@/components/EmailDatalist";
 import { useAuth } from "@/lib/auth";
 import { useProfilePrefill } from "@/hooks/use-profile";
 import { saveContactHandoff } from "@/lib/contact-handoff";
@@ -566,11 +567,13 @@ function Booking() {
                 <Input
                   type="email"
                   dir="ltr"
+                  list="email-suggest-booking"
                   value={contactEmail}
                   onChange={(e) => setContactEmail(e.target.value)}
                   placeholder="name@example.com"
                   className="mt-1 text-sm"
                 />
+                <EmailDatalist id="email-suggest-booking" value={contactEmail} />
                 <p className="text-[11px] text-[#2d3d2b]/60 mt-1">נשלח אליך אישור והזמנה לאירוע ביומן Google.</p>
               </div>
               <div>

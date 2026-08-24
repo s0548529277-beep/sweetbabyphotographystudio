@@ -5,6 +5,7 @@ import { Mail, Check, Copy, Sparkles } from "lucide-react";
 import { subscribeNewsletter, isNewsletterSubscribed } from "@/lib/newsletter.functions";
 import { useFeaturedCoupon, discountLabel, type FeaturedCoupon } from "@/hooks/use-featured-coupon";
 import { useAuth } from "@/lib/auth";
+import { EmailDatalist } from "@/components/EmailDatalist";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,12 @@ export function NewsletterPopup() {
   const coupon = done ? (issued ?? featured) : featured;
   const subscribe = useServerFn(subscribeNewsletter);
   const checkSubscribed = useServerFn(isNewsletterSubscribed);
+
+  // A logged-in customer who hasn't subscribed yet — no need to make her
+  // retype her own email address.
+  useEffect(() => {
+    if (user && !user.is_anonymous && user.email) setEmail((v) => v || user.email!);
+  }, [user]);
 
   useEffect(() => {
     if (SKIP_PREFIXES.some((p) => pathname.startsWith(p))) return;
@@ -160,6 +167,7 @@ export function NewsletterPopup() {
                 <Input
                   type="email"
                   required
+                  list="email-suggest-newsletter-popup"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="האימייל שלך"
@@ -167,6 +175,7 @@ export function NewsletterPopup() {
                   aria-label="אימייל להרשמה לרשימת התפוצה"
                   className="bg-white border-[#f5d5cf] focus-visible:ring-[#f5d5cf]"
                 />
+                <EmailDatalist id="email-suggest-newsletter-popup" value={email} />
                 <Button
                   type="submit"
                   disabled={loading}
