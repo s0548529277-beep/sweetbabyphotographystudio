@@ -87,9 +87,16 @@ const editSchema = z.object({
 
 function buildEditPrompt(style: string, includeFace: boolean, intensity: "light" | "strong", customInstructions?: string): string {
   const stylePrompt = PHOTO_EDIT_STYLES[style]?.prompt ?? "";
+  // The style/mood treatment (color grade, atmosphere, background look)
+  // applies to the background, lighting and surroundings — never in full
+  // to the person's own skin/body. On the person, the only allowed
+  // treatment is a gentle, natural skin warm-up and a light smoothing —
+  // always, regardless of the includeFace toggle below.
+  const skinRule =
+    "חשוב מאוד: על עור הפנים והגוף של האדם/התינוק בתמונה — אין להחיל את מלוא אפקט הסגנון הכללי (הגוונים הדרמטיים, מצב הרוח, הפילטר הכללי וכו׳). על העור עצמו מותר ורצוי לבצע רק שני דברים בלבד: (1) חימום עדין וטבעי של גוון העור, (2) החלקה עדינה של העור. את סגנון הצבע/האווירה/מצב הרוח של העיבוד יש להחיל בעיקר על הרקע, הבגדים, התאורה הכללית והאווירה שסביב — לא ישירות על גוון או מרקם העור עצמו.";
   const facePrompt = includeFace
-    ? "אפשר גם רטוש עור עדין ואחיד לפנים — החלקה קלה בלבד. אסור לשנות תווי פנים, גיל, זהות, הבעה או צורת הפנים."
-    : "אין לגעת בפנים בכלל — יש להשאיר אותן בדיוק כפי שהן במקור, ללא שום שינוי.";
+    ? "בנוסף לחימום והחלקה העדינים שתוארו למעלה, מותר גם רטוש עדין נוסף לפנים: אחידות גוון עור, הבהרה קלה של עיגולים כהים מתחת לעיניים. בכל מקרה אסור בהחלט לשנות תווי פנים, גיל, זהות, הבעה או צורת הפנים."
+    : "מעבר לחימום והחלקה העדינים שתוארו למעלה — אין לבצע שום רטוש נוסף לפנים.";
   const intensityPrompt =
     intensity === "strong"
       ? "עוצמת עיבוד ברורה וחזקה יחסית, אבל עדיין ריאליסטית."
@@ -102,6 +109,7 @@ function buildEditPrompt(style: string, includeFace: boolean, intensity: "light"
   return [
     "את עורכת תמונות מקצועית של סטודיו צילום ניו-בורן ומשפחה.",
     contentRule,
+    skinRule,
     stylePrompt,
     customPrompt,
     facePrompt,
