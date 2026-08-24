@@ -11,10 +11,18 @@ import {
 const PRICE_FIRST_HOUR = 120;
 const PRICE_EXTRA_HOUR = 90;
 const MORNING_PRICE = 240;
-const GUIDANCE = { basic: 0, mini: 50, plus: 100, premium: 150 } as const;
+// Must match GUIDANCE_FEES in bookings.functions.ts exactly — this used to
+// say premium: 150 here while the real charge (and placeBooking) used 300,
+// so the bot quoted customers a wrong price for premium guidance.
+const GUIDANCE = { basic: 0, mini: 50, plus: 100, premium: 300 } as const;
 
-/** Tools that let the chat assistant answer availability questions for real. */
-export function buildAssistantTools() {
+/**
+ * Tools that let the chat assistant answer availability questions for real,
+ * and — for a logged-in customer who confirms she wants it — actually place
+ * a studio booking through the exact same placeBooking used by /booking, so
+ * a customer stuck on the page can still get booked instead of giving up.
+ */
+export function buildAssistantTools(opts?: { isAuthenticated?: boolean }) {
   return {
     check_studio_availability: tool({
       description:
@@ -127,6 +135,80 @@ export function buildAssistantTools() {
       description: "מחזיר את התאריך והשעה הנוכחיים בישראל — להמרת 'מחר', 'שבוע הבא' וכו׳ לתאריך מלא.",
       inputSchema: z.object({}),
       execute: async () => israelNow(),
+    }),
+
+    list_active_coupons: tool({
+      description:
+        "מחזירה את קודי הקופון הכלליים הפעילים כרגע במסד הנתונים (לא קודים אישיים חד-פעמיים שנשלחו למישהי ספציפית). תמיד השתמשי בזה לפני שאת מזכירה קוד קופון ללקוחה — אסור להמציא או להיזכר בקוד ישן, קודי הקופון משתנים.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { data, error } = await supabase
+          .from("coupons")
+          .select("code, discount_percent, discount_amount, expires_at")
+          .eq("active", true)
+          .eq("single_use", false);
+        if (error || !data?.length) return { coupons: [] };
+        const now = Date.now();
+        const live = data.filter((c) => !c.expires_at || new Date(c.expires_at).getTime() > now);
+        return { coupons: live.map((c) => ({ code: c.code, discountPercent: c.discount_percent, discountAmount: c.discount_amount })) };
+      },
+    }),
+
+    create_studio_booking: tool({
+      description: `יוצרת שריון סטודיו אמיתי (לא רק בדיקה!) עבור לקוחה שמתקשה להשלים את התהליך לבד באתר. זה כלי רציני — לפני שמשתמשים בו חובה:
+1. לבדוק זמינות אמיתית עם check_studio_availability ולוודא שהתאריך/שעה באמת פנויים.
+2. לקבל מהלקוחה בפירוש: שם מלא וטלפון.
+3. לקבל מהלקוחה אישור מפורש בהודעה בצ'אט שהיא מסכימה לתנאי השימוש (יש קישור בעמוד /terms) ושהיא מבינה שצריך לשלם מקדמה של 90₪ (לא מוחזרת בביטול) בהעברה בנקאית/ביט כדי לשריין בפועל — ורק אז לשלוח termsAccepted=true.
+${!opts?.isAuthenticated ? "הלקוחה הנוכחית לא מחוברת — אסור לקרוא לכלי הזה, יש להציע לה להתחבר קודם ב-/auth ואז לחזור." : "הלקוחה מחוברת, אפשר להשתמש בכלי אחרי שהתנאים לעיל התקיימו."}
+השריון נוצר במצב 'ממתין' — עדיין דורש תשלום מקדמה כדי להתאשר סופית, בדיוק כמו הזמנה רגילה דרך /booking.`,
+      inputSchema: z.object({
+        date: z.string().describe("YYYY-MM-DD"),
+        startTime: z.string().describe("HH:MM"),
+        hours: z.number().describe("משך בשעות, אפשר 1.5"),
+        contactName: z.string(),
+        contactPhone: z.string(),
+        guidance: z.enum(["basic", "mini", "plus", "premium"]).optional(),
+        notes: z.string().optional(),
+        termsAccepted: z.boolean().describe("true רק אם הלקוחה אישרה בפירוש בהודעה בצ'אט את התנאים והמקדמה"),
+      }),
+      execute: async (args) => {
+        if (!opts?.isAuthenticated) {
+          return { ok: false, message: "הלקוחה לא מחוברת — אי אפשר ליצור עבורה שריון. יש להציע לה להתחבר ב-/auth ואז לנסות שוב." };
+        }
+        if (!args.termsAccepted) {
+          return { ok: false, message: "חסר אישור מפורש מהלקוחה לתנאי השימוש ולמקדמה — יש לבקש את זה קודם, לא ליצור שריון בלי אישור." };
+        }
+        try {
+          const { placeBooking } = await import("./bookings.functions");
+          const slots = Math.max(2, Math.round(args.hours * 2));
+          const res = await placeBooking({
+            data: {
+              session_date: args.date,
+              start_time: args.startTime.slice(0, 5),
+              slots,
+              contact_name: args.contactName,
+              contact_phone: args.contactPhone,
+              contact_email: null,
+              notes: args.notes || null,
+              guidance: args.guidance ?? "basic",
+              terms_accepted: true,
+            },
+          });
+          return {
+            ok: true,
+            bookingId: res.id,
+            price: res.price,
+            deposit: res.deposit,
+            message: "השריון נוצר במצב ממתין לתשלום מקדמה. חשוב להפנות את הלקוחה עכשיו לעמוד סיכום ההזמנה כדי שתשלים את תשלום המקדמה ותאשר את השריון סופית.",
+          };
+        } catch (e: any) {
+          return {
+            ok: false,
+            message: `יצירת השריון נכשלה: ${e?.message ?? "שגיאה לא צפויה"}. אפשר להציע ללקוחה לנסות ישירות דרך /booking, או להפנות אותה ליצירת קשר עם הסטודיו.`,
+          };
+        }
+      },
     }),
   };
 }
