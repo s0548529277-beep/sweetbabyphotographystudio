@@ -38,6 +38,8 @@ import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as SummaryTypeIdRouteImport } from './routes/summary.$type.$id'
 import { Route as DepositTypeIdRouteImport } from './routes/deposit.$type.$id'
+import { Route as ApiVoiceRespondRouteImport } from './routes/api.voice.respond'
+import { Route as ApiVoiceIncomingRouteImport } from './routes/api.voice.incoming'
 import { Route as AuthenticatedAdminSubscriptionsRouteImport } from './routes/_authenticated/admin.subscriptions'
 import { Route as AuthenticatedAdminSiteBotAskRouteImport } from './routes/_authenticated/admin.site-bot-ask'
 import { Route as AuthenticatedAdminSiteBotRouteImport } from './routes/_authenticated/admin.site-bot'
@@ -199,6 +201,16 @@ const DepositTypeIdRoute = DepositTypeIdRouteImport.update({
   path: '/deposit/$type/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiVoiceRespondRoute = ApiVoiceRespondRouteImport.update({
+  id: '/api/voice/respond',
+  path: '/api/voice/respond',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiVoiceIncomingRoute = ApiVoiceIncomingRouteImport.update({
+  id: '/api/voice/incoming',
+  path: '/api/voice/incoming',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminSubscriptionsRoute =
   AuthenticatedAdminSubscriptionsRouteImport.update({
     id: '/subscriptions',
@@ -322,6 +334,8 @@ export interface FileRoutesByFullPath {
   '/admin/site-bot': typeof AuthenticatedAdminSiteBotRoute
   '/admin/site-bot-ask': typeof AuthenticatedAdminSiteBotAskRoute
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
+  '/api/voice/incoming': typeof ApiVoiceIncomingRoute
+  '/api/voice/respond': typeof ApiVoiceRespondRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -365,6 +379,8 @@ export interface FileRoutesByTo {
   '/admin/site-bot': typeof AuthenticatedAdminSiteBotRoute
   '/admin/site-bot-ask': typeof AuthenticatedAdminSiteBotAskRoute
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
+  '/api/voice/incoming': typeof ApiVoiceIncomingRoute
+  '/api/voice/respond': typeof ApiVoiceRespondRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -411,6 +427,8 @@ export interface FileRoutesById {
   '/_authenticated/admin/site-bot': typeof AuthenticatedAdminSiteBotRoute
   '/_authenticated/admin/site-bot-ask': typeof AuthenticatedAdminSiteBotAskRoute
   '/_authenticated/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
+  '/api/voice/incoming': typeof ApiVoiceIncomingRoute
+  '/api/voice/respond': typeof ApiVoiceRespondRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -457,6 +475,8 @@ export interface FileRouteTypes {
     | '/admin/site-bot'
     | '/admin/site-bot-ask'
     | '/admin/subscriptions'
+    | '/api/voice/incoming'
+    | '/api/voice/respond'
     | '/deposit/$type/$id'
     | '/summary/$type/$id'
     | '/admin/'
@@ -500,6 +520,8 @@ export interface FileRouteTypes {
     | '/admin/site-bot'
     | '/admin/site-bot-ask'
     | '/admin/subscriptions'
+    | '/api/voice/incoming'
+    | '/api/voice/respond'
     | '/deposit/$type/$id'
     | '/summary/$type/$id'
     | '/admin'
@@ -545,6 +567,8 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/site-bot'
     | '/_authenticated/admin/site-bot-ask'
     | '/_authenticated/admin/subscriptions'
+    | '/api/voice/incoming'
+    | '/api/voice/respond'
     | '/deposit/$type/$id'
     | '/summary/$type/$id'
     | '/_authenticated/admin/'
@@ -576,6 +600,8 @@ export interface RootRouteChildren {
   ItemsIdRoute: typeof ItemsIdRoute
   PhotoThanksIdRoute: typeof PhotoThanksIdRoute
   BlogIndexRoute: typeof BlogIndexRoute
+  ApiVoiceIncomingRoute: typeof ApiVoiceIncomingRoute
+  ApiVoiceRespondRoute: typeof ApiVoiceRespondRoute
   DepositTypeIdRoute: typeof DepositTypeIdRoute
   SummaryTypeIdRoute: typeof SummaryTypeIdRoute
 }
@@ -785,6 +811,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DepositTypeIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/voice/respond': {
+      id: '/api/voice/respond'
+      path: '/api/voice/respond'
+      fullPath: '/api/voice/respond'
+      preLoaderRoute: typeof ApiVoiceRespondRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/voice/incoming': {
+      id: '/api/voice/incoming'
+      path: '/api/voice/incoming'
+      fullPath: '/api/voice/incoming'
+      preLoaderRoute: typeof ApiVoiceIncomingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/admin/subscriptions': {
       id: '/_authenticated/admin/subscriptions'
       path: '/subscriptions'
@@ -963,6 +1003,8 @@ const rootRouteChildren: RootRouteChildren = {
   ItemsIdRoute: ItemsIdRoute,
   PhotoThanksIdRoute: PhotoThanksIdRoute,
   BlogIndexRoute: BlogIndexRoute,
+  ApiVoiceIncomingRoute: ApiVoiceIncomingRoute,
+  ApiVoiceRespondRoute: ApiVoiceRespondRoute,
   DepositTypeIdRoute: DepositTypeIdRoute,
   SummaryTypeIdRoute: SummaryTypeIdRoute,
 }
