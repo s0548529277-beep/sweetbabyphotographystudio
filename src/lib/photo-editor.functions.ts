@@ -237,3 +237,33 @@ export const listPhotoEditHistory = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return data ?? [];
   });
+
+const emailSchema = z.object({
+  to: z.string().email(),
+  imageUrl: z.string().url(),
+});
+
+/** Sends an already-edited photo as an email attachment — the "שליחה למייל" button after a successful edit. */
+export const emailPhotoEditResult = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => emailSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+
+    const res = await fetch(data.imageUrl);
+    if (!res.ok) throw new Error("שליפת התמונה המעובדת נכשלה");
+    const contentType = res.headers.get("content-type") || "image/jpeg";
+    const arrayBuffer = await res.arrayBuffer();
+    const base64Data = Buffer.from(arrayBuffer).toString("base64");
+    const ext = contentType.split("/")[1]?.split("+")[0] ?? "jpg";
+
+    const { sendGmail } = await import("@/integrations/google/gmail.server");
+    const ok = await sendGmail({
+      to: data.to,
+      subject: "תמונה מעובדת · Sweetbaby",
+      html: `<div dir="rtl" style="font-family:sans-serif">התמונה המעובדת מצורפת לקובץ.</div>`,
+      attachments: [{ filename: `edited.${ext}`, contentType, base64Data }],
+    });
+    if (!ok) throw new Error("שליחת המייל נכשלה");
+    return { ok: true };
+  });
