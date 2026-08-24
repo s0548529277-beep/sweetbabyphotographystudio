@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { CalendarDays, ShoppingBag, ArrowLeft } from "lucide-react";
+import { CalendarDays, ShoppingBag, ArrowLeft, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/track")({
   component: Track,
@@ -25,7 +25,7 @@ function Track() {
           <p className="text-muted-foreground mt-4">שני מסלולים — בחרי את זה שמתאים לך היום.</p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto mb-10">
           <Link to="/booking" className="group glass-card rounded-3xl p-10 relative overflow-hidden hover:-translate-y-1 transition-transform">
             <div className="absolute -top-16 -left-16 w-64 h-64 rounded-full bg-blush/50 blur-3xl" />
             <div className="relative">
@@ -68,6 +68,13 @@ function Track() {
                 לקטלוג האביזרים <ArrowLeft className="h-4 w-4" />
               </span>
             </div>
+          </Link>
+        </div>
+
+        <div className="max-w-5xl mx-auto text-center mt-8">
+          <Link to="#" className="inline-flex items-center gap-2 text-red-600 hover:text-red-800 transition-colors px-4 py-2 rounded-lg">
+            <Trash2 className="h-5 w-5" />
+            מחיקת הזמנות לא רלוונטיות (Admin)
           </Link>
         </div>
       </section>
