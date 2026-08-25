@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { listPhotoClients, STAGE_LABELS, type WorkflowStage } from "@/lib/photo-clients.functions";
-import { Camera, ChevronLeft } from "lucide-react";
+import { Camera, ChevronLeft, TriangleAlert } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/photo-clients")({
   component: PhotoClientsAdmin,
@@ -17,13 +17,11 @@ const STAGE_COLORS: Record<WorkflowStage, string> = {
 };
 
 type Row = {
-  id: string;
+  id: string; // photo_client_workflows.id
+  booking_id: string | null;
   contact_name: string;
   contact_phone: string;
-  session_date: string;
-  start_time: string;
-  deposit_status: string;
-  price: number;
+  session_date: string | null;
   stage: WorkflowStage;
 };
 
@@ -38,8 +36,28 @@ function PhotoClientsAdmin() {
         <h2 className="font-display text-xl text-primary mb-1 flex items-center gap-2">
           <Camera className="h-5 w-5" /> לקוחות צילום
         </h2>
-        <p className="text-sm text-muted-foreground">כל לקוחה שהזמינה צילומים עם מיכל — מעקב אחר שלב מסירת התמונות שלה.</p>
+        <p className="text-sm text-muted-foreground">
+          כל לקוחה שהזמינה צילומים עם מיכל, וכל לקוחה שהתחלת לה תהליך ידנית — מעקב אחר שלב מסירת התמונות שלה.
+        </p>
       </div>
+
+      {/* A failed fetch used to render exactly like "no clients yet" — surfacing
+          the real error here so a genuine bug (RLS, permissions, ...) doesn't
+          look identical to an empty-but-fine list. */}
+      {clients.isError && (
+        <div className="bg-destructive/10 text-destructive rounded-2xl border border-destructive/20 p-4 flex items-start gap-2 text-sm">
+          <TriangleAlert className="h-4 w-4 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium">טעינת רשימת הלקוחות נכשלה — זו הסיבה שהרשימה נראית ריקה</p>
+            {/* Raw error text on purpose (not heError) — this is an admin
+                diagnostic, not customer-facing copy, so the real message
+                (RLS/permissions/etc.) matters more than Hebrew-only polish. */}
+            <p className="mt-0.5" dir="ltr">
+              {(clients.error as any)?.message ?? String(clients.error)}
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="bg-card rounded-2xl border border-primary/10 divide-y divide-primary/5">
         {rows.map((r) => (
@@ -52,7 +70,7 @@ function PhotoClientsAdmin() {
             <div className="min-w-0">
               <p className="text-sm font-medium">{r.contact_name}</p>
               <p className="text-xs text-muted-foreground mt-0.5" dir="ltr">
-                {r.contact_phone} · {r.session_date}
+                {r.contact_phone} {r.session_date ? `· ${r.session_date}` : "· ללא הזמנת צילום (נוצר ידנית)"}
               </p>
             </div>
             <div className="flex items-center gap-3 shrink-0">
@@ -61,7 +79,11 @@ function PhotoClientsAdmin() {
             </div>
           </Link>
         ))}
-        {rows.length === 0 && <p className="text-sm text-muted-foreground text-center py-10">אין עדיין לקוחות צילום.</p>}
+        {!clients.isError && rows.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-10">
+            אין עדיין לקוחות צילום. אפשר להתחיל תהליך תמונות ידנית מ"לקוחות" גם בלי הזמנת צילום.
+          </p>
+        )}
       </div>
     </div>
   );

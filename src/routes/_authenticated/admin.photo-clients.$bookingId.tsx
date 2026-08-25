@@ -16,15 +16,19 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ArrowRight, Check, Loader2, Star, Trash2, Upload } from "lucide-react";
 
+// Route param is still named "bookingId" (unchanged, so routeTree.gen.ts
+// doesn't need regenerating) but it now carries a photo_client_workflows.id
+// — a workflow may or may not be tied to an actual booking, see
+// startManualPhotoWorkflow in photo-clients.functions.ts.
 export const Route = createFileRoute("/_authenticated/admin/photo-clients/$bookingId")({
   component: PhotoClientDetail,
 });
 
 type ImageRow = { id: string; kind: "proof" | "edited"; image_url: string; selected: boolean };
 
-async function uploadImage(bookingId: string, file: File): Promise<{ url: string; path: string }> {
+async function uploadImage(workflowId: string, file: File): Promise<{ url: string; path: string }> {
   const ext = file.name.split(".").pop();
-  const path = `photo-clients/${bookingId}/${crypto.randomUUID()}.${ext}`;
+  const path = `photo-clients/${workflowId}/${crypto.randomUUID()}.${ext}`;
   const { error } = await supabase.storage.from("items").upload(path, file, { upsert: false });
   if (error) throw error;
   const { data, error: signErr } = await supabase.storage.from("items").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
@@ -36,14 +40,14 @@ function UploadSection({
   title,
   hint,
   kind,
-  bookingId,
+  workflowId,
   images,
   onChanged,
 }: {
   title: string;
   hint: string;
   kind: "proof" | "edited";
-  bookingId: string;
+  workflowId: string;
   images: ImageRow[];
   onChanged: () => void;
 }) {
@@ -57,8 +61,8 @@ function UploadSection({
     setUploading(true);
     try {
       for (const file of Array.from(files)) {
-        const { url, path } = await uploadImage(bookingId, file);
-        await addImage({ data: { bookingId, kind, storagePath: path, imageUrl: url } });
+        const { url, path } = await uploadImage(workflowId, file);
+        await addImage({ data: { workflowId, kind, storagePath: path, imageUrl: url } });
       }
       toast.success("התמונות הועלו");
       onChanged();
@@ -118,17 +122,17 @@ function UploadSection({
 }
 
 function PhotoClientDetail() {
-  const { bookingId } = Route.useParams();
+  const { bookingId: workflowId } = Route.useParams();
   const qc = useQueryClient();
   const fetchDetail = useServerFn(getPhotoClientDetail);
   const advanceStage = useServerFn(advancePhotoClientStage);
-  const detail = useQuery({ queryKey: ["photo-client", bookingId], queryFn: () => fetchDetail({ data: { bookingId } }) });
+  const detail = useQuery({ queryKey: ["photo-client", workflowId], queryFn: () => fetchDetail({ data: { workflowId } }) });
 
-  const refetch = () => qc.invalidateQueries({ queryKey: ["photo-client", bookingId] });
+  const refetch = () => qc.invalidateQueries({ queryKey: ["photo-client", workflowId] });
 
   const setStage = async (stage: WorkflowStage) => {
     try {
-      await advanceStage({ data: { bookingId, stage } });
+      await advanceStage({ data: { workflowId, stage } });
       toast.success("השלב עודכן");
       refetch();
       qc.invalidateQueries({ queryKey: ["photo-clients"] });
@@ -137,6 +141,9 @@ function PhotoClientDetail() {
     }
   };
 
+  if (detail.isError) {
+    return <p className="text-sm text-destructive">{(detail.error as any)?.message ?? "טעינת הלקוחה נכשלה"}</p>;
+  }
   if (!detail.data) return <p className="text-sm text-muted-foreground">טוען...</p>;
 
   const { booking, workflow, images } = detail.data as any;
@@ -155,7 +162,7 @@ function PhotoClientDetail() {
       <div>
         <h2 className="font-display text-xl text-primary">{booking.contact_name}</h2>
         <p className="text-sm text-muted-foreground" dir="ltr">
-          {booking.contact_phone} · {booking.session_date}
+          {booking.contact_phone} {booking.session_date ? `· ${booking.session_date}` : "· תהליך שנוצר ידנית (ללא הזמנת צילום)"}
         </p>
       </div>
 
@@ -188,7 +195,7 @@ function PhotoClientDetail() {
         title="תמונות הוכחה (Proofs)"
         hint="הלקוחה תראה את אלה ותוכל לסמן מועדפות, ברגע שהשלב יעודכן ל'המתנה לבחירת לקוחה'."
         kind="proof"
-        bookingId={bookingId}
+        workflowId={workflowId}
         images={proofImages}
         onChanged={refetch}
       />
@@ -210,7 +217,7 @@ function PhotoClientDetail() {
         title="תמונות מעובדות"
         hint='טיוטה — הלקוחה לא רואה את אלה עד שמעדכנים את השלב ל"אלבום פורסם".'
         kind="edited"
-        bookingId={bookingId}
+        workflowId={workflowId}
         images={editedImages}
         onChanged={refetch}
       />

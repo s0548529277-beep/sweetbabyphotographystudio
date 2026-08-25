@@ -18,13 +18,21 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data?.some((r: any) => r.role === "admin")) throw new Error("אין הרשאת ניהול");
 }
 
-/** Fetches (or lazily creates) the workflow row for a photography booking. */
-async function ensureWorkflow(supabaseAdmin: any, bookingId: string): Promise<{ id: string; stage: WorkflowStage }> {
+/**
+ * Fetches (or lazily creates) the workflow row for a photography booking.
+ * A workflow always belongs to a client (user_id) directly — for a
+ * booking-created workflow that's just the booking's own user_id, copied
+ * over once at creation so ownership checks never need to join back
+ * through bookings.
+ */
+async function ensureWorkflowForBooking(supabaseAdmin: any, bookingId: string): Promise<{ id: string; stage: WorkflowStage }> {
   const { data: existing } = await supabaseAdmin.from("photo_client_workflows").select("id, stage").eq("booking_id", bookingId).maybeSingle();
   if (existing) return existing;
+  const { data: booking, error: bErr } = await supabaseAdmin.from("bookings").select("user_id").eq("id", bookingId).single();
+  if (bErr || !booking) throw new Error(bErr?.message ?? "הזמנה לא נמצאה");
   const { data: created, error } = await supabaseAdmin
     .from("photo_client_workflows")
-    .insert({ booking_id: bookingId, stage: "booked" })
+    .insert({ booking_id: bookingId, user_id: booking.user_id, stage: "booked" })
     .select("id, stage")
     .single();
   if (error || !created) throw new Error(error?.message ?? "יצירת תהליך עבודה נכשלה");
@@ -33,58 +41,118 @@ async function ensureWorkflow(supabaseAdmin: any, bookingId: string): Promise<{ 
 
 // ---------- Admin ----------
 
-/** Every photography booking (package='photography'), each with its workflow stage — creates missing workflow rows lazily. */
+/**
+ * Every photo-delivery workflow, admin-facing — both the ones auto-created
+ * from a photography booking (package='photography', lazily created here
+ * the first time each is seen) and the ones an admin started manually for
+ * a client with no such booking (see startManualPhotoWorkflow).
+ */
 export const listPhotoClients = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: bookings, error } = await supabaseAdmin
+    const { data: bookings, error: bErr } = await supabaseAdmin
       .from("bookings")
-      .select("id, contact_name, contact_phone, session_date, start_time, status, deposit_status, price")
-      .eq("package", "photography")
-      .order("session_date", { ascending: false });
-    if (error) throw new Error(error.message);
+      .select("id, contact_name, contact_phone, session_date, start_time, deposit_status, price")
+      .eq("package", "photography");
+    if (bErr) throw new Error(bErr.message);
+    for (const b of bookings ?? []) {
+      await ensureWorkflowForBooking(supabaseAdmin, b.id);
+    }
 
-    const rows = await Promise.all(
-      (bookings ?? []).map(async (b: any) => {
-        const wf = await ensureWorkflow(supabaseAdmin, b.id);
-        return { ...b, workflow_id: wf.id, stage: wf.stage as WorkflowStage };
-      }),
-    );
-    return rows;
+    const { data: workflows, error: wErr } = await supabaseAdmin
+      .from("photo_client_workflows")
+      .select("id, user_id, booking_id, stage, created_at")
+      .order("created_at", { ascending: false });
+    if (wErr) throw new Error(wErr.message);
+
+    const bookingById = new Map((bookings ?? []).map((b: any) => [b.id, b]));
+    const userIds = Array.from(new Set((workflows ?? []).map((w: any) => w.user_id)));
+    const { data: profiles } = userIds.length
+      ? await supabaseAdmin.from("profiles").select("id, full_name, phone").in("id", userIds)
+      : { data: [] as any[] };
+    const profileById = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+
+    return (workflows ?? []).map((w: any) => {
+      const booking = w.booking_id ? bookingById.get(w.booking_id) : null;
+      const profile = profileById.get(w.user_id);
+      return {
+        id: w.id as string, // photo_client_workflows.id — what admin.photo-clients.tsx links on
+        booking_id: w.booking_id as string | null,
+        contact_name: booking?.contact_name || profile?.full_name || "—",
+        contact_phone: booking?.contact_phone || profile?.phone || "—",
+        session_date: booking?.session_date ?? null,
+        stage: w.stage as WorkflowStage,
+      };
+    });
   });
 
-const bookingIdSchema = z.object({ bookingId: z.string().uuid() });
+const userIdSchema = z.object({ userId: z.string().uuid() });
 
-/** Full detail for one photography client — booking info + workflow + all images. */
+/**
+ * Admin starts a photo-delivery workflow for a client directly — for a
+ * shoot that isn't (or isn't yet) a package='photography' booking, e.g. a
+ * walk-in session or one predating this feature. Picked from "לקוחות".
+ */
+export const startManualPhotoWorkflow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => userIdSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: created, error } = await supabaseAdmin
+      .from("photo_client_workflows")
+      .insert({ user_id: data.userId, booking_id: null, stage: "booked" })
+      .select("id")
+      .single();
+    if (error || !created) throw new Error(error?.message ?? "יצירת תהליך עבודה נכשלה");
+    return { workflowId: created.id as string };
+  });
+
+const workflowIdSchema = z.object({ workflowId: z.string().uuid() });
+
+/** Full detail for one photo-delivery workflow — client/booking info + all images. */
 export const getPhotoClientDetail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => bookingIdSchema.parse(d))
+  .inputValidator((d: unknown) => workflowIdSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: booking, error: bErr } = await supabaseAdmin
-      .from("bookings")
-      .select("id, contact_name, contact_phone, session_date, start_time, end_time, status, deposit_status, price")
-      .eq("id", data.bookingId)
+    const { data: workflow, error: wErr } = await supabaseAdmin
+      .from("photo_client_workflows")
+      .select("id, user_id, booking_id, stage")
+      .eq("id", data.workflowId)
       .single();
-    if (bErr || !booking) throw new Error(bErr?.message ?? "לקוחה לא נמצאה");
+    if (wErr || !workflow) throw new Error(wErr?.message ?? "לקוחה לא נמצאה");
 
-    const wf = await ensureWorkflow(supabaseAdmin, data.bookingId);
+    let booking: any = null;
+    if (workflow.booking_id) {
+      const { data: b } = await supabaseAdmin
+        .from("bookings")
+        .select("id, contact_name, contact_phone, session_date, start_time, end_time, status, deposit_status, price")
+        .eq("id", workflow.booking_id)
+        .maybeSingle();
+      booking = b;
+    }
+    if (!booking) {
+      const { data: profile } = await supabaseAdmin.from("profiles").select("full_name, phone").eq("id", workflow.user_id).maybeSingle();
+      booking = { id: workflow.id, contact_name: profile?.full_name || "—", contact_phone: profile?.phone || "—", session_date: null };
+    }
+
     const { data: images, error: imgErr } = await supabaseAdmin
       .from("photo_client_images")
       .select("*")
-      .eq("workflow_id", wf.id)
+      .eq("workflow_id", workflow.id)
       .order("sort_order", { ascending: true });
     if (imgErr) throw new Error(imgErr.message);
 
-    return { booking, workflow: wf, images: images ?? [] };
+    return { booking, workflow: { id: workflow.id as string, stage: workflow.stage as WorkflowStage }, images: images ?? [] };
   });
 
-const advanceSchema = z.object({ bookingId: z.string().uuid(), stage: z.enum(WORKFLOW_STAGES) });
+const advanceSchema = z.object({ workflowId: z.string().uuid(), stage: z.enum(WORKFLOW_STAGES) });
 
 /** Admin manually moves a client's workflow to a given stage (confirm date, publish album, etc.). */
 export const advancePhotoClientStage = createServerFn({ method: "POST" })
@@ -93,17 +161,16 @@ export const advancePhotoClientStage = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const wf = await ensureWorkflow(supabaseAdmin, data.bookingId);
     const { error } = await supabaseAdmin
       .from("photo_client_workflows")
       .update({ stage: data.stage, updated_at: new Date().toISOString() })
-      .eq("id", wf.id);
+      .eq("id", data.workflowId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
 
 const addImageSchema = z.object({
-  bookingId: z.string().uuid(),
+  workflowId: z.string().uuid(),
   kind: z.enum(["proof", "edited"]),
   storagePath: z.string().min(1),
   imageUrl: z.string().url(),
@@ -116,9 +183,8 @@ export const addPhotoClientImage = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const wf = await ensureWorkflow(supabaseAdmin, data.bookingId);
     const { error } = await supabaseAdmin.from("photo_client_images").insert({
-      workflow_id: wf.id,
+      workflow_id: data.workflowId,
       kind: data.kind,
       storage_path: data.storagePath,
       image_url: data.imageUrl,
@@ -145,30 +211,33 @@ export const deletePhotoClientImage = createServerFn({ method: "POST" })
 // ---------- Customer ----------
 
 /**
- * The signed-in customer's own photography bookings, each with its
- * workflow stage and the images she's actually allowed to see at that
- * stage: proofs (to pick favorites) once proofs_ready, the final edited
- * set once album_published — never the admin's edited-but-unpublished
- * drafts.
+ * The signed-in customer's own photo-delivery workflows, each with the
+ * images she's actually allowed to see at that stage: proofs (to pick
+ * favorites) once proofs_ready, the final edited set once album_published
+ * — never the admin's edited-but-unpublished drafts. Includes workflows
+ * an admin started manually (no booking), not only ones tied to a
+ * package='photography' booking.
  */
 export const getMyPhotoGalleries = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
-    const { data: bookings, error } = await supabase
-      .from("bookings")
-      .select("id, session_date, start_time, contact_name")
-      .eq("package", "photography")
+    const { data: workflows, error } = await supabase
+      .from("photo_client_workflows")
+      .select("id, stage, booking_id")
       .eq("user_id", userId)
-      .order("session_date", { ascending: false });
+      .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
 
-    const galleries = await Promise.all(
-      (bookings ?? []).map(async (b: any) => {
-        const { data: wf } = await supabase.from("photo_client_workflows").select("id, stage").eq("booking_id", b.id).maybeSingle();
-        if (!wf) return { booking: b, stage: "booked" as WorkflowStage, images: [] as any[] };
+    const bookingIds = (workflows ?? []).map((w: any) => w.booking_id).filter(Boolean);
+    const { data: bookings } = bookingIds.length
+      ? await supabase.from("bookings").select("id, session_date, start_time, contact_name").in("id", bookingIds)
+      : { data: [] as any[] };
+    const bookingById = new Map((bookings ?? []).map((b: any) => [b.id, b]));
 
-        const stage = wf.stage as WorkflowStage;
+    const galleries = await Promise.all(
+      (workflows ?? []).map(async (w: any) => {
+        const stage = w.stage as WorkflowStage;
         let kind: "proof" | "edited" | null = null;
         if (stage === "proofs_ready") kind = "proof";
         else if (stage === "album_published") kind = "edited";
@@ -178,12 +247,12 @@ export const getMyPhotoGalleries = createServerFn({ method: "POST" })
           const { data: imgs } = await supabase
             .from("photo_client_images")
             .select("id, kind, image_url, selected, sort_order")
-            .eq("workflow_id", wf.id)
+            .eq("workflow_id", w.id)
             .eq("kind", kind)
             .order("sort_order", { ascending: true });
           images = imgs ?? [];
         }
-        return { booking: b, stage, images };
+        return { id: w.id as string, booking: bookingById.get(w.booking_id) ?? null, stage, images };
       }),
     );
     return galleries;
@@ -209,14 +278,12 @@ export const toggleProofSelection = createServerFn({ method: "POST" })
 
     const { data: wf, error: wfErr } = await supabaseAdmin
       .from("photo_client_workflows")
-      .select("id, stage, booking_id")
+      .select("id, stage, user_id")
       .eq("id", img.workflow_id)
       .single();
     if (wfErr || !wf) throw new Error("תהליך עבודה לא נמצא");
     if (wf.stage !== "proofs_ready") throw new Error("שלב בחירת התמונות כבר לא פעיל");
-
-    const { data: booking } = await supabaseAdmin.from("bookings").select("user_id").eq("id", wf.booking_id).single();
-    if (booking?.user_id !== userId) throw new Error("אין הרשאה");
+    if (wf.user_id !== userId) throw new Error("אין הרשאה");
 
     const { error } = await supabaseAdmin.from("photo_client_images").update({ selected: data.selected }).eq("id", data.imageId);
     if (error) throw new Error(error.message);

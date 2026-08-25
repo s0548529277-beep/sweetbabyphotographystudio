@@ -1,6 +1,6 @@
 import { heError } from "@/lib/he-errors";
-import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,8 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { listClientEmails, setClientPassword, updateClientProfile, setCustomerLoyalty, grantManualCredit } from "@/lib/admin-clients.functions";
-import { Camera, Package, Pencil, Gift, Tag, Wand2 } from "lucide-react";
+import { startManualPhotoWorkflow } from "@/lib/photo-clients.functions";
+import { Camera, Package, Pencil, Gift, Tag, Wand2, ImagePlus } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/clients")({
   component: ClientsAdmin,
@@ -20,6 +21,10 @@ export const Route = createFileRoute("/_authenticated/admin/clients")({
 function ClientsAdmin() {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<{ id: string; view: "order" | "booking" | "edit" } | null>(null);
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const startPhotoWorkflow = useServerFn(startManualPhotoWorkflow);
+  const [startingWorkflowFor, setStartingWorkflowFor] = useState<string | null>(null);
   const fetchEmails = useServerFn(listClientEmails);
   const emailsQ = useQuery({ queryKey: ["admin-client-emails"], queryFn: () => fetchEmails({ data: {} } as any) });
   const emails: Record<string, string> = (emailsQ.data as any) ?? {};
@@ -28,18 +33,44 @@ function ClientsAdmin() {
     queryKey: ["admin-clients"],
     refetchOnWindowFocus: true,
     queryFn: async () => {
-      const [profilesRes, ordersRes, bookingsRes] = await Promise.all([
+      const [profilesRes, ordersRes, bookingsRes, photoWorkflowsRes] = await Promise.all([
         supabase.from("profiles").select("*").order("created_at", { ascending: false }),
         supabase.from("orders").select("id, user_id, total, status, scheduled_date, session_date, created_at"),
         supabase.from("bookings").select("id, user_id, price, status, session_date, start_time, end_time, package, created_at"),
+        // photo_client_workflows — new table, cast until types.ts picks it up.
+        (supabase as any).from("photo_client_workflows").select("id, user_id, stage, created_at"),
       ]);
       return (profilesRes.data ?? []).map((p: any) => ({
         ...p,
         orders: (ordersRes.data ?? []).filter((o: any) => o.user_id === p.id),
         bookings: (bookingsRes.data ?? []).filter((b: any) => b.user_id === p.id),
+        // Most recent workflow first, so "פתיחת תהליך תמונות" opens the
+        // one the admin most likely wants when a client has more than one.
+        photoWorkflows: (photoWorkflowsRes.data ?? [])
+          .filter((w: any) => w.user_id === p.id)
+          .sort((a: any, b: any) => (a.created_at < b.created_at ? 1 : -1)),
       }));
     },
   });
+
+  const openPhotoWorkflow = async (client: any) => {
+    const existing = client.photoWorkflows?.[0];
+    if (existing) {
+      navigate({ to: "/admin/photo-clients/$bookingId", params: { bookingId: existing.id } });
+      return;
+    }
+    setStartingWorkflowFor(client.id);
+    try {
+      const { workflowId } = await startPhotoWorkflow({ data: { userId: client.id } });
+      qc.invalidateQueries({ queryKey: ["admin-clients"] });
+      qc.invalidateQueries({ queryKey: ["photo-clients"] });
+      navigate({ to: "/admin/photo-clients/$bookingId", params: { bookingId: workflowId } });
+    } catch (e) {
+      toast.error(heError(e, "פתיחת תהליך התמונות נכשלה"));
+    } finally {
+      setStartingWorkflowFor(null);
+    }
+  };
 
 
   const filtered = (clients.data ?? []).filter((c: any) =>
@@ -106,6 +137,21 @@ function ClientsAdmin() {
                           onClick={() => setOpen(isOpen && open!.view === "edit" ? null : { id: c.id, view: "edit" })}
                         >
                           <Pencil className="h-3.5 w-3.5" /> עריכה
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="rounded-full gap-1.5 h-8"
+                          disabled={startingWorkflowFor === c.id}
+                          onClick={() => openPhotoWorkflow(c)}
+                          title={
+                            c.photoWorkflows?.length
+                              ? "פתיחת תהליך התמונות הקיים"
+                              : "התחלת תהליך מסירת תמונות ללקוחה הזו, גם בלי הזמנת צילום"
+                          }
+                        >
+                          <ImagePlus className="h-3.5 w-3.5" />
+                          {c.photoWorkflows?.length ? `תמונות (${c.photoWorkflows.length})` : "התחלת תהליך תמונות"}
                         </Button>
                       </div>
                     </td>
