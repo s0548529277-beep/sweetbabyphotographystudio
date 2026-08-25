@@ -143,6 +143,9 @@ export function Header() {
                 <DropdownMenuItem onClick={() => router.navigate({ to: "/account" })}>
                   הכרטיסייה שלי
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.navigate({ to: "/my-photos" })}>
+                  התמונות שלי
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.navigate({ to: "/cart" })}>
                   העגלה שלי
                 </DropdownMenuItem>
