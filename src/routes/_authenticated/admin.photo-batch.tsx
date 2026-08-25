@@ -4,7 +4,7 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Sliders, Download, FolderOpen, Images } from "lucide-react";
-import { applyAdjustments, drawAdjustedToCanvas, DEFAULT_ADJUST, type AdjustSettings } from "@/lib/image-adjust";
+import { applyAdjustments, drawAdjustedToCanvas, DEFAULT_ADJUST, ADJUST_PRESETS, type AdjustSettings } from "@/lib/image-adjust";
 
 export const Route = createFileRoute("/_authenticated/admin/photo-batch")({
   component: PhotoBatchAdmin,
@@ -120,7 +120,7 @@ function PhotoBatchAdmin() {
           <Sliders className="h-5 w-5" /> כיוונון תמונות בכמות גדולה
         </h2>
         <p className="text-sm text-muted-foreground">
-          לוח כיוונונים כמו ב-Camera Raw (בהירות, ניגודיות, חיזוק צבע, טון צבע, החשכת רקע) — מפעילים על תמונה אחת לתצוגה מקדימה, ואז מריצים על כל התמונות שנבחרו יחד ומורידים ZIP אחד. עיבוד מדויק וקבוע (לא בינה מלאכותית), אין עלות לכל תמונה, אפשר לעבד כמה שרוצים.
+          לוח כיוונונים כמו ב-Camera Raw (בהירות, ניגודיות, חיזוק צבע, טון צבע, אורות/צללים בנפרד, טונציה מפוצלת, החשכת רקע) — מפעילים על תמונה אחת לתצוגה מקדימה, ואז מריצים על כל התמונות שנבחרו יחד ומורידים ZIP אחד. עיבוד מדויק וקבוע (לא בינה מלאכותית), אין עלות לכל תמונה, אפשר לעבד כמה שרוצים. הכיוונון של אורות וצללים בנפרד, ועם טונציה מפוצלת (צבע שונה לצללים מול אורות), מאפשר "גרייד" קולנוגרפי אמיתי במקום פילטר אחיד על כל התמונה.
         </p>
       </div>
 
@@ -157,11 +157,40 @@ function PhotoBatchAdmin() {
       {previewFile && (
         <div className="grid md:grid-cols-2 gap-6">
           <div className="bg-card rounded-2xl border border-primary/10 p-5 space-y-5">
+            <div>
+              <label className="text-sm font-medium">סגנון קבוע (התחלה מהירה)</label>
+              <div className="flex flex-wrap gap-2 mt-1.5">
+                {Object.entries(ADJUST_PRESETS).map(([key, preset]) => (
+                  <Button
+                    key={key}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSettings(preset.settings)}
+                    className="rounded-full"
+                  >
+                    {preset.label}
+                  </Button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1.5">בחירת סגנון ממלאת את הכיוונונים למטה כנקודת פתיחה — עדיין אפשר לדייק אותם ידנית לפני העיבוד.</p>
+            </div>
             <ControlRow label="בהירות" value={settings.brightness} onChange={(v) => setSettings((s) => ({ ...s, brightness: v }))} />
             <ControlRow label="ניגודיות" value={settings.contrast} onChange={(v) => setSettings((s) => ({ ...s, contrast: v }))} />
             <ControlRow label="חיזוק צבע (רוויה)" value={settings.saturation} onChange={(v) => setSettings((s) => ({ ...s, saturation: v }))} />
             <ControlRow label="טון צבע (קר ⟷ חם)" value={settings.temperature} onChange={(v) => setSettings((s) => ({ ...s, temperature: v }))} />
+            <ControlRow label="אורות (Highlights)" value={settings.highlights} onChange={(v) => setSettings((s) => ({ ...s, highlights: v }))} />
+            <ControlRow label="צללים (Shadows)" value={settings.shadows} onChange={(v) => setSettings((s) => ({ ...s, shadows: v }))} />
+            <ControlRow
+              label="טונציה מפוצלת (צללים קרים/אורות חמים ⟷ צללים חמים/אורות קרים)"
+              value={settings.splitTone}
+              onChange={(v) => setSettings((s) => ({ ...s, splitTone: v }))}
+            />
+            <ControlRow label="בהירות מקומית (Clarity)" value={settings.clarity} onChange={(v) => setSettings((s) => ({ ...s, clarity: v }))} />
+            <ControlRow label="זוהר רך (Glow)" value={settings.glow} min={0} max={100} onChange={(v) => setSettings((s) => ({ ...s, glow: v }))} />
+            <ControlRow label="גרעיניות פילם (Grain)" value={settings.grain} min={0} max={100} onChange={(v) => setSettings((s) => ({ ...s, grain: v }))} />
             <ControlRow label="החשכת רקע (וינייטה)" value={settings.vignette} min={0} max={100} onChange={(v) => setSettings((s) => ({ ...s, vignette: v }))} />
+            <ControlRow label="זוהר שמש (מהפינה הימנית-עליונה)" value={settings.sunFlare} min={0} max={100} onChange={(v) => setSettings((s) => ({ ...s, sunFlare: v }))} />
             <Button type="button" variant="ghost" size="sm" onClick={() => setSettings(DEFAULT_ADJUST)}>
               איפוס
             </Button>
