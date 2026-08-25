@@ -186,6 +186,9 @@ function PhotoBatchAdmin() {
               value={settings.splitTone}
               onChange={(v) => setSettings((s) => ({ ...s, splitTone: v }))}
             />
+            <ControlRow label="בהירות מקומית (Clarity)" value={settings.clarity} onChange={(v) => setSettings((s) => ({ ...s, clarity: v }))} />
+            <ControlRow label="זוהר רך (Glow)" value={settings.glow} min={0} max={100} onChange={(v) => setSettings((s) => ({ ...s, glow: v }))} />
+            <ControlRow label="גרעיניות פילם (Grain)" value={settings.grain} min={0} max={100} onChange={(v) => setSettings((s) => ({ ...s, grain: v }))} />
             <ControlRow label="החשכת רקע (וינייטה)" value={settings.vignette} min={0} max={100} onChange={(v) => setSettings((s) => ({ ...s, vignette: v }))} />
             <ControlRow label="זוהר שמש (מהפינה הימנית-עליונה)" value={settings.sunFlare} min={0} max={100} onChange={(v) => setSettings((s) => ({ ...s, sunFlare: v }))} />
             <Button type="button" variant="ghost" size="sm" onClick={() => setSettings(DEFAULT_ADJUST)}>

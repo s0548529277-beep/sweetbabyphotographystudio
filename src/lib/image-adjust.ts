@@ -12,6 +12,12 @@
 //     a uniform color-cast filter over the whole frame
 //   - a sun-flare glow overlay (blended with "screen", not drawn opaque),
 //     for the backlit-sun look a flat color/tone adjustment can't fake
+//   - clarity (a local-contrast/unsharp-mask pass) and glow (a soft bloom,
+//     also "screen"-blended) — a blurred copy of the frame subtracted
+//     from (clarity) or added back onto (glow) the original, the same
+//     technique real editing tools use for "punch" vs. "dreaminess"
+//   - grain — per-pixel monochrome noise, for a film texture a smooth
+//     digital image doesn't have on its own
 export type AdjustSettings = {
   brightness: number; // -100..100
   contrast: number; // -100..100
@@ -22,6 +28,9 @@ export type AdjustSettings = {
   splitTone: number; // -100..100 — cinematic split toning: negative = cool shadows/warm highlights, positive = warm shadows/cool highlights
   vignette: number; // 0..100 — darkens the edges/background
   sunFlare: number; // 0..100 — warm glow overlay from the upper-right corner, simulating backlit sun
+  clarity: number; // -100..100 — local (mid-tone) contrast: negative softens, positive adds "punch"/texture
+  glow: number; // 0..100 — soft bloom/dreamy-focus overlay
+  grain: number; // 0..100 — film-grain noise
 };
 
 export const DEFAULT_ADJUST: AdjustSettings = {
@@ -34,6 +43,9 @@ export const DEFAULT_ADJUST: AdjustSettings = {
   splitTone: 0,
   vignette: 0,
   sunFlare: 0,
+  clarity: 0,
+  glow: 0,
+  grain: 0,
 };
 
 // Fixed (non-AI) style presets — deterministic Camera-Raw-style parameter
@@ -57,39 +69,66 @@ export type AdjustPreset = { label: string; settings: AdjustSettings };
 export const ADJUST_PRESETS: Record<string, AdjustPreset> = {
   newborn: {
     label: "ניו-בורן — רך וחמים",
-    settings: { brightness: 8, contrast: -8, saturation: -10, temperature: 18, highlights: -8, shadows: 15, splitTone: 10, vignette: 8, sunFlare: 0 },
+    settings: {
+      brightness: 8, contrast: -8, saturation: -10, temperature: 18, highlights: -8, shadows: 15,
+      splitTone: 10, vignette: 8, sunFlare: 0, clarity: -10, glow: 20, grain: 0,
+    },
   },
   warm_forest: {
     label: "יער חם",
-    settings: { brightness: 6, contrast: 12, saturation: 8, temperature: 38, highlights: 14, shadows: 6, splitTone: 0, vignette: 22, sunFlare: 35 },
+    settings: {
+      brightness: 6, contrast: 12, saturation: 8, temperature: 38, highlights: 14, shadows: 6,
+      splitTone: 0, vignette: 22, sunFlare: 35, clarity: 10, glow: 15, grain: 5,
+    },
   },
   river: {
     label: "נחל — גוונים טבעיים ורעננים",
-    settings: { brightness: 4, contrast: 6, saturation: 12, temperature: -8, highlights: 6, shadows: 6, splitTone: -10, vignette: 10, sunFlare: 15 },
+    settings: {
+      brightness: 4, contrast: 6, saturation: 12, temperature: -8, highlights: 6, shadows: 6,
+      splitTone: -10, vignette: 10, sunFlare: 15, clarity: 8, glow: 5, grain: 0,
+    },
   },
   outdoor_general: {
     label: "חוץ כללי — טבעי ומאוזן",
-    settings: { brightness: 3, contrast: 8, saturation: 5, temperature: 5, highlights: 4, shadows: 4, splitTone: 0, vignette: 5, sunFlare: 10 },
+    settings: {
+      brightness: 3, contrast: 8, saturation: 5, temperature: 5, highlights: 4, shadows: 4,
+      splitTone: 0, vignette: 5, sunFlare: 10, clarity: 5, glow: 0, grain: 0,
+    },
   },
   studio_bright: {
     label: "סטודיו בהיר — נקי וקלאסי",
-    settings: { brightness: 12, contrast: -5, saturation: -5, temperature: -10, highlights: -10, shadows: 10, splitTone: 0, vignette: 0, sunFlare: 0 },
+    settings: {
+      brightness: 12, contrast: -5, saturation: -5, temperature: -10, highlights: -10, shadows: 10,
+      splitTone: 0, vignette: 0, sunFlare: 0, clarity: 5, glow: 0, grain: 0,
+    },
   },
   beach: {
     label: "ים וחוף — קיצי ובהיר",
-    settings: { brightness: 10, contrast: -5, saturation: 15, temperature: 20, highlights: 8, shadows: 8, splitTone: -10, vignette: 5, sunFlare: 30 },
+    settings: {
+      brightness: 10, contrast: -5, saturation: 15, temperature: 20, highlights: 8, shadows: 8,
+      splitTone: -10, vignette: 5, sunFlare: 30, clarity: 5, glow: 15, grain: 0,
+    },
   },
   bright_airy: {
     label: "בהיר ואוורירי — לייף-סטייל מודרני",
-    settings: { brightness: 15, contrast: -12, saturation: -8, temperature: 5, highlights: -12, shadows: 18, splitTone: 0, vignette: 0, sunFlare: 15 },
+    settings: {
+      brightness: 15, contrast: -12, saturation: -8, temperature: 5, highlights: -12, shadows: 18,
+      splitTone: 0, vignette: 0, sunFlare: 15, clarity: -8, glow: 25, grain: 0,
+    },
   },
   film_vintage: {
     label: "פילם קלאסי — נוסטלגי",
-    settings: { brightness: 5, contrast: -15, saturation: -12, temperature: 15, highlights: -10, shadows: 20, splitTone: 20, vignette: 15, sunFlare: 20 },
+    settings: {
+      brightness: 5, contrast: -15, saturation: -12, temperature: 15, highlights: -10, shadows: 20,
+      splitTone: 20, vignette: 15, sunFlare: 20, clarity: -5, glow: 10, grain: 25,
+    },
   },
   moody_dark: {
     label: "דרמטי וכהה — עריכתי",
-    settings: { brightness: -10, contrast: 25, saturation: -5, temperature: -15, highlights: -15, shadows: -10, splitTone: -20, vignette: 35, sunFlare: 0 },
+    settings: {
+      brightness: -10, contrast: 25, saturation: -5, temperature: -15, highlights: -15, shadows: -10,
+      splitTone: -20, vignette: 35, sunFlare: 0, clarity: 20, glow: 0, grain: 8,
+    },
   },
 };
 
@@ -145,8 +184,19 @@ export async function applyAdjustments(file: File | Blob, settings: AdjustSettin
   });
 }
 
+/** Draws `source` blurred by `radiusPx` onto a same-size offscreen canvas and returns it, for the clarity/glow passes below. */
+function blurredCopy(source: CanvasImageSource, width: number, height: number, radiusPx: number, extraFilter = ""): HTMLCanvasElement {
+  const tmp = document.createElement("canvas");
+  tmp.width = width;
+  tmp.height = height;
+  const tctx = tmp.getContext("2d")!;
+  tctx.filter = `blur(${radiusPx}px)${extraFilter ? ` ${extraFilter}` : ""}`;
+  tctx.drawImage(source, 0, 0);
+  return tmp;
+}
+
 function applyPixelAdjustments(ctx: CanvasRenderingContext2D, width: number, height: number, settings: AdjustSettings): void {
-  const { brightness, contrast, saturation, temperature, highlights, shadows, splitTone } = settings;
+  const { brightness, contrast, saturation, temperature, highlights, shadows, splitTone, grain } = settings;
   const imageData = ctx.getImageData(0, 0, width, height);
   const data = imageData.data;
 
@@ -195,12 +245,50 @@ function applyPixelAdjustments(ctx: CanvasRenderingContext2D, width: number, hei
     r += wbDr + shadowDr * shadowMask + highlightDr * highlightMask;
     b += wbDb + shadowDb * shadowMask + highlightDb * highlightMask;
 
+    if (grain > 0) {
+      // Same random offset on all three channels (monochrome noise) — real
+      // film grain reads as texture, not colored speckle.
+      const noise = (Math.random() - 0.5) * grain * 1.8;
+      r += noise;
+      g += noise;
+      b += noise;
+    }
+
     data[i] = clamp255(r);
     data[i + 1] = clamp255(g);
     data[i + 2] = clamp255(b);
   }
 
   ctx.putImageData(imageData, 0, 0);
+
+  if (settings.clarity !== 0) {
+    // Unsharp mask: subtract a blurred copy from the sharp original to
+    // isolate mid-frequency detail, then add it back scaled by `clarity`
+    // (negative softens instead — same operation, opposite sign).
+    const radius = Math.max(2, Math.round(Math.min(width, height) * 0.012));
+    const blurred = blurredCopy(ctx.canvas, width, height, radius).getContext("2d")!.getImageData(0, 0, width, height);
+    const sharp = ctx.getImageData(0, 0, width, height);
+    const amt = (settings.clarity / 100) * 1.2;
+    for (let i = 0; i < sharp.data.length; i += 4) {
+      sharp.data[i] = clamp255(sharp.data[i] + (sharp.data[i] - blurred.data[i]) * amt);
+      sharp.data[i + 1] = clamp255(sharp.data[i + 1] + (sharp.data[i + 1] - blurred.data[i + 1]) * amt);
+      sharp.data[i + 2] = clamp255(sharp.data[i + 2] + (sharp.data[i + 2] - blurred.data[i + 2]) * amt);
+    }
+    ctx.putImageData(sharp, 0, 0);
+  }
+
+  if (settings.glow > 0) {
+    // Soft bloom: a heavily blurred, brightened copy screened back on top —
+    // brightens and softens highlights into a dreamy glow instead of a flat
+    // haze, without touching the underlying detail directly.
+    const radius = Math.max(6, Math.round(Math.min(width, height) * 0.04));
+    const glowCanvas = blurredCopy(ctx.canvas, width, height, radius, "brightness(1.3)");
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = (settings.glow / 100) * 0.5;
+    ctx.drawImage(glowCanvas, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "source-over";
+  }
 
   if (settings.vignette > 0) {
     const cx = width / 2;
