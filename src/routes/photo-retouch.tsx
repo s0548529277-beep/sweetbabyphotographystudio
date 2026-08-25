@@ -232,7 +232,18 @@ function PhotoRetouchPage() {
                 <Loader2 className="h-4 w-4 animate-spin" /> טוען סגנונות...
               </div>
             ) : presets.length === 0 ? (
-              <p className="text-muted-foreground">אין כרגע סגנונות זמינים — נסו שוב בקרוב.</p>
+              <div className="text-muted-foreground">
+                <p>אין כרגע סגנונות זמינים — נסו שוב בקרוב.</p>
+                {isAdmin && (
+                  <p className="mt-2">
+                    (רואה את זה כי אתה אדמין: עדיין לא הוגדר אף סגנון.{" "}
+                    <Link to="/admin/retouch-presets" className="text-primary underline">
+                      יצירת סגנון ראשון
+                    </Link>
+                    .)
+                  </p>
+                )}
+              </div>
             ) : (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {presets.map((p) => (
