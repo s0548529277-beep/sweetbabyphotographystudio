@@ -31,6 +31,9 @@ export function Footer() {
           <Link to="/terms" className="hover:text-background transition-colors">
             תנאים והגבלות
           </Link>
+          <Link to="/sleep-consultant" className="hover:text-background transition-colors">
+            🎁 מתנה: יעוץ שינה לתינוק
+          </Link>
           <span>Photography Props · Est. 2023</span>
         </div>
       </div>
