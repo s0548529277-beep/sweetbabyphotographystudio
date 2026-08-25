@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Wand2, Loader2, Upload, Trash2, Eye, EyeOff } from "lucide-react";
+import { Wand2, Loader2, Upload, Trash2, Eye, EyeOff, UserPlus } from "lucide-react";
 import { supabase as supabaseTyped } from "@/integrations/supabase/client";
 import { heError } from "@/lib/he-errors";
 
@@ -45,12 +45,52 @@ async function fetchPresets(): Promise<Preset[]> {
   return (data ?? []) as Preset[];
 }
 
+async function fetchAllowedClients(): Promise<{ email: string; created_at: string }[]> {
+  const { data, error } = await supabase
+    .from("retouch_allowed_clients")
+    .select("email, created_at")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
 const EMPTY_FORM = { name: "", description: "", prompt: "" };
 
 function AdminRetouchPresetsPage() {
   const qc = useQueryClient();
   const rows = useQuery({ queryKey: ["retouch-presets-admin"], queryFn: fetchPresets });
   const refresh = () => qc.invalidateQueries({ queryKey: ["retouch-presets-admin"] });
+
+  const allowedClients = useQuery({
+    queryKey: ["retouch-allowed-clients"],
+    queryFn: fetchAllowedClients,
+  });
+  const refreshAllowed = () => qc.invalidateQueries({ queryKey: ["retouch-allowed-clients"] });
+  const [newEmail, setNewEmail] = useState("");
+  const [grantBusy, setGrantBusy] = useState(false);
+
+  const grantAccess = async () => {
+    const email = newEmail.trim().toLowerCase();
+    if (!email || !email.includes("@")) return toast.error("יש להזין כתובת אימייל תקינה");
+    setGrantBusy(true);
+    try {
+      const { error } = await supabase.from("retouch_allowed_clients").insert({ email });
+      if (error) throw error;
+      toast.success(`הוגדרה גישה עבור ${email}`);
+      setNewEmail("");
+      refreshAllowed();
+    } catch (e) {
+      toast.error(heError(e, "הפעולה נכשלה — ייתכן שכבר הוגדרה גישה לאימייל הזה"));
+    } finally {
+      setGrantBusy(false);
+    }
+  };
+
+  const revokeAccess = async (email: string) => {
+    const { error } = await supabase.from("retouch_allowed_clients").delete().eq("email", email);
+    if (error) return toast.error(heError(error));
+    refreshAllowed();
+  };
 
   const [form, setForm] = useState(EMPTY_FORM);
   const [beforeFile, setBeforeFile] = useState<File | null>(null);
@@ -126,6 +166,69 @@ function AdminRetouchPresetsPage() {
           העריכה שהודגמה.
         </p>
       </div>
+
+      {/* who has access */}
+      <section className="rounded-3xl border border-primary/10 bg-card p-5 space-y-4">
+        <div>
+          <h3 className="font-display text-lg text-primary flex items-center gap-2">
+            <UserPlus className="h-4 w-4" /> לקוחות מורשות
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            העמוד <code>/photo-retouch</code> סגור ללקוחות נבחרים בלבד. הוסיפו כאן את האימייל של כל
+            לקוחה שרוצים לתת לה גישה — גם אם עדיין אין לה חשבון באתר (למשל אם קבעתם לה צילומים
+            בטלפון). ברגע שהיא תתחבר עם האימייל הזה, הגישה תיפתח לה אוטומטית. אפשר גם להפעיל/לכבות
+            גישה מתוך כרטיס לקוחה בעמוד "ניהול לקוחות".
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="email"
+            value={newEmail}
+            onChange={(e) => setNewEmail(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && grantAccess()}
+            placeholder="אימייל הלקוחה"
+            dir="ltr"
+            className="h-10 flex-1 min-w-[220px] rounded-xl border border-primary/15 bg-background px-3 text-sm"
+          />
+          <button
+            disabled={grantBusy}
+            onClick={grantAccess}
+            className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-5 h-10 text-sm disabled:opacity-60"
+          >
+            {grantBusy ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <UserPlus className="h-4 w-4" />
+            )}
+            הוספה
+          </button>
+        </div>
+        {allowedClients.isLoading ? (
+          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+            <Loader2 className="h-4 w-4 animate-spin" /> טוען...
+          </div>
+        ) : (allowedClients.data ?? []).length === 0 ? (
+          <p className="text-sm text-muted-foreground">אין עדיין לקוחות מורשות.</p>
+        ) : (
+          <ul className="space-y-1.5">
+            {(allowedClients.data ?? []).map((row) => (
+              <li
+                key={row.email}
+                className="flex items-center justify-between gap-3 rounded-xl bg-background px-3 py-2 text-sm"
+              >
+                <span dir="ltr">{row.email}</span>
+                <button
+                  onClick={() => revokeAccess(row.email)}
+                  className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-destructive/10 hover:text-destructive shrink-0"
+                  title="הסרת גישה"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {/* create form */}
       <section className="rounded-3xl border border-primary/10 bg-card p-5 space-y-4">

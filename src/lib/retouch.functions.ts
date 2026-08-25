@@ -42,16 +42,19 @@ export const generateRetouchPreview = createServerFn({ method: "POST" })
     // them up on next generation.
     const db = supabaseAdmin as any;
 
-    // Feature is gated to hand-picked clients (managed from "ניהול
-    // לקוחות"); admins always have access so the studio can test freely.
+    // Feature is gated to hand-picked clients — granted by email (from
+    // "ניהול לקוחות" or directly on the retouch admin page), so someone
+    // with no site account yet can still be granted access in advance.
+    // Admins always have access so the studio can test freely.
     const { data: roleRows } = await db.from("user_roles").select("role").eq("user_id", userId);
     const isAdmin = !!roleRows?.some((r: { role: string }) => r.role === "admin");
     if (!isAdmin) {
-      const { data: allowed } = await db
-        .from("retouch_allowed_clients")
-        .select("user_id")
-        .eq("user_id", userId)
-        .maybeSingle();
+      const email = ((context.claims as { email?: string } | undefined)?.email ?? "")
+        .trim()
+        .toLowerCase();
+      const { data: allowed } = email
+        ? await db.from("retouch_allowed_clients").select("email").eq("email", email).maybeSingle()
+        : { data: null };
       if (!allowed) {
         throw new Error("התכונה הזו זמינה כרגע ללקוחות נבחרים בלבד. פנו לסטודיו לבדיקת זכאות.");
       }

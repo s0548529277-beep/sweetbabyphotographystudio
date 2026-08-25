@@ -182,26 +182,32 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
     },
   });
 
-  // retouch_allowed_clients is a new table — cast until the generated
-  // Database type (types.ts) picks it up on next generation.
+  // retouch_allowed_clients is keyed by email (not user_id) so the admin
+  // can also grant access to someone with no site account yet — see the
+  // "לקוחות מורשות" section on /admin/retouch-presets. This toggle is just
+  // a shortcut for clients who already have a known email here. New table
+  // — cast until the generated Database type (types.ts) picks it up.
+  const normalizedEmail = email.trim().toLowerCase();
   const retouchAccess = useQuery({
-    queryKey: ["admin-client-retouch-access", client.id],
+    queryKey: ["admin-client-retouch-access", normalizedEmail],
+    enabled: !!normalizedEmail,
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("retouch_allowed_clients")
-        .select("user_id")
-        .eq("user_id", client.id)
+        .select("email")
+        .eq("email", normalizedEmail)
         .maybeSingle();
       return !!data;
     },
   });
   const [retouchBusy, setRetouchBusy] = useState(false);
   const toggleRetouchAccess = async (enabled: boolean) => {
+    if (!normalizedEmail) return toast.error("ללקוחה הזו אין אימייל רשום");
     setRetouchBusy(true);
     try {
       const { error } = enabled
-        ? await (supabase as any).from("retouch_allowed_clients").insert({ user_id: client.id })
-        : await (supabase as any).from("retouch_allowed_clients").delete().eq("user_id", client.id);
+        ? await (supabase as any).from("retouch_allowed_clients").insert({ email: normalizedEmail })
+        : await (supabase as any).from("retouch_allowed_clients").delete().eq("email", normalizedEmail);
       if (error) throw error;
       retouchAccess.refetch();
     } catch (e) {
@@ -318,7 +324,7 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
         </div>
         <Switch
           checked={!!retouchAccess.data}
-          disabled={retouchAccess.isLoading || retouchBusy}
+          disabled={!normalizedEmail || retouchAccess.isLoading || retouchBusy}
           onCheckedChange={toggleRetouchAccess}
         />
       </div>

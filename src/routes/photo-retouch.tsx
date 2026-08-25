@@ -86,12 +86,17 @@ function PhotoRetouchPage() {
         if (mounted) setAccess("granted");
         return;
       }
+      const email = user.email?.trim().toLowerCase();
+      if (!email) {
+        if (mounted) setAccess("no-access");
+        return;
+      }
       // retouch_allowed_clients is a new table — cast until the generated
       // Database type (types.ts) picks it up on next generation.
       const { data } = await (supabase as any)
         .from("retouch_allowed_clients")
-        .select("user_id")
-        .eq("user_id", user.id)
+        .select("email")
+        .eq("email", email)
         .maybeSingle();
       if (mounted) setAccess(data ? "granted" : "no-access");
     })();
