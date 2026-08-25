@@ -20,6 +20,23 @@ export const DEFAULT_ADJUST: AdjustSettings = {
   vignette: 0,
 };
 
+// Fixed (non-AI) style presets — deterministic Camera-Raw-style parameter
+// sets that approximate the mood of a few of the AI photo-editor's style
+// presets (see PHOTO_EDIT_STYLES in photo-editor.functions.ts), for the
+// free/instant bulk tool when a full model-based edit isn't needed. A
+// preset is just a starting point for the sliders above — picking one
+// fills in the numbers, then they're still hand-tunable per photo/batch.
+// Starts with only "warm forest" (יער); more presets are added and the
+// numbers below get tuned as reference before/after examples come in.
+export type AdjustPreset = { label: string; settings: AdjustSettings };
+
+export const ADJUST_PRESETS: Record<string, AdjustPreset> = {
+  warm_forest: {
+    label: "יער חם",
+    settings: { brightness: 6, contrast: 12, saturation: 8, temperature: 38, vignette: 22 },
+  },
+};
+
 function clamp255(v: number): number {
   return v < 0 ? 0 : v > 255 ? 255 : v;
 }

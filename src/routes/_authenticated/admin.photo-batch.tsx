@@ -4,7 +4,7 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Sliders, Download, FolderOpen, Images } from "lucide-react";
-import { applyAdjustments, drawAdjustedToCanvas, DEFAULT_ADJUST, type AdjustSettings } from "@/lib/image-adjust";
+import { applyAdjustments, drawAdjustedToCanvas, DEFAULT_ADJUST, ADJUST_PRESETS, type AdjustSettings } from "@/lib/image-adjust";
 
 export const Route = createFileRoute("/_authenticated/admin/photo-batch")({
   component: PhotoBatchAdmin,
@@ -157,6 +157,24 @@ function PhotoBatchAdmin() {
       {previewFile && (
         <div className="grid md:grid-cols-2 gap-6">
           <div className="bg-card rounded-2xl border border-primary/10 p-5 space-y-5">
+            <div>
+              <label className="text-sm font-medium">סגנון קבוע (התחלה מהירה)</label>
+              <div className="flex flex-wrap gap-2 mt-1.5">
+                {Object.entries(ADJUST_PRESETS).map(([key, preset]) => (
+                  <Button
+                    key={key}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSettings(preset.settings)}
+                    className="rounded-full"
+                  >
+                    {preset.label}
+                  </Button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1.5">בחירת סגנון ממלאת את הכיוונונים למטה כנקודת פתיחה — עדיין אפשר לדייק אותם ידנית לפני העיבוד.</p>
+            </div>
             <ControlRow label="בהירות" value={settings.brightness} onChange={(v) => setSettings((s) => ({ ...s, brightness: v }))} />
             <ControlRow label="ניגודיות" value={settings.contrast} onChange={(v) => setSettings((s) => ({ ...s, contrast: v }))} />
             <ControlRow label="חיזוק צבע (רוויה)" value={settings.saturation} onChange={(v) => setSettings((s) => ({ ...s, saturation: v }))} />
