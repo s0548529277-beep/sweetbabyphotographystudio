@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { generateText } from "ai";
 import { z } from "zod";
 import { createLovableAiGatewayProvider } from "./ai-gateway.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 // Lovable AI Gateway model id for Gemini's image-editing model ("Nano
 // Banana") — accepts multiple reference images + a text instruction and
@@ -16,9 +17,9 @@ const DATA_URL_RE = /^data:image\/(png|jpe?g|webp);base64,([a-zA-Z0-9+/=]+)$/;
 
 const RetouchInput = z.object({
   presetId: z.string().uuid(),
-  // Client-generated (crypto.randomUUID, kept in localStorage) so repeated
-  // visits from the same browser share one rate-limit bucket — same idea as
-  // the chat widget's sessionId.
+  // Client-generated (crypto.randomUUID, kept in localStorage) — purely for
+  // context on the usage log now that every request is authenticated; the
+  // rate limit itself is keyed off the real user id below.
   sessionId: z.string().min(8).max(80),
   // A single data: URL, already downscaled/compressed client-side. Capped
   // well above what a downscaled photo needs, to keep request bodies and
@@ -26,54 +27,43 @@ const RetouchInput = z.object({
   imageDataUrl: z.string().max(7_000_000),
 });
 
-// Best-effort: attaches the logged-in user's id to the usage log when
-// present, but this feature works the same for anonymous visitors — same
-// tolerant approach as getRealAuthState in ai.functions.ts.
-async function getUserId(): Promise<string | null> {
-  try {
-    const { getRequest } = await import("@tanstack/react-start/server");
-    const authHeader = getRequest()?.headers?.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) return null;
-    const token = authHeader.slice("Bearer ".length);
-    if (token.split(".").length !== 3) return null;
-
-    const SUPABASE_URL = process.env.SUPABASE_URL;
-    const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
-    if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) return null;
-
-    const { createClient } = await import("@supabase/supabase-js");
-    const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-    const { data, error } = await supabase.auth.getClaims(token);
-    if (error || !data?.claims?.sub) return null;
-    return data.claims.sub as string;
-  } catch {
-    return null;
-  }
-}
-
 export const generateRetouchPreview = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => RetouchInput.parse(data))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const match = DATA_URL_RE.exec(data.imageDataUrl);
     if (!match) throw new Error("פורמט תמונה לא נתמך — נסו תמונת JPG/PNG/WebP אחרת.");
     const inputBase64 = match[2];
 
+    const userId = context.userId;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // retouch_presets / retouch_usage_log are new tables — cast until the
-    // generated Database type (types.ts) picks them up on next generation.
+    // retouch_presets / retouch_usage_log / retouch_allowed_clients are new
+    // tables — cast until the generated Database type (types.ts) picks
+    // them up on next generation.
     const db = supabaseAdmin as any;
-    const userId = await getUserId();
 
-    // Rate limit: count successful generations for this session in the
-    // last 24h. Checked before touching the paid API.
+    // Feature is gated to hand-picked clients (managed from "ניהול
+    // לקוחות"); admins always have access so the studio can test freely.
+    const { data: roleRows } = await db.from("user_roles").select("role").eq("user_id", userId);
+    const isAdmin = !!roleRows?.some((r: { role: string }) => r.role === "admin");
+    if (!isAdmin) {
+      const { data: allowed } = await db
+        .from("retouch_allowed_clients")
+        .select("user_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!allowed) {
+        throw new Error("התכונה הזו זמינה כרגע ללקוחות נבחרים בלבד. פנו לסטודיו לבדיקת זכאות.");
+      }
+    }
+
+    // Rate limit: count successful generations for this user in the last
+    // 24h. Checked before touching the paid API.
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { count } = await db
       .from("retouch_usage_log")
       .select("id", { count: "exact", head: true })
-      .eq("session_id", data.sessionId)
+      .eq("user_id", userId)
       .eq("success", true)
       .gte("created_at", since);
     if ((count ?? 0) >= MAX_GENERATIONS_PER_DAY) {

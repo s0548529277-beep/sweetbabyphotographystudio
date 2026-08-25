@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { listClientEmails, setClientPassword, updateClientProfile, setCustomerLoyalty, grantManualCredit } from "@/lib/admin-clients.functions";
-import { Camera, Package, Pencil, Gift, Tag } from "lucide-react";
+import { Camera, Package, Pencil, Gift, Tag, Wand2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/clients")({
   component: ClientsAdmin,
@@ -181,6 +181,35 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
       return data;
     },
   });
+
+  // retouch_allowed_clients is a new table — cast until the generated
+  // Database type (types.ts) picks it up on next generation.
+  const retouchAccess = useQuery({
+    queryKey: ["admin-client-retouch-access", client.id],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("retouch_allowed_clients")
+        .select("user_id")
+        .eq("user_id", client.id)
+        .maybeSingle();
+      return !!data;
+    },
+  });
+  const [retouchBusy, setRetouchBusy] = useState(false);
+  const toggleRetouchAccess = async (enabled: boolean) => {
+    setRetouchBusy(true);
+    try {
+      const { error } = enabled
+        ? await (supabase as any).from("retouch_allowed_clients").insert({ user_id: client.id })
+        : await (supabase as any).from("retouch_allowed_clients").delete().eq("user_id", client.id);
+      if (error) throw error;
+      retouchAccess.refetch();
+    } catch (e) {
+      toast.error(heError(e, "עדכון הגישה נכשל"));
+    } finally {
+      setRetouchBusy(false);
+    }
+  };
   const [lf, setLf] = useState({ cashback_percent: "0", cashback_expires_at: "", custom_hourly_rate: "", can_book_recurring: false });
   const [manualAmount, setManualAmount] = useState("");
   const [grantBusy, setGrantBusy] = useState(false);
@@ -277,6 +306,21 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
           </div>
           <Switch checked={lf.can_book_recurring} onCheckedChange={(v) => setLf({ ...lf, can_book_recurring: v })} />
         </div>
+      </div>
+
+      <div className="rounded-xl bg-card p-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5">
+          <Wand2 className="h-4 w-4 text-forest shrink-0" />
+          <div>
+            <div className="text-xs font-medium">גישה לעיבוד תמונות AI</div>
+            <div className="text-[11px] text-muted-foreground">מאפשר ללקוחה להשתמש בעמוד /photo-retouch (עריכת תמונות אוטומטית לפני/אחרי).</div>
+          </div>
+        </div>
+        <Switch
+          checked={!!retouchAccess.data}
+          disabled={retouchAccess.isLoading || retouchBusy}
+          onCheckedChange={toggleRetouchAccess}
+        />
       </div>
 
       <div className="rounded-xl bg-card p-3 space-y-2">
