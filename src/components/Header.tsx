@@ -16,6 +16,7 @@ const nav: { to: string; label: string; hash?: string }[] = [
   { to: "/studio-photography", label: "צילומים בסטודיו" },
   { to: "/studio-rental", label: "השכרת סטודיו" },
   { to: "/rental-catalog", label: "קטלוג אביזרים להשכרה" },
+  { to: "/photo-retouch", label: "עיבוד תמונות AI" },
   { to: "/about", label: "אודות ויצירת קשר" },
 ];
 
