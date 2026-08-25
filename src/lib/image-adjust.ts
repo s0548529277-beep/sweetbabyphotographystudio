@@ -10,6 +10,8 @@
 //     which is what actually produces a "graded" look (teal-shadow/
 //     orange-highlight, warm-backlight-glow, faded-film, etc.) instead of
 //     a uniform color-cast filter over the whole frame
+//   - a sun-flare glow overlay (blended with "screen", not drawn opaque),
+//     for the backlit-sun look a flat color/tone adjustment can't fake
 export type AdjustSettings = {
   brightness: number; // -100..100
   contrast: number; // -100..100
@@ -19,6 +21,7 @@ export type AdjustSettings = {
   shadows: number; // -100..100 — crushes (negative) or lifts (positive) the dark zone only
   splitTone: number; // -100..100 — cinematic split toning: negative = cool shadows/warm highlights, positive = warm shadows/cool highlights
   vignette: number; // 0..100 — darkens the edges/background
+  sunFlare: number; // 0..100 — warm glow overlay from the upper-right corner, simulating backlit sun
 };
 
 export const DEFAULT_ADJUST: AdjustSettings = {
@@ -30,6 +33,7 @@ export const DEFAULT_ADJUST: AdjustSettings = {
   shadows: 0,
   splitTone: 0,
   vignette: 0,
+  sunFlare: 0,
 };
 
 // Fixed (non-AI) style presets — deterministic Camera-Raw-style parameter
@@ -53,39 +57,39 @@ export type AdjustPreset = { label: string; settings: AdjustSettings };
 export const ADJUST_PRESETS: Record<string, AdjustPreset> = {
   newborn: {
     label: "ניו-בורן — רך וחמים",
-    settings: { brightness: 8, contrast: -8, saturation: -10, temperature: 18, highlights: -8, shadows: 15, splitTone: 10, vignette: 8 },
+    settings: { brightness: 8, contrast: -8, saturation: -10, temperature: 18, highlights: -8, shadows: 15, splitTone: 10, vignette: 8, sunFlare: 0 },
   },
   warm_forest: {
     label: "יער חם",
-    settings: { brightness: 6, contrast: 12, saturation: 8, temperature: 38, highlights: 14, shadows: 6, splitTone: 0, vignette: 22 },
+    settings: { brightness: 6, contrast: 12, saturation: 8, temperature: 38, highlights: 14, shadows: 6, splitTone: 0, vignette: 22, sunFlare: 35 },
   },
   river: {
     label: "נחל — גוונים טבעיים ורעננים",
-    settings: { brightness: 4, contrast: 6, saturation: 12, temperature: -8, highlights: 6, shadows: 6, splitTone: -10, vignette: 10 },
+    settings: { brightness: 4, contrast: 6, saturation: 12, temperature: -8, highlights: 6, shadows: 6, splitTone: -10, vignette: 10, sunFlare: 15 },
   },
   outdoor_general: {
     label: "חוץ כללי — טבעי ומאוזן",
-    settings: { brightness: 3, contrast: 8, saturation: 5, temperature: 5, highlights: 4, shadows: 4, splitTone: 0, vignette: 5 },
+    settings: { brightness: 3, contrast: 8, saturation: 5, temperature: 5, highlights: 4, shadows: 4, splitTone: 0, vignette: 5, sunFlare: 10 },
   },
   studio_bright: {
     label: "סטודיו בהיר — נקי וקלאסי",
-    settings: { brightness: 12, contrast: -5, saturation: -5, temperature: -10, highlights: -10, shadows: 10, splitTone: 0, vignette: 0 },
+    settings: { brightness: 12, contrast: -5, saturation: -5, temperature: -10, highlights: -10, shadows: 10, splitTone: 0, vignette: 0, sunFlare: 0 },
   },
   beach: {
     label: "ים וחוף — קיצי ובהיר",
-    settings: { brightness: 10, contrast: -5, saturation: 15, temperature: 20, highlights: 8, shadows: 8, splitTone: -10, vignette: 5 },
+    settings: { brightness: 10, contrast: -5, saturation: 15, temperature: 20, highlights: 8, shadows: 8, splitTone: -10, vignette: 5, sunFlare: 30 },
   },
   bright_airy: {
     label: "בהיר ואוורירי — לייף-סטייל מודרני",
-    settings: { brightness: 15, contrast: -12, saturation: -8, temperature: 5, highlights: -12, shadows: 18, splitTone: 0, vignette: 0 },
+    settings: { brightness: 15, contrast: -12, saturation: -8, temperature: 5, highlights: -12, shadows: 18, splitTone: 0, vignette: 0, sunFlare: 15 },
   },
   film_vintage: {
     label: "פילם קלאסי — נוסטלגי",
-    settings: { brightness: 5, contrast: -15, saturation: -12, temperature: 15, highlights: -10, shadows: 20, splitTone: 20, vignette: 15 },
+    settings: { brightness: 5, contrast: -15, saturation: -12, temperature: 15, highlights: -10, shadows: 20, splitTone: 20, vignette: 15, sunFlare: 20 },
   },
   moody_dark: {
     label: "דרמטי וכהה — עריכתי",
-    settings: { brightness: -10, contrast: 25, saturation: -5, temperature: -15, highlights: -15, shadows: -10, splitTone: -20, vignette: 35 },
+    settings: { brightness: -10, contrast: 25, saturation: -5, temperature: -15, highlights: -15, shadows: -10, splitTone: -20, vignette: 35, sunFlare: 0 },
   },
 };
 
@@ -207,6 +211,25 @@ function applyPixelAdjustments(ctx: CanvasRenderingContext2D, width: number, hei
     grad.addColorStop(0, "rgba(0,0,0,0)");
     grad.addColorStop(1, `rgba(0,0,0,${settings.vignette / 100})`);
     ctx.globalCompositeOperation = "multiply";
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+    ctx.globalCompositeOperation = "source-over";
+  }
+
+  if (settings.sunFlare > 0) {
+    // A warm glow blended with "screen" (adds light, same as a real lens
+    // catching backlight) rather than drawn as an opaque overlay — so it
+    // brightens what's already there instead of flattening it under a
+    // solid color the way a plain semi-transparent fill would.
+    const flareX = width * 0.85;
+    const flareY = height * 0.15;
+    const radius = Math.max(width, height) * 0.65;
+    const grad = ctx.createRadialGradient(flareX, flareY, 0, flareX, flareY, radius);
+    const alpha = (settings.sunFlare / 100) * 0.6;
+    grad.addColorStop(0, `rgba(255, 235, 190, ${alpha})`);
+    grad.addColorStop(0.25, `rgba(255, 215, 150, ${alpha * 0.55})`);
+    grad.addColorStop(1, "rgba(255, 215, 150, 0)");
+    ctx.globalCompositeOperation = "screen";
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, width, height);
     ctx.globalCompositeOperation = "source-over";

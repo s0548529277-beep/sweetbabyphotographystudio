@@ -187,6 +187,7 @@ function PhotoBatchAdmin() {
               onChange={(v) => setSettings((s) => ({ ...s, splitTone: v }))}
             />
             <ControlRow label="החשכת רקע (וינייטה)" value={settings.vignette} min={0} max={100} onChange={(v) => setSettings((s) => ({ ...s, vignette: v }))} />
+            <ControlRow label="זוהר שמש (מהפינה הימנית-עליונה)" value={settings.sunFlare} min={0} max={100} onChange={(v) => setSettings((s) => ({ ...s, sunFlare: v }))} />
             <Button type="button" variant="ghost" size="sm" onClick={() => setSettings(DEFAULT_ADJUST)}>
               איפוס
             </Button>
