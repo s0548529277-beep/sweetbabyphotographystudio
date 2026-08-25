@@ -65,8 +65,12 @@ function ClientsAdmin() {
       qc.invalidateQueries({ queryKey: ["admin-clients"] });
       qc.invalidateQueries({ queryKey: ["photo-clients"] });
       navigate({ to: "/admin/photo-clients/$bookingId", params: { bookingId: workflowId } });
-    } catch (e) {
-      toast.error(heError(e, "פתיחת תהליך התמונות נכשלה"));
+    } catch (e: any) {
+      // Raw message on purpose (not heError) — this is an admin action, and
+      // the real DB/PostgREST error (e.g. a schema-cache mismatch from a
+      // migration that hasn't deployed yet) is what's actually diagnosable,
+      // not a generic Hebrew fallback.
+      toast.error(e?.message || "פתיחת תהליך התמונות נכשלה", { duration: 10000 });
     } finally {
       setStartingWorkflowFor(null);
     }
