@@ -33,6 +33,7 @@ import { Route as ItemsIdRouteImport } from './routes/items.$id'
 import { Route as BlogEssentialNewbornPropsRouteImport } from './routes/blog.essential-newborn-props'
 import { Route as BlogChalakahPhotoshootGuideRouteImport } from './routes/blog.chalakah-photoshoot-guide'
 import { Route as ApiSendBookingRemindersRouteImport } from './routes/api.send-booking-reminders'
+import { Route as AuthenticatedMyPhotosRouteImport } from './routes/_authenticated/my-photos'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
@@ -44,6 +45,7 @@ import { Route as AuthenticatedAdminSubscriptionsRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminSiteBotAskRouteImport } from './routes/_authenticated/admin.site-bot-ask'
 import { Route as AuthenticatedAdminSiteBotRouteImport } from './routes/_authenticated/admin.site-bot'
 import { Route as AuthenticatedAdminPhotoEditorRouteImport } from './routes/_authenticated/admin.photo-editor'
+import { Route as AuthenticatedAdminPhotoClientsRouteImport } from './routes/_authenticated/admin.photo-clients'
 import { Route as AuthenticatedAdminPhotoBatchRouteImport } from './routes/_authenticated/admin.photo-batch'
 import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenticated/admin.orders'
 import { Route as AuthenticatedAdminNewsletterRouteImport } from './routes/_authenticated/admin.newsletter'
@@ -56,6 +58,7 @@ import { Route as AuthenticatedAdminClientsRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminChatLogsRouteImport } from './routes/_authenticated/admin.chat-logs'
 import { Route as AuthenticatedAdminCalendarRouteImport } from './routes/_authenticated/admin.calendar'
 import { Route as AuthenticatedOrdersIdReceiptRouteImport } from './routes/_authenticated/orders.$id.receipt'
+import { Route as AuthenticatedAdminPhotoClientsBookingIdRouteImport } from './routes/_authenticated/admin.photo-clients.$bookingId'
 
 const TrackRoute = TrackRouteImport.update({
   id: '/track',
@@ -178,6 +181,11 @@ const ApiSendBookingRemindersRoute = ApiSendBookingRemindersRouteImport.update({
   path: '/api/send-booking-reminders',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedMyPhotosRoute = AuthenticatedMyPhotosRouteImport.update({
+  id: '/my-photos',
+  path: '/my-photos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -235,6 +243,12 @@ const AuthenticatedAdminPhotoEditorRoute =
   AuthenticatedAdminPhotoEditorRouteImport.update({
     id: '/photo-editor',
     path: '/photo-editor',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminPhotoClientsRoute =
+  AuthenticatedAdminPhotoClientsRouteImport.update({
+    id: '/photo-clients',
+    path: '/photo-clients',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminPhotoBatchRoute =
@@ -308,6 +322,12 @@ const AuthenticatedOrdersIdReceiptRoute =
     path: '/orders/$id/receipt',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminPhotoClientsBookingIdRoute =
+  AuthenticatedAdminPhotoClientsBookingIdRouteImport.update({
+    id: '/$bookingId',
+    path: '/$bookingId',
+    getParentRoute: () => AuthenticatedAdminPhotoClientsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -329,6 +349,7 @@ export interface FileRoutesByFullPath {
   '/track': typeof TrackRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/my-photos': typeof AuthenticatedMyPhotosRoute
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
@@ -346,6 +367,7 @@ export interface FileRoutesByFullPath {
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/admin/photo-batch': typeof AuthenticatedAdminPhotoBatchRoute
+  '/admin/photo-clients': typeof AuthenticatedAdminPhotoClientsRouteWithChildren
   '/admin/photo-editor': typeof AuthenticatedAdminPhotoEditorRoute
   '/admin/site-bot': typeof AuthenticatedAdminSiteBotRoute
   '/admin/site-bot-ask': typeof AuthenticatedAdminSiteBotAskRoute
@@ -355,6 +377,7 @@ export interface FileRoutesByFullPath {
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/photo-clients/$bookingId': typeof AuthenticatedAdminPhotoClientsBookingIdRoute
   '/orders/$id/receipt': typeof AuthenticatedOrdersIdReceiptRoute
 }
 export interface FileRoutesByTo {
@@ -376,6 +399,7 @@ export interface FileRoutesByTo {
   '/thank-you': typeof ThankYouRoute
   '/track': typeof TrackRoute
   '/account': typeof AuthenticatedAccountRoute
+  '/my-photos': typeof AuthenticatedMyPhotosRoute
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
@@ -393,6 +417,7 @@ export interface FileRoutesByTo {
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/admin/photo-batch': typeof AuthenticatedAdminPhotoBatchRoute
+  '/admin/photo-clients': typeof AuthenticatedAdminPhotoClientsRouteWithChildren
   '/admin/photo-editor': typeof AuthenticatedAdminPhotoEditorRoute
   '/admin/site-bot': typeof AuthenticatedAdminSiteBotRoute
   '/admin/site-bot-ask': typeof AuthenticatedAdminSiteBotAskRoute
@@ -402,6 +427,7 @@ export interface FileRoutesByTo {
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/admin/photo-clients/$bookingId': typeof AuthenticatedAdminPhotoClientsBookingIdRoute
   '/orders/$id/receipt': typeof AuthenticatedOrdersIdReceiptRoute
 }
 export interface FileRoutesById {
@@ -426,6 +452,7 @@ export interface FileRoutesById {
   '/track': typeof TrackRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/my-photos': typeof AuthenticatedMyPhotosRoute
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
@@ -443,6 +470,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/_authenticated/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/_authenticated/admin/photo-batch': typeof AuthenticatedAdminPhotoBatchRoute
+  '/_authenticated/admin/photo-clients': typeof AuthenticatedAdminPhotoClientsRouteWithChildren
   '/_authenticated/admin/photo-editor': typeof AuthenticatedAdminPhotoEditorRoute
   '/_authenticated/admin/site-bot': typeof AuthenticatedAdminSiteBotRoute
   '/_authenticated/admin/site-bot-ask': typeof AuthenticatedAdminSiteBotAskRoute
@@ -452,6 +480,7 @@ export interface FileRoutesById {
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/admin/photo-clients/$bookingId': typeof AuthenticatedAdminPhotoClientsBookingIdRoute
   '/_authenticated/orders/$id/receipt': typeof AuthenticatedOrdersIdReceiptRoute
 }
 export interface FileRouteTypes {
@@ -476,6 +505,7 @@ export interface FileRouteTypes {
     | '/track'
     | '/account'
     | '/admin'
+    | '/my-photos'
     | '/api/send-booking-reminders'
     | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
@@ -493,6 +523,7 @@ export interface FileRouteTypes {
     | '/admin/newsletter'
     | '/admin/orders'
     | '/admin/photo-batch'
+    | '/admin/photo-clients'
     | '/admin/photo-editor'
     | '/admin/site-bot'
     | '/admin/site-bot-ask'
@@ -502,6 +533,7 @@ export interface FileRouteTypes {
     | '/deposit/$type/$id'
     | '/summary/$type/$id'
     | '/admin/'
+    | '/admin/photo-clients/$bookingId'
     | '/orders/$id/receipt'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -523,6 +555,7 @@ export interface FileRouteTypes {
     | '/thank-you'
     | '/track'
     | '/account'
+    | '/my-photos'
     | '/api/send-booking-reminders'
     | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
@@ -540,6 +573,7 @@ export interface FileRouteTypes {
     | '/admin/newsletter'
     | '/admin/orders'
     | '/admin/photo-batch'
+    | '/admin/photo-clients'
     | '/admin/photo-editor'
     | '/admin/site-bot'
     | '/admin/site-bot-ask'
@@ -549,6 +583,7 @@ export interface FileRouteTypes {
     | '/deposit/$type/$id'
     | '/summary/$type/$id'
     | '/admin'
+    | '/admin/photo-clients/$bookingId'
     | '/orders/$id/receipt'
   id:
     | '__root__'
@@ -572,6 +607,7 @@ export interface FileRouteTypes {
     | '/track'
     | '/_authenticated/account'
     | '/_authenticated/admin'
+    | '/_authenticated/my-photos'
     | '/api/send-booking-reminders'
     | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
@@ -589,6 +625,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/newsletter'
     | '/_authenticated/admin/orders'
     | '/_authenticated/admin/photo-batch'
+    | '/_authenticated/admin/photo-clients'
     | '/_authenticated/admin/photo-editor'
     | '/_authenticated/admin/site-bot'
     | '/_authenticated/admin/site-bot-ask'
@@ -598,6 +635,7 @@ export interface FileRouteTypes {
     | '/deposit/$type/$id'
     | '/summary/$type/$id'
     | '/_authenticated/admin/'
+    | '/_authenticated/admin/photo-clients/$bookingId'
     | '/_authenticated/orders/$id/receipt'
   fileRoutesById: FileRoutesById
 }
@@ -802,6 +840,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSendBookingRemindersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/my-photos': {
+      id: '/_authenticated/my-photos'
+      path: '/my-photos'
+      fullPath: '/my-photos'
+      preLoaderRoute: typeof AuthenticatedMyPhotosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
@@ -877,6 +922,13 @@ declare module '@tanstack/react-router' {
       path: '/photo-editor'
       fullPath: '/admin/photo-editor'
       preLoaderRoute: typeof AuthenticatedAdminPhotoEditorRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/photo-clients': {
+      id: '/_authenticated/admin/photo-clients'
+      path: '/photo-clients'
+      fullPath: '/admin/photo-clients'
+      preLoaderRoute: typeof AuthenticatedAdminPhotoClientsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/photo-batch': {
@@ -963,8 +1015,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOrdersIdReceiptRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/photo-clients/$bookingId': {
+      id: '/_authenticated/admin/photo-clients/$bookingId'
+      path: '/$bookingId'
+      fullPath: '/admin/photo-clients/$bookingId'
+      preLoaderRoute: typeof AuthenticatedAdminPhotoClientsBookingIdRouteImport
+      parentRoute: typeof AuthenticatedAdminPhotoClientsRoute
+    }
   }
 }
+
+interface AuthenticatedAdminPhotoClientsRouteChildren {
+  AuthenticatedAdminPhotoClientsBookingIdRoute: typeof AuthenticatedAdminPhotoClientsBookingIdRoute
+}
+
+const AuthenticatedAdminPhotoClientsRouteChildren: AuthenticatedAdminPhotoClientsRouteChildren =
+  {
+    AuthenticatedAdminPhotoClientsBookingIdRoute:
+      AuthenticatedAdminPhotoClientsBookingIdRoute,
+  }
+
+const AuthenticatedAdminPhotoClientsRouteWithChildren =
+  AuthenticatedAdminPhotoClientsRoute._addFileChildren(
+    AuthenticatedAdminPhotoClientsRouteChildren,
+  )
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminCalendarRoute: typeof AuthenticatedAdminCalendarRoute
@@ -978,6 +1052,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminNewsletterRoute: typeof AuthenticatedAdminNewsletterRoute
   AuthenticatedAdminOrdersRoute: typeof AuthenticatedAdminOrdersRoute
   AuthenticatedAdminPhotoBatchRoute: typeof AuthenticatedAdminPhotoBatchRoute
+  AuthenticatedAdminPhotoClientsRoute: typeof AuthenticatedAdminPhotoClientsRouteWithChildren
   AuthenticatedAdminPhotoEditorRoute: typeof AuthenticatedAdminPhotoEditorRoute
   AuthenticatedAdminSiteBotRoute: typeof AuthenticatedAdminSiteBotRoute
   AuthenticatedAdminSiteBotAskRoute: typeof AuthenticatedAdminSiteBotAskRoute
@@ -997,6 +1072,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminNewsletterRoute: AuthenticatedAdminNewsletterRoute,
   AuthenticatedAdminOrdersRoute: AuthenticatedAdminOrdersRoute,
   AuthenticatedAdminPhotoBatchRoute: AuthenticatedAdminPhotoBatchRoute,
+  AuthenticatedAdminPhotoClientsRoute:
+    AuthenticatedAdminPhotoClientsRouteWithChildren,
   AuthenticatedAdminPhotoEditorRoute: AuthenticatedAdminPhotoEditorRoute,
   AuthenticatedAdminSiteBotRoute: AuthenticatedAdminSiteBotRoute,
   AuthenticatedAdminSiteBotAskRoute: AuthenticatedAdminSiteBotAskRoute,
@@ -1010,12 +1087,14 @@ const AuthenticatedAdminRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
+  AuthenticatedMyPhotosRoute: typeof AuthenticatedMyPhotosRoute
   AuthenticatedOrdersIdReceiptRoute: typeof AuthenticatedOrdersIdReceiptRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccountRoute: AuthenticatedAccountRoute,
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedMyPhotosRoute: AuthenticatedMyPhotosRoute,
   AuthenticatedOrdersIdReceiptRoute: AuthenticatedOrdersIdReceiptRoute,
 }
 
