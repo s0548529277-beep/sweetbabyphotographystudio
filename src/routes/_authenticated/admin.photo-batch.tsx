@@ -120,7 +120,7 @@ function PhotoBatchAdmin() {
           <Sliders className="h-5 w-5" /> כיוונון תמונות בכמות גדולה
         </h2>
         <p className="text-sm text-muted-foreground">
-          לוח כיוונונים כמו ב-Camera Raw (בהירות, ניגודיות, חיזוק צבע, טון צבע, החשכת רקע) — מפעילים על תמונה אחת לתצוגה מקדימה, ואז מריצים על כל התמונות שנבחרו יחד ומורידים ZIP אחד. עיבוד מדויק וקבוע (לא בינה מלאכותית), אין עלות לכל תמונה, אפשר לעבד כמה שרוצים.
+          לוח כיוונונים כמו ב-Camera Raw (בהירות, ניגודיות, חיזוק צבע, טון צבע, אורות/צללים בנפרד, טונציה מפוצלת, החשכת רקע) — מפעילים על תמונה אחת לתצוגה מקדימה, ואז מריצים על כל התמונות שנבחרו יחד ומורידים ZIP אחד. עיבוד מדויק וקבוע (לא בינה מלאכותית), אין עלות לכל תמונה, אפשר לעבד כמה שרוצים. הכיוונון של אורות וצללים בנפרד, ועם טונציה מפוצלת (צבע שונה לצללים מול אורות), מאפשר "גרייד" קולנוגרפי אמיתי במקום פילטר אחיד על כל התמונה.
         </p>
       </div>
 
@@ -179,6 +179,13 @@ function PhotoBatchAdmin() {
             <ControlRow label="ניגודיות" value={settings.contrast} onChange={(v) => setSettings((s) => ({ ...s, contrast: v }))} />
             <ControlRow label="חיזוק צבע (רוויה)" value={settings.saturation} onChange={(v) => setSettings((s) => ({ ...s, saturation: v }))} />
             <ControlRow label="טון צבע (קר ⟷ חם)" value={settings.temperature} onChange={(v) => setSettings((s) => ({ ...s, temperature: v }))} />
+            <ControlRow label="אורות (Highlights)" value={settings.highlights} onChange={(v) => setSettings((s) => ({ ...s, highlights: v }))} />
+            <ControlRow label="צללים (Shadows)" value={settings.shadows} onChange={(v) => setSettings((s) => ({ ...s, shadows: v }))} />
+            <ControlRow
+              label="טונציה מפוצלת (צללים קרים/אורות חמים ⟷ צללים חמים/אורות קרים)"
+              value={settings.splitTone}
+              onChange={(v) => setSettings((s) => ({ ...s, splitTone: v }))}
+            />
             <ControlRow label="החשכת רקע (וינייטה)" value={settings.vignette} min={0} max={100} onChange={(v) => setSettings((s) => ({ ...s, vignette: v }))} />
             <Button type="button" variant="ghost" size="sm" onClick={() => setSettings(DEFAULT_ADJUST)}>
               איפוס
