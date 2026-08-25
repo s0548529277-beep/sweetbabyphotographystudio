@@ -11,13 +11,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
-const nav = [
+const nav: { to: string; label: string; hash?: string }[] = [
   { to: "/", label: "בית" },
   { to: "/studio-photography", label: "צילומים בסטודיו" },
   { to: "/studio-rental", label: "השכרת סטודיו" },
   { to: "/rental-catalog", label: "קטלוג אביזרים להשכרה" },
   { to: "/photo-retouch", label: "עיבוד תמונות AI" },
-  { to: "/", label: "המלצות", hash: "testimonials" },
   { to: "/about", label: "אודות ויצירת קשר" },
 ];
 
@@ -144,6 +143,9 @@ export function Header() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => router.navigate({ to: "/account" })}>
                   הכרטיסייה שלי
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.navigate({ to: "/my-photos" })}>
+                  התמונות שלי
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.navigate({ to: "/cart" })}>
                   העגלה שלי

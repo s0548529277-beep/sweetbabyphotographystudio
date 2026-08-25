@@ -9,6 +9,7 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { EmailDatalist } from "@/components/EmailDatalist";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth";
 import { MIN_PIN, authPasswordCandidates, toAuthPassword } from "@/lib/password";
@@ -156,10 +157,12 @@ function AuthPage() {
                   <Input
                     type="email"
                     required
+                    list="email-suggest-auth-forgot"
                     placeholder="you@example.com"
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
                   />
+                  <EmailDatalist id="email-suggest-auth-forgot" value={forgotEmail} />
                   <Button type="submit" disabled={busy} className="w-full rounded-full h-10">
                     {busy ? "שולח…" : "שליחת קישור איפוס"}
                   </Button>
@@ -190,10 +193,25 @@ function AuthPage() {
 }
 
 function Field({ label, name, ...rest }: { label: string; name: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+  // The email field stays uncontrolled (submit reads it via FormData like
+  // the rest of this form) — mirroring its text into local state just to
+  // drive the domain-suggestion datalist, without turning it into a
+  // React-controlled input.
+  const [emailDraft, setEmailDraft] = useState("");
+  const isEmail = rest.type === "email";
+  const listId = isEmail ? `email-suggest-auth-${name}` : undefined;
   return (
     <div>
       <Label htmlFor={name}>{label}</Label>
-      <Input id={name} name={name} className="mt-1" {...rest} />
+      <Input
+        id={name}
+        name={name}
+        className="mt-1"
+        list={listId}
+        onInput={isEmail ? (e) => setEmailDraft(e.currentTarget.value) : undefined}
+        {...rest}
+      />
+      {isEmail && <EmailDatalist id={listId!} value={emailDraft} />}
     </div>
   );
 }

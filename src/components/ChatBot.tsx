@@ -62,7 +62,14 @@ export function ChatBot() {
       const { reply } = await chat({ data: { messages: next, userName, isAuthenticated: isAuth, sessionId } });
       setMessages([...next, { role: "assistant", content: reply }]);
     } catch {
-      setMessages([...next, { role: "assistant", content: "מצטערת, יש תקלה זמנית. נסי שוב." }]);
+      setMessages([
+        ...next,
+        {
+          role: "assistant",
+          content:
+            "מצטערת, אני קצת עמוסה כרגע 💗 אפשר לנסות שוב בעוד כמה דקות, ואם זה דחוף — אפשר גם ליצור קשר ישיר: 054-8529277 או s0548529277@gmail.com",
+        },
+      ]);
     } finally {
       setLoading(false);
     }

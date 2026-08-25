@@ -8,6 +8,7 @@ import { Footer } from "@/components/Footer";
 import { useAuth } from "@/lib/auth";
 import { useProfilePrefill } from "@/hooks/use-profile";
 import { saveContactHandoff } from "@/lib/contact-handoff";
+import { EmailDatalist } from "@/components/EmailDatalist";
 import { submitStudioIntake } from "@/lib/studio-intake.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -506,7 +507,8 @@ function StudioRentalPage() {
                 <input className={inputCls} dir="ltr" type="tel" value={form.phone} onChange={(e) => upd("phone", e.target.value)} />
               </Field>
               <Field label="אימייל *">
-                <input className={inputCls} dir="ltr" type="email" value={form.email} onChange={(e) => upd("email", e.target.value)} />
+                <input className={inputCls} dir="ltr" type="email" list="email-suggest-studio-rental" value={form.email} onChange={(e) => upd("email", e.target.value)} />
+                <EmailDatalist id="email-suggest-studio-rental" value={form.email} />
               </Field>
               <Field label="סוג הצילום *">
                 <select className={inputCls} value={form.sessionType} onChange={(e) => upd("sessionType", e.target.value)} required>
