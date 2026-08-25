@@ -1,13 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
-import { generateText } from "ai";
 import { z } from "zod";
-import { createLovableAiGatewayProvider } from "./ai-gateway.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 // Lovable AI Gateway model id for Gemini's image-editing model ("Nano
 // Banana") — accepts multiple reference images + a text instruction and
-// returns an edited image. If Lovable ever renames/updates the id this
-// gateway expects, this is the only place to change it.
+// returns an edited image.
 const RETOUCH_MODEL_ID = "google/gemini-2.5-flash-image";
 
 // Basic per-session anti-abuse limit — each generation is a paid API call.
@@ -31,9 +28,9 @@ export const generateRetouchPreview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => RetouchInput.parse(data))
   .handler(async ({ data, context }) => {
-    const match = DATA_URL_RE.exec(data.imageDataUrl);
-    if (!match) throw new Error("פורמט תמונה לא נתמך — נסו תמונת JPG/PNG/WebP אחרת.");
-    const inputBase64 = match[2];
+    if (!DATA_URL_RE.test(data.imageDataUrl)) {
+      throw new Error("פורמט תמונה לא נתמך — נסו תמונת JPG/PNG/WebP אחרת.");
+    }
 
     const userId = context.userId;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -102,43 +99,57 @@ export const generateRetouchPreview = createServerFn({ method: "POST" })
       await logFailure("Missing LOVABLE_API_KEY");
       throw new Error("שירות עיבוד התמונות אינו מוגדר כרגע. נסו שוב מאוחר יותר.");
     }
-    const gateway = createLovableAiGatewayProvider(key);
 
     const promptText = `את/ה עורך/ת תמונות מקצועי/ת. תיאור סגנון העריכה המבוקש: "${preset.prompt}".
 התמונה הראשונה (BEFORE) והשנייה (AFTER) הן דוגמה שממחישה את סוג העריכה — למד/י מהן רק את סוג ועוצמת השינוי, אל תעתיק/י את התוכן שלהן.
 התמונה השלישית היא תמונה חדשה של אדם אמיתי. החזר/י גרסה ערוכה של התמונה השלישית בלבד, באותו סגנון עריכה בדיוק, תוך שמירה קפדנית על זהות האדם, הפוזה, התאורה, הרקע והבגדים המקוריים. אל תוסיף/י טקסט, מסגרת, לוגו או סימן מים. החזר/י אך ורק את התמונה הערוכה.`;
 
-    let result: { text: string; files?: Array<{ mediaType?: string; base64?: string }> };
+    // Calling the gateway directly (not through the `ai` SDK's generateText)
+    // — image output from an OpenAI-compatible chat endpoint isn't a
+    // first-class Vercel-AI-SDK concept, so this reads the raw JSON itself.
+    // Same proven approach as src/lib/photo-editor.functions.ts.
+    let mediaType = "image/png";
+    let base64: string | null = null;
     try {
-      // `files` (generated non-text output, e.g. images) isn't in every
-      // pinned version of the 'ai' package's TS types — read it loosely
-      // and validate at runtime instead of trusting the type.
-      result = (await generateText({
-        model: gateway(RETOUCH_MODEL_ID),
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: promptText },
-              { type: "image", image: new URL(preset.before_url) },
-              { type: "image", image: new URL(preset.after_url) },
-              { type: "image", image: inputBase64 },
-            ],
-          },
-        ],
-      })) as unknown as typeof result;
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+        body: JSON.stringify({
+          model: RETOUCH_MODEL_ID,
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: promptText },
+                { type: "image_url", image_url: { url: preset.before_url } },
+                { type: "image_url", image_url: { url: preset.after_url } },
+                { type: "image_url", image_url: { url: data.imageDataUrl } },
+              ],
+            },
+          ],
+        }),
+      });
+      const raw = await res.text();
+      if (!res.ok) throw new Error(`שגיאה מהמודל (${res.status}): ${raw.slice(0, 500)}`);
+      const json = JSON.parse(raw);
+      const message = json?.choices?.[0]?.message;
+      const fromImagesField = message?.images?.[0]?.image_url?.url as string | undefined;
+      const fromContentField = typeof message?.content === "string" ? message.content : null;
+      const dataUri = fromImagesField ?? fromContentField ?? "";
+      const match2 = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/s.exec(dataUri);
+      if (match2) {
+        mediaType = match2[1];
+        base64 = match2[2];
+      }
+      if (!base64)
+        throw new Error(
+          `המודל לא החזיר תמונה מעובדת. תגובה גולמית: ${JSON.stringify(json).slice(0, 500)}`,
+        );
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      console.error("[SWEETBABY] retouch generateText failed", msg);
+      console.error("[SWEETBABY] retouch model call failed", msg);
       await logFailure(msg);
-      throw new Error("עיבוד התמונה נכשל. נסו שוב בעוד רגע.");
-    }
-
-    const image = result.files?.find((f) => f.mediaType?.startsWith("image/") && f.base64);
-    if (!image?.base64) {
-      console.error("[SWEETBABY] retouch: model returned no image", result.text?.slice(0, 300));
-      await logFailure("Model returned no image");
-      throw new Error("לא התקבלה תמונה מעובדת. נסו תמונה אחרת או נסו שוב.");
+      throw new Error("עיבוד התמונה נכשל. נסו תמונה אחרת או נסו שוב בעוד רגע.");
     }
 
     try {
@@ -152,5 +163,5 @@ export const generateRetouchPreview = createServerFn({ method: "POST" })
       console.error("[SWEETBABY] retouch usage log (success) insert failed", e);
     }
 
-    return { resultDataUrl: `data:${image.mediaType};base64,${image.base64}` };
+    return { resultDataUrl: `data:${mediaType};base64,${base64}` };
   });
