@@ -17,6 +17,7 @@ const staticEntries: SitemapEntry[] = [
   { path: "/studio-photography", changefreq: "weekly", priority: "0.9" },
   { path: "/studio-rental", changefreq: "weekly", priority: "0.9" },
   { path: "/booking", changefreq: "weekly", priority: "0.8" },
+  { path: "/photo-retouch", changefreq: "monthly", priority: "0.7" },
   { path: "/track", changefreq: "weekly", priority: "0.8" },
   { path: "/about", changefreq: "monthly", priority: "0.7" },
   { path: "/contact", changefreq: "monthly", priority: "0.7" },
