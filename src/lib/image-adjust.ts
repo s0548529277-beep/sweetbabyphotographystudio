@@ -21,19 +21,60 @@ export const DEFAULT_ADJUST: AdjustSettings = {
 };
 
 // Fixed (non-AI) style presets — deterministic Camera-Raw-style parameter
-// sets that approximate the mood of a few of the AI photo-editor's style
-// presets (see PHOTO_EDIT_STYLES in photo-editor.functions.ts), for the
+// sets that approximate the mood of the AI photo-editor's style presets
+// (see PHOTO_EDIT_STYLES in photo-editor.functions.ts), for the
 // free/instant bulk tool when a full model-based edit isn't needed. A
 // preset is just a starting point for the sliders above — picking one
 // fills in the numbers, then they're still hand-tunable per photo/batch.
-// Starts with only "warm forest" (יער); more presets are added and the
-// numbers below get tuned as reference before/after examples come in.
+// Keyed the same as PHOTO_EDIT_STYLES so the two tools share vocabulary.
+// None of these are calibrated against real before/after references yet
+// (only "warm forest" had one described in detail) — they're first-guess
+// numbers read off each style's text description, to be tuned for real
+// once reference examples come in per style.
+//
+// Three PHOTO_EDIT_STYLES entries are deliberately skipped here: "custom"
+// (free-text, nothing to encode), "studio_clean" (removes equipment from
+// the frame — content-aware, not a pixel color/tone adjustment) and
+// "beauty_retouch" (face-only skin smoothing — needs face-aware
+// processing, not a whole-image adjustment).
 export type AdjustPreset = { label: string; settings: AdjustSettings };
 
 export const ADJUST_PRESETS: Record<string, AdjustPreset> = {
+  newborn: {
+    label: "ניו-בורן — רך וחמים",
+    settings: { brightness: 8, contrast: -8, saturation: -10, temperature: 18, vignette: 8 },
+  },
   warm_forest: {
     label: "יער חם",
     settings: { brightness: 6, contrast: 12, saturation: 8, temperature: 38, vignette: 22 },
+  },
+  river: {
+    label: "נחל — גוונים טבעיים ורעננים",
+    settings: { brightness: 4, contrast: 6, saturation: 12, temperature: -8, vignette: 10 },
+  },
+  outdoor_general: {
+    label: "חוץ כללי — טבעי ומאוזן",
+    settings: { brightness: 3, contrast: 8, saturation: 5, temperature: 5, vignette: 5 },
+  },
+  studio_bright: {
+    label: "סטודיו בהיר — נקי וקלאסי",
+    settings: { brightness: 12, contrast: -5, saturation: -5, temperature: -10, vignette: 0 },
+  },
+  beach: {
+    label: "ים וחוף — קיצי ובהיר",
+    settings: { brightness: 10, contrast: -5, saturation: 15, temperature: 20, vignette: 5 },
+  },
+  bright_airy: {
+    label: "בהיר ואוורירי — לייף-סטייל מודרני",
+    settings: { brightness: 15, contrast: -12, saturation: -8, temperature: 5, vignette: 0 },
+  },
+  film_vintage: {
+    label: "פילם קלאסי — נוסטלגי",
+    settings: { brightness: 5, contrast: -15, saturation: -12, temperature: 15, vignette: 15 },
+  },
+  moody_dark: {
+    label: "דרמטי וכהה — עריכתי",
+    settings: { brightness: -10, contrast: 25, saturation: -5, temperature: -15, vignette: 35 },
   },
 };
 
