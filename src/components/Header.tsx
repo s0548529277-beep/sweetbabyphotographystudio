@@ -92,7 +92,7 @@ export function Header() {
           <img src={logo} alt="Sweetbaby" className="h-16 md:h-20 w-auto" />
         </Link>
 
-        <nav className="hidden md:flex items-center gap-10 text-[13px] tracking-[0.28em] uppercase">
+        <nav className="hidden md:flex items-center gap-8 text-[14px] tracking-[0.16em] uppercase">
 
           {nav.map((n) => (
             <Link
