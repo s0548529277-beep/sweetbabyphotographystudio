@@ -13,6 +13,37 @@ export const STAGE_LABELS: Record<WorkflowStage, string> = {
   album_published: "אלבום פורסם",
 };
 
+// Package presets for the client card — hours/photo-count/price/upgrades
+// per tier, used to prefill a new client's package details (still freely
+// editable per-client afterward, since real bookings deviate from the
+// price list all the time). "custom" has no defaults — the admin fills
+// photosToEdit/albumUpgrades in by hand for a one-off arrangement.
+export type PhotoPackageKey = "magic" | "popular" | "dream" | "custom";
+export const PHOTO_PACKAGES: Record<PhotoPackageKey, { label: string; hours: number | null; photosToEdit: number | null; price: number | null; albumUpgrades: string }> = {
+  magic: {
+    label: "MAGIC · קסם",
+    hours: 3,
+    photosToEdit: 15,
+    price: 1250,
+    albumUpgrades: "כל התמונות בעיבוד בסיסי, 15 תמונות בעיבוד אומנותי, קולאז' מעוצב",
+  },
+  popular: {
+    label: "POPULAR · פופולארית",
+    hours: 4,
+    photosToEdit: 25,
+    price: 1750,
+    albumUpgrades: "שיחת סטיילינג, כל התמונות בעיבוד בסיסי, 25 תמונות בעיבוד אומנותי, קולאז' מעוצב, אלבום דיגיטלי + כריכת בוק 21/56",
+  },
+  dream: {
+    label: "DREAM · חלום",
+    hours: 5,
+    photosToEdit: 30,
+    price: 2350,
+    albumUpgrades: "חוץ + סטודיו, כל התמונות בעיבוד בסיסי, 30 תמונות בעיבוד אומנותי, קולאז' מעוצב, אלבום דיגיטלי + כריכת בוק 21/56",
+  },
+  custom: { label: "מותאם אישית", hours: null, photosToEdit: null, price: null, albumUpgrades: "" },
+};
+
 async function assertAdmin(supabase: any, userId: string) {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
   if (!data?.some((r: any) => r.role === "admin")) throw new Error("אין הרשאת ניהול");
@@ -64,7 +95,7 @@ export const listPhotoClients = createServerFn({ method: "POST" })
 
     const { data: workflows, error: wErr } = await supabaseAdmin
       .from("photo_client_workflows")
-      .select("id, user_id, booking_id, stage, created_at")
+      .select("id, user_id, booking_id, stage, created_at, session_date, location, package_type, photos_to_edit")
       .order("created_at", { ascending: false });
     if (wErr) throw new Error(wErr.message);
 
@@ -83,7 +114,13 @@ export const listPhotoClients = createServerFn({ method: "POST" })
         booking_id: w.booking_id as string | null,
         contact_name: booking?.contact_name || profile?.full_name || "—",
         contact_phone: booking?.contact_phone || profile?.phone || "—",
-        session_date: booking?.session_date ?? null,
+        // The workflow's own session_date is the source of truth (set at
+        // creation, freely editable afterward) — the booking's is only a
+        // fallback for old rows from before this column existed.
+        session_date: w.session_date ?? booking?.session_date ?? null,
+        location: w.location as string | null,
+        package_type: w.package_type as PhotoPackageKey | null,
+        photos_to_edit: w.photos_to_edit as number | null,
         stage: w.stage as WorkflowStage,
       };
     });
@@ -111,7 +148,17 @@ export const startManualPhotoWorkflow = createServerFn({ method: "POST" })
     return { workflowId: created.id as string };
   });
 
-const byEmailSchema = z.object({ email: z.string().email(), name: z.string().max(120).optional(), sendEmail: z.boolean().optional() });
+const createClientSchema = z.object({
+  email: z.string().email(),
+  name: z.string().max(120).optional(),
+  phone: z.string().max(40).optional(),
+  sessionDate: z.string().max(10).optional(), // yyyy-mm-dd
+  location: z.string().max(200).optional(),
+  packageType: z.enum(["magic", "popular", "dream", "custom"]).optional(),
+  photosToEdit: z.number().int().min(0).max(1000).optional(), // overrides the package default
+  albumUpgrades: z.string().max(2000).optional(), // overrides the package default
+  sendEmail: z.boolean().optional(),
+});
 
 // A short, memorable temp password padded to satisfy Supabase Auth's
 // password policy (min length + upper/lower/digit) — same ".Sb1" suffix
@@ -122,21 +169,24 @@ const byEmailSchema = z.object({ email: z.string().email(), name: z.string().max
 const TEMP_PASSWORD = "1234.Sb1";
 
 /**
- * Same as startManualPhotoWorkflow, but for a client who might not have an
- * account at all yet — the admin only has her email (e.g. from a walk-in
- * shoot, or a booking made before this feature existed). If an account
- * with that email already exists it's reused as-is (her real password is
- * never touched) along with its existing workflow, if any — never creates
- * a duplicate. Otherwise a real account is minted for her with a temp
- * password, and — only if requested — a notification email is sent.
+ * Creates (or reuses) a photo client's card: looks her up by email first —
+ * if an account with that email already exists it's reused as-is (her real
+ * password is never touched) along with its existing workflow, if any
+ * (never creates a duplicate). Otherwise a real account is minted for her
+ * with a temp password, and — only if requested — a notification email is
+ * sent. Package/shoot details (see PHOTO_PACKAGES) are saved on the new
+ * workflow either way; an existing workflow's details are left alone (use
+ * updatePhotoClientDetails to edit those later).
  */
-export const startPhotoWorkflowByEmail = createServerFn({ method: "POST" })
+export const createPhotoClient = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => byEmailSchema.parse(d))
+  .inputValidator((d: unknown) => createClientSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const email = data.email.trim().toLowerCase();
+    const name = data.name?.trim();
+    const phone = data.phone?.trim();
 
     // auth.users has no direct "find by email" in the admin API — page
     // through listUsers same as listClientEmails does.
@@ -158,7 +208,8 @@ export const startPhotoWorkflowByEmail = createServerFn({ method: "POST" })
         email,
         password: TEMP_PASSWORD,
         email_confirm: true,
-        user_metadata: data.name?.trim() ? { full_name: data.name.trim() } : undefined,
+        // Read by the handle_new_user trigger to prefill profiles.full_name/phone.
+        user_metadata: name || phone ? { full_name: name, phone } : undefined,
       });
       if (error || !createdUser?.user) throw new Error(error?.message ?? "יצירת חשבון ללקוחה נכשלה");
       userId = createdUser.user.id;
@@ -172,7 +223,7 @@ export const startPhotoWorkflowByEmail = createServerFn({ method: "POST" })
           to: email,
           subject: "נפתח לך חשבון · Sweetbaby",
           html: `<div dir="rtl" style="font-family:sans-serif">
-            <p>שלום${data.name?.trim() ? " " + data.name.trim() : ""},</p>
+            <p>שלום${name ? " " + name : ""},</p>
             <p>פתחנו לך חשבון באתר הסטודיו של מיכל סיבוני, כדי שתוכלי לראות שם את התמונות שלך.</p>
             <p>אימייל: <b dir="ltr">${email}</b><br/>סיסמה זמנית: <b dir="ltr">${TEMP_PASSWORD}</b></p>
             <p>מומלץ להחליף אותה לאחר הכניסה הראשונה.</p>
@@ -195,13 +246,55 @@ export const startPhotoWorkflowByEmail = createServerFn({ method: "POST" })
       .maybeSingle();
     if (existingWf) return { workflowId: existingWf.id as string, isNewAccount, tempPassword: isNewAccount ? TEMP_PASSWORD : null };
 
+    const preset = data.packageType ? PHOTO_PACKAGES[data.packageType] : null;
     const { data: created, error: wfErr } = await supabaseAdmin
       .from("photo_client_workflows")
-      .insert({ user_id: userId, booking_id: null, stage: "booked" })
+      .insert({
+        user_id: userId,
+        booking_id: null,
+        stage: "booked",
+        session_date: data.sessionDate || null,
+        location: data.location?.trim() || null,
+        package_type: data.packageType ?? null,
+        photos_to_edit: data.photosToEdit ?? preset?.photosToEdit ?? null,
+        album_upgrades: data.albumUpgrades?.trim() || preset?.albumUpgrades || null,
+      })
       .select("id")
       .single();
     if (wfErr || !created) throw new Error(wfErr?.message ?? "יצירת תהליך עבודה נכשלה");
     return { workflowId: created.id as string, isNewAccount, tempPassword: isNewAccount ? TEMP_PASSWORD : null };
+  });
+
+const updateDetailsSchema = z.object({
+  workflowId: z.string().uuid(),
+  sessionDate: z.string().max(10).optional().nullable(),
+  location: z.string().max(200).optional().nullable(),
+  packageType: z.enum(["magic", "popular", "dream", "custom"]).optional().nullable(),
+  photosToEdit: z.number().int().min(0).max(1000).optional().nullable(),
+  albumUpgrades: z.string().max(2000).optional().nullable(),
+});
+
+/** Edits a client card's package/shoot details after creation — the detail page's "עריכת פרטי חבילה" panel. */
+export const updatePhotoClientDetails = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => updateDetailsSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { workflowId, ...fields } = data;
+    const { error } = await supabaseAdmin
+      .from("photo_client_workflows")
+      .update({
+        session_date: fields.sessionDate || null,
+        location: fields.location?.trim() || null,
+        package_type: fields.packageType || null,
+        photos_to_edit: fields.photosToEdit ?? null,
+        album_upgrades: fields.albumUpgrades?.trim() || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", workflowId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 const workflowIdSchema = z.object({ workflowId: z.string().uuid() });
@@ -216,7 +309,7 @@ export const getPhotoClientDetail = createServerFn({ method: "POST" })
 
     const { data: workflow, error: wErr } = await supabaseAdmin
       .from("photo_client_workflows")
-      .select("id, user_id, booking_id, stage")
+      .select("id, user_id, booking_id, stage, session_date, location, package_type, photos_to_edit, album_upgrades")
       .eq("id", data.workflowId)
       .single();
     if (wErr || !workflow) throw new Error(wErr?.message ?? "לקוחה לא נמצאה");
@@ -242,7 +335,19 @@ export const getPhotoClientDetail = createServerFn({ method: "POST" })
       .order("sort_order", { ascending: true });
     if (imgErr) throw new Error(imgErr.message);
 
-    return { booking, workflow: { id: workflow.id as string, stage: workflow.stage as WorkflowStage }, images: images ?? [] };
+    return {
+      booking,
+      workflow: {
+        id: workflow.id as string,
+        stage: workflow.stage as WorkflowStage,
+        session_date: (workflow.session_date ?? booking.session_date) as string | null,
+        location: workflow.location as string | null,
+        package_type: workflow.package_type as PhotoPackageKey | null,
+        photos_to_edit: workflow.photos_to_edit as number | null,
+        album_upgrades: workflow.album_upgrades as string | null,
+      },
+      images: images ?? [],
+    };
   });
 
 const advanceSchema = z.object({ workflowId: z.string().uuid(), stage: z.enum(WORKFLOW_STAGES) });
@@ -282,6 +387,26 @@ export const addPhotoClientImage = createServerFn({ method: "POST" })
       storage_path: data.storagePath,
       image_url: data.imageUrl,
     });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const adminToggleSchema = z.object({ imageId: z.string().uuid(), selected: z.boolean() });
+
+/**
+ * Admin-side "V" marking on a proof photo — e.g. the client picked her
+ * favorites in person/by phone rather than through /my-photos. Unlike the
+ * customer-facing toggleProofSelection below, this isn't restricted to the
+ * proofs_ready stage (an admin may want to pre-mark before publishing the
+ * proofs) and doesn't check ownership — admin role is enough.
+ */
+export const adminToggleProofSelection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => adminToggleSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("photo_client_images").update({ selected: data.selected }).eq("id", data.imageId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

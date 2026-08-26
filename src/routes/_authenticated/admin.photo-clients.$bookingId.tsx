@@ -1,25 +1,32 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import {
   addPhotoClientImage,
+  adminToggleProofSelection,
   advancePhotoClientStage,
   deletePhotoClientImage,
   getPhotoClientDetail,
+  updatePhotoClientDetails,
   STAGE_LABELS,
   WORKFLOW_STAGES,
+  PHOTO_PACKAGES,
   type WorkflowStage,
+  type PhotoPackageKey,
 } from "@/lib/photo-clients.functions";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { ArrowRight, Check, Loader2, Star, Trash2, Upload } from "lucide-react";
 
 // Route param is still named "bookingId" (unchanged, so routeTree.gen.ts
 // doesn't need regenerating) but it now carries a photo_client_workflows.id
 // — a workflow may or may not be tied to an actual booking, see
-// startManualPhotoWorkflow in photo-clients.functions.ts.
+// createPhotoClient in photo-clients.functions.ts.
 export const Route = createFileRoute("/_authenticated/admin/photo-clients/$bookingId")({
   component: PhotoClientDetail,
 });
@@ -43,6 +50,7 @@ function UploadSection({
   workflowId,
   images,
   onChanged,
+  onToggleSelect,
 }: {
   title: string;
   hint: string;
@@ -50,6 +58,8 @@ function UploadSection({
   workflowId: string;
   images: ImageRow[];
   onChanged: () => void;
+  /** Only passed for the proofs section — lets the admin mark/unmark a favorite herself (the "V"), e.g. when the client picked in person rather than through /my-photos. */
+  onToggleSelect?: (imageId: string, selected: boolean) => void;
 }) {
   const addImage = useServerFn(addPhotoClientImage);
   const removeImage = useServerFn(deletePhotoClientImage);
@@ -100,10 +110,25 @@ function UploadSection({
           {images.map((img) => (
             <div key={img.id} className="relative group aspect-square">
               <img src={img.image_url} alt="" className="w-full h-full object-cover rounded-lg border border-primary/10" />
-              {kind === "proof" && img.selected && (
-                <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-1">
-                  <Star className="h-3 w-3 fill-current" />
-                </div>
+              {kind === "proof" && onToggleSelect ? (
+                <button
+                  type="button"
+                  onClick={() => onToggleSelect(img.id, !img.selected)}
+                  className={`absolute top-1 right-1 rounded-full p-1 transition-colors ${
+                    img.selected ? "bg-primary text-primary-foreground" : "bg-background/80 text-muted-foreground opacity-0 group-hover:opacity-100"
+                  }`}
+                  aria-label="סימון מועדפת"
+                  title="סימון/ביטול כתמונה נבחרת"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                </button>
+              ) : (
+                kind === "proof" &&
+                img.selected && (
+                  <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-1">
+                    <Star className="h-3 w-3 fill-current" />
+                  </div>
+                )
               )}
               <button
                 type="button"
@@ -121,11 +146,117 @@ function UploadSection({
   );
 }
 
+type PackageForm = {
+  sessionDate: string;
+  location: string;
+  packageType: PhotoPackageKey | "";
+  photosToEdit: string;
+  albumUpgrades: string;
+};
+
+function toPackageForm(workflow: any): PackageForm {
+  return {
+    sessionDate: workflow.session_date ? String(workflow.session_date).slice(0, 10) : "",
+    location: workflow.location ?? "",
+    packageType: (workflow.package_type as PhotoPackageKey) ?? "",
+    photosToEdit: workflow.photos_to_edit != null ? String(workflow.photos_to_edit) : "",
+    albumUpgrades: workflow.album_upgrades ?? "",
+  };
+}
+
+/** Editable package/shoot-details panel — same fields as "לקוחה חדשה", for tweaking after the client card already exists. */
+function PackageDetails({ workflow, workflowId, onSaved }: { workflow: any; workflowId: string; onSaved: () => void }) {
+  const [form, setForm] = useState<PackageForm>(() => toPackageForm(workflow));
+  const [busy, setBusy] = useState(false);
+  const updateDetails = useServerFn(updatePhotoClientDetails);
+
+  // Keep the form in sync if the workflow data refetches with different values.
+  useEffect(() => setForm(toPackageForm(workflow)), [workflow]);
+
+  const set = <K extends keyof PackageForm>(key: K, value: PackageForm[K]) => setForm((f) => ({ ...f, [key]: value }));
+
+  const pickPackage = (key: PhotoPackageKey) => {
+    const preset = PHOTO_PACKAGES[key];
+    setForm((f) => ({
+      ...f,
+      packageType: key,
+      photosToEdit: preset.photosToEdit != null ? String(preset.photosToEdit) : f.photosToEdit,
+      albumUpgrades: preset.albumUpgrades || f.albumUpgrades,
+    }));
+  };
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      await updateDetails({
+        data: {
+          workflowId,
+          sessionDate: form.sessionDate || null,
+          location: form.location.trim() || null,
+          packageType: form.packageType || null,
+          photosToEdit: form.photosToEdit.trim() ? Number(form.photosToEdit) : null,
+          albumUpgrades: form.albumUpgrades.trim() || null,
+        },
+      });
+      toast.success("פרטי החבילה נשמרו");
+      onSaved();
+    } catch (e: any) {
+      toast.error(e?.message ?? "השמירה נכשלה");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="bg-card rounded-2xl border border-primary/10 p-5 space-y-3">
+      <h3 className="font-display text-lg text-primary">פרטי חבילה וצילום</h3>
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs text-muted-foreground">מועד צילומים</Label>
+          <Input type="date" value={form.sessionDate} onChange={(e) => set("sessionDate", e.target.value)} />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">מיקום</Label>
+          <Input value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="סטודיו / חוץ / כתובת" />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">סוג חבילה</Label>
+          <Select value={form.packageType || undefined} onValueChange={(v) => pickPackage(v as PhotoPackageKey)}>
+            <SelectTrigger className="mt-1">
+              <SelectValue placeholder="בחירת חבילה" />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.entries(PHOTO_PACKAGES) as [PhotoPackageKey, (typeof PHOTO_PACKAGES)[PhotoPackageKey]][]).map(([key, p]) => (
+                <SelectItem key={key} value={key}>
+                  {p.label}
+                  {p.price != null ? ` — ₪${p.price}` : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">כמות תמונות לעיבוד</Label>
+          <Input type="number" min={0} dir="ltr" value={form.photosToEdit} onChange={(e) => set("photosToEdit", e.target.value)} />
+        </div>
+        <div className="sm:col-span-2">
+          <Label className="text-xs text-muted-foreground">אלבום ושדרוגים</Label>
+          <Input value={form.albumUpgrades} onChange={(e) => set("albumUpgrades", e.target.value)} placeholder="אלבום דיגיטלי, כריכת בוק, וכו׳" />
+        </div>
+      </div>
+      <Button type="button" size="sm" onClick={save} disabled={busy} className="rounded-full">
+        {busy ? "שומר..." : "שמירת פרטים"}
+      </Button>
+    </div>
+  );
+}
+
 function PhotoClientDetail() {
   const { bookingId: workflowId } = Route.useParams();
   const qc = useQueryClient();
   const fetchDetail = useServerFn(getPhotoClientDetail);
   const advanceStage = useServerFn(advancePhotoClientStage);
+  const toggleSelect = useServerFn(adminToggleProofSelection);
   const detail = useQuery({ queryKey: ["photo-client", workflowId], queryFn: () => fetchDetail({ data: { workflowId } }) });
 
   const refetch = () => qc.invalidateQueries({ queryKey: ["photo-client", workflowId] });
@@ -136,6 +267,15 @@ function PhotoClientDetail() {
       toast.success("השלב עודכן");
       refetch();
       qc.invalidateQueries({ queryKey: ["photo-clients"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "העדכון נכשל");
+    }
+  };
+
+  const onToggleSelect = async (imageId: string, selected: boolean) => {
+    try {
+      await toggleSelect({ data: { imageId, selected } });
+      refetch();
     } catch (e: any) {
       toast.error(e?.message ?? "העדכון נכשל");
     }
@@ -162,9 +302,12 @@ function PhotoClientDetail() {
       <div>
         <h2 className="font-display text-xl text-primary">{booking.contact_name}</h2>
         <p className="text-sm text-muted-foreground" dir="ltr">
-          {booking.contact_phone} {booking.session_date ? `· ${booking.session_date}` : "· תהליך שנוצר ידנית (ללא הזמנת צילום)"}
+          {booking.contact_phone} {workflow.session_date ? `· ${workflow.session_date}` : "· אין מועד קבוע"}
+          {workflow.location ? ` · ${workflow.location}` : ""}
         </p>
       </div>
+
+      <PackageDetails workflow={workflow} workflowId={workflowId} onSaved={refetch} />
 
       {/* Stage tracker */}
       <div className="bg-card rounded-2xl border border-primary/10 p-5">
@@ -192,12 +335,13 @@ function PhotoClientDetail() {
       </div>
 
       <UploadSection
-        title="תמונות הוכחה (Proofs)"
-        hint="הלקוחה תראה את אלה ותוכל לסמן מועדפות, ברגע שהשלב יעודכן ל'המתנה לבחירת לקוחה'."
+        title="תמונות גלם (Proofs)"
+        hint='הלקוחה תראה את אלה ותוכל לסמן מועדפות (או שמסמנים כאן בשמה, ב-✓) ברגע שהשלב יעודכן ל"המתנה לבחירת לקוחה".'
         kind="proof"
         workflowId={workflowId}
         images={proofImages}
         onChanged={refetch}
+        onToggleSelect={onToggleSelect}
       />
 
       {stage !== "booked" && stage !== "date_confirmed" && (
@@ -205,10 +349,10 @@ function PhotoClientDetail() {
           {selectedCount > 0 ? (
             <>
               <Check className="inline h-3.5 w-3.5 ml-1 text-primary" />
-              הלקוחה סימנה {selectedCount} תמונות מועדפות (מסומנות בכוכב).
+              {selectedCount} תמונות מסומנות כמועדפות.
             </>
           ) : (
-            "הלקוחה עדיין לא סימנה בחירות."
+            "עדיין לא סומנו בחירות."
           )}
         </p>
       )}
