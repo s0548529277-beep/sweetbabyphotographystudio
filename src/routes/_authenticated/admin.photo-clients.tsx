@@ -17,7 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Camera, ChevronLeft, TriangleAlert, UserPlus } from "lucide-react";
+import { Camera, ChevronLeft, ImageIcon, Search, TriangleAlert, UserPlus } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/photo-clients")({
   component: PhotoClientsAdmin,
@@ -36,10 +36,12 @@ type Row = {
   booking_id: string | null;
   contact_name: string;
   contact_phone: string;
+  contact_email: string;
   session_date: string | null;
   location: string | null;
   package_type: PhotoPackageKey | null;
   photos_to_edit: number | null;
+  photo_count: number;
   stage: WorkflowStage;
 };
 
@@ -196,9 +198,13 @@ function NewClientDialog({ onCreated }: { onCreated: (workflowId: string) => voi
 function PhotoClientsAdmin() {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const [q, setQ] = useState("");
   const fetchClients = useServerFn(listPhotoClients);
   const clients = useQuery({ queryKey: ["photo-clients"], queryFn: () => fetchClients({}) });
   const rows = (clients.data ?? []) as unknown as Row[];
+  const filtered = rows.filter(
+    (r) => !q.trim() || r.contact_name.toLowerCase().includes(q.trim().toLowerCase()) || r.contact_email.toLowerCase().includes(q.trim().toLowerCase()),
+  );
 
   const onWorkflowCreated = (workflowId: string) => {
     qc.invalidateQueries({ queryKey: ["photo-clients"] });
@@ -237,8 +243,15 @@ function PhotoClientsAdmin() {
         </div>
       )}
 
+      {rows.length > 0 && (
+        <div className="relative max-w-sm">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="חיפוש לפי שם או אימייל..." className="pr-9" />
+        </div>
+      )}
+
       <div className="bg-card rounded-2xl border border-primary/10 divide-y divide-primary/5">
-        {rows.map((r) => (
+        {filtered.map((r) => (
           <Link
             key={r.id}
             to="/admin/photo-clients/$bookingId"
@@ -247,6 +260,11 @@ function PhotoClientsAdmin() {
           >
             <div className="min-w-0">
               <p className="text-sm font-medium">{r.contact_name}</p>
+              {r.contact_email && (
+                <p className="text-xs text-muted-foreground mt-0.5" dir="ltr">
+                  {r.contact_email}
+                </p>
+              )}
               <p className="text-xs text-muted-foreground mt-0.5" dir="ltr">
                 {r.contact_phone} {r.session_date ? `· ${r.session_date}` : "· אין מועד"}
                 {r.location ? ` · ${r.location}` : ""}
@@ -254,6 +272,9 @@ function PhotoClientsAdmin() {
             </div>
             <div className="flex items-center gap-3 shrink-0">
               {r.package_type && <span className="text-xs text-muted-foreground">{PHOTO_PACKAGES[r.package_type].label}</span>}
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <ImageIcon className="h-3.5 w-3.5" /> {r.photo_count}
+              </span>
               <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STAGE_COLORS[r.stage]}`}>{STAGE_LABELS[r.stage]}</span>
               <ChevronLeft className="h-4 w-4 text-muted-foreground" />
             </div>
@@ -261,6 +282,9 @@ function PhotoClientsAdmin() {
         ))}
         {!clients.isError && rows.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-10">אין עדיין לקוחות צילום. אפשר להוסיף "לקוחה חדשה" למעלה.</p>
+        )}
+        {!clients.isError && rows.length > 0 && filtered.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-10">אין תוצאות לחיפוש "{q}".</p>
         )}
       </div>
     </div>

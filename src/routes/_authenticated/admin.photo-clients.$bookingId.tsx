@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowRight, Check, Loader2, Star, Trash2, Upload } from "lucide-react";
+import { ArrowRight, Check, ImagePlus, Loader2, Trash2 } from "lucide-react";
 
 // Route param is still named "bookingId" (unchanged, so routeTree.gen.ts
 // doesn't need regenerating) but it now carries a photo_client_workflows.id
@@ -43,6 +43,7 @@ async function uploadImage(workflowId: string, file: File): Promise<{ url: strin
   return { url: data.signedUrl, path };
 }
 
+/** A gallery-style dropzone + numbered thumbnail grid (modeled on ChikTime's galleries screen) — drag files in or click to browse, each photo gets a sequential 001/002/... badge instead of an unlabeled grid. */
 function UploadSection({
   title,
   hint,
@@ -58,12 +59,13 @@ function UploadSection({
   workflowId: string;
   images: ImageRow[];
   onChanged: () => void;
-  /** Only passed for the proofs section — lets the admin mark/unmark a favorite herself (the "V"), e.g. when the client picked in person rather than through /my-photos. */
+  /** Only passed for the proofs section — lets the admin mark/unmark a favorite herself (the "✓"), e.g. when the client picked in person rather than through /my-photos. */
   onToggleSelect?: (imageId: string, selected: boolean) => void;
 }) {
   const addImage = useServerFn(addPhotoClientImage);
   const removeImage = useServerFn(deletePhotoClientImage);
   const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const onFiles = async (files: FileList | null) => {
@@ -71,6 +73,7 @@ function UploadSection({
     setUploading(true);
     try {
       for (const file of Array.from(files)) {
+        if (!file.type.startsWith("image/")) continue;
         const { url, path } = await uploadImage(workflowId, file);
         await addImage({ data: { workflowId, kind, storagePath: path, imageUrl: url } });
       }
@@ -95,22 +98,50 @@ function UploadSection({
 
   return (
     <div className="bg-card rounded-2xl border border-primary/10 p-5 space-y-3">
-      <div>
-        <h3 className="font-display text-lg text-primary">{title}</h3>
-        <p className="text-xs text-muted-foreground">{hint}</p>
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <h3 className="font-display text-lg text-primary">{title}</h3>
+          <p className="text-xs text-muted-foreground">{hint}</p>
+        </div>
+        {images.length > 0 && <span className="text-xs text-muted-foreground shrink-0">תמונות ({images.length})</span>}
       </div>
-      <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={uploading} className="rounded-full">
-        {uploading ? <Loader2 className="h-4 w-4 ml-2 animate-spin" /> : <Upload className="h-4 w-4 ml-2" />}
-        העלאת תמונות
-      </Button>
+
+      {/* Drop zone — drag files in, or click to browse. Plain HTML5 DnD, no library. */}
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          onFiles(e.dataTransfer.files);
+        }}
+        disabled={uploading}
+        className={`w-full rounded-xl border-2 border-dashed p-5 flex items-center gap-3 text-right transition-colors ${
+          dragOver ? "border-primary bg-primary/5" : "border-primary/20 hover:border-primary/40"
+        }`}
+      >
+        {uploading ? <Loader2 className="h-5 w-5 shrink-0 text-primary animate-spin" /> : <ImagePlus className="h-5 w-5 shrink-0 text-primary" />}
+        <div className="min-w-0">
+          <p className="text-sm font-medium">{uploading ? "מעלה..." : "לחצי או גררי תמונות לכאן"}</p>
+          <p className="text-xs text-muted-foreground">JPG, PNG, HEIC</p>
+        </div>
+      </button>
       <input ref={inputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => onFiles(e.target.files)} />
 
       {images.length > 0 && (
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-2">
-          {images.map((img) => (
+          {images.map((img, i) => (
             <div key={img.id} className="relative group aspect-square">
               <img src={img.image_url} alt="" className="w-full h-full object-cover rounded-lg border border-primary/10" />
-              {kind === "proof" && onToggleSelect ? (
+              <span className="absolute bottom-1 right-1 bg-background/85 text-foreground text-[10px] font-mono px-1.5 py-0.5 rounded">
+                {String(i + 1).padStart(3, "0")}
+              </span>
+              {kind === "proof" && onToggleSelect && (
                 <button
                   type="button"
                   onClick={() => onToggleSelect(img.id, !img.selected)}
@@ -122,13 +153,6 @@ function UploadSection({
                 >
                   <Check className="h-3.5 w-3.5" />
                 </button>
-              ) : (
-                kind === "proof" &&
-                img.selected && (
-                  <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-1">
-                    <Star className="h-3 w-3 fill-current" />
-                  </div>
-                )
               )}
               <button
                 type="button"
@@ -251,6 +275,48 @@ function PackageDetails({ workflow, workflowId, onSaved }: { workflow: any; work
   );
 }
 
+/** A connected segmented progress bar (like ChikTime's "בחירה — שליחה — העלאה — טיוט" tracker) instead of a row of separate pill buttons — same click-to-advance behavior, closer visual to the reference. */
+function StageTracker({ stage, onSetStage }: { stage: WorkflowStage; onSetStage: (s: WorkflowStage) => void }) {
+  const stageIndex = WORKFLOW_STAGES.indexOf(stage);
+  return (
+    <div className="bg-card rounded-2xl border border-primary/10 p-5">
+      <div className="flex items-center">
+        {WORKFLOW_STAGES.map((s, i) => (
+          <div key={s} className="flex items-center flex-1 last:flex-initial">
+            <button
+              type="button"
+              onClick={() => onSetStage(s)}
+              className="flex flex-col items-center gap-1.5 shrink-0"
+              title={STAGE_LABELS[s]}
+            >
+              <span
+                className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-medium transition-colors ${
+                  i < stageIndex
+                    ? "bg-primary text-primary-foreground"
+                    : i === stageIndex
+                      ? "bg-primary text-primary-foreground ring-4 ring-primary/15"
+                      : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {i < stageIndex ? <Check className="h-4 w-4" /> : i + 1}
+              </span>
+              <span className={`text-[11px] whitespace-nowrap ${i === stageIndex ? "text-primary font-medium" : "text-muted-foreground"}`}>
+                {STAGE_LABELS[s]}
+              </span>
+            </button>
+            {i < WORKFLOW_STAGES.length - 1 && (
+              <div className={`h-0.5 flex-1 mx-1 -mt-4 ${i < stageIndex ? "bg-primary" : "bg-muted"}`} />
+            )}
+          </div>
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground mt-4">
+        לוחצים על שלב כדי לעדכן את הסטטוס (למשל: "יום צילומים נקבע" אחרי תיאום עם הלקוחה, "אלבום פורסם" כדי לחשוף את התמונות המעובדות ללקוחה).
+      </p>
+    </div>
+  );
+}
+
 function PhotoClientDetail() {
   const { bookingId: workflowId } = Route.useParams();
   const qc = useQueryClient();
@@ -290,7 +356,6 @@ function PhotoClientDetail() {
   const stage = workflow.stage as WorkflowStage;
   const proofImages = (images as ImageRow[]).filter((i) => i.kind === "proof");
   const editedImages = (images as ImageRow[]).filter((i) => i.kind === "edited");
-  const stageIndex = WORKFLOW_STAGES.indexOf(stage);
   const selectedCount = proofImages.filter((i) => i.selected).length;
 
   return (
@@ -300,7 +365,10 @@ function PhotoClientDetail() {
       </Link>
 
       <div>
-        <h2 className="font-display text-xl text-primary">{booking.contact_name}</h2>
+        <h2 className="font-display text-xl text-primary">
+          {booking.contact_name}
+          {workflow.package_type && <span className="text-sm font-normal text-muted-foreground"> · {PHOTO_PACKAGES[workflow.package_type as PhotoPackageKey].label}</span>}
+        </h2>
         <p className="text-sm text-muted-foreground" dir="ltr">
           {booking.contact_phone} {workflow.session_date ? `· ${workflow.session_date}` : "· אין מועד קבוע"}
           {workflow.location ? ` · ${workflow.location}` : ""}
@@ -309,30 +377,7 @@ function PhotoClientDetail() {
 
       <PackageDetails workflow={workflow} workflowId={workflowId} onSaved={refetch} />
 
-      {/* Stage tracker */}
-      <div className="bg-card rounded-2xl border border-primary/10 p-5">
-        <div className="flex flex-wrap gap-2">
-          {WORKFLOW_STAGES.map((s, i) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setStage(s)}
-              className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
-                i === stageIndex
-                  ? "bg-primary text-primary-foreground"
-                  : i < stageIndex
-                    ? "bg-primary/15 text-primary"
-                    : "bg-muted text-muted-foreground hover:bg-muted/70"
-              }`}
-            >
-              {i + 1}. {STAGE_LABELS[s]}
-            </button>
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground mt-3">
-          לוחצים על שלב כדי לעדכן את הסטטוס (למשל: "יום צילומים נקבע" אחרי תיאום עם הלקוחה, "אלבום פורסם" כדי לחשוף את התמונות המעובדות ללקוחה).
-        </p>
-      </div>
+      <StageTracker stage={stage} onSetStage={setStage} />
 
       <UploadSection
         title="תמונות גלם (Proofs)"

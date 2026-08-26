@@ -106,6 +106,27 @@ export const listPhotoClients = createServerFn({ method: "POST" })
       : { data: [] as any[] };
     const profileById = new Map((profiles ?? []).map((p: any) => [p.id, p]));
 
+    // Photo counts for the "gallery card" list — one grouped count per
+    // workflow rather than a per-row query for every client.
+    const workflowIds = (workflows ?? []).map((w: any) => w.id);
+    const { data: allImages } = workflowIds.length
+      ? await supabaseAdmin.from("photo_client_images").select("workflow_id").in("workflow_id", workflowIds)
+      : { data: [] as any[] };
+    const photoCountByWorkflow = new Map<string, number>();
+    for (const img of allImages ?? []) {
+      photoCountByWorkflow.set(img.workflow_id, (photoCountByWorkflow.get(img.workflow_id) ?? 0) + 1);
+    }
+
+    // Emails for the "gallery card" list (auth.users, same pagination as
+    // listClientEmails) — shown under the client's name like the reference.
+    const emailByUserId = new Map<string, string>();
+    for (let page = 1; page <= 10; page++) {
+      const { data: usersPage, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+      if (error) throw new Error(error.message);
+      for (const u of usersPage.users) emailByUserId.set(u.id, u.email ?? "");
+      if (usersPage.users.length < 200) break;
+    }
+
     return (workflows ?? []).map((w: any) => {
       const booking = w.booking_id ? bookingById.get(w.booking_id) : null;
       const profile = profileById.get(w.user_id);
@@ -114,6 +135,7 @@ export const listPhotoClients = createServerFn({ method: "POST" })
         booking_id: w.booking_id as string | null,
         contact_name: booking?.contact_name || profile?.full_name || "—",
         contact_phone: booking?.contact_phone || profile?.phone || "—",
+        contact_email: emailByUserId.get(w.user_id) ?? "",
         // The workflow's own session_date is the source of truth (set at
         // creation, freely editable afterward) — the booking's is only a
         // fallback for old rows from before this column existed.
@@ -121,6 +143,7 @@ export const listPhotoClients = createServerFn({ method: "POST" })
         location: w.location as string | null,
         package_type: w.package_type as PhotoPackageKey | null,
         photos_to_edit: w.photos_to_edit as number | null,
+        photo_count: photoCountByWorkflow.get(w.id) ?? 0,
         stage: w.stage as WorkflowStage,
       };
     });
