@@ -61,7 +61,14 @@ export function ChatBot() {
     try {
       const { reply } = await chat({ data: { messages: next, userName, isAuthenticated: isAuth, sessionId } });
       setMessages([...next, { role: "assistant", content: reply }]);
-    } catch {
+    } catch (e) {
+      // The generic message below is what the customer sees, but it was
+      // swallowing the real error entirely — impossible to tell from the
+      // console whether this was a Gemini/Lovable key problem, a network
+      // failure, or something else. Now it's at least visible to whoever
+      // opens devtools (admin debugging this exact "why doesn't the bot
+      // work" question), without changing what the customer sees.
+      console.error("[SWEETBABY] chat bot request failed", e);
       setMessages([
         ...next,
         {
