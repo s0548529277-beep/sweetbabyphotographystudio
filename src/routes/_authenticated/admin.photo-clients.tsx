@@ -63,6 +63,8 @@ type Row = {
   amount_paid: number;
   balance: number | null;
   stage: WorkflowStage;
+  has_package: boolean;
+  wants_editing: boolean | null;
 };
 
 const EMPTY_FORM = {
@@ -72,6 +74,11 @@ const EMPTY_FORM = {
   sessionDate: "",
   sessionTime: "",
   location: "",
+  // "package": full package (shoot + editing + album, the 5-stage
+  // pipeline). "studio": studio-only booking — wantsEditing then decides
+  // whether she still gets the full pipeline or just a plain upload card.
+  serviceType: "package" as "package" | "studio",
+  wantsEditing: true,
   packageType: "" as PhotoPackageKey | "",
   photosToEdit: "",
   albumUpgrades: "",
@@ -116,6 +123,8 @@ function NewClientDialog({ onCreated }: { onCreated: (workflowId: string) => voi
           photosToEdit: form.photosToEdit.trim() ? Number(form.photosToEdit) : undefined,
           albumUpgrades: form.albumUpgrades.trim() || undefined,
           sendEmail: form.sendEmail,
+          hasPackage: form.serviceType === "package",
+          wantsEditing: form.serviceType === "studio" ? form.wantsEditing : undefined,
         },
       });
       setOpen(false);
@@ -149,6 +158,61 @@ function NewClientDialog({ onCreated }: { onCreated: (workflowId: string) => voi
               להיכנס עם "שכחתי סיסמה" ולראות את התמונות שלה ב"התמונות שלי".
             </p>
 
+            <div>
+              <Label className="text-xs text-muted-foreground">סוג לקוחה</Label>
+              <div className="flex gap-2 mt-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={form.serviceType === "package" ? "default" : "outline"}
+                  className="rounded-full flex-1"
+                  onClick={() => set("serviceType", "package")}
+                >
+                  חבילת צילום מלאה
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={form.serviceType === "studio" ? "default" : "outline"}
+                  className="rounded-full flex-1"
+                  onClick={() => set("serviceType", "studio")}
+                >
+                  השכרת סטודיו בלבד
+                </Button>
+              </div>
+            </div>
+
+            {form.serviceType === "studio" && (
+              <div>
+                <Label className="text-xs text-muted-foreground">לקחה גם עיבוד תמונות?</Label>
+                <div className="flex gap-2 mt-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={form.wantsEditing ? "default" : "outline"}
+                    className="rounded-full flex-1"
+                    onClick={() => set("wantsEditing", true)}
+                  >
+                    כן
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={!form.wantsEditing ? "default" : "outline"}
+                    className="rounded-full flex-1"
+                    onClick={() => set("wantsEditing", false)}
+                  >
+                    לא, רק להעלות תמונות
+                  </Button>
+                </div>
+                {!form.wantsEditing && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    בלי עיבוד — הכרטיסייה שלה תהיה פשוטה: רק העלאת תמונות, בלי שלב בחירה או אלבום.
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="grid sm:grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-muted-foreground">שם</Label>
@@ -176,32 +240,39 @@ function NewClientDialog({ onCreated }: { onCreated: (workflowId: string) => voi
               </div>
             </div>
 
-            <div className="pt-2 border-t border-border space-y-3">
-              <div>
-                <Label className="text-xs text-muted-foreground">סוג חבילה</Label>
-                <Select value={form.packageType || undefined} onValueChange={(v) => pickPackage(v as PhotoPackageKey)}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="בחירת חבילה" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(Object.entries(PHOTO_PACKAGES) as [PhotoPackageKey, (typeof PHOTO_PACKAGES)[PhotoPackageKey]][]).map(([key, p]) => (
-                      <SelectItem key={key} value={key}>
-                        {p.label}
-                        {p.price != null ? ` — ₪${p.price}` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {!(form.serviceType === "studio" && !form.wantsEditing) && (
+              <div className="pt-2 border-t border-border space-y-3">
+                {form.serviceType === "package" && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">סוג חבילה</Label>
+                    <Select value={form.packageType || undefined} onValueChange={(v) => pickPackage(v as PhotoPackageKey)}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="בחירת חבילה" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(Object.entries(PHOTO_PACKAGES) as [PhotoPackageKey, (typeof PHOTO_PACKAGES)[PhotoPackageKey]][]).map(([key, p]) => (
+                          <SelectItem key={key} value={key}>
+                            {p.label}
+                            {p.price != null ? ` — ₪${p.price}` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <div>
+                  <Label className="text-xs text-muted-foreground">כמות תמונות לעיבוד</Label>
+                  <Input type="number" min={0} dir="ltr" value={form.photosToEdit} onChange={(e) => set("photosToEdit", e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">אלבום ושדרוגים</Label>
+                  <Input value={form.albumUpgrades} onChange={(e) => set("albumUpgrades", e.target.value)} placeholder="אלבום דיגיטלי, כריכת בוק, וכו׳" />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    שדרוגים כלליים לעיון: כריכת זכוכית +₪150 · סט נוסף +₪350 · תמונה נוספת לעיבוד +₪40
+                  </p>
+                </div>
               </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">כמות תמונות לעיבוד</Label>
-                <Input type="number" min={0} dir="ltr" value={form.photosToEdit} onChange={(e) => set("photosToEdit", e.target.value)} />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">אלבום ושדרוגים</Label>
-                <Input value={form.albumUpgrades} onChange={(e) => set("albumUpgrades", e.target.value)} placeholder="אלבום דיגיטלי, כריכת בוק, וכו׳" />
-              </div>
-            </div>
+            )}
 
             <div className="flex items-center gap-2">
               <Checkbox checked={form.sendEmail} onCheckedChange={(v) => set("sendEmail", !!v)} />
@@ -637,6 +708,9 @@ function PhotoClientsAdmin() {
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   {r.package_type && <span className="text-xs text-muted-foreground">{PHOTO_PACKAGES[r.package_type].label}</span>}
+                  {!r.has_package && (
+                    <span className="text-xs text-muted-foreground">{r.wants_editing === false ? "סטודיו בלבד" : "סטודיו + עיבוד"}</span>
+                  )}
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <ImageIcon className="h-3.5 w-3.5" /> {r.photo_count}
                   </span>

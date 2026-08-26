@@ -96,7 +96,7 @@ export const listPhotoClients = createServerFn({ method: "POST" })
     const { data: workflows, error: wErr } = await supabaseAdmin
       .from("photo_client_workflows")
       .select(
-        "id, user_id, booking_id, stage, created_at, session_date, session_time, location, package_type, photos_to_edit, total_price, amount_paid, balance",
+        "id, user_id, booking_id, stage, created_at, session_date, session_time, location, package_type, photos_to_edit, total_price, amount_paid, balance, has_package, wants_editing",
       )
       .order("created_at", { ascending: false });
     if (wErr) throw new Error(wErr.message);
@@ -151,6 +151,8 @@ export const listPhotoClients = createServerFn({ method: "POST" })
         amount_paid: w.amount_paid as number,
         balance: w.balance as number | null,
         stage: w.stage as WorkflowStage,
+        has_package: w.has_package as boolean,
+        wants_editing: w.wants_editing as boolean | null,
       };
     });
   });
@@ -188,6 +190,13 @@ const createClientSchema = z.object({
   photosToEdit: z.number().int().min(0).max(1000).optional(), // overrides the package default
   albumUpgrades: z.string().max(2000).optional(), // overrides the package default
   sendEmail: z.boolean().optional(),
+  // "חבילה" (full package: shoot+editing+album, the existing pipeline) vs
+  // studio-only. Defaults true so every pre-existing call site (manual
+  // workflow start, etc.) keeps behaving exactly as before.
+  hasPackage: z.boolean().optional(),
+  // Only meaningful when hasPackage is false — did a studio-only client
+  // also buy editing? false means "just hand her the photos, no pipeline".
+  wantsEditing: z.boolean().optional(),
 });
 
 // A short, memorable temp password padded to satisfy Supabase Auth's
@@ -277,18 +286,29 @@ export const createPhotoClient = createServerFn({ method: "POST" })
     if (existingWf) return { workflowId: existingWf.id as string, isNewAccount, tempPassword: isNewAccount ? TEMP_PASSWORD : null };
 
     const preset = data.packageType ? PHOTO_PACKAGES[data.packageType] : null;
+    const hasPackage = data.hasPackage ?? true;
+    const wantsEditing = hasPackage ? null : (data.wantsEditing ?? null);
+    // A studio-only client with no editing has nothing to progress
+    // through — no proofs to pick from, no album to publish. She starts
+    // straight at "album_published" so the detail page shows just the
+    // plain upload card, and /my-photos shows whatever's uploaded
+    // immediately (that page already treats album_published as "final,
+    // visible to the client", see getMyPhotoGalleries).
+    const simpleDeliveryOnly = !hasPackage && wantsEditing === false;
     const { data: created, error: wfErr } = await supabaseAdmin
       .from("photo_client_workflows")
       .insert({
         user_id: userId,
         booking_id: null,
-        stage: "booked",
+        stage: simpleDeliveryOnly ? "album_published" : "booked",
         session_date: data.sessionDate || null,
         session_time: data.sessionTime || null,
         location: data.location?.trim() || null,
-        package_type: data.packageType ?? null,
-        photos_to_edit: data.photosToEdit ?? preset?.photosToEdit ?? null,
-        album_upgrades: data.albumUpgrades?.trim() || preset?.albumUpgrades || null,
+        package_type: hasPackage ? (data.packageType ?? null) : null,
+        photos_to_edit: hasPackage ? (data.photosToEdit ?? preset?.photosToEdit ?? null) : null,
+        album_upgrades: hasPackage ? data.albumUpgrades?.trim() || preset?.albumUpgrades || null : null,
+        has_package: hasPackage,
+        wants_editing: wantsEditing,
       })
       .select("id")
       .single();
@@ -308,6 +328,8 @@ const updateDetailsSchema = z.object({
   // since the real agreed price commonly differs from the price list.
   totalPrice: z.number().nonnegative().max(1000000).optional().nullable(),
   amountPaid: z.number().nonnegative().max(1000000).optional(),
+  hasPackage: z.boolean().optional(),
+  wantsEditing: z.boolean().optional().nullable(),
 });
 
 /** Edits a client card's package/shoot/payment details after creation — the detail page's "עריכת פרטי חבילה" panel. */
@@ -329,6 +351,8 @@ export const updatePhotoClientDetails = createServerFn({ method: "POST" })
         album_upgrades: fields.albumUpgrades?.trim() || null,
         total_price: fields.totalPrice ?? null,
         ...(fields.amountPaid != null ? { amount_paid: fields.amountPaid } : {}),
+        ...(fields.hasPackage != null ? { has_package: fields.hasPackage } : {}),
+        ...(fields.wantsEditing !== undefined ? { wants_editing: fields.wantsEditing } : {}),
         updated_at: new Date().toISOString(),
       })
       .eq("id", workflowId);
@@ -349,7 +373,7 @@ export const getPhotoClientDetail = createServerFn({ method: "POST" })
     const { data: workflow, error: wErr } = await supabaseAdmin
       .from("photo_client_workflows")
       .select(
-        "id, user_id, booking_id, stage, session_date, session_time, location, package_type, photos_to_edit, album_upgrades, total_price, amount_paid, balance",
+        "id, user_id, booking_id, stage, session_date, session_time, location, package_type, photos_to_edit, album_upgrades, total_price, amount_paid, balance, has_package, wants_editing",
       )
       .eq("id", data.workflowId)
       .single();
@@ -390,6 +414,8 @@ export const getPhotoClientDetail = createServerFn({ method: "POST" })
         total_price: workflow.total_price as number | null,
         amount_paid: workflow.amount_paid as number,
         balance: workflow.balance as number | null,
+        has_package: workflow.has_package as boolean,
+        wants_editing: workflow.wants_editing as boolean | null,
       },
       images: images ?? [],
     };

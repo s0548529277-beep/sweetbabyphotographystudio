@@ -281,6 +281,9 @@ function PackageDetails({ workflow, workflowId, onSaved }: { workflow: any; work
         <div className="sm:col-span-2">
           <Label className="text-xs text-muted-foreground">אלבום ושדרוגים</Label>
           <Input value={form.albumUpgrades} onChange={(e) => set("albumUpgrades", e.target.value)} placeholder="אלבום דיגיטלי, כריכת בוק, וכו׳" />
+          <p className="text-[11px] text-muted-foreground mt-1">
+            שדרוגים כלליים לעיון: כריכת זכוכית +₪150 · סט נוסף +₪350 · תמונה נוספת לעיבוד +₪40
+          </p>
         </div>
       </div>
 
@@ -391,6 +394,7 @@ function PhotoClientDetail() {
   const proofImages = (images as ImageRow[]).filter((i) => i.kind === "proof");
   const editedImages = (images as ImageRow[]).filter((i) => i.kind === "edited");
   const selectedCount = proofImages.filter((i) => i.selected).length;
+  const simpleDeliveryOnly = workflow.has_package === false && workflow.wants_editing === false;
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -414,39 +418,57 @@ function PhotoClientDetail() {
 
       <PackageDetails workflow={workflow} workflowId={workflowId} onSaved={refetch} />
 
-      <StageTracker stage={stage} onSetStage={setStage} />
+      {simpleDeliveryOnly ? (
+        // Studio-only booking, no editing bought — nothing to progress
+        // through (no proofs to pick from, no album stage). Just hand
+        // her the photos; /my-photos already shows "edited" images as
+        // final the moment the stage is album_published, which is where
+        // createPhotoClient started this workflow.
+        <UploadSection
+          title="תמונות"
+          hint="ללקוחה הזו אין תהליך עיבוד/בחירה — כל מה שמעלים כאן נראה לה מיד ב'התמונות שלי'."
+          kind="edited"
+          workflowId={workflowId}
+          images={editedImages}
+          onChanged={refetch}
+        />
+      ) : (
+        <>
+          <StageTracker stage={stage} onSetStage={setStage} />
 
-      <UploadSection
-        title="תמונות גלם (Proofs)"
-        hint='הלקוחה תראה את אלה ותוכל לסמן מועדפות (או שמסמנים כאן בשמה, ב-✓) ברגע שהשלב יעודכן ל"המתנה לבחירת לקוחה".'
-        kind="proof"
-        workflowId={workflowId}
-        images={proofImages}
-        onChanged={refetch}
-        onToggleSelect={onToggleSelect}
-      />
+          <UploadSection
+            title="תמונות גלם (Proofs)"
+            hint='הלקוחה תראה את אלה ותוכל לסמן מועדפות (או שמסמנים כאן בשמה, ב-✓) ברגע שהשלב יעודכן ל"המתנה לבחירת לקוחה".'
+            kind="proof"
+            workflowId={workflowId}
+            images={proofImages}
+            onChanged={refetch}
+            onToggleSelect={onToggleSelect}
+          />
 
-      {stage !== "booked" && stage !== "date_confirmed" && (
-        <p className="text-sm text-muted-foreground -mt-3">
-          {selectedCount > 0 ? (
-            <>
-              <Check className="inline h-3.5 w-3.5 ml-1 text-primary" />
-              {selectedCount} תמונות מסומנות כמועדפות.
-            </>
-          ) : (
-            "עדיין לא סומנו בחירות."
+          {stage !== "booked" && stage !== "date_confirmed" && (
+            <p className="text-sm text-muted-foreground -mt-3">
+              {selectedCount > 0 ? (
+                <>
+                  <Check className="inline h-3.5 w-3.5 ml-1 text-primary" />
+                  {selectedCount} תמונות מסומנות כמועדפות.
+                </>
+              ) : (
+                "עדיין לא סומנו בחירות."
+              )}
+            </p>
           )}
-        </p>
-      )}
 
-      <UploadSection
-        title="תמונות מעובדות"
-        hint='טיוטה — הלקוחה לא רואה את אלה עד שמעדכנים את השלב ל"אלבום פורסם".'
-        kind="edited"
-        workflowId={workflowId}
-        images={editedImages}
-        onChanged={refetch}
-      />
+          <UploadSection
+            title="תמונות מעובדות"
+            hint='טיוטה — הלקוחה לא רואה את אלה עד שמעדכנים את השלב ל"אלבום פורסם".'
+            kind="edited"
+            workflowId={workflowId}
+            images={editedImages}
+            onChanged={refetch}
+          />
+        </>
+      )}
     </div>
   );
 }
