@@ -106,6 +106,11 @@ export const adminSetStatus = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Prefix on the "linked photo workflow" error, so the client can tell it
+// apart from any other failure and offer the force-delete confirmation
+// instead of just showing it as a dead-end error toast.
+export const PHOTO_WORKFLOW_LINKED_PREFIX = "PHOTO_WORKFLOW_LINKED:";
+
 /**
  * Permanently removes a cancelled order/booking row from /admin/orders —
  * the trash icon that only appears once a row is already "בוטל", so this
@@ -117,13 +122,19 @@ export const adminSetStatus = createServerFn({ method: "POST" })
  *
  * bookings(id) cascades to photo_client_workflows.booking_id — a
  * photography booking that already has proof/edited photos uploaded for
- * a client must never be deleted through this button, or the whole
- * workflow (and every photo in it) would vanish along with it. Blocked
- * explicitly rather than relying on the cascade to "just work".
+ * a client would take the whole workflow (and every photo in it) down
+ * with it. First call (force omitted) refuses and reports that a
+ * workflow is linked, so the UI can ask the admin to confirm explicitly;
+ * only with force=true does this actually delete the workflow's images
+ * (storage objects included, not just the DB rows) and the workflow
+ * itself before deleting the booking — a real decision, not a silent
+ * cascade.
  */
 export const adminDeleteRecord = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ kind: z.enum(["order", "booking"]), id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ kind: z.enum(["order", "booking"]), id: z.string().uuid(), force: z.boolean().optional() }).parse(d),
+  )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -139,7 +150,16 @@ export const adminDeleteRecord = createServerFn({ method: "POST" })
         .select("id")
         .eq("booking_id", data.id)
         .maybeSingle();
-      if (workflow) throw new Error("יש תהליך תמונות (גלריה) מקושר לשריון הזה — אי אפשר למחוק בלי לאבד את התמונות. פני לתמיכה אם צריך.");
+      if (workflow) {
+        if (!data.force) {
+          throw new Error(`${PHOTO_WORKFLOW_LINKED_PREFIX}יש תהליך תמונות (גלריה) מקושר לשריון הזה — מחיקת ההזמנה תמחק גם את כל התמונות שלו.`);
+        }
+        const { data: images } = await supabaseAdmin.from("photo_client_images").select("storage_path").eq("workflow_id", workflow.id);
+        const paths = (images ?? []).map((i: any) => i.storage_path).filter(Boolean);
+        if (paths.length) await supabaseAdmin.storage.from("items").remove(paths);
+        const { error: wfDelErr } = await supabaseAdmin.from("photo_client_workflows").delete().eq("id", workflow.id);
+        if (wfDelErr) throw new Error(wfDelErr.message);
+      }
     }
 
     const { error: delErr } = await supabaseAdmin.from(table).delete().eq("id", data.id);

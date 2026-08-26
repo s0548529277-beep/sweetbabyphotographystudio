@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { adminDeleteRecord, adminSetStatus } from "@/lib/admin-orders.functions";
+import { adminDeleteRecord, adminSetStatus, PHOTO_WORKFLOW_LINKED_PREFIX } from "@/lib/admin-orders.functions";
 import { heError } from "@/lib/he-errors";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -112,13 +112,21 @@ function OrdersAdmin() {
   };
 
   const doDelete = useServerFn(adminDeleteRecord);
-  const deleteRow = async (row: Row) => {
-    if (!confirm(`למחוק לצמיתות את ${row.kind === "booking" ? "השריון" : "ההזמנה"} של ${row.name}?`)) return;
+  const deleteRow = async (row: Row, force = false) => {
+    if (!force && !confirm(`למחוק לצמיתות את ${row.kind === "booking" ? "השריון" : "ההזמנה"} של ${row.name}?`)) return;
     try {
-      await doDelete({ data: { kind: row.kind, id: row.id } });
+      await doDelete({ data: { kind: row.kind, id: row.id, force } });
       toast.success("נמחק");
       qc.invalidateQueries({ queryKey: ["admin-all-orders"] });
-    } catch (e) {
+    } catch (e: any) {
+      const message = e?.message ?? "";
+      if (message.includes(PHOTO_WORKFLOW_LINKED_PREFIX)) {
+        const detail = message.slice(message.indexOf(PHOTO_WORKFLOW_LINKED_PREFIX) + PHOTO_WORKFLOW_LINKED_PREFIX.length);
+        if (confirm(`${detail}\n\nלמחוק בכל זאת, כולל כל התמונות? זה לא ניתן לביטול.`)) {
+          deleteRow(row, true);
+        }
+        return;
+      }
       toast.error(heError(e, "המחיקה נכשלה"));
     }
   };
