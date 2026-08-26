@@ -27,7 +27,7 @@ const links = [
   { to: "/admin/newsletter", label: "ניוזלטר", icon: Mail },
   { to: "/admin/site-bot", label: "בוט עריכה", icon: Bot },
   { to: "/admin/site-bot-ask", label: "בוט מידע כללי", icon: MessageCircleQuestion },
-  { to: "/admin/chat-logs", label: "שיחות צ'אט לקוחות", icon: MessageCircle },
+  { to: "/admin/chat-logs", label: "שיחות בוט (צ'אט וטלפון)", icon: MessageCircle },
   { to: "/admin/gallery", label: "גלריות", icon: Images },
   { to: "/admin/inspiration", label: "השראה למק״ט", icon: Camera },
   { to: "/admin/photo-editor", label: "עריכת תמונות (AI)", icon: Wand2 },
