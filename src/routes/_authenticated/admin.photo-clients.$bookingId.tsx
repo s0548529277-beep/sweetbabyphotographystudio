@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { compressImage } from "@/lib/image-compress.client";
+import { compressImage } from "@/lib/image-compress";
 import {
   addPhotoClientImage,
   adminToggleProofSelection,
