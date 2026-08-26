@@ -54,7 +54,13 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel)
 
   for (const key of geminiKeys) {
     try {
-      return await generateText({ ...options, model: createDirectGeminiProvider(key)("gemini-2.5-flash") } as GenerateTextOptions);
+      // "gemini-2.5-flash" is what the Lovable gateway's own model alias
+      // resolves internally — going straight to Google's API needs
+      // Google's own current model id, which isn't the same thing and
+      // drifts over time (confirmed live: this exact string 404'd with
+      // "Not Found" against the direct endpoint on 2026-08-27, while the
+      // gateway path below kept working under the old name).
+      return await generateText({ ...options, model: createDirectGeminiProvider(key)("gemini-3-flash-preview") } as GenerateTextOptions);
     } catch (e) {
       console.error(`[SWEETBABY] Gemini key ...${key.slice(-4)} failed, trying the next one`, e);
     }
