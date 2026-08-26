@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
-import { parseTwilioForm, twimlSayAndGather, verifyTwilioSignature } from "@/lib/twilio.server";
+import { parseTwilioForm, twimlSayAndGatherMenu, verifyTwilioSignature } from "@/lib/twilio.server";
+import { MENU_PROMPT } from "@/lib/voice-menu.server";
 
-const GREETING =
-  "שלום, הגעת לסטודיו סוויט בייבי, איתך בוט Sweetbaby. אפשר לשאול אותי על שעות, מחירים, זמינות, או לבקש לשריין תור. איך אפשר לעזור?";
+const GREETING = "שלום, הגעת לסטודיו סוויט בייבי, איתך בוט Sweetbaby.";
 
 // Configured as the Voice webhook on the Twilio phone number (Console →
 // Phone Numbers → the number → "A call comes in" → this URL, POST).
@@ -19,13 +19,15 @@ export const Route = createFileRoute("/api/voice/incoming")({
         const fromNumber = params.From ?? "";
         if (!callSid) return new Response("Bad Request", { status: 400 });
 
+        const greetingWithMenu = `${GREETING} ${MENU_PROMPT}`;
         try {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           await supabaseAdmin.from("voice_call_sessions").upsert(
             {
               call_sid: callSid,
               from_number: fromNumber,
-              messages: [{ role: "assistant", content: GREETING }],
+              messages: [{ role: "assistant", content: greetingWithMenu }],
+              stage: "menu",
               updated_at: new Date().toISOString(),
             },
             { onConflict: "call_sid" },
@@ -36,7 +38,7 @@ export const Route = createFileRoute("/api/voice/incoming")({
 
         const base = new URL(request.url);
         const actionUrl = `${base.protocol}//${base.host}/api/voice/respond`;
-        return twimlSayAndGather(GREETING, actionUrl);
+        return twimlSayAndGatherMenu(greetingWithMenu, actionUrl);
       },
     },
   },

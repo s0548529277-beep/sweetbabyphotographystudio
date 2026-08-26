@@ -67,6 +67,18 @@ export function yemotSayAndListen(text: string): Response {
   return yemotResponse(`read=${textSegment(text)}=speech,no,voice,he`);
 }
 
+/**
+ * Same shape as yemotSayAndListen, but collects a single keypad digit
+ * instead of speech — for the fixed menu (voice-menu.server.ts). Unlike the
+ * "voice" mode above, this hasn't been confirmed against a live call yet;
+ * if it doesn't behave as expected the fallback (re-prompting with
+ * yemotSayAndListen instead, so the caller can just say the number) covers
+ * it either way.
+ */
+export function yemotSayAndListenDigit(text: string): Response {
+  return yemotResponse(`read=${textSegment(text)}=digit,no,tap,he`);
+}
+
 /** Speaks `text` in Hebrew and ends the call. */
 export function yemotSayAndHangup(text: string): Response {
   return yemotResponse(`id_list_message=${textSegment(text)}&go_to_folder=hangup`);
