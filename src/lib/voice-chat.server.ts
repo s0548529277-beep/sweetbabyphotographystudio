@@ -75,32 +75,44 @@ export type VoiceTurnResult = {
 
 /** Runs one turn of the phone-call conversation through the same AI brain as the text chat, with a voice-appropriate tool set (read-only site info + phone booking + transfer/end-call signals). */
 export async function runVoiceTurn(messages: VoiceMessage[], callerPhone: string): Promise<VoiceTurnResult> {
-  // Direct Gemini key (own quota/pricing, no Lovable Gateway markup) is
-  // preferred for the voice assistant when it's set; falls back to the
-  // shared gateway automatically until GEMINI_API_KEY exists, so setting
-  // it up is a zero-downtime swap, not a breaking change.
   const geminiKey = process.env.GEMINI_API_KEY;
   const lovableKey = process.env.LOVABLE_API_KEY;
-  let model: ReturnType<ReturnType<typeof createLovableAiGatewayProvider>>;
-  if (geminiKey) {
-    model = createDirectGeminiProvider(geminiKey)("gemini-2.5-flash");
-  } else {
-    if (!lovableKey) throw new Error("Missing GEMINI_API_KEY or LOVABLE_API_KEY");
-    model = createLovableAiGatewayProvider(lovableKey)("google/gemini-2.5-flash");
-  }
+  if (!geminiKey && !lovableKey) throw new Error("Missing GEMINI_API_KEY or LOVABLE_API_KEY");
 
   const { israelNow } = await import("./availability.server");
   const now = israelNow();
 
   const toolRules = `\n\nהיום ${now.date}, השעה בישראל ${now.time}. יש לך גישה אמיתית ליומן הסטודיו ולמלאי האביזרים — בדקי תמיד עם הכלים (check_studio_availability / check_prop_availability / find_next_available_days / quote_studio_price / list_active_coupons), בכל פעם מחדש, אף פעם אל תניחי או תסתמכי על תשובה קודמת באותה שיחה.`;
 
-  const result = await generateText({
-    model,
-    system: SYSTEM + VOICE_STYLE + toolRules,
-    messages,
-    tools: buildVoiceTools(callerPhone),
-    stopWhen: stepCountIs(8),
-  });
+  const runWith = (model: Parameters<typeof generateText>[0]["model"]) =>
+    generateText({
+      model,
+      system: SYSTEM + VOICE_STYLE + toolRules,
+      messages,
+      tools: buildVoiceTools(callerPhone),
+      stopWhen: stepCountIs(8),
+    });
+
+  // Direct Gemini key (own quota/pricing, no Lovable Gateway markup) is
+  // preferred when set, but a call is not the place to discover it's
+  // unusable — a brand-new Google Cloud project can need billing enabled
+  // before the API actually serves requests, even within the free quota,
+  // and that's exactly the kind of thing that only shows up as a live
+  // error. Falls straight back to the shared gateway (which we know
+  // already works) on ANY failure of the direct key, so a half-finished
+  // Gemini setup degrades a call instead of dropping it.
+  let result: Awaited<ReturnType<typeof runWith>>;
+  if (geminiKey) {
+    try {
+      result = await runWith(createDirectGeminiProvider(geminiKey)("gemini-2.5-flash"));
+    } catch (e) {
+      console.error("[SWEETBABY] direct Gemini key failed, falling back to Lovable AI Gateway", e);
+      if (!lovableKey) throw e;
+      result = await runWith(createLovableAiGatewayProvider(lovableKey)("google/gemini-2.5-flash"));
+    }
+  } else {
+    result = await runWith(createLovableAiGatewayProvider(lovableKey!)("google/gemini-2.5-flash"));
+  }
 
   let action: VoiceTurnResult["action"] = "continue";
   for (const step of result.steps ?? []) {
