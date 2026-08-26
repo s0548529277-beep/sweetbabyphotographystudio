@@ -5,6 +5,7 @@ import { useState } from "react";
 import {
   listPhotoClients,
   createPhotoClient,
+  sendPaymentReminderEmails,
   STAGE_LABELS,
   PHOTO_PACKAGES,
   type WorkflowStage,
@@ -17,7 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Camera, ChevronLeft, ImageIcon, Search, TriangleAlert, UserPlus } from "lucide-react";
+import { Camera, ChevronLeft, ImageIcon, Mail, Search, TriangleAlert, UserPlus, Users, Wallet } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/photo-clients")({
   component: PhotoClientsAdmin,
@@ -42,6 +43,9 @@ type Row = {
   package_type: PhotoPackageKey | null;
   photos_to_edit: number | null;
   photo_count: number;
+  total_price: number | null;
+  amount_paid: number;
+  balance: number | null;
   stage: WorkflowStage;
 };
 
@@ -195,10 +199,135 @@ function NewClientDialog({ onCreated }: { onCreated: (workflowId: string) => voi
   );
 }
 
+const PAYMENT_FILTERS = [
+  { key: "all", label: "הכל" },
+  { key: "open", label: "יתרה פתוחה" },
+  { key: "paid", label: "שולם במלואו" },
+] as const;
+type PaymentFilter = (typeof PAYMENT_FILTERS)[number]["key"];
+
+/** "תשלומי לקוחות" tab — stat tiles, filterable list with a paid/total progress bar per client, and a bulk "מייל תשלום ללקוחות" action. Only clients with a total_price set show up here (no price entered = nothing to track yet). */
+function PaymentsView({ rows }: { rows: Row[] }) {
+  const [filter, setFilter] = useState<PaymentFilter>("all");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [sending, setSending] = useState(false);
+  const sendReminders = useServerFn(sendPaymentReminderEmails);
+
+  const priced = rows.filter((r) => r.total_price != null);
+  const totalPaid = priced.reduce((s, r) => s + r.amount_paid, 0);
+  const totalOpen = priced.reduce((s, r) => s + Math.max(0, r.balance ?? 0), 0);
+
+  const filteredRows = priced.filter((r) => {
+    if (filter === "open") return (r.balance ?? 0) > 0;
+    if (filter === "paid") return (r.balance ?? 0) <= 0;
+    return true;
+  });
+
+  const toggle = (id: string) =>
+    setSelected((s) => {
+      const next = new Set(s);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const sendToSelected = async () => {
+    if (selected.size === 0) return toast.error("צריך לבחור לפחות לקוחה אחת");
+    setSending(true);
+    try {
+      const { results } = await sendReminders({ data: { workflowIds: Array.from(selected) } });
+      const sentCount = results.filter((r) => r.sent).length;
+      const skipped = results.filter((r) => !r.sent);
+      if (sentCount > 0) toast.success(`נשלחו ${sentCount} מיילים`);
+      if (skipped.length > 0) {
+        toast.error(`${skipped.length} לא נשלחו: ${skipped.map((s) => s.reason).join(", ")}`, { duration: 8000 });
+      }
+      setSelected(new Set());
+    } catch (e: any) {
+      toast.error(e?.message ?? "השליחה נכשלה");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="bg-card rounded-2xl border border-primary/10 p-4 text-center">
+          <p className="font-display text-2xl text-primary">₪{totalPaid.toFixed(0)}</p>
+          <p className="text-xs text-muted-foreground mt-1">שולם סה״כ</p>
+        </div>
+        <div className="bg-card rounded-2xl border border-primary/10 p-4 text-center">
+          <p className="font-display text-2xl text-peach-deep">₪{totalOpen.toFixed(0)}</p>
+          <p className="text-xs text-muted-foreground mt-1">יתרה פתוחה</p>
+        </div>
+        <div className="bg-card rounded-2xl border border-primary/10 p-4 text-center">
+          <p className="font-display text-2xl text-primary">{priced.length}</p>
+          <p className="text-xs text-muted-foreground mt-1">הזמנות עם מחיר</p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex gap-2">
+          {PAYMENT_FILTERS.map((f) => (
+            <Button
+              key={f.key}
+              type="button"
+              size="sm"
+              variant={filter === f.key ? "default" : "outline"}
+              className="rounded-full"
+              onClick={() => setFilter(f.key)}
+            >
+              {f.label}
+            </Button>
+          ))}
+        </div>
+        <Button type="button" size="sm" variant="outline" className="rounded-full gap-1.5" disabled={sending || selected.size === 0} onClick={sendToSelected}>
+          <Mail className="h-3.5 w-3.5" /> {sending ? "שולח..." : `מייל תשלום ללקוחות (${selected.size})`}
+        </Button>
+      </div>
+
+      <div className="bg-card rounded-2xl border border-primary/10 divide-y divide-primary/5">
+        {filteredRows.map((r) => {
+          const total = r.total_price ?? 0;
+          const pct = total > 0 ? Math.min(100, Math.round((r.amount_paid / total) * 100)) : 0;
+          const paidInFull = (r.balance ?? 0) <= 0;
+          return (
+            <div key={r.id} className="flex items-center gap-3 p-4">
+              <Checkbox checked={selected.has(r.id)} onCheckedChange={() => toggle(r.id)} disabled={paidInFull} />
+              <Link to="/admin/photo-clients/$bookingId" params={{ bookingId: r.id }} className="flex-1 min-w-0 hover:opacity-80">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium">{r.contact_name}</p>
+                  {paidInFull ? (
+                    <span className="text-xs text-green-700 flex items-center gap-1 shrink-0">שולם</span>
+                  ) : (
+                    <span className="text-xs text-peach-deep shrink-0">יתרה ₪{(r.balance ?? 0).toFixed(0)}</span>
+                  )}
+                </div>
+                <div className="h-1.5 rounded-full bg-muted mt-1.5 overflow-hidden">
+                  <div className={`h-full rounded-full ${paidInFull ? "bg-green-500" : "bg-primary"}`} style={{ width: `${pct}%` }} />
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1" dir="ltr">
+                  ₪{r.amount_paid.toFixed(0)} / ₪{total.toFixed(0)}
+                </p>
+              </Link>
+            </div>
+          );
+        })}
+        {filteredRows.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-10">
+            {priced.length === 0 ? 'אין עדיין לקוחות עם "סכום כולל" מוגדר (מוגדר בעמוד הפרטים של כל לקוחה).' : "אין תוצאות למסנן הזה."}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function PhotoClientsAdmin() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [q, setQ] = useState("");
+  const [view, setView] = useState<"clients" | "payments">("clients");
   const fetchClients = useServerFn(listPhotoClients);
   const clients = useQuery({ queryKey: ["photo-clients"], queryFn: () => fetchClients({}) });
   const rows = (clients.data ?? []) as unknown as Row[];
@@ -225,6 +354,15 @@ function PhotoClientsAdmin() {
         <NewClientDialog onCreated={onWorkflowCreated} />
       </div>
 
+      <div className="flex gap-2">
+        <Button type="button" size="sm" variant={view === "clients" ? "default" : "outline"} className="rounded-full gap-1.5" onClick={() => setView("clients")}>
+          <Users className="h-3.5 w-3.5" /> לקוחות
+        </Button>
+        <Button type="button" size="sm" variant={view === "payments" ? "default" : "outline"} className="rounded-full gap-1.5" onClick={() => setView("payments")}>
+          <Wallet className="h-3.5 w-3.5" /> תשלומים
+        </Button>
+      </div>
+
       {/* A failed fetch used to render exactly like "no clients yet" — surfacing
           the real error here so a genuine bug (RLS, permissions, ...) doesn't
           look identical to an empty-but-fine list. */}
@@ -243,50 +381,56 @@ function PhotoClientsAdmin() {
         </div>
       )}
 
-      {rows.length > 0 && (
-        <div className="relative max-w-sm">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="חיפוש לפי שם או אימייל..." className="pr-9" />
-        </div>
-      )}
+      {view === "payments" ? (
+        <PaymentsView rows={rows} />
+      ) : (
+        <>
+          {rows.length > 0 && (
+            <div className="relative max-w-sm">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="חיפוש לפי שם או אימייל..." className="pr-9" />
+            </div>
+          )}
 
-      <div className="bg-card rounded-2xl border border-primary/10 divide-y divide-primary/5">
-        {filtered.map((r) => (
-          <Link
-            key={r.id}
-            to="/admin/photo-clients/$bookingId"
-            params={{ bookingId: r.id }}
-            className="flex items-center justify-between gap-3 p-4 hover:bg-cream/30 transition"
-          >
-            <div className="min-w-0">
-              <p className="text-sm font-medium">{r.contact_name}</p>
-              {r.contact_email && (
-                <p className="text-xs text-muted-foreground mt-0.5" dir="ltr">
-                  {r.contact_email}
-                </p>
-              )}
-              <p className="text-xs text-muted-foreground mt-0.5" dir="ltr">
-                {r.contact_phone} {r.session_date ? `· ${r.session_date}` : "· אין מועד"}
-                {r.location ? ` · ${r.location}` : ""}
-              </p>
-            </div>
-            <div className="flex items-center gap-3 shrink-0">
-              {r.package_type && <span className="text-xs text-muted-foreground">{PHOTO_PACKAGES[r.package_type].label}</span>}
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <ImageIcon className="h-3.5 w-3.5" /> {r.photo_count}
-              </span>
-              <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STAGE_COLORS[r.stage]}`}>{STAGE_LABELS[r.stage]}</span>
-              <ChevronLeft className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </Link>
-        ))}
-        {!clients.isError && rows.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-10">אין עדיין לקוחות צילום. אפשר להוסיף "לקוחה חדשה" למעלה.</p>
-        )}
-        {!clients.isError && rows.length > 0 && filtered.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-10">אין תוצאות לחיפוש "{q}".</p>
-        )}
-      </div>
+          <div className="bg-card rounded-2xl border border-primary/10 divide-y divide-primary/5">
+            {filtered.map((r) => (
+              <Link
+                key={r.id}
+                to="/admin/photo-clients/$bookingId"
+                params={{ bookingId: r.id }}
+                className="flex items-center justify-between gap-3 p-4 hover:bg-cream/30 transition"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{r.contact_name}</p>
+                  {r.contact_email && (
+                    <p className="text-xs text-muted-foreground mt-0.5" dir="ltr">
+                      {r.contact_email}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-0.5" dir="ltr">
+                    {r.contact_phone} {r.session_date ? `· ${r.session_date}` : "· אין מועד"}
+                    {r.location ? ` · ${r.location}` : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  {r.package_type && <span className="text-xs text-muted-foreground">{PHOTO_PACKAGES[r.package_type].label}</span>}
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <ImageIcon className="h-3.5 w-3.5" /> {r.photo_count}
+                  </span>
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STAGE_COLORS[r.stage]}`}>{STAGE_LABELS[r.stage]}</span>
+                  <ChevronLeft className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </Link>
+            ))}
+            {!clients.isError && rows.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-10">אין עדיין לקוחות צילום. אפשר להוסיף "לקוחה חדשה" למעלה.</p>
+            )}
+            {!clients.isError && rows.length > 0 && filtered.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-10">אין תוצאות לחיפוש "{q}".</p>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

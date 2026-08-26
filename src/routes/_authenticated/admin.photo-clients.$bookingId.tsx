@@ -176,6 +176,8 @@ type PackageForm = {
   packageType: PhotoPackageKey | "";
   photosToEdit: string;
   albumUpgrades: string;
+  totalPrice: string;
+  amountPaid: string;
 };
 
 function toPackageForm(workflow: any): PackageForm {
@@ -185,6 +187,8 @@ function toPackageForm(workflow: any): PackageForm {
     packageType: (workflow.package_type as PhotoPackageKey) ?? "",
     photosToEdit: workflow.photos_to_edit != null ? String(workflow.photos_to_edit) : "",
     albumUpgrades: workflow.album_upgrades ?? "",
+    totalPrice: workflow.total_price != null ? String(workflow.total_price) : "",
+    amountPaid: workflow.amount_paid != null ? String(workflow.amount_paid) : "0",
   };
 }
 
@@ -220,6 +224,8 @@ function PackageDetails({ workflow, workflowId, onSaved }: { workflow: any; work
           packageType: form.packageType || null,
           photosToEdit: form.photosToEdit.trim() ? Number(form.photosToEdit) : null,
           albumUpgrades: form.albumUpgrades.trim() || null,
+          totalPrice: form.totalPrice.trim() ? Number(form.totalPrice) : null,
+          amountPaid: form.amountPaid.trim() ? Number(form.amountPaid) : 0,
         },
       });
       toast.success("פרטי החבילה נשמרו");
@@ -268,6 +274,25 @@ function PackageDetails({ workflow, workflowId, onSaved }: { workflow: any; work
           <Input value={form.albumUpgrades} onChange={(e) => set("albumUpgrades", e.target.value)} placeholder="אלבום דיגיטלי, כריכת בוק, וכו׳" />
         </div>
       </div>
+
+      {/* Payment fields are always entered by hand — never auto-filled from the package price. */}
+      <div className="pt-3 border-t border-border grid sm:grid-cols-3 gap-3">
+        <div>
+          <Label className="text-xs text-muted-foreground">סכום כולל (₪)</Label>
+          <Input type="number" min={0} dir="ltr" value={form.totalPrice} onChange={(e) => set("totalPrice", e.target.value)} placeholder="ריק = לא הוגדר" />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">שולם עד כה (₪)</Label>
+          <Input type="number" min={0} dir="ltr" value={form.amountPaid} onChange={(e) => set("amountPaid", e.target.value)} />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">יתרה פתוחה</Label>
+          <div className="h-10 flex items-center font-display text-lg text-peach-deep" dir="ltr">
+            {form.totalPrice.trim() ? `₪${(Number(form.totalPrice) - Number(form.amountPaid || 0)).toFixed(0)}` : "—"}
+          </div>
+        </div>
+      </div>
+
       <Button type="button" size="sm" onClick={save} disabled={busy} className="rounded-full">
         {busy ? "שומר..." : "שמירת פרטים"}
       </Button>
