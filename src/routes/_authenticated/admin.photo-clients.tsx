@@ -1,8 +1,14 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { listPhotoClients, STAGE_LABELS, type WorkflowStage } from "@/lib/photo-clients.functions";
-import { Camera, ChevronLeft, TriangleAlert } from "lucide-react";
+import { useState } from "react";
+import { listPhotoClients, startPhotoWorkflowByEmail, STAGE_LABELS, type WorkflowStage } from "@/lib/photo-clients.functions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { Camera, ChevronLeft, TriangleAlert, UserPlus } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/photo-clients")({
   component: PhotoClientsAdmin,
@@ -25,20 +31,89 @@ type Row = {
   stage: WorkflowStage;
 };
 
+/** "הוספת לקוחה לפי מייל" — starts a photo workflow by email alone, no site account required in advance (one gets minted for her if she doesn't have one, same trick as the guest-checkout flow). */
+function AddByEmailDialog({ onCreated }: { onCreated: (workflowId: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const startByEmail = useServerFn(startPhotoWorkflowByEmail);
+
+  const submit = async () => {
+    if (!email.trim()) return toast.error("צריך למלא אימייל");
+    setBusy(true);
+    try {
+      const { workflowId } = await startByEmail({ data: { email: email.trim(), name: name.trim() || undefined } });
+      setOpen(false);
+      setEmail("");
+      setName("");
+      onCreated(workflowId);
+    } catch (e: any) {
+      toast.error(e?.message || "הוספת הלקוחה נכשלה");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <Button type="button" variant="outline" size="sm" className="rounded-full gap-1.5" onClick={() => setOpen(true)}>
+        <UserPlus className="h-3.5 w-3.5" /> הוספת לקוחה לפי מייל
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>הוספת לקוחה לפי מייל</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              אם כבר יש לה חשבון באתר עם המייל הזה — התהליך יתחבר אליו. אם אין — ייפתח לה חשבון חדש אוטומטית, כדי שתוכל בהמשך
+              להיכנס עם "שכחתי סיסמה" ולראות את התמונות שלה ב"התמונות שלי".
+            </p>
+            <div>
+              <Label className="text-xs text-muted-foreground">אימייל *</Label>
+              <Input type="email" dir="ltr" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="client@example.com" />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">שם (רשות)</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="שם הלקוחה" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" onClick={submit} disabled={busy} className="rounded-full">
+              {busy ? "יוצר..." : "יצירה והמשך להעלאת תמונות"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 function PhotoClientsAdmin() {
+  const navigate = useNavigate();
+  const qc = useQueryClient();
   const fetchClients = useServerFn(listPhotoClients);
   const clients = useQuery({ queryKey: ["photo-clients"], queryFn: () => fetchClients({}) });
   const rows = (clients.data ?? []) as unknown as Row[];
 
+  const onWorkflowCreated = (workflowId: string) => {
+    qc.invalidateQueries({ queryKey: ["photo-clients"] });
+    navigate({ to: "/admin/photo-clients/$bookingId", params: { bookingId: workflowId } });
+  };
+
   return (
     <div className="space-y-6 max-w-4xl">
-      <div>
-        <h2 className="font-display text-xl text-primary mb-1 flex items-center gap-2">
-          <Camera className="h-5 w-5" /> לקוחות צילום
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          כל לקוחה שהזמינה צילומים עם מיכל, וכל לקוחה שהתחלת לה תהליך ידנית — מעקב אחר שלב מסירת התמונות שלה.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="font-display text-xl text-primary mb-1 flex items-center gap-2">
+            <Camera className="h-5 w-5" /> לקוחות צילום
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            כל לקוחה שהזמינה צילומים עם מיכל, וכל לקוחה שהתחלת לה תהליך ידנית — מעקב אחר שלב מסירת התמונות שלה.
+          </p>
+        </div>
+        <AddByEmailDialog onCreated={onWorkflowCreated} />
       </div>
 
       {/* A failed fetch used to render exactly like "no clients yet" — surfacing
@@ -81,7 +156,7 @@ function PhotoClientsAdmin() {
         ))}
         {!clients.isError && rows.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-10">
-            אין עדיין לקוחות צילום. אפשר להתחיל תהליך תמונות ידנית מ"לקוחות" גם בלי הזמנת צילום.
+            אין עדיין לקוחות צילום. אפשר להוסיף לקוחה לפי מייל למעלה, או להתחיל תהליך ידנית מ"לקוחות".
           </p>
         )}
       </div>

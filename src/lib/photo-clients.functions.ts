@@ -111,6 +111,68 @@ export const startManualPhotoWorkflow = createServerFn({ method: "POST" })
     return { workflowId: created.id as string };
   });
 
+const byEmailSchema = z.object({ email: z.string().email(), name: z.string().max(120).optional() });
+
+/**
+ * Same as startManualPhotoWorkflow, but for a client who might not have an
+ * account at all yet — the admin only has her email (e.g. from a walk-in
+ * shoot, or a booking made before this feature existed). If an account
+ * with that email already exists it's reused (and its existing workflow,
+ * if any — never creates a duplicate); otherwise a real account is minted
+ * for her (same idea as the "continue as guest" anonymous-account trick
+ * used by voice-booking.server.ts, but with her actual email, so she can
+ * later "שכחתי סיסמה" her way into /my-photos to see the album).
+ */
+export const startPhotoWorkflowByEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => byEmailSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const email = data.email.trim().toLowerCase();
+
+    // auth.users has no direct "find by email" in the admin API — page
+    // through listUsers same as listClientEmails does.
+    let userId: string | null = null;
+    for (let page = 1; page <= 20; page++) {
+      const { data: usersPage, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+      if (error) throw new Error(error.message);
+      const match = usersPage.users.find((u: any) => (u.email ?? "").toLowerCase() === email);
+      if (match) {
+        userId = match.id;
+        break;
+      }
+      if (usersPage.users.length < 200) break;
+    }
+
+    if (!userId) {
+      const { data: createdUser, error } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        email_confirm: true,
+        user_metadata: data.name?.trim() ? { full_name: data.name.trim() } : undefined,
+      });
+      if (error || !createdUser?.user) throw new Error(error?.message ?? "יצירת חשבון ללקוחה נכשלה");
+      userId = createdUser.user.id;
+    }
+
+    const { data: existingWf } = await supabaseAdmin
+      .from("photo_client_workflows")
+      .select("id")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (existingWf) return { workflowId: existingWf.id as string };
+
+    const { data: created, error: wfErr } = await supabaseAdmin
+      .from("photo_client_workflows")
+      .insert({ user_id: userId, booking_id: null, stage: "booked" })
+      .select("id")
+      .single();
+    if (wfErr || !created) throw new Error(wfErr?.message ?? "יצירת תהליך עבודה נכשלה");
+    return { workflowId: created.id as string };
+  });
+
 const workflowIdSchema = z.object({ workflowId: z.string().uuid() });
 
 /** Full detail for one photo-delivery workflow — client/booking info + all images. */
