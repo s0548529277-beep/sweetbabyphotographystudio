@@ -1,6 +1,6 @@
 import { generateText, stepCountIs, tool } from "ai";
 import { z } from "zod";
-import { createLovableAiGatewayProvider } from "./ai-gateway.server";
+import { createDirectGeminiProvider, createLovableAiGatewayProvider } from "./ai-gateway.server";
 import { buildAssistantTools } from "./ai-tools.server";
 import { SYSTEM } from "./ai.functions";
 import { createPhoneBooking } from "./voice-booking.server";
@@ -75,16 +75,27 @@ export type VoiceTurnResult = {
 
 /** Runs one turn of the phone-call conversation through the same AI brain as the text chat, with a voice-appropriate tool set (read-only site info + phone booking + transfer/end-call signals). */
 export async function runVoiceTurn(messages: VoiceMessage[], callerPhone: string): Promise<VoiceTurnResult> {
-  const key = process.env.LOVABLE_API_KEY;
-  if (!key) throw new Error("Missing LOVABLE_API_KEY");
-  const gateway = createLovableAiGatewayProvider(key);
+  // Direct Gemini key (own quota/pricing, no Lovable Gateway markup) is
+  // preferred for the voice assistant when it's set; falls back to the
+  // shared gateway automatically until GEMINI_API_KEY exists, so setting
+  // it up is a zero-downtime swap, not a breaking change.
+  const geminiKey = process.env.GEMINI_API_KEY;
+  const lovableKey = process.env.LOVABLE_API_KEY;
+  let model: ReturnType<ReturnType<typeof createLovableAiGatewayProvider>>;
+  if (geminiKey) {
+    model = createDirectGeminiProvider(geminiKey)("gemini-2.5-flash");
+  } else {
+    if (!lovableKey) throw new Error("Missing GEMINI_API_KEY or LOVABLE_API_KEY");
+    model = createLovableAiGatewayProvider(lovableKey)("google/gemini-2.5-flash");
+  }
+
   const { israelNow } = await import("./availability.server");
   const now = israelNow();
 
   const toolRules = `\n\nהיום ${now.date}, השעה בישראל ${now.time}. יש לך גישה אמיתית ליומן הסטודיו ולמלאי האביזרים — בדקי תמיד עם הכלים (check_studio_availability / check_prop_availability / find_next_available_days / quote_studio_price / list_active_coupons), בכל פעם מחדש, אף פעם אל תניחי או תסתמכי על תשובה קודמת באותה שיחה.`;
 
   const result = await generateText({
-    model: gateway("google/gemini-2.5-flash"),
+    model,
     system: SYSTEM + VOICE_STYLE + toolRules,
     messages,
     tools: buildVoiceTools(callerPhone),
