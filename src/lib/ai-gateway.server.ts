@@ -1,4 +1,5 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { generateText } from "ai";
 
 export function createLovableAiGatewayProvider(apiKey: string) {
   return createOpenAICompatible({
@@ -22,4 +23,46 @@ export function createDirectGeminiProvider(apiKey: string) {
     baseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
     headers: { Authorization: `Bearer ${apiKey}` },
   });
+}
+
+type GenerateTextOptions = Parameters<typeof generateText>[0];
+type GenerateTextOptionsNoModel = Omit<GenerateTextOptions, "model">;
+
+/**
+ * Shared entry point for every AI feature on the site (site chat, catalog
+ * search, the voice assistant) — same model choice and same fallback chain
+ * everywhere instead of each call site reimplementing it.
+ *
+ * GEMINI_API_KEY can hold *several* keys — from different Google
+ * accounts/projects — separated by commas, tried one after another before
+ * ever touching the shared gateway. That matters because a live request is
+ * not the place to discover a key is unusable (a fresh Google Cloud project
+ * can need billing enabled before it serves requests at all, even within
+ * the free quota, and a quota can simply run out) — so any failure just
+ * moves to the next key instead of failing the whole request. Only once
+ * every Gemini key has failed does it fall back to the shared
+ * LOVABLE_API_KEY gateway (which we know works), as the last resort.
+ * Throws only if nothing at all is configured.
+ */
+export async function generateTextResilient(options: GenerateTextOptionsNoModel) {
+  const geminiKeys = (process.env.GEMINI_API_KEY ?? "")
+    .split(",")
+    .map((k) => k.trim())
+    .filter(Boolean);
+  const lovableKey = process.env.LOVABLE_API_KEY;
+  if (geminiKeys.length === 0 && !lovableKey) throw new Error("Missing GEMINI_API_KEY or LOVABLE_API_KEY");
+
+  for (const key of geminiKeys) {
+    try {
+      return await generateText({ ...options, model: createDirectGeminiProvider(key)("gemini-2.5-flash") } as GenerateTextOptions);
+    } catch (e) {
+      console.error(`[SWEETBABY] Gemini key ...${key.slice(-4)} failed, trying the next one`, e);
+    }
+  }
+  if (!lovableKey) throw new Error("All Gemini keys failed and no LOVABLE_API_KEY is configured as a fallback");
+  console.error("[SWEETBABY] all Gemini keys failed, falling back to Lovable AI Gateway");
+  return generateText({
+    ...options,
+    model: createLovableAiGatewayProvider(lovableKey)("google/gemini-2.5-flash"),
+  } as GenerateTextOptions);
 }

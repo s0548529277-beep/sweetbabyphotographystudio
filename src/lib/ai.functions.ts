@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
-import { generateText, stepCountIs } from "ai";
+import { stepCountIs } from "ai";
 import { z } from "zod";
-import { createLovableAiGatewayProvider } from "./ai-gateway.server";
+import { generateTextResilient } from "./ai-gateway.server";
 import { buildAssistantTools } from "./ai-tools.server";
 import catalogData from "@/data/studio-catalog.json";
 
@@ -102,9 +102,6 @@ const ChatInput = z.object({
 export const chatWithBot = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => ChatInput.parse(data))
   .handler(async ({ data }) => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("Missing LOVABLE_API_KEY");
-    const gateway = createLovableAiGatewayProvider(key);
     // The client's `isAuthenticated` flag is only used for tone/wording —
     // it's untrusted. Whether create_studio_booking is actually allowed to
     // run is decided below from the real, server-verified token.
@@ -127,8 +124,7 @@ export const chatWithBot = createServerFn({ method: "POST" })
 - אחרי תשובה חיובית — הזמיני להמשיך: סטודיו ב-/studio-rental (שאלון קצר ואז יומן), אביזרים ב-/rental-catalog.
 - קוד קופון — לעולם אל תמציאי, תמיד תבדקי עם list_active_coupons.
 - יצירת שריון בפועל בשם הלקוחה — רק עם create_studio_booking, ורק אחרי שמתקיימים כל התנאים בתיאור הכלי (זמינות אמיתית, פרטי קשר, אישור מפורש על תנאים ומקדמה). לעולם אל תגידי ללקוחה "שריינתי לך" בלי לקרוא לכלי הזה בפועל.`;
-    const { text } = await generateText({
-      model: gateway("google/gemini-2.5-flash"),
+    const { text } = await generateTextResilient({
       system: SYSTEM + personalized + toolRules,
       messages: data.messages,
       tools: buildAssistantTools({ isAuthenticated: isRealAccount }),
@@ -164,10 +160,6 @@ const SearchInput = z.object({ query: z.string().min(1).max(200) });
 export const smartSearchItems = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => SearchInput.parse(data))
   .handler(async ({ data }) => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("Missing LOVABLE_API_KEY");
-    const gateway = createLovableAiGatewayProvider(key);
-
     type Cat = { title: string; items: { sku: string; name: string; alt: string; price: number }[] };
     const cats = catalogData as Cat[];
     const summary = cats
@@ -178,8 +170,7 @@ export const smartSearchItems = createServerFn({ method: "POST" })
       )
       .join("\n");
 
-    const { text } = await generateText({
-      model: gateway("google/gemini-2.5-flash"),
+    const { text } = await generateTextResilient({
       system: `את מסייעת לחפש אביזרים בקטלוג צילום. תקבלי שאילתה בעברית ורשימת פריטים. החזירי JSON בלבד בפורמט {"skus":["100","101",...]} עם עד 30 מק"טים הכי רלוונטיים. ללא הסבר, ללא markdown.`,
       prompt: `שאילתה: ${data.query}\n\nקטלוג:\n${summary}`,
     });
