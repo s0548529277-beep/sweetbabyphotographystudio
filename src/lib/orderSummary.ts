@@ -1,5 +1,21 @@
 import { ARRIVAL_TEXT_HE } from "@/lib/arrival";
 
+// Shared with PayOnlineButton.tsx (the in-site iframe version of the same
+// link) — one hosted payment page for both the on-site checkout flow and
+// any email that needs to hand a customer a payment link directly (e.g. a
+// phone booking, where there's no browser session to send her back to).
+export const TAKBULL_PAY_URL = "https://paypage.takbull.co.il/4fk6g";
+
+/** A prominent "pay now" button for emails that can't rely on the customer being on the site (e.g. a phone booking). */
+export function buildPaymentButtonHtml(amount: number): string {
+  return `<div style="margin:20px 0;text-align:center">
+    <a href="${TAKBULL_PAY_URL}" target="_blank" rel="noopener noreferrer"
+       style="display:inline-block;background:#2d3d2b;color:#f8ede4;text-decoration:none;font-weight:bold;padding:14px 28px;border-radius:999px">
+      לתשלום מאובטח באשראי · ₪${amount}
+    </a>
+  </div>`;
+}
+
 /**
  * Maps the raw studio-intake questionnaire payload (studio_intake_forms.payload)
  * to Hebrew labels, in display order. Shared so every email that shows the
@@ -86,8 +102,10 @@ export function buildBookingSummaryHtml(opts: {
   includeArrival?: boolean;
   includeIntake?: boolean;
   footerNote?: string;
+  /** Amount to show on an embedded "pay now" button — used for bookings made outside a browser session (phone), where there's no /deposit page to send her back to. */
+  paymentAmount?: number;
 }): string {
-  const { heading, intro, booking, intakePayload, includeArrival = true, includeIntake = true, footerNote } = opts;
+  const { heading, intro, booking, intakePayload, includeArrival = true, includeIntake = true, footerNote, paymentAmount } = opts;
   const b = booking;
   const balance = b.balance_amount ?? Math.max(0, (b.price ?? 0) - (b.deposit_amount ?? 0));
 
@@ -95,6 +113,7 @@ export function buildBookingSummaryHtml(opts: {
     b.reserved_items && b.reserved_items.length > 0
       ? `<p><strong>אביזרים ששוריינו:</strong> ${b.reserved_items.map((s) => `#${s}`).join(", ")}</p>`
       : "";
+  const paymentHtml = paymentAmount != null ? buildPaymentButtonHtml(paymentAmount) : "";
 
   return `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:600px;margin:auto">
     <h2 style="color:#2d3d2b">${escapeHtml(heading)}</h2>
@@ -112,6 +131,7 @@ export function buildBookingSummaryHtml(opts: {
       ${b.notes ? row("הערות", escapeHtml(String(b.notes))) : ""}
     </table>
     ${itemsHtml}
+    ${paymentHtml}
     ${includeIntake ? buildIntakeHtml(intakePayload) : ""}
     ${includeArrival ? buildArrivalHtml() : ""}
     ${footerNote ? `<p style="color:#6b8a63;font-size:13px;margin-top:16px">${footerNote}</p>` : ""}
