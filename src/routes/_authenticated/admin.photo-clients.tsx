@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -519,12 +519,25 @@ function CalendarView({ rows }: { rows: Row[] }) {
 }
 
 function PhotoClientsAdmin() {
+  // /admin/photo-clients/$bookingId (the client card) is a *child* route of
+  // this list page in the router tree — TanStack Router only mounts a child
+  // route's component into an <Outlet/> placed by its parent. Without this,
+  // the list kept rendering itself no matter what the URL was: a Link into
+  // a client would update the address bar but the client card had nowhere
+  // to appear, so every click on a client row looked like it did nothing at
+  // all. isDetail is computed with every other hook still called
+  // unconditionally (skipping the list's own fetch via `enabled` instead of
+  // an early return) — conditional *hooks* would break between renders,
+  // a conditional *return* below them doesn't.
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isDetail = pathname !== "/admin/photo-clients";
+
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [q, setQ] = useState("");
   const [view, setView] = useState<"dashboard" | "clients" | "payments" | "calendar">("dashboard");
   const fetchClients = useServerFn(listPhotoClients);
-  const clients = useQuery({ queryKey: ["photo-clients"], queryFn: () => fetchClients({}) });
+  const clients = useQuery({ queryKey: ["photo-clients"], queryFn: () => fetchClients({}), enabled: !isDetail });
   const rows = (clients.data ?? []) as unknown as Row[];
   const filtered = rows.filter(
     (r) => !q.trim() || r.contact_name.toLowerCase().includes(q.trim().toLowerCase()) || r.contact_email.toLowerCase().includes(q.trim().toLowerCase()),
@@ -534,6 +547,10 @@ function PhotoClientsAdmin() {
     qc.invalidateQueries({ queryKey: ["photo-clients"] });
     navigate({ to: "/admin/photo-clients/$bookingId", params: { bookingId: workflowId } });
   };
+
+  if (isDetail) {
+    return <Outlet />;
+  }
 
   return (
     <div className="space-y-6 max-w-4xl">
