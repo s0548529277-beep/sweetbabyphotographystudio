@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { CreditCard, X, ExternalLink } from "lucide-react";
-
-const PAY_URL = "https://paypage.takbull.co.il/4fk6g";
+import { TAKBULL_PAY_URL as PAY_URL } from "@/lib/orderSummary";
 
 type Props = {
   className?: string;

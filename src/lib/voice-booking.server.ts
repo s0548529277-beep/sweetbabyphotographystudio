@@ -9,8 +9,14 @@ export const PhoneBookingInput = z.object({
   slots: z.number().int().min(2).max(30),
   contact_name: z.string().min(1).max(120),
   contact_phone: z.string().min(5).max(40),
+  contact_email: z.string().email().max(200).optional(),
   session_type: z.string().max(200).optional(),
   guidance: z.enum(["basic", "mini", "plus", "premium"]).optional(),
+  // Free-text request for accessories/props alongside the studio session —
+  // not checked against real availability like the site's own catalog
+  // flow, just passed along to the studio for manual follow-up (matching
+  // how create_studio_booking's needProps field works in the text chat).
+  props_request: z.string().max(500).optional(),
   notes: z.string().max(1000).optional(),
 });
 
@@ -105,7 +111,10 @@ export async function createPhoneBooking(input: PhoneBookingInput) {
       deposit_status: "pending",
       contact_name: input.contact_name,
       contact_phone: input.contact_phone,
-      notes: ["התקבל בשיחה טלפונית עם הבינה הקולית", input.session_type, input.notes].filter(Boolean).join("\n") || null,
+      notes:
+        ["התקבל בשיחה טלפונית עם הבינה הקולית", input.session_type, input.props_request ? `בקשת אביזרים: ${input.props_request}` : null, input.notes]
+          .filter(Boolean)
+          .join("\n") || null,
       reserved_items: [],
       terms_accepted_at: new Date().toISOString(),
     })
@@ -127,6 +136,8 @@ export async function createPhoneBooking(input: PhoneBookingInput) {
         deposit,
         contact_name: input.contact_name,
         contact_phone: input.contact_phone,
+        contact_email: input.contact_email ?? null,
+        props_request: input.props_request ?? null,
         source: "voice_call",
       },
     });
@@ -135,9 +146,16 @@ export async function createPhoneBooking(input: PhoneBookingInput) {
   }
 
   try {
+    // No browser session to send her back to (this came from a phone call),
+    // so — when she gave an email — the confirmation email itself carries a
+    // real "pay now" button (same hosted Takbull page as the site's own
+    // secure-payment button), instead of just bank/Bit details she'd have to
+    // act on separately.
     const html = buildBookingSummaryHtml({
       heading: "בקשת שריון טלפונית התקבלה 📞",
-      intro: `לקוחה שוחחה עם הבינה הקולית של הסטודיו וביקשה לשריין תאריך. <strong>התאריך עדיין לא סופי</strong> — יש ליצור איתה קשר לתיאום תשלום מקדמה תוך ${PENDING_HOLD_MINUTES / 60} שעה, אחרת התאריך ישתחרר.`,
+      intro: input.contact_email
+        ? `שוחחנו איתך בטלפון עכשיו וביקשת לשריין תאריך. <strong>התאריך שמור זמנית</strong> — כדי לאשר אותו סופית יש לשלם את המקדמה בלחיצה על הכפתור למטה תוך ${PENDING_HOLD_MINUTES / 60} שעות, אחרת התאריך ישתחרר.`
+        : `לקוחה שוחחה עם הבינה הקולית של הסטודיו וביקשה לשריין תאריך. <strong>התאריך עדיין לא סופי</strong> — יש ליצור איתה קשר לתיאום תשלום מקדמה תוך ${PENDING_HOLD_MINUTES / 60} שעה, אחרת התאריך ישתחרר.`,
       booking: {
         id: booking.id,
         contact_name: input.contact_name,
@@ -147,14 +165,15 @@ export async function createPhoneBooking(input: PhoneBookingInput) {
         price,
         deposit_amount: deposit,
         balance_amount: Math.max(0, price - deposit),
-        notes: input.notes ?? null,
+        notes: input.props_request ? `בקשת אביזרים: ${input.props_request}` : (input.notes ?? null),
         reserved_items: [],
       },
       intakePayload: null,
+      paymentAmount: input.contact_email ? deposit : undefined,
     });
     const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
     await sendStudioAndCustomer({
-      customerEmail: null,
+      customerEmail: input.contact_email ?? null,
       subject: `בקשת שריון טלפונית #${booking.id.slice(0, 8)} · Sweetbaby`,
       html,
     });
@@ -162,5 +181,5 @@ export async function createPhoneBooking(input: PhoneBookingInput) {
     console.error("[SWEETBABY] voice booking email failed", e);
   }
 
-  return { id: booking.id, price, deposit, endTime };
+  return { id: booking.id, price, deposit, endTime, emailSent: !!input.contact_email };
 }
