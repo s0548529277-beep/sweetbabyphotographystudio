@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { compressImage } from "@/lib/image-compress.client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -207,9 +208,10 @@ function ItemsAdmin() {
 
   // Uploads to the private "items" bucket and returns a long-lived signed URL.
   const uploadToStorage = async (file: File, prefix = "") => {
-    const ext = file.name.split(".").pop();
+    const compressed = await compressImage(file);
+    const ext = compressed.name.split(".").pop();
     const path = `${prefix}${crypto.randomUUID()}.${ext}`;
-    const { error } = await supabase.storage.from("items").upload(path, file, { upsert: false });
+    const { error } = await supabase.storage.from("items").upload(path, compressed, { upsert: false });
     if (error) throw error;
     const { data, error: signErr } = await supabase.storage
       .from("items")
