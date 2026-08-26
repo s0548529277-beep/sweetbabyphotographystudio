@@ -170,6 +170,12 @@ export async function createPhoneBooking(input: PhoneBookingInput) {
       },
       intakePayload: null,
       paymentAmount: input.contact_email ? deposit : undefined,
+      // Read out in full only if she asks for it on the call (per VOICE_STYLE) —
+      // otherwise the terms just ride along here, in writing, instead of eating
+      // call time reciting them.
+      footerNote: input.contact_email
+        ? "<strong>תקנון בקצרה:</strong> מקדמה 90₪ אינה מוחזרת בביטול · ביטול ביום האירוע עצמו = חיוב מלא (100%) · נזק לציוד = עלות תיקון/רכישה + 20% דמי טיפול · ניקיון לא תקין = 150₪."
+        : undefined,
     });
     const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
     await sendStudioAndCustomer({

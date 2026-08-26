@@ -92,7 +92,12 @@ export async function listGoogleCalendarBusy(
     `?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}` +
     `&singleEvents=true&orderBy=startTime&maxResults=250`;
 
-  const res = await fetch(url, { headers: gatewayHeaders() });
+  // A hung/slow connector-gateway call used to be able to stall the whole
+  // request indefinitely — on a phone call that reads as dead air until
+  // Twilio/Yemot's own (much longer) timeout kills the call outright. Cap it
+  // so a slow calendar read fails fast enough for studioAvailability's own
+  // try/catch to fall back to booking-only data instead.
+  const res = await fetch(url, { headers: gatewayHeaders(), signal: AbortSignal.timeout(8000) });
   if (!res.ok) throw new Error(`Google Calendar list failed: ${res.status}`);
   const data = (await res.json()) as {
     items?: Array<{

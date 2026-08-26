@@ -32,27 +32,43 @@ export function buildAssistantTools(opts?: { isAuthenticated?: boolean }) {
         time: z.string().optional().describe("HH:MM"),
         hours: z.number().optional().describe("כמה שעות רצופות צריך (ברירת מחדל 1)"),
       }),
+      // Any failure here (a Supabase hiccup, a slow/broken Google Calendar
+      // read that studioAvailability itself didn't manage to swallow) used
+      // to throw straight out of the tool call — on the phone that killed
+      // the *entire* turn (the outer route handler's catch-all fired and
+      // hung up on the caller with a generic "נתקלנו בתקלה"), even though
+      // it was just one tool failing. Now it degrades to a soft result the
+      // model can talk around instead of ending the call.
       execute: async ({ date, time, hours }) => {
-        const res = await studioAvailability(date, time);
-        if (res.closed) return { date, closed: true, message: "הסטודיו סגור ביום זה" };
-        const needed = Math.max(2, Math.round((hours ?? 1) * 2));
-        let enoughFromRequested: boolean | null = null;
-        if (time) {
-          const [h, m] = time.slice(0, 5).split(":").map(Number);
-          enoughFromRequested = Array.from({ length: needed }, (_, i) => {
-            const t = h * 60 + m + i * 30;
-            return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
-          }).every((s) => res.freeSlots.includes(s));
+        try {
+          const res = await studioAvailability(date, time);
+          if (res.closed) return { date, closed: true, message: "הסטודיו סגור ביום זה" };
+          const needed = Math.max(2, Math.round((hours ?? 1) * 2));
+          let enoughFromRequested: boolean | null = null;
+          if (time) {
+            const [h, m] = time.slice(0, 5).split(":").map(Number);
+            enoughFromRequested = Array.from({ length: needed }, (_, i) => {
+              const t = h * 60 + m + i * 30;
+              return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
+            }).every((s) => res.freeSlots.includes(s));
+          }
+          return {
+            date,
+            closed: false,
+            requestedTime: time ?? null,
+            requestedTimeFree: time ? res.wantedFree : null,
+            enoughConsecutiveTime: enoughFromRequested,
+            freeSlots: res.freeSlots,
+            calendarLinked: res.calendarLinked ?? true,
+          };
+        } catch (e) {
+          console.error("[SWEETBABY] check_studio_availability failed", e);
+          return {
+            date,
+            error: true,
+            message: "בדיקת הזמינות נכשלה זמנית — אל תמציאי זמינות, תסבירי שיש תקלה זמנית בבדיקה ושהסטודיו יאשר בחזרה, או הציעי לנסות שוב עוד רגע.",
+          };
         }
-        return {
-          date,
-          closed: false,
-          requestedTime: time ?? null,
-          requestedTimeFree: time ? res.wantedFree : null,
-          enoughConsecutiveTime: enoughFromRequested,
-          freeSlots: res.freeSlots,
-          calendarLinked: res.calendarLinked ?? true,
-        };
       },
     }),
 
@@ -65,8 +81,18 @@ export function buildAssistantTools(opts?: { isAuthenticated?: boolean }) {
       }),
       execute: async ({ from, hours }) => {
         const start = from || israelNow().date;
-        const days = await nextAvailableDays(start, hours ?? 1, 21, 5);
-        return { from: start, hours: hours ?? 1, options: days };
+        try {
+          const days = await nextAvailableDays(start, hours ?? 1, 21, 5);
+          return { from: start, hours: hours ?? 1, options: days };
+        } catch (e) {
+          console.error("[SWEETBABY] find_next_available_days failed", e);
+          return {
+            from: start,
+            hours: hours ?? 1,
+            error: true,
+            message: "בדיקת התאריכים הפנויים נכשלה זמנית — אל תמציאי תאריכים, תסבירי שיש תקלה זמנית ושהסטודיו יחזור עם תאריכים בקרוב, או הציעי לנסות שוב עוד רגע.",
+          };
+        }
       },
     }),
 
