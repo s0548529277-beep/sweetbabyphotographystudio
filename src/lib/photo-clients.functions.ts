@@ -95,7 +95,9 @@ export const listPhotoClients = createServerFn({ method: "POST" })
 
     const { data: workflows, error: wErr } = await supabaseAdmin
       .from("photo_client_workflows")
-      .select("id, user_id, booking_id, stage, created_at, session_date, location, package_type, photos_to_edit, total_price, amount_paid, balance")
+      .select(
+        "id, user_id, booking_id, stage, created_at, session_date, session_time, location, package_type, photos_to_edit, total_price, amount_paid, balance",
+      )
       .order("created_at", { ascending: false });
     if (wErr) throw new Error(wErr.message);
 
@@ -140,6 +142,7 @@ export const listPhotoClients = createServerFn({ method: "POST" })
         // creation, freely editable afterward) — the booking's is only a
         // fallback for old rows from before this column existed.
         session_date: w.session_date ?? booking?.session_date ?? null,
+        session_time: (w.session_time ?? booking?.start_time ?? null) as string | null,
         location: w.location as string | null,
         package_type: w.package_type as PhotoPackageKey | null,
         photos_to_edit: w.photos_to_edit as number | null,
@@ -179,6 +182,7 @@ const createClientSchema = z.object({
   name: z.string().max(120).optional(),
   phone: z.string().max(40).optional(),
   sessionDate: z.string().max(10).optional(), // yyyy-mm-dd
+  sessionTime: z.string().max(8).optional(), // HH:MM
   location: z.string().max(200).optional(),
   packageType: z.enum(["magic", "popular", "dream", "custom"]).optional(),
   photosToEdit: z.number().int().min(0).max(1000).optional(), // overrides the package default
@@ -280,6 +284,7 @@ export const createPhotoClient = createServerFn({ method: "POST" })
         booking_id: null,
         stage: "booked",
         session_date: data.sessionDate || null,
+        session_time: data.sessionTime || null,
         location: data.location?.trim() || null,
         package_type: data.packageType ?? null,
         photos_to_edit: data.photosToEdit ?? preset?.photosToEdit ?? null,
@@ -294,6 +299,7 @@ export const createPhotoClient = createServerFn({ method: "POST" })
 const updateDetailsSchema = z.object({
   workflowId: z.string().uuid(),
   sessionDate: z.string().max(10).optional().nullable(),
+  sessionTime: z.string().max(8).optional().nullable(),
   location: z.string().max(200).optional().nullable(),
   packageType: z.enum(["magic", "popular", "dream", "custom"]).optional().nullable(),
   photosToEdit: z.number().int().min(0).max(1000).optional().nullable(),
@@ -316,6 +322,7 @@ export const updatePhotoClientDetails = createServerFn({ method: "POST" })
       .from("photo_client_workflows")
       .update({
         session_date: fields.sessionDate || null,
+        session_time: fields.sessionTime || null,
         location: fields.location?.trim() || null,
         package_type: fields.packageType || null,
         photos_to_edit: fields.photosToEdit ?? null,
@@ -342,7 +349,7 @@ export const getPhotoClientDetail = createServerFn({ method: "POST" })
     const { data: workflow, error: wErr } = await supabaseAdmin
       .from("photo_client_workflows")
       .select(
-        "id, user_id, booking_id, stage, session_date, location, package_type, photos_to_edit, album_upgrades, total_price, amount_paid, balance",
+        "id, user_id, booking_id, stage, session_date, session_time, location, package_type, photos_to_edit, album_upgrades, total_price, amount_paid, balance",
       )
       .eq("id", data.workflowId)
       .single();
@@ -375,6 +382,7 @@ export const getPhotoClientDetail = createServerFn({ method: "POST" })
         id: workflow.id as string,
         stage: workflow.stage as WorkflowStage,
         session_date: (workflow.session_date ?? booking.session_date) as string | null,
+        session_time: (workflow.session_time ?? booking.start_time ?? null) as string | null,
         location: workflow.location as string | null,
         package_type: workflow.package_type as PhotoPackageKey | null,
         photos_to_edit: workflow.photos_to_edit as number | null,

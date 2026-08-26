@@ -172,6 +172,7 @@ function UploadSection({
 
 type PackageForm = {
   sessionDate: string;
+  sessionTime: string;
   location: string;
   packageType: PhotoPackageKey | "";
   photosToEdit: string;
@@ -183,6 +184,7 @@ type PackageForm = {
 function toPackageForm(workflow: any): PackageForm {
   return {
     sessionDate: workflow.session_date ? String(workflow.session_date).slice(0, 10) : "",
+    sessionTime: workflow.session_time ? String(workflow.session_time).slice(0, 5) : "",
     location: workflow.location ?? "",
     packageType: (workflow.package_type as PhotoPackageKey) ?? "",
     photosToEdit: workflow.photos_to_edit != null ? String(workflow.photos_to_edit) : "",
@@ -220,6 +222,7 @@ function PackageDetails({ workflow, workflowId, onSaved }: { workflow: any; work
         data: {
           workflowId,
           sessionDate: form.sessionDate || null,
+          sessionTime: form.sessionTime || null,
           location: form.location.trim() || null,
           packageType: form.packageType || null,
           photosToEdit: form.photosToEdit.trim() ? Number(form.photosToEdit) : null,
@@ -246,6 +249,10 @@ function PackageDetails({ workflow, workflowId, onSaved }: { workflow: any; work
           <Input type="date" value={form.sessionDate} onChange={(e) => set("sessionDate", e.target.value)} />
         </div>
         <div>
+          <Label className="text-xs text-muted-foreground">שעה</Label>
+          <Input type="time" dir="ltr" value={form.sessionTime} onChange={(e) => set("sessionTime", e.target.value)} />
+        </div>
+        <div className="sm:col-span-2">
           <Label className="text-xs text-muted-foreground">מיקום</Label>
           <Input value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="סטודיו / חוץ / כתובת" />
         </div>
@@ -395,7 +402,10 @@ function PhotoClientDetail() {
           {workflow.package_type && <span className="text-sm font-normal text-muted-foreground"> · {PHOTO_PACKAGES[workflow.package_type as PhotoPackageKey].label}</span>}
         </h2>
         <p className="text-sm text-muted-foreground" dir="ltr">
-          {booking.contact_phone} {workflow.session_date ? `· ${workflow.session_date}` : "· אין מועד קבוע"}
+          {booking.contact_phone}{" "}
+          {workflow.session_date
+            ? `· ${workflow.session_date}${workflow.session_time ? ` ${String(workflow.session_time).slice(0, 5)}` : ""}`
+            : "· אין מועד קבוע"}
           {workflow.location ? ` · ${workflow.location}` : ""}
         </p>
       </div>

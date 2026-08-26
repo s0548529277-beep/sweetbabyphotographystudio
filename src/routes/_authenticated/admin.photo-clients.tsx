@@ -18,7 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Camera, ChevronLeft, ImageIcon, Mail, Search, TriangleAlert, UserPlus, Users, Wallet } from "lucide-react";
+import { Camera, CalendarDays, ChevronLeft, ChevronRight, ImageIcon, Mail, Search, TriangleAlert, UserPlus, Users, Wallet } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/photo-clients")({
   component: PhotoClientsAdmin,
@@ -39,6 +39,7 @@ type Row = {
   contact_phone: string;
   contact_email: string;
   session_date: string | null;
+  session_time: string | null;
   location: string | null;
   package_type: PhotoPackageKey | null;
   photos_to_edit: number | null;
@@ -54,6 +55,7 @@ const EMPTY_FORM = {
   name: "",
   phone: "",
   sessionDate: "",
+  sessionTime: "",
   location: "",
   packageType: "" as PhotoPackageKey | "",
   photosToEdit: "",
@@ -93,6 +95,7 @@ function NewClientDialog({ onCreated }: { onCreated: (workflowId: string) => voi
           name: form.name.trim() || undefined,
           phone: form.phone.trim() || undefined,
           sessionDate: form.sessionDate || undefined,
+          sessionTime: form.sessionTime || undefined,
           location: form.location.trim() || undefined,
           packageType: form.packageType || undefined,
           photosToEdit: form.photosToEdit.trim() ? Number(form.photosToEdit) : undefined,
@@ -147,6 +150,10 @@ function NewClientDialog({ onCreated }: { onCreated: (workflowId: string) => voi
               <div>
                 <Label className="text-xs text-muted-foreground">מועד צילומים</Label>
                 <Input type="date" value={form.sessionDate} onChange={(e) => set("sessionDate", e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">שעה</Label>
+                <Input type="time" dir="ltr" value={form.sessionTime} onChange={(e) => set("sessionTime", e.target.value)} />
               </div>
               <div className="sm:col-span-2">
                 <Label className="text-xs text-muted-foreground">מיקום</Label>
@@ -323,11 +330,121 @@ function PaymentsView({ rows }: { rows: Row[] }) {
   );
 }
 
+const HE_WEEKDAYS = ["א", "ב", "ג", "ד", "ה", "ו", "ש"]; // Sunday..Saturday
+const HE_MONTHS = [
+  "ינואר",
+  "פברואר",
+  "מרץ",
+  "אפריל",
+  "מאי",
+  "יוני",
+  "יולי",
+  "אוגוסט",
+  "ספטמבר",
+  "אוקטובר",
+  "נובמבר",
+  "דצמבר",
+];
+
+/** "לוח שנה" tab — a month grid with each client's shoot on her session_date/session_time, clickable straight to her card. Local date math only, no library. */
+function CalendarView({ rows }: { rows: Row[] }) {
+  const today = new Date();
+  const [year, setYear] = useState(today.getFullYear());
+  const [month, setMonth] = useState(today.getMonth()); // 0-11
+
+  const byDate = new Map<string, Row[]>();
+  for (const r of rows) {
+    if (!r.session_date) continue;
+    const key = r.session_date.slice(0, 10);
+    if (!byDate.has(key)) byDate.set(key, []);
+    byDate.get(key)!.push(r);
+  }
+
+  const firstOfMonth = new Date(year, month, 1);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const leadingBlanks = firstOfMonth.getDay(); // 0 = Sunday
+  const cells: (number | null)[] = [...Array(leadingBlanks).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const goPrev = () => {
+    if (month === 0) {
+      setYear((y) => y - 1);
+      setMonth(11);
+    } else {
+      setMonth((m) => m - 1);
+    }
+  };
+  const goNext = () => {
+    if (month === 11) {
+      setYear((y) => y + 1);
+      setMonth(0);
+    } else {
+      setMonth((m) => m + 1);
+    }
+  };
+  const todayKey = today.toISOString().slice(0, 10);
+
+  return (
+    <div className="bg-card rounded-2xl border border-primary/10 p-5">
+      <div className="flex items-center justify-between mb-4">
+        <Button type="button" variant="ghost" size="icon" onClick={goPrev} aria-label="חודש קודם">
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+        <h3 className="font-display text-lg text-primary">
+          {HE_MONTHS[month]} {year}
+        </h3>
+        <Button type="button" variant="ghost" size="icon" onClick={goNext} aria-label="חודש הבא">
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-7 gap-1 text-center text-xs text-muted-foreground mb-1">
+        {HE_WEEKDAYS.map((d) => (
+          <div key={d} className="py-1">
+            {d}
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 gap-1">
+        {cells.map((day, i) => {
+          const key = day ? `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}` : `blank-${i}`;
+          const shoots = day ? (byDate.get(key) ?? []) : [];
+          return (
+            <div
+              key={key}
+              className={`min-h-[64px] rounded-lg border p-1 text-xs ${
+                day ? "border-primary/10" : "border-transparent"
+              } ${key === todayKey ? "bg-primary/5 border-primary/30" : ""}`}
+            >
+              {day && <div className="text-muted-foreground mb-0.5">{day}</div>}
+              <div className="space-y-0.5">
+                {shoots.map((s) => (
+                  <Link
+                    key={s.id}
+                    to="/admin/photo-clients/$bookingId"
+                    params={{ bookingId: s.id }}
+                    className="block truncate rounded bg-primary/10 text-primary px-1 py-0.5 hover:bg-primary/20"
+                    title={s.contact_name}
+                  >
+                    {s.session_time ? `${s.session_time.slice(0, 5)} ` : ""}
+                    {s.contact_name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function PhotoClientsAdmin() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [q, setQ] = useState("");
-  const [view, setView] = useState<"clients" | "payments">("clients");
+  const [view, setView] = useState<"clients" | "payments" | "calendar">("clients");
   const fetchClients = useServerFn(listPhotoClients);
   const clients = useQuery({ queryKey: ["photo-clients"], queryFn: () => fetchClients({}) });
   const rows = (clients.data ?? []) as unknown as Row[];
@@ -361,6 +478,9 @@ function PhotoClientsAdmin() {
         <Button type="button" size="sm" variant={view === "payments" ? "default" : "outline"} className="rounded-full gap-1.5" onClick={() => setView("payments")}>
           <Wallet className="h-3.5 w-3.5" /> תשלומים
         </Button>
+        <Button type="button" size="sm" variant={view === "calendar" ? "default" : "outline"} className="rounded-full gap-1.5" onClick={() => setView("calendar")}>
+          <CalendarDays className="h-3.5 w-3.5" /> לוח שנה
+        </Button>
       </div>
 
       {/* A failed fetch used to render exactly like "no clients yet" — surfacing
@@ -383,6 +503,8 @@ function PhotoClientsAdmin() {
 
       {view === "payments" ? (
         <PaymentsView rows={rows} />
+      ) : view === "calendar" ? (
+        <CalendarView rows={rows} />
       ) : (
         <>
           {rows.length > 0 && (
@@ -408,7 +530,8 @@ function PhotoClientsAdmin() {
                     </p>
                   )}
                   <p className="text-xs text-muted-foreground mt-0.5" dir="ltr">
-                    {r.contact_phone} {r.session_date ? `· ${r.session_date}` : "· אין מועד"}
+                    {r.contact_phone}{" "}
+                    {r.session_date ? `· ${r.session_date}${r.session_time ? ` ${r.session_time.slice(0, 5)}` : ""}` : "· אין מועד"}
                     {r.location ? ` · ${r.location}` : ""}
                   </p>
                 </div>
