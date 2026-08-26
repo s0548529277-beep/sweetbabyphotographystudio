@@ -3,7 +3,7 @@ import type {} from "@tanstack/react-start";
 import { parseTwilioForm, twimlSayAndGather, verifyTwilioSignature } from "@/lib/twilio.server";
 
 const GREETING =
-  "שלום, הגעת לסטודיו סוויט בייבי, איתך נועה, העוזרת הקולית. אפשר לשאול אותי על שעות, מחירים, זמינות, או לבקש לשריין תור. איך אפשר לעזור?";
+  "שלום, הגעת לסטודיו סוויט בייבי, איתך בוט Sweetbaby. אפשר לשאול אותי על שעות, מחירים, זמינות, או לבקש לשריין תור. איך אפשר לעזור?";
 
 // Configured as the Voice webhook on the Twilio phone number (Console →
 // Phone Numbers → the number → "A call comes in" → this URL, POST).

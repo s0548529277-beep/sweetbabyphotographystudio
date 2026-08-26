@@ -4,7 +4,7 @@ import { parseTwilioForm, twimlSayAndDial, twimlSayAndGather, twimlSayAndHangup,
 import { runVoiceTurn, type VoiceMessage } from "@/lib/voice-chat.server";
 
 const NO_HUMAN_AVAILABLE =
-  "מצטערת, כרגע אי אפשר להעביר אותך לנציג/ה. נציגת הסטודיו תחזור אליך טלפונית בהקדם האפשרי. תודה ולהתראות!";
+  "מצטער, כרגע אי אפשר להעביר אותך לנציג/ה. נציגת הסטודיו תחזור אליך טלפונית בהקדם האפשרי. תודה ולהתראות!";
 const DIDNT_HEAR = "לא הבנתי, אפשר לחזור על זה?";
 
 // Called repeatedly by Twilio (as the `action` of each <Gather>) for every
@@ -55,7 +55,7 @@ export const Route = createFileRoute("/api/voice/respond")({
           return twimlSayAndGather(text, actionUrl);
         } catch (e) {
           console.error("[SWEETBABY] voice respond failed", e);
-          return twimlSayAndHangup("מצטערת, נתקלנו בתקלה. נציגת הסטודיו תחזור אליך טלפונית. תודה ולהתראות!");
+          return twimlSayAndHangup("מצטער, נתקלנו בתקלה. נציגת הסטודיו תחזור אליך טלפונית. תודה ולהתראות!");
         }
       },
     },

@@ -4,9 +4,9 @@ import { parseYemotParams, yemotAck, yemotSayAndHangup, yemotSayAndListen, yemot
 import { runVoiceTurn, type VoiceMessage } from "@/lib/voice-chat.server";
 
 const GREETING =
-  "שלום, הגעת לסטודיו סוויט בייבי, איתך נועה, העוזרת הקולית. אפשר לשאול אותי על שעות, מחירים, זמינות, או לבקש לשריין תור. איך אפשר לעזור?";
+  "שלום, הגעת לסטודיו סוויט בייבי, איתך בוט Sweetbaby. אפשר לשאול אותי על שעות, מחירים, זמינות, או לבקש לשריין תור. איך אפשר לעזור?";
 const DIDNT_HEAR = "לא הבנתי, אפשר לחזור על זה?";
-const NO_HUMAN_AVAILABLE = "מצטערת, כרגע אי אפשר להעביר אותך לנציגה. נציגת הסטודיו תחזור אליך טלפונית בהקדם האפשרי. תודה ולהתראות!";
+const NO_HUMAN_AVAILABLE = "מצטער, כרגע אי אפשר להעביר אותך לנציגה. נציגת הסטודיו תחזור אליך טלפונית בהקדם האפשרי. תודה ולהתראות!";
 
 // One extension in ימות המשיח, configured as a "שלוחת API" pointing here —
 // unlike Twilio's two-URL pattern (incoming call vs. gather response),
@@ -80,6 +80,6 @@ async function handle(request: Request): Promise<Response> {
     return yemotSayAndListen(text);
   } catch (e) {
     console.error("[SWEETBABY] yemot ivr failed", e);
-    return yemotSayAndHangup("מצטערת, נתקלנו בתקלה. נציגת הסטודיו תחזור אליך טלפונית. תודה ולהתראות!");
+    return yemotSayAndHangup("מצטער, נתקלנו בתקלה. נציגת הסטודיו תחזור אליך טלפונית. תודה ולהתראות!");
   }
 }
