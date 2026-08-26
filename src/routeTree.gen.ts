@@ -40,6 +40,7 @@ import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as SummaryTypeIdRouteImport } from './routes/summary.$type.$id'
 import { Route as DepositTypeIdRouteImport } from './routes/deposit.$type.$id'
+import { Route as ApiYemotIvrRouteImport } from './routes/api.yemot.ivr'
 import { Route as ApiVoiceRespondRouteImport } from './routes/api.voice.respond'
 import { Route as ApiVoiceIncomingRouteImport } from './routes/api.voice.incoming'
 import { Route as AuthenticatedAdminSubscriptionsRouteImport } from './routes/_authenticated/admin.subscriptions'
@@ -218,6 +219,11 @@ const DepositTypeIdRoute = DepositTypeIdRouteImport.update({
   path: '/deposit/$type/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiYemotIvrRoute = ApiYemotIvrRouteImport.update({
+  id: '/api/yemot/ivr',
+  path: '/api/yemot/ivr',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiVoiceRespondRoute = ApiVoiceRespondRouteImport.update({
   id: '/api/voice/respond',
   path: '/api/voice/respond',
@@ -389,6 +395,7 @@ export interface FileRoutesByFullPath {
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/api/voice/incoming': typeof ApiVoiceIncomingRoute
   '/api/voice/respond': typeof ApiVoiceRespondRoute
+  '/api/yemot/ivr': typeof ApiYemotIvrRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -441,6 +448,7 @@ export interface FileRoutesByTo {
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/api/voice/incoming': typeof ApiVoiceIncomingRoute
   '/api/voice/respond': typeof ApiVoiceRespondRoute
+  '/api/yemot/ivr': typeof ApiYemotIvrRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -496,6 +504,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/api/voice/incoming': typeof ApiVoiceIncomingRoute
   '/api/voice/respond': typeof ApiVoiceRespondRoute
+  '/api/yemot/ivr': typeof ApiYemotIvrRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -551,6 +560,7 @@ export interface FileRouteTypes {
     | '/admin/subscriptions'
     | '/api/voice/incoming'
     | '/api/voice/respond'
+    | '/api/yemot/ivr'
     | '/deposit/$type/$id'
     | '/summary/$type/$id'
     | '/admin/'
@@ -603,6 +613,7 @@ export interface FileRouteTypes {
     | '/admin/subscriptions'
     | '/api/voice/incoming'
     | '/api/voice/respond'
+    | '/api/yemot/ivr'
     | '/deposit/$type/$id'
     | '/summary/$type/$id'
     | '/admin'
@@ -657,6 +668,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/subscriptions'
     | '/api/voice/incoming'
     | '/api/voice/respond'
+    | '/api/yemot/ivr'
     | '/deposit/$type/$id'
     | '/summary/$type/$id'
     | '/_authenticated/admin/'
@@ -692,6 +704,7 @@ export interface RootRouteChildren {
   BlogIndexRoute: typeof BlogIndexRoute
   ApiVoiceIncomingRoute: typeof ApiVoiceIncomingRoute
   ApiVoiceRespondRoute: typeof ApiVoiceRespondRoute
+  ApiYemotIvrRoute: typeof ApiYemotIvrRoute
   DepositTypeIdRoute: typeof DepositTypeIdRoute
   SummaryTypeIdRoute: typeof SummaryTypeIdRoute
 }
@@ -913,6 +926,13 @@ declare module '@tanstack/react-router' {
       path: '/deposit/$type/$id'
       fullPath: '/deposit/$type/$id'
       preLoaderRoute: typeof DepositTypeIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/yemot/ivr': {
+      id: '/api/yemot/ivr'
+      path: '/api/yemot/ivr'
+      fullPath: '/api/yemot/ivr'
+      preLoaderRoute: typeof ApiYemotIvrRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/voice/respond': {
@@ -1171,6 +1191,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogIndexRoute: BlogIndexRoute,
   ApiVoiceIncomingRoute: ApiVoiceIncomingRoute,
   ApiVoiceRespondRoute: ApiVoiceRespondRoute,
+  ApiYemotIvrRoute: ApiYemotIvrRoute,
   DepositTypeIdRoute: DepositTypeIdRoute,
   SummaryTypeIdRoute: SummaryTypeIdRoute,
 }
