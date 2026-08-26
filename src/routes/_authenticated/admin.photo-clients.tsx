@@ -18,7 +18,22 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Camera, CalendarDays, ChevronLeft, ChevronRight, ImageIcon, Mail, Search, TriangleAlert, UserPlus, Users, Wallet } from "lucide-react";
+import {
+  Camera,
+  CalendarDays,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  ImageIcon,
+  LayoutDashboard,
+  Mail,
+  Search,
+  TriangleAlert,
+  UserPlus,
+  Users,
+  Wallet,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/photo-clients")({
   component: PhotoClientsAdmin,
@@ -203,6 +218,69 @@ function NewClientDialog({ onCreated }: { onCreated: (workflowId: string) => voi
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+/** "מסך ראשי" tab — the landing view: a few summary tiles plus today's shoots, mostly re-reading the same `rows` the other tabs already fetch (no separate query). */
+function DashboardView({ rows }: { rows: Row[] }) {
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const openBalanceTotal = rows.reduce((s, r) => s + Math.max(0, r.balance ?? 0), 0);
+  const clientsWithOpenBalance = rows.filter((r) => (r.balance ?? 0) > 0).length;
+  const upcoming = rows.filter((r) => r.session_date && r.session_date.slice(0, 10) >= todayKey);
+  const todayShoots = rows
+    .filter((r) => r.session_date && r.session_date.slice(0, 10) === todayKey)
+    .sort((a, b) => (a.session_time ?? "").localeCompare(b.session_time ?? ""));
+
+  const tiles = [
+    { icon: Wallet, value: `₪${openBalanceTotal.toFixed(0)}`, label: "יתרה פתוחה", color: "text-peach-deep" },
+    { icon: Users, value: String(clientsWithOpenBalance), label: "לקוחות עם יתרה פתוחה", color: "text-primary" },
+    { icon: ImageIcon, value: String(rows.length), label: "גלריות", color: "text-primary" },
+    { icon: CalendarDays, value: String(upcoming.length), label: "צילומים קרובים", color: "text-primary" },
+    { icon: Clock, value: String(todayShoots.length), label: "צילומים היום", color: "text-primary" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {tiles.map((t) => (
+          <div key={t.label} className="bg-card rounded-2xl border border-primary/10 p-4 text-center">
+            <t.icon className={`h-4 w-4 mx-auto mb-1 ${t.color}`} />
+            <p className={`font-display text-xl ${t.color}`}>{t.value}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t.label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-card rounded-2xl border border-primary/10 p-4 flex items-center gap-2 text-sm">
+        <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+        <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+        <span>Gmail מחובר — משמש לניהול מיילים אוטומטיים ללקוחות (חשבונות חדשים, תזכורות תשלום).</span>
+      </div>
+
+      <div className="bg-card rounded-2xl border border-primary/10 p-5">
+        <h3 className="font-display text-lg text-primary mb-3">צילומים היום</h3>
+        {todayShoots.length === 0 ? (
+          <p className="text-sm text-muted-foreground">אין צילומים מתוזמנים להיום.</p>
+        ) : (
+          <div className="space-y-2">
+            {todayShoots.map((r) => (
+              <Link
+                key={r.id}
+                to="/admin/photo-clients/$bookingId"
+                params={{ bookingId: r.id }}
+                className="flex items-center justify-between gap-2 rounded-xl bg-cream/40 px-3 py-2 text-sm hover:bg-cream/70 transition"
+              >
+                <span className="font-medium">
+                  {r.session_time ? `${r.session_time.slice(0, 5)} — ` : ""}
+                  {r.contact_name}
+                </span>
+                {r.location && <span className="text-xs text-muted-foreground">{r.location}</span>}
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -444,7 +522,7 @@ function PhotoClientsAdmin() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [q, setQ] = useState("");
-  const [view, setView] = useState<"clients" | "payments" | "calendar">("clients");
+  const [view, setView] = useState<"dashboard" | "clients" | "payments" | "calendar">("dashboard");
   const fetchClients = useServerFn(listPhotoClients);
   const clients = useQuery({ queryKey: ["photo-clients"], queryFn: () => fetchClients({}) });
   const rows = (clients.data ?? []) as unknown as Row[];
@@ -471,7 +549,10 @@ function PhotoClientsAdmin() {
         <NewClientDialog onCreated={onWorkflowCreated} />
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
+        <Button type="button" size="sm" variant={view === "dashboard" ? "default" : "outline"} className="rounded-full gap-1.5" onClick={() => setView("dashboard")}>
+          <LayoutDashboard className="h-3.5 w-3.5" /> מסך ראשי
+        </Button>
         <Button type="button" size="sm" variant={view === "clients" ? "default" : "outline"} className="rounded-full gap-1.5" onClick={() => setView("clients")}>
           <Users className="h-3.5 w-3.5" /> לקוחות
         </Button>
@@ -501,7 +582,9 @@ function PhotoClientsAdmin() {
         </div>
       )}
 
-      {view === "payments" ? (
+      {view === "dashboard" ? (
+        <DashboardView rows={rows} />
+      ) : view === "payments" ? (
         <PaymentsView rows={rows} />
       ) : view === "calendar" ? (
         <CalendarView rows={rows} />
