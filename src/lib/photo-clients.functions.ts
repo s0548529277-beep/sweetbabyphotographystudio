@@ -95,7 +95,7 @@ export const listPhotoClients = createServerFn({ method: "POST" })
 
     const { data: workflows, error: wErr } = await supabaseAdmin
       .from("photo_client_workflows")
-      .select("id, user_id, booking_id, stage, created_at, session_date, location, package_type, photos_to_edit")
+      .select("id, user_id, booking_id, stage, created_at, session_date, location, package_type, photos_to_edit, total_price, amount_paid, balance")
       .order("created_at", { ascending: false });
     if (wErr) throw new Error(wErr.message);
 
@@ -144,6 +144,9 @@ export const listPhotoClients = createServerFn({ method: "POST" })
         package_type: w.package_type as PhotoPackageKey | null,
         photos_to_edit: w.photos_to_edit as number | null,
         photo_count: photoCountByWorkflow.get(w.id) ?? 0,
+        total_price: w.total_price as number | null,
+        amount_paid: w.amount_paid as number,
+        balance: w.balance as number | null,
         stage: w.stage as WorkflowStage,
       };
     });
@@ -295,9 +298,13 @@ const updateDetailsSchema = z.object({
   packageType: z.enum(["magic", "popular", "dream", "custom"]).optional().nullable(),
   photosToEdit: z.number().int().min(0).max(1000).optional().nullable(),
   albumUpgrades: z.string().max(2000).optional().nullable(),
+  // Always entered by hand — never auto-filled from PHOTO_PACKAGES.price,
+  // since the real agreed price commonly differs from the price list.
+  totalPrice: z.number().nonnegative().max(1000000).optional().nullable(),
+  amountPaid: z.number().nonnegative().max(1000000).optional(),
 });
 
-/** Edits a client card's package/shoot details after creation — the detail page's "עריכת פרטי חבילה" panel. */
+/** Edits a client card's package/shoot/payment details after creation — the detail page's "עריכת פרטי חבילה" panel. */
 export const updatePhotoClientDetails = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => updateDetailsSchema.parse(d))
@@ -313,6 +320,8 @@ export const updatePhotoClientDetails = createServerFn({ method: "POST" })
         package_type: fields.packageType || null,
         photos_to_edit: fields.photosToEdit ?? null,
         album_upgrades: fields.albumUpgrades?.trim() || null,
+        total_price: fields.totalPrice ?? null,
+        ...(fields.amountPaid != null ? { amount_paid: fields.amountPaid } : {}),
         updated_at: new Date().toISOString(),
       })
       .eq("id", workflowId);
@@ -332,7 +341,9 @@ export const getPhotoClientDetail = createServerFn({ method: "POST" })
 
     const { data: workflow, error: wErr } = await supabaseAdmin
       .from("photo_client_workflows")
-      .select("id, user_id, booking_id, stage, session_date, location, package_type, photos_to_edit, album_upgrades")
+      .select(
+        "id, user_id, booking_id, stage, session_date, location, package_type, photos_to_edit, album_upgrades, total_price, amount_paid, balance",
+      )
       .eq("id", data.workflowId)
       .single();
     if (wErr || !workflow) throw new Error(wErr?.message ?? "לקוחה לא נמצאה");
@@ -368,9 +379,78 @@ export const getPhotoClientDetail = createServerFn({ method: "POST" })
         package_type: workflow.package_type as PhotoPackageKey | null,
         photos_to_edit: workflow.photos_to_edit as number | null,
         album_upgrades: workflow.album_upgrades as string | null,
+        total_price: workflow.total_price as number | null,
+        amount_paid: workflow.amount_paid as number,
+        balance: workflow.balance as number | null,
       },
       images: images ?? [],
     };
+  });
+
+const paymentReminderSchema = z.object({ workflowIds: z.array(z.string().uuid()).min(1).max(200) });
+
+/**
+ * Bulk "מייל תשלום ללקוחות" — sends each given client a payment-status
+ * email (amount paid / open balance). Skips (doesn't error out the whole
+ * batch on) a client with no email, no open balance, or a failed send —
+ * returns per-client results so the admin sees exactly who did/didn't
+ * get one.
+ */
+export const sendPaymentReminderEmails = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => paymentReminderSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { sendGmail } = await import("@/integrations/google/gmail.server");
+
+    const { data: workflows, error } = await supabaseAdmin
+      .from("photo_client_workflows")
+      .select("id, user_id, total_price, amount_paid, balance")
+      .in("id", data.workflowIds);
+    if (error) throw new Error(error.message);
+
+    const userIds = Array.from(new Set((workflows ?? []).map((w: any) => w.user_id)));
+    const { data: profiles } = userIds.length
+      ? await supabaseAdmin.from("profiles").select("id, full_name").in("id", userIds)
+      : { data: [] as any[] };
+    const nameByUserId = new Map((profiles ?? []).map((p: any) => [p.id, p.full_name]));
+
+    const emailByUserId = new Map<string, string>();
+    for (let page = 1; page <= 10; page++) {
+      const { data: usersPage, error: uErr } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+      if (uErr) throw new Error(uErr.message);
+      for (const u of usersPage.users) emailByUserId.set(u.id, u.email ?? "");
+      if (usersPage.users.length < 200) break;
+    }
+
+    const results = await Promise.all(
+      (workflows ?? []).map(async (w: any) => {
+        const email = emailByUserId.get(w.user_id);
+        if (!email) return { workflowId: w.id, sent: false, reason: "אין אימייל ללקוחה" };
+        if (w.total_price == null) return { workflowId: w.id, sent: false, reason: "לא הוגדר סכום כולל" };
+        if (Number(w.balance ?? 0) <= 0) return { workflowId: w.id, sent: false, reason: "אין יתרה פתוחה" };
+
+        const name = nameByUserId.get(w.user_id) || "";
+        try {
+          const ok = await sendGmail({
+            to: email,
+            subject: "תזכורת תשלום · Sweetbaby",
+            html: `<div dir="rtl" style="font-family:sans-serif">
+              <p>שלום${name ? " " + name : ""},</p>
+              <p>סה״כ לתשלום: <b>₪${Number(w.total_price).toFixed(0)}</b><br/>
+              שולם עד כה: <b>₪${Number(w.amount_paid).toFixed(0)}</b><br/>
+              יתרה לתשלום: <b>₪${Number(w.balance).toFixed(0)}</b></p>
+              <p>לתיאום התשלום אפשר להשיב למייל הזה או ליצור קשר עם הסטודיו.</p>
+            </div>`,
+          });
+          return { workflowId: w.id, sent: ok, reason: ok ? undefined : "שליחת המייל נכשלה" };
+        } catch (e: any) {
+          return { workflowId: w.id, sent: false, reason: e?.message ?? "שליחת המייל נכשלה" };
+        }
+      }),
+    );
+    return { results };
   });
 
 const advanceSchema = z.object({ workflowId: z.string().uuid(), stage: z.enum(WORKFLOW_STAGES) });
