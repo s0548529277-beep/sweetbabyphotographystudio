@@ -111,17 +111,24 @@ export const startManualPhotoWorkflow = createServerFn({ method: "POST" })
     return { workflowId: created.id as string };
   });
 
-const byEmailSchema = z.object({ email: z.string().email(), name: z.string().max(120).optional() });
+const byEmailSchema = z.object({ email: z.string().email(), name: z.string().max(120).optional(), sendEmail: z.boolean().optional() });
+
+// A short, memorable temp password padded to satisfy Supabase Auth's
+// password policy (min length + upper/lower/digit) — same ".Sb1" suffix
+// trick admin.clients.tsx already uses for short admin-chosen passwords.
+// Whatever gets told to the client (verbally, WhatsApp, or the email
+// below) must be this exact string, not just "1234" — that alone won't
+// pass Supabase's own validation.
+const TEMP_PASSWORD = "1234.Sb1";
 
 /**
  * Same as startManualPhotoWorkflow, but for a client who might not have an
  * account at all yet — the admin only has her email (e.g. from a walk-in
  * shoot, or a booking made before this feature existed). If an account
- * with that email already exists it's reused (and its existing workflow,
- * if any — never creates a duplicate); otherwise a real account is minted
- * for her (same idea as the "continue as guest" anonymous-account trick
- * used by voice-booking.server.ts, but with her actual email, so she can
- * later "שכחתי סיסמה" her way into /my-photos to see the album).
+ * with that email already exists it's reused as-is (her real password is
+ * never touched) along with its existing workflow, if any — never creates
+ * a duplicate. Otherwise a real account is minted for her with a temp
+ * password, and — only if requested — a notification email is sent.
  */
 export const startPhotoWorkflowByEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -145,14 +152,38 @@ export const startPhotoWorkflowByEmail = createServerFn({ method: "POST" })
       if (usersPage.users.length < 200) break;
     }
 
+    let isNewAccount = false;
     if (!userId) {
       const { data: createdUser, error } = await supabaseAdmin.auth.admin.createUser({
         email,
+        password: TEMP_PASSWORD,
         email_confirm: true,
         user_metadata: data.name?.trim() ? { full_name: data.name.trim() } : undefined,
       });
       if (error || !createdUser?.user) throw new Error(error?.message ?? "יצירת חשבון ללקוחה נכשלה");
       userId = createdUser.user.id;
+      isNewAccount = true;
+    }
+
+    if (isNewAccount && data.sendEmail) {
+      try {
+        const { sendGmail } = await import("@/integrations/google/gmail.server");
+        await sendGmail({
+          to: email,
+          subject: "נפתח לך חשבון · Sweetbaby",
+          html: `<div dir="rtl" style="font-family:sans-serif">
+            <p>שלום${data.name?.trim() ? " " + data.name.trim() : ""},</p>
+            <p>פתחנו לך חשבון באתר הסטודיו של מיכל סיבוני, כדי שתוכלי לראות שם את התמונות שלך.</p>
+            <p>אימייל: <b dir="ltr">${email}</b><br/>סיסמה זמנית: <b dir="ltr">${TEMP_PASSWORD}</b></p>
+            <p>מומלץ להחליף אותה לאחר הכניסה הראשונה.</p>
+          </div>`,
+        });
+      } catch (e) {
+        // Best-effort — the account/workflow are already created either
+        // way, so a failed email shouldn't fail the whole action. The
+        // admin can still tell her the code directly.
+        console.error("[SWEETBABY] photo-client account email failed", e);
+      }
     }
 
     const { data: existingWf } = await supabaseAdmin
@@ -162,7 +193,7 @@ export const startPhotoWorkflowByEmail = createServerFn({ method: "POST" })
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (existingWf) return { workflowId: existingWf.id as string };
+    if (existingWf) return { workflowId: existingWf.id as string, isNewAccount, tempPassword: isNewAccount ? TEMP_PASSWORD : null };
 
     const { data: created, error: wfErr } = await supabaseAdmin
       .from("photo_client_workflows")
@@ -170,7 +201,7 @@ export const startPhotoWorkflowByEmail = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (wfErr || !created) throw new Error(wfErr?.message ?? "יצירת תהליך עבודה נכשלה");
-    return { workflowId: created.id as string };
+    return { workflowId: created.id as string, isNewAccount, tempPassword: isNewAccount ? TEMP_PASSWORD : null };
   });
 
 const workflowIdSchema = z.object({ workflowId: z.string().uuid() });

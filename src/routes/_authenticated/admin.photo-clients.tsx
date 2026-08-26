@@ -6,6 +6,7 @@ import { listPhotoClients, startPhotoWorkflowByEmail, STAGE_LABELS, type Workflo
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Camera, ChevronLeft, TriangleAlert, UserPlus } from "lucide-react";
@@ -36,6 +37,7 @@ function AddByEmailDialog({ onCreated }: { onCreated: (workflowId: string) => vo
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [sendEmail, setSendEmail] = useState(true);
   const [busy, setBusy] = useState(false);
   const startByEmail = useServerFn(startPhotoWorkflowByEmail);
 
@@ -43,10 +45,17 @@ function AddByEmailDialog({ onCreated }: { onCreated: (workflowId: string) => vo
     if (!email.trim()) return toast.error("צריך למלא אימייל");
     setBusy(true);
     try {
-      const { workflowId } = await startByEmail({ data: { email: email.trim(), name: name.trim() || undefined } });
+      const { workflowId, isNewAccount, tempPassword } = await startByEmail({
+        data: { email: email.trim(), name: name.trim() || undefined, sendEmail },
+      });
       setOpen(false);
       setEmail("");
       setName("");
+      if (isNewAccount) {
+        // Shown regardless of sendEmail — the admin needs the code even if
+        // she plans to tell the client herself (WhatsApp, in person, ...).
+        toast.success(`נפתח חשבון חדש. סיסמה זמנית: ${tempPassword}`, { duration: 15000 });
+      }
       onCreated(workflowId);
     } catch (e: any) {
       toast.error(e?.message || "הוספת הלקוחה נכשלה");
@@ -77,6 +86,12 @@ function AddByEmailDialog({ onCreated }: { onCreated: (workflowId: string) => vo
             <div>
               <Label className="text-xs text-muted-foreground">שם (רשות)</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="שם הלקוחה" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox checked={sendEmail} onCheckedChange={(v) => setSendEmail(!!v)} />
+              <Label className="text-xs text-muted-foreground font-normal cursor-pointer" onClick={() => setSendEmail((v) => !v)}>
+                לשלוח מייל ללקוחה שנפתח לה חשבון (רק אם באמת נפתח חשבון חדש — סיסמה זמנית: 1234)
+              </Label>
             </div>
           </div>
           <DialogFooter>
