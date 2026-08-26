@@ -105,3 +105,45 @@ export const adminSetStatus = createServerFn({ method: "POST" })
 
     return { ok: true };
   });
+
+/**
+ * Permanently removes a cancelled order/booking row from /admin/orders —
+ * the trash icon that only appears once a row is already "בוטל", so this
+ * never touches anything still active. Restricted to status='cancelled'
+ * both here and in the UI: adminSetStatus already ran the real
+ * cancellation cleanup (freed props, refunded credit, deleted the
+ * calendar event) when the row *became* cancelled, so this is just
+ * clearing clutter from the list, not undoing a booking.
+ *
+ * bookings(id) cascades to photo_client_workflows.booking_id — a
+ * photography booking that already has proof/edited photos uploaded for
+ * a client must never be deleted through this button, or the whole
+ * workflow (and every photo in it) would vanish along with it. Blocked
+ * explicitly rather than relying on the cascade to "just work".
+ */
+export const adminDeleteRecord = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ kind: z.enum(["order", "booking"]), id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const table = data.kind === "order" ? "orders" : "bookings";
+
+    const { data: row, error: fetchErr } = await supabaseAdmin.from(table).select("id, status").eq("id", data.id).maybeSingle();
+    if (fetchErr || !row) throw new Error("הרשומה לא נמצאה");
+    if (row.status !== "cancelled") throw new Error("אפשר למחוק רק הזמנות שבוטלו");
+
+    if (data.kind === "booking") {
+      const { data: workflow } = await supabaseAdmin
+        .from("photo_client_workflows")
+        .select("id")
+        .eq("booking_id", data.id)
+        .maybeSingle();
+      if (workflow) throw new Error("יש תהליך תמונות (גלריה) מקושר לשריון הזה — אי אפשר למחוק בלי לאבד את התמונות. פני לתמיכה אם צריך.");
+    }
+
+    const { error: delErr } = await supabaseAdmin.from(table).delete().eq("id", data.id);
+    if (delErr) throw new Error(delErr.message);
+
+    return { ok: true };
+  });
