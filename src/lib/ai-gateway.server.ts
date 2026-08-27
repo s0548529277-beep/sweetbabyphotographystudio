@@ -28,6 +28,21 @@ export function createDirectGeminiProvider(apiKey: string) {
 type GenerateTextOptions = Parameters<typeof generateText>[0];
 type GenerateTextOptionsNoModel = Omit<GenerateTextOptions, "model">;
 
+// Default per-attempt cap for the text-chat / catalog-search callers, which
+// have no live connection to time out — they can afford to actually wait
+// for a slow-but-working key instead of failing over prematurely. The voice
+// callers pass a much tighter timeoutMs (see runVoiceTurn) because on a
+// phone call, unlike a browser waiting on a fetch, the *platform itself*
+// (Twilio/Yemot) is also independently timing out the webhook — if this
+// function is still retrying keys when that fires, the caller just hears a
+// platform-level "no response from the API server" and the call dies
+// regardless of what this function eventually would have returned. Every
+// Gemini key attempt plus the Lovable fallback all share this same budget,
+// so the real worst case is roughly (number of keys + 1) × timeoutMs — keep
+// that in mind when configuring how many GEMINI_API_KEY values to stack for
+// a voice-facing caller.
+const DEFAULT_TIMEOUT_MS = 25_000;
+
 /**
  * Shared entry point for every AI feature on the site (site chat, catalog
  * search, the voice assistant) — same model choice and same fallback chain
@@ -44,17 +59,7 @@ type GenerateTextOptionsNoModel = Omit<GenerateTextOptions, "model">;
  * LOVABLE_API_KEY gateway (which we know works), as the last resort.
  * Throws only if nothing at all is configured.
  */
-// Per-attempt cap — a hung/very slow connection used to be able to stall
-// each key indefinitely with no timeout at all, which on the phone lines
-// (Twilio/Yemot both have their own, much tighter patience for a webhook
-// reply) meant the whole call could die with a platform-level "no response
-// from the API server" before this function ever got to try the next key
-// or the Lovable fallback. 25s balances that against real multi-tool-call
-// turns (stepCountIs(8) in voice-chat.server.ts) genuinely needing several
-// seconds of legitimate back-and-forth.
-const PER_ATTEMPT_TIMEOUT_MS = 25_000;
-
-export async function generateTextResilient(options: GenerateTextOptionsNoModel) {
+export async function generateTextResilient(options: GenerateTextOptionsNoModel, timeoutMs = DEFAULT_TIMEOUT_MS) {
   const geminiKeys = (process.env.GEMINI_API_KEY ?? "")
     .split(",")
     .map((k) => k.trim())
@@ -73,7 +78,7 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel)
       return await generateText({
         ...options,
         model: createDirectGeminiProvider(key)("gemini-3-flash-preview"),
-        abortSignal: AbortSignal.timeout(PER_ATTEMPT_TIMEOUT_MS),
+        abortSignal: AbortSignal.timeout(timeoutMs),
       } as GenerateTextOptions);
     } catch (e) {
       console.error(`[SWEETBABY] Gemini key ...${key.slice(-4)} failed, trying the next one`, e);
@@ -84,6 +89,6 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel)
   return generateText({
     ...options,
     model: createLovableAiGatewayProvider(lovableKey)("google/gemini-2.5-flash"),
-    abortSignal: AbortSignal.timeout(PER_ATTEMPT_TIMEOUT_MS),
+    abortSignal: AbortSignal.timeout(timeoutMs),
   } as GenerateTextOptions);
 }

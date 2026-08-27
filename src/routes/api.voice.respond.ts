@@ -4,23 +4,21 @@ import { parseTwilioForm, twimlSayAndDial, twimlSayAndGather, twimlSayAndHangup,
 import { runVoiceTurn, type VoiceMessage, type VoiceTurnResult } from "@/lib/voice-chat.server";
 import { sendMessageToStudio } from "@/lib/voice-message.server";
 import {
+  ANYTHING_ELSE,
   ARRIVAL_SPOKEN,
+  DIDNT_HEAR,
+  FINAL_ERROR_HANGUP,
   FULL_GUIDE_SPOKEN,
   GUIDE_CHOICE_PROMPT,
   LEAVE_MESSAGE_PROMPT,
   LEAVE_MESSAGE_THANKS,
+  NO_HUMAN_TRANSFER,
   PROPS_BLURB,
   STUDIO_BLURB,
+  TEMPORARY_ERROR,
   detectMenuIntent,
   wantsFullGuide,
 } from "@/lib/voice-menu.server";
-
-const DIDNT_HEAR = "לא הבנתי, אפשר לחזור על זה?";
-const ANYTHING_ELSE = "יש עוד משהו שאפשר לעזור בו?";
-// Whenever a human transfer isn't possible right now, offer to take a real
-// message instead of just promising a callback with no record of the call —
-// see voice-message.server.ts.
-const NO_HUMAN_TRANSFER = `כרגע אי אפשר להעביר אותך לנציג/ה ישירות. ${LEAVE_MESSAGE_PROMPT}`;
 
 // Called repeatedly by Twilio (as the `action` of each <Gather>) for every
 // turn of the call after the initial greeting from /api/voice/incoming.
@@ -143,15 +141,14 @@ export const Route = createFileRoute("/api/voice/respond")({
           // plain hangup below.
           try {
             const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-            const text = `מצטער, נתקלנו בתקלה זמנית. ${LEAVE_MESSAGE_PROMPT}`;
             await supabaseAdmin.from("voice_call_sessions").upsert(
-              { call_sid: callSid, from_number: params.From || "", messages: [{ role: "assistant", content: text }], stage: "leaving_message", updated_at: new Date().toISOString() },
+              { call_sid: callSid, from_number: params.From || "", messages: [{ role: "assistant", content: TEMPORARY_ERROR }], stage: "leaving_message", updated_at: new Date().toISOString() },
               { onConflict: "call_sid" },
             );
-            return twimlSayAndGather(text, actionUrl);
+            return twimlSayAndGather(TEMPORARY_ERROR, actionUrl);
           } catch (e2) {
             console.error("[SWEETBABY] voice respond fallback-to-message also failed", e2);
-            return twimlSayAndHangup("מצטער, נתקלנו בתקלה. נציגת הסטודיו תחזור אליך טלפונית. תודה ולהתראות!");
+            return twimlSayAndHangup(FINAL_ERROR_HANGUP);
           }
         }
       },
