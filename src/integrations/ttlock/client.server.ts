@@ -118,6 +118,20 @@ export function doorCodeFromPhone(phone: string): string {
   return digits.slice(-9);
 }
 
+/**
+ * The code as it should be shown/spoken to the customer — padded back to 10
+ * digits with a leading zero. Confirmed live: TTLock's API only accepts a
+ * 6-9 digit passcode (the 9-digit code above is what's actually sent and
+ * registered), but the physical keypad apparently matches on the
+ * zero-padded 10-digit form once the code syncs down to the lock — a real
+ * customer's door opened with "0548529277" and did NOT open with
+ * "548529277" alone (confirmed from the lock's own access log). So the API
+ * call keeps using the 9-digit form; only what a human sees/hears is padded.
+ */
+export function displayDoorCode(code: string): string {
+  return code.padStart(10, "0");
+}
+
 type AddPasscodeResponse = { keyboardPwdId: number };
 
 /**
@@ -243,13 +257,13 @@ export async function issueDoorCodeForBooking(opts: {
         const id = await addPasscode({ lockId, code, name: opts.label, startMs, endMs });
         if (firstKeyboardPwdId === null) firstKeyboardPwdId = id;
       }
-      return { code, keyboardPwdId: firstKeyboardPwdId!, lockId };
+      return { code: displayDoorCode(code), keyboardPwdId: firstKeyboardPwdId!, lockId };
     }
 
     const startMs = israelLocalToUtcMs(opts.date, opts.startTime) - WINDOW_PADDING_MIN * 60_000;
     const endMs = israelLocalToUtcMs(endDate, opts.endTime) + WINDOW_PADDING_MIN * 60_000;
     const keyboardPwdId = await addPasscode({ lockId, code, name: opts.label, startMs, endMs });
-    return { code, keyboardPwdId, lockId };
+    return { code: displayDoorCode(code), keyboardPwdId, lockId };
   } catch (e) {
     console.error("[SWEETBABY] TTLock door code issue failed", e);
     // The confirmation flow's own catch never sees this (issueDoorCodeForBooking
