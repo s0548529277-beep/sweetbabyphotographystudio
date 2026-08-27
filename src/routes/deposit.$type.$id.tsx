@@ -117,10 +117,21 @@ function Deposit() {
           balance_method: method,
           deposit_amount: payNow,
           balance_amount: balanceLeft,
-          reminder_hours_before: wantsReminder ? Number(reminderHoursBefore) : null,
         })
         .eq("id", id);
       if (updErr) throw updErr;
+      // Separate, best-effort update — the reminder opt-in must never be
+      // able to block the actual payment confirmation above (e.g. if the
+      // reminder_hours_before migration hasn't been run yet on this
+      // database, this fails on its own instead of taking the whole
+      // confirmation down with it).
+      if (wantsReminder) {
+        try {
+          await (supabase.from(table) as any).update({ reminder_hours_before: Number(reminderHoursBefore) }).eq("id", id);
+        } catch (e) {
+          console.error("[SWEETBABY] reminder opt-in save failed", e);
+        }
+      }
       // The studio slot is written to the calendar only now — after the
       // deposit was actually transferred / a receipt was uploaded.
       if (isStudio && method !== "cash") {
