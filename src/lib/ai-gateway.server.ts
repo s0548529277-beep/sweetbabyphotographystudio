@@ -25,6 +25,20 @@ export function createDirectGeminiProvider(apiKey: string) {
   });
 }
 
+/**
+ * Groq's OpenAI-compatible endpoint — a fast, separate provider used as a
+ * middle fallback tier (after the direct Gemini keys, before the Lovable
+ * gateway) so a Gemini outage or a Lovable billing issue don't both have to
+ * be down at once to break every AI feature on the site.
+ */
+export function createGroqProvider(apiKey: string) {
+  return createOpenAICompatible({
+    name: "groq",
+    baseURL: "https://api.groq.com/openai/v1",
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+}
+
 type GenerateTextOptions = Parameters<typeof generateText>[0];
 type GenerateTextOptionsNoModel = Omit<GenerateTextOptions, "model">;
 
@@ -54,18 +68,20 @@ const DEFAULT_TIMEOUT_MS = 25_000;
  * not the place to discover a key is unusable (a fresh Google Cloud project
  * can need billing enabled before it serves requests at all, even within
  * the free quota, and a quota can simply run out) — so any failure just
- * moves to the next key instead of failing the whole request. Only once
- * every Gemini key has failed does it fall back to the shared
- * LOVABLE_API_KEY gateway (which we know works), as the last resort.
- * Throws only if nothing at all is configured.
+ * moves to the next key instead of failing the whole request. Once every
+ * Gemini key has failed, it tries GROQ_API_KEY (a separate provider, so a
+ * Google-side outage doesn't take this down too), and only after that falls
+ * back to the shared LOVABLE_API_KEY gateway as the last resort. Throws
+ * only if nothing at all is configured, or every configured option failed.
  */
 export async function generateTextResilient(options: GenerateTextOptionsNoModel, timeoutMs = DEFAULT_TIMEOUT_MS) {
   const geminiKeys = (process.env.GEMINI_API_KEY ?? "")
     .split(",")
     .map((k) => k.trim())
     .filter(Boolean);
+  const groqKey = process.env.GROQ_API_KEY;
   const lovableKey = process.env.LOVABLE_API_KEY;
-  if (geminiKeys.length === 0 && !lovableKey) throw new Error("Missing GEMINI_API_KEY or LOVABLE_API_KEY");
+  if (geminiKeys.length === 0 && !groqKey && !lovableKey) throw new Error("Missing GEMINI_API_KEY, GROQ_API_KEY, or LOVABLE_API_KEY");
 
   // "gemini-2.5-flash" is what the Lovable gateway's own model alias
   // resolves internally — going straight to Google's API needs Google's own
@@ -95,8 +111,29 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel,
     }
     console.error(`[SWEETBABY] Gemini key ...${key.slice(-4)} failed on every model candidate, trying the next key`, lastErr);
   }
-  if (!lovableKey) throw new Error("All Gemini keys failed and no LOVABLE_API_KEY is configured as a fallback");
-  console.error("[SWEETBABY] all Gemini keys failed, falling back to Lovable AI Gateway");
+
+  if (groqKey) {
+    // Same lesson as the Gemini candidates above — a provider's "current"
+    // model id can get retired without notice (Groq deprecated its whole
+    // Llama chat lineup in August 2026), so try a couple of candidates here
+    // too instead of hardcoding one.
+    const GROQ_MODEL_CANDIDATES = ["openai/gpt-oss-120b", "openai/gpt-oss-20b"];
+    for (const modelId of GROQ_MODEL_CANDIDATES) {
+      try {
+        return await generateText({
+          ...options,
+          model: createGroqProvider(groqKey)(modelId),
+          abortSignal: AbortSignal.timeout(timeoutMs),
+        } as GenerateTextOptions);
+      } catch (e) {
+        console.error(`[SWEETBABY] Groq model "${modelId}" failed`, e);
+      }
+    }
+    console.error("[SWEETBABY] Groq failed on every model candidate, falling back to Lovable AI Gateway");
+  }
+
+  if (!lovableKey) throw new Error("All Gemini/Groq attempts failed and no LOVABLE_API_KEY is configured as a fallback");
+  console.error("[SWEETBABY] all Gemini/Groq attempts failed, falling back to Lovable AI Gateway");
   return generateText({
     ...options,
     model: createLovableAiGatewayProvider(lovableKey)("google/gemini-2.5-flash"),
