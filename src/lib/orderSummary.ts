@@ -17,13 +17,16 @@ export function buildPaymentButtonHtml(amount: number): string {
 }
 
 /** The TTLock door passcode, with the "press # to confirm" instruction customers need after keying it in — see integrations/ttlock/client.server.ts. */
-export function buildDoorCodeHtml(code: string): string {
+export function buildDoorCodeHtml(code: string, extraNote?: string): string {
   return `<div style="margin:20px 0;padding:16px;background:#faf7f4;border-radius:10px;border:1px solid #e8ddd3;text-align:center">
     <p style="margin:0 0 8px;color:#2d3d2b;font-weight:bold;font-size:14px">🔑 קוד כניסה לדלת הסטודיו</p>
     <p style="margin:0 0 8px;font-size:22px;letter-spacing:2px;color:#2d3d2b;font-weight:bold" dir="ltr">${code}</p>
-    <p style="margin:0;color:#6b8a63;font-size:13px">תקף רק בשעות ההזמנה שלך. אחרי הקשת הקוד יש ללחוץ על # לאישור.</p>
+    <p style="margin:0;color:#6b8a63;font-size:13px">תקף רק בשעות ההזמנה שלך. אחרי הקשת הקוד יש ללחוץ על # לאישור.${extraNote ? ` ${extraNote}` : ""}</p>
   </div>`;
 }
+
+/** The extra caveat shown only on props/accessories orders — the code doesn't just cover a fixed window, it goes dead overnight. */
+const PROPS_DOOR_CODE_NOTE = "הקוד לא פעיל בין 00:00 ל-07:00. אין לקחת או להחזיר אביזרים בלי לתאם טלפונית מראש · 054-8529277.";
 
 /**
  * Maps the raw studio-intake questionnaire payload (studio_intake_forms.payload)
@@ -191,7 +194,7 @@ export function buildPropsOrderSummaryHtml(opts: {
   doorCode?: string | null;
 }): string {
   const { heading, intro, order: o, includeArrival = true, footerNote, doorCode } = opts;
-  const doorCodeHtml = doorCode ? buildDoorCodeHtml(doorCode) : "";
+  const doorCodeHtml = doorCode ? buildDoorCodeHtml(doorCode, PROPS_DOOR_CODE_NOTE) : "";
 
   const itemsRows = o.lines
     .map(
