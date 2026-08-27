@@ -92,10 +92,9 @@ async function getLockId(accessToken: string): Promise<number> {
   return lock.lockId;
 }
 
-/** Last 6 digits of a phone number, digits only — the door code format the studio decided on. */
+/** The customer's full phone number, digits only — the door code format the studio decided on. */
 export function doorCodeFromPhone(phone: string): string {
-  const digits = phone.replace(/\D/g, "");
-  return digits.slice(-6).padStart(6, "0");
+  return phone.replace(/\D/g, "");
 }
 
 type AddPasscodeResponse = { keyboardPwdId: number };
@@ -165,7 +164,7 @@ export async function issueDoorCodeForBooking(opts: {
   startTime: string; // "HH:MM"
   endDate?: string; // defaults to `date` — for a rental window that spans days
   endTime: string; // "HH:MM"
-  label: string; // shown in the TTLock app's passcode list, e.g. a booking id
+  label: string; // shown in the TTLock app's passcode list — the customer's name
 }): Promise<DoorCodeResult | null> {
   try {
     const { israelLocalToUtcMs } = await import("@/lib/availability.server");
