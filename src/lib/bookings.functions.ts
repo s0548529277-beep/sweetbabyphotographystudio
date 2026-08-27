@@ -803,7 +803,7 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
             date: b.session_date,
             startTime: String(b.start_time).slice(0, 5),
             endTime: String(b.end_time).slice(0, 5),
-            label: `הזמנה ${b.id.slice(0, 8)}`,
+            label: b.contact_name || `הזמנה ${b.id.slice(0, 8)}`,
           });
           if (doorCodeResult) {
             doorCode = doorCodeResult.code;

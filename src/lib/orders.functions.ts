@@ -449,7 +449,7 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
             startTime: pickup.time,
             endDate: ret.date,
             endTime: ret.time,
-            label: `הזמנת אביזרים ${o.id.slice(0, 8)}`,
+            label: o.contact_name || `הזמנת אביזרים ${o.id.slice(0, 8)}`,
           });
           if (doorCodeResult) {
             doorCode = doorCodeResult.code;
