@@ -11,7 +11,7 @@ import { ArrivalDirections } from "@/components/ArrivalDirections";
 import { PayOnlineButton } from "@/components/PayOnlineButton";
 import { confirmBookingDeposit } from "@/lib/bookings.functions";
 import { confirmOrderDeposit } from "@/lib/orders.functions";
-import { Copy, Check, Upload, Banknote, CreditCard, Wallet, PlayCircle } from "lucide-react";
+import { Copy, Check, Upload, Banknote, CreditCard, Wallet, PlayCircle, Bell } from "lucide-react";
 import { StudioGuideModal } from "@/components/StudioGuideModal";
 
 
@@ -58,6 +58,8 @@ function Deposit() {
   const [confirmedPaid, setConfirmedPaid] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [doorCode, setDoorCode] = useState<string | null>(null);
+  const [wantsReminder, setWantsReminder] = useState(false);
+  const [reminderHoursBefore, setReminderHoursBefore] = useState("12");
   const confirmDeposit = useServerFn(confirmBookingDeposit);
   const confirmOrder = useServerFn(confirmOrderDeposit);
 
@@ -115,6 +117,7 @@ function Deposit() {
           balance_method: method,
           deposit_amount: payNow,
           balance_amount: balanceLeft,
+          reminder_hours_before: wantsReminder ? Number(reminderHoursBefore) : null,
         })
         .eq("id", id);
       if (updErr) throw updErr;
@@ -338,6 +341,38 @@ function Deposit() {
                     </p>
                   </>
                 )}
+
+                <div className="rounded-2xl border border-border p-4 space-y-3">
+                  <label className="flex items-start gap-2 cursor-pointer text-sm">
+                    <input
+                      type="checkbox"
+                      checked={wantsReminder}
+                      onChange={(e) => setWantsReminder(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 accent-primary"
+                    />
+                    <span className="flex items-center gap-1.5 text-primary font-medium">
+                      <Bell className="h-4 w-4 text-blush-deep" /> תרצי תזכורת {isStudio ? "לפני הצילומים" : "לפני האיסוף"}?
+                    </span>
+                  </label>
+                  {wantsReminder && (
+                    <div className="pr-6">
+                      <select
+                        value={reminderHoursBefore}
+                        onChange={(e) => setReminderHoursBefore(e.target.value)}
+                        className="h-10 rounded-xl border border-border bg-card px-3 text-sm"
+                      >
+                        <option value="1">שעה לפני</option>
+                        <option value="2">שעתיים לפני</option>
+                        <option value="4">4 שעות לפני</option>
+                        <option value="12">12 שעות לפני</option>
+                        <option value="24">יום לפני</option>
+                      </select>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        נתקשר אלייך ממספר הסטודיו (077-2249299) עם תזכורת קצרה, וגם נשלח מייל.
+                      </p>
+                    </div>
+                  )}
+                </div>
 
                 <Button
                   disabled={uploading || (showReceiptUpload && !file && !confirmedPaid)}

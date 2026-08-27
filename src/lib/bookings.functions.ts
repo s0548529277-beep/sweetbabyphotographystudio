@@ -921,33 +921,41 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
     }
   });
 
-// ---------- 12-hours-before-session reminder email ----------
+// ---------- opt-in reminder, customer-chosen hours-before ----------
 
-const REMINDER_WINDOW_MIN_HOURS = 11.5;
-const REMINDER_WINDOW_MAX_HOURS = 12.5;
+// Half an hour of slack either side of her chosen "hours before" — the
+// scheduler runs every 15-30 min, not continuously, so the exact instant
+// almost never lines up perfectly.
+const REMINDER_WINDOW_SLACK_HOURS = 0.5;
 
 /**
- * Scans for confirmed bookings whose session starts in ~12 hours and haven't
- * had a reminder sent yet, and emails the customer a reminder (order summary
- * + arrival details). Meant to be called periodically (e.g. every 30 min) by
- * an external scheduler hitting /api/send-booking-reminders — see that route.
- * Not wrapped in createServerFn/requireSupabaseAuth on purpose: this runs as
- * a trusted service job, not on behalf of a logged-in user.
+ * Scans for confirmed bookings where the customer opted into a reminder on
+ * the deposit/checkout screen (reminder_hours_before set) and hasn't had it
+ * sent yet, and — once her chosen "hours before" window arrives — emails her
+ * the full order summary AND places a short Yemot voice call. Replaces the
+ * old fixed-12h/4h automatic reminders: now nobody gets a reminder unless
+ * she asked for one, at the timing she picked. Meant to be called
+ * periodically (e.g. every 30 min) by an external scheduler hitting
+ * /api/send-booking-reminders — see that route. Not wrapped in
+ * createServerFn/requireSupabaseAuth on purpose: this runs as a trusted
+ * service job, not on behalf of a logged-in user.
  */
 export async function runDueBookingReminders(): Promise<{ checked: number; sent: number }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  // Bound the query to the next 2 days so we don't scan the whole table;
-  // the precise 12h window is checked in JS below since it spans a date+time.
+  // Bound the query to the next 3 days so we don't scan the whole table
+  // (a reminder can be asked for up to 48h ahead — see the deposit page);
+  // the precise per-booking window is checked in JS below.
   const today = new Date();
-  const windowEnd = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const windowEnd = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
   const { data: candidates, error } = await supabaseAdmin
     .from("bookings")
     .select(
-      "id, user_id, session_date, start_time, end_time, price, deposit_amount, balance_amount, balance_method, notes, reserved_items, contact_name, contact_phone, google_event_id, reminder_sent_at, status",
+      "id, user_id, session_date, start_time, end_time, price, deposit_amount, balance_amount, balance_method, notes, reserved_items, contact_name, contact_phone, google_event_id, reminder_sent_at, reminder_hours_before, status",
     )
     .is("reminder_sent_at", null)
+    .not("reminder_hours_before", "is", null) // opt-in only
     .neq("status", "cancelled")
     .not("google_event_id", "is", null) // only actually-confirmed bookings
     .gte("session_date", today.toISOString().slice(0, 10))
@@ -962,10 +970,12 @@ export async function runDueBookingReminders(): Promise<{ checked: number; sent:
   let sent = 0;
 
   for (const b of candidates ?? []) {
+    const hoursBefore = Number((b as any).reminder_hours_before);
+    if (!hoursBefore || hoursBefore <= 0) continue;
     const startISO = `${b.session_date}T${String(b.start_time).slice(0, 5)}:00`;
     const startMs = new Date(startISO).getTime();
     const hoursUntil = (startMs - now) / (1000 * 60 * 60);
-    if (hoursUntil < REMINDER_WINDOW_MIN_HOURS || hoursUntil > REMINDER_WINDOW_MAX_HOURS) continue;
+    if (hoursUntil < hoursBefore - REMINDER_WINDOW_SLACK_HOURS || hoursUntil > hoursBefore + REMINDER_WINDOW_SLACK_HOURS) continue;
 
     try {
       const {
@@ -975,9 +985,8 @@ export async function runDueBookingReminders(): Promise<{ checked: number; sent:
 
       const intakePayload = await fetchLatestIntake(supabaseAdmin, b.user_id);
       const html = buildBookingSummaryHtml({
-        heading: "תזכורת: הצילומים שלך היום ⏰",
-        intro:
-          "רק תזכורת חמה — הצילומים שלך בסטודיו Sweetbaby מתקיימים בעוד כ-12 שעות. למטה סיכום ההזמנה ופרטי ההגעה, שיהיה קל להתארגן.",
+        heading: "תזכורת: הצילומים שלך מתקרבים ⏰",
+        intro: `רק תזכורת חמה — הצילומים שלך בסטודיו Sweetbaby מתקיימים בעוד כ-${hoursBefore} שעות. למטה סיכום ההזמנה ופרטי ההגעה, שיהיה קל להתארגן.`,
         booking: {
           id: b.id,
           contact_name: b.contact_name,
@@ -997,17 +1006,17 @@ export async function runDueBookingReminders(): Promise<{ checked: number; sent:
       const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
       await sendStudioAndCustomer({
         customerEmail,
-        subject: `תזכורת לצילומים היום #${b.id.slice(0, 8)} · Sweetbaby`,
+        subject: `תזכורת לצילומים המתקרבים #${b.id.slice(0, 8)} · Sweetbaby`,
         html,
       });
 
       if (b.contact_phone) {
         try {
           const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
-          const text = `שלום ${b.contact_name || ""}, תזכורת מסטודיו סוויט בייבי — הצילומים שלך מתקיימים בעוד כ-12 שעות, ב-${String(b.start_time).slice(0, 5)}. מחכות לך!`;
-          await sendYemotVoiceMessage({ phone: b.contact_phone, text, label: `תזכורת 12 שעות ${b.id.slice(0, 8)}` });
+          const text = `שלום ${b.contact_name || ""}, תזכורת מסטודיו סוויט בייבי — הצילומים שלך מתקיימים בעוד כ-${hoursBefore} שעות, ב-${String(b.start_time).slice(0, 5)}. מחכות לך!`;
+          await sendYemotVoiceMessage({ phone: b.contact_phone, text, label: `תזכורת ${hoursBefore} שעות ${b.id.slice(0, 8)}` });
         } catch (e) {
-          console.error("[SWEETBABY] Yemot 12h reminder call (booking) failed", e);
+          console.error("[SWEETBABY] Yemot reminder call (booking) failed", e);
         }
       }
 
@@ -1015,59 +1024,6 @@ export async function runDueBookingReminders(): Promise<{ checked: number; sent:
       sent += 1;
     } catch (e) {
       console.error("[SWEETBABY] reminder send failed for booking", b.id, e);
-    }
-  }
-
-  return { checked: (candidates ?? []).length, sent };
-}
-
-// ---------- 4-hours-before-session reminder call ----------
-
-const REMINDER_4H_WINDOW_MIN_HOURS = 3.5;
-const REMINDER_4H_WINDOW_MAX_HOURS = 4.5;
-
-/**
- * Same idea as runDueBookingReminders but a tighter ~4h-before window, and
- * voice-only (a phone call, no second email) — just a quick "you're on
- * today" nudge, not a full re-send of the order summary.
- */
-export async function runDue4hBookingReminders(): Promise<{ checked: number; sent: number }> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-  const today = new Date();
-  const windowEnd = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-
-  const { data: candidates, error } = await supabaseAdmin
-    .from("bookings")
-    .select("id, session_date, start_time, contact_name, contact_phone, google_event_id, reminder_4h_sent_at, status")
-    .is("reminder_4h_sent_at", null)
-    .neq("status", "cancelled")
-    .not("google_event_id", "is", null)
-    .gte("session_date", today.toISOString().slice(0, 10))
-    .lte("session_date", windowEnd);
-
-  if (error) {
-    console.error("[SWEETBABY] 4h reminder scan failed", error);
-    return { checked: 0, sent: 0 };
-  }
-
-  const now = Date.now();
-  let sent = 0;
-
-  for (const b of candidates ?? []) {
-    const startMs = new Date(`${b.session_date}T${String(b.start_time).slice(0, 5)}:00`).getTime();
-    const hoursUntil = (startMs - now) / (1000 * 60 * 60);
-    if (hoursUntil < REMINDER_4H_WINDOW_MIN_HOURS || hoursUntil > REMINDER_4H_WINDOW_MAX_HOURS) continue;
-    if (!b.contact_phone) continue;
-
-    try {
-      const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
-      const text = `שלום ${b.contact_name || ""}, תזכורת מסטודיו סוויט בייבי — הצילומים שלך מתחילים בעוד כ-4 שעות, ב-${String(b.start_time).slice(0, 5)}. מחכות לך!`;
-      await sendYemotVoiceMessage({ phone: b.contact_phone, text, label: `תזכורת 4 שעות ${b.id.slice(0, 8)}` });
-      await supabaseAdmin.from("bookings").update({ reminder_4h_sent_at: new Date().toISOString() }).eq("id", b.id);
-      sent += 1;
-    } catch (e) {
-      console.error("[SWEETBABY] 4h reminder call failed for booking", b.id, e);
     }
   }
 
