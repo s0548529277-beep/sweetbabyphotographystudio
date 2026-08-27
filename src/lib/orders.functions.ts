@@ -405,6 +405,7 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
             endDate: ret.date,
             endTime: ret.time,
             label: o.contact_name || `הזמנת אביזרים ${o.id.slice(0, 8)}`,
+            excludeOvernightHours: true,
           });
           if (doorCodeResult) {
             doorCode = doorCodeResult.code;
@@ -488,6 +489,7 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
             endDate: ret.date,
             endTime: ret.time,
             label: o.contact_name || `הזמנת אביזרים ${o.id.slice(0, 8)}`,
+            excludeOvernightHours: true,
           });
           if (doorCodeResult) {
             doorCode = doorCodeResult.code;
