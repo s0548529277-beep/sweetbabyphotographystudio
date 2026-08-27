@@ -67,22 +67,33 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel,
   const lovableKey = process.env.LOVABLE_API_KEY;
   if (geminiKeys.length === 0 && !lovableKey) throw new Error("Missing GEMINI_API_KEY or LOVABLE_API_KEY");
 
+  // "gemini-2.5-flash" is what the Lovable gateway's own model alias
+  // resolves internally — going straight to Google's API needs Google's own
+  // current model id, which isn't the same thing and drifts over time as
+  // preview releases get retired in favor of GA ones. This has now 404'd
+  // TWICE live (once as "gemini-2.5-flash" itself against the direct
+  // endpoint, then again after being updated to "gemini-3-flash-preview" a
+  // day later) — so instead of chasing one hardcoded name again, try a
+  // short list of candidates (newest first) per key before giving up on
+  // that key. A 404 on a bad model id returns almost immediately, so this
+  // doesn't meaningfully add to worst-case latency.
+  const DIRECT_GEMINI_MODEL_CANDIDATES = ["gemini-3.7-flash", "gemini-3-flash-preview"];
+
   for (const key of geminiKeys) {
-    try {
-      // "gemini-2.5-flash" is what the Lovable gateway's own model alias
-      // resolves internally — going straight to Google's API needs
-      // Google's own current model id, which isn't the same thing and
-      // drifts over time (confirmed live: this exact string 404'd with
-      // "Not Found" against the direct endpoint on 2026-08-27, while the
-      // gateway path below kept working under the old name).
-      return await generateText({
-        ...options,
-        model: createDirectGeminiProvider(key)("gemini-3-flash-preview"),
-        abortSignal: AbortSignal.timeout(timeoutMs),
-      } as GenerateTextOptions);
-    } catch (e) {
-      console.error(`[SWEETBABY] Gemini key ...${key.slice(-4)} failed, trying the next one`, e);
+    let lastErr: unknown;
+    for (const modelId of DIRECT_GEMINI_MODEL_CANDIDATES) {
+      try {
+        return await generateText({
+          ...options,
+          model: createDirectGeminiProvider(key)(modelId),
+          abortSignal: AbortSignal.timeout(timeoutMs),
+        } as GenerateTextOptions);
+      } catch (e) {
+        lastErr = e;
+        console.error(`[SWEETBABY] Gemini key ...${key.slice(-4)} model "${modelId}" failed`, e);
+      }
     }
+    console.error(`[SWEETBABY] Gemini key ...${key.slice(-4)} failed on every model candidate, trying the next key`, lastErr);
   }
   if (!lovableKey) throw new Error("All Gemini keys failed and no LOVABLE_API_KEY is configured as a fallback");
   console.error("[SWEETBABY] all Gemini keys failed, falling back to Lovable AI Gateway");
