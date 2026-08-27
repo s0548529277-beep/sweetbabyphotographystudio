@@ -130,11 +130,17 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel,
   // preview releases get retired in favor of GA ones. This has now 404'd
   // TWICE live (once as "gemini-2.5-flash" itself against the direct
   // endpoint, then again after being updated to "gemini-3-flash-preview" a
-  // day later) — so instead of chasing one hardcoded name again, try a
-  // short list of candidates (newest first) per key before giving up on
-  // that key. A 404 on a bad model id returns almost immediately, so this
-  // doesn't meaningfully add to worst-case latency.
-  const DIRECT_GEMINI_MODEL_CANDIDATES = ["gemini-3.7-flash", "gemini-3-flash-preview"];
+  // day later).
+  //
+  // A "gemini-3.7-flash" candidate was tried here too, on the assumption
+  // that a bad model id fails fast (a 404 costs almost nothing) — but real
+  // logs showed it instead HANGS to a full TimeoutError on both configured
+  // keys, doubling the worst-case wait before ever reaching Groq/Lovable
+  // (this is very likely why the site chat kept showing "אני קצת עמוס" —
+  // the browser/UI was giving up long before the server-side chain finished
+  // retrying). So: only try candidates that are known to fail *fast* when
+  // wrong, never a name that might hang — currently just one.
+  const DIRECT_GEMINI_MODEL_CANDIDATES = ["gemini-3-flash-preview"];
 
   for (const key of geminiKeys) {
     let lastErr: unknown;
@@ -156,11 +162,17 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel,
   }
 
   if (groqKey) {
-    // Same lesson as the Gemini candidates above — a provider's "current"
-    // model id can get retired without notice (Groq deprecated its whole
-    // Llama chat lineup in August 2026), so try a couple of candidates here
-    // too instead of hardcoding one.
-    const GROQ_MODEL_CANDIDATES = ["openai/gpt-oss-120b", "openai/gpt-oss-20b"];
+    // "openai/gpt-oss-120b"/"-20b" were tried here first, on Groq's own
+    // recommendation — but real logs showed both fail on EVERY multi-step
+    // tool-calling turn (which is every turn in this app) with:
+    //   'messages.N': for 'role:assistant' ... 'reasoning_content' is unsupported
+    // This is a known, still-open Vercel AI SDK ↔ Groq compatibility gap
+    // (github.com/vercel/ai issue #8056): gpt-oss is a reasoning model, the
+    // SDK echoes its own reasoning_content back as conversation history on
+    // the next tool-calling step, and Groq's API rejects that echo outright.
+    // Trying the other gpt-oss size doesn't help — same bug, same model
+    // family. A plain (non-reasoning) chat model sidesteps this entirely.
+    const GROQ_MODEL_CANDIDATES = ["llama-3.3-70b-versatile"];
     for (const modelId of GROQ_MODEL_CANDIDATES) {
       try {
         const result = await generateText({
