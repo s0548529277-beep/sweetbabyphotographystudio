@@ -388,7 +388,41 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error || !o) throw new Error("ההזמנה לא נמצאה");
     if (o.user_id !== userId) throw new Error("אין הרשאה");
-    if (o.confirmation_sent_at) return { ok: true, already: true, doorCode: (o as any).door_code ?? null };
+    if (o.confirmation_sent_at) {
+      // Same backfill as confirmBookingDeposit — a revisit of an
+      // already-confirmed order used to silently skip door-code issuance.
+      let doorCode = ((o as any).door_code as string | null) ?? null;
+      if (!doorCode && o.contact_phone && o.pickup_at && o.return_at) {
+        try {
+          const { issueDoorCodeForBooking } = await import("@/integrations/ttlock/client.server");
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const pickup = { date: String(o.pickup_at).slice(0, 10), time: String(o.pickup_at).slice(11, 16) };
+          const ret = { date: String(o.return_at).slice(0, 10), time: String(o.return_at).slice(11, 16) };
+          const doorCodeResult = await issueDoorCodeForBooking({
+            phone: o.contact_phone,
+            date: pickup.date,
+            startTime: pickup.time,
+            endDate: ret.date,
+            endTime: ret.time,
+            label: o.contact_name || `הזמנת אביזרים ${o.id.slice(0, 8)}`,
+          });
+          if (doorCodeResult) {
+            doorCode = doorCodeResult.code;
+            await supabaseAdmin
+              .from("orders")
+              .update({
+                door_code: doorCodeResult.code,
+                ttlock_keyboard_pwd_id: doorCodeResult.keyboardPwdId,
+                ttlock_lock_id: doorCodeResult.lockId,
+              })
+              .eq("id", o.id);
+          }
+        } catch (e) {
+          console.error("[SWEETBABY] TTLock door code backfill (order) failed", e);
+        }
+      }
+      return { ok: true, already: true, doorCode };
+    }
 
     const { data: itemRows } = await supabase
       .from("order_items")
