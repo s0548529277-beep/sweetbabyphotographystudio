@@ -16,6 +16,15 @@ export function buildPaymentButtonHtml(amount: number): string {
   </div>`;
 }
 
+/** The TTLock door passcode, with the "press # to confirm" instruction customers need after keying it in — see integrations/ttlock/client.server.ts. */
+export function buildDoorCodeHtml(code: string): string {
+  return `<div style="margin:20px 0;padding:16px;background:#faf7f4;border-radius:10px;border:1px solid #e8ddd3;text-align:center">
+    <p style="margin:0 0 8px;color:#2d3d2b;font-weight:bold;font-size:14px">🔑 קוד כניסה לדלת הסטודיו</p>
+    <p style="margin:0 0 8px;font-size:28px;letter-spacing:4px;color:#2d3d2b;font-weight:bold" dir="ltr">${code}</p>
+    <p style="margin:0;color:#6b8a63;font-size:13px">תקף רק בשעות ההזמנה שלך. אחרי הקשת הקוד יש ללחוץ על # לאישור.</p>
+  </div>`;
+}
+
 /**
  * Maps the raw studio-intake questionnaire payload (studio_intake_forms.payload)
  * to Hebrew labels, in display order. Shared so every email that shows the
@@ -104,8 +113,10 @@ export function buildBookingSummaryHtml(opts: {
   footerNote?: string;
   /** Amount to show on an embedded "pay now" button — used for bookings made outside a browser session (phone), where there's no /deposit page to send her back to. */
   paymentAmount?: number;
+  /** TTLock door passcode, once issued — see integrations/ttlock/client.server.ts. */
+  doorCode?: string | null;
 }): string {
-  const { heading, intro, booking, intakePayload, includeArrival = true, includeIntake = true, footerNote, paymentAmount } = opts;
+  const { heading, intro, booking, intakePayload, includeArrival = true, includeIntake = true, footerNote, paymentAmount, doorCode } = opts;
   const b = booking;
   const balance = b.balance_amount ?? Math.max(0, (b.price ?? 0) - (b.deposit_amount ?? 0));
 
@@ -114,6 +125,7 @@ export function buildBookingSummaryHtml(opts: {
       ? `<p><strong>אביזרים ששוריינו:</strong> ${b.reserved_items.map((s) => `#${s}`).join(", ")}</p>`
       : "";
   const paymentHtml = paymentAmount != null ? buildPaymentButtonHtml(paymentAmount) : "";
+  const doorCodeHtml = doorCode ? buildDoorCodeHtml(doorCode) : "";
 
   return `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:600px;margin:auto">
     <h2 style="color:#2d3d2b">${escapeHtml(heading)}</h2>
@@ -132,6 +144,7 @@ export function buildBookingSummaryHtml(opts: {
     </table>
     ${itemsHtml}
     ${paymentHtml}
+    ${doorCodeHtml}
     ${includeIntake ? buildIntakeHtml(intakePayload) : ""}
     ${includeArrival ? buildArrivalHtml() : ""}
     ${footerNote ? `<p style="color:#6b8a63;font-size:13px;margin-top:16px">${footerNote}</p>` : ""}
@@ -174,8 +187,11 @@ export function buildPropsOrderSummaryHtml(opts: {
   order: SummaryOrder;
   includeArrival?: boolean;
   footerNote?: string;
+  /** TTLock door passcode, once issued — see integrations/ttlock/client.server.ts. */
+  doorCode?: string | null;
 }): string {
-  const { heading, intro, order: o, includeArrival = true, footerNote } = opts;
+  const { heading, intro, order: o, includeArrival = true, footerNote, doorCode } = opts;
+  const doorCodeHtml = doorCode ? buildDoorCodeHtml(doorCode) : "";
 
   const itemsRows = o.lines
     .map(
@@ -199,6 +215,7 @@ export function buildPropsOrderSummaryHtml(opts: {
     <h3 style="color:#2d3d2b;margin-top:24px">פריטים</h3>
     <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">${itemsRows}</table>
     <p style="margin-top:12px"><strong>סה״כ לתשלום:</strong> ₪${o.total}</p>
+    ${doorCodeHtml}
     ${includeArrival ? buildArrivalHtml() : ""}
     ${footerNote ? `<p style="color:#6b8a63;font-size:13px;margin-top:16px">${footerNote}</p>` : ""}
     <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: תלמוד ירושלמי 24, בית שמש · לשאלות: s0548529277@gmail.com / 054-8529277</p>

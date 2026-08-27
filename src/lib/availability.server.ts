@@ -241,6 +241,35 @@ export async function studioAvailability(date: string, wantedTime?: string) {
   return { date, closed: false, freeSlots, wantedFree, calendarLinked };
 }
 
+/**
+ * Converts an Israel-local wall-clock date+time (e.g. "2026-08-30" +
+ * "10:00" — exactly what session_date/start_time or a naive pickup_at
+ * timestamp already store) into a real UTC epoch millisecond value —
+ * correctly, across the DST boundary (Israel is UTC+2 in winter, UTC+3 in
+ * summer, so a hardcoded "+03:00" offset is wrong roughly half the year).
+ * Used by the TTLock integration, which needs real epoch timestamps, not a
+ * timezone-aware ISO string (unlike the Google Calendar API, which takes a
+ * separate timeZone field and does this conversion itself).
+ */
+export function israelLocalToUtcMs(dateStr: string, timeStr: string): number {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const [hh, mm] = timeStr.slice(0, 5).split(":").map(Number);
+  const naiveUtcMs = Date.UTC(y, m - 1, d, hh, mm, 0);
+
+  // What offset is Asia/Jerusalem actually at, around that instant? (Good
+  // enough approximation — the offset only changes exactly at the DST
+  // transition moment itself, which this isn't trying to be precise to the
+  // minute for.)
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Jerusalem", hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
+  });
+  const parts = Object.fromEntries(fmt.formatToParts(new Date(naiveUtcMs)).map((p) => [p.type, p.value]));
+  const jerMs = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), Number(parts.hour), Number(parts.minute));
+  const offsetMs = jerMs - naiveUtcMs;
+  return naiveUtcMs - offsetMs;
+}
+
 /** Current date/time in Israel, as an ISO date plus minutes since midnight. */
 export function israelNow(): { date: string; minutes: number; time: string } {
   const fmt = new Intl.DateTimeFormat("en-CA", {
