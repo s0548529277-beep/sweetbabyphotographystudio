@@ -765,7 +765,7 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
             date: b.session_date,
             startTime: String(b.start_time).slice(0, 5),
             endTime: String(b.end_time).slice(0, 5),
-            label: b.contact_name || `הזמנה ${b.id.slice(0, 8)}`,
+            label: b.contact_name ? `${b.contact_name} סטודיו` : `הזמנה ${b.id.slice(0, 8)}`,
           });
           if (doorCodeResult) {
             doorCode = doorCodeResult.code;
@@ -777,6 +777,17 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
                 ttlock_lock_id: doorCodeResult.lockId,
               })
               .eq("id", b.id);
+            // A freshly-backfilled code was never spoken on the original
+            // confirmation call (that already happened, without a code) —
+            // send one now so she actually hears it, not just sees it on
+            // this revisit of the screen.
+            try {
+              const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
+              const text = `שלום ${b.contact_name || ""}, קוד הכניסה שלך לסטודיו סוויט בייבי הוא ${doorCode.split("").join(" ")}. לחצי סולמית אחרי הקשת הקוד. מחכות לך!`;
+              await sendYemotVoiceMessage({ phone: b.contact_phone, text, label: `קוד כניסה ${b.id.slice(0, 8)}` });
+            } catch (e) {
+              console.error("[SWEETBABY] Yemot backfilled door code call (booking) failed", e);
+            }
           }
         } catch (e) {
           console.error("[SWEETBABY] TTLock door code backfill (booking) failed", e);
@@ -839,7 +850,7 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
             date: b.session_date,
             startTime: String(b.start_time).slice(0, 5),
             endTime: String(b.end_time).slice(0, 5),
-            label: b.contact_name || `הזמנה ${b.id.slice(0, 8)}`,
+            label: b.contact_name ? `${b.contact_name} סטודיו` : `הזמנה ${b.id.slice(0, 8)}`,
           });
           if (doorCodeResult) {
             doorCode = doorCodeResult.code;
