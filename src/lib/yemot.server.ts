@@ -2,8 +2,11 @@
 // style as twilio.server.ts: no SDK, just the bespoke plain-text protocol
 // their IVR2 "שלוחת API" extension speaks. Confirmed against the open-source
 // yemot-router2 library's source (github.com/ShlomoCode/yemot-router2) since
-// Yemot doesn't publish a public REST reference; this hasn't been verified
-// against a live call yet — the very first real call is the real test.
+// Yemot doesn't publish a public REST reference. The "voice" read mode below
+// is confirmed working against a real live call; a "tap" (keypad digit)
+// read mode was tried for a numbered menu and did NOT work reliably live
+// ("לא הקשת כמות מספרים נכונה") — removed in favor of a speech-keyword menu
+// instead (see voice-menu.server.ts), so this file only ever asks for voice.
 //
 // Protocol shape: Yemot POSTs (or GETs) call info as form fields —
 // ApiCallId (a stable id for the whole call, our session key), ApiPhone
@@ -65,18 +68,6 @@ export function yemotSayAndListen(text: string): Response {
   // re_enter=no: don't re-ask the same question if `speech` was already
   // filled on a prior hit of this call — we always want a *new* answer.
   return yemotResponse(`read=${textSegment(text)}=speech,no,voice,he`);
-}
-
-/**
- * Same shape as yemotSayAndListen, but collects a single keypad digit
- * instead of speech — for the fixed menu (voice-menu.server.ts). Unlike the
- * "voice" mode above, this hasn't been confirmed against a live call yet;
- * if it doesn't behave as expected the fallback (re-prompting with
- * yemotSayAndListen instead, so the caller can just say the number) covers
- * it either way.
- */
-export function yemotSayAndListenDigit(text: string): Response {
-  return yemotResponse(`read=${textSegment(text)}=digit,no,tap,he`);
 }
 
 /** Speaks `text` in Hebrew and ends the call. */

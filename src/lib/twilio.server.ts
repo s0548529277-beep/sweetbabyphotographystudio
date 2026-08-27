@@ -75,23 +75,6 @@ export function twimlSayAndGather(text: string, actionUrl: string): Response {
   );
 }
 
-/**
- * Same as twimlSayAndGather, but for the fixed key-press menu: accepts
- * *either* a keypad digit or a spoken reply in the same Gather (Twilio
- * fills `Digits` or `SpeechResult` in the follow-up POST depending on which
- * one the caller used), one digit, short timeout since it's just a menu pick.
- */
-export function twimlSayAndGatherMenu(text: string, actionUrl: string): Response {
-  return twimlResponse(
-    `<Gather input="dtmf speech" numDigits="1" ${HE_IL} speechTimeout="auto" timeout="6" action="${xmlEscape(actionUrl)}" method="POST">` +
-      `<Say ${HE_IL}>${xmlEscape(text)}</Say>` +
-      `</Gather>` +
-      `<Say ${HE_IL}>לא שמעתי, אפשר לנסות שוב?</Say>` +
-      `<Gather input="dtmf speech" numDigits="1" ${HE_IL} speechTimeout="auto" timeout="6" action="${xmlEscape(actionUrl)}" method="POST"></Gather>` +
-      `<Say ${HE_IL}>לא הצלחנו להתחבר, ניצור איתך קשר. תודה ולהתראות!</Say>`,
-  );
-}
-
 /** Speaks `text` in Hebrew and ends the call. */
 export function twimlSayAndHangup(text: string): Response {
   return twimlResponse(`<Say ${HE_IL}>${xmlEscape(text)}</Say><Hangup/>`);

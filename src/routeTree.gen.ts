@@ -51,6 +51,7 @@ import { Route as AuthenticatedAdminPhotoEditorRouteImport } from './routes/_aut
 import { Route as AuthenticatedAdminPhotoClientsRouteImport } from './routes/_authenticated/admin.photo-clients'
 import { Route as AuthenticatedAdminPhotoBatchRouteImport } from './routes/_authenticated/admin.photo-batch'
 import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenticated/admin.orders'
+import { Route as AuthenticatedAdminNotificationsRouteImport } from './routes/_authenticated/admin.notifications'
 import { Route as AuthenticatedAdminNewsletterRouteImport } from './routes/_authenticated/admin.newsletter'
 import { Route as AuthenticatedAdminItemsRouteImport } from './routes/_authenticated/admin.items'
 import { Route as AuthenticatedAdminInspirationRouteImport } from './routes/_authenticated/admin.inspiration'
@@ -282,6 +283,12 @@ const AuthenticatedAdminOrdersRoute =
     path: '/orders',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminNotificationsRoute =
+  AuthenticatedAdminNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminNewsletterRoute =
   AuthenticatedAdminNewsletterRouteImport.update({
     id: '/newsletter',
@@ -385,6 +392,7 @@ export interface FileRoutesByFullPath {
   '/admin/inspiration': typeof AuthenticatedAdminInspirationRoute
   '/admin/items': typeof AuthenticatedAdminItemsRoute
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
+  '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/admin/photo-batch': typeof AuthenticatedAdminPhotoBatchRoute
   '/admin/photo-clients': typeof AuthenticatedAdminPhotoClientsRouteWithChildren
@@ -438,6 +446,7 @@ export interface FileRoutesByTo {
   '/admin/inspiration': typeof AuthenticatedAdminInspirationRoute
   '/admin/items': typeof AuthenticatedAdminItemsRoute
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
+  '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/admin/photo-batch': typeof AuthenticatedAdminPhotoBatchRoute
   '/admin/photo-clients': typeof AuthenticatedAdminPhotoClientsRouteWithChildren
@@ -494,6 +503,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/inspiration': typeof AuthenticatedAdminInspirationRoute
   '/_authenticated/admin/items': typeof AuthenticatedAdminItemsRoute
   '/_authenticated/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
+  '/_authenticated/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/_authenticated/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/_authenticated/admin/photo-batch': typeof AuthenticatedAdminPhotoBatchRoute
   '/_authenticated/admin/photo-clients': typeof AuthenticatedAdminPhotoClientsRouteWithChildren
@@ -550,6 +560,7 @@ export interface FileRouteTypes {
     | '/admin/inspiration'
     | '/admin/items'
     | '/admin/newsletter'
+    | '/admin/notifications'
     | '/admin/orders'
     | '/admin/photo-batch'
     | '/admin/photo-clients'
@@ -603,6 +614,7 @@ export interface FileRouteTypes {
     | '/admin/inspiration'
     | '/admin/items'
     | '/admin/newsletter'
+    | '/admin/notifications'
     | '/admin/orders'
     | '/admin/photo-batch'
     | '/admin/photo-clients'
@@ -658,6 +670,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/inspiration'
     | '/_authenticated/admin/items'
     | '/_authenticated/admin/newsletter'
+    | '/_authenticated/admin/notifications'
     | '/_authenticated/admin/orders'
     | '/_authenticated/admin/photo-batch'
     | '/_authenticated/admin/photo-clients'
@@ -1005,6 +1018,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminOrdersRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/notifications': {
+      id: '/_authenticated/admin/notifications'
+      path: '/notifications'
+      fullPath: '/admin/notifications'
+      preLoaderRoute: typeof AuthenticatedAdminNotificationsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/newsletter': {
       id: '/_authenticated/admin/newsletter'
       path: '/newsletter'
@@ -1110,6 +1130,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminInspirationRoute: typeof AuthenticatedAdminInspirationRoute
   AuthenticatedAdminItemsRoute: typeof AuthenticatedAdminItemsRoute
   AuthenticatedAdminNewsletterRoute: typeof AuthenticatedAdminNewsletterRoute
+  AuthenticatedAdminNotificationsRoute: typeof AuthenticatedAdminNotificationsRoute
   AuthenticatedAdminOrdersRoute: typeof AuthenticatedAdminOrdersRoute
   AuthenticatedAdminPhotoBatchRoute: typeof AuthenticatedAdminPhotoBatchRoute
   AuthenticatedAdminPhotoClientsRoute: typeof AuthenticatedAdminPhotoClientsRouteWithChildren
@@ -1131,6 +1152,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminInspirationRoute: AuthenticatedAdminInspirationRoute,
   AuthenticatedAdminItemsRoute: AuthenticatedAdminItemsRoute,
   AuthenticatedAdminNewsletterRoute: AuthenticatedAdminNewsletterRoute,
+  AuthenticatedAdminNotificationsRoute: AuthenticatedAdminNotificationsRoute,
   AuthenticatedAdminOrdersRoute: AuthenticatedAdminOrdersRoute,
   AuthenticatedAdminPhotoBatchRoute: AuthenticatedAdminPhotoBatchRoute,
   AuthenticatedAdminPhotoClientsRoute:

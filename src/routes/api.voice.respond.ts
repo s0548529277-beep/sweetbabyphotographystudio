@@ -1,14 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
-import {
-  parseTwilioForm,
-  twimlSayAndDial,
-  twimlSayAndGather,
-  twimlSayAndGatherMenu,
-  twimlSayAndHangup,
-  verifyTwilioSignature,
-} from "@/lib/twilio.server";
-import { runVoiceTurn, type VoiceMessage } from "@/lib/voice-chat.server";
+import { parseTwilioForm, twimlSayAndDial, twimlSayAndGather, twimlSayAndHangup, verifyTwilioSignature } from "@/lib/twilio.server";
+import { runVoiceTurn, type VoiceMessage, type VoiceTurnResult } from "@/lib/voice-chat.server";
 import { sendMessageToStudio } from "@/lib/voice-message.server";
 import {
   ARRIVAL_SPOKEN,
@@ -16,10 +9,9 @@ import {
   GUIDE_CHOICE_PROMPT,
   LEAVE_MESSAGE_PROMPT,
   LEAVE_MESSAGE_THANKS,
-  MENU_DIDNT_CATCH,
   PROPS_BLURB,
   STUDIO_BLURB,
-  parseMenuChoice,
+  detectMenuIntent,
   wantsFullGuide,
 } from "@/lib/voice-menu.server";
 
@@ -41,7 +33,6 @@ export const Route = createFileRoute("/api/voice/respond")({
         if (!valid) return new Response("Forbidden", { status: 403 });
 
         const callSid = params.CallSid;
-        const digits = (params.Digits ?? "").trim();
         const speech = (params.SpeechResult ?? "").trim();
         if (!callSid) return new Response("Bad Request", { status: 400 });
 
@@ -66,30 +57,58 @@ export const Route = createFileRoute("/api/voice/respond")({
               { onConflict: "call_sid" },
             );
 
-          // ---- Stage 1: the fixed key-press menu ----
-          if (stage === "menu") {
-            const choice = parseMenuChoice(digits, speech);
-            if (!choice) {
-              await save(priorMessages, "menu");
-              return twimlSayAndGatherMenu(MENU_DIDNT_CATCH, actionUrl);
+          // Runs a real AI turn and replies with the right TwiML for
+          // whatever the model decided to do — shared by every stage that
+          // can fall through into the open conversation, so "transfer with
+          // no human available → offer to leave a message instead" only
+          // has to be written once.
+          const runOpenTurn = async (userText: string): Promise<Response> => {
+            const messages: VoiceMessage[] = [...priorMessages, { role: "user", content: userText }];
+            const { text, action }: VoiceTurnResult = await runVoiceTurn(messages, callerPhone);
+            const updatedMessages: VoiceMessage[] = [...messages, { role: "assistant", content: text }];
+            if (action === "transfer") {
+              const humanPhone = process.env.STUDIO_OWNER_PHONE;
+              if (!humanPhone) {
+                await save([...updatedMessages, { role: "assistant", content: NO_HUMAN_TRANSFER }], "leaving_message");
+                return twimlSayAndGather(`${text} ${NO_HUMAN_TRANSFER}`, actionUrl);
+              }
+              await save(updatedMessages, "chat");
+              return twimlSayAndDial(text, humanPhone);
             }
-            if (choice === 3) {
+            await save(updatedMessages, "chat");
+            if (action === "hangup") return twimlSayAndHangup(text);
+            return twimlSayAndGather(text, actionUrl);
+          };
+
+          // ---- Stage 1: the spoken-keyword menu ----
+          if (stage === "menu") {
+            if (!speech) {
+              await save(priorMessages, "menu");
+              return twimlSayAndGather(DIDNT_HEAR, actionUrl);
+            }
+            const intent = detectMenuIntent(speech);
+            if (intent === 3) {
               const text = `${ARRIVAL_SPOKEN} ${ANYTHING_ELSE}`;
-              await save([...priorMessages, { role: "assistant", content: text }], "chat");
+              await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: text }], "chat");
               return twimlSayAndGather(text, actionUrl);
             }
-            if (choice === 4) {
-              await save([...priorMessages, { role: "assistant", content: GUIDE_CHOICE_PROMPT }], "guide_choice");
+            if (intent === 4) {
+              await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: GUIDE_CHOICE_PROMPT }], "guide_choice");
               return twimlSayAndGather(GUIDE_CHOICE_PROMPT, actionUrl);
             }
-            if (choice === 6) {
-              await save([...priorMessages, { role: "assistant", content: LEAVE_MESSAGE_PROMPT }], "leaving_message");
+            if (intent === 6) {
+              await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: LEAVE_MESSAGE_PROMPT }], "leaving_message");
               return twimlSayAndGather(LEAVE_MESSAGE_PROMPT, actionUrl);
             }
-            const blurb = choice === 1 ? STUDIO_BLURB : choice === 2 ? PROPS_BLURB : "";
-            const text = blurb ? `${blurb} ${ANYTHING_ELSE}` : ANYTHING_ELSE;
-            await save([...priorMessages, { role: "assistant", content: text }], "chat");
-            return twimlSayAndGather(text, actionUrl);
+            if (intent === 1 || intent === 2) {
+              const blurb = intent === 1 ? STUDIO_BLURB : PROPS_BLURB;
+              const text = `${blurb} ${ANYTHING_ELSE}`;
+              await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: text }], "chat");
+              return twimlSayAndGather(text, actionUrl);
+            }
+            // No keyword matched — this was very likely a real question, not
+            // a failed menu pick. Just answer it.
+            return runOpenTurn(speech);
           }
 
           // ---- Stage 2: option 4's own sub-choice (hear it all vs. ask something) ----
@@ -102,42 +121,20 @@ export const Route = createFileRoute("/api/voice/respond")({
             }
             // Not "tell me everything" — treat it as a real question and let
             // the AI answer it (it already has the full guide in SYSTEM).
-            const messages: VoiceMessage[] = [...priorMessages, { role: "user", content: speech }];
-            const { text, action } = await runVoiceTurn(messages, callerPhone);
-            const updatedMessages: VoiceMessage[] = [...messages, { role: "assistant", content: text }];
-            await save(updatedMessages, "chat");
-            if (action === "hangup") return twimlSayAndHangup(text);
-            return twimlSayAndGather(text, actionUrl);
+            return runOpenTurn(speech);
           }
 
-          // ---- Stage 2b: option 6 (or a "no human available" fallback) — collect the message and email it for real ----
+          // ---- Stage 2b: "leave a message" — collect it and email it for real ----
           if (stage === "leaving_message") {
             if (!speech) return twimlSayAndGather(LEAVE_MESSAGE_PROMPT, actionUrl);
-            await sendMessageToStudio({ message: speech, callerPhone, context: "התקבל דרך התפריט הקולי בטלפון (טוויליו)" });
+            await sendMessageToStudio({ message: speech, callerPhone, context: "התקבל דרך הבוט הטלפוני (טוויליו)" });
             await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: LEAVE_MESSAGE_THANKS }], "chat");
             return twimlSayAndGather(LEAVE_MESSAGE_THANKS, actionUrl);
           }
 
           // ---- Stage 3: open conversation (same AI turn as before) ----
           if (!speech) return twimlSayAndGather(DIDNT_HEAR, actionUrl);
-
-          const messages: VoiceMessage[] = [...priorMessages, { role: "user", content: speech }];
-          const { text, action } = await runVoiceTurn(messages, callerPhone);
-          const updatedMessages: VoiceMessage[] = [...messages, { role: "assistant", content: text }];
-          await save(updatedMessages, "chat");
-
-          if (action === "transfer") {
-            const humanPhone = process.env.STUDIO_OWNER_PHONE;
-            if (!humanPhone) {
-              // No live transfer possible — offer a real message instead of
-              // just a promise, same as menu option 6.
-              await save([...updatedMessages, { role: "assistant", content: NO_HUMAN_TRANSFER }], "leaving_message");
-              return twimlSayAndGather(`${text} ${NO_HUMAN_TRANSFER}`, actionUrl);
-            }
-            return twimlSayAndDial(text, humanPhone);
-          }
-          if (action === "hangup") return twimlSayAndHangup(text);
-          return twimlSayAndGather(text, actionUrl);
+          return runOpenTurn(speech);
         } catch (e) {
           console.error("[SWEETBABY] voice respond failed", e);
           // Even on an unexpected failure, try to still offer leaving a
