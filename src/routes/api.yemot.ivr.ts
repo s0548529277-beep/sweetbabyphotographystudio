@@ -6,6 +6,7 @@ import { sendMessageToStudio } from "@/lib/voice-message.server";
 import {
   ARRIVAL_SPOKEN,
   FULL_GUIDE_SPOKEN,
+  GREETING,
   GUIDE_CHOICE_PROMPT,
   LEAVE_MESSAGE_PROMPT,
   LEAVE_MESSAGE_THANKS,
@@ -16,7 +17,6 @@ import {
   wantsFullGuide,
 } from "@/lib/voice-menu.server";
 
-const GREETING = "שלום, הגעת לסטודיו סוויט בייבי, איתך בוט Sweetbaby.";
 const DIDNT_HEAR = "לא הבנתי, אפשר לחזור על זה?";
 const ANYTHING_ELSE = "יש עוד משהו שאפשר לעזור בו?";
 // Whenever a human transfer isn't possible right now, offer to take a real

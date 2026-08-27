@@ -18,8 +18,16 @@ import { ARRIVAL_TEXT_HE } from "./arrival";
 
 export type MenuChoice = 1 | 2 | 3 | 4 | 6;
 
+// Framed explicitly as a fallback (not the primary channel) and leads with
+// the fastest self-serve option — per direct feedback: the bot only picks
+// up when there's no live answer, so say that, and point first to Google
+// before the AI conversation. Shared by both phone lines so the wording
+// never drifts between them.
+export const GREETING =
+  "שלום, הגעתם לסטודיו סוויט בייבי. אין כרגע מענה אנושי, הכי מהיר בדרך כלל לחפש בגוגל סטודיו סוויט בייבי ולמצוא הכל באתר. אם זה לא נוח עכשיו, אני כאן לעזור.";
+
 export const MENU_PROMPT =
-  'אפשר לומר במה לעזור — "השכרת סטודיו", "השכרת אביזרים", "דרכי הגעה", "הדרכה לשימוש בסטודיו", או "להשאיר הודעה" — או פשוט לשאול אותי כל שאלה אחרת.';
+  "אפשר לומר במה לעזור: השכרת סטודיו, השכרת אביזרים, דרכי הגעה, הדרכה לשימוש בסטודיו, או להשאיר הודעה. או פשוט לשאול אותי כל שאלה אחרת.";
 
 // Order matters: checked top to bottom, first match wins. "אביזר" is
 // checked before "סטודיו" since "השכרת אביזרים לסטודיו" should still land
