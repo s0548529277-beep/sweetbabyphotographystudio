@@ -610,31 +610,37 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
     return { ok: true, already: false, doorCode };
   });
 
-// ---------- 12-hours-before-pickup reminder email (props/equipment orders) ----------
-
-const ORDER_REMINDER_WINDOW_MIN_HOURS = 11.5;
-const ORDER_REMINDER_WINDOW_MAX_HOURS = 12.5;
+// ---------- opt-in reminder, customer-chosen hours-before (props/equipment orders) ----------
 
 /**
- * Scans for confirmed props/equipment orders whose pickup is in ~12 hours and
- * haven't had a reminder sent yet, and emails the customer a reminder (order
- * summary + arrival details). Mirrors `runDueBookingReminders` for studio
- * bookings. Meant to be called periodically by /api/send-booking-reminders.
- * Not wrapped in createServerFn/requireSupabaseAuth on purpose: this runs as
- * a trusted service job, not on behalf of a logged-in user.
+ * Scans for confirmed props/equipment orders where the customer opted into a
+ * reminder on the deposit/checkout screen (reminder_hours_before set) and
+ * hasn't had it sent yet, and — once her chosen "hours before pickup" window
+ * arrives — emails her the full order summary AND places a short Yemot
+ * voice call. Mirrors `runDueBookingReminders` for studio bookings — see
+ * that function's comment for why this replaced the old fixed-12h/4h
+ * automatic reminders. Meant to be called periodically by
+ * /api/send-booking-reminders. Not wrapped in createServerFn/
+ * requireSupabaseAuth on purpose: this runs as a trusted service job, not on
+ * behalf of a logged-in user.
  */
+// Half an hour of slack either side of her chosen "hours before" — the
+// scheduler runs every 15-30 min, not continuously.
+const REMINDER_WINDOW_SLACK_HOURS = 0.5;
+
 export async function runDueOrderReminders(): Promise<{ checked: number; sent: number }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   const today = new Date();
-  const windowEnd = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const windowEnd = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
   const { data: candidates, error } = await supabaseAdmin
     .from("orders")
     .select(
-      "id, user_id, session_date, return_date, pickup_at, return_at, total, notes, contact_name, contact_phone, balance_method, confirmation_sent_at, reminder_sent_at, status",
+      "id, user_id, session_date, return_date, pickup_at, return_at, total, notes, contact_name, contact_phone, balance_method, confirmation_sent_at, reminder_sent_at, reminder_hours_before, status",
     )
     .is("reminder_sent_at", null)
+    .not("reminder_hours_before", "is", null) // opt-in only
     .neq("status", "cancelled")
     .not("confirmation_sent_at", "is", null) // only actually-confirmed (paid) orders
     .gte("session_date", today.toISOString().slice(0, 10))
@@ -650,8 +656,10 @@ export async function runDueOrderReminders(): Promise<{ checked: number; sent: n
 
   for (const o of candidates ?? []) {
     if (!o.pickup_at) continue;
+    const hoursBefore = Number((o as any).reminder_hours_before);
+    if (!hoursBefore || hoursBefore <= 0) continue;
     const hoursUntil = (new Date(o.pickup_at).getTime() - now) / (1000 * 60 * 60);
-    if (hoursUntil < ORDER_REMINDER_WINDOW_MIN_HOURS || hoursUntil > ORDER_REMINDER_WINDOW_MAX_HOURS) continue;
+    if (hoursUntil < hoursBefore - REMINDER_WINDOW_SLACK_HOURS || hoursUntil > hoursBefore + REMINDER_WINDOW_SLACK_HOURS) continue;
 
     try {
       const {
@@ -678,9 +686,8 @@ export async function runDueOrderReminders(): Promise<{ checked: number; sent: n
         : null;
 
       const html = buildPropsOrderSummaryHtml({
-        heading: "תזכורת: איסוף האביזרים היום ⏰",
-        intro:
-          "רק תזכורת חמה — איסוף האביזרים ששכרת מסטודיו Sweetbaby מתוכנן בעוד כ-12 שעות. למטה סיכום ההזמנה ופרטי ההגעה, שיהיה קל להתארגן.",
+        heading: "תזכורת: איסוף האביזרים מתקרב ⏰",
+        intro: `רק תזכורת חמה — איסוף האביזרים ששכרת מסטודיו Sweetbaby מתוכנן בעוד כ-${hoursBefore} שעות. למטה סיכום ההזמנה ופרטי ההגעה, שיהיה קל להתארגן.`,
         order: {
           id: o.id,
           contact_name: o.contact_name,
@@ -705,10 +712,10 @@ export async function runDueOrderReminders(): Promise<{ checked: number; sent: n
       if (o.contact_phone) {
         try {
           const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
-          const text = `שלום ${o.contact_name || ""}, תזכורת מסטודיו סוויט בייבי — איסוף האביזרים שלך בעוד כ-12 שעות${pickupTime ? `, ב-${pickupTime}` : ""}. מחכות לך!`;
-          await sendYemotVoiceMessage({ phone: o.contact_phone, text, label: `תזכורת 12 שעות ${o.id.slice(0, 8)}` });
+          const text = `שלום ${o.contact_name || ""}, תזכורת מסטודיו סוויט בייבי — איסוף האביזרים שלך בעוד כ-${hoursBefore} שעות${pickupTime ? `, ב-${pickupTime}` : ""}. מחכות לך!`;
+          await sendYemotVoiceMessage({ phone: o.contact_phone, text, label: `תזכורת ${hoursBefore} שעות ${o.id.slice(0, 8)}` });
         } catch (e) {
-          console.error("[SWEETBABY] Yemot 12h reminder call (order) failed", e);
+          console.error("[SWEETBABY] Yemot reminder call (order) failed", e);
         }
       }
 
@@ -716,55 +723,6 @@ export async function runDueOrderReminders(): Promise<{ checked: number; sent: n
       sent += 1;
     } catch (e) {
       console.error("[SWEETBABY] order reminder send failed for order", o.id, e);
-    }
-  }
-
-  return { checked: (candidates ?? []).length, sent };
-}
-
-// ---------- 4-hours-before-pickup reminder call (props/equipment orders) ----------
-
-const ORDER_REMINDER_4H_WINDOW_MIN_HOURS = 3.5;
-const ORDER_REMINDER_4H_WINDOW_MAX_HOURS = 4.5;
-
-/** Same as runDueOrderReminders but a tighter ~4h window, voice-only. */
-export async function runDue4hOrderReminders(): Promise<{ checked: number; sent: number }> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-  const today = new Date();
-  const windowEnd = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-
-  const { data: candidates, error } = await supabaseAdmin
-    .from("orders")
-    .select("id, session_date, pickup_at, contact_name, contact_phone, confirmation_sent_at, reminder_4h_sent_at, status")
-    .is("reminder_4h_sent_at", null)
-    .neq("status", "cancelled")
-    .not("confirmation_sent_at", "is", null)
-    .gte("session_date", today.toISOString().slice(0, 10))
-    .lte("session_date", windowEnd);
-
-  if (error) {
-    console.error("[SWEETBABY] order 4h reminder scan failed", error);
-    return { checked: 0, sent: 0 };
-  }
-
-  const now = Date.now();
-  let sent = 0;
-
-  for (const o of candidates ?? []) {
-    if (!o.pickup_at || !o.contact_phone) continue;
-    const hoursUntil = (new Date(o.pickup_at).getTime() - now) / (1000 * 60 * 60);
-    if (hoursUntil < ORDER_REMINDER_4H_WINDOW_MIN_HOURS || hoursUntil > ORDER_REMINDER_4H_WINDOW_MAX_HOURS) continue;
-
-    try {
-      const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
-      const pickupTime = new Date(o.pickup_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
-      const text = `שלום ${o.contact_name || ""}, תזכורת מסטודיו סוויט בייבי — איסוף האביזרים שלך בעוד כ-4 שעות, ב-${pickupTime}. מחכות לך!`;
-      await sendYemotVoiceMessage({ phone: o.contact_phone, text, label: `תזכורת 4 שעות ${o.id.slice(0, 8)}` });
-      await supabaseAdmin.from("orders").update({ reminder_4h_sent_at: new Date().toISOString() }).eq("id", o.id);
-      sent += 1;
-    } catch (e) {
-      console.error("[SWEETBABY] order 4h reminder call failed for order", o.id, e);
     }
   }
 
