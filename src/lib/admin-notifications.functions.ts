@@ -27,6 +27,15 @@ export const listAdminNotifications = createServerFn({ method: "POST" })
     return data ?? [];
   });
 
+/** Which AI provider/model actually served the last successful request — see recordProviderUsed in ai-gateway.server.ts. */
+export const getAiProviderStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data } = await (context.supabase.from("ai_provider_status") as any).select("provider, model, updated_at").eq("id", true).maybeSingle();
+    return data ?? null;
+  });
+
 export const markNotificationRead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), read: z.boolean() }).parse(d))

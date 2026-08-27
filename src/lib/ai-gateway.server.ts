@@ -74,11 +74,52 @@ const DEFAULT_TIMEOUT_MS = 25_000;
  * back to the shared LOVABLE_API_KEY gateway as the last resort. Throws
  * only if nothing at all is configured, or every configured option failed.
  */
-export async function generateTextResilient(options: GenerateTextOptionsNoModel, timeoutMs = DEFAULT_TIMEOUT_MS) {
-  const geminiKeys = (process.env.GEMINI_API_KEY ?? "")
+// Best-effort: records which provider/model actually served the last
+// successful request in a singleton DB row (ai_provider_status), and — only
+// when it's actually *different* from what served the previous call, i.e. a
+// real failover or recovery — drops a one-line note in admin_notifications.
+// Never awaited by the caller in a way that could slow the response down
+// meaningfully (one small upsert), and never throws.
+async function recordProviderUsed(provider: string, model: string): Promise<void> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: prev } = await (supabaseAdmin.from("ai_provider_status") as any).select("provider, model").eq("id", true).maybeSingle();
+    await (supabaseAdmin.from("ai_provider_status") as any).upsert(
+      { id: true, provider, model, updated_at: new Date().toISOString() },
+      { onConflict: "id" },
+    );
+    if (prev && (prev.provider !== provider || prev.model !== model)) {
+      await supabaseAdmin.from("admin_notifications").insert({
+        type: "ai_provider_switch",
+        title: `🔀 מעבר ספק AI: ${prev.provider ?? "?"}/${prev.model ?? "?"} → ${provider}/${model}`,
+        body: { from: prev, to: { provider, model } },
+      });
+    }
+  } catch (e) {
+    console.error("[SWEETBABY] recordProviderUsed failed", e);
+  }
+}
+
+/**
+ * GEMINI_API_KEY accepts several keys either comma-separated in one value
+ * ("key1,key2") or as separate numbered env vars (GEMINI_API_KEY_2,
+ * GEMINI_API_KEY_3, ... — whichever is easier to manage in the Lovable
+ * environment-variables UI). All forms are collected and tried in order.
+ */
+function collectGeminiKeys(): string[] {
+  const keys = (process.env.GEMINI_API_KEY ?? "")
     .split(",")
     .map((k) => k.trim())
     .filter(Boolean);
+  for (let i = 2; i <= 6; i++) {
+    const v = process.env[`GEMINI_API_KEY_${i}`];
+    if (v?.trim()) keys.push(v.trim());
+  }
+  return keys;
+}
+
+export async function generateTextResilient(options: GenerateTextOptionsNoModel, timeoutMs = DEFAULT_TIMEOUT_MS) {
+  const geminiKeys = collectGeminiKeys();
   const groqKey = process.env.GROQ_API_KEY;
   const lovableKey = process.env.LOVABLE_API_KEY;
   if (geminiKeys.length === 0 && !groqKey && !lovableKey) throw new Error("Missing GEMINI_API_KEY, GROQ_API_KEY, or LOVABLE_API_KEY");
@@ -99,11 +140,13 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel,
     let lastErr: unknown;
     for (const modelId of DIRECT_GEMINI_MODEL_CANDIDATES) {
       try {
-        return await generateText({
+        const result = await generateText({
           ...options,
           model: createDirectGeminiProvider(key)(modelId),
           abortSignal: AbortSignal.timeout(timeoutMs),
         } as GenerateTextOptions);
+        await recordProviderUsed("gemini-direct", modelId);
+        return result;
       } catch (e) {
         lastErr = e;
         console.error(`[SWEETBABY] Gemini key ...${key.slice(-4)} model "${modelId}" failed`, e);
@@ -120,11 +163,13 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel,
     const GROQ_MODEL_CANDIDATES = ["openai/gpt-oss-120b", "openai/gpt-oss-20b"];
     for (const modelId of GROQ_MODEL_CANDIDATES) {
       try {
-        return await generateText({
+        const result = await generateText({
           ...options,
           model: createGroqProvider(groqKey)(modelId),
           abortSignal: AbortSignal.timeout(timeoutMs),
         } as GenerateTextOptions);
+        await recordProviderUsed("groq", modelId);
+        return result;
       } catch (e) {
         console.error(`[SWEETBABY] Groq model "${modelId}" failed`, e);
       }
@@ -134,9 +179,11 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel,
 
   if (!lovableKey) throw new Error("All Gemini/Groq attempts failed and no LOVABLE_API_KEY is configured as a fallback");
   console.error("[SWEETBABY] all Gemini/Groq attempts failed, falling back to Lovable AI Gateway");
-  return generateText({
+  const lovableResult = await generateText({
     ...options,
     model: createLovableAiGatewayProvider(lovableKey)("google/gemini-2.5-flash"),
     abortSignal: AbortSignal.timeout(timeoutMs),
   } as GenerateTextOptions);
+  await recordProviderUsed("lovable-gateway", "google/gemini-2.5-flash");
+  return lovableResult;
 }

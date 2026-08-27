@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { listAdminNotifications, markNotificationRead } from "@/lib/admin-notifications.functions";
-import { Bell, ChevronDown, ChevronUp, Phone, CalendarDays, Circle, CheckCircle2 } from "lucide-react";
+import { listAdminNotifications, markNotificationRead, getAiProviderStatus } from "@/lib/admin-notifications.functions";
+import { Bell, ChevronDown, ChevronUp, Phone, CalendarDays, Circle, CheckCircle2, Cpu, KeyRound, AlertTriangle, Shuffle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/admin/notifications")({
@@ -22,18 +22,34 @@ type NotifRow = {
 const TYPE_LABELS: Record<string, string> = {
   voice_message: "הודעה מהבוט הקולי",
   booking: "שריון סטודיו",
+  ttlock_error: "כשל בהנפקת קוד כניסה",
+  yemot_voice_message_error: "כשל בשליחת הודעה קולית",
+  voice_ai_error: "תקלה בבוט הטלפוני",
+  ai_provider_switch: "מעבר ספק AI",
 };
 
 const TYPE_ICONS: Record<string, typeof Phone> = {
   voice_message: Phone,
   booking: CalendarDays,
+  ttlock_error: KeyRound,
+  yemot_voice_message_error: AlertTriangle,
+  voice_ai_error: AlertTriangle,
+  ai_provider_switch: Shuffle,
+};
+
+const PROVIDER_LABELS: Record<string, string> = {
+  "gemini-direct": "Gemini (ישיר)",
+  groq: "Groq",
+  "lovable-gateway": "Lovable AI Gateway",
 };
 
 function NotificationsAdmin() {
   const qc = useQueryClient();
   const fetchNotifs = useServerFn(listAdminNotifications);
   const doMarkRead = useServerFn(markNotificationRead);
+  const fetchProviderStatus = useServerFn(getAiProviderStatus);
   const q = useQuery({ queryKey: ["admin-notifications"], queryFn: () => fetchNotifs({}), refetchInterval: 15000 });
+  const providerQ = useQuery({ queryKey: ["ai-provider-status"], queryFn: () => fetchProviderStatus({}), refetchInterval: 15000 });
   const [openId, setOpenId] = useState<string | null>(null);
   const [unreadOnly, setUnreadOnly] = useState(false);
 
@@ -57,6 +73,17 @@ function NotificationsAdmin() {
           כל התראה שהמערכת שולחת פנימה — כולל הודעות שלקוחות השאירו בבוט הטלפוני (גם כשליחת המייל נכשלת, הרשומה כאן לא הולכת לאיבוד). מתעדכן אוטומטית.
         </p>
       </div>
+
+      {providerQ.data && (
+        <div className="flex items-center gap-2 text-sm bg-cream/40 border border-primary/10 rounded-xl px-4 py-3">
+          <Cpu className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span className="text-muted-foreground">ספק ה-AI ששימש לאחרונה:</span>
+          <span className="font-semibold text-primary">
+            {PROVIDER_LABELS[providerQ.data.provider ?? ""] ?? providerQ.data.provider} · <span dir="ltr">{providerQ.data.model}</span>
+          </span>
+          <span className="text-xs text-muted-foreground mr-auto">{new Date(providerQ.data.updated_at).toLocaleString("he-IL")}</span>
+        </div>
+      )}
 
       <div className="flex gap-2">
         <Button size="sm" variant={unreadOnly ? "default" : "outline"} className="rounded-full" onClick={() => setUnreadOnly((v) => !v)}>
