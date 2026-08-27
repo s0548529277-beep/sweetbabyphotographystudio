@@ -3,24 +3,8 @@ import type {} from "@tanstack/react-start";
 import { parseYemotParams, yemotAck, yemotSayAndHangup, yemotSayAndListen } from "@/lib/yemot.server";
 import { runVoiceTurn, type VoiceMessage, type VoiceTurnResult } from "@/lib/voice-chat.server";
 import { sendMessageToStudio } from "@/lib/voice-message.server";
-import {
-  ANYTHING_ELSE,
-  ARRIVAL_SPOKEN,
-  DIDNT_HEAR,
-  FINAL_ERROR_HANGUP,
-  FULL_GUIDE_SPOKEN,
-  GREETING,
-  GUIDE_CHOICE_PROMPT,
-  LEAVE_MESSAGE_PROMPT,
-  LEAVE_MESSAGE_THANKS,
-  MENU_PROMPT,
-  NO_HUMAN_TRANSFER,
-  PROPS_BLURB,
-  STUDIO_BLURB,
-  TEMPORARY_ERROR,
-  detectMenuIntent,
-  wantsFullGuide,
-} from "@/lib/voice-menu.server";
+import { detectMenuIntent, wantsFullGuide } from "@/lib/voice-menu.server";
+import { getPhraseMap } from "@/lib/voice-phrases.server";
 
 // One extension in ימות המשיח, configured as a "שלוחת API" pointing here —
 // unlike Twilio's two-URL pattern (incoming call vs. gather response),
@@ -49,6 +33,7 @@ async function handle(request: Request): Promise<Response> {
   if (params.hangup === "yes") return yemotAck();
 
   const speech = (params.speech ?? "").trim();
+  const phrases = await getPhraseMap();
 
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -57,7 +42,7 @@ async function handle(request: Request): Promise<Response> {
       const { data: existing } = await supabaseAdmin.from("voice_call_sessions").select("stage").eq("call_sid", callSid).maybeSingle();
       if (!existing) {
         // Genuinely the first hit of the call — no session yet. Greet + present the menu.
-        const greetingWithMenu = `${GREETING} ${MENU_PROMPT}`;
+        const greetingWithMenu = `${phrases.greeting} ${phrases.menu_prompt}`;
         await supabaseAdmin.from("voice_call_sessions").upsert(
           { call_sid: callSid, from_number: callerPhone, messages: [{ role: "assistant", content: greetingWithMenu }], stage: "menu", updated_at: new Date().toISOString() },
           { onConflict: "call_sid" },
@@ -65,7 +50,7 @@ async function handle(request: Request): Promise<Response> {
         return yemotSayAndListen(greetingWithMenu);
       }
       // Mid-call with no speech heard (silence/timeout) — re-prompt without resetting the conversation.
-      return yemotSayAndListen(DIDNT_HEAR);
+      return yemotSayAndListen(phrases.didnt_hear);
     }
 
     const { data: session } = await supabaseAdmin
@@ -77,7 +62,7 @@ async function handle(request: Request): Promise<Response> {
     // No session row (e.g. Yemot re-asked without ever hitting us fresh) —
     // treat like "didn't catch that" rather than starting a whole new
     // greeting mid-conversation.
-    if (!session) return yemotSayAndListen(DIDNT_HEAR);
+    if (!session) return yemotSayAndListen(phrases.didnt_hear);
 
     const priorMessages = ((session.messages as VoiceMessage[] | undefined) ?? []) as VoiceMessage[];
     const phone = session.from_number || callerPhone;
@@ -103,8 +88,8 @@ async function handle(request: Request): Promise<Response> {
         // בהגדרות"), so this line always offers a message instead of
         // attempting a transfer that's known to fail. Twilio's Dial verb
         // (api.voice.respond.ts) doesn't have this dependency.
-        await save([...updatedMessages, { role: "assistant", content: NO_HUMAN_TRANSFER }], "leaving_message");
-        return yemotSayAndListen(`${text} ${NO_HUMAN_TRANSFER}`);
+        await save([...updatedMessages, { role: "assistant", content: phrases.no_human_transfer }], "leaving_message");
+        return yemotSayAndListen(`${text} ${phrases.no_human_transfer}`);
       }
       await save(updatedMessages, "chat");
       if (action === "hangup") return yemotSayAndHangup(text);
@@ -115,21 +100,21 @@ async function handle(request: Request): Promise<Response> {
     if (stage === "menu") {
       const intent = detectMenuIntent(speech);
       if (intent === 3) {
-        const text = `${ARRIVAL_SPOKEN} ${ANYTHING_ELSE}`;
+        const text = `${phrases.arrival_spoken} ${phrases.anything_else}`;
         await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: text }], "chat");
         return yemotSayAndListen(text);
       }
       if (intent === 4) {
-        await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: GUIDE_CHOICE_PROMPT }], "guide_choice");
-        return yemotSayAndListen(GUIDE_CHOICE_PROMPT);
+        await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: phrases.guide_choice_prompt }], "guide_choice");
+        return yemotSayAndListen(phrases.guide_choice_prompt);
       }
       if (intent === 6) {
-        await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: LEAVE_MESSAGE_PROMPT }], "leaving_message");
-        return yemotSayAndListen(LEAVE_MESSAGE_PROMPT);
+        await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: phrases.leave_message_prompt }], "leaving_message");
+        return yemotSayAndListen(phrases.leave_message_prompt);
       }
       if (intent === 1 || intent === 2) {
-        const blurb = intent === 1 ? STUDIO_BLURB : PROPS_BLURB;
-        const text = `${blurb} ${ANYTHING_ELSE}`;
+        const blurb = intent === 1 ? phrases.studio_blurb : phrases.props_blurb;
+        const text = `${blurb} ${phrases.anything_else}`;
         await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: text }], "chat");
         return yemotSayAndListen(text);
       }
@@ -141,7 +126,7 @@ async function handle(request: Request): Promise<Response> {
     // ---- Stage 2: option 4's own sub-choice (hear it all vs. ask something) ----
     if (stage === "guide_choice") {
       if (wantsFullGuide(speech)) {
-        const text = `${FULL_GUIDE_SPOKEN} ${ANYTHING_ELSE}`;
+        const text = `${phrases.full_guide_spoken} ${phrases.anything_else}`;
         await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: text }], "chat");
         return yemotSayAndListen(text);
       }
@@ -153,8 +138,8 @@ async function handle(request: Request): Promise<Response> {
     // ---- Stage 2b: "leave a message" — collect it and email it for real ----
     if (stage === "leaving_message") {
       await sendMessageToStudio({ message: speech, callerPhone: phone, context: "התקבל דרך הבוט הטלפוני (ימות המשיח)" });
-      await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: LEAVE_MESSAGE_THANKS }], "chat");
-      return yemotSayAndListen(LEAVE_MESSAGE_THANKS);
+      await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: phrases.leave_message_thanks }], "chat");
+      return yemotSayAndListen(phrases.leave_message_thanks);
     }
 
     // ---- Stage 3: open conversation (same as before) ----
@@ -167,13 +152,13 @@ async function handle(request: Request): Promise<Response> {
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       await supabaseAdmin.from("voice_call_sessions").upsert(
-        { call_sid: callSid, from_number: callerPhone, messages: [{ role: "assistant", content: TEMPORARY_ERROR }], stage: "leaving_message", updated_at: new Date().toISOString() },
+        { call_sid: callSid, from_number: callerPhone, messages: [{ role: "assistant", content: phrases.temporary_error }], stage: "leaving_message", updated_at: new Date().toISOString() },
         { onConflict: "call_sid" },
       );
-      return yemotSayAndListen(TEMPORARY_ERROR);
+      return yemotSayAndListen(phrases.temporary_error);
     } catch (e2) {
       console.error("[SWEETBABY] yemot ivr fallback-to-message also failed", e2);
-      return yemotSayAndHangup(FINAL_ERROR_HANGUP);
+      return yemotSayAndHangup(phrases.final_error_hangup);
     }
   }
 }
