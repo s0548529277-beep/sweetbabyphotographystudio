@@ -7,10 +7,10 @@
 import { STUDIO_GUIDE_HE } from "./ai.functions";
 import { ARRIVAL_TEXT_HE } from "./arrival";
 
-export type MenuChoice = 1 | 2 | 3 | 4 | 5;
+export type MenuChoice = 1 | 2 | 3 | 4 | 5 | 6;
 
 export const MENU_PROMPT =
-  "להשכרת סטודיו הקישו או אמרו אחת. להשכרת אביזרים — שתיים. לדרכי הגעה — שלוש. להדרכה לשימוש בסטודיו — ארבע. לשיחה חופשית איתי על כל דבר אחר — חמש.";
+  "להשכרת סטודיו הקישו או אמרו אחת. להשכרת אביזרים — שתיים. לדרכי הגעה — שלוש. להדרכה לשימוש בסטודיו — ארבע. לשיחה חופשית איתי על כל דבר אחר — חמש. להשאיר הודעה שתישלח לצוות הסטודיו — שש.";
 
 export const MENU_DIDNT_CATCH = "לא זיהיתי בחירה. אפשר להקיש על המספר, או פשוט להגיד אותו — למשל תגידו אחת.";
 
@@ -25,6 +25,7 @@ const SPOKEN_NUMBERS: Record<string, MenuChoice> = {
   "3": 3, "שלוש": 3, "three": 3,
   "4": 4, "ארבע": 4, "four": 4,
   "5": 5, "חמש": 5, "five": 5,
+  "6": 6, "שש": 6, "six": 6,
 };
 
 export function parseMenuChoice(digit: string | null | undefined, speech: string | null | undefined): MenuChoice | null {
@@ -65,3 +66,9 @@ export const FULL_GUIDE_SPOKEN =
     .join(" ואז, ");
 
 export const ARRIVAL_SPOKEN = ARRIVAL_TEXT_HE.replace(/\n/g, " ");
+
+// ---- Option 6: leave a message for the studio (also used as the fallback
+// whenever the bot would otherwise just promise "the studio will call you
+// back" — see voice-message.server.ts) ----
+export const LEAVE_MESSAGE_PROMPT = "בטח, אפשר להגיד את ההודעה עכשיו, ואני אשלח אותה מיד לצוות הסטודיו כולל המספר שממנו התקשרתם.";
+export const LEAVE_MESSAGE_THANKS = "תודה, ההודעה נשלחה לסטודיו ויחזרו אליכם בהקדם. יש עוד משהו שאפשר לעזור בו?";

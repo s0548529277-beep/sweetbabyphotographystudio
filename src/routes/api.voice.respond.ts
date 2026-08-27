@@ -9,10 +9,13 @@ import {
   verifyTwilioSignature,
 } from "@/lib/twilio.server";
 import { runVoiceTurn, type VoiceMessage } from "@/lib/voice-chat.server";
+import { sendMessageToStudio } from "@/lib/voice-message.server";
 import {
   ARRIVAL_SPOKEN,
   FULL_GUIDE_SPOKEN,
   GUIDE_CHOICE_PROMPT,
+  LEAVE_MESSAGE_PROMPT,
+  LEAVE_MESSAGE_THANKS,
   MENU_DIDNT_CATCH,
   PROPS_BLURB,
   STUDIO_BLURB,
@@ -20,10 +23,12 @@ import {
   wantsFullGuide,
 } from "@/lib/voice-menu.server";
 
-const NO_HUMAN_AVAILABLE =
-  "מצטער, כרגע אי אפשר להעביר אותך לנציג/ה. נציגת הסטודיו תחזור אליך טלפונית בהקדם האפשרי. תודה ולהתראות!";
 const DIDNT_HEAR = "לא הבנתי, אפשר לחזור על זה?";
 const ANYTHING_ELSE = "יש עוד משהו שאפשר לעזור בו?";
+// Whenever a human transfer isn't possible right now, offer to take a real
+// message instead of just promising a callback with no record of the call —
+// see voice-message.server.ts.
+const NO_HUMAN_TRANSFER = `כרגע אי אפשר להעביר אותך לנציג/ה ישירות. ${LEAVE_MESSAGE_PROMPT}`;
 
 // Called repeatedly by Twilio (as the `action` of each <Gather>) for every
 // turn of the call after the initial greeting from /api/voice/incoming.
@@ -77,6 +82,10 @@ export const Route = createFileRoute("/api/voice/respond")({
               await save([...priorMessages, { role: "assistant", content: GUIDE_CHOICE_PROMPT }], "guide_choice");
               return twimlSayAndGather(GUIDE_CHOICE_PROMPT, actionUrl);
             }
+            if (choice === 6) {
+              await save([...priorMessages, { role: "assistant", content: LEAVE_MESSAGE_PROMPT }], "leaving_message");
+              return twimlSayAndGather(LEAVE_MESSAGE_PROMPT, actionUrl);
+            }
             const blurb = choice === 1 ? STUDIO_BLURB : choice === 2 ? PROPS_BLURB : "";
             const text = blurb ? `${blurb} ${ANYTHING_ELSE}` : ANYTHING_ELSE;
             await save([...priorMessages, { role: "assistant", content: text }], "chat");
@@ -101,6 +110,14 @@ export const Route = createFileRoute("/api/voice/respond")({
             return twimlSayAndGather(text, actionUrl);
           }
 
+          // ---- Stage 2b: option 6 (or a "no human available" fallback) — collect the message and email it for real ----
+          if (stage === "leaving_message") {
+            if (!speech) return twimlSayAndGather(LEAVE_MESSAGE_PROMPT, actionUrl);
+            await sendMessageToStudio({ message: speech, callerPhone, context: "התקבל דרך התפריט הקולי בטלפון (טוויליו)" });
+            await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: LEAVE_MESSAGE_THANKS }], "chat");
+            return twimlSayAndGather(LEAVE_MESSAGE_THANKS, actionUrl);
+          }
+
           // ---- Stage 3: open conversation (same AI turn as before) ----
           if (!speech) return twimlSayAndGather(DIDNT_HEAR, actionUrl);
 
@@ -111,17 +128,36 @@ export const Route = createFileRoute("/api/voice/respond")({
 
           if (action === "transfer") {
             const humanPhone = process.env.STUDIO_OWNER_PHONE;
-            if (!humanPhone) return twimlSayAndHangup(`${text} ${NO_HUMAN_AVAILABLE}`);
+            if (!humanPhone) {
+              // No live transfer possible — offer a real message instead of
+              // just a promise, same as menu option 6.
+              await save([...updatedMessages, { role: "assistant", content: NO_HUMAN_TRANSFER }], "leaving_message");
+              return twimlSayAndGather(`${text} ${NO_HUMAN_TRANSFER}`, actionUrl);
+            }
             return twimlSayAndDial(text, humanPhone);
           }
           if (action === "hangup") return twimlSayAndHangup(text);
           return twimlSayAndGather(text, actionUrl);
         } catch (e) {
           console.error("[SWEETBABY] voice respond failed", e);
-          return twimlSayAndHangup("מצטער, נתקלנו בתקלה. נציגת הסטודיו תחזור אליך טלפונית. תודה ולהתראות!");
+          // Even on an unexpected failure, try to still offer leaving a
+          // message rather than just hanging up on a broken promise of a
+          // callback — best-effort: if this also fails, fall through to the
+          // plain hangup below.
+          try {
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            const text = `מצטער, נתקלנו בתקלה זמנית. ${LEAVE_MESSAGE_PROMPT}`;
+            await supabaseAdmin.from("voice_call_sessions").upsert(
+              { call_sid: callSid, from_number: params.From || "", messages: [{ role: "assistant", content: text }], stage: "leaving_message", updated_at: new Date().toISOString() },
+              { onConflict: "call_sid" },
+            );
+            return twimlSayAndGather(text, actionUrl);
+          } catch (e2) {
+            console.error("[SWEETBABY] voice respond fallback-to-message also failed", e2);
+            return twimlSayAndHangup("מצטער, נתקלנו בתקלה. נציגת הסטודיו תחזור אליך טלפונית. תודה ולהתראות!");
+          }
         }
       },
     },
   },
 });
-

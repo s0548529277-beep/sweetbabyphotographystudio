@@ -9,10 +9,13 @@ import {
   yemotSayAndTransfer,
 } from "@/lib/yemot.server";
 import { runVoiceTurn, type VoiceMessage } from "@/lib/voice-chat.server";
+import { sendMessageToStudio } from "@/lib/voice-message.server";
 import {
   ARRIVAL_SPOKEN,
   FULL_GUIDE_SPOKEN,
   GUIDE_CHOICE_PROMPT,
+  LEAVE_MESSAGE_PROMPT,
+  LEAVE_MESSAGE_THANKS,
   MENU_DIDNT_CATCH,
   MENU_PROMPT,
   PROPS_BLURB,
@@ -23,8 +26,11 @@ import {
 
 const GREETING = "שלום, הגעת לסטודיו סוויט בייבי, איתך בוט Sweetbaby.";
 const DIDNT_HEAR = "לא הבנתי, אפשר לחזור על זה?";
-const NO_HUMAN_AVAILABLE = "מצטער, כרגע אי אפשר להעביר אותך לנציגה. נציגת הסטודיו תחזור אליך טלפונית בהקדם האפשרי. תודה ולהתראות!";
 const ANYTHING_ELSE = "יש עוד משהו שאפשר לעזור בו?";
+// Whenever a human transfer isn't possible right now, offer to take a real
+// message instead of just promising a callback with no record of the call —
+// see voice-message.server.ts.
+const NO_HUMAN_TRANSFER = `כרגע אי אפשר להעביר אותך לנציגה ישירות. ${LEAVE_MESSAGE_PROMPT}`;
 
 // One extension in ימות המשיח, configured as a "שלוחת API" pointing here —
 // unlike Twilio's two-URL pattern (incoming call vs. gather response),
@@ -107,6 +113,10 @@ async function handle(request: Request): Promise<Response> {
         await save([...priorMessages, { role: "assistant", content: GUIDE_CHOICE_PROMPT }], "guide_choice");
         return yemotSayAndListen(GUIDE_CHOICE_PROMPT);
       }
+      if (choice === 6) {
+        await save([...priorMessages, { role: "assistant", content: LEAVE_MESSAGE_PROMPT }], "leaving_message");
+        return yemotSayAndListen(LEAVE_MESSAGE_PROMPT);
+      }
       const blurb = choice === 1 ? STUDIO_BLURB : choice === 2 ? PROPS_BLURB : "";
       const text = blurb ? `${blurb} ${ANYTHING_ELSE}` : ANYTHING_ELSE;
       await save([...priorMessages, { role: "assistant", content: text }], "chat");
@@ -129,6 +139,14 @@ async function handle(request: Request): Promise<Response> {
       return yemotSayAndListen(text);
     }
 
+    // ---- Stage 2b: option 6 (or a "no human available" fallback) — collect the message and email it for real ----
+    if (stage === "leaving_message") {
+      if (!speech) return yemotSayAndListen(LEAVE_MESSAGE_PROMPT);
+      await sendMessageToStudio({ message: speech, callerPhone: phone, context: "התקבל דרך התפריט הקולי בטלפון (ימות המשיח)" });
+      await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: LEAVE_MESSAGE_THANKS }], "chat");
+      return yemotSayAndListen(LEAVE_MESSAGE_THANKS);
+    }
+
     // ---- Stage 3: open conversation (same as before) ----
     if (!speech) return yemotSayAndListen(DIDNT_HEAR);
 
@@ -139,13 +157,30 @@ async function handle(request: Request): Promise<Response> {
 
     if (action === "transfer") {
       const humanPhone = process.env.STUDIO_OWNER_PHONE;
-      if (!humanPhone) return yemotSayAndHangup(`${text} ${NO_HUMAN_AVAILABLE}`);
+      if (!humanPhone) {
+        await save([...updatedMessages, { role: "assistant", content: NO_HUMAN_TRANSFER }], "leaving_message");
+        return yemotSayAndListen(`${text} ${NO_HUMAN_TRANSFER}`);
+      }
       return yemotSayAndTransfer(text, humanPhone);
     }
     if (action === "hangup") return yemotSayAndHangup(text);
     return yemotSayAndListen(text);
   } catch (e) {
     console.error("[SWEETBABY] yemot ivr failed", e);
-    return yemotSayAndHangup("מצטער, נתקלנו בתקלה. נציגת הסטודיו תחזור אליך טלפונית. תודה ולהתראות!");
+    // Best-effort: still offer to leave a message instead of just hanging up
+    // on a broken promise of a callback — falls through to a plain hangup
+    // if even this fails.
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const text = `מצטער, נתקלנו בתקלה זמנית. ${LEAVE_MESSAGE_PROMPT}`;
+      await supabaseAdmin.from("voice_call_sessions").upsert(
+        { call_sid: callSid, from_number: callerPhone, messages: [{ role: "assistant", content: text }], stage: "leaving_message", updated_at: new Date().toISOString() },
+        { onConflict: "call_sid" },
+      );
+      return yemotSayAndListen(text);
+    } catch (e2) {
+      console.error("[SWEETBABY] yemot ivr fallback-to-message also failed", e2);
+      return yemotSayAndHangup("מצטער, נתקלנו בתקלה. נציגת הסטודיו תחזור אליך טלפונית. תודה ולהתראות!");
+    }
   }
 }
