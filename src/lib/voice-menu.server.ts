@@ -18,12 +18,23 @@ export type MenuChoice = 1 | 2 | 3 | 4 | 6;
 // checked before "סטודיו" since "השכרת אביזרים לסטודיו" should still land
 // on props, not studio.
 const INTENT_KEYWORDS: Array<[RegExp, MenuChoice]> = [
-  [/אביזר/, 2],
   [/הגעה|כתובת|וויז|ווייז|איפה אתם|איך מגיעים|תחנה|אוטובוס/, 3],
   [/הדרכה|תקלה|לא עובד|לא מבזיק|לא נדלק|משדר|רקע.*מותר/, 4],
   [/(תשאיר|תעביר|תרשמ|להשאיר|להעביר).*הודעה|הודעה ל(סטודיו|צוות)/, 6],
-  [/סטודיו/, 1],
 ];
+
+// "אביזר" and "סטודיו" on their own are too common — they show up inside
+// completely ordinary QUESTIONS too ("האם הסטודיו פנוי ביום שלישי"), and a
+// bare-word match was swallowing those into the canned blurb instead of
+// letting the AI actually check availability — confirmed live on a real
+// call. So these two only count as a menu *pick* (not a real question) when
+// the sentence is short and doesn't contain a question word.
+const QUESTION_INDICATORS = /(האם|מתי|כמה|אפשר|יש|פנוי|פנויה|מי|למה|איך|איפה)/;
+
+function looksLikeMenuPick(s: string): boolean {
+  const wordCount = s.trim().split(/\s+/).filter(Boolean).length;
+  return wordCount <= 4 && !QUESTION_INDICATORS.test(s);
+}
 
 /** Best-effort keyword match against a caller's spoken sentence — null if nothing recognizable matched. */
 export function detectMenuIntent(speech: string | null | undefined): MenuChoice | null {
@@ -32,6 +43,9 @@ export function detectMenuIntent(speech: string | null | undefined): MenuChoice 
   for (const [re, choice] of INTENT_KEYWORDS) {
     if (re.test(s)) return choice;
   }
+  if (!looksLikeMenuPick(s)) return null;
+  if (/אביזר/.test(s)) return 2;
+  if (/סטודיו/.test(s)) return 1;
   return null;
 }
 
