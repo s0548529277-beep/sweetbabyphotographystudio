@@ -149,13 +149,35 @@ async function handle(request: Request): Promise<Response> {
     return runOpenTurn(speech);
   } catch (e) {
     console.error("[SWEETBABY] yemot ivr failed", e);
-    // Best-effort: still offer to leave a message instead of just hanging up
-    // on a broken promise of a callback — falls through to a plain hangup
-    // if even this fails.
+    // A single AI hiccup used to permanently strand the rest of the call in
+    // "leaving_message" mode — her next sentence (a real follow-up question)
+    // would get swallowed as "the message to leave", which read as the bot
+    // getting stuck/breaking. Now: apologize and stay in normal conversation
+    // after the FIRST hiccup on a call, and only fall back to offering a
+    // message if this is the SECOND failure in a row (checked by whether the
+    // last thing we said was already this same error) — real trouble, not a
+    // one-off blip.
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: existing } = await supabaseAdmin
+        .from("voice_call_sessions")
+        .select("messages, from_number")
+        .eq("call_sid", callSid)
+        .maybeSingle();
+      const priorMessages = ((existing?.messages as VoiceMessage[] | undefined) ?? []) as VoiceMessage[];
+      const phone = existing?.from_number || callerPhone;
+      const lastWasError = priorMessages[priorMessages.length - 1]?.content === phrases.temporary_error;
+
+      if (lastWasError) {
+        await supabaseAdmin.from("voice_call_sessions").upsert(
+          { call_sid: callSid, from_number: phone, messages: [...priorMessages, { role: "assistant", content: phrases.leave_message_prompt }], stage: "leaving_message", updated_at: new Date().toISOString() },
+          { onConflict: "call_sid" },
+        );
+        return yemotSayAndListen(phrases.leave_message_prompt);
+      }
+
       await supabaseAdmin.from("voice_call_sessions").upsert(
-        { call_sid: callSid, from_number: callerPhone, messages: [{ role: "assistant", content: phrases.temporary_error }], stage: "leaving_message", updated_at: new Date().toISOString() },
+        { call_sid: callSid, from_number: phone, messages: [...priorMessages, { role: "assistant", content: phrases.temporary_error }], stage: "chat", updated_at: new Date().toISOString() },
         { onConflict: "call_sid" },
       );
       return yemotSayAndListen(phrases.temporary_error);

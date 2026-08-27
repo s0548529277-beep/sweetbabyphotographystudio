@@ -122,14 +122,36 @@ export const Route = createFileRoute("/api/voice/respond")({
           return runOpenTurn(speech);
         } catch (e) {
           console.error("[SWEETBABY] voice respond failed", e);
-          // Even on an unexpected failure, try to still offer leaving a
-          // message rather than just hanging up on a broken promise of a
-          // callback — best-effort: if this also fails, fall through to the
-          // plain hangup below.
+          // A single AI hiccup used to permanently strand the rest of the
+          // call in "leaving_message" mode (and even discard the prior
+          // conversation) — her next sentence (a real follow-up) would get
+          // swallowed as "the message to leave", which read as the bot
+          // getting stuck/breaking. Now: apologize and stay in normal
+          // conversation after the FIRST hiccup on a call, keeping the prior
+          // messages; only fall back to offering a message on a SECOND
+          // failure in a row (the last thing we said was already this same
+          // error) — real trouble, not a one-off blip.
           try {
             const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            const { data: existing } = await supabaseAdmin
+              .from("voice_call_sessions")
+              .select("messages, from_number")
+              .eq("call_sid", callSid)
+              .maybeSingle();
+            const priorMessages = ((existing?.messages as VoiceMessage[] | undefined) ?? []) as VoiceMessage[];
+            const phone = existing?.from_number || params.From || "";
+            const lastWasError = priorMessages[priorMessages.length - 1]?.content === phrases.temporary_error;
+
+            if (lastWasError) {
+              await supabaseAdmin.from("voice_call_sessions").upsert(
+                { call_sid: callSid, from_number: phone, messages: [...priorMessages, { role: "assistant", content: phrases.leave_message_prompt }], stage: "leaving_message", updated_at: new Date().toISOString() },
+                { onConflict: "call_sid" },
+              );
+              return twimlSayAndGather(phrases.leave_message_prompt, actionUrl);
+            }
+
             await supabaseAdmin.from("voice_call_sessions").upsert(
-              { call_sid: callSid, from_number: params.From || "", messages: [{ role: "assistant", content: phrases.temporary_error }], stage: "leaving_message", updated_at: new Date().toISOString() },
+              { call_sid: callSid, from_number: phone, messages: [...priorMessages, { role: "assistant", content: phrases.temporary_error }], stage: "chat", updated_at: new Date().toISOString() },
               { onConflict: "call_sid" },
             );
             return twimlSayAndGather(phrases.temporary_error, actionUrl);
