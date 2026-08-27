@@ -1,28 +1,26 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
-import { parseYemotParams, yemotAck, yemotSayAndHangup, yemotSayAndListen, yemotSayAndTransfer } from "@/lib/yemot.server";
+import { parseYemotParams, yemotAck, yemotSayAndHangup, yemotSayAndListen } from "@/lib/yemot.server";
 import { runVoiceTurn, type VoiceMessage, type VoiceTurnResult } from "@/lib/voice-chat.server";
 import { sendMessageToStudio } from "@/lib/voice-message.server";
 import {
+  ANYTHING_ELSE,
   ARRIVAL_SPOKEN,
+  DIDNT_HEAR,
+  FINAL_ERROR_HANGUP,
   FULL_GUIDE_SPOKEN,
   GREETING,
   GUIDE_CHOICE_PROMPT,
   LEAVE_MESSAGE_PROMPT,
   LEAVE_MESSAGE_THANKS,
   MENU_PROMPT,
+  NO_HUMAN_TRANSFER,
   PROPS_BLURB,
   STUDIO_BLURB,
+  TEMPORARY_ERROR,
   detectMenuIntent,
   wantsFullGuide,
 } from "@/lib/voice-menu.server";
-
-const DIDNT_HEAR = "לא הבנתי, אפשר לחזור על זה?";
-const ANYTHING_ELSE = "יש עוד משהו שאפשר לעזור בו?";
-// Whenever a human transfer isn't possible right now, offer to take a real
-// message instead of just promising a callback with no record of the call —
-// see voice-message.server.ts.
-const NO_HUMAN_TRANSFER = `כרגע אי אפשר להעביר אותך לנציגה ישירות. ${LEAVE_MESSAGE_PROMPT}`;
 
 // One extension in ימות המשיח, configured as a "שלוחת API" pointing here —
 // unlike Twilio's two-URL pattern (incoming call vs. gather response),
@@ -99,13 +97,14 @@ async function handle(request: Request): Promise<Response> {
       const { text, action }: VoiceTurnResult = await runVoiceTurn(messages, phone);
       const updatedMessages: VoiceMessage[] = [...messages, { role: "assistant", content: text }];
       if (action === "transfer") {
-        const humanPhone = process.env.STUDIO_OWNER_PHONE;
-        if (!humanPhone) {
-          await save([...updatedMessages, { role: "assistant", content: NO_HUMAN_TRANSFER }], "leaving_message");
-          return yemotSayAndListen(`${text} ${NO_HUMAN_TRANSFER}`);
-        }
-        await save(updatedMessages, "chat");
-        return yemotSayAndTransfer(text, humanPhone);
+        // A live transfer (routing_yemot) needs a real extension configured
+        // on Yemot's side pointing at a phone number — confirmed live that
+        // it isn't set up ("השלוחה אליה ביקשתם לעבור אינה פעילה עקב חוסר
+        // בהגדרות"), so this line always offers a message instead of
+        // attempting a transfer that's known to fail. Twilio's Dial verb
+        // (api.voice.respond.ts) doesn't have this dependency.
+        await save([...updatedMessages, { role: "assistant", content: NO_HUMAN_TRANSFER }], "leaving_message");
+        return yemotSayAndListen(`${text} ${NO_HUMAN_TRANSFER}`);
       }
       await save(updatedMessages, "chat");
       if (action === "hangup") return yemotSayAndHangup(text);
@@ -167,15 +166,14 @@ async function handle(request: Request): Promise<Response> {
     // if even this fails.
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const text = `מצטער, נתקלנו בתקלה זמנית. ${LEAVE_MESSAGE_PROMPT}`;
       await supabaseAdmin.from("voice_call_sessions").upsert(
-        { call_sid: callSid, from_number: callerPhone, messages: [{ role: "assistant", content: text }], stage: "leaving_message", updated_at: new Date().toISOString() },
+        { call_sid: callSid, from_number: callerPhone, messages: [{ role: "assistant", content: TEMPORARY_ERROR }], stage: "leaving_message", updated_at: new Date().toISOString() },
         { onConflict: "call_sid" },
       );
-      return yemotSayAndListen(text);
+      return yemotSayAndListen(TEMPORARY_ERROR);
     } catch (e2) {
       console.error("[SWEETBABY] yemot ivr fallback-to-message also failed", e2);
-      return yemotSayAndHangup("מצטער, נתקלנו בתקלה. נציגת הסטודיו תחזור אליך טלפונית. תודה ולהתראות!");
+      return yemotSayAndHangup(FINAL_ERROR_HANGUP);
     }
   }
 }

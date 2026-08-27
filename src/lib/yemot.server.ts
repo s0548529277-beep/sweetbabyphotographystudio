@@ -3,10 +3,15 @@
 // their IVR2 "שלוחת API" extension speaks. Confirmed against the open-source
 // yemot-router2 library's source (github.com/ShlomoCode/yemot-router2) since
 // Yemot doesn't publish a public REST reference. The "voice" read mode below
-// is confirmed working against a real live call; a "tap" (keypad digit)
-// read mode was tried for a numbered menu and did NOT work reliably live
-// ("לא הקשת כמות מספרים נכונה") — removed in favor of a speech-keyword menu
-// instead (see voice-menu.server.ts), so this file only ever asks for voice.
+// is confirmed working against a real live call; two other directives were
+// tried and did NOT work reliably live, and were removed rather than kept
+// around half-working: a "tap" (keypad digit) read mode for a numbered menu
+// ("לא הקשת כמות מספרים נכונה" — replaced by the speech-keyword menu in
+// voice-menu.server.ts), and routing_yemot for live-transferring to a human
+// ("השלוחה אליה ביקשתם לעבור אינה פעילה עקב חוסר בהגדרות" — it needs a real
+// extension configured on Yemot's own side, not just a raw phone number; the
+// Yemot line now always offers to leave a message instead — see
+// api.yemot.ivr.ts). So this file only ever asks for voice, never transfers.
 //
 // Protocol shape: Yemot POSTs (or GETs) call info as form fields —
 // ApiCallId (a stable id for the whole call, our session key), ApiPhone
@@ -73,11 +78,6 @@ export function yemotSayAndListen(text: string): Response {
 /** Speaks `text` in Hebrew and ends the call. */
 export function yemotSayAndHangup(text: string): Response {
   return yemotResponse(`id_list_message=${textSegment(text)}&go_to_folder=hangup`);
-}
-
-/** Speaks `text` in Hebrew, then transfers the call to a real phone number. */
-export function yemotSayAndTransfer(text: string, phoneNumber: string): Response {
-  return yemotResponse(`id_list_message=${textSegment(text)}&routing_yemot=${sanitize(phoneNumber)}`);
 }
 
 /** Acknowledges Yemot's own end-of-call notification (hangup=yes) — no directive needed, just a 200. */

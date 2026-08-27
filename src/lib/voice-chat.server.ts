@@ -111,12 +111,22 @@ export async function runVoiceTurn(messages: VoiceMessage[], callerPhone: string
   const toolRules = `\n\nהיום ${now.date}, השעה בישראל ${now.time}. יש לך גישה אמיתית ליומן הסטודיו ולמלאי האביזרים — בדוק תמיד עם הכלים (check_studio_availability / check_prop_availability / find_next_available_days / quote_studio_price / list_active_coupons), בכל פעם מחדש, אף פעם אל תניח או תסתמך על תשובה קודמת באותה שיחה.
 כשהלקוחה שואלת משהו שקל יותר לראות בעיניים (תמונות מהסטודיו, קטלוג האביזרים המלא, גלריה) — הצע לה קודם, בקצרה, שאפשר גם לחפש בגוגל "סטודיו סוויט בייבי" ולראות הכול באתר. אם היא אומרת שזה לא נוח לה כרגע (בלי גישה נוחה לאינטרנט, מעדיפה לסגור עכשיו בטלפון וכו׳) — המשך ותעזור לה לשריין ישירות בשיחה, בלי לחזור ולהפנות אותה לאתר.`;
 
-  const result = await generateTextResilient({
-    system: SYSTEM + VOICE_STYLE + toolRules,
-    messages,
-    tools: buildVoiceTools(callerPhone),
-    stopWhen: stepCountIs(8),
-  });
+  // Tighter budget than the site-chat default: on a phone call the platform
+  // itself (Twilio/Yemot) is independently timing out the webhook while
+  // this runs, and it's far less patient than a browser tab — so this needs
+  // to fail fast enough to matter, not just eventually. Also capped at 4
+  // tool-call rounds instead of 8: fewer rounds means a lower worst-case
+  // total latency, and a voice turn realistically needs at most 1-2 tool
+  // calls before it has an answer.
+  const result = await generateTextResilient(
+    {
+      system: SYSTEM + VOICE_STYLE + toolRules,
+      messages,
+      tools: buildVoiceTools(callerPhone),
+      stopWhen: stepCountIs(4),
+    },
+    10_000,
+  );
 
   let action: VoiceTurnResult["action"] = "continue";
   for (const step of result.steps ?? []) {
