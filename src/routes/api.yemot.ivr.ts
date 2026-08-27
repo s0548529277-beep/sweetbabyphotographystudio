@@ -156,6 +156,20 @@ async function handle(request: Request): Promise<Response> {
     return runOpenTurn(speech);
   } catch (e) {
     console.error("[SWEETBABY] yemot ivr failed", e);
+    // Was previously invisible beyond a server log nobody could read — this
+    // is exactly the kind of "AI turn keeps failing" report that's
+    // impossible to diagnose blindly. Now the real error reaches
+    // /admin/notifications, best-effort, never blocking the call itself.
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin.from("admin_notifications").insert({
+        type: "voice_ai_error",
+        title: `⚠️ תקלה בבוט הטלפוני (ימות) — ${callerPhone || "מספר לא ידוע"}`,
+        body: { error: e instanceof Error ? e.message : String(e), stack: e instanceof Error ? e.stack : undefined, callerPhone },
+      });
+    } catch (e2) {
+      console.error("[SWEETBABY] yemot ivr failure admin_notifications save also failed", e2);
+    }
     // A single AI hiccup used to permanently strand the rest of the call in
     // "leaving_message" mode — her next sentence (a real follow-up question)
     // would get swallowed as "the message to leave", which read as the bot

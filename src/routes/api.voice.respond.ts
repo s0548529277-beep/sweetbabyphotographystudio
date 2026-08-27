@@ -126,6 +126,19 @@ export const Route = createFileRoute("/api/voice/respond")({
           return runOpenTurn(speech);
         } catch (e) {
           console.error("[SWEETBABY] voice respond failed", e);
+          // Was previously invisible beyond a server log nobody could read —
+          // now the real error reaches /admin/notifications, best-effort,
+          // never blocking the call itself.
+          try {
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            await supabaseAdmin.from("admin_notifications").insert({
+              type: "voice_ai_error",
+              title: `⚠️ תקלה בבוט הטלפוני (טוויליו) — ${params.From || "מספר לא ידוע"}`,
+              body: { error: e instanceof Error ? e.message : String(e), stack: e instanceof Error ? e.stack : undefined, callerPhone: params.From ?? null },
+            });
+          } catch (e2) {
+            console.error("[SWEETBABY] voice respond failure admin_notifications save also failed", e2);
+          }
           // A single AI hiccup used to permanently strand the rest of the
           // call in "leaving_message" mode (and even discard the prior
           // conversation) — her next sentence (a real follow-up) would get
