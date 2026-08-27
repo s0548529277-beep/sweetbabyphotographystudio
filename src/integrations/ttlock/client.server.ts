@@ -177,6 +177,21 @@ export async function issueDoorCodeForBooking(opts: {
     return { code, keyboardPwdId, lockId };
   } catch (e) {
     console.error("[SWEETBABY] TTLock door code issue failed", e);
+    // The confirmation flow's own catch never sees this (issueDoorCodeForBooking
+    // never throws), so this is the only place the real failure reason exists —
+    // without this, a failure is invisible to the studio, not just silent to
+    // the customer. Written to admin_notifications (visible on /admin/notifications)
+    // rather than left in server logs no one can currently read.
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin.from("admin_notifications").insert({
+        type: "ttlock_error",
+        title: `⚠️ קוד כניסה לא הונפק — ${opts.label}`,
+        body: { error: e instanceof Error ? e.message : String(e), phone: opts.phone, date: opts.date, startTime: opts.startTime },
+      });
+    } catch (e2) {
+      console.error("[SWEETBABY] TTLock failure admin_notifications save also failed", e2);
+    }
     return null;
   }
 }

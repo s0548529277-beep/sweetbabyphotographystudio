@@ -5,6 +5,7 @@ import { runVoiceTurn, type VoiceMessage, type VoiceTurnResult } from "@/lib/voi
 import { sendMessageToStudio } from "@/lib/voice-message.server";
 import { detectMenuIntent, wantsFullGuide } from "@/lib/voice-menu.server";
 import { getPhraseMap } from "@/lib/voice-phrases.server";
+import { personalizedGreeting } from "@/lib/voice-caller.server";
 
 // One extension in ימות המשיח, configured as a "שלוחת API" pointing here —
 // unlike Twilio's two-URL pattern (incoming call vs. gather response),
@@ -42,7 +43,9 @@ async function handle(request: Request): Promise<Response> {
       const { data: existing } = await supabaseAdmin.from("voice_call_sessions").select("stage").eq("call_sid", callSid).maybeSingle();
       if (!existing) {
         // Genuinely the first hit of the call — no session yet. Greet + present the menu.
-        const greetingWithMenu = `${phrases.greeting} ${phrases.menu_prompt}`;
+        // If the caller's number matches a real site account, personalize
+        // with her name — best-effort, falls back to the plain greeting.
+        const greetingWithMenu = await personalizedGreeting(`${phrases.greeting} ${phrases.menu_prompt}`, callerPhone);
         await supabaseAdmin.from("voice_call_sessions").upsert(
           { call_sid: callSid, from_number: callerPhone, messages: [{ role: "assistant", content: greetingWithMenu }], stage: "menu", updated_at: new Date().toISOString() },
           { onConflict: "call_sid" },
