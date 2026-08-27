@@ -741,13 +741,13 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
     const { data: b, error } = await supabase
       .from("bookings")
       .select(
-        "id, user_id, session_date, start_time, end_time, price, deposit_amount, balance_amount, balance_method, notes, reserved_items, contact_name, contact_phone, deposit_receipt_url, google_event_id",
+        "id, user_id, session_date, start_time, end_time, price, deposit_amount, balance_amount, balance_method, notes, reserved_items, contact_name, contact_phone, deposit_receipt_url, google_event_id, door_code",
       )
       .eq("id", data.id)
       .maybeSingle();
     if (error || !b) throw new Error("השריון לא נמצא");
     if (b.user_id !== userId) throw new Error("אין הרשאה");
-    if (b.google_event_id) return { ok: true, already: true };
+    if (b.google_event_id) return { ok: true, already: true, doorCode: (b as any).door_code ?? null };
 
     let customerEmail: string | undefined;
     try {
@@ -862,10 +862,10 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
         console.error("[SWEETBABY] deposit confirmation email failed", e);
       }
 
-      return { ok: true, already: false };
+      return { ok: true, already: false, doorCode };
     } catch (e) {
       console.error("[SWEETBABY] deposit calendar sync failed", e);
-      return { ok: false, already: false };
+      return { ok: false, already: false, doorCode: null as string | null };
     }
   });
 

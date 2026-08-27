@@ -57,6 +57,7 @@ function Deposit() {
   const [done, setDone] = useState(false);
   const [confirmedPaid, setConfirmedPaid] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [doorCode, setDoorCode] = useState<string | null>(null);
   const confirmDeposit = useServerFn(confirmBookingDeposit);
   const confirmOrder = useServerFn(confirmOrderDeposit);
 
@@ -121,7 +122,8 @@ function Deposit() {
       // deposit was actually transferred / a receipt was uploaded.
       if (isStudio && method !== "cash") {
         try {
-          await confirmDeposit({ data: { id } });
+          const res = await confirmDeposit({ data: { id } });
+          if (res?.doorCode) setDoorCode(res.doorCode);
         } catch (e) {
           console.error("[SWEETBABY] calendar sync after deposit failed", e);
         }
@@ -131,7 +133,8 @@ function Deposit() {
       // is completed — any method, cash included.
       if (!isStudio) {
         try {
-          await confirmOrder({ data: { id } });
+          const res = await confirmOrder({ data: { id } });
+          if (res?.doorCode) setDoorCode(res.doorCode);
         } catch (e) {
           console.error("[SWEETBABY] order confirmation email trigger failed", e);
         }
@@ -186,6 +189,17 @@ function Deposit() {
                       ? "קיבלנו את האסמכתא ואישור נשלח למייל. מחכות לפגוש אותך!"
                       : "התאריך נשמר ואישור נשלח למייל. התשלום יאומת ויסומן כ'שולם' בהמשך, עד לסיום ההזמנה."}
                 </p>
+                {doorCode && (
+                  <div className="mx-auto max-w-sm mb-6 p-4 rounded-2xl bg-[#faf7f4] border border-primary/10 text-center">
+                    <p className="text-sm font-semibold text-primary mb-1">🔑 קוד כניסה לדלת הסטודיו</p>
+                    <p className="font-display text-2xl tracking-widest text-primary mb-1" dir="ltr">
+                      {doorCode}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      תקף רק בשעות ההשכרה שלך. אחרי הקשת הקוד יש ללחוץ על # לאישור. הקוד נשלח גם למייל.
+                    </p>
+                  </div>
+                )}
                 <Link to="/account">
                   <Button className="rounded-full">לחשבון שלי</Button>
                 </Link>

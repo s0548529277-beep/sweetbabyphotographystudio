@@ -382,13 +382,13 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
     const { data: o, error } = await supabase
       .from("orders")
       .select(
-        "id, user_id, session_date, return_date, pickup_at, return_at, total, notes, contact_name, contact_phone, camera_model, deposit_receipt_url, balance_method, confirmation_sent_at, google_event_id",
+        "id, user_id, session_date, return_date, pickup_at, return_at, total, notes, contact_name, contact_phone, camera_model, deposit_receipt_url, balance_method, confirmation_sent_at, google_event_id, door_code",
       )
       .eq("id", data.id)
       .maybeSingle();
     if (error || !o) throw new Error("ההזמנה לא נמצאה");
     if (o.user_id !== userId) throw new Error("אין הרשאה");
-    if (o.confirmation_sent_at) return { ok: true, already: true };
+    if (o.confirmation_sent_at) return { ok: true, already: true, doorCode: (o as any).door_code ?? null };
 
     const { data: itemRows } = await supabase
       .from("order_items")
@@ -410,6 +410,11 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
     } catch {
       /* ignore */
     }
+
+    // Declared here (not inside the try below) so it's still in scope for
+    // the function's final return — the door code needs to reach the
+    // client so the success screen can show it, not just the email.
+    let doorCode: string | null = null;
 
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -437,7 +442,6 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
       // the insert above: `${date}T${time}:00`), so this reads them by
       // slicing rather than through `new Date()`, which would otherwise
       // reinterpret them in the server's own runtime timezone.
-      let doorCode: string | null = null;
       if (o.contact_phone && o.pickup_at && o.return_at) {
         try {
           const { issueDoorCodeForBooking } = await import("@/integrations/ttlock/client.server");
@@ -550,7 +554,7 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
       }
     }
 
-    return { ok: true, already: false };
+    return { ok: true, already: false, doorCode };
   });
 
 // ---------- 12-hours-before-pickup reminder email (props/equipment orders) ----------
