@@ -33,7 +33,14 @@ async function handle(request: Request): Promise<Response> {
 
   if (params.hangup === "yes") return yemotAck();
 
-  const speech = (params.speech ?? "").trim();
+  const rawSpeech = (params.speech ?? "").trim();
+  // A 0-1 character "answer" is almost always speech-recognition noise (a
+  // stray breath, a click, a half-caught syllable) rather than something
+  // real to respond to — treated the same as silence instead of being fed
+  // to the AI, which would otherwise try to answer it literally and come
+  // across as confused/wrong. This is part of what read as "the bot doesn't
+  // understand" on live calls.
+  const speech = rawSpeech.length >= 2 ? rawSpeech : "";
   const phrases = await getPhraseMap();
 
   try {
