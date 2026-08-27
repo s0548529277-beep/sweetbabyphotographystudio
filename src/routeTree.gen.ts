@@ -43,6 +43,7 @@ import { Route as DepositTypeIdRouteImport } from './routes/deposit.$type.$id'
 import { Route as ApiYemotIvrRouteImport } from './routes/api.yemot.ivr'
 import { Route as ApiVoiceRespondRouteImport } from './routes/api.voice.respond'
 import { Route as ApiVoiceIncomingRouteImport } from './routes/api.voice.incoming'
+import { Route as AuthenticatedAdminVoiceBotTextRouteImport } from './routes/_authenticated/admin.voice-bot-text'
 import { Route as AuthenticatedAdminSubscriptionsRouteImport } from './routes/_authenticated/admin.subscriptions'
 import { Route as AuthenticatedAdminSiteBotAskRouteImport } from './routes/_authenticated/admin.site-bot-ask'
 import { Route as AuthenticatedAdminSiteBotRouteImport } from './routes/_authenticated/admin.site-bot'
@@ -235,6 +236,12 @@ const ApiVoiceIncomingRoute = ApiVoiceIncomingRouteImport.update({
   path: '/api/voice/incoming',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAdminVoiceBotTextRoute =
+  AuthenticatedAdminVoiceBotTextRouteImport.update({
+    id: '/voice-bot-text',
+    path: '/voice-bot-text',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminSubscriptionsRoute =
   AuthenticatedAdminSubscriptionsRouteImport.update({
     id: '/subscriptions',
@@ -401,6 +408,7 @@ export interface FileRoutesByFullPath {
   '/admin/site-bot': typeof AuthenticatedAdminSiteBotRoute
   '/admin/site-bot-ask': typeof AuthenticatedAdminSiteBotAskRoute
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
+  '/admin/voice-bot-text': typeof AuthenticatedAdminVoiceBotTextRoute
   '/api/voice/incoming': typeof ApiVoiceIncomingRoute
   '/api/voice/respond': typeof ApiVoiceRespondRoute
   '/api/yemot/ivr': typeof ApiYemotIvrRoute
@@ -455,6 +463,7 @@ export interface FileRoutesByTo {
   '/admin/site-bot': typeof AuthenticatedAdminSiteBotRoute
   '/admin/site-bot-ask': typeof AuthenticatedAdminSiteBotAskRoute
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
+  '/admin/voice-bot-text': typeof AuthenticatedAdminVoiceBotTextRoute
   '/api/voice/incoming': typeof ApiVoiceIncomingRoute
   '/api/voice/respond': typeof ApiVoiceRespondRoute
   '/api/yemot/ivr': typeof ApiYemotIvrRoute
@@ -512,6 +521,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/site-bot': typeof AuthenticatedAdminSiteBotRoute
   '/_authenticated/admin/site-bot-ask': typeof AuthenticatedAdminSiteBotAskRoute
   '/_authenticated/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
+  '/_authenticated/admin/voice-bot-text': typeof AuthenticatedAdminVoiceBotTextRoute
   '/api/voice/incoming': typeof ApiVoiceIncomingRoute
   '/api/voice/respond': typeof ApiVoiceRespondRoute
   '/api/yemot/ivr': typeof ApiYemotIvrRoute
@@ -569,6 +579,7 @@ export interface FileRouteTypes {
     | '/admin/site-bot'
     | '/admin/site-bot-ask'
     | '/admin/subscriptions'
+    | '/admin/voice-bot-text'
     | '/api/voice/incoming'
     | '/api/voice/respond'
     | '/api/yemot/ivr'
@@ -623,6 +634,7 @@ export interface FileRouteTypes {
     | '/admin/site-bot'
     | '/admin/site-bot-ask'
     | '/admin/subscriptions'
+    | '/admin/voice-bot-text'
     | '/api/voice/incoming'
     | '/api/voice/respond'
     | '/api/yemot/ivr'
@@ -679,6 +691,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/site-bot'
     | '/_authenticated/admin/site-bot-ask'
     | '/_authenticated/admin/subscriptions'
+    | '/_authenticated/admin/voice-bot-text'
     | '/api/voice/incoming'
     | '/api/voice/respond'
     | '/api/yemot/ivr'
@@ -962,6 +975,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiVoiceIncomingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/admin/voice-bot-text': {
+      id: '/_authenticated/admin/voice-bot-text'
+      path: '/voice-bot-text'
+      fullPath: '/admin/voice-bot-text'
+      preLoaderRoute: typeof AuthenticatedAdminVoiceBotTextRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/subscriptions': {
       id: '/_authenticated/admin/subscriptions'
       path: '/subscriptions'
@@ -1139,6 +1159,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminSiteBotRoute: typeof AuthenticatedAdminSiteBotRoute
   AuthenticatedAdminSiteBotAskRoute: typeof AuthenticatedAdminSiteBotAskRoute
   AuthenticatedAdminSubscriptionsRoute: typeof AuthenticatedAdminSubscriptionsRoute
+  AuthenticatedAdminVoiceBotTextRoute: typeof AuthenticatedAdminVoiceBotTextRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
 
@@ -1162,6 +1183,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminSiteBotRoute: AuthenticatedAdminSiteBotRoute,
   AuthenticatedAdminSiteBotAskRoute: AuthenticatedAdminSiteBotAskRoute,
   AuthenticatedAdminSubscriptionsRoute: AuthenticatedAdminSubscriptionsRoute,
+  AuthenticatedAdminVoiceBotTextRoute: AuthenticatedAdminVoiceBotTextRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }
 

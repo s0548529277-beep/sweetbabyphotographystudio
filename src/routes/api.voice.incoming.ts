@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 import { parseTwilioForm, twimlSayAndGather, verifyTwilioSignature } from "@/lib/twilio.server";
-import { GREETING, MENU_PROMPT } from "@/lib/voice-menu.server";
+import { getPhraseMap } from "@/lib/voice-phrases.server";
 
 // Configured as the Voice webhook on the Twilio phone number (Console →
 // Phone Numbers → the number → "A call comes in" → this URL, POST).
@@ -17,7 +17,8 @@ export const Route = createFileRoute("/api/voice/incoming")({
         const fromNumber = params.From ?? "";
         if (!callSid) return new Response("Bad Request", { status: 400 });
 
-        const greetingWithMenu = `${GREETING} ${MENU_PROMPT}`;
+        const phrases = await getPhraseMap();
+        const greetingWithMenu = `${phrases.greeting} ${phrases.menu_prompt}`;
         try {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           await supabaseAdmin.from("voice_call_sessions").upsert(

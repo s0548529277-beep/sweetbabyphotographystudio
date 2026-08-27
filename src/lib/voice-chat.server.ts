@@ -9,6 +9,7 @@ import { sendMessageToStudio } from "./voice-message.server";
 export type VoiceMessage = { role: "user" | "assistant"; content: string };
 
 const VOICE_STYLE = `\n\nאתה עונה כרגע בשיחת טלפון קולית — הלקוחה שומעת אותך, לא קוראת. חשוב מאוד:
+- תהיה חם, נעים, אישי וסבלני — בדיוק כמו הטון שלך בצ'אט באתר (הבועה בפינת המסך), לא רק תכליתי ויבש. חיוך בקול, עניין אמיתי בלקוחה, לא רובוט שממלא טופס. הקיצור והדיוק חשובים (זו שיחת טלפון), אבל חמימות לא פחות חשובה.
 - דבר במשפטים קצרים וטבעיים לדיבור, בלי רשימות, בלי כוכביות, בלי אימוג׳ים, בלי קישורים (היא לא יכולה ללחוץ על שום דבר). הלקוחה מתקשרת כי אין לה גישה נוחה לאינטרנט — אל תגיד "לחצי" / "עברי לעמוד" / "ראי באתר".
 - אסור בהחלט לפתוח משפט ב"אז את אומרת ש..." / "אז את רוצה ש..." / "הבנתי, את..." / "אוקיי, אז..." — זה הרגל קבוע שגורם לך להישמע רובוטי, וזה בדיוק מה שהתבקשת להפסיק לעשות. דוגמה למה שלא לומר: לקוחה אומרת "אני רוצה לבדוק אם פנוי ביום שלישי בשעה עשר" ואתה עונה "אז את רוצה לבדוק זמינות ביום שלישי בעשר, רגע אני בודקת" — זה חזרה מיותרת. במקום זה תגיד רק "רגע, בודק" או "בודק זמינות" ותקרא לכלי מיד. ככלל: הבקשה ברורה (תאריך+שעה מדויקים, שאלה ברורה) → בלי לחזור על שום פרט, רק משפט קצרצר של "מה אני עושה עכשיו" (בודק / משריין / בודק מחיר) ואז קריאה לכלי — זה מה שממלא את שניות השקט, לא חזרה על הבקשה. רק כשמשהו באמת חסר/לא ברור, או ממש לפני יצירת שריון בפועל, מותר לחזור בקצרה על הפרטים לאישור.
 - אם הלקוחה רוצה לשריין תור בפועל: אסוף בשיחה שם מלא, תאריך, שעה, משך (או אם זה ניו-בורן בוקר), וסוג הצילום. נסה גם לקבל אימייל — איתו אפשר לשלוח לה מיד קישור לתשלום מקדמה מאובטח והשריון ננעל ברגע שהיא משלמת; בלי אימייל השריון עדיין נשמר, אבל הסטודיו יצטרך לחזור אליה טלפונית לתיאום. אם היא רוצה גם להשכיר אביזרים לצילום, אפשר לרשום את זה בקצרה כטקסט חופשי (propsRequest) — לא צריך לבדוק זמינות מדויקת של כל פריט בטלפון, הסטודיו יטפל בזה.
@@ -103,6 +104,27 @@ export type VoiceTurnResult = {
   action: "continue" | "transfer" | "hangup";
 };
 
+// Prompt instructions alone didn't reliably stop the model from opening
+// with an echo of what the caller just said ("אז את אומרת ש...", "הבנתי,
+// את..."), reported repeatedly on live calls even after strengthening
+// VOICE_STYLE — so this is a deterministic backstop: strip a small, narrow
+// set of known echo-opener patterns from the start of the reply. Narrow on
+// purpose (exact phrase shapes, not a broad "starts with את/אתה" regex)
+// so it can't eat real content by accident; if it doesn't match, the text
+// passes through unchanged.
+const ECHO_OPENER_PATTERNS = [
+  /^אָ?ז\s+(את|אתה)\s+(אומרת|אומר|רוצה|מבקשת|מבקש|צריכה|צריך|שואלת|שואל)\s+ש[^.!?]*[.!?]\s*/,
+  /^(הבנתי|אוקיי|אוקי|בסדר|יופי|מעולה)[,.]?\s+אז\s+(את|אתה)?\s*(אומרת|אומר|רוצה|מבקשת|מבקש)[^.!?]*[.!?]\s*/,
+];
+
+function stripEchoOpener(text: string): string {
+  for (const re of ECHO_OPENER_PATTERNS) {
+    const stripped = text.replace(re, "");
+    if (stripped !== text && stripped.trim().length > 0) return stripped.trim();
+  }
+  return text;
+}
+
 /** Runs one turn of the phone-call conversation through the same AI brain as the text chat, with a voice-appropriate tool set (read-only site info + phone booking + transfer/end-call signals). */
 export async function runVoiceTurn(messages: VoiceMessage[], callerPhone: string): Promise<VoiceTurnResult> {
   const { israelNow } = await import("./availability.server");
@@ -111,21 +133,24 @@ export async function runVoiceTurn(messages: VoiceMessage[], callerPhone: string
   const toolRules = `\n\nהיום ${now.date}, השעה בישראל ${now.time}. יש לך גישה אמיתית ליומן הסטודיו ולמלאי האביזרים — בדוק תמיד עם הכלים (check_studio_availability / check_prop_availability / find_next_available_days / quote_studio_price / list_active_coupons), בכל פעם מחדש, אף פעם אל תניח או תסתמך על תשובה קודמת באותה שיחה.
 כשהלקוחה שואלת משהו שקל יותר לראות בעיניים (תמונות מהסטודיו, קטלוג האביזרים המלא, גלריה) — הצע לה קודם, בקצרה, שאפשר גם לחפש בגוגל "סטודיו סוויט בייבי" ולראות הכול באתר. אם היא אומרת שזה לא נוח לה כרגע (בלי גישה נוחה לאינטרנט, מעדיפה לסגור עכשיו בטלפון וכו׳) — המשך ותעזור לה לשריין ישירות בשיחה, בלי לחזור ולהפנות אותה לאתר.`;
 
-  // Tighter budget than the site-chat default: on a phone call the platform
-  // itself (Twilio/Yemot) is independently timing out the webhook while
-  // this runs, and it's far less patient than a browser tab — so this needs
-  // to fail fast enough to matter, not just eventually. Also capped at 4
-  // tool-call rounds instead of 8: fewer rounds means a lower worst-case
-  // total latency, and a voice turn realistically needs at most 1-2 tool
-  // calls before it has an answer.
+  // A tighter 10s/4-step budget was tried here and made things worse in
+  // practice — live calls started failing ("אין מענה משרת ה-API") *more*
+  // often, not less, because a real check (e.g. availability, which needs a
+  // Supabase query + a Google Calendar round trip + the model's own
+  // reasoning) sometimes genuinely needs more than 10s, and cutting it off
+  // early turned "slow but correct" into an outright failure that then had
+  // to fall back to the Lovable gateway. So: back to a generous budget per
+  // direct feedback ("תתן לו אפילו חצי דקה") — 30s per attempt, 6 tool-call
+  // rounds — closer to the site-chat default than the phone-specific one
+  // this used to be.
   const result = await generateTextResilient(
     {
       system: SYSTEM + VOICE_STYLE + toolRules,
       messages,
       tools: buildVoiceTools(callerPhone),
-      stopWhen: stepCountIs(4),
+      stopWhen: stepCountIs(6),
     },
-    10_000,
+    30_000,
   );
 
   let action: VoiceTurnResult["action"] = "continue";
@@ -136,5 +161,5 @@ export async function runVoiceTurn(messages: VoiceMessage[], callerPhone: string
     }
   }
 
-  return { text: result.text, action };
+  return { text: stripEchoOpener(result.text), action };
 }
