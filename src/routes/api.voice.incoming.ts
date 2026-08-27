@@ -1,9 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 import { parseTwilioForm, twimlSayAndGather, verifyTwilioSignature } from "@/lib/twilio.server";
-import { MENU_PROMPT } from "@/lib/voice-menu.server";
-
-const GREETING = "שלום, הגעת לסטודיו סוויט בייבי, איתך בוט Sweetbaby.";
+import { GREETING, MENU_PROMPT } from "@/lib/voice-menu.server";
 
 // Configured as the Voice webhook on the Twilio phone number (Console →
 // Phone Numbers → the number → "A call comes in" → this URL, POST).

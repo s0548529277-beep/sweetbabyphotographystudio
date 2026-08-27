@@ -44,6 +44,16 @@ type GenerateTextOptionsNoModel = Omit<GenerateTextOptions, "model">;
  * LOVABLE_API_KEY gateway (which we know works), as the last resort.
  * Throws only if nothing at all is configured.
  */
+// Per-attempt cap — a hung/very slow connection used to be able to stall
+// each key indefinitely with no timeout at all, which on the phone lines
+// (Twilio/Yemot both have their own, much tighter patience for a webhook
+// reply) meant the whole call could die with a platform-level "no response
+// from the API server" before this function ever got to try the next key
+// or the Lovable fallback. 25s balances that against real multi-tool-call
+// turns (stepCountIs(8) in voice-chat.server.ts) genuinely needing several
+// seconds of legitimate back-and-forth.
+const PER_ATTEMPT_TIMEOUT_MS = 25_000;
+
 export async function generateTextResilient(options: GenerateTextOptionsNoModel) {
   const geminiKeys = (process.env.GEMINI_API_KEY ?? "")
     .split(",")
@@ -60,7 +70,11 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel)
       // drifts over time (confirmed live: this exact string 404'd with
       // "Not Found" against the direct endpoint on 2026-08-27, while the
       // gateway path below kept working under the old name).
-      return await generateText({ ...options, model: createDirectGeminiProvider(key)("gemini-3-flash-preview") } as GenerateTextOptions);
+      return await generateText({
+        ...options,
+        model: createDirectGeminiProvider(key)("gemini-3-flash-preview"),
+        abortSignal: AbortSignal.timeout(PER_ATTEMPT_TIMEOUT_MS),
+      } as GenerateTextOptions);
     } catch (e) {
       console.error(`[SWEETBABY] Gemini key ...${key.slice(-4)} failed, trying the next one`, e);
     }
@@ -70,5 +84,6 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel)
   return generateText({
     ...options,
     model: createLovableAiGatewayProvider(lovableKey)("google/gemini-2.5-flash"),
+    abortSignal: AbortSignal.timeout(PER_ATTEMPT_TIMEOUT_MS),
   } as GenerateTextOptions);
 }
