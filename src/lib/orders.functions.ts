@@ -404,7 +404,7 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
             startTime: pickup.time,
             endDate: ret.date,
             endTime: ret.time,
-            label: o.contact_name || `הזמנת אביזרים ${o.id.slice(0, 8)}`,
+            label: o.contact_name ? `${o.contact_name} אביזרים` : `הזמנת אביזרים ${o.id.slice(0, 8)}`,
             excludeOvernightHours: true,
           });
           if (doorCodeResult) {
@@ -417,6 +417,15 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
                 ttlock_lock_id: doorCodeResult.lockId,
               })
               .eq("id", o.id);
+            // A freshly-backfilled code was never spoken on the original
+            // confirmation call — send one now so she actually hears it.
+            try {
+              const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
+              const text = `שלום ${o.contact_name || ""}, קוד הכניסה שלך לאיסוף האביזרים מסטודיו סוויט בייבי הוא ${doorCode.split("").join(" ")}. לחצי סולמית אחרי הקשת הקוד. מחכות לך!`;
+              await sendYemotVoiceMessage({ phone: o.contact_phone, text, label: `קוד כניסה ${o.id.slice(0, 8)}` });
+            } catch (e2) {
+              console.error("[SWEETBABY] Yemot backfilled door code call (order) failed", e2);
+            }
           }
         } catch (e) {
           console.error("[SWEETBABY] TTLock door code backfill (order) failed", e);
@@ -488,7 +497,7 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
             startTime: pickup.time,
             endDate: ret.date,
             endTime: ret.time,
-            label: o.contact_name || `הזמנת אביזרים ${o.id.slice(0, 8)}`,
+            label: o.contact_name ? `${o.contact_name} אביזרים` : `הזמנת אביזרים ${o.id.slice(0, 8)}`,
             excludeOvernightHours: true,
           });
           if (doorCodeResult) {
