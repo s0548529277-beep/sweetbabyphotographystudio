@@ -92,9 +92,16 @@ async function getLockId(accessToken: string): Promise<number> {
   return lock.lockId;
 }
 
-/** The customer's full phone number, digits only — the door code format the studio decided on. */
+/**
+ * The customer's phone number, digits only — the door code format the
+ * studio decided on. TTLock rejects any passcode outside 6-9 digits
+ * (confirmed live: errcode -3006, "Invalid Passcode"), and a full Israeli
+ * mobile number is 10 digits — one too many — so this keeps the last 9
+ * (dropping the leading 0) rather than the literal whole number.
+ */
 export function doorCodeFromPhone(phone: string): string {
-  return phone.replace(/\D/g, "");
+  const digits = phone.replace(/\D/g, "");
+  return digits.slice(-9);
 }
 
 type AddPasscodeResponse = { keyboardPwdId: number };
@@ -169,6 +176,12 @@ export async function issueDoorCodeForBooking(opts: {
   try {
     const { israelLocalToUtcMs } = await import("@/lib/availability.server");
     const code = doorCodeFromPhone(opts.phone);
+    // Guards against bad contact_phone data (e.g. an email typed into the
+    // phone field — confirmed live, showed up as a nonsense passcode
+    // instead of a clear error) reaching TTLock as an invalid passcode.
+    if (code.length < 6) {
+      throw new Error(`Phone number doesn't have enough digits for a valid door code (got "${opts.phone}" → "${code}")`);
+    }
     const startMs = israelLocalToUtcMs(opts.date, opts.startTime) - WINDOW_PADDING_MIN * 60_000;
     const endMs = israelLocalToUtcMs(opts.endDate ?? opts.date, opts.endTime) + WINDOW_PADDING_MIN * 60_000;
     const { access_token: accessToken } = await getAccessToken();
