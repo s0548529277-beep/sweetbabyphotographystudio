@@ -17,7 +17,11 @@ export const Route = createFileRoute("/api/voice/respond")({
         if (!valid) return new Response("Forbidden", { status: 403 });
 
         const callSid = params.CallSid;
-        const speech = (params.SpeechResult ?? "").trim();
+        const rawSpeech = (params.SpeechResult ?? "").trim();
+        // A 0-1 character "answer" is almost always speech-recognition noise
+        // rather than something real to respond to — see the matching
+        // comment in api.yemot.ivr.ts.
+        const speech = rawSpeech.length >= 2 ? rawSpeech : "";
         if (!callSid) return new Response("Bad Request", { status: 400 });
 
         const base = new URL(request.url);
