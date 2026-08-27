@@ -747,7 +747,43 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error || !b) throw new Error("השריון לא נמצא");
     if (b.user_id !== userId) throw new Error("אין הרשאה");
-    if (b.google_event_id) return { ok: true, already: true, doorCode: (b as any).door_code ?? null };
+    if (b.google_event_id) {
+      // Already confirmed on an earlier visit (calendar/email already sent).
+      // If she's revisiting this exact confirmation screen and no door code
+      // was ever issued (e.g. this booking predates the TTLock feature, or
+      // the first attempt failed), backfill one now instead of just
+      // returning null forever — this is exactly the "no code, no error"
+      // symptom reported live: re-confirming an already-confirmed booking
+      // used to skip issuance entirely, silently.
+      let doorCode = ((b as any).door_code as string | null) ?? null;
+      if (!doorCode && b.contact_phone) {
+        try {
+          const { issueDoorCodeForBooking } = await import("@/integrations/ttlock/client.server");
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const doorCodeResult = await issueDoorCodeForBooking({
+            phone: b.contact_phone,
+            date: b.session_date,
+            startTime: String(b.start_time).slice(0, 5),
+            endTime: String(b.end_time).slice(0, 5),
+            label: b.contact_name || `הזמנה ${b.id.slice(0, 8)}`,
+          });
+          if (doorCodeResult) {
+            doorCode = doorCodeResult.code;
+            await supabaseAdmin
+              .from("bookings")
+              .update({
+                door_code: doorCodeResult.code,
+                ttlock_keyboard_pwd_id: doorCodeResult.keyboardPwdId,
+                ttlock_lock_id: doorCodeResult.lockId,
+              })
+              .eq("id", b.id);
+          }
+        } catch (e) {
+          console.error("[SWEETBABY] TTLock door code backfill (booking) failed", e);
+        }
+      }
+      return { ok: true, already: true, doorCode };
+    }
 
     let customerEmail: string | undefined;
     try {
