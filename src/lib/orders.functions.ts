@@ -431,6 +431,42 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
         ? new Date(o.return_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
         : null;
 
+      // Issues a real temporary door passcode (TTLock) covering the whole
+      // pickup→return window — best-effort, never blocks the confirmation.
+      // pickup_at/return_at are stored as naive Israel-local strings (see
+      // the insert above: `${date}T${time}:00`), so this reads them by
+      // slicing rather than through `new Date()`, which would otherwise
+      // reinterpret them in the server's own runtime timezone.
+      let doorCode: string | null = null;
+      if (o.contact_phone && o.pickup_at && o.return_at) {
+        try {
+          const { issueDoorCodeForBooking } = await import("@/integrations/ttlock/client.server");
+          const pickup = { date: String(o.pickup_at).slice(0, 10), time: String(o.pickup_at).slice(11, 16) };
+          const ret = { date: String(o.return_at).slice(0, 10), time: String(o.return_at).slice(11, 16) };
+          const doorCodeResult = await issueDoorCodeForBooking({
+            phone: o.contact_phone,
+            date: pickup.date,
+            startTime: pickup.time,
+            endDate: ret.date,
+            endTime: ret.time,
+            label: `הזמנת אביזרים ${o.id.slice(0, 8)}`,
+          });
+          if (doorCodeResult) {
+            doorCode = doorCodeResult.code;
+            await supabaseAdmin
+              .from("orders")
+              .update({
+                door_code: doorCodeResult.code,
+                ttlock_keyboard_pwd_id: doorCodeResult.keyboardPwdId,
+                ttlock_lock_id: doorCodeResult.lockId,
+              })
+              .eq("id", o.id);
+          }
+        } catch (e) {
+          console.error("[SWEETBABY] TTLock door code issue (order) failed", e);
+        }
+      }
+
       const html = buildPropsOrderSummaryHtml({
         heading: "אישור הזמנה — השכרת אביזרים ✓",
         intro:
@@ -448,6 +484,7 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
           lines,
         },
         footerNote: receiptAttachment ? "קובץ האסמכתא שצירפת מופיע כקובץ מצורף למייל זה." : undefined,
+        doorCode,
       });
 
       const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");

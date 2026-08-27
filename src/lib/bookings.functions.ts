@@ -790,6 +790,37 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
         console.error("[SWEETBABY] cashback award (booking) failed", e);
       }
 
+      // Issues a real temporary door passcode (TTLock) for the booked
+      // window, best-effort — never blocks the confirmation itself if it
+      // fails. See integrations/ttlock/client.server.ts for why this isn't
+      // verified against a live call yet.
+      let doorCode: string | null = null;
+      if (b.contact_phone) {
+        try {
+          const { issueDoorCodeForBooking } = await import("@/integrations/ttlock/client.server");
+          const doorCodeResult = await issueDoorCodeForBooking({
+            phone: b.contact_phone,
+            date: b.session_date,
+            startTime: String(b.start_time).slice(0, 5),
+            endTime: String(b.end_time).slice(0, 5),
+            label: `הזמנה ${b.id.slice(0, 8)}`,
+          });
+          if (doorCodeResult) {
+            doorCode = doorCodeResult.code;
+            await supabaseAdmin
+              .from("bookings")
+              .update({
+                door_code: doorCodeResult.code,
+                ttlock_keyboard_pwd_id: doorCodeResult.keyboardPwdId,
+                ttlock_lock_id: doorCodeResult.lockId,
+              })
+              .eq("id", b.id);
+          }
+        } catch (e) {
+          console.error("[SWEETBABY] TTLock door code issue (booking) failed", e);
+        }
+      }
+
       // This is the actual "you're reserved" confirmation — sent only now,
       // after payment/receipt was confirmed, never earlier. It's a FULL
       // order summary: price breakdown, the signed questionnaire, arrival
@@ -817,6 +848,7 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
           },
           intakePayload,
           footerNote: receiptAttachment ? "קובץ האסמכתא שצירפת מופיע כקובץ מצורף למייל זה." : undefined,
+          doorCode,
         });
 
         const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
