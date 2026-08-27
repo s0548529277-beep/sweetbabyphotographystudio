@@ -538,6 +538,25 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
       console.error("[SWEETBABY] order confirmation email failed", e);
     }
 
+    // A real phone call from the studio's line reading back the order +
+    // door code — best-effort, never blocks the confirmation. See
+    // integrations/yemot/campaign.server.ts for why this isn't verified
+    // against a live call yet.
+    if (o.contact_phone) {
+      try {
+        const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
+        const pickupTimeSpoken = o.pickup_at
+          ? new Date(o.pickup_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
+          : "";
+        const text = `שלום ${o.contact_name || ""}, הזמנת האביזרים שלך מסטודיו סוויט בייבי אושרה. איסוף בתאריך ${o.session_date}${
+          pickupTimeSpoken ? ` בשעה ${pickupTimeSpoken}` : ""
+        }.${doorCode ? ` קוד הכניסה שלך הוא ${doorCode.split("").join(" ")}. לחצי סולמית אחרי הקשת הקוד.` : ""} מחכות לך, ביי!`;
+        await sendYemotVoiceMessage({ phone: o.contact_phone, text, label: `אישור הזמנת אביזרים ${o.id.slice(0, 8)}` });
+      } catch (e) {
+        console.error("[SWEETBABY] Yemot confirmation call (order) failed", e);
+      }
+    }
+
     // Add the props pickup to the studio's Google Calendar — only now, after
     // payment is confirmed, so the (unstyled) Google invite email never
     // arrives before or instead of our own branded confirmation. Marked
@@ -613,7 +632,7 @@ export async function runDueOrderReminders(): Promise<{ checked: number; sent: n
   const { data: candidates, error } = await supabaseAdmin
     .from("orders")
     .select(
-      "id, user_id, session_date, return_date, pickup_at, return_at, total, notes, contact_name, balance_method, confirmation_sent_at, reminder_sent_at, status",
+      "id, user_id, session_date, return_date, pickup_at, return_at, total, notes, contact_name, contact_phone, balance_method, confirmation_sent_at, reminder_sent_at, status",
     )
     .is("reminder_sent_at", null)
     .neq("status", "cancelled")
@@ -683,10 +702,69 @@ export async function runDueOrderReminders(): Promise<{ checked: number; sent: n
         html,
       });
 
+      if (o.contact_phone) {
+        try {
+          const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
+          const text = `שלום ${o.contact_name || ""}, תזכורת מסטודיו סוויט בייבי — איסוף האביזרים שלך בעוד כ-12 שעות${pickupTime ? `, ב-${pickupTime}` : ""}. מחכות לך!`;
+          await sendYemotVoiceMessage({ phone: o.contact_phone, text, label: `תזכורת 12 שעות ${o.id.slice(0, 8)}` });
+        } catch (e) {
+          console.error("[SWEETBABY] Yemot 12h reminder call (order) failed", e);
+        }
+      }
+
       await supabaseAdmin.from("orders").update({ reminder_sent_at: new Date().toISOString() }).eq("id", o.id);
       sent += 1;
     } catch (e) {
       console.error("[SWEETBABY] order reminder send failed for order", o.id, e);
+    }
+  }
+
+  return { checked: (candidates ?? []).length, sent };
+}
+
+// ---------- 4-hours-before-pickup reminder call (props/equipment orders) ----------
+
+const ORDER_REMINDER_4H_WINDOW_MIN_HOURS = 3.5;
+const ORDER_REMINDER_4H_WINDOW_MAX_HOURS = 4.5;
+
+/** Same as runDueOrderReminders but a tighter ~4h window, voice-only. */
+export async function runDue4hOrderReminders(): Promise<{ checked: number; sent: number }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  const today = new Date();
+  const windowEnd = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  const { data: candidates, error } = await supabaseAdmin
+    .from("orders")
+    .select("id, session_date, pickup_at, contact_name, contact_phone, confirmation_sent_at, reminder_4h_sent_at, status")
+    .is("reminder_4h_sent_at", null)
+    .neq("status", "cancelled")
+    .not("confirmation_sent_at", "is", null)
+    .gte("session_date", today.toISOString().slice(0, 10))
+    .lte("session_date", windowEnd);
+
+  if (error) {
+    console.error("[SWEETBABY] order 4h reminder scan failed", error);
+    return { checked: 0, sent: 0 };
+  }
+
+  const now = Date.now();
+  let sent = 0;
+
+  for (const o of candidates ?? []) {
+    if (!o.pickup_at || !o.contact_phone) continue;
+    const hoursUntil = (new Date(o.pickup_at).getTime() - now) / (1000 * 60 * 60);
+    if (hoursUntil < ORDER_REMINDER_4H_WINDOW_MIN_HOURS || hoursUntil > ORDER_REMINDER_4H_WINDOW_MAX_HOURS) continue;
+
+    try {
+      const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
+      const pickupTime = new Date(o.pickup_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
+      const text = `שלום ${o.contact_name || ""}, תזכורת מסטודיו סוויט בייבי — איסוף האביזרים שלך בעוד כ-4 שעות, ב-${pickupTime}. מחכות לך!`;
+      await sendYemotVoiceMessage({ phone: o.contact_phone, text, label: `תזכורת 4 שעות ${o.id.slice(0, 8)}` });
+      await supabaseAdmin.from("orders").update({ reminder_4h_sent_at: new Date().toISOString() }).eq("id", o.id);
+      sent += 1;
+    } catch (e) {
+      console.error("[SWEETBABY] order 4h reminder call failed for order", o.id, e);
     }
   }
 

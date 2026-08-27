@@ -898,6 +898,22 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
         console.error("[SWEETBABY] deposit confirmation email failed", e);
       }
 
+      // A real phone call from the studio's line reading back the booking +
+      // door code — best-effort, never blocks the confirmation. See
+      // integrations/yemot/campaign.server.ts for why this isn't verified
+      // against a live call yet.
+      if (b.contact_phone) {
+        try {
+          const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
+          const text = `שלום ${b.contact_name || ""}, ההזמנה שלך בסטודיו סוויט בייבי אושרה. התאריך ${b.session_date} בשעה ${String(b.start_time).slice(0, 5)}.${
+            doorCode ? ` קוד הכניסה שלך הוא ${doorCode.split("").join(" ")}. לחצי סולמית אחרי הקשת הקוד.` : ""
+          } מחכות לך, ביי!`;
+          await sendYemotVoiceMessage({ phone: b.contact_phone, text, label: `אישור הזמנה ${b.id.slice(0, 8)}` });
+        } catch (e) {
+          console.error("[SWEETBABY] Yemot confirmation call (booking) failed", e);
+        }
+      }
+
       return { ok: true, already: false, doorCode };
     } catch (e) {
       console.error("[SWEETBABY] deposit calendar sync failed", e);
@@ -929,7 +945,7 @@ export async function runDueBookingReminders(): Promise<{ checked: number; sent:
   const { data: candidates, error } = await supabaseAdmin
     .from("bookings")
     .select(
-      "id, user_id, session_date, start_time, end_time, price, deposit_amount, balance_amount, balance_method, notes, reserved_items, contact_name, google_event_id, reminder_sent_at, status",
+      "id, user_id, session_date, start_time, end_time, price, deposit_amount, balance_amount, balance_method, notes, reserved_items, contact_name, contact_phone, google_event_id, reminder_sent_at, status",
     )
     .is("reminder_sent_at", null)
     .neq("status", "cancelled")
@@ -985,10 +1001,73 @@ export async function runDueBookingReminders(): Promise<{ checked: number; sent:
         html,
       });
 
+      if (b.contact_phone) {
+        try {
+          const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
+          const text = `שלום ${b.contact_name || ""}, תזכורת מסטודיו סוויט בייבי — הצילומים שלך מתקיימים בעוד כ-12 שעות, ב-${String(b.start_time).slice(0, 5)}. מחכות לך!`;
+          await sendYemotVoiceMessage({ phone: b.contact_phone, text, label: `תזכורת 12 שעות ${b.id.slice(0, 8)}` });
+        } catch (e) {
+          console.error("[SWEETBABY] Yemot 12h reminder call (booking) failed", e);
+        }
+      }
+
       await supabaseAdmin.from("bookings").update({ reminder_sent_at: new Date().toISOString() }).eq("id", b.id);
       sent += 1;
     } catch (e) {
       console.error("[SWEETBABY] reminder send failed for booking", b.id, e);
+    }
+  }
+
+  return { checked: (candidates ?? []).length, sent };
+}
+
+// ---------- 4-hours-before-session reminder call ----------
+
+const REMINDER_4H_WINDOW_MIN_HOURS = 3.5;
+const REMINDER_4H_WINDOW_MAX_HOURS = 4.5;
+
+/**
+ * Same idea as runDueBookingReminders but a tighter ~4h-before window, and
+ * voice-only (a phone call, no second email) — just a quick "you're on
+ * today" nudge, not a full re-send of the order summary.
+ */
+export async function runDue4hBookingReminders(): Promise<{ checked: number; sent: number }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  const today = new Date();
+  const windowEnd = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  const { data: candidates, error } = await supabaseAdmin
+    .from("bookings")
+    .select("id, session_date, start_time, contact_name, contact_phone, google_event_id, reminder_4h_sent_at, status")
+    .is("reminder_4h_sent_at", null)
+    .neq("status", "cancelled")
+    .not("google_event_id", "is", null)
+    .gte("session_date", today.toISOString().slice(0, 10))
+    .lte("session_date", windowEnd);
+
+  if (error) {
+    console.error("[SWEETBABY] 4h reminder scan failed", error);
+    return { checked: 0, sent: 0 };
+  }
+
+  const now = Date.now();
+  let sent = 0;
+
+  for (const b of candidates ?? []) {
+    const startMs = new Date(`${b.session_date}T${String(b.start_time).slice(0, 5)}:00`).getTime();
+    const hoursUntil = (startMs - now) / (1000 * 60 * 60);
+    if (hoursUntil < REMINDER_4H_WINDOW_MIN_HOURS || hoursUntil > REMINDER_4H_WINDOW_MAX_HOURS) continue;
+    if (!b.contact_phone) continue;
+
+    try {
+      const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
+      const text = `שלום ${b.contact_name || ""}, תזכורת מסטודיו סוויט בייבי — הצילומים שלך מתחילים בעוד כ-4 שעות, ב-${String(b.start_time).slice(0, 5)}. מחכות לך!`;
+      await sendYemotVoiceMessage({ phone: b.contact_phone, text, label: `תזכורת 4 שעות ${b.id.slice(0, 8)}` });
+      await supabaseAdmin.from("bookings").update({ reminder_4h_sent_at: new Date().toISOString() }).eq("id", b.id);
+      sent += 1;
+    } catch (e) {
+      console.error("[SWEETBABY] 4h reminder call failed for booking", b.id, e);
     }
   }
 
