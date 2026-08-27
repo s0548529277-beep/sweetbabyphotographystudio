@@ -1,9 +1,17 @@
 // Server-only: triggers a real, personalized outbound voice call (and
 // optionally an SMS in the same request) via ימות המשיח's campaign API —
-// used to call a customer right after her booking/order is confirmed and
-// read out a short summary + door code, and for the 12h/4h reminders.
+// used to call a customer right after her booking/order is confirmed, and
+// for her chosen reminder, with a short summary + door code.
 //
-// NOT YET VERIFIED AGAINST A LIVE CALL — built from real documentation found
+// Confirmed live (studio's own test call): the outbound call rings and
+// disconnects without actually speaking, and doesn't cost units — so the
+// message is ALSO stashed as a "pending" notification (see
+// voice-pending-notification.server.ts) and gets delivered for real, once,
+// the moment she calls the studio's line back (see api.yemot.ivr.ts's
+// first-hit-of-call handling). The outbound call itself still works as a
+// free "you've got something waiting" ring/nudge.
+//
+// NOT YET FULLY VERIFIED AGAINST A LIVE CALL — built from real documentation found
 // via web search (the official developer forum, apiforum.yemot.tel, and the
 // community forum f2.freeivr.co.il — Yemot doesn't publish a single official
 // reference page), not tested against the actual account. Treat this the
@@ -51,6 +59,20 @@ export async function sendYemotVoiceMessage(opts: {
   /** Shown in the admin_notifications title if this fails, e.g. a booking id. */
   label: string;
 }): Promise<boolean> {
+  // Stored first, unconditionally — so the message is there to be delivered
+  // on her next call in even if the outbound "flash" ring below fails
+  // outright (no units, network hiccup, wrong credentials). See
+  // voice-pending-notification.server.ts / the studio's own confirmed
+  // observation: the outbound call rings and disconnects without actually
+  // speaking (free, no units spent) — the real message is meant to reach
+  // her when she calls the studio's line back, not on this outbound leg.
+  try {
+    const { setPendingVoiceNotification } = await import("@/lib/voice-pending-notification.server");
+    await setPendingVoiceNotification(opts.phone, opts.text);
+  } catch (e) {
+    console.error("[SWEETBABY] setPendingVoiceNotification (from sendYemotVoiceMessage) failed", e);
+  }
+
   try {
     const systemNumber = requiredEnv("YEMOT_SYSTEM_NUMBER");
     const password = requiredEnv("YEMOT_SYSTEM_PASSWORD");

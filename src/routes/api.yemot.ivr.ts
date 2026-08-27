@@ -6,6 +6,7 @@ import { sendMessageToStudio } from "@/lib/voice-message.server";
 import { detectMenuIntent, wantsFullGuide } from "@/lib/voice-menu.server";
 import { getPhraseMap } from "@/lib/voice-phrases.server";
 import { personalizedGreeting } from "@/lib/voice-caller.server";
+import { consumePendingVoiceNotification } from "@/lib/voice-pending-notification.server";
 
 // One extension in ימות המשיח, configured as a "שלוחת API" pointing here —
 // unlike Twilio's two-URL pattern (incoming call vs. gather response),
@@ -49,15 +50,21 @@ async function handle(request: Request): Promise<Response> {
     if (!speech) {
       const { data: existing } = await supabaseAdmin.from("voice_call_sessions").select("stage").eq("call_sid", callSid).maybeSingle();
       if (!existing) {
-        // Genuinely the first hit of the call — no session yet. Greet + present the menu.
+        // Genuinely the first hit of the call — no session yet. If there's a
+        // message waiting for this number (a booking confirmation/reminder
+        // that was only "flash"-rung, not actually spoken, to avoid Yemot
+        // units — see campaign.server.ts), play it now, once, before the
+        // normal greeting+menu — this is the real delivery of that message.
+        const pending = await consumePendingVoiceNotification(callerPhone);
         // If the caller's number matches a real site account, personalize
         // with her name — best-effort, falls back to the plain greeting.
         const greetingWithMenu = await personalizedGreeting(`${phrases.greeting} ${phrases.menu_prompt}`, callerPhone);
+        const fullGreeting = pending ? `${pending} ${greetingWithMenu}` : greetingWithMenu;
         await supabaseAdmin.from("voice_call_sessions").upsert(
-          { call_sid: callSid, from_number: callerPhone, messages: [{ role: "assistant", content: greetingWithMenu }], stage: "menu", updated_at: new Date().toISOString() },
+          { call_sid: callSid, from_number: callerPhone, messages: [{ role: "assistant", content: fullGreeting }], stage: "menu", updated_at: new Date().toISOString() },
           { onConflict: "call_sid" },
         );
-        return yemotSayAndListen(greetingWithMenu);
+        return yemotSayAndListen(fullGreeting);
       }
       // Mid-call with no speech heard (silence/timeout) — re-prompt without resetting the conversation.
       return yemotSayAndListen(phrases.didnt_hear);
