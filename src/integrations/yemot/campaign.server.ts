@@ -1,0 +1,87 @@
+// Server-only: triggers a real, personalized outbound voice call (and
+// optionally an SMS in the same request) via ימות המשיח's campaign API —
+// used to call a customer right after her booking/order is confirmed and
+// read out a short summary + door code, and for the 12h/4h reminders.
+//
+// NOT YET VERIFIED AGAINST A LIVE CALL — built from real documentation found
+// via web search (the official developer forum, apiforum.yemot.tel, and the
+// community forum f2.freeivr.co.il — Yemot doesn't publish a single official
+// reference page), not tested against the actual account. Treat this the
+// same as the TTLock integration: best-effort, the first real booking is the
+// real test, and a failure is logged to admin_notifications instead of
+// disappearing into a server log no one can read.
+//
+// Required secrets (Lovable env vars):
+//   YEMOT_SYSTEM_NUMBER — the Yemot system/account number (e.g. "0772249299")
+//   YEMOT_SYSTEM_PASSWORD — the password used to log into the ניהול
+//     (call2all.co.il) management panel.
+//
+// Confirmed from documentation (a real example given in the developer forum):
+//   GET https://www.call2all.co.il/ym/api/RunCampaign
+//     ?token=<systemNumber>:<password>&phones={"<phone>":"<text>"}&withSMS=<0|1>
+// `phones` is a JSON object mapping one phone number to the exact text to
+// read out (Yemot's own TTS) and, if withSMS=1, also send as an SMS — this
+// is the one-off single-recipient form, not the "קמפיין" bulk-broadcast
+// tool in the Yemot management UI (which dials a fixed, pre-built
+// distribution list — the wrong tool for a per-customer transactional call).
+// The response is JSON with a `responseStatus` field: "OK" on success,
+// "ERROR" / "FORBIDDEN" / "EXCEPTION" on failure.
+
+const BASE_URL = "https://www.call2all.co.il/ym/api/RunCampaign";
+
+function requiredEnv(name: string): string {
+  const v = process.env[name];
+  if (!v) throw new Error(`Missing ${name} — set it in Lovable's environment variables`);
+  return v;
+}
+
+type YemotCampaignResponse = { responseStatus?: string; message?: string };
+
+/**
+ * Places a real outbound call to `phone` that reads `text` aloud, and — if
+ * `alsoSms` is true — sends the same text as an SMS in the same request.
+ * Never throws: on any failure (missing secrets, network, an API-level
+ * error), logs to admin_notifications (visible on /admin/notifications) and
+ * returns false — a failure here must never block a booking confirmation.
+ */
+export async function sendYemotVoiceMessage(opts: {
+  phone: string;
+  text: string;
+  alsoSms?: boolean;
+  /** Shown in the admin_notifications title if this fails, e.g. a booking id. */
+  label: string;
+}): Promise<boolean> {
+  try {
+    const systemNumber = requiredEnv("YEMOT_SYSTEM_NUMBER");
+    const password = requiredEnv("YEMOT_SYSTEM_PASSWORD");
+    const token = `${systemNumber}:${password}`;
+    const digits = opts.phone.replace(/\D/g, "");
+    const phones = JSON.stringify({ [digits]: opts.text });
+
+    const url = new URL(BASE_URL);
+    url.searchParams.set("token", token);
+    url.searchParams.set("phones", phones);
+    if (opts.alsoSms) url.searchParams.set("withSMS", "1");
+
+    const res = await fetch(url.toString(), { signal: AbortSignal.timeout(15_000) });
+    const json = (await res.json().catch(() => null)) as YemotCampaignResponse | null;
+
+    if (!res.ok || !json || json.responseStatus !== "OK") {
+      throw new Error(`Yemot RunCampaign error: ${res.status} ${JSON.stringify(json)}`);
+    }
+    return true;
+  } catch (e) {
+    console.error("[SWEETBABY] Yemot voice message failed", e);
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin.from("admin_notifications").insert({
+        type: "yemot_voice_message_error",
+        title: `⚠️ הודעה קולית לא נשלחה — ${opts.label}`,
+        body: { error: e instanceof Error ? e.message : String(e), phone: opts.phone },
+      });
+    } catch (e2) {
+      console.error("[SWEETBABY] Yemot failure admin_notifications save also failed", e2);
+    }
+    return false;
+  }
+}
