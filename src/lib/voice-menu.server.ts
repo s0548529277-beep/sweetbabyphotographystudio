@@ -1,42 +1,43 @@
-// The fixed key-press menu both phone lines (Twilio + Yemot) present right
-// after the greeting, before handing off to the open AI conversation —
-// requested so a caller who just wants directions or the equipment guide
+// The fixed spoken-keyword menu both phone lines (Twilio + Yemot) present
+// right after the greeting, before handing off to the open AI conversation
+// — requested so a caller who just wants directions or the equipment guide
 // doesn't have to talk to the AI at all. Shared here so the two protocol
 // handlers (api.voice.respond.ts / api.yemot.ivr.ts) don't each reimplement
 // the same parsing/copy and drift apart.
+//
+// This used to be a key-press (1-6) menu, but Yemot's DTMF ("tap") read
+// mode turned out not to work reliably live ("לא הקשת כמות מספרים נכונה")
+// and a numbered menu is also just more friction than it needs to be — so
+// now it's plain speech, matched by keyword ("השכרת סטודיו", "דרכי הגעה"
+// etc). Crucially: if nothing matches, we don't reject the input and
+// re-prompt — we just treat whatever was said as the opening line of the
+// normal open conversation, since it was very likely a real question to
+// begin with.
 import { STUDIO_GUIDE_HE } from "./ai.functions";
 import { ARRIVAL_TEXT_HE } from "./arrival";
 
-export type MenuChoice = 1 | 2 | 3 | 4 | 5 | 6;
+export type MenuChoice = 1 | 2 | 3 | 4 | 6;
 
 export const MENU_PROMPT =
-  "להשכרת סטודיו הקישו או אמרו אחת. להשכרת אביזרים — שתיים. לדרכי הגעה — שלוש. להדרכה לשימוש בסטודיו — ארבע. לשיחה חופשית איתי על כל דבר אחר — חמש. להשאיר הודעה שתישלח לצוות הסטודיו — שש.";
+  'אפשר לומר במה לעזור — "השכרת סטודיו", "השכרת אביזרים", "דרכי הגעה", "הדרכה לשימוש בסטודיו", או "להשאיר הודעה" — או פשוט לשאול אותי כל שאלה אחרת.';
 
-export const MENU_DIDNT_CATCH = "לא זיהיתי בחירה. אפשר להקיש על המספר, או פשוט להגיד אותו — למשל תגידו אחת.";
+// Order matters: checked top to bottom, first match wins. "אביזר" is
+// checked before "סטודיו" since "השכרת אביזרים לסטודיו" should still land
+// on props, not studio.
+const INTENT_KEYWORDS: Array<[RegExp, MenuChoice]> = [
+  [/אביזר/, 2],
+  [/הגעה|כתובת|וויז|ווייז|איפה אתם|איך מגיעים|תחנה|אוטובוס/, 3],
+  [/הדרכה|תקלה|לא עובד|לא מבזיק|לא נדלק|משדר|רקע.*מותר/, 4],
+  [/(תשאיר|תעביר|תרשמ|להשאיר|להעביר).*הודעה|הודעה ל(סטודיו|צוות)/, 6],
+  [/סטודיו/, 1],
+];
 
-// Twilio's <Gather input="dtmf speech"> hands back Digits directly; a
-// spoken "אחת"/"1"/"one" etc lands in the speech transcript instead — same
-// for Yemot's "tap" vs "voice" reads. One parser covers both: try the raw
-// digit field first (cheap, exact), then look for a number word/digit
-// anywhere in whatever speech text came back.
-const SPOKEN_NUMBERS: Record<string, MenuChoice> = {
-  "1": 1, "אחת": 1, "אחד": 1, "one": 1,
-  "2": 2, "שתיים": 2, "שניים": 2, "two": 2,
-  "3": 3, "שלוש": 3, "three": 3,
-  "4": 4, "ארבע": 4, "four": 4,
-  "5": 5, "חמש": 5, "five": 5,
-  "6": 6, "שש": 6, "six": 6,
-};
-
-export function parseMenuChoice(digit: string | null | undefined, speech: string | null | undefined): MenuChoice | null {
-  const d = (digit ?? "").trim();
-  if (d && d in SPOKEN_NUMBERS) return SPOKEN_NUMBERS[d];
-  const s = (speech ?? "").trim().toLowerCase();
+/** Best-effort keyword match against a caller's spoken sentence — null if nothing recognizable matched. */
+export function detectMenuIntent(speech: string | null | undefined): MenuChoice | null {
+  const s = (speech ?? "").trim();
   if (!s) return null;
-  // Whole-word match only — "שלוש" inside a longer sentence like "אני צריכה
-  // חדר לשלוש שעות" would otherwise misfire as menu choice 3.
-  for (const word of s.split(/[\s,.!?]+/)) {
-    if (word in SPOKEN_NUMBERS) return SPOKEN_NUMBERS[word];
+  for (const [re, choice] of INTENT_KEYWORDS) {
+    if (re.test(s)) return choice;
   }
   return null;
 }
@@ -67,8 +68,8 @@ export const FULL_GUIDE_SPOKEN =
 
 export const ARRIVAL_SPOKEN = ARRIVAL_TEXT_HE.replace(/\n/g, " ");
 
-// ---- Option 6: leave a message for the studio (also used as the fallback
-// whenever the bot would otherwise just promise "the studio will call you
-// back" — see voice-message.server.ts) ----
+// ---- "Leave a message" — reachable by keyword from the menu, and also
+// used as the fallback whenever the bot would otherwise just promise "the
+// studio will call you back" — see voice-message.server.ts. ----
 export const LEAVE_MESSAGE_PROMPT = "בטח, אפשר להגיד את ההודעה עכשיו, ואני אשלח אותה מיד לצוות הסטודיו כולל המספר שממנו התקשרתם.";
 export const LEAVE_MESSAGE_THANKS = "תודה, ההודעה נשלחה לסטודיו ויחזרו אליכם בהקדם. יש עוד משהו שאפשר לעזור בו?";

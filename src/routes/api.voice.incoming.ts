@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
-import { parseTwilioForm, twimlSayAndGatherMenu, verifyTwilioSignature } from "@/lib/twilio.server";
+import { parseTwilioForm, twimlSayAndGather, verifyTwilioSignature } from "@/lib/twilio.server";
 import { MENU_PROMPT } from "@/lib/voice-menu.server";
 
 const GREETING = "שלום, הגעת לסטודיו סוויט בייבי, איתך בוט Sweetbaby.";
@@ -38,7 +38,7 @@ export const Route = createFileRoute("/api/voice/incoming")({
 
         const base = new URL(request.url);
         const actionUrl = `${base.protocol}//${base.host}/api/voice/respond`;
-        return twimlSayAndGatherMenu(greetingWithMenu, actionUrl);
+        return twimlSayAndGather(greetingWithMenu, actionUrl);
       },
     },
   },
