@@ -171,6 +171,37 @@ export function buildAssistantTools(opts?: { isAuthenticated?: boolean }) {
       execute: async () => israelNow(),
     }),
 
+    // Hebrew-calendar-to-Gregorian conversion is real calendrical arithmetic
+    // (variable month lengths, leap years on a 19-year Metonic cycle) — not
+    // something to let the model guess at from its own "knowledge", which is
+    // exactly the kind of task LLMs are unreliable at. @hebcal/hdate does the
+    // real Rata Die conversion and accepts Hebrew month names in Hebrew
+    // script directly (e.g. new HDate(25, 'כסלו', 5787)), so the model just
+    // needs to pull day/month/year out of what the caller said in natural
+    // language and hand them here — no manual math required on either side.
+    hebrew_date_to_gregorian: tool({
+      description:
+        'ממירה תאריך עברי (יום בחודש + חודש עברי, למשל "כ\"ה בכסלו" או "ט\"ו בשבט", ושנה עברית אם נאמרה) לתאריך לועזי מדויק — תמיד להשתמש בכלי הזה כשלקוחה אומרת תאריך לפי הלוח העברי, ולעולם לא לנחש/לחשב את ההמרה לבד.',
+      inputSchema: z.object({
+        day: z.number().int().min(1).max(30).describe("היום בחודש העברי, מספר בין 1 ל-30 (למשל 25 עבור כ״ה)"),
+        monthName: z.string().describe('שם החודש העברי בעברית, למשל "כסלו", "שבט", "ניסן", "אלול", "תשרי"'),
+        year: z.number().int().optional().describe("שנה עברית (למשל 5787) אם נאמרה — אם לא, משתמשים בשנה העברית הנוכחית"),
+      }),
+      execute: async ({ day, monthName, year }) => {
+        try {
+          const { HDate } = await import("@hebcal/hdate");
+          const hebrewYear = year ?? new HDate().getFullYear();
+          const hd = new HDate(day, monthName, hebrewYear);
+          return { ok: true, date: hd.greg().toISOString().slice(0, 10) };
+        } catch (e: any) {
+          return {
+            ok: false,
+            message: `לא הצלחתי להמיר את התאריך העברי (${e?.message ?? "שגיאה"}) — תבקשי מהלקוחה תאריך לועזי במקום, או תוודאי איתה שוב את היום/החודש/השנה העברית.`,
+          };
+        }
+      },
+    }),
+
     list_active_coupons: tool({
       description:
         "מחזירה את קודי הקופון הכלליים הפעילים כרגע במסד הנתונים (לא קודים אישיים חד-פעמיים שנשלחו למישהי ספציפית). תמיד השתמשי בזה לפני שאת מזכירה קוד קופון ללקוחה — אסור להמציא או להיזכר בקוד ישן, קודי הקופון משתנים.",
