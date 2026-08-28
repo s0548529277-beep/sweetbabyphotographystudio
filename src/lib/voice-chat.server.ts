@@ -21,7 +21,13 @@ const VOICE_STYLE = `\n\nאתה עונה כרגע בשיחת טלפון קולי
 - אם השיחה מגיעה לסיומה הטבעי (הלקוחה נפרדת/מודה/אין עוד שאלות) — אחרי המשפט האחרון שלך קרא לכלי end_call.`;
 
 function buildVoiceTools(callerPhone: string) {
-  const base = buildAssistantTools({ isAuthenticated: false });
+  // create_studio_booking is unusable on a phone call by construction — it
+  // requires a real logged-in account (isAuthenticated), which a phone
+  // caller never has, so its description literally instructs the model
+  // never to call it here. Voice has its own equivalent, create_phone_booking
+  // below. Dropping it saves its ~1,450-character description on every
+  // single voice turn for a tool that could never fire anyway.
+  const { create_studio_booking: _unused, ...base } = buildAssistantTools({ isAuthenticated: false });
   return {
     ...base,
     create_phone_booking: tool({
