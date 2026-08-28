@@ -100,6 +100,40 @@ async function recordProviderUsed(provider: string, model: string): Promise<void
   }
 }
 
+// Groq has now silently dropped TWO guessed model names on us in a row
+// (openai/gpt-oss-* hit a real SDK bug, and the "safe" replacement,
+// llama-3.3-70b-versatile, turned out to already be deprecated on this
+// specific account — confirmed live via
+// "AI_APICallError: The model `llama-3.3-70b-versatile` does not exist or
+// you do not have access to it."). Guessing a third specific name is the
+// same mistake again. Groq's /models endpoint lists exactly what this key
+// can actually use right now, so ask it instead of guessing — and unlike a
+// bad Gemini model id (which can hang to a full timeout), a bad Groq model
+// id fails FAST with a clear APICallError (confirmed in the same logs), so
+// trying a short list of fallback names after the dynamic pick costs very
+// little if discovery itself fails.
+const GROQ_UNUSABLE_MODEL_ID = /gpt-oss|whisper|tts|guard|moderation|embed/i;
+
+async function fetchAvailableGroqModel(apiKey: string): Promise<string | null> {
+  try {
+    const res = await fetch("https://api.groq.com/openai/v1/models", {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!res.ok) return null;
+    const data: any = await res.json();
+    const ids: string[] = Array.isArray(data?.data)
+      ? data.data.map((m: any) => m?.id).filter((id: unknown): id is string => typeof id === "string")
+      : [];
+    // gpt-oss is skipped even though it's "available" — it hits the known
+    // reasoning_content SDK bug on every tool-calling turn, see below.
+    return ids.find((id) => !GROQ_UNUSABLE_MODEL_ID.test(id)) ?? null;
+  } catch (e) {
+    console.error("[SWEETBABY] fetchAvailableGroqModel failed", e);
+    return null;
+  }
+}
+
 /**
  * GEMINI_API_KEY accepts several keys either comma-separated in one value
  * ("key1,key2") or as separate numbered env vars (GEMINI_API_KEY_2,
@@ -170,9 +204,18 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel,
     // (github.com/vercel/ai issue #8056): gpt-oss is a reasoning model, the
     // SDK echoes its own reasoning_content back as conversation history on
     // the next tool-calling step, and Groq's API rejects that echo outright.
-    // Trying the other gpt-oss size doesn't help — same bug, same model
-    // family. A plain (non-reasoning) chat model sidesteps this entirely.
-    const GROQ_MODEL_CANDIDATES = ["llama-3.3-70b-versatile"];
+    // "llama-3.3-70b-versatile" was tried next as a plain non-reasoning
+    // model — but real logs then showed THIS is deprecated/inaccessible on
+    // this specific account too. Rather than guess a fourth name, ask
+    // Groq's own /models endpoint what this key can actually use right now,
+    // and only fall back to hardcoded guesses if that lookup itself fails.
+    const discoveredModel = await fetchAvailableGroqModel(groqKey);
+    const GROQ_MODEL_CANDIDATES = [
+      ...(discoveredModel ? [discoveredModel] : []),
+      "llama-3.1-8b-instant",
+      "gemma2-9b-it",
+      "llama3-70b-8192",
+    ].filter((id, i, arr) => arr.indexOf(id) === i);
     for (const modelId of GROQ_MODEL_CANDIDATES) {
       try {
         const result = await generateText({
