@@ -187,3 +187,16 @@ survivors?"
   async/network function per-item instead of batching — applies beyond the
   AI bots too; keep an eye out for it in any tool execution, not just prompt
   construction.
+- **2026-08-28 (later still)**: Found the same per-item-network-call pattern
+  a second time, in a completely different feature: `placeRecurringBooking`
+  (bookings.functions.ts, a multi-week recurring series) called
+  `studioAvailability()` once per week, sequentially — up to 13 calls × 2-3
+  round trips each. Extracted the batch-fetch logic that fixed
+  `nextAvailableDays` into a shared exported helper,
+  `fetchAvailabilityBatch(fromDate, toDate)` in availability.server.ts —
+  both callers now do 3 network calls total regardless of range size. Safe
+  because each week in a recurring series is a distinct date (always 7 days
+  apart), so no week's availability check depends on another week's result
+  within the same call. **Pattern to keep checking for**: any loop over
+  dates/items that calls an availability/network function per iteration —
+  this was the second instance found in one day, there may be more.
