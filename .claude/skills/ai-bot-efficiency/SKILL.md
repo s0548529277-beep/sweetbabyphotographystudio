@@ -200,3 +200,32 @@ survivors?"
   within the same call. **Pattern to keep checking for**: any loop over
   dates/items that calls an availability/network function per iteration —
   this was the second instance found in one day, there may be more.
+- **2026-08-29**: Found a reliability bug, not a cost/latency one, but same
+  root cause family (a resilient fallback chain doing nothing if the code
+  around it is wrong). `api.yemot.ivr.ts` and `api.voice.respond.ts` each
+  define a shared `runOpenTurn` helper (the actual AI-turn call) and every
+  stage that falls through to it did `return runOpenTurn(speech)` — a bare
+  return of an un-awaited promise inside the route's own `try` block. When
+  ALL THREE fallback tiers failed in the same call (confirmed live: Gemini
+  free-tier quota exhausted on both keys, every discovered/static Groq
+  candidate broken, Lovable out of credits), the rejection never reached
+  that `try`'s `catch` — a `try { return promise; }` does NOT catch a later
+  rejection of `promise` unless it's awaited first. The rejection escaped
+  the whole route handler uncaught, and the runtime turned the AI SDK
+  error's own `.statusCode` (402, from Lovable's "out of credits") into the
+  literal HTTP response status sent back to Yemot/Twilio — instead of the
+  graceful `phrases.temporary_error` fallback this file was clearly built to
+  give. Fixed by changing every call site to `return await runOpenTurn(...)`
+  (8 call sites total across both files). **Lesson for this codebase**: any
+  `return someAsyncFn(...)` inside a `try` block whose `catch` is meant to
+  handle that call's failures is a live bug — always `return await`.
+  Same log batch also showed Groq's dynamically-discovered candidates
+  reliably dying on `allam` (no tool-calling support) and `qwen` (this app's
+  ~9K-token voice request always exceeds the account's 8000 TPM cap for
+  that model) — added both to `GROQ_UNUSABLE_MODEL_ID` so those attempts
+  aren't wasted, and bumped the discovery slice 4→6 to keep the same pool
+  size of real candidates after excluding two more prefixes. The underlying
+  quota/credit exhaustion itself (Gemini free tier, Lovable balance) is a
+  capacity/billing issue, not a code bug — flagged to the user rather than
+  "fixed", since there's no code-level fix for an account being out of
+  quota/credits.
