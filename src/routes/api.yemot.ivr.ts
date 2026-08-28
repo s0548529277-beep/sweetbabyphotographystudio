@@ -127,7 +127,13 @@ async function handle(request: Request): Promise<Response> {
 
     // Runs a real AI turn and replies with the right directive for whatever
     // the model decided to do — shared by every stage that can fall through
-    // into the open conversation.
+    // into the open conversation. IMPORTANT: every call site below must
+    // `return await runOpenTurn(...)`, never a bare `return runOpenTurn(...)`
+    // — confirmed live in production logs: when it isn't awaited, a rejection
+    // (e.g. every AI fallback tier failing at once) skips this function's own
+    // try/catch entirely and escapes as a raw uncaught error, which the
+    // runtime turned into a bare HTTP 402 straight to Yemot instead of our
+    // graceful phrases.temporary_error fallback — silently breaking the call.
     const runOpenTurn = async (userText: string): Promise<Response> => {
       const messages: VoiceMessage[] = [...priorMessages, { role: "user", content: userText }];
       const { text, action }: VoiceTurnResult = await runVoiceTurn(messages, phone);
@@ -167,7 +173,7 @@ async function handle(request: Request): Promise<Response> {
         // She already said she wants to book/reserve, not just hear rates —
         // skip the pricing blurb and go straight into the real conversation,
         // which starts collecting booking details immediately.
-        if (wantsToBookNow(speech)) return runOpenTurn(speech);
+        if (wantsToBookNow(speech)) return await runOpenTurn(speech);
         const blurb = intent === 1 ? phrases.studio_blurb : phrases.props_blurb;
         const text = `${blurb} ${phrases.anything_else}`;
         await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: text }], "chat");
@@ -175,7 +181,7 @@ async function handle(request: Request): Promise<Response> {
       }
       // No keyword matched — this was very likely a real question, not a
       // failed menu pick. Just answer it.
-      return runOpenTurn(speech);
+      return await runOpenTurn(speech);
     }
 
     // ---- Stage 2: option 4's own sub-choice (hear it all vs. ask something) ----
@@ -187,7 +193,7 @@ async function handle(request: Request): Promise<Response> {
       }
       // Not "tell me everything" — treat it as a real question and let the
       // AI answer it (it already has the full guide in SYSTEM).
-      return runOpenTurn(speech);
+      return await runOpenTurn(speech);
     }
 
     // ---- Stage 2b: "leave a message" — collect it and email it for real ----
@@ -198,7 +204,7 @@ async function handle(request: Request): Promise<Response> {
     }
 
     // ---- Stage 3: open conversation (same as before) ----
-    return runOpenTurn(speech);
+    return await runOpenTurn(speech);
   } catch (e) {
     console.error("[SWEETBABY] yemot ivr failed", e);
     // Was previously invisible beyond a server log nobody could read — this
