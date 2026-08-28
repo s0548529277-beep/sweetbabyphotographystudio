@@ -49,6 +49,23 @@ export function detectMenuIntent(speech: string | null | undefined): MenuChoice 
   return null;
 }
 
+// Explicit "I want to actually book/reserve now" phrasing — a short sentence
+// like "רוצה לשריין סטודיו" (4 words) still passes looksLikeMenuPick above
+// and lands on the bare "סטודיו"/"אביזר" menu-pick match, which used to mean
+// she'd hear the pricing blurb first and only get to real booking a full
+// round-trip later. Longer, more natural sentences ("אני רוצה לשריין תור
+// בסטודיו בבקשה") already skip the menu entirely via looksLikeMenuPick's
+// word-count cutoff and go straight to the open conversation — this closes
+// the same gap for the short phrasing.
+const BOOKING_INTENT_WORDS = /לשריין|לקבוע (תור|זמן)|להזמין תור|לתפוס תור|רוצה תור|לשמור תור|רוצה לשריין|רוצה לקבוע|רוצה להזמין/;
+
+/** True when the caller's short sentence already signals she wants to book/reserve now, not just hear info. */
+export function wantsToBookNow(speech: string | null | undefined): boolean {
+  const s = (speech ?? "").trim();
+  if (!s) return false;
+  return BOOKING_INTENT_WORDS.test(s);
+}
+
 const GUIDE_EVERYTHING_WORDS = ["הכל", "הכול", "הכולל", "הדרכה מלאה", "ספרי הכל", "ספר הכל", "תספר", "תספרי"];
 
 export function wantsFullGuide(speech: string | null | undefined): boolean {

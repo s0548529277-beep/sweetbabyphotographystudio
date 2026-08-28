@@ -3,7 +3,7 @@ import type {} from "@tanstack/react-start";
 import { parseYemotParams, yemotAck, yemotSayAndHangup, yemotSayAndListen } from "@/lib/yemot.server";
 import { runVoiceTurn, type VoiceMessage, type VoiceTurnResult } from "@/lib/voice-chat.server";
 import { sendMessageToStudio } from "@/lib/voice-message.server";
-import { detectMenuIntent, wantsFullGuide } from "@/lib/voice-menu.server";
+import { detectMenuIntent, wantsFullGuide, wantsToBookNow } from "@/lib/voice-menu.server";
 import { getPhraseMap } from "@/lib/voice-phrases.server";
 import { personalizedGreeting } from "@/lib/voice-caller.server";
 import { consumePendingVoiceNotification } from "@/lib/voice-pending-notification.server";
@@ -164,6 +164,10 @@ async function handle(request: Request): Promise<Response> {
         return yemotSayAndListen(phrases.leave_message_prompt);
       }
       if (intent === 1 || intent === 2) {
+        // She already said she wants to book/reserve, not just hear rates —
+        // skip the pricing blurb and go straight into the real conversation,
+        // which starts collecting booking details immediately.
+        if (wantsToBookNow(speech)) return runOpenTurn(speech);
         const blurb = intent === 1 ? phrases.studio_blurb : phrases.props_blurb;
         const text = `${blurb} ${phrases.anything_else}`;
         await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: text }], "chat");
