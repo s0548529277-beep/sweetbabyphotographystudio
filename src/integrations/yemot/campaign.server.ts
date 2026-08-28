@@ -3,13 +3,22 @@
 // used to call a customer right after her booking/order is confirmed, and
 // for her chosen reminder, with a short summary + door code.
 //
-// Confirmed live (studio's own test call): the outbound call rings and
-// disconnects without actually speaking, and doesn't cost units — so the
-// message is ALSO stashed as a "pending" notification (see
+// An earlier one-off test call (studio's own account) suggested the outbound
+// call rings and disconnects without actually speaking, and doesn't cost
+// units — that assumption turned out to be WRONG (or at least not reliable):
+// real Yemot campaign-completion emails from the account (2026-08-28) show
+// units being deducted for these calls regardless of whether they were
+// answered — sometimes MORE for an unanswered attempt than an answered one.
+// So: treat every call through this function as a real, billed unit, not a
+// free nudge. The message is ALSO stashed as a "pending" notification (see
 // voice-pending-notification.server.ts) and gets delivered for real, once,
 // the moment she calls the studio's line back (see api.yemot.ivr.ts's
-// first-hit-of-call handling). The outbound call itself still works as a
-// free "you've got something waiting" ring/nudge.
+// first-hit-of-call handling) — that part of the design still holds
+// regardless of billing, since it's what makes a failed/unanswered outbound
+// leg not lose the message. But don't add new call sites assuming this is
+// free; if a call site is admin-facing/low-priority, alsoSms (or dropping
+// the call and relying on email + /admin/notifications alone) is likely
+// cheaper — ask before adding another automatic voice-call trigger.
 //
 // NOT YET FULLY VERIFIED AGAINST A LIVE CALL — built from real documentation found
 // via web search (the official developer forum, apiforum.yemot.tel, and the
