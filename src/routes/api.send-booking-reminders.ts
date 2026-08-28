@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
-import { runDueBookingReminders, notifyPendingPhoneBookingConfirmations } from "@/lib/bookings.functions";
+import { runDueBookingReminders, notifyPendingPhoneBookingConfirmations, notifyPendingPropsRequests } from "@/lib/bookings.functions";
 import { runDueOrderReminders } from "@/lib/orders.functions";
 
 // Called periodically (every 15-30 min recommended) by an external
@@ -30,12 +30,13 @@ export const Route = createFileRoute("/api/send-booking-reminders")({
           });
         }
 
-        const [bookings, orders, pendingPhoneCalls] = await Promise.all([
+        const [bookings, orders, pendingPhoneCalls, pendingPropsCalls] = await Promise.all([
           runDueBookingReminders(),
           runDueOrderReminders(),
           notifyPendingPhoneBookingConfirmations(),
+          notifyPendingPropsRequests(),
         ]);
-        return new Response(JSON.stringify({ bookings, orders, pendingPhoneCalls }), {
+        return new Response(JSON.stringify({ bookings, orders, pendingPhoneCalls, pendingPropsCalls }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         });

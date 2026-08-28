@@ -4,7 +4,7 @@ import { generateTextResilient } from "./ai-gateway.server";
 import { buildAssistantTools } from "./ai-tools.server";
 import { SYSTEM } from "./ai.functions";
 import { createPhoneBooking } from "./voice-booking.server";
-import { sendMessageToStudio } from "./voice-message.server";
+import { sendMessageToStudio, PROPS_REQUEST_CONTEXT_MARKER } from "./voice-message.server";
 
 export type VoiceMessage = { role: "user" | "assistant"; content: string };
 
@@ -21,7 +21,7 @@ const VOICE_STYLE = `\n\nאתה עונה כרגע בשיחת טלפון קולי
 - מיד אחרי שהשריון נוצר, הציעי בעצמך סגירה מיידית (לא רק "בקשה שמורה"): "אם תרצי, אפשר לסגור את זה ממש עכשיו — מעבירים את המקדמה 90₪ בהעברה בנקאית ואני נועלת לך את התאריך". אם היא מתחייבת לבצע את ההעברה — תני לה בקול את הפרטים (אותם פרטים כמו באתר): בנק הפועלים (בנק 12), סניף 533, חשבון 648912, על שם מיכל סיבוני. תסבירי בפשטות שברגע שההעברה מגיעה ומאומתת אצל הסטודיו, השריון ננעל סופית והקוד נשלח — זו לא סתם המתנה כמו שריון רגיל בלי מקדמה, זו סגירה אמיתית ברגע שההעברה מתקבלת. אם היא מעדיפה לשלם באשראי — תזכירי לה שקישור תשלום מאובטח נמצא כבר במייל שנשלח אליה.
 - אם הלקוחה מבקשת לדבר עם בן אדם, מתעקשת, כועסת, או שאתה לא מצליח לעזור — קרא לכלי transfer_to_human ואמור בקול שאתה מעביר אותה עכשיו.
 - כל פעם שאתה עומד להגיד ללקוחה "הסטודיו יחזור אליך" — בגלל תקלה, כלי שנכשל, שריון בלי אימייל, או כל סיבה אחרת — אל תסתפק בהבטחה סתמית. תציע לה במפורש להשאיר הודעה קצרה עכשיו (מה היא רוצה, מתי, כל פרט רלוונטי) ותקרא לכלי leave_message_for_studio כדי שההודעה באמת תישלח לסטודיו במייל, כולל המספר שלה. זה משנה את ה"יחזרו אליך" מהבטחה ריקה למשהו אמיתי שהצוות רואה.
-- אם הלקוחה רוצה **רק** להשכיר אביזרים (בלי שריון סטודיו בכלל): אין כלי שיוצר הזמנת אביזרים אמיתית בטלפון (בניגוד לשריון סטודיו) — הזמנת אביזרים דורשת בחירת פריטים מדויקת עם מלאי אמיתי, וזה מסוכן מדי לנחש מדיבור בטלפון. במקום זה: תבדקי בכלים (search_catalog / check_prop_availability) שהפריטים שהיא מבקשת אכן קיימים וזמינים בתאריכים שלה, תני לה מושג כללי על המחיר מהפריטים שמצאת, ואז קראי ל-leave_message_for_studio עם כל הפרטים (אילו פריטים, כמה, תאריכי איסוף/החזרה, שם) — תסבירי לה בקול שהסטודיו יחזור אליה בהקדם עם פרטי תשלום מדויקים לאחר שיוודאו את המלאי הסופי.
+- אם הלקוחה רוצה **רק** להשכיר אביזרים/ציוד (בלי שריון סטודיו בכלל): קודם כל תגידי לה בקצרה שההזמנה הכי מהירה ונוחה לאביזרים היא דרך האתר (יש שם קטלוג מלא עם זמינות בזמן אמת ותשלום מיידי) — ורק אם היא לא נוחה עם זה או ממשיכה בטלפון, תמשיכי בתהליך הבא. לעולם אל תעבירי בקשת אביזרים הלאה לפי תיאור כללי בלבד ("משהו לניו-בורן" וכו') — קראי ל-search_catalog ו/או check_prop_availability כדי לזהות בוודאות את הפריט/ים המדויקים (שם מדויק ומק"ט אם קיים) שהיא מתכוונת אליהם ולוודא שהם קיימים וזמינים בתאריכים שלה, ותני לה מושג כללי על המחיר מהפריטים שמצאת. בניגוד לשריון סטודיו — כאן **אין** שריון אוטומטי בטלפון בשום מקרה: קראי לכלי request_props_rental עם הפריטים המזוהים (שם/מק"ט/כמות) ותאריכי איסוף/החזרה אם נמסרו, וזה ישלח את הבקשה לסטודיו. תסבירי לה בקול בבירור שההזמנה בפועל תסגר ע"י הסטודיו עצמו לאחר בדיקה סופית של המלאי, לא כרגע — והם יחזרו אליה בהקדם עם פרטי תשלום מדויקים.
 - אם השיחה מגיעה לסיומה הטבעי (הלקוחה נפרדת/מודה/אין עוד שאלות) — אחרי המשפט האחרון שלך קרא לכלי end_call.`;
 
 function buildVoiceTools(callerPhone: string) {
@@ -94,6 +94,53 @@ function buildVoiceTools(callerPhone: string) {
           message: res.ok
             ? "ההודעה נשלחה לסטודיו. אשר ללקוחה בקול שההודעה נשלחה ושיחזרו אליה."
             : "השליחה לא הצליחה באופן ודאי — עדיין תגיד ללקוחה שקיבלת את ההודעה ושיחזרו אליה, ותמליץ גם על יצירת קשר ישיר: 054-8529277.",
+        };
+      },
+    }),
+    // Deliberately separate from create_phone_booking: a props-only phone
+    // request never creates a real order or locks inventory (unlike a studio
+    // booking) — actual reservation is done manually by a staff member after
+    // reviewing it, since exact SKU/quantity selection against real stock is
+    // too risky to trust to spoken language alone. This tool exists (instead
+    // of just reusing leave_message_for_studio with a free-text context) so
+    // the admin-notification `context` field is a fixed, code-baked marker
+    // (PROPS_REQUEST_CONTEXT_MARKER) rather than something the model types
+    // fresh each time — that's what lets notifyPendingPropsRequests later
+    // find these reliably for the reminder-call escalation.
+    request_props_rental: tool({
+      description:
+        'שולחת לסטודיו בקשה להשכרת אביזרים/ציוד בלבד (בלי שריון סטודיו) לביצוע שריון בפועל ע"י מנהל. יש לזהות קודם את הפריטים המדויקים (שם + מק"ט אם קיים) עם search_catalog/check_prop_availability — לא לפי תיאור כללי. הכלי הזה לא יוצר הזמנה אמיתית או נועל מלאי, רק מעביר בקשה לטיפול ידני.',
+      inputSchema: z.object({
+        items: z
+          .array(
+            z.object({
+              name: z.string().describe('שם הפריט המדויק כפי שהתקבל מתוצאות search_catalog/check_prop_availability'),
+              sku: z.string().optional().describe('מק"ט הפריט, אם עלה בתוצאות הכלים'),
+              quantity: z.number().int().min(1).default(1),
+            }),
+          )
+          .min(1),
+        pickupDate: z.string().optional().describe("YYYY-MM-DD, תאריך איסוף אם נמסר"),
+        returnDate: z.string().optional().describe("YYYY-MM-DD, תאריך החזרה אם נמסר"),
+        contactName: z.string().optional(),
+        notes: z.string().optional(),
+      }),
+      execute: async ({ items, pickupDate, returnDate, contactName, notes }) => {
+        const itemsText = items.map((i) => `${i.name}${i.sku ? ` (מק"ט ${i.sku})` : ""} × ${i.quantity}`).join(", ");
+        const message = [
+          `בקשת השכרת אביזרים טלפונית: ${itemsText}`,
+          pickupDate ? `תאריך איסוף: ${pickupDate}` : null,
+          returnDate ? `תאריך החזרה: ${returnDate}` : null,
+          notes,
+        ]
+          .filter(Boolean)
+          .join("\n");
+        const res = await sendMessageToStudio({ message, callerPhone, contactName, context: PROPS_REQUEST_CONTEXT_MARKER });
+        return {
+          ok: res.ok,
+          message: res.ok
+            ? 'הבקשה נשלחה לסטודיו. הסבירי ללקוחה שהשריון בפועל יתבצע ע"י הסטודיו לאחר בדיקה סופית של המלאי, ושיחזרו אליה בהקדם עם פרטי תשלום.'
+            : "השליחה לא הצליחה באופן ודאי — עדיין תגידי ללקוחה שקיבלת את הבקשה ושיחזרו אליה, ותמליצי גם על יצירת קשר ישיר: 054-8529277.",
         };
       },
     }),

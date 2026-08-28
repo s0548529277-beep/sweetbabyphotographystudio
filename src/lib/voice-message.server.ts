@@ -1,3 +1,12 @@
+// Fixed marker passed as `context` by the props-only phone-request tool
+// (voice-chat.server.ts's request_props_rental) — baked into that tool's own
+// code rather than typed freehand by the model each time, so
+// notifyPendingPropsRequests (bookings.functions.ts) can reliably find these
+// rows later for the reminder-call escalation. Same idea as
+// PHONE_BOOKING_NOTES_MARKER letting notifyPendingPhoneBookingConfirmations
+// find phone studio bookings by their notes field.
+export const PROPS_REQUEST_CONTEXT_MARKER = 'בקשת השכרת אביזרים טלפונית (ללא שריון סטודיו) — השריון בפועל יבוצע ע"י מנהל הסטודיו';
+
 // Sends a phone caller's spoken message to the studio — used by menu option
 // 6 ("להשאיר הודעה") and as the fallback whenever the bot would otherwise
 // just say "the studio will call you back" (no human available to transfer
