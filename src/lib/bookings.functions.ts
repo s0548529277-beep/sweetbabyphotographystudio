@@ -1031,6 +1031,78 @@ export const adminConfirmPhoneBookingDeposit = createServerFn({ method: "POST" }
     }
   });
 
+// ---------- pending phone-booking confirmation nudge ----------
+
+// Grace period before nudging — long enough that a normal "she said she'd
+// transfer it in a few minutes" isn't a false alarm, short enough that a
+// booking doesn't sit forgotten for a whole day.
+const PHONE_CONFIRM_REMINDER_AFTER_MINUTES = 120;
+const STUDIO_OWNER_PHONE = "0548529277";
+
+/**
+ * A phone booking only ever reaches "confirmed" (door code + full email +
+ * calendar event) through a staff member manually clicking "אשר תשלום
+ * והנפק קוד" in /admin/notifications (see adminConfirmPhoneBookingDeposit's
+ * own comment for why there's no automatic path). A notification sitting
+ * unread/forgotten there means the customer's slot silently never gets
+ * finalized. This scans for phone bookings still pending
+ * PHONE_CONFIRM_REMINDER_AFTER_MINUTES after they came in, and places a
+ * short Yemot voice call to the STUDIO'S OWN phone (not the customer's) —
+ * an actual ring, not just another easy-to-miss notification. Fires at most
+ * once per booking (tracked via a dedicated admin_notifications row, so a
+ * repeat cron run never calls twice for the same booking). Meant to run
+ * alongside runDueBookingReminders/runDueOrderReminders from the same
+ * periodic /api/send-booking-reminders cron hit — no separate scheduler
+ * needed.
+ */
+export async function notifyPendingPhoneBookingConfirmations(): Promise<{ checked: number; called: number }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const cutoff = new Date(Date.now() - PHONE_CONFIRM_REMINDER_AFTER_MINUTES * 60 * 1000).toISOString();
+
+  const { data: candidates, error } = await supabaseAdmin
+    .from("bookings")
+    .select("id, contact_name, session_date, start_time, price, notes, created_at")
+    .is("google_event_id", null)
+    .neq("status", "cancelled")
+    .lte("created_at", cutoff)
+    .ilike("notes", "%התקבל בשיחה טלפונית%"); // set verbatim by createPhoneBooking — see voice-booking.server.ts
+  if (error) {
+    console.error("[SWEETBABY] pending phone booking scan failed", error);
+    return { checked: 0, called: 0 };
+  }
+
+  let called = 0;
+  for (const b of (candidates ?? []) as any[]) {
+    try {
+      // Already nudged for this exact booking? Skip — never call twice.
+      const { data: already } = await supabaseAdmin
+        .from("admin_notifications")
+        .select("id")
+        .eq("type", "phone_booking_reminder_call")
+        .contains("body", { booking_id: b.id })
+        .limit(1);
+      if (already && already.length > 0) continue;
+
+      const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
+      const text = `שלום, יש הזמנה טלפונית ממתינה לאישור תשלום בסטודיו סוויט בייבי. ${b.contact_name || "לקוחה"}, תאריך ${b.session_date} בשעה ${String(b.start_time).slice(0, 5)}, סכום ${b.price} שקל. אם ההעברה התקבלה, יש לאשר בממשק הניהול.`;
+      await sendYemotVoiceMessage({ phone: STUDIO_OWNER_PHONE, text, label: `תזכורת אישור טלפוני ${b.id.slice(0, 8)}` });
+      called++;
+
+      // Logged even though it's a call, not a written notification — this
+      // row's only real job is the dedup check above (never call twice),
+      // but it also leaves a visible trail of when each nudge went out.
+      await supabaseAdmin.from("admin_notifications").insert({
+        type: "phone_booking_reminder_call",
+        title: `📞 תזכורת טלפונית: הזמנה ממתינה לאישור · ${b.contact_name ?? ""}`,
+        body: { booking_id: b.id, session_date: b.session_date, start_time: b.start_time },
+      });
+    } catch (e) {
+      console.error("[SWEETBABY] pending phone booking reminder call failed", e);
+    }
+  }
+  return { checked: (candidates ?? []).length, called };
+}
+
 // ---------- opt-in reminder, customer-chosen hours-before ----------
 
 // Half an hour of slack either side of her chosen "hours before" — the

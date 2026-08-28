@@ -27,6 +27,7 @@ const TYPE_LABELS: Record<string, string> = {
   yemot_voice_message_error: "כשל בשליחת הודעה קולית",
   voice_ai_error: "תקלה בבוט הטלפוני",
   ai_provider_switch: "מעבר ספק AI",
+  phone_booking_reminder_call: "תזכורת טלפונית — הזמנה ממתינה",
 };
 
 const TYPE_ICONS: Record<string, typeof Phone> = {
@@ -36,6 +37,7 @@ const TYPE_ICONS: Record<string, typeof Phone> = {
   yemot_voice_message_error: AlertTriangle,
   voice_ai_error: AlertTriangle,
   ai_provider_switch: Shuffle,
+  phone_booking_reminder_call: Phone,
 };
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -158,7 +160,7 @@ function NotificationsAdmin() {
                         why), so this button is the only way it ever reaches
                         "confirmed" — click it once the bank transfer/Bit
                         payment has actually arrived. */}
-                    {r.type === "booking" && r.body?.source === "voice_call" && r.body?.booking_id && (
+                    {((r.type === "booking" && r.body?.source === "voice_call") || r.type === "phone_booking_reminder_call") && r.body?.booking_id && (
                       <Button
                         size="sm"
                         className="rounded-full gap-1.5"
