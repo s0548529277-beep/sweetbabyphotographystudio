@@ -1,29 +1,19 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { generateText } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { createLovableAiGatewayProvider, generateTextResilient } from "./ai-gateway.server";
+import { generateTextResilient } from "./ai-gateway.server";
 
-// Routed through the same Lovable AI Gateway the customer-facing ChatBot
-// already uses (see ai.functions.ts) — reuses the existing LOVABLE_API_KEY
-// secret instead of requiring a separate ANTHROPIC_API_KEY to be added.
-//
-// Still used as-is (Lovable only, no fallback chain) for the code-EDITING
-// half of this file (askClaudeForFileEdit / describeVisibleChange) — that
-// one rewrites real source files, and different providers could plausibly
-// behave differently enough on that task that it's worth staying
-// deliberate/single-provider there for now. The read-only "ask about the
-// data" half (askClaudeForSql / askClaudeToSummarize / askClaudeSmallTalk,
-// below) now goes through generateTextResilient like the customer-facing
-// bots — it's a pure Q&A tool with no write risk, so there's no reason for
-// it to break every time Lovable's credits run low the way it did tonight.
-const AI_MODEL = "google/gemini-2.5-flash";
-
-function aiGateway() {
-  const key = process.env.LOVABLE_API_KEY;
-  if (!key) throw new Error("LOVABLE_API_KEY לא מוגדר ב-Supabase secrets");
-  return createLovableAiGatewayProvider(key);
-}
+// Every AI call in this file (both the read-only "ask about the data" bot
+// and the code-EDITING bot below) now goes through generateTextResilient —
+// the same Gemini → Groq → Lovable fallback chain the customer-facing bots
+// use — instead of Lovable alone (see git history: this used to be
+// Lovable-only, which meant this admin tool broke every time the Lovable
+// AI Gateway ran out of credits, same as the customer bot did before
+// tonight's fix). A whole-file rewrite can be a genuinely large response,
+// so it's given a longer budget (60s) than the default; this is a
+// background admin action (posts a PR, no one is on hold waiting on a live
+// call), so the extra time is cheap and safe.
+const FILE_EDIT_TIMEOUT_MS = 60_000;
 
 async function assertAdmin(supabase: any, userId: string) {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
@@ -59,8 +49,6 @@ async function gh(path: string, init?: RequestInit) {
 
 /** Asks the AI to rewrite one file's full contents per the admin's instruction. Returns the new file text and a one-line summary of what changed. */
 async function askClaudeForFileEdit(currentContent: string, targetPath: string, instruction: string): Promise<{ newContent: string; summary: string }> {
-  const gateway = aiGateway();
-
   const system = `אתה עורך קוד עבור אתר סטודיו צילום (React + TanStack Start + Tailwind, RTL בעברית). תפקידך: לקבל תוכן קובץ קיים ובקשת שינוי בעברית, ולהחזיר את הקובץ המלא אחרי השינוי — בלי לשבור קוד עובד.
 
 כללים מחייבים:
@@ -82,11 +70,7 @@ ${currentContent}
 
 בקשת השינוי: ${instruction}`;
 
-  const { text } = await generateText({
-    model: gateway(AI_MODEL),
-    system,
-    messages: [{ role: "user", content: user }],
-  });
+  const { text } = await generateTextResilient({ system, messages: [{ role: "user", content: user }] }, FILE_EDIT_TIMEOUT_MS);
 
   let parsed: { new_content: string; summary: string };
   try {
@@ -275,9 +259,7 @@ export const reviseSiteChange = createServerFn({ method: "POST" })
  */
 async function describeVisibleChange(patch: string, targetPath: string): Promise<string> {
   if (!patch) return "";
-  const gateway = aiGateway();
-  const { text } = await generateText({
-    model: gateway(AI_MODEL),
+  const { text } = await generateTextResilient({
     system: `את מסבירה למנהלת סטודיו צילום שלא קוראת קוד מה בדיוק ישתנה למי שיבקר באתר, על סמך diff של קובץ. תתמקדי אך ורק במה שרואים: טקסט/מילים שהשתנו (תני ציטוט "היה" → "יהיה"), אלמנטים שנוספו/הוסרו, שינויי עיצוב מורגשים (צבע, גודל, מרווח, מיקום). אל תסבירי קוד, שמות משתנים, לוגיקה טכנית, או דברים שלא משפיעים על מה שרואים בעין. אם השינוי טכני לגמרי בלי השפעה נראית לעין (תיקון קוד פנימי, לוגיקה) — תגידי את זה במפורש בפשטות. תשובה קצרה, נקודות ברורות, בלי מבוא.`,
     messages: [{ role: "user", content: `קובץ: ${targetPath}\n\ndiff:\n${patch.slice(0, 8000)}` }],
   });
