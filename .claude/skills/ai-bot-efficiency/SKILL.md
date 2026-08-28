@@ -229,3 +229,23 @@ survivors?"
   capacity/billing issue, not a code bug — flagged to the user rather than
   "fixed", since there's no code-level fix for an account being out of
   quota/credits.
+- **2026-08-29 (later)**: The owner asked for more accurate TTS pronunciation
+  (niqqud/vowel points) on the voice bot's spoken replies, explicitly
+  conditioned on not making it less efficient. Considered and rejected:
+  asking the model to add niqqud to its own free-form replies — that would
+  cost real extra *output* tokens (niqqud are combining Unicode marks that
+  don't compress well under BPE) on every single voice turn, plus the extra
+  generation time to produce them, on a call where a live caller is
+  waiting — a real, recurring cost for a benefit limited to a handful of
+  words, with the added risk of the model producing *wrong* niqqud that
+  sounds worse than none. Shipped instead: `applyNiqqudFixups` in
+  `voice-chat.server.ts` — a small hardcoded word→niqqud'd-word dictionary
+  (שריון, מקדמה, הדרכה, הגעה, אביזרים, חלאקה — spellings matched to the
+  existing hand-vocalized fixed phrases in `voice-phrases.server.ts` for
+  consistency) applied as a deterministic string-replace on the model's
+  *already-generated* reply, the same pattern already used for
+  `stripEchoOpener`. Zero AI tokens, zero added latency. **Pattern for this
+  codebase**: when quality trades directly against tokens/latency, look for
+  a deterministic post-processing fix before reaching for a prompt
+  instruction — a fixed/known-vocabulary substitution belongs in code, not
+  in every model call.
