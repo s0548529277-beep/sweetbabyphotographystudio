@@ -19,7 +19,7 @@ export const getStudioDayBusy = createServerFn({ method: "POST" })
 
     const { data: rows } = await supabaseAdmin
       .from("bookings")
-      .select("start_time, end_time, status, deposit_status, created_at")
+      .select("start_time, end_time, status, deposit_status, created_at, notes")
       .eq("session_date", data.date)
       .neq("status", "cancelled");
     const now = Date.now();

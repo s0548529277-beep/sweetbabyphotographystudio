@@ -14,6 +14,21 @@ export const CATALOG_ITEMS: CatItem[] = (catalogData as Cat[]).flatMap((c) => c.
 // confirmed, the hold no longer depends on time at all — see bookingBlocksSlot.
 export const PENDING_HOLD_MINUTES = 60;
 
+// A phone booking gets a longer hold than a website one — confirming it
+// isn't instant like a website booking's own /deposit page (see
+// finalizeBookingConfirmation's doc comment): the customer needs time to
+// actually go make the bank transfer, and a staff member then needs to see
+// it arrive and click "אשר תשלום" — a website booking's confirmation is
+// self-serve the moment she pays, so it doesn't need this slack.
+export const PHONE_BOOKING_HOLD_MINUTES = 360; // 6 hours
+
+// Set verbatim by createPhoneBooking (voice-booking.server.ts) as the first
+// line of a phone booking's notes — the only way to tell a phone-originated
+// booking apart from a website one from the row alone (there's no dedicated
+// "source" column). Exported so voice-booking.server.ts can reuse the exact
+// same string instead of a second copy that could drift.
+export const PHONE_BOOKING_NOTES_MARKER = "התקבל בשיחה טלפונית עם הבינה הקולית";
+
 // Props orders don't require prepayment the way a studio booking's deposit
 // does, so an untouched one is held for a shorter window before it's
 // treated as abandoned.
@@ -30,16 +45,26 @@ export const PROPS_HOLD_MINUTES = 30;
  * chat's check_studio_availability, the public /booking calendar,
  * placeBooking's own overlap check, and propsAvailability/order locking —
  * so they can never disagree with each other again.
+ *
+ * `holdMinutes` is optional now: pass it explicitly for a fixed window (as
+ * releaseAbandonedItemLocks already does for props vs. bookings), or omit
+ * it to let this pick PHONE_BOOKING_HOLD_MINUTES vs. PENDING_HOLD_MINUTES
+ * automatically from whether `notes` carries the phone-booking marker.
+ * Callers that don't SELECT `notes` just silently get the website default —
+ * safe, but means a phone booking's longer hold only actually applies where
+ * the caller fetched `notes` alongside the other columns.
  */
 export function bookingBlocksSlot(
-  b: { status: string; deposit_status?: string | null; created_at?: string | null },
+  b: { status: string; deposit_status?: string | null; created_at?: string | null; notes?: string | null },
   nowMs: number = Date.now(),
-  holdMinutes: number = PENDING_HOLD_MINUTES,
+  holdMinutes?: number,
 ): boolean {
   if (b.status === "cancelled") return false;
+  const effectiveHold =
+    holdMinutes ?? (b.notes?.includes(PHONE_BOOKING_NOTES_MARKER) ? PHONE_BOOKING_HOLD_MINUTES : PENDING_HOLD_MINUTES);
   if (b.deposit_status === "pending" && b.created_at) {
     const ageMinutes = (nowMs - new Date(b.created_at).getTime()) / 60000;
-    if (ageMinutes > holdMinutes) return false;
+    if (ageMinutes > effectiveHold) return false;
   }
   return true;
 }
@@ -222,7 +247,7 @@ export async function studioAvailability(date: string, wantedTime?: string) {
     supabaseAdmin.from("studio_closures").select("*").eq("date", date),
     supabaseAdmin
       .from("bookings")
-      .select("start_time, end_time, status, deposit_status, created_at")
+      .select("start_time, end_time, status, deposit_status, created_at, notes")
       .eq("session_date", date)
       .neq("status", "cancelled"),
   ]);
@@ -327,7 +352,7 @@ export async function fetchAvailabilityBatch(
     supabaseAdmin.from("studio_closures").select("*").gte("date", fromDate).lte("date", toDate),
     supabaseAdmin
       .from("bookings")
-      .select("session_date, start_time, end_time, status, deposit_status, created_at")
+      .select("session_date, start_time, end_time, status, deposit_status, created_at, notes")
       .gte("session_date", fromDate)
       .lte("session_date", toDate)
       .neq("status", "cancelled"),

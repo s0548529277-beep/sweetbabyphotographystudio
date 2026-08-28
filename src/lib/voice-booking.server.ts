@@ -50,7 +50,7 @@ export async function createPhoneBooking(input: PhoneBookingInput) {
   // a phone booking can never disagree with what the calendar/chat show.
   const { data: existing, error: exErr } = await supabaseAdmin
     .from("bookings")
-    .select("id, start_time, end_time, status, deposit_status, created_at")
+    .select("id, start_time, end_time, status, deposit_status, created_at, notes")
     .eq("session_date", input.session_date)
     .neq("status", "cancelled");
   if (exErr) throw new Error(exErr.message);
