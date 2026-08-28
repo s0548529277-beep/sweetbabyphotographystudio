@@ -171,7 +171,42 @@ export const smartSearchItems = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     type Cat = { title: string; items: { sku: string; name: string; alt: string; price: number }[] };
     const cats = catalogData as Cat[];
-    const summary = cats
+
+    // The full catalog is ~9,400 characters (394 items) — sending it on
+    // EVERY search was the single biggest token cost in this app, bigger
+    // than the equipment guide (see ai-bot-efficiency skill). Most queries
+    // share at least one real word with an item name or its category title
+    // ("עגלת תינוק", "רקע כחול"), so pre-filter locally by keyword first and
+    // only ask the model to pick the best subset of a much smaller
+    // candidate list. Only fall back to the full catalog when keyword
+    // matching finds nothing at all — a genuinely abstract query ("משהו
+    // לגיל שנה") still needs the model to see everything to have a chance.
+    const tokens = data.query
+      .toLowerCase()
+      .split(/[^\p{L}\p{N}]+/u)
+      .filter((t) => t.length >= 2);
+    const matchesAnyToken = (s: string) => {
+      const low = s.toLowerCase();
+      return tokens.some((t) => low.includes(t));
+    };
+    let candidateCats: Cat[] = tokens.length
+      ? cats
+          .map((c) =>
+            matchesAnyToken(c.title)
+              ? c // whole category matched (e.g. query "רקעים" hits a category titled "רקעים")
+              : { title: c.title, items: c.items.filter((i) => matchesAnyToken(i.sku) || matchesAnyToken(i.name || i.alt)) },
+          )
+          .filter((c) => c.items.length > 0)
+      : [];
+    const candidateCount = candidateCats.reduce((n, c) => n + c.items.length, 0);
+    // Too few (0) means keyword matching found nothing — fall back to the
+    // full catalog so a fuzzy/conceptual query still works. Too many (still
+    // most of the catalog) means the keyword was too generic to narrow
+    // anything down — also just use the full catalog rather than pretend a
+    // "filtered" list of 350 items saved anything.
+    if (candidateCount === 0 || candidateCount > 150) candidateCats = cats;
+
+    const summary = candidateCats
       .map(
         (c) =>
           `[${c.title}] ` +
