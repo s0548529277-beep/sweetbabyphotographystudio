@@ -190,7 +190,7 @@ export const placeBooking = createServerFn({ method: "POST" })
     // disagree about whether a given pending-deposit hold still counts.
     const { data: existing, error: exErr } = await supabase
       .from("bookings")
-      .select("id, start_time, end_time, status, deposit_status, created_at")
+      .select("id, start_time, end_time, status, deposit_status, created_at, notes")
       .eq("session_date", data.session_date)
       .neq("status", "cancelled");
     if (exErr) throw new Error(exErr.message);
