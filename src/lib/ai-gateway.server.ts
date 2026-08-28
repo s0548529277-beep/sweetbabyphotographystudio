@@ -112,25 +112,35 @@ async function recordProviderUsed(provider: string, model: string): Promise<void
 // id fails FAST with a clear APICallError (confirmed in the same logs), so
 // trying a short list of fallback names after the dynamic pick costs very
 // little if discovery itself fails.
-const GROQ_UNUSABLE_MODEL_ID = /gpt-oss|whisper|tts|guard|moderation|embed/i;
+// gpt-oss is skipped even though it's "available" — known reasoning_content
+// SDK bug on every tool-calling turn (see below). "compound" is skipped too
+// — confirmed live via a real error: Groq's "compound" models are an agentic
+// system of their own and reject this app's tool-calling requests outright
+// ('"tool calling" is not supported with this model'). whisper/tts/guard/
+// moderation/embed are non-chat models entirely.
+const GROQ_UNUSABLE_MODEL_ID = /gpt-oss|compound|whisper|tts|guard|moderation|embed/i;
 
-async function fetchAvailableGroqModel(apiKey: string): Promise<string | null> {
+// Returns several usable candidates, not just one — a single dynamically
+// discovered model can itself turn out to be unusable for a reason the
+// /models listing doesn't expose (a transient timeout, a feature gap like
+// "compound" above), so the resilient thing is to let the existing
+// try-next-candidate loop fall through several real options instead of
+// discovery being just one more single point of failure.
+async function fetchAvailableGroqModels(apiKey: string): Promise<string[]> {
   try {
     const res = await fetch("https://api.groq.com/openai/v1/models", {
       headers: { Authorization: `Bearer ${apiKey}` },
       signal: AbortSignal.timeout(8_000),
     });
-    if (!res.ok) return null;
+    if (!res.ok) return [];
     const data: any = await res.json();
     const ids: string[] = Array.isArray(data?.data)
       ? data.data.map((m: any) => m?.id).filter((id: unknown): id is string => typeof id === "string")
       : [];
-    // gpt-oss is skipped even though it's "available" — it hits the known
-    // reasoning_content SDK bug on every tool-calling turn, see below.
-    return ids.find((id) => !GROQ_UNUSABLE_MODEL_ID.test(id)) ?? null;
+    return ids.filter((id) => !GROQ_UNUSABLE_MODEL_ID.test(id)).slice(0, 4);
   } catch (e) {
-    console.error("[SWEETBABY] fetchAvailableGroqModel failed", e);
-    return null;
+    console.error("[SWEETBABY] fetchAvailableGroqModels failed", e);
+    return [];
   }
 }
 
@@ -190,8 +200,26 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel,
   // (this is very likely why the site chat kept showing "אני קצת עמוס" —
   // the browser/UI was giving up long before the server-side chain finished
   // retrying). So: only try candidates that are known to fail *fast* when
-  // wrong, never a name that might hang — currently just one.
-  const DIRECT_GEMINI_MODEL_CANDIDATES = ["gemini-3-flash-preview"];
+  // wrong, never a name that might hang.
+  //
+  // "gemini-3-flash-preview" itself was then confirmed (via the detailed
+  // error logging added below) to fail on basically EVERY tool-calling turn
+  // with a 400 from Google itself:
+  //   "Function call is missing a thought_signature in functionCall parts.
+  //    This is required for tools to work correctly..."
+  // This is a well-documented, still-open compatibility gap between the
+  // OpenAI-compatible transport (which this app uses via @ai-sdk/openai-
+  // compatible) and Gemini 3's "thinking" models: a thinking model attaches
+  // a thought_signature to each function-call part and requires it echoed
+  // back on the next tool-calling step, but the OpenAI-compat layer doesn't
+  // carry that field — see e.g. github.com/openai/openai-python/issues/2758
+  // and github.com/agentscope-ai/QwenPaw/issues/927, both confirming the
+  // fix is to use a plain (non-thinking) model instead, since this app
+  // always uses multi-step tool calling (stepCountIs). "gemini-2.0-flash"
+  // is Google's standard, long-established non-thinking GA model — kept as
+  // the sole candidate; the thinking model is deliberately NOT kept as a
+  // fallback since it would fail the exact same way on every real request.
+  const DIRECT_GEMINI_MODEL_CANDIDATES = ["gemini-2.0-flash"];
 
   for (const key of geminiKeys) {
     let lastErr: unknown;
@@ -226,9 +254,13 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel,
     // this specific account too. Rather than guess a fourth name, ask
     // Groq's own /models endpoint what this key can actually use right now,
     // and only fall back to hardcoded guesses if that lookup itself fails.
-    const discoveredModel = await fetchAvailableGroqModel(groqKey);
+    // llama-3.1-8b-instant, gemma2-9b-it, and llama3-70b-8192 are ALSO now
+    // confirmed live to be decommissioned on Groq's side entirely (not just
+    // unavailable to this account) — kept only as a last-resort tail in case
+    // discovery itself fails, not because they're expected to work.
+    const discoveredModels = await fetchAvailableGroqModels(groqKey);
     const GROQ_MODEL_CANDIDATES = [
-      ...(discoveredModel ? [discoveredModel] : []),
+      ...discoveredModels,
       "llama-3.1-8b-instant",
       "gemma2-9b-it",
       "llama3-70b-8192",
@@ -243,7 +275,7 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel,
         await recordProviderUsed("groq", modelId);
         return result;
       } catch (e) {
-        console.error(`[SWEETBABY] Groq model "${modelId}" failed`, e);
+        console.error(`[SWEETBABY] Groq model "${modelId}" failed ${e}`);
       }
     }
     console.error("[SWEETBABY] Groq failed on every model candidate, falling back to Lovable AI Gateway");
