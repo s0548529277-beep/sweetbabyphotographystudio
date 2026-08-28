@@ -431,7 +431,7 @@ export const placeRecurringBooking = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => recurringInputSchema.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { studioAvailability } = await import("./availability.server");
+    const { fetchAvailabilityBatch } = await import("./availability.server");
 
     const { data: loyaltyRow } = await supabase
       .from("customer_loyalty")
@@ -472,18 +472,28 @@ export const placeRecurringBooking = createServerFn({ method: "POST" })
     const today = new Date().toISOString().slice(0, 10);
 
     const base = new Date(`${data.start_date}T00:00:00`);
+
+    // All `weeks` dates (always exactly 7 days apart) are independent of
+    // each other for availability purposes — booking week 1 can never
+    // affect whether week 2's slot is free, since they're different dates
+    // — so it's safe to fetch the whole series' availability data ONCE
+    // up front (3 network calls total, including one Google Calendar read)
+    // instead of once per week (up to 13 × 3 = 39 calls for a full series).
+    const lastSessionIso = new Date(base.getTime() + (data.weeks - 1) * 7 * 86400000).toISOString().slice(0, 10);
+    const { freeSlotsFor, isClosed } = await fetchAvailabilityBatch(data.start_date, lastSessionIso);
+
     for (let i = 0; i < data.weeks; i++) {
       const d = new Date(base);
       d.setDate(d.getDate() + i * 7);
       const iso = d.toISOString().slice(0, 10);
 
       try {
-        const avail = await studioAvailability(iso, data.start_time);
-        if (avail.closed) {
+        if (isClosed(iso)) {
           skipped.push({ date: iso, reason: "הסטודיו סגור בתאריך זה" });
           continue;
         }
-        if (!wantedSlots.every((slot) => avail.freeSlots.includes(slot))) {
+        const freeSlots = freeSlotsFor(iso);
+        if (!wantedSlots.every((slot) => freeSlots.includes(slot))) {
           skipped.push({ date: iso, reason: "התאריך/שעה תפוסים" });
           continue;
         }
