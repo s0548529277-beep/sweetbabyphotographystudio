@@ -46,6 +46,40 @@ export async function createPhoneBooking(input: PhoneBookingInput) {
   const guidanceFee = GUIDANCE_FEES[guidanceKey] ?? 0;
   const price = priceForBooking(input.slots, input.start_time, null) + guidanceFee;
 
+  // Idempotency guard — confirmed live: the model can call this tool twice
+  // for the SAME request across two separate turns of the same call (e.g.
+  // it already said "שמרתי לך את הסטודיו... שלחתי קישור" after the first
+  // call, then the customer says "תסגור את ההזמנה" and the model calls this
+  // again). The second insert used to collide with the first in the overlap
+  // check below and get rejected as "someone else grabbed it" — wrong and
+  // confusing, since it was blocked by its own just-created row — and the
+  // studio got two separate booking-request emails for one real request. A
+  // recent (same call, effectively), still-pending booking for the exact
+  // same phone/date/time is treated as "already booked" instead of creating
+  // a duplicate.
+  const RECENT_DUPLICATE_WINDOW_MINUTES = 30;
+  const dupCutoff = new Date(Date.now() - RECENT_DUPLICATE_WINDOW_MINUTES * 60 * 1000).toISOString();
+  const { data: dup } = await supabaseAdmin
+    .from("bookings")
+    .select("id, price, deposit_amount, end_time")
+    .eq("contact_phone", input.contact_phone)
+    .eq("session_date", input.session_date)
+    .eq("start_time", input.start_time)
+    .neq("status", "cancelled")
+    .gte("created_at", dupCutoff)
+    .limit(1)
+    .maybeSingle();
+  if (dup) {
+    return {
+      id: dup.id,
+      price: dup.price,
+      deposit: dup.deposit_amount,
+      endTime: String(dup.end_time).slice(0, 5),
+      emailSent: !!input.contact_email,
+      alreadyExisted: true as const,
+    };
+  }
+
   // Overlap check — same shared rule the site and text chat already use, so
   // a phone booking can never disagree with what the calendar/chat show.
   const { data: existing, error: exErr } = await supabaseAdmin
