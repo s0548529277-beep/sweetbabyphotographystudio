@@ -12,6 +12,7 @@ function lastDigits(phone: string, n = 8): string {
 export type CallerProfile = {
   userId: string;
   name: string | null;
+  email: string | null;
   /** Short Hebrew one-liner about her nearest upcoming booking/order, for the AI's context — null if she has none. */
   upcomingText: string | null;
 };
@@ -66,7 +67,21 @@ export async function lookupCallerProfile(callerPhone: string): Promise<CallerPr
       upcomingText = `יש לה הזמנת אביזרים קרובה, איסוף בתאריך ${(order as any).session_date}.`;
     }
 
-    return { userId: match.id as string, name: ((match as any).full_name as string | null) || null, upcomingText };
+    // profiles has no email column (see admin-site-bot's own schema notes —
+    // email lives in the internal auth.users table). Fetched here via the
+    // Auth Admin API (only reachable with the service-role client, exactly
+    // what supabaseAdmin is) so a recognized returning caller never has to
+    // spell her email out loud on the phone at all — see runVoiceTurn's use
+    // of caller.email below.
+    let email: string | null = null;
+    try {
+      const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(match.id as string);
+      email = authUser?.user?.email ?? null;
+    } catch (e) {
+      console.error("[SWEETBABY] caller email lookup failed", e);
+    }
+
+    return { userId: match.id as string, name: ((match as any).full_name as string | null) || null, email, upcomingText };
   } catch (e) {
     console.error("[SWEETBABY] caller profile lookup failed", e);
     return null;
