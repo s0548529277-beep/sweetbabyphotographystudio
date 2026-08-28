@@ -2,11 +2,21 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { generateText } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { createLovableAiGatewayProvider } from "./ai-gateway.server";
+import { createLovableAiGatewayProvider, generateTextResilient } from "./ai-gateway.server";
 
 // Routed through the same Lovable AI Gateway the customer-facing ChatBot
 // already uses (see ai.functions.ts) — reuses the existing LOVABLE_API_KEY
 // secret instead of requiring a separate ANTHROPIC_API_KEY to be added.
+//
+// Still used as-is (Lovable only, no fallback chain) for the code-EDITING
+// half of this file (askClaudeForFileEdit / describeVisibleChange) — that
+// one rewrites real source files, and different providers could plausibly
+// behave differently enough on that task that it's worth staying
+// deliberate/single-provider there for now. The read-only "ask about the
+// data" half (askClaudeForSql / askClaudeToSummarize / askClaudeSmallTalk,
+// below) now goes through generateTextResilient like the customer-facing
+// bots — it's a pure Q&A tool with no write risk, so there's no reason for
+// it to break every time Lovable's credits run low the way it did tonight.
 const AI_MODEL = "google/gemini-2.5-flash";
 
 function aiGateway() {
@@ -348,8 +358,6 @@ function historyBlock(history: ChatTurn[]): string {
 
 /** Asks Claude to write a single read-only SELECT that answers the question, given a fixed summary of the schema and the recent conversation for context. */
 async function askClaudeForSql(question: string, history: ChatTurn[]): Promise<string | null> {
-  const gateway = aiGateway();
-
   const schema = `טבלאות רלוונטיות (סכמה ציבורית, PostgreSQL) — הרשימה המלאה, אל תניחי עמודות שלא מפורטות כאן:
 
 - orders — הזמנות אביזרים (props). id, user_id, track, status ('pending'/'confirmed'/'active'/'returned'/'cancelled'), total, deposit_amount, balance_amount, deposit_status, balance_method ('cash'/'card'/'transfer'/'bit'), coupon_code, coupon_discount, credit_used_cashback, credit_used_manual, contact_name, contact_phone, camera_model, session_date, scheduled_date, return_date, pickup_at, return_at, notes, google_event_id, terms_accepted_at, created_at, updated_at.
@@ -385,8 +393,7 @@ async function askClaudeForSql(question: string, history: ChatTurn[]): Promise<s
 - אם השאלה היא לא שאלה על הנתונים בכלל — שיחת חולין, ברכה, "תודה", "מה נשמע", בקשה לעזרה כללית וכו' — אל תמציא שאילתה מלאכותית. החזירי {"sql": null}.
 - אחרת החזירי אך ורק JSON: {"sql": "<השאילתה>"}, בלי טקסט נוסף, בלי markdown fences.`;
 
-  const { text } = await generateText({
-    model: gateway(AI_MODEL),
+  const { text } = await generateTextResilient({
     system,
     messages: [{ role: "user", content: question + historyBlock(history) }],
   });
@@ -405,9 +412,7 @@ const CHAT_PERSONA =
 
 /** Asks the AI to phrase the query result as a short Hebrew answer, as a reply in an ongoing chat (not a one-off). */
 async function askClaudeToSummarize(question: string, rows: unknown, history: ChatTurn[]): Promise<string> {
-  const gateway = aiGateway();
-  const { text } = await generateText({
-    model: gateway(AI_MODEL),
+  const { text } = await generateTextResilient({
     system: `${CHAT_PERSONA} עני על שאלה של מיכל בהתבסס אך ורק על תוצאות ה-JSON שמצורפות — לעולם אל תמציאי או תעריכי מספר שלא נמצא שם. תמיד תני מספרים מדויקים (₪ בעברית). זו שיחת צ'אט מתמשכת, לא שאלה בודדת — אפשר ורצוי להתייחס לדברים שנאמרו קודם בשיחה ("כמו ששאלת קודם...", "בהמשך לזה..."). אם יש בתוצאה משהו שכדאי להבליט (מגמה בולטת, חריגה) אפשר להוסיף משפט קצר על זה — אבל רק אם זה נתמך ישירות בנתונים. אם התוצאה ריקה, אמרי זאת בפשטות ובנעימות, לא בהתנצלות יבשה.`,
     messages: [{ role: "user", content: `שאלה: ${question}${historyBlock(history)}\n\nתוצאות מה-DB עבור השאלה הנוכחית (JSON):\n${JSON.stringify(rows).slice(0, 6000)}` }],
   });
@@ -416,9 +421,7 @@ async function askClaudeToSummarize(question: string, rows: unknown, history: Ch
 
 /** Handles a message that isn't actually a data question (greeting, thanks, small talk) — warm and human, without touching the DB. */
 async function askClaudeSmallTalk(question: string, history: ChatTurn[]): Promise<string> {
-  const gateway = aiGateway();
-  const { text } = await generateText({
-    model: gateway(AI_MODEL),
+  const { text } = await generateTextResilient({
     system: `${CHAT_PERSONA} ההודעה הזו לא שאלה על נתוני הסטודיו — ענה לה בטבעיות (ברכה, תודה, שיחת חולין קצרה), ואם רלוונטי הזכירי בעדינות שאת יכולה גם לענות על שאלות עם מספרים אמיתיים מהעסק (הזמנות, הכנסות, לקוחות וכו'). קצר, חם, בלי להישמע רובוטי.`,
     messages: [{ role: "user", content: question + historyBlock(history) }],
   });
