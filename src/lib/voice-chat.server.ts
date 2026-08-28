@@ -185,6 +185,31 @@ function stripEchoOpener(text: string): string {
   return text;
 }
 
+// A handful of domain nouns that are genuinely rare/ambiguous for TTS to
+// read correctly without niqqud (vowel points) — same spellings already
+// used for the fixed phrases in voice-phrases.server.ts, for consistency.
+// Applied as a deterministic post-processing replace on the model's own
+// free-form reply, exactly like stripEchoOpener above — NOT by asking the
+// model to vocalize its whole reply itself, which was considered and
+// rejected: that would cost real extra output tokens (and latency, on a
+// live call) on EVERY single turn, for a benefit limited to a handful of
+// words, and risks the model producing *wrong* niqqud that sounds worse
+// than none. This costs zero AI tokens and zero added latency.
+const NIQQUD_FIXUPS: Array<[RegExp, string]> = [
+  [/חלאקה/g, "חֲלָאקָה"],
+  [/שריון(?!ות|יות)/g, "שִׁרְיוּן"], // plural/other inflections left alone — different vocalization, rare in speech
+  [/מקדמה/g, "מִקְדָּמָה"],
+  [/הדרכה/g, "הַדְרָכָה"],
+  [/הגעה/g, "הַגָּעָה"],
+  [/אביזרים/g, "אֲבִיזָרִים"],
+];
+
+function applyNiqqudFixups(text: string): string {
+  let out = text;
+  for (const [re, replacement] of NIQQUD_FIXUPS) out = out.replace(re, replacement);
+  return out;
+}
+
 /** Runs one turn of the phone-call conversation through the same AI brain as the text chat, with a voice-appropriate tool set (read-only site info + phone booking + transfer/end-call signals). */
 export async function runVoiceTurn(messages: VoiceMessage[], callerPhone: string): Promise<VoiceTurnResult> {
   const { israelNow } = await import("./availability.server");
@@ -227,5 +252,5 @@ export async function runVoiceTurn(messages: VoiceMessage[], callerPhone: string
     }
   }
 
-  return { text: stripEchoOpener(result.text), action };
+  return { text: applyNiqqudFixups(stripEchoOpener(result.text)), action };
 }
