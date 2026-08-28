@@ -25,6 +25,7 @@ import {
   Bell,
   Mic,
   ChevronDown,
+  Gift,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -56,9 +57,16 @@ const links: NavEntry[] = [
   { to: "/admin/calendar", label: "יומן", icon: CalendarDays },
   { to: "/admin/clients", label: "לקוחות", icon: Users },
   { to: "/admin/finance", label: "הכנסות והוצאות", icon: Wallet },
-  { to: "/admin/coupons", label: "קופונים", icon: Ticket },
-  { to: "/admin/subscriptions", label: "כרטיסיות SWEET 10+1", icon: CreditCard },
-  { to: "/admin/newsletter", label: "ניוזלטר", icon: Mail },
+  {
+    key: "club",
+    label: "מועדון",
+    icon: Gift,
+    items: [
+      { to: "/admin/coupons", label: "קופונים", icon: Ticket },
+      { to: "/admin/subscriptions", label: "כרטיסיות SWEET 10+1", icon: CreditCard },
+      { to: "/admin/newsletter", label: "ניוזלטר", icon: Mail },
+    ],
+  },
   {
     key: "bots",
     label: "בוטים",
