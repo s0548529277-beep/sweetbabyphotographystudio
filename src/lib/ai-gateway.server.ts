@@ -140,6 +140,23 @@ async function fetchAvailableGroqModel(apiKey: string): Promise<string | null> {
  * GEMINI_API_KEY_3, ... — whichever is easier to manage in the Lovable
  * environment-variables UI). All forms are collected and tried in order.
  */
+// A bare "AI_APICallError: Bad Request" tells us almost nothing — the real
+// reason (which field Google's OpenAI-compat layer actually rejected) is in
+// the response body, which the SDK does NOT put in .message/.toString().
+// The user replaced the Gemini key that was failing this way and the SAME
+// key-agnostic "Bad Request" reproduced identically on the new key — strong
+// evidence this was never a key/account problem, but something about the
+// request itself (model id, or a payload shape the direct endpoint doesn't
+// accept) that Google is rejecting regardless of which key sends it. Log the
+// actual response body so the next exported log batch shows the real reason
+// instead of another guess.
+function describeApiError(e: unknown): string {
+  const err = e as any;
+  const bodyRaw = err?.responseBody;
+  const body = typeof bodyRaw === "string" ? bodyRaw.slice(0, 500) : undefined;
+  return JSON.stringify({ statusCode: err?.statusCode, responseBody: body, cause: err?.cause?.message });
+}
+
 function collectGeminiKeys(): string[] {
   const keys = (process.env.GEMINI_API_KEY ?? "")
     .split(",")
@@ -189,7 +206,7 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel,
         return result;
       } catch (e) {
         lastErr = e;
-        console.error(`[SWEETBABY] Gemini key ...${key.slice(-4)} model "${modelId}" failed`, e);
+        console.error(`[SWEETBABY] Gemini key ...${key.slice(-4)} model "${modelId}" failed ${e} | detail=${describeApiError(e)}`);
       }
     }
     console.error(`[SWEETBABY] Gemini key ...${key.slice(-4)} failed on every model candidate, trying the next key`, lastErr);
