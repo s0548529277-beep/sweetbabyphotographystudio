@@ -130,7 +130,10 @@ async function recordProviderUsed(provider: string, model: string): Promise<void
 // system of their own and reject this app's tool-calling requests outright
 // ('"tool calling" is not supported with this model'). whisper/tts/guard/
 // moderation/embed are non-chat models entirely.
-const GROQ_UNUSABLE_MODEL_ID = /gpt-oss|compound|whisper|tts|guard|moderation|embed/i;
+// "orpheus"/"canopylabs" are Groq's text-to-speech voice models (confirmed
+// live: they show up in /models but reject a normal chat request with
+// "requires terms acceptance") — not chat/tool-calling models at all.
+const GROQ_UNUSABLE_MODEL_ID = /gpt-oss|compound|whisper|tts|guard|moderation|embed|orpheus|canopylabs/i;
 
 // Returns several usable candidates, not just one — a single dynamically
 // discovered model can itself turn out to be unusable for a reason the
@@ -209,7 +212,24 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel,
   // story). That's now fixed by switching to @ai-sdk/google, Google's own
   // native provider — so a current, real, actively-supported model can be
   // used again instead of chasing the shrinking set of non-thinking ones.
-  const DIRECT_GEMINI_MODEL_CANDIDATES = ["gemini-3-flash-preview", "gemini-flash-latest"];
+  // "gemini-flash-latest" was tried as a second candidate too — but real
+  // logs showed it HANGS to a full TimeoutError rather than failing fast
+  // (the same pattern confirmed earlier with "gemini-3.7-flash": a model id
+  // that isn't valid for this API surface doesn't always 404 quickly). Not
+  // worth the latency cost, so back to a single known-working candidate.
+  const DIRECT_GEMINI_MODEL_CANDIDATES = ["gemini-3-flash-preview"];
+
+  // The AI SDK retries a failed call internally by default (3 attempts with
+  // backoff) — real logs showed this burning most of a 30s budget on a
+  // single quota-exceeded error ("Please retry in 31.48s") before this
+  // function's OWN outer loop ever got to try the next key/provider. A
+  // customer on a live call heard dead air for that whole window. A quota
+  // limit or a "model doesn't exist" error will not resolve by retrying
+  // seconds later, and this function already retries — across every
+  // configured key, then Groq, then Lovable — so the SDK's own retries are
+  // redundant at best and actively harmful (wasted time) at worst. Disabled
+  // everywhere in this file for that reason.
+  const NO_INTERNAL_RETRY = { maxRetries: 0 } as const;
 
   for (const key of geminiKeys) {
     let lastErr: unknown;
@@ -219,6 +239,7 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel,
           ...options,
           model: createDirectGeminiProvider(key)(modelId),
           abortSignal: AbortSignal.timeout(timeoutMs),
+          ...NO_INTERNAL_RETRY,
         } as GenerateTextOptions);
         await recordProviderUsed("gemini-direct", modelId);
         return result;
@@ -261,6 +282,7 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel,
           ...options,
           model: createGroqProvider(groqKey)(modelId),
           abortSignal: AbortSignal.timeout(timeoutMs),
+          ...NO_INTERNAL_RETRY,
         } as GenerateTextOptions);
         await recordProviderUsed("groq", modelId);
         return result;
@@ -273,11 +295,25 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel,
 
   if (!lovableKey) throw new Error("All Gemini/Groq attempts failed and no LOVABLE_API_KEY is configured as a fallback");
   console.error("[SWEETBABY] all Gemini/Groq attempts failed, falling back to Lovable AI Gateway");
-  const lovableResult = await generateText({
-    ...options,
-    model: createLovableAiGatewayProvider(lovableKey)("google/gemini-2.5-flash"),
-    abortSignal: AbortSignal.timeout(timeoutMs),
-  } as GenerateTextOptions);
-  await recordProviderUsed("lovable-gateway", "google/gemini-2.5-flash");
-  return lovableResult;
+  try {
+    const lovableResult = await generateText({
+      ...options,
+      model: createLovableAiGatewayProvider(lovableKey)("google/gemini-2.5-flash"),
+      abortSignal: AbortSignal.timeout(timeoutMs),
+      ...NO_INTERNAL_RETRY,
+    } as GenerateTextOptions);
+    await recordProviderUsed("lovable-gateway", "google/gemini-2.5-flash");
+    return lovableResult;
+  } catch (e) {
+    // This used to be an unguarded call — a real failure here (e.g. a bare
+    // "402 Payment Required" seen live, meaning the Lovable AI credits
+    // balance is empty) surfaced only as a cryptic unhandled HTTPError with
+    // no [SWEETBABY] prefix, easy to miss in the logs and impossible to
+    // tell apart from any other crash. This is the LAST fallback — if it
+    // fails, every provider failed and the caller genuinely gets nothing,
+    // so log it clearly (with enough detail to diagnose without guessing)
+    // before rethrowing.
+    console.error(`[SWEETBABY] Lovable AI Gateway (last-resort fallback) also failed ${e} | detail=${describeApiError(e)}`);
+    throw e;
+  }
 }
