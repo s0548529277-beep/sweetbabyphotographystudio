@@ -137,6 +137,23 @@ Gemini/Groq. When that happens:
 - Keep `maxRetries: 0` / equivalent for the same reason as every other tier
   (principle #2).
 
+## Checking data files sent as prompt content, not just system prompts
+
+Principle #1 (only what's needed on most turns) applies to **any** large
+data blob interpolated into a prompt, not just the system prompt — check
+`smartSearchItems` in `ai.functions.ts` as the reference case: it used to
+send the *entire* product catalog (394 items, ~9,400 chars — bigger than
+the equipment guide) on every single search call, regardless of the query.
+Fixed by local keyword pre-filtering (match query tokens against item
+name/sku/category title) before ever building the prompt, with a full-
+catalog fallback only when the filter finds nothing or barely narrows
+anything (a genuinely abstract query still needs full context). Measured
+85-96% smaller prompts on realistic queries. When adding a new AI feature
+that stuffs a JSON/data file into a prompt, always ask "does this need the
+*whole* dataset, or can a cheap local filter (string match, date range,
+category) narrow it down first and let the model only rank/pick from the
+survivors?"
+
 ## Changelog
 
 - **2026-08-28**: Moved the equipment-usage guide out of the always-sent
@@ -151,3 +168,8 @@ Gemini/Groq. When that happens:
   multi-step tool calls. Added dynamic Groq model discovery
   (`fetchAvailableGroqModels`, principle #3) after two consecutive
   hardcoded-model-name guesses were each confirmed dead within days.
+- **2026-08-28 (later same day)**: Found and fixed the single biggest token
+  cost in the app — `smartSearchItems`' full-catalog dump (see the data-file
+  section above). This was a bigger win than the equipment-guide move
+  earlier the same day; check for more of these before assuming the
+  system-prompt trims already found everything.
