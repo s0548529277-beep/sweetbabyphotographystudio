@@ -48,7 +48,11 @@ async function handle(request: Request): Promise<Response> {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     if (!speech) {
-      const { data: existing } = await supabaseAdmin.from("voice_call_sessions").select("stage").eq("call_sid", callSid).maybeSingle();
+      const { data: existing } = await supabaseAdmin
+        .from("voice_call_sessions")
+        .select("messages, from_number, stage")
+        .eq("call_sid", callSid)
+        .maybeSingle();
       if (!existing) {
         // Genuinely the first hit of the call — no session yet. If there's a
         // message waiting for this number (a booking confirmation/reminder
@@ -66,7 +70,37 @@ async function handle(request: Request): Promise<Response> {
         );
         return yemotSayAndListen(fullGreeting);
       }
-      // Mid-call with no speech heard (silence/timeout) — re-prompt without resetting the conversation.
+
+      // Mid-call with no speech heard (silence, or Yemot's speech-to-text
+      // just failed to catch anything) — re-prompt without resetting the
+      // conversation. This branch used to reply with phrases.didnt_hear
+      // WITHOUT saving it to the session's messages — so there was no way to
+      // tell "this is the first time" from "the caller has now heard this
+      // exact prompt several times in a row and is stuck" (confirmed live:
+      // reported as the bot repeating "לא הבנתי, אפשר לחזור על זה?" many
+      // times). Now it's saved, so a second consecutive silence escalates to
+      // offering to leave a message instead of repeating the same prompt —
+      // the same pattern already used below for repeated AI errors.
+      const priorMessages = ((existing.messages as VoiceMessage[] | undefined) ?? []) as VoiceMessage[];
+      const phone = existing.from_number || callerPhone;
+      const lastWasDidntHear = priorMessages[priorMessages.length - 1]?.content === phrases.didnt_hear;
+      if (lastWasDidntHear) {
+        await supabaseAdmin.from("voice_call_sessions").upsert(
+          { call_sid: callSid, from_number: phone, messages: [...priorMessages, { role: "assistant", content: phrases.leave_message_prompt }], stage: "leaving_message", updated_at: new Date().toISOString() },
+          { onConflict: "call_sid" },
+        );
+        return yemotSayAndListen(phrases.leave_message_prompt);
+      }
+      await supabaseAdmin.from("voice_call_sessions").upsert(
+        {
+          call_sid: callSid,
+          from_number: phone,
+          messages: [...priorMessages, { role: "assistant", content: phrases.didnt_hear }],
+          stage: (existing as { stage?: string }).stage ?? "menu",
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "call_sid" },
+      );
       return yemotSayAndListen(phrases.didnt_hear);
     }
 
