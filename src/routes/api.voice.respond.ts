@@ -50,7 +50,10 @@ export const Route = createFileRoute("/api/voice/respond")({
           // whatever the model decided to do — shared by every stage that
           // can fall through into the open conversation, so "transfer with
           // no human available → offer to leave a message instead" only
-          // has to be written once.
+          // has to be written once. IMPORTANT: every call site below must
+          // `return await runOpenTurn(...)`, never bare `return
+          // runOpenTurn(...)` — see the matching comment in api.yemot.ivr.ts
+          // for why an un-awaited rejection here escapes this try/catch.
           const runOpenTurn = async (userText: string): Promise<Response> => {
             const messages: VoiceMessage[] = [...priorMessages, { role: "user", content: userText }];
             const { text, action }: VoiceTurnResult = await runVoiceTurn(messages, callerPhone);
@@ -93,7 +96,7 @@ export const Route = createFileRoute("/api/voice/respond")({
               // She already said she wants to book/reserve, not just hear
               // rates — skip the pricing blurb and go straight into the real
               // conversation, which starts collecting booking details.
-              if (wantsToBookNow(speech)) return runOpenTurn(speech);
+              if (wantsToBookNow(speech)) return await runOpenTurn(speech);
               const blurb = intent === 1 ? phrases.studio_blurb : phrases.props_blurb;
               const text = `${blurb} ${phrases.anything_else}`;
               await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: text }], "chat");
@@ -101,7 +104,7 @@ export const Route = createFileRoute("/api/voice/respond")({
             }
             // No keyword matched — this was very likely a real question, not
             // a failed menu pick. Just answer it.
-            return runOpenTurn(speech);
+            return await runOpenTurn(speech);
           }
 
           // ---- Stage 2: option 4's own sub-choice (hear it all vs. ask something) ----
@@ -114,7 +117,7 @@ export const Route = createFileRoute("/api/voice/respond")({
             }
             // Not "tell me everything" — treat it as a real question and let
             // the AI answer it (it already has the full guide in SYSTEM).
-            return runOpenTurn(speech);
+            return await runOpenTurn(speech);
           }
 
           // ---- Stage 2b: "leave a message" — collect it and email it for real ----
@@ -127,7 +130,7 @@ export const Route = createFileRoute("/api/voice/respond")({
 
           // ---- Stage 3: open conversation (same AI turn as before) ----
           if (!speech) return twimlSayAndGather(phrases.didnt_hear, actionUrl);
-          return runOpenTurn(speech);
+          return await runOpenTurn(speech);
         } catch (e) {
           console.error("[SWEETBABY] voice respond failed", e);
           // Was previously invisible beyond a server log nobody could read —

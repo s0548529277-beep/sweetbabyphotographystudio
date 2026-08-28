@@ -133,7 +133,18 @@ async function recordProviderUsed(provider: string, model: string): Promise<void
 // "orpheus"/"canopylabs" are Groq's text-to-speech voice models (confirmed
 // live: they show up in /models but reject a normal chat request with
 // "requires terms acceptance") — not chat/tool-calling models at all.
-const GROQ_UNUSABLE_MODEL_ID = /gpt-oss|compound|whisper|tts|guard|moderation|embed|orpheus|canopylabs/i;
+// "allam" is Groq's Arabic-focused model — confirmed live it rejects every
+// call outright with '"tool calling" is not supported with this model',
+// same failure shape as compound. "qwen" is skipped for a different reason:
+// confirmed live it 429s on EVERY call with "Request too large ... on tokens
+// per minute (TPM): Limit 8000, Requested ~9100-9200" — this app's system
+// prompt + tool schemas alone run ~9K tokens on a voice turn, so a model
+// capped at 8000 TPM on this account can structurally never complete a
+// single call here, not just occasionally rate-limit. Both are dead weight
+// in the candidate list: they cost a full failed attempt (and, for qwen, a
+// distinctive-sounding but pointless 429) before falling through to the next
+// real option.
+const GROQ_UNUSABLE_MODEL_ID = /gpt-oss|compound|whisper|tts|guard|moderation|embed|orpheus|canopylabs|allam|qwen/i;
 
 // Returns several usable candidates, not just one — a single dynamically
 // discovered model can itself turn out to be unusable for a reason the
@@ -152,7 +163,10 @@ async function fetchAvailableGroqModels(apiKey: string): Promise<string[]> {
     const ids: string[] = Array.isArray(data?.data)
       ? data.data.map((m: any) => m?.id).filter((id: unknown): id is string => typeof id === "string")
       : [];
-    return ids.filter((id) => !GROQ_UNUSABLE_MODEL_ID.test(id)).slice(0, 4);
+    // Bumped from 4 to 6 now that GROQ_UNUSABLE_MODEL_ID excludes more
+    // prefixes (allam, qwen) — keeps roughly the same number of real
+    // candidates surviving the filter instead of quietly shrinking the pool.
+    return ids.filter((id) => !GROQ_UNUSABLE_MODEL_ID.test(id)).slice(0, 6);
   } catch (e) {
     console.error("[SWEETBABY] fetchAvailableGroqModels failed", e);
     return [];
