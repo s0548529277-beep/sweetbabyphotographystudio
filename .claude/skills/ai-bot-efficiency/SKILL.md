@@ -173,3 +173,17 @@ survivors?"
   section above). This was a bigger win than the equipment-guide move
   earlier the same day; check for more of these before assuming the
   system-prompt trims already found everything.
+- **2026-08-28 (same day, later still)**: Found `find_next_available_days`
+  (`nextAvailableDays` in `availability.server.ts`) was calling
+  `studioAvailability()` — 2-3 network round trips including a Google
+  Calendar read — separately for EACH of up to 21 scanned days, sequentially
+  in a loop. Not a token cost (no AI involved in the tool's own execution)
+  but the same "heavy operation that should be light" family of bug — a
+  slow tool makes the whole turn slow regardless of prompt size. Batched to
+  one query per data source (closures, bookings, calendar) for the whole
+  date range, computed per-day locally with no network left in the loop.
+  Also parallelized the two independent queries in single-day
+  `studioAvailability`. This class of fix — check any loop that calls an
+  async/network function per-item instead of batching — applies beyond the
+  AI bots too; keep an eye out for it in any tool execution, not just prompt
+  construction.
