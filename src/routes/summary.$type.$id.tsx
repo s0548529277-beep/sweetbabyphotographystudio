@@ -6,6 +6,14 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Banknote, Camera, CalendarDays, User, Phone, Aperture, ShieldCheck, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { hebrewDate } from "@/lib/hebrew-date";
+
+/** "12.8.2026 · כ״ח באב תשפ״ו" — Gregorian date with the Hebrew calendar date alongside it, for the order-completion screen. */
+function dateWithHebrew(isoDate: string | null | undefined): string {
+  if (!isoDate) return "";
+  const heb = hebrewDate(isoDate);
+  return heb ? `${isoDate} · ${heb}` : isoDate;
+}
 
 export const Route = createFileRoute("/summary/$type/$id")({
   component: SummaryPage,
@@ -98,12 +106,12 @@ function SummaryPage() {
                   <Info icon={<Phone className="h-4 w-4" />} label="טלפון" value={record.contact_phone} ltr />
                   {type === "booking" ? (
                     <>
-                      <Info icon={<CalendarDays className="h-4 w-4" />} label="תאריך" value={record.session_date} ltr />
+                      <Info icon={<CalendarDays className="h-4 w-4" />} label="תאריך" value={dateWithHebrew(record.session_date)} ltr />
                       <Info icon={<Clock className="h-4 w-4" />} label="שעות" value={`${record.start_time}–${record.end_time}`} ltr />
                     </>
                   ) : (
                     <>
-                      <Info icon={<CalendarDays className="h-4 w-4" />} label="תאריך צילום" value={record.session_date} ltr />
+                      <Info icon={<CalendarDays className="h-4 w-4" />} label="תאריך צילום" value={dateWithHebrew(record.session_date)} ltr />
                       <Info icon={<Camera className="h-4 w-4" />} label="מצלמה" value={record.camera_model ?? "—"} />
                     </>
                   )}

@@ -1,4 +1,12 @@
 import { ARRIVAL_TEXT_HE } from "@/lib/arrival";
+import { hebrewDate } from "@/lib/hebrew-date";
+
+/** "2026-08-28 · כ״ח באב תשפ״ו" — the Gregorian date row value with the Hebrew calendar date alongside it, for every confirmation email. */
+function dateWithHebrew(isoDate: string | null | undefined): string {
+  if (!isoDate) return "";
+  const heb = hebrewDate(isoDate);
+  return heb ? `${isoDate} · ${heb}` : isoDate;
+}
 
 // Shared with PayOnlineButton.tsx (the in-site iframe version of the same
 // link) — one hosted payment page for both the on-site checkout flow and
@@ -137,7 +145,7 @@ export function buildBookingSummaryHtml(opts: {
     <h3 style="color:#2d3d2b">סיכום הזמנה</h3>
     <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">
       <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>מספר הזמנה</strong></td><td style="padding:6px 10px" dir="ltr">#${b.id.slice(0, 8)}</td></tr>
-      ${row("תאריך", b.session_date)}
+      ${row("תאריך", dateWithHebrew(b.session_date))}
       ${row("שעה", `${String(b.start_time).slice(0, 5)} - ${String(b.end_time).slice(0, 5)}`)}
       ${row("מחיר כולל", `₪${b.price}`)}
       ${b.deposit_amount != null ? row("מקדמה ששולמה", `₪${b.deposit_amount}`) : ""}
@@ -210,8 +218,8 @@ export function buildPropsOrderSummaryHtml(opts: {
     <h3 style="color:#2d3d2b">סיכום הזמנה</h3>
     <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">
       <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>מספר הזמנה</strong></td><td style="padding:6px 10px" dir="ltr">#${o.id.slice(0, 8)}</td></tr>
-      ${row("איסוף", `${o.session_date}${o.pickup_time ? ` בשעה ${o.pickup_time}` : ""}`)}
-      ${row("החזרה", `${o.return_date}${o.return_time ? ` בשעה ${o.return_time}` : ""}`)}
+      ${row("איסוף", `${dateWithHebrew(o.session_date)}${o.pickup_time ? ` בשעה ${o.pickup_time}` : ""}`)}
+      ${row("החזרה", `${dateWithHebrew(o.return_date)}${o.return_time ? ` בשעה ${o.return_time}` : ""}`)}
       ${o.balance_method ? row("אמצעי תשלום", PAYMENT_METHOD_LABELS[o.balance_method] ?? escapeHtml(o.balance_method)) : ""}
       ${o.notes ? row("הערות", escapeHtml(String(o.notes))) : ""}
     </table>
