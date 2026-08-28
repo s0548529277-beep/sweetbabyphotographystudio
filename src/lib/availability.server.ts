@@ -186,23 +186,51 @@ function slotsForDate(iso: string, closure?: { closed: boolean; open_time: strin
   return out;
 }
 
+type Closure = { closed: boolean; open_time: string | null; close_time: string | null };
+
+/** Pure: which half-hour slots on a day are actually free, given its opening
+ * hours (via closure) and already-known busy ranges. Shared by
+ * studioAvailability (single day) and nextAvailableDays (a whole range) so
+ * the "is this slot free" rule can never drift between them. */
+function freeSlotsForDay(
+  date: string,
+  closure: Closure | undefined,
+  busy: Array<[number, number]>,
+  nowIsrael: { date: string; minutes: number },
+): string[] {
+  const all = slotsForDate(date, closure);
+  if (all.length === 0) return [];
+  const minMinute = date === nowIsrael.date ? nowIsrael.minutes : -1;
+  return all.filter((slot) => {
+    const [h, m] = slot.split(":").map(Number);
+    const s = h * 60 + m;
+    const e = s + 30;
+    if (s <= minMinute) return false;
+    return !busy.some(([bs, be]) => s < be && e > bs);
+  });
+}
+
 /** Free studio half-hour slots for a given date, optionally around a wanted hour. */
 export async function studioAvailability(date: string, wantedTime?: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  const closuresRes = await supabaseAdmin.from("studio_closures").select("*").eq("date", date);
-  const closure = (closuresRes.data ?? [])[0] as
-    | { closed: boolean; open_time: string | null; close_time: string | null }
-    | undefined;
+  // Closures and bookings are independent queries — run them together
+  // instead of one-after-the-other, saving a full round-trip on every check
+  // (the common "studio is open" case; a closed day now does one wasted
+  // bookings query instead, which is cheap and rare).
+  const [closuresRes, bookingsRes] = await Promise.all([
+    supabaseAdmin.from("studio_closures").select("*").eq("date", date),
+    supabaseAdmin
+      .from("bookings")
+      .select("start_time, end_time, status, deposit_status, created_at")
+      .eq("session_date", date)
+      .neq("status", "cancelled"),
+  ]);
+  const closure = (closuresRes.data ?? [])[0] as Closure | undefined;
 
   const all = slotsForDate(date, closure);
   if (all.length === 0) return { date, closed: true, freeSlots: [] as string[], wantedFree: false, source: "closure" as const };
 
-  const bookingsRes = await supabaseAdmin
-    .from("bookings")
-    .select("start_time, end_time, status, deposit_status, created_at")
-    .eq("session_date", date)
-    .neq("status", "cancelled");
   const now = Date.now();
   const busy: Array<[number, number]> = (bookingsRes.data ?? [])
     .filter((b: any) => bookingBlocksSlot(b, now))
@@ -224,19 +252,7 @@ export async function studioAvailability(date: string, wantedTime?: string) {
     console.error("[SWEETBABY] calendar read failed", e);
   }
 
-  // Never offer slots that already passed today (Israel time).
-  const nowIsrael = israelNow();
-  const minMinute = date === nowIsrael.date ? nowIsrael.minutes : -1;
-
-  const isFree = (slot: string) => {
-    const [h, m] = slot.split(":").map(Number);
-    const s = h * 60 + m;
-    const e = s + 30;
-    if (s <= minMinute) return false;
-    return !busy.some(([bs, be]) => s < be && e > bs);
-  };
-
-  const freeSlots = all.filter(isFree);
+  const freeSlots = freeSlotsForDay(date, closure, busy, israelNow());
   const wantedFree = wantedTime ? freeSlots.includes(wantedTime.slice(0, 5)) : false;
   return { date, closed: false, freeSlots, wantedFree, calendarLinked };
 }
@@ -286,27 +302,77 @@ export function israelNow(): { date: string; minutes: number; time: string } {
   };
 }
 
-/** Scans forward from a date and returns the next days with enough free time. */
+/**
+ * Scans forward from a date and returns the next days with enough free time.
+ *
+ * Used to call studioAvailability() — itself 2-3 network round-trips,
+ * including a Google Calendar read — once PER DAY SCANNED, sequentially, in
+ * a loop (daysToScan defaults to 21 in ai-tools.server.ts's
+ * find_next_available_days). That's up to ~60 sequential external round
+ * trips just to answer "when are you next free?" — a slow, "heavy" way to
+ * answer what should be a quick question. Fetches closures, bookings, and
+ * calendar busy-times ONCE for the whole date range instead (3 calls total,
+ * in parallel, regardless of how many days are scanned), then computes each
+ * day's free slots locally with freeSlotsForDay — no network left in the loop.
+ */
 export async function nextAvailableDays(fromDate: string, hours = 1, daysToScan = 14, limit = 5) {
   const needed = Math.max(1, Math.round(hours * 2)); // consecutive half-hour slots
-  const out: Array<{ date: string; firstStart: string; freeSlots: number }> = [];
   const base = new Date(`${fromDate}T12:00:00`);
+  const toDate = new Date(base.getTime() + (daysToScan - 1) * 86400000).toISOString().slice(0, 10);
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const [closuresRes, bookingsRes, calendarBusy] = await Promise.all([
+    supabaseAdmin.from("studio_closures").select("*").gte("date", fromDate).lte("date", toDate),
+    supabaseAdmin
+      .from("bookings")
+      .select("session_date, start_time, end_time, status, deposit_status, created_at")
+      .gte("session_date", fromDate)
+      .lte("session_date", toDate)
+      .neq("status", "cancelled"),
+    (async () => {
+      try {
+        const { listGoogleCalendarBusy } = await import("@/integrations/google/calendar.server");
+        return await listGoogleCalendarBusy(fromDate, toDate);
+      } catch (e) {
+        console.error("[SWEETBABY] calendar read failed (nextAvailableDays)", e);
+        return {} as Record<string, Array<[number, number]>>;
+      }
+    })(),
+  ]);
+
+  const closuresByDate = new Map<string, Closure>();
+  for (const c of (closuresRes.data ?? []) as any[]) closuresByDate.set(c.date, c);
+
+  const now = Date.now();
+  const bookingsByDate = new Map<string, Array<[number, number]>>();
+  for (const b of (bookingsRes.data ?? []) as any[]) {
+    if (!bookingBlocksSlot(b, now)) continue;
+    const [bh, bm] = String(b.start_time).split(":").map(Number);
+    const [eh, em] = String(b.end_time).split(":").map(Number);
+    const arr = bookingsByDate.get(b.session_date) ?? [];
+    arr.push([bh * 60 + bm, eh * 60 + em]);
+    bookingsByDate.set(b.session_date, arr);
+  }
+
+  const nowIsrael = israelNow();
+  const out: Array<{ date: string; firstStart: string; freeSlots: number }> = [];
   for (let i = 0; i < daysToScan && out.length < limit; i++) {
     const d = new Date(base.getTime() + i * 86400000).toISOString().slice(0, 10);
-    const res = await studioAvailability(d);
-    if (res.closed || res.freeSlots.length === 0) continue;
+    const busy = [...(bookingsByDate.get(d) ?? []), ...(calendarBusy[d] ?? [])];
+    const freeSlots = freeSlotsForDay(d, closuresByDate.get(d), busy, nowIsrael);
+    if (freeSlots.length === 0) continue;
     // find a run of `needed` consecutive slots
     let run = 1;
     let start: string | null = null;
-    for (let j = 0; j < res.freeSlots.length; j++) {
+    for (let j = 0; j < freeSlots.length; j++) {
       if (j > 0) {
-        const prev = res.freeSlots[j - 1].split(":").map(Number);
-        const cur = res.freeSlots[j].split(":").map(Number);
+        const prev = freeSlots[j - 1].split(":").map(Number);
+        const cur = freeSlots[j].split(":").map(Number);
         run = cur[0] * 60 + cur[1] - (prev[0] * 60 + prev[1]) === 30 ? run + 1 : 1;
       }
-      if (run >= needed) { start = res.freeSlots[j - needed + 1]; break; }
+      if (run >= needed) { start = freeSlots[j - needed + 1]; break; }
     }
-    if (start) out.push({ date: d, firstStart: start, freeSlots: res.freeSlots.length });
+    if (start) out.push({ date: d, firstStart: start, freeSlots: freeSlots.length });
   }
   return out;
 }
