@@ -3,6 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { buildBookingSummaryHtml } from "@/lib/orderSummary";
 import { bookingBlocksSlot, PENDING_HOLD_MINUTES } from "@/lib/availability.server";
+import { PROPS_REQUEST_CONTEXT_MARKER } from "@/lib/voice-message.server";
 
 // Studio pricing rules
 // - Minimum 2 half-hour slots (1 hour)
@@ -1098,6 +1099,69 @@ export async function notifyPendingPhoneBookingConfirmations(): Promise<{ checke
       });
     } catch (e) {
       console.error("[SWEETBABY] pending phone booking reminder call failed", e);
+    }
+  }
+  return { checked: (candidates ?? []).length, called };
+}
+
+// ---------- pending props-rental phone request nudge ----------
+
+// Same grace period as the phone-booking confirmation nudge above — long
+// enough that a message left minutes ago isn't a false alarm.
+const PROPS_REQUEST_REMINDER_AFTER_MINUTES = 120;
+
+/**
+ * Mirrors notifyPendingPhoneBookingConfirmations above, but for props-only
+ * phone requests (voice-chat.server.ts's request_props_rental tool) — those
+ * never create a booking row, only an admin_notifications row of type
+ * "voice_message" with body.context === PROPS_REQUEST_CONTEXT_MARKER, so
+ * "still pending" here means that row's read_at is still null (nobody in
+ * /admin/notifications has marked it read/handled yet). Fires at most once
+ * per notification (tracked via a dedicated admin_notifications row, exactly
+ * like the phone-booking version). Meant to run alongside the other reminder
+ * scans from the same periodic /api/send-booking-reminders cron hit.
+ */
+export async function notifyPendingPropsRequests(): Promise<{ checked: number; called: number }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const cutoff = new Date(Date.now() - PROPS_REQUEST_REMINDER_AFTER_MINUTES * 60 * 1000).toISOString();
+
+  const { data: candidates, error } = await supabaseAdmin
+    .from("admin_notifications")
+    .select("id, body, created_at")
+    .eq("type", "voice_message")
+    .is("read_at", null)
+    .lte("created_at", cutoff)
+    .contains("body", { context: PROPS_REQUEST_CONTEXT_MARKER });
+  if (error) {
+    console.error("[SWEETBABY] pending props request scan failed", error);
+    return { checked: 0, called: 0 };
+  }
+
+  let called = 0;
+  for (const n of (candidates ?? []) as any[]) {
+    try {
+      // Already nudged for this exact notification? Skip — never call twice.
+      const { data: already } = await supabaseAdmin
+        .from("admin_notifications")
+        .select("id")
+        .eq("type", "props_request_reminder_call")
+        .contains("body", { notification_id: n.id })
+        .limit(1);
+      if (already && already.length > 0) continue;
+
+      const phone = n.body?.phone ?? "";
+      const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
+      const text = `שלום, יש בקשה טלפונית להשכרת אביזרים שממתינה לטיפול בסטודיו סוויט בייבי, מהמספר ${phone || "לא ידוע"}. יש לבדוק בממשק הניהול.`;
+      await sendYemotVoiceMessage({ phone: STUDIO_OWNER_PHONE, text, label: `תזכורת בקשת אביזרים ${n.id.slice(0, 8)}` });
+      called++;
+
+      await supabaseAdmin.from("admin_notifications").insert({
+        type: "props_request_reminder_call",
+        title: "📞 תזכורת טלפונית: בקשת השכרת אביזרים ממתינה לטיפול",
+        body: { notification_id: n.id, phone },
+      });
+    } catch (e) {
+      console.error("[SWEETBABY] pending props request reminder call failed", e);
     }
   }
   return { checked: (candidates ?? []).length, called };

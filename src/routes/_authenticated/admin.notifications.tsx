@@ -28,6 +28,7 @@ const TYPE_LABELS: Record<string, string> = {
   voice_ai_error: "תקלה בבוט הטלפוני",
   ai_provider_switch: "מעבר ספק AI",
   phone_booking_reminder_call: "תזכורת טלפונית — הזמנה ממתינה",
+  props_request_reminder_call: "תזכורת טלפונית — בקשת אביזרים ממתינה",
 };
 
 const TYPE_ICONS: Record<string, typeof Phone> = {
@@ -38,6 +39,7 @@ const TYPE_ICONS: Record<string, typeof Phone> = {
   voice_ai_error: AlertTriangle,
   ai_provider_switch: Shuffle,
   phone_booking_reminder_call: Phone,
+  props_request_reminder_call: Phone,
 };
 
 const PROVIDER_LABELS: Record<string, string> = {
