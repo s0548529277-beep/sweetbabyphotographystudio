@@ -56,8 +56,11 @@ export function detectMenuIntent(speech: string | null | undefined): MenuChoice 
 // round-trip later. Longer, more natural sentences ("אני רוצה לשריין תור
 // בסטודיו בבקשה") already skip the menu entirely via looksLikeMenuPick's
 // word-count cutoff and go straight to the open conversation — this closes
-// the same gap for the short phrasing.
-const BOOKING_INTENT_WORDS = /לשריין|לקבוע (תור|זמן)|להזמין תור|לתפוס תור|רוצה תור|לשמור תור|רוצה לשריין|רוצה לקבוע|רוצה להזמין/;
+// the same gap for the short phrasing. Also covers "הזמנת סטודיו"/"שריון
+// סטודיו" phrasing specifically, per an explicit request that saying those
+// words should immediately move toward making a real booking.
+const BOOKING_INTENT_WORDS =
+  /לשריין|לקבוע (תור|זמן)|להזמין תור|לתפוס תור|רוצה תור|לשמור תור|רוצה לשריין|רוצה לקבוע|רוצה להזמין|הזמנת סטודיו|שריון סטודיו|רוצה הזמנה|רוצה שריון/;
 
 /** True when the caller's short sentence already signals she wants to book/reserve now, not just hear info. */
 export function wantsToBookNow(speech: string | null | undefined): boolean {
