@@ -735,6 +735,161 @@ async function fetchReceiptAttachment(
   }
 }
 
+type ConfirmableBooking = {
+  id: string;
+  user_id: string;
+  session_date: string;
+  start_time: string;
+  end_time: string;
+  price: number;
+  deposit_amount: number;
+  balance_amount: number;
+  balance_method?: string | null;
+  notes: string | null;
+  reserved_items: string[] | null;
+  contact_name: string | null;
+  contact_phone: string | null;
+  deposit_receipt_url?: string | null;
+};
+
+/**
+ * The actual "you're reserved" work, done once a deposit is confirmed paid:
+ * writes the Google Calendar event, issues a real TTLock door passcode,
+ * awards cashback, sends the FULL order-summary confirmation email (price
+ * breakdown, questionnaire, arrival details, receipt attached, door code),
+ * and places a short Yemot voice call reading back the booking + code.
+ *
+ * Shared by two very different triggers: confirmBookingDeposit (the
+ * customer's own browser, on the /deposit page, after a website booking)
+ * and adminConfirmPhoneBookingDeposit (a staff member manually confirming a
+ * phone-booked customer's bank transfer/Bit payment — a phone booking's
+ * user_id is a server-minted anonymous account she never actually signs
+ * into in her own browser, so she can never reach the customer-triggered
+ * path at all; see that function's own comment for the full story). Always
+ * uses supabaseAdmin (never the customer's own request-scoped client) so it
+ * works identically regardless of which of those two callers invoked it.
+ */
+async function finalizeBookingConfirmation(
+  b: ConfirmableBooking,
+  customerEmail: string | undefined,
+): Promise<{ doorCode: string | null }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { createGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
+  const event = await createGoogleCalendarEvent({
+    summary: `סטודיו · ${b.contact_name ?? ""}`.trim(),
+    description: [
+      `טלפון: ${b.contact_phone ?? ""}`,
+      `מחיר: ₪${b.price}`,
+      "מקדמה שולמה ✓",
+      b.notes ? `הערות: ${b.notes}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    startISO: `${b.session_date}T${String(b.start_time).slice(0, 5)}:00`,
+    endISO: `${b.session_date}T${String(b.end_time).slice(0, 5)}:00`,
+    location: "תלמוד ירושלמי 24, בית שמש",
+    attendees: customerEmail ? [customerEmail] : [],
+  });
+  if (event) {
+    await supabaseAdmin.from("bookings").update({ google_event_id: event.id }).eq("id", b.id);
+  }
+
+  // Award cashback loyalty credit (if this customer is enrolled) on the
+  // real amount paid, now that payment is actually confirmed.
+  try {
+    const { awardCashback } = await import("@/lib/loyalty");
+    await awardCashback(supabaseAdmin, b.user_id, Number(b.price));
+  } catch (e) {
+    console.error("[SWEETBABY] cashback award (booking) failed", e);
+  }
+
+  // Issues a real temporary door passcode (TTLock) for the booked window,
+  // best-effort — never blocks the confirmation itself if it fails.
+  let doorCode: string | null = null;
+  if (b.contact_phone) {
+    try {
+      const { issueDoorCodeForBooking } = await import("@/integrations/ttlock/client.server");
+      const doorCodeResult = await issueDoorCodeForBooking({
+        phone: b.contact_phone,
+        date: b.session_date,
+        startTime: String(b.start_time).slice(0, 5),
+        endTime: String(b.end_time).slice(0, 5),
+        label: b.contact_name ? `${b.contact_name} סטודיו` : `הזמנה ${b.id.slice(0, 8)}`,
+      });
+      if (doorCodeResult) {
+        doorCode = doorCodeResult.code;
+        await supabaseAdmin
+          .from("bookings")
+          .update({
+            door_code: doorCodeResult.code,
+            ttlock_keyboard_pwd_id: doorCodeResult.keyboardPwdId,
+            ttlock_lock_id: doorCodeResult.lockId,
+          })
+          .eq("id", b.id);
+      }
+    } catch (e) {
+      console.error("[SWEETBABY] TTLock door code issue (booking) failed", e);
+    }
+  }
+
+  // This is the actual "you're reserved" confirmation — sent only now,
+  // after payment/receipt was confirmed, never earlier. It's a FULL order
+  // summary: price breakdown, the signed questionnaire, arrival directions,
+  // door code, and the uploaded payment receipt attached as a file.
+  try {
+    const intakePayload = await fetchLatestIntake(supabaseAdmin, b.user_id);
+    const receiptAttachment = await fetchReceiptAttachment(supabaseAdmin, b.deposit_receipt_url ?? null);
+
+    const html = buildBookingSummaryHtml({
+      heading: "אישור הזמנה — השכרת סטודיו ✓",
+      intro:
+        "קיבלנו את התשלום/האסמכתא, וההזמנה מאושרת — התאריך שוריין עבורך בפועל ביומן הסטודיו. למטה תמצאי סיכום מלא של ההזמנה, פרטי הגעה, וקובץ האסמכתא ששלחת מצורף להמשך תיעוד. מחכות לפגוש אותך!",
+      booking: {
+        id: b.id,
+        contact_name: b.contact_name,
+        session_date: b.session_date,
+        start_time: b.start_time,
+        end_time: b.end_time,
+        price: b.price,
+        deposit_amount: b.deposit_amount,
+        balance_amount: b.balance_amount,
+        balance_method: b.balance_method ?? null,
+        notes: b.notes,
+        reserved_items: b.reserved_items ?? [],
+      },
+      intakePayload,
+      footerNote: receiptAttachment ? "קובץ האסמכתא שצירפת מופיע כקובץ מצורף למייל זה." : undefined,
+      doorCode,
+    });
+
+    const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+    await sendStudioAndCustomer({
+      customerEmail,
+      subject: `אישור הזמנה — השכרת סטודיו #${b.id.slice(0, 8)} · Sweetbaby`,
+      html,
+      attachments: receiptAttachment ? [receiptAttachment] : undefined,
+    });
+  } catch (e) {
+    console.error("[SWEETBABY] deposit confirmation email failed", e);
+  }
+
+  // A real phone call from the studio's line reading back the booking +
+  // door code — best-effort, never blocks the confirmation.
+  if (b.contact_phone) {
+    try {
+      const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
+      const text = `שלום ${b.contact_name || ""}, ההזמנה שלך בסטודיו סוויט בייבי אושרה. התאריך ${b.session_date} בשעה ${String(b.start_time).slice(0, 5)}.${
+        doorCode ? ` קוד הכניסה שלך הוא ${doorCode.split("").join(" ")}. לחצי סולמית אחרי הקשת הקוד.` : ""
+      } מחכות לך, ביי!`;
+      await sendYemotVoiceMessage({ phone: b.contact_phone, text, label: `אישור הזמנה ${b.id.slice(0, 8)}` });
+    } catch (e) {
+      console.error("[SWEETBABY] Yemot confirmation call (booking) failed", e);
+    }
+  }
+
+  return { doorCode };
+}
+
 /**
  * Writes the studio booking into the Google Calendar and sends the FULL
  * order-summary "reservation confirmed" email (price breakdown, questionnaire,
@@ -817,127 +972,61 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
     }
 
     try {
-      const { createGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const event = await createGoogleCalendarEvent({
-        summary: `סטודיו · ${b.contact_name ?? ""}`.trim(),
-        description: [
-          `טלפון: ${b.contact_phone ?? ""}`,
-          `מחיר: ₪${b.price}`,
-          "מקדמה שולמה ✓",
-          b.notes ? `הערות: ${b.notes}` : null,
-        ]
-          .filter(Boolean)
-          .join("\n"),
-        startISO: `${b.session_date}T${String(b.start_time).slice(0, 5)}:00`,
-        endISO: `${b.session_date}T${String(b.end_time).slice(0, 5)}:00`,
-        location: "תלמוד ירושלמי 24, בית שמש",
-        attendees: customerEmail ? [customerEmail] : [],
-      });
-      if (event) {
-        await supabaseAdmin.from("bookings").update({ google_event_id: event.id }).eq("id", b.id);
-      }
-
-      // Award cashback loyalty credit (if this customer is enrolled) on the
-      // real amount paid, now that payment is actually confirmed.
-      try {
-        const { awardCashback } = await import("@/lib/loyalty");
-        await awardCashback(supabaseAdmin, userId, Number(b.price));
-      } catch (e) {
-        console.error("[SWEETBABY] cashback award (booking) failed", e);
-      }
-
-      // Issues a real temporary door passcode (TTLock) for the booked
-      // window, best-effort — never blocks the confirmation itself if it
-      // fails. See integrations/ttlock/client.server.ts for why this isn't
-      // verified against a live call yet.
-      let doorCode: string | null = null;
-      if (b.contact_phone) {
-        try {
-          const { issueDoorCodeForBooking } = await import("@/integrations/ttlock/client.server");
-          const doorCodeResult = await issueDoorCodeForBooking({
-            phone: b.contact_phone,
-            date: b.session_date,
-            startTime: String(b.start_time).slice(0, 5),
-            endTime: String(b.end_time).slice(0, 5),
-            label: b.contact_name ? `${b.contact_name} סטודיו` : `הזמנה ${b.id.slice(0, 8)}`,
-          });
-          if (doorCodeResult) {
-            doorCode = doorCodeResult.code;
-            await supabaseAdmin
-              .from("bookings")
-              .update({
-                door_code: doorCodeResult.code,
-                ttlock_keyboard_pwd_id: doorCodeResult.keyboardPwdId,
-                ttlock_lock_id: doorCodeResult.lockId,
-              })
-              .eq("id", b.id);
-          }
-        } catch (e) {
-          console.error("[SWEETBABY] TTLock door code issue (booking) failed", e);
-        }
-      }
-
-      // This is the actual "you're reserved" confirmation — sent only now,
-      // after payment/receipt was confirmed, never earlier. It's a FULL
-      // order summary: price breakdown, the signed questionnaire, arrival
-      // directions, and the uploaded payment receipt attached as a file.
-      try {
-        const intakePayload = await fetchLatestIntake(supabase, userId);
-        const receiptAttachment = await fetchReceiptAttachment(supabaseAdmin, b.deposit_receipt_url as string | null);
-
-        const html = buildBookingSummaryHtml({
-          heading: "אישור הזמנה — השכרת סטודיו ✓",
-          intro:
-            "קיבלנו את התשלום/האסמכתא, וההזמנה מאושרת — התאריך שוריין עבורך בפועל ביומן הסטודיו. למטה תמצאי סיכום מלא של ההזמנה, פרטי הגעה, וקובץ האסמכתא ששלחת מצורף להמשך תיעוד. מחכות לפגוש אותך!",
-          booking: {
-            id: b.id,
-            contact_name: b.contact_name,
-            session_date: b.session_date,
-            start_time: b.start_time,
-            end_time: b.end_time,
-            price: b.price,
-            deposit_amount: b.deposit_amount,
-            balance_amount: b.balance_amount,
-            balance_method: b.balance_method,
-            notes: b.notes,
-            reserved_items: (b.reserved_items as string[] | null) ?? [],
-          },
-          intakePayload,
-          footerNote: receiptAttachment ? "קובץ האסמכתא שצירפת מופיע כקובץ מצורף למייל זה." : undefined,
-          doorCode,
-        });
-
-        const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
-        await sendStudioAndCustomer({
-          customerEmail,
-          subject: `אישור הזמנה — השכרת סטודיו #${b.id.slice(0, 8)} · Sweetbaby`,
-          html,
-          attachments: receiptAttachment ? [receiptAttachment] : undefined,
-        });
-      } catch (e) {
-        console.error("[SWEETBABY] deposit confirmation email failed", e);
-      }
-
-      // A real phone call from the studio's line reading back the booking +
-      // door code — best-effort, never blocks the confirmation. See
-      // integrations/yemot/campaign.server.ts for why this isn't verified
-      // against a live call yet.
-      if (b.contact_phone) {
-        try {
-          const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
-          const text = `שלום ${b.contact_name || ""}, ההזמנה שלך בסטודיו סוויט בייבי אושרה. התאריך ${b.session_date} בשעה ${String(b.start_time).slice(0, 5)}.${
-            doorCode ? ` קוד הכניסה שלך הוא ${doorCode.split("").join(" ")}. לחצי סולמית אחרי הקשת הקוד.` : ""
-          } מחכות לך, ביי!`;
-          await sendYemotVoiceMessage({ phone: b.contact_phone, text, label: `אישור הזמנה ${b.id.slice(0, 8)}` });
-        } catch (e) {
-          console.error("[SWEETBABY] Yemot confirmation call (booking) failed", e);
-        }
-      }
-
+      const { doorCode } = await finalizeBookingConfirmation(b as unknown as ConfirmableBooking, customerEmail);
       return { ok: true, already: false, doorCode };
     } catch (e) {
       console.error("[SWEETBABY] deposit calendar sync failed", e);
+      return { ok: false, already: false, doorCode: null as string | null };
+    }
+  });
+
+/**
+ * Admin-triggered equivalent of confirmBookingDeposit, for a booking that
+ * came in through the phone bot (voice-booking.server.ts). A phone booking's
+ * user_id is a fresh anonymous account minted server-side purely so the
+ * `bookings` row satisfies its NOT NULL constraint — it's never actually
+ * signed into in the customer's own browser, so she can never reach the
+ * customer-triggered /deposit page (its auth check requires her session's
+ * userId to match the booking's user_id). The generic "pay now" button in
+ * her confirmation email also isn't booking-specific (see
+ * buildPaymentButtonHtml — a flat constant URL), so there is currently no
+ * automatic way to detect her payment either.
+ *
+ * This closes that gap the way the studio already handles phone/bank-
+ * transfer payments in practice: a staff member sees the transfer/Bit
+ * receipt actually arrive and confirms it here — same door code + full
+ * order-summary email + Yemot voice call as a website booking gets, just
+ * admin-triggered instead of customer-triggered. contactEmail is passed in
+ * explicitly (from the admin_notifications row that createPhoneBooking
+ * already wrote) since `bookings` itself has no email column — the address
+ * the caller gave was never persisted anywhere else.
+ */
+const adminConfirmBookingInput = z.object({ id: z.string().uuid(), contactEmail: z.string().email().optional() });
+
+export const adminConfirmPhoneBookingDeposit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => adminConfirmBookingInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+    if (!roles?.some((r: any) => r.role === "admin")) throw new Error("אין הרשאת ניהול");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: b, error } = await supabaseAdmin
+      .from("bookings")
+      .select(
+        "id, user_id, session_date, start_time, end_time, price, deposit_amount, balance_amount, balance_method, notes, reserved_items, contact_name, contact_phone, deposit_receipt_url, google_event_id, door_code",
+      )
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error || !b) throw new Error("השריון לא נמצא");
+    if (b.google_event_id) return { ok: true, already: true, doorCode: (b as any).door_code ?? null };
+
+    try {
+      const { doorCode } = await finalizeBookingConfirmation(b as unknown as ConfirmableBooking, data.contactEmail);
+      return { ok: true, already: false, doorCode };
+    } catch (e) {
+      console.error("[SWEETBABY] admin phone-booking confirmation failed", e);
       return { ok: false, already: false, doorCode: null as string | null };
     }
   });
