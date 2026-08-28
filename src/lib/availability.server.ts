@@ -303,23 +303,25 @@ export function israelNow(): { date: string; minutes: number; time: string } {
 }
 
 /**
- * Scans forward from a date and returns the next days with enough free time.
+ * Batch-fetches everything needed to compute free studio slots for every
+ * date in [fromDate, toDate] in 3 parallel network calls (studio closures,
+ * bookings, Google Calendar busy-times) — regardless of how many dates that
+ * range spans — then returns two pure, synchronous lookups (no further
+ * network calls) for the caller to use per-date.
  *
- * Used to call studioAvailability() — itself 2-3 network round-trips,
- * including a Google Calendar read — once PER DAY SCANNED, sequentially, in
- * a loop (daysToScan defaults to 21 in ai-tools.server.ts's
- * find_next_available_days). That's up to ~60 sequential external round
- * trips just to answer "when are you next free?" — a slow, "heavy" way to
- * answer what should be a quick question. Fetches closures, bookings, and
- * calendar busy-times ONCE for the whole date range instead (3 calls total,
- * in parallel, regardless of how many days are scanned), then computes each
- * day's free slots locally with freeSlotsForDay — no network left in the loop.
+ * Shared by nextAvailableDays (below) and placeRecurringBooking (a
+ * multi-week series, in bookings.functions.ts) — both used to call
+ * studioAvailability(), itself 2-3 network round trips including a Google
+ * Calendar read, once PER DATE checked, sequentially in a loop. For
+ * nextAvailableDays's default 21-day scan that was up to ~60 sequential
+ * external round trips just to answer "when are you next free?"; for a
+ * 13-week recurring series, ~39 round trips just to check availability
+ * before writing a single booking. Both now do 3 calls total.
  */
-export async function nextAvailableDays(fromDate: string, hours = 1, daysToScan = 14, limit = 5) {
-  const needed = Math.max(1, Math.round(hours * 2)); // consecutive half-hour slots
-  const base = new Date(`${fromDate}T12:00:00`);
-  const toDate = new Date(base.getTime() + (daysToScan - 1) * 86400000).toISOString().slice(0, 10);
-
+export async function fetchAvailabilityBatch(
+  fromDate: string,
+  toDate: string,
+): Promise<{ freeSlotsFor: (date: string) => string[]; isClosed: (date: string) => boolean }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const [closuresRes, bookingsRes, calendarBusy] = await Promise.all([
     supabaseAdmin.from("studio_closures").select("*").gte("date", fromDate).lte("date", toDate),
@@ -334,7 +336,7 @@ export async function nextAvailableDays(fromDate: string, hours = 1, daysToScan 
         const { listGoogleCalendarBusy } = await import("@/integrations/google/calendar.server");
         return await listGoogleCalendarBusy(fromDate, toDate);
       } catch (e) {
-        console.error("[SWEETBABY] calendar read failed (nextAvailableDays)", e);
+        console.error("[SWEETBABY] calendar read failed (fetchAvailabilityBatch)", e);
         return {} as Record<string, Array<[number, number]>>;
       }
     })(),
@@ -355,11 +357,26 @@ export async function nextAvailableDays(fromDate: string, hours = 1, daysToScan 
   }
 
   const nowIsrael = israelNow();
+  return {
+    freeSlotsFor: (date: string) => {
+      const busy = [...(bookingsByDate.get(date) ?? []), ...(calendarBusy[date] ?? [])];
+      return freeSlotsForDay(date, closuresByDate.get(date), busy, nowIsrael);
+    },
+    isClosed: (date: string) => slotsForDate(date, closuresByDate.get(date)).length === 0,
+  };
+}
+
+/** Scans forward from a date and returns the next days with enough free time. */
+export async function nextAvailableDays(fromDate: string, hours = 1, daysToScan = 14, limit = 5) {
+  const needed = Math.max(1, Math.round(hours * 2)); // consecutive half-hour slots
+  const base = new Date(`${fromDate}T12:00:00`);
+  const toDate = new Date(base.getTime() + (daysToScan - 1) * 86400000).toISOString().slice(0, 10);
+  const { freeSlotsFor } = await fetchAvailabilityBatch(fromDate, toDate);
+
   const out: Array<{ date: string; firstStart: string; freeSlots: number }> = [];
   for (let i = 0; i < daysToScan && out.length < limit; i++) {
     const d = new Date(base.getTime() + i * 86400000).toISOString().slice(0, 10);
-    const busy = [...(bookingsByDate.get(d) ?? []), ...(calendarBusy[d] ?? [])];
-    const freeSlots = freeSlotsForDay(d, closuresByDate.get(d), busy, nowIsrael);
+    const freeSlots = freeSlotsFor(d);
     if (freeSlots.length === 0) continue;
     // find a run of `needed` consecutive slots
     let run = 1;
