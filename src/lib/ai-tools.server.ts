@@ -7,6 +7,7 @@ import {
   propsAvailability,
   studioAvailability,
 } from "./availability.server";
+import { STUDIO_GUIDE_HE } from "./studio-guide.server";
 
 const PRICE_FIRST_HOUR = 120;
 const PRICE_EXTRA_HOUR = 90;
@@ -155,6 +156,13 @@ export function buildAssistantTools(opts?: { isAuthenticated?: boolean }) {
           deposit: 90,
         };
       },
+    }),
+
+    get_equipment_guide: tool({
+      description:
+        "מחזירה את מדריך השימוש הרשמי בציוד הסטודיו (משדר, פלאש, מצלמה, רקעים, רצפות עץ). קרא/י לזה רק כשלקוחה שואלת שאלה ספציפית על ציוד/הפעלה, או מדווחת על תקלה — לא בכל שיחה.",
+      inputSchema: z.object({}),
+      execute: async () => ({ guide: STUDIO_GUIDE_HE }),
     }),
 
     current_datetime: tool({
