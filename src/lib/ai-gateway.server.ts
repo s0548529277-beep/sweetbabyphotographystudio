@@ -1,3 +1,4 @@
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText } from "ai";
 
@@ -10,19 +11,30 @@ export function createLovableAiGatewayProvider(apiKey: string) {
 }
 
 /**
- * Talks to Google's Gemini API directly (its OpenAI-compatible endpoint),
- * bypassing the Lovable AI Gateway entirely — Google's own pricing/quota
- * instead of the gateway's shared pool + markup, dedicated to whatever
- * feature is given this key (currently: the voice call assistant, see
- * voice-chat.server.ts). Model names here have no "google/" prefix —
- * that's a Lovable gateway naming convention, not Google's.
+ * Talks to Google's Gemini API directly, bypassing the Lovable AI Gateway
+ * entirely — Google's own pricing/quota instead of the gateway's shared pool
+ * + markup, dedicated to whatever feature is given this key (currently: the
+ * voice call assistant, see voice-chat.server.ts).
+ *
+ * This used to go through @ai-sdk/openai-compatible (Google's OpenAI-
+ * compatible endpoint) — but real logs confirmed that transport CANNOT work
+ * with this app's multi-step tool-calling flow against Gemini's "thinking"
+ * models: Gemini attaches a thought_signature to every function-call part
+ * and requires it echoed back on the next step, and the OpenAI-compat JSON
+ * shape has nowhere to carry that field, so Google rejects the follow-up
+ * with 400 "Function call is missing a thought_signature" on basically
+ * every real request (confirmed live, see git history for the exact error).
+ * Google is also retiring its non-thinking flash tiers in favor of the
+ * Gemini 3.x thinking family (confirmed live: gemini-2.0-flash 404s now,
+ * telling callers to switch to gemini-3.6-flash) — so avoiding thinking
+ * models entirely isn't a lasting fix either.
+ * @ai-sdk/google is Vercel's own native provider for Gemini: it speaks
+ * Google's actual protocol (not an OpenAI translation) and threads
+ * thought signatures through multi-step tool calls correctly, which is
+ * exactly the gap the OpenAI-compat transport couldn't cross.
  */
 export function createDirectGeminiProvider(apiKey: string) {
-  return createOpenAICompatible({
-    name: "gemini-direct",
-    baseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
-    headers: { Authorization: `Bearer ${apiKey}` },
-  });
+  return createGoogleGenerativeAI({ apiKey });
 }
 
 /**
@@ -185,41 +197,19 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel,
   const lovableKey = process.env.LOVABLE_API_KEY;
   if (geminiKeys.length === 0 && !groqKey && !lovableKey) throw new Error("Missing GEMINI_API_KEY, GROQ_API_KEY, or LOVABLE_API_KEY");
 
-  // "gemini-2.5-flash" is what the Lovable gateway's own model alias
-  // resolves internally — going straight to Google's API needs Google's own
-  // current model id, which isn't the same thing and drifts over time as
-  // preview releases get retired in favor of GA ones. This has now 404'd
-  // TWICE live (once as "gemini-2.5-flash" itself against the direct
-  // endpoint, then again after being updated to "gemini-3-flash-preview" a
-  // day later).
-  //
-  // A "gemini-3.7-flash" candidate was tried here too, on the assumption
-  // that a bad model id fails fast (a 404 costs almost nothing) — but real
-  // logs showed it instead HANGS to a full TimeoutError on both configured
-  // keys, doubling the worst-case wait before ever reaching Groq/Lovable
-  // (this is very likely why the site chat kept showing "אני קצת עמוס" —
-  // the browser/UI was giving up long before the server-side chain finished
-  // retrying). So: only try candidates that are known to fail *fast* when
-  // wrong, never a name that might hang.
-  //
-  // "gemini-3-flash-preview" itself was then confirmed (via the detailed
-  // error logging added below) to fail on basically EVERY tool-calling turn
-  // with a 400 from Google itself:
-  //   "Function call is missing a thought_signature in functionCall parts.
-  //    This is required for tools to work correctly..."
-  // This is a well-documented, still-open compatibility gap between the
-  // OpenAI-compatible transport (which this app uses via @ai-sdk/openai-
-  // compatible) and Gemini 3's "thinking" models: a thinking model attaches
-  // a thought_signature to each function-call part and requires it echoed
-  // back on the next tool-calling step, but the OpenAI-compat layer doesn't
-  // carry that field — see e.g. github.com/openai/openai-python/issues/2758
-  // and github.com/agentscope-ai/QwenPaw/issues/927, both confirming the
-  // fix is to use a plain (non-thinking) model instead, since this app
-  // always uses multi-step tool calling (stepCountIs). "gemini-2.0-flash"
-  // is Google's standard, long-established non-thinking GA model — kept as
-  // the sole candidate; the thinking model is deliberately NOT kept as a
-  // fallback since it would fail the exact same way on every real request.
-  const DIRECT_GEMINI_MODEL_CANDIDATES = ["gemini-2.0-flash"];
+  // Long history of model-id churn here (see git log for the full trail:
+  // "gemini-2.5-flash" 404'd, "gemini-3.7-flash" hung to a timeout instead
+  // of failing fast, "gemini-2.0-flash" is now retired too — Google's own
+  // 404 body says "no longer available... use gemini-3.6-flash"). The
+  // deeper issue turned out not to be the model id at all: it was that
+  // createDirectGeminiProvider used to go through the generic OpenAI-
+  // compatible transport, which structurally cannot support Gemini's
+  // "thinking" models in a multi-step tool-calling flow (confirmed live —
+  // see createDirectGeminiProvider's doc comment for the thought_signature
+  // story). That's now fixed by switching to @ai-sdk/google, Google's own
+  // native provider — so a current, real, actively-supported model can be
+  // used again instead of chasing the shrinking set of non-thinking ones.
+  const DIRECT_GEMINI_MODEL_CANDIDATES = ["gemini-3-flash-preview", "gemini-flash-latest"];
 
   for (const key of geminiKeys) {
     let lastErr: unknown;
