@@ -43,7 +43,7 @@ async function handle(request: Request): Promise<Response> {
   // across as confused/wrong. This is part of what read as "the bot doesn't
   // understand" on live calls.
   const speech = rawSpeech.length >= 2 ? rawSpeech : "";
-  const { phrases, menuMode } = await getVoiceBotConfig();
+  const { phrases, menuMode, noAiBookingEnabled } = await getVoiceBotConfig();
 
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -198,6 +198,17 @@ async function handle(request: Request): Promise<Response> {
       // keeps the exact original behavior below unchanged.
       if (menuMode === "ai") return await runOpenTurn(speech);
 
+      // Checked BEFORE detectMenuIntent, independent of its word-count gate
+      // (looksLikeMenuPick caps at 4 words) — a longer, natural sentence
+      // like "אני רוצה לעשות הזמנת סטודיו למחר בבוקר" used to fall through
+      // detectMenuIntent entirely (null: too many words) straight to
+      // runOpenTurn below, which means "fixed" mode's whole AI-avoidance
+      // point was defeated for exactly the sentences that most clearly
+      // signal "book now". Checking here first closes that gap for every
+      // phrasing wantsToBookNow recognizes, not just the short ones that
+      // also happen to classify as menu intent 1/2.
+      if (noAiBookingEnabled && wantsToBookNow(speech)) return await respondNbStart(speech);
+
       const intent = detectMenuIntent(speech);
       if (intent === 3) {
         const text = `${phrases.arrival_spoken} ${phrases.anything_else}`;
@@ -213,14 +224,9 @@ async function handle(request: Request): Promise<Response> {
         return yemotSayAndListen(phrases.leave_message_prompt);
       }
       if (intent === 1 || intent === 2) {
-        // She already said she wants to book/reserve, not just hear rates —
-        // skip the pricing blurb and go straight into booking. "fixed" menu
-        // mode means the admin deliberately wants AI avoided on this line
-        // (see MENU_MODE_KEY's doc comment), so this goes to the no-AI,
-        // fixed-question flow instead of runOpenTurn — otherwise "fixed"
-        // mode's own booking path would still secretly depend on the AI,
-        // defeating its whole point as a full AI-avoidance toggle.
-        if (wantsToBookNow(speech)) return await respondNbStart(speech);
+        // wantsToBookNow was already checked above (before detectMenuIntent)
+        // — reaching here means she only asked about pricing/info, not a
+        // booking yet, so the short info blurb is the right answer.
         const blurb = intent === 1 ? phrases.studio_blurb : phrases.props_blurb;
         const text = `${blurb} ${phrases.anything_else}`;
         await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: text }], "chat");
@@ -298,7 +304,7 @@ async function handle(request: Request): Promise<Response> {
       // call — the actually useful move when the AI won't cooperate is to
       // get her the booking anyway: the fixed-question flow below never
       // touches the AI, so it keeps working exactly when the AI doesn't.
-      const bookingIntent = wantsToBookNow(speech) || priorMessages.some((m) => m.role === "user" && wantsToBookNow(m.content));
+      const bookingIntent = noAiBookingEnabled && (wantsToBookNow(speech) || priorMessages.some((m) => m.role === "user" && wantsToBookNow(m.content)));
 
       if (bookingIntent) {
         const start = await startNoAiBooking(phone);
