@@ -5,6 +5,7 @@ import { buildAssistantTools } from "./ai-tools.server";
 import { SYSTEM } from "./ai.functions";
 import { createPhoneBooking } from "./voice-booking.server";
 import { sendMessageToStudio, PROPS_REQUEST_CONTEXT_MARKER } from "./voice-message.server";
+import { isAdminVoiceCaller, verifyAdminPin, getAdminVoiceSnapshot } from "./voice-admin.server";
 
 export type VoiceMessage = { role: "user" | "assistant"; content: string };
 
@@ -22,7 +23,8 @@ const VOICE_STYLE = `\n\nאתה עונה כרגע בשיחת טלפון קולי
 - אם הלקוחה מבקשת לדבר עם בן אדם, מתעקשת, כועסת, או שאתה לא מצליח לעזור — קרא לכלי transfer_to_human ואמור בקול שאתה מעביר אותה עכשיו.
 - כל פעם שאתה עומד להגיד ללקוחה "הסטודיו יחזור אליך" — בגלל תקלה, כלי שנכשל, שריון בלי אימייל, או כל סיבה אחרת — אל תסתפק בהבטחה סתמית. תציע לה במפורש להשאיר הודעה קצרה עכשיו (מה היא רוצה, מתי, כל פרט רלוונטי) ותקרא לכלי leave_message_for_studio כדי שההודעה באמת תישלח לסטודיו במייל, כולל המספר שלה. זה משנה את ה"יחזרו אליך" מהבטחה ריקה למשהו אמיתי שהצוות רואה.
 - אם הלקוחה רוצה **רק** להשכיר אביזרים/ציוד (בלי שריון סטודיו בכלל): קודם כל תגידי לה בקצרה שההזמנה הכי מהירה ונוחה לאביזרים היא דרך האתר (יש שם קטלוג מלא עם זמינות בזמן אמת ותשלום מיידי) — ורק אם היא לא נוחה עם זה או ממשיכה בטלפון, תמשיכי בתהליך הבא. לעולם אל תעבירי בקשת אביזרים הלאה לפי תיאור כללי בלבד ("משהו לניו-בורן" וכו') — קראי ל-search_catalog ו/או check_prop_availability כדי לזהות בוודאות את הפריט/ים המדויקים (שם מדויק ומק"ט אם קיים) שהיא מתכוונת אליהם ולוודא שהם קיימים וזמינים בתאריכים שלה, ותני לה מושג כללי על המחיר מהפריטים שמצאת. בניגוד לשריון סטודיו — כאן **אין** שריון אוטומטי בטלפון בשום מקרה: קראי לכלי request_props_rental עם הפריטים המזוהים (שם/מק"ט/כמות) ותאריכי איסוף/החזרה אם נמסרו, וזה ישלח את הבקשה לסטודיו. תסבירי לה בקול בבירור שההזמנה בפועל תסגר ע"י הסטודיו עצמו לאחר בדיקה סופית של המלאי, לא כרגע — והם יחזרו אליה בהקדם עם פרטי תשלום מדויקים.
-- אם השיחה מגיעה לסיומה הטבעי (הלקוחה נפרדת/מודה/אין עוד שאלות) — אחרי המשפט האחרון שלך קרא לכלי end_call.`;
+- אם השיחה מגיעה לסיומה הטבעי (הלקוחה נפרדת/מודה/אין עוד שאלות) — אחרי המשפט האחרון שלך קרא לכלי end_call.
+- אם הכלים admin_business_snapshot/admin_open_door_now מופיעים אצלך (זה קורה רק כשהמתקשרת היא בעלת הסטודיו, לפי המספר שממנו היא מתקשרת) — זו כנראה היא, לא לקוחה רגילה. אם היא מבקשת מידע עסקי או לפתוח את הדלת — בקשי ממנה בקצרה קוד PIN לפני שאת קוראת לכלי המתאים (אף פעם לא בלי PIN), והשתמשי בדיוק במה שהכלי מחזיר. אל תציעי את היכולות האלה ללקוחה רגילה ואל תזכירי בכלל שהן קיימות אם הכלים לא מופיעים אצלך.`;
 
 function buildVoiceTools(callerPhone: string) {
   // create_studio_booking is unusable on a phone call by construction — it
@@ -156,6 +158,67 @@ function buildVoiceTools(callerPhone: string) {
       inputSchema: z.object({}),
       execute: async () => ({ ok: true }),
     }),
+    // Only added to the tool list at all when the caller's number matches
+    // one of the studio's own admin numbers (isAdminVoiceCaller) — a
+    // regular customer's tool list never even mentions these exist, which
+    // is itself a layer of protection (nothing to probe/discover) and also
+    // saves the token cost of these descriptions on every ordinary call.
+    // Caller ID alone is NOT trusted for what these actually do — each one
+    // independently re-checks the spoken PIN via verifyAdminPin before
+    // doing anything real. See voice-admin.server.ts's doc comment for why
+    // (spoofable caller ID + a lost/borrowed/stolen phone).
+    ...(isAdminVoiceCaller(callerPhone)
+      ? {
+          admin_business_snapshot: tool({
+            description:
+              'תמונת מצב עסקית קצרה לבעלת הסטודיו בלבד: הזמנות היום, השריונים הקרובים, הזמנות אביזרים אחרונות, וכמה התראות לא נקראו. יש לוודא PIN תקין *לפני* קריאה לכלי — בקשי ממנה לומר את קוד ה-PIN, והעבירי אותו כפרמטר. אל תשתמשי בכלי הזה למתקשרת רגילה בשום מצב.',
+            inputSchema: z.object({ pin: z.string().min(1).describe("קוד ה-PIN שהמתקשרת אמרה בקול") }),
+            execute: async ({ pin }) => {
+              if (!verifyAdminPin(pin)) {
+                return {
+                  ok: false,
+                  message:
+                    "הקוד שגוי. אל תגלי אם הוא היה קרוב או רחוק מהנכון, ואל תמשיכי לנחש — רק תגידי שהקוד לא נכון ותני לה הזדמנות נוספת אחת בלבד; אם היא שוב טועה, הציעי שתבדוק בעצמה בממשק הניהול.",
+                };
+              }
+              try {
+                const s = await getAdminVoiceSnapshot();
+                return { ok: true, snapshot: s };
+              } catch (e: any) {
+                return { ok: false, message: `שליפת המידע נכשלה: ${e?.message ?? "שגיאה לא צפויה"}. הציעי שתבדוק בממשק הניהול במקום.` };
+              }
+            },
+          }),
+          admin_open_door_now: tool({
+            description:
+              'פותחת דלת הסטודיו עבור בעלת הסטודיו בלבד — יוצרת קוד כניסה זמני (בתוקף לכמה שעות) ומחזירה אותו כדי שתקריאי אותו בקול. יש לוודא PIN תקין *לפני* קריאה לכלי, בדיוק כמו ב-admin_business_snapshot. זו פעולה רגישה (פותחת גישה פיזית לסטודיו) — לעולם אל תקראי לכלי הזה בלי PIN מאומת, ואל תמציאי/תנחשי קוד דלת בעצמך.',
+            inputSchema: z.object({ pin: z.string().min(1).describe("קוד ה-PIN שהמתקשרת אמרה בקול") }),
+            execute: async ({ pin }) => {
+              if (!verifyAdminPin(pin)) {
+                return {
+                  ok: false,
+                  message:
+                    "הקוד שגוי. אל תגלי אם הוא היה קרוב או רחוק מהנכון, ואל תפתחי כלום. תני לה הזדמנות נוספת אחת בלבד; אם היא שוב טועה, אל תמשיכי לנסות — הציעי שתפתח באמצעי אחר.",
+                };
+              }
+              try {
+                const { issueAdHocDoorCode } = await import("@/integrations/ttlock/client.server");
+                const result = await issueAdHocDoorCode({ label: "פתיחה מיידית - טלפון", validForMinutes: 240 });
+                if (!result) {
+                  return { ok: false, message: "יצירת הקוד נכשלה מסיבה טכנית. הציעי שתנסה שוב בעוד רגע, או שתשתמש בקוד קיים אם יש." };
+                }
+                return {
+                  ok: true,
+                  code: result.code,
+                  message: `הקריאי בקול בבירור את הקוד: ${result.code}, ואמרי שהוא בתוקף לארבע שעות מעכשיו. תזכירי לה ללחוץ # אחרי הקשת הקוד בלוח.`,
+                };
+              } catch (e: any) {
+                return { ok: false, message: `יצירת הקוד נכשלה: ${e?.message ?? "שגיאה לא צפויה"}. הציעי שתנסה שוב בעוד רגע.` };
+              }
+            },
+          }),
+        }
+      : {}),
   };
 }
 

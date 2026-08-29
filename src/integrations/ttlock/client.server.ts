@@ -285,6 +285,41 @@ export async function issueDoorCodeForBooking(opts: {
   }
 }
 
+/**
+ * Issues an immediate, short-window passcode not tied to any booking/order
+ * — for the admin-only "open the door for me right now" voice flow (see
+ * voice-admin.server.ts, which gates who's even allowed to call this with a
+ * two-factor phone+PIN check before it ever reaches here). Same underlying
+ * TTLock call as issueDoorCodeForBooking, just a window starting now instead
+ * of a future booking's start time, and a random 6-digit code (not the
+ * customer-phone-derived scheme, which doesn't apply — nobody's phone
+ * number here) — so no displayDoorCode zero-padding either, that padding
+ * was specifically about the 9→10 digit phone-derived form.
+ *
+ * Carries the SAME unverified-live caveats as issueDoorCodeForBooking's own
+ * doc comment (addType Gateway-vs-Bluetooth split, in particular) — this
+ * hasn't been confirmed against a real call yet either.
+ */
+export async function issueAdHocDoorCode(opts: { label: string; validForMinutes: number }): Promise<DoorCodeResult | null> {
+  try {
+    const { access_token: accessToken } = await getAccessToken();
+    const lockId = await getLockId(accessToken);
+    const code = String(Math.floor(100_000 + Math.random() * 900_000)); // random 6-digit, distinct from the phone-derived scheme
+    const now = Date.now();
+    const keyboardPwdId = await addPasscode({
+      lockId,
+      code,
+      name: opts.label,
+      startMs: now - 60_000,
+      endMs: now + opts.validForMinutes * 60_000,
+    });
+    return { code, keyboardPwdId, lockId };
+  } catch (e) {
+    console.error("[SWEETBABY] TTLock ad-hoc door code issue failed", e);
+    return null;
+  }
+}
+
 /** Best-effort revoke — used on cancellation. Never throws. */
 export async function revokeDoorCode(lockId: number, keyboardPwdId: number): Promise<void> {
   try {
