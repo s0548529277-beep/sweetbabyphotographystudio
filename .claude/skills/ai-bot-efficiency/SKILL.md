@@ -266,3 +266,36 @@ survivors?"
   caller identity is a real token-savings lever beyond principle #1's
   "move rarely-needed content to a tool" — some tools shouldn't even be
   offered most of the time, not just described briefly.
+- **2026-08-29 (later still)**: Diagnosed a "the bot got stuck" report from a
+  real Cloudflare/Yemot log batch. Two separate findings: (1) confirmed the
+  earlier `return await runOpenTurn(...)` fix (see the entry above it,
+  further up this file) IS working correctly live — a call that hit a full
+  3-provider failure now returns a graceful 200 to Yemot instead of a raw
+  402. (2) a NEW pattern in this batch: Gemini failing via `TimeoutError`
+  (not the earlier fast-failing 429 quota error) on BOTH configured keys, in
+  the same call. `generateTextResilient` tried the keys **sequentially**,
+  each getting the full `timeoutMs` (30s for voice calls) before moving to
+  the next — so 2 keys both timing out meant ~60s of dead air before the
+  flow even reached Groq/Lovable. Tempting fix was to shrink `timeoutMs`,
+  but that budget was deliberately set generous after a *tighter* one (10s,
+  tried together with a smaller `stepCountIs`) was shown to cut off
+  legitimately slow-but-working calls (a real availability check needs a
+  Supabase query + a Google Calendar round trip + the model's own
+  reasoning) — shrinking it again would risk repeating that same regression,
+  and picking a "safer" smaller number without real evidence of how long a
+  genuine slow-success case takes would be exactly the unverified-guess
+  mistake documented in the niqqud entry above, just applied to a timeout
+  value instead of a string. Shipped instead: race every configured Gemini
+  key **in parallel** (`Promise.any`, each with its own `AbortController`
+  torn down the instant any one succeeds, so losers don't keep burning
+  quota/cost in the background). This bounds the worst case to a single
+  `timeoutMs` no matter how many keys are configured, without touching the
+  per-attempt budget or the tool-call step budget at all — a single
+  slow-but-eventually-successful key still gets its full 30s, and with only
+  one key configured this degenerates to exactly the old sequential
+  behavior (no change for that case). **Pattern for this codebase**: when
+  several independent fallback options each need a generous timeout to stay
+  correct, the win is in *parallelizing the ones that are safe to run
+  concurrently* (independent API keys/accounts), not in shrinking the
+  timeout that was already tuned against a real regression — shrinking a
+  timeout is a guess about how long success takes; racing is not.

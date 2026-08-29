@@ -245,24 +245,63 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel,
   // everywhere in this file for that reason.
   const NO_INTERNAL_RETRY = { maxRetries: 0 } as const;
 
-  for (const key of geminiKeys) {
-    let lastErr: unknown;
-    for (const modelId of DIRECT_GEMINI_MODEL_CANDIDATES) {
-      try {
-        const result = await generateText({
-          ...options,
-          model: createDirectGeminiProvider(key)(modelId),
-          abortSignal: AbortSignal.timeout(timeoutMs),
-          ...NO_INTERNAL_RETRY,
-        } as GenerateTextOptions);
-        await recordProviderUsed("gemini-direct", modelId);
-        return result;
-      } catch (e) {
-        lastErr = e;
-        console.error(`[SWEETBABY] Gemini key ...${key.slice(-4)} model "${modelId}" failed ${e} | detail=${describeApiError(e)}`);
+  if (geminiKeys.length > 0) {
+    // Tried one key after another until real logs showed BOTH configured
+    // keys failing via `TimeoutError: The operation was aborted due to
+    // timeout` back to back on the same live call — sequentially, that's a
+    // worst case of (number of keys) × timeoutMs of dead air (60s for 2
+    // keys at the 30s voice budget) before the flow even reaches Groq/
+    // Lovable, which is exactly what a caller experiences as the bot
+    // "getting stuck". The fix is NOT to shrink timeoutMs — that generous
+    // budget was set deliberately per direct feedback ("תתן לו אפילו חצי
+    // דקה") after a tighter one (10s) was shown to cut off legitimately
+    // slow-but-working calls (a real availability check needs a Supabase
+    // query + a Google Calendar round trip + the model's own reasoning).
+    // Instead, race every configured key IN PARALLEL: worst case is bounded
+    // to a single timeoutMs no matter how many keys exist, while a single
+    // slow-but-eventually-successful key still gets its full budget. Each
+    // attempt gets its own AbortController so the instant one key succeeds,
+    // every other in-flight request is cancelled immediately rather than
+    // continuing to burn quota/cost in the background for a result nobody
+    // needs. With a single key configured this degenerates to exactly the
+    // old sequential behavior — no change for that common case.
+    const activeControllers: AbortController[] = [];
+    const cancelOthers = () => {
+      for (const c of activeControllers) if (!c.signal.aborted) c.abort();
+    };
+
+    const attempts = geminiKeys.map(async (key) => {
+      let lastErr: unknown;
+      for (const modelId of DIRECT_GEMINI_MODEL_CANDIDATES) {
+        const controller = new AbortController();
+        activeControllers.push(controller);
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          const result = await generateText({
+            ...options,
+            model: createDirectGeminiProvider(key)(modelId),
+            abortSignal: controller.signal,
+            ...NO_INTERNAL_RETRY,
+          } as GenerateTextOptions);
+          return { modelId, result };
+        } catch (e) {
+          lastErr = e;
+          console.error(`[SWEETBABY] Gemini key ...${key.slice(-4)} model "${modelId}" failed ${e} | detail=${describeApiError(e)}`);
+        } finally {
+          clearTimeout(timer);
+        }
       }
+      throw lastErr ?? new Error(`Gemini key ...${key.slice(-4)} exhausted all model candidates`);
+    });
+
+    try {
+      const { modelId, result } = await Promise.any(attempts);
+      cancelOthers();
+      await recordProviderUsed("gemini-direct", modelId);
+      return result;
+    } catch (e) {
+      console.error("[SWEETBABY] every Gemini key failed (raced in parallel, each up to its own full timeout budget), trying Groq", e);
     }
-    console.error(`[SWEETBABY] Gemini key ...${key.slice(-4)} failed on every model candidate, trying the next key`, lastErr);
   }
 
   if (groqKey) {
