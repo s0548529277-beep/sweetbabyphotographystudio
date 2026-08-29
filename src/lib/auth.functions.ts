@@ -46,6 +46,24 @@ async function anonClient() {
 
 type AuthSession = { access_token: string; refresh_token: string };
 
+/** Matches a phone number against profiles.phone (supabaseAdmin — bypasses RLS, needed pre-login) and returns the account's real userId+email, or null. Shared by sign-in and the phone-call password reset below. */
+async function findAccountByPhone(phone: string): Promise<{ userId: string; email: string } | null> {
+  const digits = lastDigits(phone);
+  if (digits.length < 6) return null;
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: candidates } = await supabaseAdmin.from("profiles").select("id, phone").ilike("phone", `%${digits.slice(-6)}%`);
+    const match = (candidates ?? []).find((p: any) => lastDigits(String(p.phone ?? "")) === digits);
+    if (!match) return null;
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(match.id as string);
+    if (!authUser?.user?.email) return null;
+    return { userId: match.id as string, email: authUser.user.email };
+  } catch (e) {
+    console.error("[SWEETBABY] phone→account resolve failed", e);
+    return null;
+  }
+}
+
 /**
  * Resolves an identifier (typed-as-is email, or a phone number) to a real
  * auth email server-side via supabaseAdmin (bypasses RLS — needed since the
@@ -60,20 +78,9 @@ export const signInWithPhoneOrEmail = createServerFn({ method: "POST" })
     const GENERIC_ERROR = "פרטי ההתחברות שגויים";
     let email = data.identifier.trim();
     if (!looksLikeEmail(email)) {
-      const digits = lastDigits(email);
-      if (digits.length < 6) return { ok: false, error: GENERIC_ERROR };
-      try {
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { data: candidates } = await supabaseAdmin.from("profiles").select("id, phone").ilike("phone", `%${digits.slice(-6)}%`);
-        const match = (candidates ?? []).find((p: any) => lastDigits(String(p.phone ?? "")) === digits);
-        if (!match) return { ok: false, error: GENERIC_ERROR };
-        const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(match.id as string);
-        if (!authUser?.user?.email) return { ok: false, error: GENERIC_ERROR };
-        email = authUser.user.email;
-      } catch (e) {
-        console.error("[SWEETBABY] phone→email resolve failed", e);
-        return { ok: false, error: GENERIC_ERROR };
-      }
+      const account = await findAccountByPhone(email);
+      if (!account) return { ok: false, error: GENERIC_ERROR };
+      email = account.email;
     }
 
     const anon = await anonClient();
@@ -145,4 +152,86 @@ export const signUpWithPhoneOrEmail = createServerFn({ method: "POST" })
       return { ok: false, error: "החשבון נוצר אבל הכניסה האוטומטית נכשלה — נסי להתחבר ידנית." };
     }
     return { ok: true, session: { access_token: signInData.session.access_token, refresh_token: signInData.session.refresh_token } };
+  });
+
+// ---------- password reset via a real phone call ----------
+// For a phone-only account (placeholder email, see isPlaceholderEmail
+// above) the site's existing email-link reset can never reach her — there's
+// no real inbox. This is the phone equivalent: a short-lived code, read out
+// over an actual outbound call via the same Yemot campaign API already used
+// for door codes/reminders (integrations/yemot/campaign.server.ts), which
+// she then types into the reset form alongside a new password. No new
+// table — the code and its expiry live in the account's own
+// user_metadata, cleared the moment it's used or replaced by a newer one.
+
+const RESET_CODE_TTL_MINUTES = 10;
+
+function randomResetCode(): string {
+  return String(Math.floor(1000 + Math.random() * 9000)); // 4 digits — short enough to catch correctly by ear over a phone line
+}
+
+/**
+ * Always returns ok:true regardless of whether the phone matched a real
+ * account — same anti-enumeration reasoning as signInWithPhoneOrEmail — so
+ * the UI's "if this number has an account, you'll get a call now" message
+ * is truthful either way without confirming which case happened.
+ */
+export const requestPhoneResetCode = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ phone: z.string().min(5).max(40) }).parse(d))
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    try {
+      const account = await findAccountByPhone(data.phone);
+      if (!account) return { ok: true }; // no account — silently no-op, see doc comment
+
+      const code = randomResetCode();
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: current } = await supabaseAdmin.auth.admin.getUserById(account.userId);
+      await supabaseAdmin.auth.admin.updateUserById(account.userId, {
+        user_metadata: {
+          ...(current?.user?.user_metadata ?? {}),
+          password_reset_code: code,
+          password_reset_code_expires: Date.now() + RESET_CODE_TTL_MINUTES * 60_000,
+        },
+      });
+
+      const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
+      const spoken = code.split("").join("-"); // read digit by digit, not as a four-digit number, for clarity over the phone
+      await sendYemotVoiceMessage({
+        phone: data.phone,
+        text: `שלום, קוד האיפוס שלך לסטודיו סוויט בייבי הוא: ${spoken}. הקוד בתוקף ל-${RESET_CODE_TTL_MINUTES} דקות.`,
+        label: "איפוס סיסמה",
+      });
+      return { ok: true };
+    } catch (e) {
+      console.error("[SWEETBABY] phone reset code request failed", e);
+      return { ok: true }; // still generic — never confirm/deny a match to the caller
+    }
+  });
+
+export const resetPasswordWithPhoneCode = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ phone: z.string().min(5).max(40), code: z.string().min(4).max(10), newPassword: z.string().min(MIN_PIN).max(100) }).parse(d))
+  .handler(async ({ data }): Promise<{ ok: true } | { ok: false; error: string }> => {
+    const GENERIC_ERROR = "הקוד שגוי או שפג תוקפו — אפשר לבקש קוד חדש.";
+    const account = await findAccountByPhone(data.phone);
+    if (!account) return { ok: false, error: GENERIC_ERROR };
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: current } = await supabaseAdmin.auth.admin.getUserById(account.userId);
+      const meta = (current?.user?.user_metadata ?? {}) as Record<string, unknown>;
+      const storedCode = meta.password_reset_code as string | undefined;
+      const expires = meta.password_reset_code_expires as number | undefined;
+      if (!storedCode || storedCode !== data.code.trim() || !expires || Date.now() > expires) {
+        return { ok: false, error: GENERIC_ERROR };
+      }
+      const { password_reset_code: _c, password_reset_code_expires: _e, ...restMeta } = meta;
+      const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(account.userId, {
+        password: toAuthPassword(data.newPassword),
+        user_metadata: restMeta,
+      });
+      if (updateErr) throw updateErr;
+      return { ok: true };
+    } catch (e) {
+      console.error("[SWEETBABY] phone reset completion failed", e);
+      return { ok: false, error: "שינוי הסיסמה נכשל, נסי שוב." };
+    }
   });

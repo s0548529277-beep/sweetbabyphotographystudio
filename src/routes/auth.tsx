@@ -14,7 +14,7 @@ import { EmailDatalist } from "@/components/EmailDatalist";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth";
 import { MIN_PIN } from "@/lib/password";
-import { signInWithPhoneOrEmail, signUpWithPhoneOrEmail } from "@/lib/auth.functions";
+import { signInWithPhoneOrEmail, signUpWithPhoneOrEmail, requestPhoneResetCode, resetPasswordWithPhoneCode } from "@/lib/auth.functions";
 import { GuestContinueButton } from "@/components/GuestContinueButton";
 import { toast } from "sonner";
 
@@ -41,6 +41,11 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
+  const [resetMode, setResetMode] = useState<"email" | "phone">("email");
+  const [resetPhone, setResetPhone] = useState("");
+  const [phoneResetStep, setPhoneResetStep] = useState<"request" | "confirm">("request");
+  const [resetCode, setResetCode] = useState("");
+  const [resetNewPassword, setResetNewPassword] = useState("");
 
   useEffect(() => {
     if (user) nav({ to: (redirect as any) || "/account" });
@@ -48,6 +53,8 @@ function AuthPage() {
 
   const doSignIn = useServerFn(signInWithPhoneOrEmail);
   const doSignUp = useServerFn(signUpWithPhoneOrEmail);
+  const doRequestPhoneReset = useServerFn(requestPhoneResetCode);
+  const doConfirmPhoneReset = useServerFn(resetPasswordWithPhoneCode);
 
   const signIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -83,6 +90,44 @@ function AuthPage() {
     else {
       toast.success("שלחנו קישור לאיפוס סיסמה למייל שלך");
       setForgotOpen(false);
+    }
+  };
+
+  const requestPhoneReset = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const phone = resetPhone.trim();
+    if (!phone) return;
+    setBusy(true);
+    try {
+      await doRequestPhoneReset({ data: { phone } });
+      toast.success("אם המספר הזה משויך לחשבון, תקבלי עכשיו שיחה עם קוד איפוס.");
+      setPhoneResetStep("confirm");
+    } catch (e2) {
+      toast.error(heError(e2, "השליחה נכשלה"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirmPhoneReset = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!resetCode.trim() || !resetNewPassword.trim()) return;
+    setBusy(true);
+    try {
+      const res = await doConfirmPhoneReset({ data: { phone: resetPhone.trim(), code: resetCode.trim(), newPassword: resetNewPassword } });
+      if (!res.ok) {
+        toast.error(res.error);
+      } else {
+        toast.success("הסיסמה עודכנה! אפשר להתחבר איתה עכשיו.");
+        setForgotOpen(false);
+        setPhoneResetStep("request");
+        setResetCode("");
+        setResetNewPassword("");
+      }
+    } catch (e2) {
+      toast.error(heError(e2, "עדכון הסיסמה נכשל"));
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -168,23 +213,88 @@ function AuthPage() {
                 </div>
               </form>
               {forgotOpen && (
-                <form onSubmit={sendReset} className="space-y-3 mt-4 p-4 rounded-2xl bg-cream border border-primary/10">
-                  <p className="text-xs text-muted-foreground">
-                    הזינו את כתובת המייל ונשלח קישור לאיפוס סיסמה.
-                  </p>
-                  <Input
-                    type="email"
-                    required
-                    list="email-suggest-auth-forgot"
-                    placeholder="you@example.com"
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                  />
-                  <EmailDatalist id="email-suggest-auth-forgot" value={forgotEmail} />
-                  <Button type="submit" disabled={busy} className="w-full rounded-full h-10">
-                    {busy ? "שולח…" : "שליחת קישור איפוס"}
-                  </Button>
-                </form>
+                <div className="mt-4 p-4 rounded-2xl bg-cream border border-primary/10 space-y-3">
+                  <div className="flex gap-2 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setResetMode("email")}
+                      className={`px-3 py-1.5 rounded-full ${resetMode === "email" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}
+                    >
+                      איפוס במייל
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setResetMode("phone")}
+                      className={`px-3 py-1.5 rounded-full ${resetMode === "phone" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}
+                    >
+                      איפוס בשיחה טלפונית
+                    </button>
+                  </div>
+
+                  {resetMode === "email" ? (
+                    <form onSubmit={sendReset} className="space-y-3">
+                      <p className="text-xs text-muted-foreground">הזינו את כתובת המייל ונשלח קישור לאיפוס סיסמה.</p>
+                      <Input
+                        type="email"
+                        required
+                        list="email-suggest-auth-forgot"
+                        placeholder="you@example.com"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                      />
+                      <EmailDatalist id="email-suggest-auth-forgot" value={forgotEmail} />
+                      <Button type="submit" disabled={busy} className="w-full rounded-full h-10">
+                        {busy ? "שולח…" : "שליחת קישור איפוס"}
+                      </Button>
+                    </form>
+                  ) : phoneResetStep === "request" ? (
+                    <form onSubmit={requestPhoneReset} className="space-y-3">
+                      <p className="text-xs text-muted-foreground">נחייג אליך ונקריא קוד איפוס בשיחה קולית.</p>
+                      <Input
+                        type="tel"
+                        dir="ltr"
+                        required
+                        placeholder="050-1234567"
+                        value={resetPhone}
+                        onChange={(e) => setResetPhone(e.target.value)}
+                      />
+                      <Button type="submit" disabled={busy} className="w-full rounded-full h-10">
+                        {busy ? "שולח…" : "לקבל שיחה עם קוד"}
+                      </Button>
+                    </form>
+                  ) : (
+                    <form onSubmit={confirmPhoneReset} className="space-y-3">
+                      <p className="text-xs text-muted-foreground">הקלידי את הקוד שנקרא לך בשיחה, ואת הסיסמה החדשה.</p>
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        dir="ltr"
+                        required
+                        placeholder="קוד מהשיחה"
+                        value={resetCode}
+                        onChange={(e) => setResetCode(e.target.value)}
+                      />
+                      <Input
+                        type="password"
+                        inputMode="numeric"
+                        dir="ltr"
+                        required
+                        minLength={MIN_PIN}
+                        placeholder="סיסמה חדשה"
+                        value={resetNewPassword}
+                        onChange={(e) => setResetNewPassword(e.target.value)}
+                      />
+                      <div className="flex gap-2">
+                        <Button type="submit" disabled={busy} className="flex-1 rounded-full h-10">
+                          {busy ? "מעדכן…" : "עדכון סיסמה"}
+                        </Button>
+                        <Button type="button" variant="ghost" className="rounded-full h-10" onClick={() => setPhoneResetStep("request")}>
+                          לא קיבלתי קוד
+                        </Button>
+                      </div>
+                    </form>
+                  )}
+                </div>
               )}
             </TabsContent>
             <TabsContent value="signup">
