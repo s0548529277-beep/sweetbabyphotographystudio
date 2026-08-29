@@ -7,6 +7,7 @@ import { detectMenuIntent, wantsFullGuide, wantsToBookNow } from "@/lib/voice-me
 import { getVoiceBotConfig } from "@/lib/voice-phrases.server";
 import { personalizedGreeting } from "@/lib/voice-caller.server";
 import { consumePendingVoiceNotification } from "@/lib/voice-pending-notification.server";
+import { startNoAiBooking, continueNoAiBooking, isNbStage, type DraftBooking } from "@/lib/voice-noai-booking.server";
 
 // One extension in ימות המשיח, configured as a "שלוחת API" pointing here —
 // unlike Twilio's two-URL pattern (incoming call vs. gather response),
@@ -104,9 +105,8 @@ async function handle(request: Request): Promise<Response> {
       return yemotSayAndListen(phrases.didnt_hear);
     }
 
-    const { data: session } = await supabaseAdmin
-      .from("voice_call_sessions")
-      .select("messages, from_number, stage")
+    const { data: session } = await (supabaseAdmin.from("voice_call_sessions") as any)
+      .select("messages, from_number, stage, draft_booking")
       .eq("call_sid", callSid)
       .maybeSingle();
 
@@ -119,11 +119,34 @@ async function handle(request: Request): Promise<Response> {
     const phone = session.from_number || callerPhone;
     const stage = (session as { stage?: string }).stage ?? "menu";
 
-    const save = (messages: VoiceMessage[], newStage: string) =>
-      supabaseAdmin.from("voice_call_sessions").upsert(
-        { call_sid: callSid, from_number: phone, messages, stage: newStage, updated_at: new Date().toISOString() },
+    // draft_booking is a brand-new column (voice-noai-booking.server.ts) —
+    // not yet in the generated Supabase types, same stale-types gap as
+    // every other `as never`/`as any` cast in this codebase; see
+    // ai-bot-efficiency skill for the pattern this follows.
+    const save = (messages: VoiceMessage[], newStage: string, draft?: DraftBooking | null) =>
+      (supabaseAdmin.from("voice_call_sessions") as any).upsert(
+        { call_sid: callSid, from_number: phone, messages, stage: newStage, draft_booking: draft ?? null, updated_at: new Date().toISOString() },
         { onConflict: "call_sid" },
       );
+
+    // Responds with one turn of the no-AI booking flow (voice-noai-
+    // booking.server.ts) — shared by both ways into it: the explicit
+    // "book now" phrasing in fixed-menu mode, and the automatic escalation
+    // when the AI keeps failing but she's clearly trying to book (see the
+    // catch block below).
+    const respondNbStart = async (userText: string): Promise<Response> => {
+      const start = await startNoAiBooking(phone);
+      await save([...priorMessages, { role: "user", content: userText }, { role: "assistant", content: start.say }], start.stage, start.draft);
+      return yemotSayAndListen(start.say);
+    };
+    const respondNb = async (result: Awaited<ReturnType<typeof continueNoAiBooking>>, userText: string): Promise<Response> => {
+      if (result.done) {
+        await save([...priorMessages, { role: "user", content: userText }, { role: "assistant", content: result.say }], "chat", null);
+        return result.hangup ? yemotSayAndHangup(result.say) : yemotSayAndListen(result.say);
+      }
+      await save([...priorMessages, { role: "user", content: userText }, { role: "assistant", content: result.say }], result.stage, result.draft);
+      return yemotSayAndListen(result.say);
+    };
 
     // Runs a real AI turn and replies with the right directive for whatever
     // the model decided to do — shared by every stage that can fall through
@@ -153,6 +176,18 @@ async function handle(request: Request): Promise<Response> {
       return yemotSayAndListen(text);
     };
 
+    // ---- Stage 0: the no-AI, fixed-question booking flow ----
+    // (voice-noai-booking.server.ts) — never touches the AI at all, so it
+    // works exactly when the 3-tier AI fallback doesn't. Reached either
+    // explicitly (see the "fixed" menu-mode branch below) or automatically
+    // when the AI keeps failing on a call that's clearly trying to book
+    // (see the catch block at the end of this function).
+    if (isNbStage(stage)) {
+      const draft = ((session as any).draft_booking as DraftBooking | null) ?? {};
+      const result = await continueNoAiBooking(stage, speech, draft, phone);
+      return await respondNb(result, speech);
+    }
+
     // ---- Stage 1: the spoken-keyword menu ----
     if (stage === "menu") {
       // "ai" mode (see MENU_MODE_KEY's doc comment): skip the canned-phrase
@@ -179,9 +214,13 @@ async function handle(request: Request): Promise<Response> {
       }
       if (intent === 1 || intent === 2) {
         // She already said she wants to book/reserve, not just hear rates —
-        // skip the pricing blurb and go straight into the real conversation,
-        // which starts collecting booking details immediately.
-        if (wantsToBookNow(speech)) return await runOpenTurn(speech);
+        // skip the pricing blurb and go straight into booking. "fixed" menu
+        // mode means the admin deliberately wants AI avoided on this line
+        // (see MENU_MODE_KEY's doc comment), so this goes to the no-AI,
+        // fixed-question flow instead of runOpenTurn — otherwise "fixed"
+        // mode's own booking path would still secretly depend on the AI,
+        // defeating its whole point as a full AI-avoidance toggle.
+        if (wantsToBookNow(speech)) return await respondNbStart(speech);
         const blurb = intent === 1 ? phrases.studio_blurb : phrases.props_blurb;
         const text = `${blurb} ${phrases.anything_else}`;
         await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: text }], "chat");
@@ -247,8 +286,30 @@ async function handle(request: Request): Promise<Response> {
       const priorMessages = ((existing?.messages as VoiceMessage[] | undefined) ?? []) as VoiceMessage[];
       const phone = existing?.from_number || callerPhone;
       const lastWasError = priorMessages[priorMessages.length - 1]?.content === phrases.temporary_error;
+      // Real logs from a live outage showed the AI failing on EVERY turn of
+      // a call — with the old logic that meant THIS branch fired repeatedly,
+      // re-prompting "leave a message" and re-announcing "your message was
+      // sent" several times over in the same call for what was really her
+      // just continuing to explain herself in fragments across turns that
+      // each independently failed. Track whether a message already went out
+      // this call and never repeat that specific prompt/announcement again.
+      const alreadyLeftMessage = priorMessages.some((m) => m.role === "assistant" && m.content === phrases.leave_message_thanks);
+      // If she's clearly trying to book — this turn or an earlier one this
+      // call — the actually useful move when the AI won't cooperate is to
+      // get her the booking anyway: the fixed-question flow below never
+      // touches the AI, so it keeps working exactly when the AI doesn't.
+      const bookingIntent = wantsToBookNow(speech) || priorMessages.some((m) => m.role === "user" && wantsToBookNow(m.content));
 
-      if (lastWasError) {
+      if (bookingIntent) {
+        const start = await startNoAiBooking(phone);
+        await (supabaseAdmin.from("voice_call_sessions") as any).upsert(
+          { call_sid: callSid, from_number: phone, messages: [...priorMessages, { role: "assistant", content: start.say }], stage: start.stage, draft_booking: start.draft, updated_at: new Date().toISOString() },
+          { onConflict: "call_sid" },
+        );
+        return yemotSayAndListen(start.say);
+      }
+
+      if (lastWasError && !alreadyLeftMessage) {
         await supabaseAdmin.from("voice_call_sessions").upsert(
           { call_sid: callSid, from_number: phone, messages: [...priorMessages, { role: "assistant", content: phrases.leave_message_prompt }], stage: "leaving_message", updated_at: new Date().toISOString() },
           { onConflict: "call_sid" },
