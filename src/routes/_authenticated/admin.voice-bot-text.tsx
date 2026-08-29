@@ -3,16 +3,21 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
+  getNoAiBookingEnabled,
   getVoiceMenuMode,
+  listNoAiBookingSessions,
   listVoiceBotPhrases,
   resetVoiceBotPhrase,
+  setNoAiBookingEnabled,
   setVoiceMenuMode,
   updateVoiceBotPhrase,
+  type NoAiBookingSessionRow,
   type VoiceBotPhraseRow,
 } from "@/lib/admin-voice-phrases.functions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Mic, RotateCcw, Save, Sparkles, ListChecks } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Mic, RotateCcw, Save, Sparkles, ListChecks, PhoneCall, CalendarCheck2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/voice-bot-text")({
@@ -162,6 +167,115 @@ function MenuModeCard() {
   );
 }
 
+function NoAiBookingCard() {
+  const qc = useQueryClient();
+  const fetchEnabled = useServerFn(getNoAiBookingEnabled);
+  const doSetEnabled = useServerFn(setNoAiBookingEnabled);
+  const q = useQuery({ queryKey: ["admin-noai-booking-enabled"], queryFn: () => fetchEnabled({}) });
+  const [saving, setSaving] = useState(false);
+  const enabled = q.data ?? true;
+
+  const toggle = async (next: boolean) => {
+    setSaving(true);
+    try {
+      await doSetEnabled({ data: { enabled: next } });
+      toast.success(next ? "התהליך הופעל" : "התהליך כובה");
+      qc.invalidateQueries({ queryKey: ["admin-noai-booking-enabled"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "השמירה נכשלה");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-card rounded-2xl border border-primary/5 p-4 space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2 text-sm font-medium text-primary">
+            <PhoneCall className="h-4 w-4 text-blush-deep" /> שריון סטודיו בשאלות קבועות (בלי בינה בכלל)
+          </div>
+          <p className="text-xs text-muted-foreground mt-1 max-w-md">
+            כשמופעל: אם המתקשרת אומרת שהיא רוצה לשריין ובמצב "תפריט קבוע", או אם הבינה נכשלת שוב ושוב באמצע שיחה שנראית כמו הזמנה — הבוט עובר לשאול שם/תאריך/שעה/משך/מייל אחד אחרי השני ושומר שריון אמיתי, בלי לגעת בבינה בכלל.
+          </p>
+        </div>
+        <Switch checked={enabled} disabled={saving || q.isLoading} onCheckedChange={toggle} />
+      </div>
+    </div>
+  );
+}
+
+const NB_STAGE_LABELS: Record<string, string> = {
+  nb_name: "עצרה בשאלת השם",
+  nb_date: "עצרה בשאלת התאריך",
+  nb_ampm: "עצרה בשאלת בוקר/ערב",
+  nb_time: "עצרה בשאלת השעה",
+  nb_duration: "עצרה בשאלת משך הזמן",
+  nb_email: "עצרה בשאלת המייל",
+  nb_confirm: "עצרה באישור הסופי",
+};
+
+function draftSummary(draft: Record<string, unknown> | null): string {
+  if (!draft) return "";
+  const parts: string[] = [];
+  if (draft.name) parts.push(`שם: ${draft.name}`);
+  if (draft.date) parts.push(`תאריך: ${draft.date}`);
+  if (draft.hour !== undefined && draft.hour !== null) parts.push(`שעה: ${String(draft.hour).padStart(2, "0")}:${String(draft.minute ?? 0).padStart(2, "0")}`);
+  if (draft.slots) parts.push(`משך: ${(draft.slots as number) / 2} שעות`);
+  if (draft.email) parts.push(`מייל: ${draft.email}`);
+  return parts.join(" · ") || "עדיין לא נאסף מידע";
+}
+
+function NoAiBookingSessionsCard() {
+  const fetchSessions = useServerFn(listNoAiBookingSessions);
+  const q = useQuery({ queryKey: ["admin-noai-booking-sessions"], queryFn: () => fetchSessions({}) });
+  const rows = (q.data ?? []) as NoAiBookingSessionRow[];
+  const inProgress = rows.filter((r) => r.stage.startsWith("nb_"));
+  const finished = rows.filter((r) => !r.stage.startsWith("nb_"));
+
+  return (
+    <div className="bg-card rounded-2xl border border-primary/5 p-4 space-y-3">
+      <div className="flex items-center gap-2 text-sm font-medium text-primary">
+        <CalendarCheck2 className="h-4 w-4 text-blush-deep" /> שיחות בתהליך השריון הקבוע — 50 האחרונות
+      </div>
+      <p className="text-xs text-muted-foreground">
+        שריון שהושלם בהצלחה נראה כרגיל ברשימת ההזמנות. הרשימה הזו נועדה לאתר מי התחילה תהליך ולא סיימה (למשל נתקעה על שאלה) — שווה חזרה טלפונית.
+      </p>
+      {q.isLoading && <p className="text-xs text-muted-foreground">טוען…</p>}
+      {!q.isLoading && rows.length === 0 && <p className="text-xs text-muted-foreground">אין עדיין שיחות דרך התהליך הזה.</p>}
+      {inProgress.length > 0 && (
+        <div className="space-y-2">
+          <div className="text-[11px] font-medium text-blush-deep">באמצע התהליך / לא הושלם ({inProgress.length})</div>
+          {inProgress.map((r) => (
+            <div key={r.callSid} className="rounded-xl border border-blush/40 bg-blush/10 p-3 text-xs space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <span dir="ltr" className="font-medium text-primary">{r.phone || "מספר לא ידוע"}</span>
+                <span className="text-muted-foreground">{new Date(r.updatedAt).toLocaleString("he-IL")}</span>
+              </div>
+              <div className="text-muted-foreground">{NB_STAGE_LABELS[r.stage] ?? r.stage}</div>
+              <div className="text-muted-foreground">{draftSummary(r.draft)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {finished.length > 0 && (
+        <div className="space-y-2">
+          <div className="text-[11px] font-medium text-muted-foreground">יצאו מהתהליך (הושלם/בוטל) ({finished.length})</div>
+          {finished.map((r) => (
+            <div key={r.callSid} className="rounded-xl border border-primary/5 p-3 text-xs space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <span dir="ltr" className="font-medium text-primary">{r.phone || "מספר לא ידוע"}</span>
+                <span className="text-muted-foreground">{new Date(r.updatedAt).toLocaleString("he-IL")}</span>
+              </div>
+              <div className="text-muted-foreground">{draftSummary(r.draft)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function VoiceBotTextAdmin() {
   const fetchPhrases = useServerFn(listVoiceBotPhrases);
   const fetchMode = useServerFn(getVoiceMenuMode);
@@ -185,6 +299,8 @@ function VoiceBotTextAdmin() {
       </div>
 
       <MenuModeCard />
+      <NoAiBookingCard />
+      <NoAiBookingSessionsCard />
 
       <div className="space-y-3">
         {rows.map((row) => (

@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { DEFAULT_PHRASES, MENU_MODE_KEY, PHRASE_LABELS, type PhraseKey, type VoiceMenuMode } from "@/lib/voice-phrases.server";
+import { DEFAULT_PHRASES, MENU_MODE_KEY, NOAI_BOOKING_ENABLED_KEY, PHRASE_LABELS, type PhraseKey, type VoiceMenuMode } from "@/lib/voice-phrases.server";
 
 async function assertAdmin(supabase: any, userId: string) {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
@@ -81,4 +81,64 @@ export const setVoiceMenuMode = createServerFn({ method: "POST" })
       .upsert({ key: MENU_MODE_KEY, value: data.mode, updated_at: new Date().toISOString() }, { onConflict: "key" });
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+/** Whether the no-AI, fixed-question booking flow (voice-noai-booking.server.ts) is available on live calls — see NOAI_BOOKING_ENABLED_KEY's own doc comment. */
+export const getNoAiBookingEnabled = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<boolean> => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data, error } = await context.supabase.from("voice_bot_phrases").select("value").eq("key", NOAI_BOOKING_ENABLED_KEY).maybeSingle();
+    if (error) throw new Error(error.message);
+    return data?.value !== "off";
+  });
+
+export const setNoAiBookingEnabled = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ enabled: z.boolean() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await context.supabase
+      .from("voice_bot_phrases")
+      .upsert({ key: NOAI_BOOKING_ENABLED_KEY, value: data.enabled ? "on" : "off", updated_at: new Date().toISOString() }, { onConflict: "key" });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export type NoAiBookingSessionRow = {
+  callSid: string;
+  phone: string;
+  stage: string;
+  draft: Record<string, unknown> | null;
+  updatedAt: string;
+};
+
+/**
+ * Recent calls that entered the no-AI booking flow (voice-noai-
+ * booking.server.ts) — identified by draft_booking not being null, since
+ * that column is only ever written while a call is inside this specific
+ * flow. Lets the studio see who started a phone booking this way, whether
+ * she finished it (stage "chat"/"nb_confirm" done — a completed booking
+ * itself shows up in the normal bookings/calendar views, this is about
+ * spotting an ABANDONED attempt worth a follow-up call) or got stuck
+ * re-asking the same question (stage stayed on one nb_ step across
+ * updates).
+ */
+export const listNoAiBookingSessions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<NoAiBookingSessionRow[]> => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data, error } = await (context.supabase.from("voice_call_sessions") as any)
+      .select("call_sid, from_number, stage, draft_booking, updated_at")
+      .not("draft_booking", "is", null)
+      .order("updated_at", { ascending: false })
+      .limit(50);
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((r: any) => ({
+      callSid: r.call_sid,
+      phone: r.from_number ?? "",
+      stage: r.stage ?? "",
+      draft: r.draft_booking ?? null,
+      updatedAt: r.updated_at,
+    }));
   });
