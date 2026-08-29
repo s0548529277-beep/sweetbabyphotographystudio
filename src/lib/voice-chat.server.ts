@@ -185,30 +185,17 @@ function stripEchoOpener(text: string): string {
   return text;
 }
 
-// A handful of domain nouns that are genuinely rare/ambiguous for TTS to
-// read correctly without niqqud (vowel points) — same spellings already
-// used for the fixed phrases in voice-phrases.server.ts, for consistency.
-// Applied as a deterministic post-processing replace on the model's own
-// free-form reply, exactly like stripEchoOpener above — NOT by asking the
-// model to vocalize its whole reply itself, which was considered and
-// rejected: that would cost real extra output tokens (and latency, on a
-// live call) on EVERY single turn, for a benefit limited to a handful of
-// words, and risks the model producing *wrong* niqqud that sounds worse
-// than none. This costs zero AI tokens and zero added latency.
-const NIQQUD_FIXUPS: Array<[RegExp, string]> = [
-  [/חלאקה/g, "חֲלָאקָה"],
-  [/שריון(?!ות|יות)/g, "שִׁרְיוּן"], // plural/other inflections left alone — different vocalization, rare in speech
-  [/מקדמה/g, "מִקְדָּמָה"],
-  [/הדרכה/g, "הַדְרָכָה"],
-  [/הגעה/g, "הַגָּעָה"],
-  [/אביזרים/g, "אֲבִיזָרִים"],
-];
-
-function applyNiqqudFixups(text: string): string {
-  let out = text;
-  for (const [re, replacement] of NIQQUD_FIXUPS) out = out.replace(re, replacement);
-  return out;
-}
+// A niqqud (vowel-point) fixup for a handful of domain nouns was tried here
+// — a deterministic string-replace on the model's reply, zero AI-token cost
+// — but reverted: confirmed live (owner listened to the actual call) that
+// the hand-picked niqqud was itself incorrect. Wrong niqqud is worse than
+// none (a mis-vocalized word can force a *worse* pronunciation than the
+// TTS engine's own default reading), and there's no way to verify correct
+// niqqud from this environment without hearing the real TTS output — so
+// don't re-add this without a way to confirm the vocalization is actually
+// right first. The deeper pronunciation-clarity question turned out to be
+// about the TTS engine/voice itself, not spelling — see the admin toggle
+// below for the real fix being tried instead.
 
 /** Runs one turn of the phone-call conversation through the same AI brain as the text chat, with a voice-appropriate tool set (read-only site info + phone booking + transfer/end-call signals). */
 export async function runVoiceTurn(messages: VoiceMessage[], callerPhone: string): Promise<VoiceTurnResult> {
@@ -252,5 +239,5 @@ export async function runVoiceTurn(messages: VoiceMessage[], callerPhone: string
     }
   }
 
-  return { text: applyNiqqudFixups(stripEchoOpener(result.text)), action };
+  return { text: stripEchoOpener(result.text), action };
 }

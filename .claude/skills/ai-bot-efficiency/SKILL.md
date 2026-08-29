@@ -248,4 +248,12 @@ survivors?"
   codebase**: when quality trades directly against tokens/latency, look for
   a deterministic post-processing fix before reaching for a prompt
   instruction — a fixed/known-vocabulary substitution belongs in code, not
-  in every model call.
+  in every model call. **Reverted the same day**: the owner listened to the
+  actual call and confirmed the hand-picked niqqud itself was wrong — this
+  environment has no way to hear real Yemot TTS output to verify a
+  vocalization is correct before shipping it, so a guessed niqqud fixup is
+  exactly the kind of unverifiable guess principle #3 warns against for
+  model names, just applied to a different kind of string. The mechanism
+  (deterministic post-processing, zero token cost) was sound; the *content*
+  wasn't verifiable from here. Don't re-add a niqqud dictionary without a
+  real way to confirm the vocalization against actual TTS audio first.
