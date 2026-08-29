@@ -191,9 +191,13 @@ function buildVoiceTools(callerPhone: string) {
           }),
           admin_open_door_now: tool({
             description:
-              'פותחת דלת הסטודיו עבור בעלת הסטודיו בלבד — יוצרת קוד כניסה זמני (בתוקף לכמה שעות) ומחזירה אותו כדי שתקריאי אותו בקול. יש לוודא PIN תקין *לפני* קריאה לכלי, בדיוק כמו ב-admin_business_snapshot. זו פעולה רגישה (פותחת גישה פיזית לסטודיו) — לעולם אל תקראי לכלי הזה בלי PIN מאומת, ואל תמציאי/תנחשי קוד דלת בעצמך.',
-            inputSchema: z.object({ pin: z.string().min(1).describe("קוד ה-PIN שהמתקשרת אמרה בקול") }),
-            execute: async ({ pin }) => {
+              'פותחת דלת הסטודיו עבור בעלת הסטודיו בלבד — יוצרת קוד כניסה זמני ומחזירה אותו כדי שתקריאי אותו בקול. יש לוודא PIN תקין *לפני* קריאה לכלי, בדיוק כמו ב-admin_business_snapshot. זו פעולה רגישה (פותחת גישה פיזית לסטודיו) — לעולם אל תקראי לכלי הזה בלי PIN מאומת, ואל תמציאי/תנחשי קוד דלת בעצמך. שאלי כמה זמן היא צריכה שהקוד יהיה תקף (למשל "לכמה זמן?") — ברירת מחדל 4 שעות אם לא צוין אחרת, מקסימום 24 שעות. אם היא אומרת שזו כניסה חד-פעמית/מיידית בלבד (נכנסת עכשיו ולא צריכה את הקוד אחר כך) — סמני oneTime, וזה ייתן קוד שתקף רק לרבע שעה קרוב (לא באמת חד-פעמי טכנית — אין עדיין ביטול אוטומטי אחרי שימוש ראשון — אלא חלון קצר מאוד שמשיג בפועל את אותה תוצאה).',
+            inputSchema: z.object({
+              pin: z.string().min(1).describe("קוד ה-PIN שהמתקשרת אמרה בקול"),
+              hours: z.number().min(0.25).max(24).optional().describe("כמה שעות הקוד יהיה תקף — ברירת מחדל 4 אם לא נאמר אחרת"),
+              oneTime: z.boolean().optional().describe("כניסה חד-פעמית/מיידית בלבד — יעקוף את hours ויתן חלון קצר של רבע שעה"),
+            }),
+            execute: async ({ pin, hours, oneTime }) => {
               if (!verifyAdminPin(pin)) {
                 return {
                   ok: false,
@@ -201,16 +205,25 @@ function buildVoiceTools(callerPhone: string) {
                     "הקוד שגוי. אל תגלי אם הוא היה קרוב או רחוק מהנכון, ואל תפתחי כלום. תני לה הזדמנות נוספת אחת בלבד; אם היא שוב טועה, אל תמשיכי לנסות — הציעי שתפתח באמצעי אחר.",
                 };
               }
+              // TTLock's own single-use passcode parameter isn't verified
+              // against this account/integration yet (see
+              // issueAdHocDoorCode's own doc comment) — rather than guess at
+              // an unconfirmed API shape for something this sensitive, a
+              // short validity window achieves the same practical outcome
+              // ("use it now, not still open hours later") on the exact same
+              // proven code path already used for real bookings.
+              const validForMinutes = oneTime ? 15 : Math.round((hours ?? 4) * 60);
               try {
                 const { issueAdHocDoorCode } = await import("@/integrations/ttlock/client.server");
-                const result = await issueAdHocDoorCode({ label: "פתיחה מיידית - טלפון", validForMinutes: 240 });
+                const result = await issueAdHocDoorCode({ label: "פתיחה מיידית - טלפון", validForMinutes });
                 if (!result) {
                   return { ok: false, message: "יצירת הקוד נכשלה מסיבה טכנית. הציעי שתנסה שוב בעוד רגע, או שתשתמש בקוד קיים אם יש." };
                 }
+                const validityText = oneTime ? "רבע שעה בלבד — תיכנסי איתו עכשיו" : `${hours ?? 4} שעות מעכשיו`;
                 return {
                   ok: true,
                   code: result.code,
-                  message: `הקריאי בקול בבירור את הקוד: ${result.code}, ואמרי שהוא בתוקף לארבע שעות מעכשיו. תזכירי לה ללחוץ # אחרי הקשת הקוד בלוח.`,
+                  message: `הקריאי בקול בבירור את הקוד: ${result.code}, ואמרי שהוא בתוקף ל${validityText}. תזכירי לה ללחוץ # אחרי הקשת הקוד בלוח.`,
                 };
               } catch (e: any) {
                 return { ok: false, message: `יצירת הקוד נכשלה: ${e?.message ?? "שגיאה לא צפויה"}. הציעי שתנסה שוב בעוד רגע.` };
