@@ -8,6 +8,7 @@ import {
   studioAvailability,
 } from "./availability.server";
 import { STUDIO_GUIDE_HE } from "./studio-guide.server";
+import { ARRIVAL_TEXT_HE } from "./arrival";
 
 const PRICE_FIRST_HOUR = 120;
 const PRICE_EXTRA_HOUR = 90;
@@ -163,6 +164,13 @@ export function buildAssistantTools(opts?: { isAuthenticated?: boolean }) {
         "מחזירה את מדריך השימוש הרשמי בציוד הסטודיו (משדר, פלאש, מצלמה, רקעים, רצפות עץ). קרא/י לזה רק כשלקוחה שואלת שאלה ספציפית על ציוד/הפעלה, או מדווחת על תקלה — לא בכל שיחה.",
       inputSchema: z.object({}),
       execute: async () => ({ guide: STUDIO_GUIDE_HE }),
+    }),
+
+    get_arrival_directions: tool({
+      description:
+        "מחזירה הנחיות הגעה מלאות לסטודיו — כתובת ל-Waze, איך להגיע ברכב, וקווי אוטובוס + הליכה. קרא/י לזה רק כשלקוחה שואלת איך להגיע/דרכי הגעה — לא בכל שיחה.",
+      inputSchema: z.object({}),
+      execute: async () => ({ directions: ARRIVAL_TEXT_HE }),
     }),
 
     current_datetime: tool({

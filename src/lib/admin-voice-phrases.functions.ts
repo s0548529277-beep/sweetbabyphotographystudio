@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { DEFAULT_PHRASES, PHRASE_LABELS, type PhraseKey } from "@/lib/voice-phrases.server";
+import { DEFAULT_PHRASES, MENU_MODE_KEY, PHRASE_LABELS, type PhraseKey, type VoiceMenuMode } from "@/lib/voice-phrases.server";
 
 async function assertAdmin(supabase: any, userId: string) {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
@@ -57,6 +57,28 @@ export const resetVoiceBotPhrase = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { error } = await context.supabase.from("voice_bot_phrases").delete().eq("key", data.key);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Which "menu" stage behavior the live call uses — see MENU_MODE_KEY's own doc comment in voice-phrases.server.ts. */
+export const getVoiceMenuMode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<VoiceMenuMode> => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data, error } = await context.supabase.from("voice_bot_phrases").select("value").eq("key", MENU_MODE_KEY).maybeSingle();
+    if (error) throw new Error(error.message);
+    return data?.value === "fixed" ? "fixed" : "ai";
+  });
+
+export const setVoiceMenuMode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ mode: z.enum(["ai", "fixed"]) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await context.supabase
+      .from("voice_bot_phrases")
+      .upsert({ key: MENU_MODE_KEY, value: data.mode, updated_at: new Date().toISOString() }, { onConflict: "key" });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
