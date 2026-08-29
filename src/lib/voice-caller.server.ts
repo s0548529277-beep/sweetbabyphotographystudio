@@ -90,7 +90,72 @@ export async function lookupCallerProfile(callerPhone: string): Promise<CallerPr
 
 /** Builds the very first thing the caller hears — personalized with her name up front when she's a recognized account, otherwise the plain greeting. */
 export async function personalizedGreeting(greetingAndMenu: string, callerPhone: string): Promise<string> {
+  // Checked first, before the generic profiles-table lookup below — the
+  // studio's own admin numbers (voice-admin.server.ts) don't necessarily
+  // have a real customer profile row, so they'd otherwise get the plain,
+  // impersonal greeting.
+  const { adminVoiceCallerName } = await import("./voice-admin.server");
+  const adminName = adminVoiceCallerName(callerPhone);
+  if (adminName) return `שלום ${adminName}, בעלת הסטודיו! ${greetingAndMenu}`;
+
   const profile = await lookupCallerProfile(callerPhone);
   if (!profile?.name) return greetingAndMenu;
   return `שלום ${profile.name}! ${greetingAndMenu}`;
+}
+
+export type CallerAccountSummary = {
+  bookings: Array<{ date: string; time: string; status: string; price: number | null }>;
+  orders: Array<{ date: string; status: string; total: number | null }>;
+  creditBalance: number | null;
+  passes: Array<{ planName: string; entriesLeft: number; status: string }>;
+};
+
+/**
+ * A recognized customer's own full personal-area summary, for the "any
+ * identified customer can ask about her whole personal area" voice
+ * capability — deliberately scoped to exactly her own userId (never
+ * cross-customer), mirroring what /account already shows her on the site,
+ * just condensed for speech. Safe to expose to any matched caller since
+ * it's her own data — no PIN/admin gate needed here, unlike
+ * voice-admin.server.ts's owner-only tools.
+ */
+export async function getCallerAccountSummary(userId: string): Promise<CallerAccountSummary> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const today = new Date().toISOString().slice(0, 10);
+
+  const [bookingsRes, ordersRes, loyaltyRes, passesRes] = await Promise.all([
+    supabaseAdmin
+      .from("bookings")
+      .select("session_date, start_time, status, price")
+      .eq("user_id", userId)
+      .neq("status", "cancelled")
+      .gte("session_date", today)
+      .order("session_date", { ascending: true })
+      .limit(5),
+    supabaseAdmin
+      .from("orders")
+      .select("session_date, status, total")
+      .eq("user_id", userId)
+      .neq("status", "cancelled")
+      .order("created_at", { ascending: false })
+      .limit(5),
+    supabaseAdmin
+      .from("customer_loyalty" as never)
+      .select("credit_balance")
+      .eq("user_id" as never, userId as never)
+      .maybeSingle(),
+    supabaseAdmin
+      .from("subscription_passes" as never)
+      .select("plan_name, total_entries, entries_used, status")
+      .eq("user_id" as never, userId as never)
+      .order("purchased_at" as never, { ascending: false } as never)
+      .limit(5),
+  ]);
+
+  return {
+    bookings: (bookingsRes.data ?? []).map((b: any) => ({ date: b.session_date, time: String(b.start_time).slice(0, 5), status: b.status, price: b.price ?? null })),
+    orders: (ordersRes.data ?? []).map((o: any) => ({ date: o.session_date, status: o.status, total: o.total ?? null })),
+    creditBalance: (loyaltyRes.data as any)?.credit_balance ?? null,
+    passes: ((passesRes.data ?? []) as any[]).map((p) => ({ planName: p.plan_name, entriesLeft: Math.max(0, (p.total_entries ?? 0) - (p.entries_used ?? 0)), status: p.status })),
+  };
 }

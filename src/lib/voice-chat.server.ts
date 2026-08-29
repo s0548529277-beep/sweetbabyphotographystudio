@@ -6,6 +6,7 @@ import { SYSTEM } from "./ai.functions";
 import { createPhoneBooking } from "./voice-booking.server";
 import { sendMessageToStudio, PROPS_REQUEST_CONTEXT_MARKER } from "./voice-message.server";
 import { isAdminVoiceCaller, verifyAdminPin, getAdminVoiceSnapshot } from "./voice-admin.server";
+import { lookupCallerProfile, getCallerAccountSummary } from "./voice-caller.server";
 
 export type VoiceMessage = { role: "user" | "assistant"; content: string };
 
@@ -63,17 +64,22 @@ function buildVoiceTools(callerPhone: string) {
             props_request: args.propsRequest,
             notes: args.notes,
           });
+          const newAccountPin = (res as { newAccountPin?: string | null }).newAccountPin ?? null;
+          const accountNote = newAccountPin
+            ? ` נפתח לה גם אזור אישי חדש באתר — לקראת סוף השיחה (לא באמצע, אחרי שכל שאר הפרטים סגורים) תגידי לה בבירור שאפשר להיכנס לאזור האישי עם האימייל שלה והקוד ${newAccountPin} (תקריאי את הספרות אחת-אחת), ושם לראות/לעדכן את כל פרטי ההזמנה.`
+            : "";
           return {
             ok: true,
             bookingId: res.id,
             price: res.price,
             deposit: res.deposit,
             emailSent: res.emailSent,
-            message: (res as { alreadyExisted?: boolean }).alreadyExisted
-              ? "השריון הזה כבר נוצר קודם באותה שיחה — אין צורך ליצור אותו שוב. תסבירי בקצרה ללקוחה שההזמנה כבר שמורה, ושכדי לסגור סופית צריך רק לשלם את המקדמה (בקישור שכבר נשלח למייל, אם היה מייל, אחרת בהעברה הבנקאית שהוצעה)."
-              : res.emailSent
-                ? "הבקשה נשמרה במצב ממתין ונשלח מייל עם קישור תשלום מקדמה מאובטח. הסבר ללקוחה שהתאריך שמור לה זמנית, ושברגע שהיא תשלם דרך הקישור במייל השריון יתאשר סופית."
-                : "הבקשה נשמרה במצב ממתין. הסבר ללקוחה שהתאריך שמור לה זמנית, ושתקבל שיחה חוזרת מהסטודיו לתיאום סופי ותשלום המקדמה.",
+            message:
+              ((res as { alreadyExisted?: boolean }).alreadyExisted
+                ? "השריון הזה כבר נוצר קודם באותה שיחה — אין צורך ליצור אותו שוב. תסבירי בקצרה ללקוחה שההזמנה כבר שמורה, ושכדי לסגור סופית צריך רק לשלם את המקדמה (בקישור שכבר נשלח למייל, אם היה מייל, אחרת בהעברה הבנקאית שהוצעה)."
+                : res.emailSent
+                  ? "הבקשה נשמרה במצב ממתין ונשלח מייל עם קישור תשלום מקדמה מאובטח. הסבר ללקוחה שהתאריך שמור לה זמנית, ושברגע שהיא תשלם דרך הקישור במייל השריון יתאשר סופית."
+                  : "הבקשה נשמרה במצב ממתין. הסבר ללקוחה שהתאריך שמור לה זמנית, ושתקבל שיחה חוזרת מהסטודיו לתיאום סופי ותשלום המקדמה.") + accountNote,
           };
         } catch (e: any) {
           return {
@@ -146,6 +152,26 @@ function buildVoiceTools(callerPhone: string) {
             ? 'הבקשה נשלחה לסטודיו. הסבירי ללקוחה שהשריון בפועל יתבצע ע"י הסטודיו לאחר בדיקה סופית של המלאי, ושיחזרו אליה בהקדם עם פרטי תשלום.'
             : "השליחה לא הצליחה באופן ודאי — עדיין תגידי ללקוחה שקיבלת את הבקשה ושיחזרו אליה, ותמליצי גם על יצירת קשר ישיר: 054-8529277.",
         };
+      },
+    }),
+    get_my_account_info: tool({
+      description:
+        'תמונת מצב מהאזור האישי של המתקשרת עצמה באתר — שריונים קרובים, הזמנות אחרונות, יתרת קרדיט, וכרטיסיות. זמין רק אם המתקשרת מזוהה כבעלת חשבון אמיתי באתר (לפי המספר שממנו היא מתקשרת) — אם היא לא מזוהה, הכלי יגיד זאת ואין צורך לנחש. תמיד יוצג רק המידע של המתקשרת עצמה.',
+      inputSchema: z.object({}),
+      execute: async () => {
+        const profile = await lookupCallerProfile(callerPhone);
+        if (!profile) {
+          return {
+            ok: false,
+            message: "המספר הזה לא מזוהה כחשבון קיים באתר. הסבירי בעדינות שאם יש לה חשבון, כדאי לוודא שהטלפון בפרופיל תואם למספר שממנו היא מתקשרת.",
+          };
+        }
+        try {
+          const summary = await getCallerAccountSummary(profile.userId);
+          return { ok: true, summary };
+        } catch (e: any) {
+          return { ok: false, message: `שליפת המידע נכשלה: ${e?.message ?? "שגיאה לא צפויה"}. הציעי לה להיכנס לאזור האישי באתר במקום.` };
+        }
       },
     }),
     transfer_to_human: tool({

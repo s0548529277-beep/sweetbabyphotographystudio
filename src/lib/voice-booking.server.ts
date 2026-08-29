@@ -2,6 +2,8 @@ import { z } from "zod";
 import { GUIDANCE_FEES, isMorningPackage, priceForBooking } from "@/lib/bookings.functions";
 import { bookingBlocksSlot, PENDING_HOLD_MINUTES } from "@/lib/availability.server";
 import { buildBookingSummaryHtml } from "@/lib/orderSummary";
+import { toAuthPassword } from "@/lib/password";
+import { lookupCallerProfile } from "@/lib/voice-caller.server";
 
 export const PhoneBookingInput = z.object({
   session_date: z.string().min(10),
@@ -112,18 +114,77 @@ export async function createPhoneBooking(input: PhoneBookingInput) {
     console.error("[SWEETBABY] voice booking calendar conflict check failed", e);
   }
 
-  // bookings.user_id is NOT NULL — mint a fresh anonymous account for this
-  // caller, exactly like the "continue as guest" flow does client-side.
-  const { createClient } = await import("@supabase/supabase-js");
-  const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
-  if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) throw new Error("Missing SUPABASE_URL/SUPABASE_PUBLISHABLE_KEY");
-  const anon = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { data: anonAuth, error: anonErr } = await anon.auth.signInAnonymously();
-  if (anonErr || !anonAuth.user) throw new Error(anonErr?.message ?? "יצירת זהות זמנית ללקוחה נכשלה");
-  const userId = anonAuth.user.id;
+  // Real, login-capable personal area — per explicit request: a phone
+  // customer should get one automatically, not the anonymous placeholder
+  // account this used to always mint (which nobody could ever sign into —
+  // see finalizeBookingConfirmation's own doc comment for the gap that
+  // caused). Three cases, in order:
+  //   1. Already a recognized account (same phone already has a real
+  //      profile, e.g. she's booked/registered before) — reuse it. No new
+  //      password: she already knows her own.
+  //   2. Not recognized, but gave an email on this call — create a REAL
+  //      account right now (supabaseAdmin.auth.admin.createUser, not the
+  //      client-side signUp flow — there's no browser session to run that
+  //      through) with a random 4-digit PIN, same short-numeric-password
+  //      scheme the site's own signup form already uses (see password.ts —
+  //      "1234"-style codes are this studio's deliberate, already-shipped
+  //      choice, not a shortcut introduced here). The PIN is generated
+  //      per-customer and read back to her once on the call — never a
+  //      fixed/shared value, which would let anyone who knows a customer's
+  //      email log into her account.
+  //   3. Not recognized, no email — falls back to the previous anonymous
+  //      account (Supabase has no phone/password identity to create one
+  //      under without an email, and this app doesn't have a phone-auth
+  //      provider configured); she just won't get a personal area this
+  //      time.
+  let userId: string;
+  let newAccountPin: string | null = null;
+  const existingCaller = await lookupCallerProfile(input.contact_phone);
+  if (existingCaller) {
+    userId = existingCaller.userId;
+  } else if (input.contact_email) {
+    const pin = String(Math.floor(1000 + Math.random() * 9000)); // random 4-digit, never a fixed/shared value
+    const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+      email: input.contact_email,
+      password: toAuthPassword(pin),
+      email_confirm: true,
+      user_metadata: { full_name: input.contact_name, phone: input.contact_phone },
+    });
+    if (createErr || !created.user) {
+      // Most likely cause: this email is already registered under a
+      // different phone number than the one she's calling from right now
+      // (lookupCallerProfile only matched by phone). Rather than guess at
+      // recovering that account's id from an unconfirmed admin-API shape,
+      // fall back to the anonymous account — same as case 3 — and log it
+      // so it's diagnosable if it turns out to happen often.
+      console.error("[SWEETBABY] voice booking real-account creation failed, falling back to anonymous", createErr);
+      const { createClient } = await import("@supabase/supabase-js");
+      const SUPABASE_URL = process.env.SUPABASE_URL;
+      const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
+      if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) throw new Error("Missing SUPABASE_URL/SUPABASE_PUBLISHABLE_KEY");
+      const anon = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+      const { data: anonAuth, error: anonErr } = await anon.auth.signInAnonymously();
+      if (anonErr || !anonAuth.user) throw new Error(anonErr?.message ?? "יצירת זהות זמנית ללקוחה נכשלה");
+      userId = anonAuth.user.id;
+    } else {
+      userId = created.user.id;
+      newAccountPin = pin;
+      try {
+        await supabaseAdmin.from("profiles").upsert({ id: userId, full_name: input.contact_name, phone: input.contact_phone });
+      } catch (e) {
+        console.error("[SWEETBABY] voice booking profile upsert failed (account still created)", e);
+      }
+    }
+  } else {
+    const { createClient } = await import("@supabase/supabase-js");
+    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
+    if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) throw new Error("Missing SUPABASE_URL/SUPABASE_PUBLISHABLE_KEY");
+    const anon = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data: anonAuth, error: anonErr } = await anon.auth.signInAnonymously();
+    if (anonErr || !anonAuth.user) throw new Error(anonErr?.message ?? "יצירת זהות זמנית ללקוחה נכשלה");
+    userId = anonAuth.user.id;
+  }
 
   const today = new Date().toISOString().slice(0, 10);
   const sameDay = input.session_date === today;
@@ -208,7 +269,11 @@ export async function createPhoneBooking(input: PhoneBookingInput) {
       // otherwise the terms just ride along here, in writing, instead of eating
       // call time reciting them.
       footerNote: input.contact_email
-        ? "<strong>תקנון בקצרה:</strong> מקדמה 90₪ אינה מוחזרת בביטול · ביטול ביום האירוע עצמו = חיוב מלא (100%) · נזק לציוד = עלות תיקון/רכישה + 20% דמי טיפול · ניקיון לא תקין = 150₪."
+        ? `<strong>תקנון בקצרה:</strong> מקדמה 90₪ אינה מוחזרת בביטול · ביטול ביום האירוע עצמו = חיוב מלא (100%) · נזק לציוד = עלות תיקון/רכישה + 20% דמי טיפול · ניקיון לא תקין = 150₪.${
+            newAccountPin
+              ? `<br/><br/><strong>נפתח לך אזור אישי באתר!</strong> אפשר להיכנס עם האימייל הזה והקוד <strong dir="ltr">${newAccountPin}</strong> ולראות את כל פרטי ההזמנה, לעדכן אותה, ולעקוב אחרי סטטוס התשלום.`
+              : ""
+          }`
         : undefined,
     });
     const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
@@ -221,5 +286,5 @@ export async function createPhoneBooking(input: PhoneBookingInput) {
     console.error("[SWEETBABY] voice booking email failed", e);
   }
 
-  return { id: booking.id, price, deposit, endTime, emailSent: !!input.contact_email };
+  return { id: booking.id, price, deposit, endTime, emailSent: !!input.contact_email, newAccountPin };
 }
