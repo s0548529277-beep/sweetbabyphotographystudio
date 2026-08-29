@@ -257,3 +257,12 @@ survivors?"
   (deterministic post-processing, zero token cost) was sound; the *content*
   wasn't verifiable from here. Don't re-add a niqqud dictionary without a
   real way to confirm the vocalization against actual TTS audio first.
+- **2026-08-29 (later)**: Added two admin-only voice tools
+  (admin_business_snapshot, admin_open_door_now — voice-admin.server.ts) —
+  not primarily an efficiency change, but worth noting the pattern: they're
+  spread into buildVoiceTools' return object only `...(isAdminVoiceCaller(callerPhone)
+  ? {...} : {})`, so a regular customer's tool list — and prompt token
+  count — never includes them at all. Conditionally-present tools based on
+  caller identity is a real token-savings lever beyond principle #1's
+  "move rarely-needed content to a tool" — some tools shouldn't even be
+  offered most of the time, not just described briefly.
