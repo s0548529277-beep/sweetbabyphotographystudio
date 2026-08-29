@@ -24,6 +24,10 @@ export const PhoneBookingInput = z.object({
 
 export type PhoneBookingInput = z.infer<typeof PhoneBookingInput>;
 
+// The same code every time, by explicit request — see createPhoneBooking's
+// own doc comment for the trade-off this accepts.
+const FIXED_PHONE_ACCOUNT_PIN = "1234";
+
 /**
  * Creates a real (pending) studio booking from a phone-call conversation —
  * the voice equivalent of placeBooking, used when there's no browser
@@ -125,13 +129,16 @@ export async function createPhoneBooking(input: PhoneBookingInput) {
   //   2. Not recognized, but gave an email on this call — create a REAL
   //      account right now (supabaseAdmin.auth.admin.createUser, not the
   //      client-side signUp flow — there's no browser session to run that
-  //      through) with a random 4-digit PIN, same short-numeric-password
-  //      scheme the site's own signup form already uses (see password.ts —
-  //      "1234"-style codes are this studio's deliberate, already-shipped
-  //      choice, not a shortcut introduced here). The PIN is generated
-  //      per-customer and read back to her once on the call — never a
-  //      fixed/shared value, which would let anyone who knows a customer's
-  //      email log into her account.
+  //      through) with the fixed PIN below, same short-numeric-password
+  //      scheme the site's own signup form already uses (see password.ts).
+  //      FIXED_PHONE_ACCOUNT_PIN is explicitly requested — a random
+  //      per-customer PIN was tried first and reverted: the owner wants
+  //      the same simple, memorable code every time. Real trade-off worth
+  //      knowing: anyone who knows a phone-booking customer's account
+  //      email could sign into her personal area with this same fixed
+  //      code — same risk class the site already accepts for any customer
+  //      who happens to pick "1234" herself at signup, just guaranteed
+  //      instead of possible.
   //   3. Not recognized, no email — falls back to the previous anonymous
   //      account (Supabase has no phone/password identity to create one
   //      under without an email, and this app doesn't have a phone-auth
@@ -143,7 +150,7 @@ export async function createPhoneBooking(input: PhoneBookingInput) {
   if (existingCaller) {
     userId = existingCaller.userId;
   } else if (input.contact_email) {
-    const pin = String(Math.floor(1000 + Math.random() * 9000)); // random 4-digit, never a fixed/shared value
+    const pin = FIXED_PHONE_ACCOUNT_PIN;
     const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
       email: input.contact_email,
       password: toAuthPassword(pin),
