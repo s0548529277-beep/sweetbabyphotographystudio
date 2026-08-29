@@ -2,6 +2,7 @@ import { heError } from "@/lib/he-errors";
 import { createFileRoute, useNavigate, useSearch, Link } from "@tanstack/react-router";
 import { z } from "zod";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { Header } from "@/components/Header";
@@ -12,7 +13,8 @@ import { Label } from "@/components/ui/label";
 import { EmailDatalist } from "@/components/EmailDatalist";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth";
-import { MIN_PIN, authPasswordCandidates, toAuthPassword } from "@/lib/password";
+import { MIN_PIN } from "@/lib/password";
+import { signInWithPhoneOrEmail, signUpWithPhoneOrEmail } from "@/lib/auth.functions";
 import { GuestContinueButton } from "@/components/GuestContinueButton";
 import { toast } from "sonner";
 
@@ -44,20 +46,28 @@ function AuthPage() {
     if (user) nav({ to: (redirect as any) || "/account" });
   }, [user, nav, redirect]);
 
+  const doSignIn = useServerFn(signInWithPhoneOrEmail);
+  const doSignUp = useServerFn(signUpWithPhoneOrEmail);
+
   const signIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setBusy(true);
     const fd = new FormData(e.currentTarget);
-    const email = String(fd.get("email"));
-    const typed = String(fd.get("password"));
-    let lastError: string | null = null;
-    for (const password of authPasswordCandidates(typed)) {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (!error) { lastError = null; break; }
-      lastError = heError(error);
+    const identifier = String(fd.get("identifier"));
+    const password = String(fd.get("password"));
+    try {
+      const res = await doSignIn({ data: { identifier, password } });
+      if (!res.ok) {
+        toast.error(res.error);
+      } else {
+        const { error } = await supabase.auth.setSession(res.session);
+        if (error) toast.error(heError(error));
+      }
+    } catch (e2) {
+      toast.error(heError(e2, "ההתחברות נכשלה"));
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
-    if (lastError) toast.error(lastError);
   };
 
   const sendReset = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -81,20 +91,28 @@ function AuthPage() {
     e.preventDefault();
     setBusy(true);
     const fd = new FormData(e.currentTarget);
-    const { error } = await supabase.auth.signUp({
-      email: String(fd.get("email")),
-      password: toAuthPassword(String(fd.get("password"))),
-      options: {
-        emailRedirectTo: window.location.origin,
+    const rawEmail = String(fd.get("email") ?? "").trim();
+    try {
+      const res = await doSignUp({
         data: {
-          full_name: String(fd.get("full_name")),
+          fullName: String(fd.get("full_name")),
           phone: String(fd.get("phone")),
+          email: rawEmail || undefined,
+          password: String(fd.get("password")),
         },
-      },
-    });
-    setBusy(false);
-    if (error) toast.error(heError(error));
-    else toast.success("החשבון נוצר! ניתן להתחבר.");
+      });
+      if (!res.ok) {
+        toast.error(res.error);
+      } else {
+        const { error } = await supabase.auth.setSession(res.session);
+        if (error) toast.error(heError(error));
+        else toast.success("החשבון נוצר!");
+      }
+    } catch (e2) {
+      toast.error(heError(e2, "יצירת החשבון נכשלה"));
+    } finally {
+      setBusy(false);
+    }
   };
 
   const google = async () => {
@@ -134,7 +152,7 @@ function AuthPage() {
             </TabsList>
             <TabsContent value="signin">
               <form onSubmit={signIn} className="space-y-4 mt-6">
-                <Field label="אימייל" name="email" type="email" required />
+                <Field label="אימייל או טלפון" name="identifier" type="text" required dir="ltr" />
                 <Field label="סיסמה / קוד סודי" name="password" type="password" required minLength={MIN_PIN} />
                 <Button type="submit" disabled={busy} className="w-full rounded-full h-11">
                   {busy ? "…" : "כניסה"}
@@ -173,7 +191,7 @@ function AuthPage() {
               <form onSubmit={signUp} className="space-y-4 mt-6">
                 <Field label="שם מלא" name="full_name" required />
                 <Field label="טלפון" name="phone" type="tel" required dir="ltr" />
-                <Field label="אימייל" name="email" type="email" required />
+                <Field label="אימייל (אפשר להוסיף גם אחר כך)" name="email" type="email" dir="ltr" />
                 <Field label="קוד סודי (4 ספרות ומעלה)" name="password" type="password" required minLength={MIN_PIN} inputMode="numeric" placeholder="למשל 1234" />
                 <Button type="submit" disabled={busy} className="w-full rounded-full h-11">
                   {busy ? "…" : "צור חשבון"}
