@@ -82,24 +82,55 @@ export const DEFAULT_PHRASES: Record<PhraseKey, string> = {
   final_error_hangup: "מִצְטַעֵר, נִתְקַלְנוּ בְּתַקָּלָה. נְצִיגַת הסטודיו תַּחֲזֹר אֵלֶיךָ טֶלֶפוֹנִית. תּוֹדָה וּלְהִתְרָאוֹת!",
 };
 
+// Which "menu" stage behavior the live call uses — stored in the SAME
+// voice_bot_phrases table as a non-PhraseKey row (key=MENU_MODE_KEY), so no
+// schema migration is needed for a second admin-editable setting.
+//   "ai"    (new default, per explicit request 2026-08-29): the keyword-
+//           menu/canned-blurb routing is skipped entirely — every stage-1
+//           utterance goes straight to the open AI conversation, which
+//           already has the same facts (pricing, hours, policies) in SYSTEM
+//           and the arrival/equipment guide via on-demand tools, so nothing
+//           is actually lost — just no more separate free/instant canned-
+//           phrase path for those specific intents.
+//   "fixed" (the previous, original behavior — a safety net to revert to):
+//           arrival/guidance/leave-message/studio-blurb/props-blurb keep
+//           their own free, zero-AI-cost canned-phrase fast path, and only
+//           an unmatched utterance falls through to the AI.
+// Admin-switchable live at /admin/voice-bot-text, no redeploy — see
+// admin-voice-phrases.functions.ts's getVoiceMenuMode/setVoiceMenuMode.
+export type VoiceMenuMode = "ai" | "fixed";
+export const MENU_MODE_KEY = "menu_mode";
+
 /**
- * Resolves every phrase — DB overrides merged over DEFAULT_PHRASES — in one
- * query. Used by all three phone webhook routes; safe to call even if the
- * table doesn't exist yet or the query fails (falls back to defaults so a
- * DB hiccup here never breaks the call the way an uncaught exception would).
+ * Resolves every phrase (DB overrides merged over DEFAULT_PHRASES) AND the
+ * current menu mode in one query — used by the two stage-machine phone
+ * webhook routes (Yemot + Twilio's /respond), which need both every turn.
+ * Safe even if the table doesn't exist yet or the query fails (falls back
+ * to defaults + "ai" so a DB hiccup here never breaks the call the way an
+ * uncaught exception would).
  */
-export async function getPhraseMap(): Promise<Record<PhraseKey, string>> {
-  const result = { ...DEFAULT_PHRASES };
+export async function getVoiceBotConfig(): Promise<{ phrases: Record<PhraseKey, string>; menuMode: VoiceMenuMode }> {
+  const phrases = { ...DEFAULT_PHRASES };
+  let menuMode: VoiceMenuMode = "ai";
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin.from("voice_bot_phrases").select("key, value");
     if (error) throw error;
     for (const row of data ?? []) {
-      const key = (row as { key: string }).key as PhraseKey;
-      if (key in result) result[key] = (row as { value: string }).value;
+      const key = (row as { key: string }).key;
+      if (key === MENU_MODE_KEY) {
+        if (row.value === "fixed") menuMode = "fixed";
+      } else if (key in phrases) {
+        (phrases as Record<string, string>)[key] = (row as { value: string }).value;
+      }
     }
   } catch (e) {
-    console.error("[SWEETBABY] voice_bot_phrases read failed, using defaults", e);
+    console.error("[SWEETBABY] voice_bot config read failed, using defaults", e);
   }
-  return result;
+  return { phrases, menuMode };
+}
+
+/** Just the phrases, for the one caller (the Twilio incoming-call greeting) that doesn't need the menu mode. */
+export async function getPhraseMap(): Promise<Record<PhraseKey, string>> {
+  return (await getVoiceBotConfig()).phrases;
 }

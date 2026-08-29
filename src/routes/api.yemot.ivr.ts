@@ -4,7 +4,7 @@ import { parseYemotParams, yemotAck, yemotSayAndHangup, yemotSayAndListen } from
 import { runVoiceTurn, type VoiceMessage, type VoiceTurnResult } from "@/lib/voice-chat.server";
 import { sendMessageToStudio } from "@/lib/voice-message.server";
 import { detectMenuIntent, wantsFullGuide, wantsToBookNow } from "@/lib/voice-menu.server";
-import { getPhraseMap } from "@/lib/voice-phrases.server";
+import { getVoiceBotConfig } from "@/lib/voice-phrases.server";
 import { personalizedGreeting } from "@/lib/voice-caller.server";
 import { consumePendingVoiceNotification } from "@/lib/voice-pending-notification.server";
 
@@ -42,7 +42,7 @@ async function handle(request: Request): Promise<Response> {
   // across as confused/wrong. This is part of what read as "the bot doesn't
   // understand" on live calls.
   const speech = rawSpeech.length >= 2 ? rawSpeech : "";
-  const phrases = await getPhraseMap();
+  const { phrases, menuMode } = await getVoiceBotConfig();
 
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -155,6 +155,14 @@ async function handle(request: Request): Promise<Response> {
 
     // ---- Stage 1: the spoken-keyword menu ----
     if (stage === "menu") {
+      // "ai" mode (see MENU_MODE_KEY's doc comment): skip the canned-phrase
+      // keyword routing entirely — every stage-1 utterance goes straight
+      // into the real AI conversation, which already knows all the same
+      // facts (pricing, hours, policies in SYSTEM; arrival/equipment guide
+      // via on-demand tools). "fixed" mode (the admin-toggleable revert)
+      // keeps the exact original behavior below unchanged.
+      if (menuMode === "ai") return await runOpenTurn(speech);
+
       const intent = detectMenuIntent(speech);
       if (intent === 3) {
         const text = `${phrases.arrival_spoken} ${phrases.anything_else}`;
