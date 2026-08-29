@@ -158,7 +158,19 @@ async function fetchAvailableGroqModels(apiKey: string): Promise<string[]> {
       headers: { Authorization: `Bearer ${apiKey}` },
       signal: AbortSignal.timeout(8_000),
     });
-    if (!res.ok) return [];
+    // Real logs showed a whole batch where every Groq attempt fell straight
+    // through to the 3 hardcoded last-resort names (all confirmed dead —
+    // "decommissioned"/"does not exist") with NO error logged anywhere for
+    // discovery itself — meaning this call was silently swallowing an
+    // invalid-key (401) or similar failure right here, leaving no way to
+    // tell "the key is bad" apart from "the account genuinely has zero
+    // usable models" from the logs alone. Log the real status/body instead
+    // of guessing next time.
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.error(`[SWEETBABY] Groq /models discovery failed: ${res.status} ${body.slice(0, 300)}`);
+      return [];
+    }
     const data: any = await res.json();
     const ids: string[] = Array.isArray(data?.data)
       ? data.data.map((m: any) => m?.id).filter((id: unknown): id is string => typeof id === "string")
@@ -166,7 +178,14 @@ async function fetchAvailableGroqModels(apiKey: string): Promise<string[]> {
     // Bumped from 4 to 6 now that GROQ_UNUSABLE_MODEL_ID excludes more
     // prefixes (allam, qwen) — keeps roughly the same number of real
     // candidates surviving the filter instead of quietly shrinking the pool.
-    return ids.filter((id) => !GROQ_UNUSABLE_MODEL_ID.test(id)).slice(0, 6);
+    const usable = ids.filter((id) => !GROQ_UNUSABLE_MODEL_ID.test(id)).slice(0, 6);
+    if (ids.length > 0 && usable.length === 0) {
+      // Discovery worked but EVERY listed model got filtered out as
+      // unusable — worth knowing which ids were actually offered, in case
+      // the unusable-pattern regex is now too broad.
+      console.error(`[SWEETBABY] Groq /models returned ${ids.length} model(s), all filtered as unusable: ${ids.slice(0, 15).join(", ")}`);
+    }
+    return usable;
   } catch (e) {
     console.error("[SWEETBABY] fetchAvailableGroqModels failed", e);
     return [];
