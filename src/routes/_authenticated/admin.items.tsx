@@ -193,7 +193,7 @@ function ItemsAdmin() {
   // Inline, spreadsheet-style edits straight from the table cells — no
   // dialog needed for the fields people change most often.
   const updateItemField = async (id: string, patch: Record<string, unknown>) => {
-    const { error } = await supabase.from("items").update(patch).eq("id", id);
+    const { error } = await supabase.from("items").update(patch as never).eq("id", id);
     if (error) { toast.error(error.message); return; }
     qc.invalidateQueries({ queryKey: ["admin-items"] });
     qc.invalidateQueries({ queryKey: ["items"] });

@@ -55,7 +55,19 @@ export const adminSetStatus = createServerFn({ method: "POST" })
       .maybeSingle();
     if (fetchErr || !row) throw new Error("הרשומה לא נמצאה");
 
-    const wasCancelled = row.status === "cancelled";
+    // The conditional `.select()` (bookings include subscription_pass_id,
+    // orders do not) collapses to a ParserError union in the generated
+    // PostgREST types, so cast to a fixed shape before touching fields.
+    const r = row as unknown as {
+      status: string;
+      user_id: string;
+      credit_used_cashback?: number | null;
+      credit_used_manual?: number | null;
+      google_event_id?: string | null;
+      subscription_pass_id?: string | null;
+    };
+
+    const wasCancelled = r.status === "cancelled";
     const willBeCancelled = data.status === "cancelled";
 
     const { error: upErr } = await supabaseAdmin.from(table).update({ status: data.status }).eq("id", data.id);
@@ -68,20 +80,20 @@ export const adminSetStatus = createServerFn({ method: "POST" })
       await supabaseAdmin.from("item_availability").delete().eq(idColumn, data.id);
 
       // Refund into whichever bucket the credit actually came from.
-      const refundCashback = Number((row as { credit_used_cashback?: number }).credit_used_cashback ?? 0);
-      const refundManual = Number((row as { credit_used_manual?: number }).credit_used_manual ?? 0);
+      const refundCashback = Number(r.credit_used_cashback ?? 0);
+      const refundManual = Number(r.credit_used_manual ?? 0);
       try {
         if (refundCashback > 0) {
-          await supabaseAdmin.rpc("adjust_loyalty_credit", { p_user_id: row.user_id, p_delta: refundCashback, p_source: "cashback" });
+          await supabaseAdmin.rpc("adjust_loyalty_credit", { p_user_id: r.user_id, p_delta: refundCashback, p_source: "cashback" });
         }
         if (refundManual > 0) {
-          await supabaseAdmin.rpc("adjust_loyalty_credit", { p_user_id: row.user_id, p_delta: refundManual, p_source: "manual" });
+          await supabaseAdmin.rpc("adjust_loyalty_credit", { p_user_id: r.user_id, p_delta: refundManual, p_source: "manual" });
         }
       } catch (e) {
         console.error("[SWEETBABY] credit refund on admin cancel failed", e);
       }
 
-      const passId = (row as { subscription_pass_id?: string | null }).subscription_pass_id;
+      const passId = r.subscription_pass_id;
       if (passId) {
         const { data: p } = await supabaseAdmin.from("subscription_passes").select("entries_used").eq("id", passId).maybeSingle();
         if (p) {
@@ -92,7 +104,7 @@ export const adminSetStatus = createServerFn({ method: "POST" })
         }
       }
 
-      const googleEventId = (row as { google_event_id?: string }).google_event_id;
+      const googleEventId = r.google_event_id;
       if (googleEventId) {
         try {
           const { deleteGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
