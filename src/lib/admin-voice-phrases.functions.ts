@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { DEFAULT_PHRASES, MENU_MODE_KEY, NOAI_BOOKING_ENABLED_KEY, PHRASE_LABELS, type PhraseKey, type VoiceMenuMode } from "@/lib/voice-phrases.server";
+import { DEFAULT_PHRASES, MENU_MODE_KEY, NOAI_BOOKING_ENABLED_KEY, PHRASE_LABELS, type NoAiBookingMode, type PhraseKey, type VoiceMenuMode } from "@/lib/voice-phrases.server";
 
 async function assertAdmin(supabase: any, userId: string) {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
@@ -83,24 +83,24 @@ export const setVoiceMenuMode = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** Whether the no-AI, fixed-question booking flow (voice-noai-booking.server.ts) is available on live calls — see NOAI_BOOKING_ENABLED_KEY's own doc comment. */
-export const getNoAiBookingEnabled = createServerFn({ method: "POST" })
+/** Which input mode the no-AI, fixed-question booking flow (voice-noai-booking.server.ts) uses on live calls — see NOAI_BOOKING_ENABLED_KEY's own doc comment. */
+export const getNoAiBookingMode = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<boolean> => {
+  .handler(async ({ context }): Promise<NoAiBookingMode> => {
     await assertAdmin(context.supabase, context.userId);
     const { data, error } = await context.supabase.from("voice_bot_phrases").select("value").eq("key", NOAI_BOOKING_ENABLED_KEY).maybeSingle();
     if (error) throw new Error(error.message);
-    return data?.value !== "off";
+    return data?.value === "off" || data?.value === "dtmf" ? data.value : "speech";
   });
 
-export const setNoAiBookingEnabled = createServerFn({ method: "POST" })
+export const setNoAiBookingMode = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ enabled: z.boolean() }).parse(d))
+  .inputValidator((d: unknown) => z.object({ mode: z.enum(["off", "speech", "dtmf"]) }).parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { error } = await context.supabase
       .from("voice_bot_phrases")
-      .upsert({ key: NOAI_BOOKING_ENABLED_KEY, value: data.enabled ? "on" : "off", updated_at: new Date().toISOString() }, { onConflict: "key" });
+      .upsert({ key: NOAI_BOOKING_ENABLED_KEY, value: data.mode, updated_at: new Date().toISOString() }, { onConflict: "key" });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
