@@ -524,9 +524,9 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
         order: {
           id: o.id,
           contact_name: o.contact_name,
-          session_date: o.session_date,
+          session_date: o.session_date ?? "",
           pickup_time: pickupTime,
-          return_date: o.return_date,
+          return_date: o.return_date ?? "",
           return_time: returnTime,
           total: o.total,
           notes: o.notes,
@@ -704,9 +704,9 @@ export async function runDueOrderReminders(): Promise<{ checked: number; sent: n
         order: {
           id: o.id,
           contact_name: o.contact_name,
-          session_date: o.session_date,
+          session_date: o.session_date ?? "",
           pickup_time: pickupTime,
-          return_date: o.return_date,
+          return_date: o.return_date ?? "",
           return_time: returnTime,
           total: o.total,
           notes: o.notes,

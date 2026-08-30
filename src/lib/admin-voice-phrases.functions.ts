@@ -109,7 +109,7 @@ export type NoAiBookingSessionRow = {
   callSid: string;
   phone: string;
   stage: string;
-  draft: Record<string, unknown> | null;
+  draft: Record<string, any> | null;
   updatedAt: string;
 };
 
