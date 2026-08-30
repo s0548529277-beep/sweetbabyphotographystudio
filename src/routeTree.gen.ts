@@ -58,6 +58,7 @@ import { Route as AuthenticatedAdminItemsRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminInspirationRouteImport } from './routes/_authenticated/admin.inspiration'
 import { Route as AuthenticatedAdminGalleryRouteImport } from './routes/_authenticated/admin.gallery'
 import { Route as AuthenticatedAdminFinanceRouteImport } from './routes/_authenticated/admin.finance'
+import { Route as AuthenticatedAdminEmailAssistantRouteImport } from './routes/_authenticated/admin.email-assistant'
 import { Route as AuthenticatedAdminCouponsRouteImport } from './routes/_authenticated/admin.coupons'
 import { Route as AuthenticatedAdminClientsRouteImport } from './routes/_authenticated/admin.clients'
 import { Route as AuthenticatedAdminChatLogsRouteImport } from './routes/_authenticated/admin.chat-logs'
@@ -325,6 +326,12 @@ const AuthenticatedAdminFinanceRoute =
     path: '/finance',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminEmailAssistantRoute =
+  AuthenticatedAdminEmailAssistantRouteImport.update({
+    id: '/email-assistant',
+    path: '/email-assistant',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminCouponsRoute =
   AuthenticatedAdminCouponsRouteImport.update({
     id: '/coupons',
@@ -394,6 +401,7 @@ export interface FileRoutesByFullPath {
   '/admin/chat-logs': typeof AuthenticatedAdminChatLogsRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/admin/coupons': typeof AuthenticatedAdminCouponsRoute
+  '/admin/email-assistant': typeof AuthenticatedAdminEmailAssistantRoute
   '/admin/finance': typeof AuthenticatedAdminFinanceRoute
   '/admin/gallery': typeof AuthenticatedAdminGalleryRoute
   '/admin/inspiration': typeof AuthenticatedAdminInspirationRoute
@@ -449,6 +457,7 @@ export interface FileRoutesByTo {
   '/admin/chat-logs': typeof AuthenticatedAdminChatLogsRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/admin/coupons': typeof AuthenticatedAdminCouponsRoute
+  '/admin/email-assistant': typeof AuthenticatedAdminEmailAssistantRoute
   '/admin/finance': typeof AuthenticatedAdminFinanceRoute
   '/admin/gallery': typeof AuthenticatedAdminGalleryRoute
   '/admin/inspiration': typeof AuthenticatedAdminInspirationRoute
@@ -507,6 +516,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/chat-logs': typeof AuthenticatedAdminChatLogsRoute
   '/_authenticated/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/_authenticated/admin/coupons': typeof AuthenticatedAdminCouponsRoute
+  '/_authenticated/admin/email-assistant': typeof AuthenticatedAdminEmailAssistantRoute
   '/_authenticated/admin/finance': typeof AuthenticatedAdminFinanceRoute
   '/_authenticated/admin/gallery': typeof AuthenticatedAdminGalleryRoute
   '/_authenticated/admin/inspiration': typeof AuthenticatedAdminInspirationRoute
@@ -565,6 +575,7 @@ export interface FileRouteTypes {
     | '/admin/chat-logs'
     | '/admin/clients'
     | '/admin/coupons'
+    | '/admin/email-assistant'
     | '/admin/finance'
     | '/admin/gallery'
     | '/admin/inspiration'
@@ -620,6 +631,7 @@ export interface FileRouteTypes {
     | '/admin/chat-logs'
     | '/admin/clients'
     | '/admin/coupons'
+    | '/admin/email-assistant'
     | '/admin/finance'
     | '/admin/gallery'
     | '/admin/inspiration'
@@ -677,6 +689,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/chat-logs'
     | '/_authenticated/admin/clients'
     | '/_authenticated/admin/coupons'
+    | '/_authenticated/admin/email-assistant'
     | '/_authenticated/admin/finance'
     | '/_authenticated/admin/gallery'
     | '/_authenticated/admin/inspiration'
@@ -1080,6 +1093,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminFinanceRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/email-assistant': {
+      id: '/_authenticated/admin/email-assistant'
+      path: '/email-assistant'
+      fullPath: '/admin/email-assistant'
+      preLoaderRoute: typeof AuthenticatedAdminEmailAssistantRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/coupons': {
       id: '/_authenticated/admin/coupons'
       path: '/coupons'
@@ -1145,6 +1165,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminChatLogsRoute: typeof AuthenticatedAdminChatLogsRoute
   AuthenticatedAdminClientsRoute: typeof AuthenticatedAdminClientsRoute
   AuthenticatedAdminCouponsRoute: typeof AuthenticatedAdminCouponsRoute
+  AuthenticatedAdminEmailAssistantRoute: typeof AuthenticatedAdminEmailAssistantRoute
   AuthenticatedAdminFinanceRoute: typeof AuthenticatedAdminFinanceRoute
   AuthenticatedAdminGalleryRoute: typeof AuthenticatedAdminGalleryRoute
   AuthenticatedAdminInspirationRoute: typeof AuthenticatedAdminInspirationRoute
@@ -1168,6 +1189,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminChatLogsRoute: AuthenticatedAdminChatLogsRoute,
   AuthenticatedAdminClientsRoute: AuthenticatedAdminClientsRoute,
   AuthenticatedAdminCouponsRoute: AuthenticatedAdminCouponsRoute,
+  AuthenticatedAdminEmailAssistantRoute: AuthenticatedAdminEmailAssistantRoute,
   AuthenticatedAdminFinanceRoute: AuthenticatedAdminFinanceRoute,
   AuthenticatedAdminGalleryRoute: AuthenticatedAdminGalleryRoute,
   AuthenticatedAdminInspirationRoute: AuthenticatedAdminInspirationRoute,
