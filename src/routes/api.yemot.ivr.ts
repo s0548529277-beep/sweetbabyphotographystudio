@@ -9,6 +9,16 @@ import { personalizedGreeting } from "@/lib/voice-caller.server";
 import { consumePendingVoiceNotification } from "@/lib/voice-pending-notification.server";
 import { startNoAiBooking, continueNoAiBooking, currentNbQuestion, isNbStage, NB_TAP_STAGES, type DraftBooking, type NbInputMode } from "@/lib/voice-noai-booking.server";
 
+// Played instead of phrases.leave_message_thanks when sendMessageToStudio's
+// email genuinely didn't go out — per explicit request, the "thanks" phrase
+// itself now says explicitly that the email was sent, so it must never be
+// spoken on a real failure. Not admin-editable (same reasoning as the AI
+// tool's own analogous fallback text in voice-chat.server.ts) — this is a
+// rare edge case (Gmail down), not something that needs day-to-day wording
+// control.
+const LEAVE_MESSAGE_EMAIL_FAILED_TEXT =
+  "קִבַּלְתִּי אֶת הַהוֹדָעָה שֶׁלָּךְ וְהִיא נִשְׁמְרָה אֶצְלֵנוּ, גַּם אִם לֹא הִצְלַחְתִּי לְאַשֵּׁר שֶׁהַמַּיְיל יָצָא — יַחְזְרוּ אֵלַיִךְ בְּהֶקְדֵּם.";
+
 // One extension in ימות המשיח, configured as a "שלוחת API" pointing here —
 // unlike Twilio's two-URL pattern (incoming call vs. gather response),
 // Yemot re-hits this exact same URL for every turn of the call, so this
@@ -54,6 +64,32 @@ async function selectVoiceSession(
     return null;
   }
   return fallback.data ? { ...fallback.data, draft_booking: null } : null;
+}
+
+// Write-side counterpart to selectVoiceSession, same reasoning: an upsert
+// whose payload includes draft_booking fails as a WHOLE if that column
+// isn't actually live on the database yet, and every write in this file
+// used to just `await` the upsert without checking its error — so a
+// schema-deploy lag didn't just make draft_booking unreadable, it could
+// silently stop stage/messages from ever being saved at all (the row
+// stays on its previous stage forever, and the caller only sees this as
+// the conversation seeming to reset or ignore what she just said). Confirmed
+// live: real logs showed the exact "column ... does not exist" error on
+// every single select while this shipped. Retrying without draft_booking
+// here means the core save (stage/messages, which are NOT new columns)
+// always goes through regardless — worst case, an in-progress no-AI-
+// booking draft doesn't persist to the next turn.
+async function upsertVoiceSession(
+  supabaseAdmin: any,
+  row: { call_sid: string; from_number: string | null; messages: unknown; stage: string; draft_booking?: DraftBooking | null },
+): Promise<void> {
+  const payload = { ...row, draft_booking: row.draft_booking ?? null, updated_at: new Date().toISOString() };
+  const { error } = await supabaseAdmin.from("voice_call_sessions").upsert(payload, { onConflict: "call_sid" });
+  if (!error) return;
+  console.error(`[SWEETBABY] voice_call_sessions upsert with draft_booking failed, retrying without it — callSid=${row.call_sid}`, error);
+  const { draft_booking: _drop, ...withoutDraft } = payload;
+  const { error: error2 } = await supabaseAdmin.from("voice_call_sessions").upsert(withoutDraft, { onConflict: "call_sid" });
+  if (error2) console.error(`[SWEETBABY] voice_call_sessions upsert fallback ALSO failed — callSid=${row.call_sid}`, error2);
 }
 
 async function handle(request: Request): Promise<Response> {
@@ -142,10 +178,7 @@ async function handle(request: Request): Promise<Response> {
       if (isNbStage(existingStage)) {
         const draft = ((existing as any).draft_booking as DraftBooking | null) ?? {};
         const q = currentNbQuestion(existingStage, draft);
-        await (supabaseAdmin.from("voice_call_sessions") as any).upsert(
-          { call_sid: callSid, from_number: phone, messages: priorMessages, stage: existingStage, draft_booking: draft, updated_at: new Date().toISOString() },
-          { onConflict: "call_sid" },
-        );
+        await upsertVoiceSession(supabaseAdmin, { call_sid: callSid, from_number: phone, messages: priorMessages, stage: existingStage, draft_booking: draft });
         return q.tap ? yemotSayAndListenTap(q.say, q.tap) : yemotSayAndListen(q.say);
       }
 
@@ -185,15 +218,8 @@ async function handle(request: Request): Promise<Response> {
     const phone = session.from_number || callerPhone;
     const stage = (session as { stage?: string }).stage ?? "menu";
 
-    // draft_booking is a brand-new column (voice-noai-booking.server.ts) —
-    // not yet in the generated Supabase types, same stale-types gap as
-    // every other `as never`/`as any` cast in this codebase; see
-    // ai-bot-efficiency skill for the pattern this follows.
     const save = (messages: VoiceMessage[], newStage: string, draft?: DraftBooking | null) =>
-      (supabaseAdmin.from("voice_call_sessions") as any).upsert(
-        { call_sid: callSid, from_number: phone, messages, stage: newStage, draft_booking: draft ?? null, updated_at: new Date().toISOString() },
-        { onConflict: "call_sid" },
-      );
+      upsertVoiceSession(supabaseAdmin, { call_sid: callSid, from_number: phone, messages, stage: newStage, draft_booking: draft ?? null });
 
     // Responds with one turn of the no-AI booking flow (voice-noai-
     // booking.server.ts) — shared by both ways into it: the explicit
@@ -322,9 +348,16 @@ async function handle(request: Request): Promise<Response> {
 
     // ---- Stage 2b: "leave a message" — collect it and email it for real ----
     if (stage === "leaving_message") {
-      await sendMessageToStudio({ message: speech, callerPhone: phone, context: "התקבל דרך הבוט הטלפוני (ימות המשיח)" });
-      await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: phrases.leave_message_thanks }], "chat");
-      return yemotSayAndListen(phrases.leave_message_thanks);
+      // Per explicit request: confirm what ACTUALLY happened, not a canned
+      // "it was sent" regardless of outcome — phrases.leave_message_thanks
+      // itself now says explicitly the email went out, so this only plays
+      // it when that's actually true; on a real send failure, a distinct
+      // (non-admin-editable, matches the AI tool's own fallback wording)
+      // phrase is used instead, which never claims the email succeeded.
+      const result = await sendMessageToStudio({ message: speech, callerPhone: phone, context: "התקבל דרך הבוט הטלפוני (ימות המשיח)" });
+      const text = result.emailed ? phrases.leave_message_thanks : LEAVE_MESSAGE_EMAIL_FAILED_TEXT;
+      await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: text }], "chat");
+      return yemotSayAndListen(text);
     }
 
     // ---- Stage 3: open conversation (same as before) ----
@@ -370,7 +403,9 @@ async function handle(request: Request): Promise<Response> {
       // just continuing to explain herself in fragments across turns that
       // each independently failed. Track whether a message already went out
       // this call and never repeat that specific prompt/announcement again.
-      const alreadyLeftMessage = priorMessages.some((m) => m.role === "assistant" && m.content === phrases.leave_message_thanks);
+      const alreadyLeftMessage = priorMessages.some(
+        (m) => m.role === "assistant" && (m.content === phrases.leave_message_thanks || m.content === LEAVE_MESSAGE_EMAIL_FAILED_TEXT),
+      );
       // If she's clearly trying to book — this turn or an earlier one this
       // call — the actually useful move when the AI won't cooperate is to
       // get her the booking anyway: the fixed-question flow below never
@@ -379,10 +414,13 @@ async function handle(request: Request): Promise<Response> {
 
       if (bookingIntent) {
         const start = await startNoAiBooking(phone, nbInputMode);
-        await (supabaseAdmin.from("voice_call_sessions") as any).upsert(
-          { call_sid: callSid, from_number: phone, messages: [...priorMessages, { role: "assistant", content: start.say }], stage: start.stage, draft_booking: start.draft, updated_at: new Date().toISOString() },
-          { onConflict: "call_sid" },
-        );
+        await upsertVoiceSession(supabaseAdmin, {
+          call_sid: callSid,
+          from_number: phone,
+          messages: [...priorMessages, { role: "assistant", content: start.say }],
+          stage: start.stage,
+          draft_booking: start.draft,
+        });
         return start.tap ? yemotSayAndListenTap(start.say, start.tap) : yemotSayAndListen(start.say);
       }
 
