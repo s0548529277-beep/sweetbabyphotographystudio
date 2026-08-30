@@ -76,21 +76,35 @@ export const signInWithPhoneOrEmail = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ identifier: z.string().min(3), password: z.string().min(1) }).parse(d))
   .handler(async ({ data }): Promise<{ ok: true; session: AuthSession } | { ok: false; error: string }> => {
     const GENERIC_ERROR = "פרטי ההתחברות שגויים";
-    let email = data.identifier.trim();
-    if (!looksLikeEmail(email)) {
-      const account = await findAccountByPhone(email);
-      if (!account) return { ok: false, error: GENERIC_ERROR };
-      email = account.email;
-    }
-
-    const anon = await anonClient();
-    for (const password of authPasswordCandidates(data.password)) {
-      const { data: signInData, error } = await anon.auth.signInWithPassword({ email, password });
-      if (!error && signInData.session) {
-        return { ok: true, session: { access_token: signInData.session.access_token, refresh_token: signInData.session.refresh_token } };
+    // A real Supabase/network outage (confirmed live: Cloudflare error 1016 —
+    // an origin DNS failure) surfaces here as a THROWN exception from
+    // anonClient()/signInWithPassword's underlying fetch, not a graceful
+    // {error} return — and this whole handler used to have no try/catch at
+    // all, so that exception escaped raw and every login attempt during
+    // such an outage read to a real customer as "your password is wrong"
+    // (the client's generic catch-all toast), not "try again in a minute".
+    // Wrapped now so a connectivity failure gets its own honest message
+    // instead of being indistinguishable from a genuinely wrong password.
+    try {
+      let email = data.identifier.trim();
+      if (!looksLikeEmail(email)) {
+        const account = await findAccountByPhone(email);
+        if (!account) return { ok: false, error: GENERIC_ERROR };
+        email = account.email;
       }
+
+      const anon = await anonClient();
+      for (const password of authPasswordCandidates(data.password)) {
+        const { data: signInData, error } = await anon.auth.signInWithPassword({ email, password });
+        if (!error && signInData.session) {
+          return { ok: true, session: { access_token: signInData.session.access_token, refresh_token: signInData.session.refresh_token } };
+        }
+      }
+      return { ok: false, error: GENERIC_ERROR };
+    } catch (e) {
+      console.error("[SWEETBABY] signInWithPhoneOrEmail failed unexpectedly (possible connectivity issue)", e);
+      return { ok: false, error: "תקלה זמנית בהתחברות — נסי שוב בעוד רגע." };
     }
-    return { ok: false, error: GENERIC_ERROR };
   });
 
 /**
@@ -114,44 +128,54 @@ export const signUpWithPhoneOrEmail = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data }): Promise<{ ok: true; session: AuthSession } | { ok: false; error: string }> => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    // Refuse a duplicate phone up front — createUser's own dup-email check
-    // wouldn't catch "same phone, different/placeholder email" cases, and a
-    // second account under the same phone would confuse everything that
-    // recognizes callers/customers by phone (voice-caller.server.ts etc.).
-    const digits = lastDigits(data.phone);
-    if (digits.length >= 6) {
-      const { data: candidates } = await supabaseAdmin.from("profiles").select("id, phone").ilike("phone", `%${digits.slice(-6)}%`);
-      const dup = (candidates ?? []).find((p: any) => lastDigits(String(p.phone ?? "")) === digits);
-      if (dup) return { ok: false, error: "כבר יש חשבון עם המספר הזה — נסי להתחבר במקום להירשם." };
-    }
-
-    const email = data.email?.trim() || placeholderEmailForPhone(data.phone);
-    const password = toAuthPassword(data.password);
-    const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { full_name: data.fullName, phone: data.phone },
-    });
-    if (createErr || !created.user) {
-      return { ok: false, error: createErr?.message?.includes("already") ? "כבר יש חשבון עם האימייל הזה." : "יצירת החשבון נכשלה, נסי שוב." };
-    }
-
+    // Same reasoning as signInWithPhoneOrEmail's own try/catch: a real
+    // Supabase/network outage throws here rather than returning a graceful
+    // {error}, and this whole handler used to have no top-level try/catch —
+    // an outage during signup would surface as an unhandled exception
+    // instead of an honest "try again" message.
     try {
-      await supabaseAdmin.from("profiles").upsert({ id: created.user.id, full_name: data.fullName, phone: data.phone });
-    } catch (e) {
-      console.error("[SWEETBABY] signup profile upsert failed (account still created)", e);
-    }
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const anon = await anonClient();
-    const { data: signInData, error: signInErr } = await anon.auth.signInWithPassword({ email, password });
-    if (signInErr || !signInData.session) {
-      console.error("[SWEETBABY] post-signup sign-in failed", signInErr);
-      return { ok: false, error: "החשבון נוצר אבל הכניסה האוטומטית נכשלה — נסי להתחבר ידנית." };
+      // Refuse a duplicate phone up front — createUser's own dup-email check
+      // wouldn't catch "same phone, different/placeholder email" cases, and a
+      // second account under the same phone would confuse everything that
+      // recognizes callers/customers by phone (voice-caller.server.ts etc.).
+      const digits = lastDigits(data.phone);
+      if (digits.length >= 6) {
+        const { data: candidates } = await supabaseAdmin.from("profiles").select("id, phone").ilike("phone", `%${digits.slice(-6)}%`);
+        const dup = (candidates ?? []).find((p: any) => lastDigits(String(p.phone ?? "")) === digits);
+        if (dup) return { ok: false, error: "כבר יש חשבון עם המספר הזה — נסי להתחבר במקום להירשם." };
+      }
+
+      const email = data.email?.trim() || placeholderEmailForPhone(data.phone);
+      const password = toAuthPassword(data.password);
+      const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name: data.fullName, phone: data.phone },
+      });
+      if (createErr || !created.user) {
+        return { ok: false, error: createErr?.message?.includes("already") ? "כבר יש חשבון עם האימייל הזה." : "יצירת החשבון נכשלה, נסי שוב." };
+      }
+
+      try {
+        await supabaseAdmin.from("profiles").upsert({ id: created.user.id, full_name: data.fullName, phone: data.phone });
+      } catch (e) {
+        console.error("[SWEETBABY] signup profile upsert failed (account still created)", e);
+      }
+
+      const anon = await anonClient();
+      const { data: signInData, error: signInErr } = await anon.auth.signInWithPassword({ email, password });
+      if (signInErr || !signInData.session) {
+        console.error("[SWEETBABY] post-signup sign-in failed", signInErr);
+        return { ok: false, error: "החשבון נוצר אבל הכניסה האוטומטית נכשלה — נסי להתחבר ידנית." };
+      }
+      return { ok: true, session: { access_token: signInData.session.access_token, refresh_token: signInData.session.refresh_token } };
+    } catch (e) {
+      console.error("[SWEETBABY] signUpWithPhoneOrEmail failed unexpectedly (possible connectivity issue)", e);
+      return { ok: false, error: "תקלה זמנית בהרשמה — נסי שוב בעוד רגע." };
     }
-    return { ok: true, session: { access_token: signInData.session.access_token, refresh_token: signInData.session.refresh_token } };
   });
 
 // ---------- password reset via a real phone call ----------
