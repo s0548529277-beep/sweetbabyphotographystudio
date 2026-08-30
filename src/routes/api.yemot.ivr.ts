@@ -26,6 +26,36 @@ export const Route = createFileRoute("/api/yemot/ivr")({
   },
 });
 
+// Session lookup with a defensive fallback. draft_booking is a recently
+// added column (voice-noai-booking.server.ts) — if the migration that adds
+// it hasn't actually reached this deployment's database yet, selecting it
+// makes the WHOLE query fail, and since supabase-js returns {data: null,
+// error} instead of throwing, a caller that doesn't check `error` (as
+// every select in this file used to) sees that as EXACTLY "no session row
+// exists". Confirmed live: a real call's diagnostic log showed every turn
+// after the greeting landing in the "no session" branch — phrases.
+// didnt_hear, over and over, no escalation — despite real, clear speech
+// each time ("הזמנת סטודיו" etc.), which only makes sense if the session
+// row the greeting turn wrote was never actually missing, just unreadable
+// through this specific select. Falling back to a select WITHOUT
+// draft_booking here means a schema-deploy lag like this can never again
+// silently strand an entire call — worst case, an in-progress no-AI-
+// booking draft is lost (draft ends up {}), never a stuck phone line.
+async function selectVoiceSession(
+  supabaseAdmin: any,
+  callSid: string,
+): Promise<{ messages: unknown; from_number: string | null; stage: string | null; draft_booking: unknown } | null> {
+  const full = await supabaseAdmin.from("voice_call_sessions").select("messages, from_number, stage, draft_booking").eq("call_sid", callSid).maybeSingle();
+  if (!full.error) return full.data ?? null;
+  console.error(`[SWEETBABY] voice_call_sessions select with draft_booking failed, falling back without it — callSid=${callSid}`, full.error);
+  const fallback = await supabaseAdmin.from("voice_call_sessions").select("messages, from_number, stage").eq("call_sid", callSid).maybeSingle();
+  if (fallback.error) {
+    console.error(`[SWEETBABY] voice_call_sessions select fallback ALSO failed — callSid=${callSid}`, fallback.error);
+    return null;
+  }
+  return fallback.data ? { ...fallback.data, draft_booking: null } : null;
+}
+
 async function handle(request: Request): Promise<Response> {
   const params = await parseYemotParams(request);
   const rawCallId = params.ApiCallId;
@@ -68,10 +98,7 @@ async function handle(request: Request): Promise<Response> {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     if (!hasAnswer) {
-      const { data: existing } = await (supabaseAdmin.from("voice_call_sessions") as any)
-        .select("messages, from_number, stage, draft_booking")
-        .eq("call_sid", callSid)
-        .maybeSingle();
+      const existing = await selectVoiceSession(supabaseAdmin, callSid);
       if (!existing) {
         // Genuinely the first hit of the call — no session yet. If there's a
         // message waiting for this number (a booking confirmation/reminder
@@ -144,10 +171,7 @@ async function handle(request: Request): Promise<Response> {
       return yemotSayAndListen(phrases.didnt_hear);
     }
 
-    const { data: session } = await (supabaseAdmin.from("voice_call_sessions") as any)
-      .select("messages, from_number, stage, draft_booking")
-      .eq("call_sid", callSid)
-      .maybeSingle();
+    const session = await selectVoiceSession(supabaseAdmin, callSid);
 
     // No session row (e.g. Yemot re-asked without ever hitting us fresh) —
     // treat like "didn't catch that" rather than starting a whole new
