@@ -41,6 +41,27 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_provider_status: {
+        Row: {
+          id: boolean
+          model: string | null
+          provider: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: boolean
+          model?: string | null
+          provider?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: boolean
+          model?: string | null
+          provider?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           balance_amount: number | null
@@ -48,10 +69,16 @@ export type Database = {
           cancellation_charge: number | null
           contact_name: string | null
           contact_phone: string | null
+          coupon_code: string | null
+          coupon_discount: number
           created_at: string
+          credit_used: number | null
+          credit_used_cashback: number
+          credit_used_manual: number
           deposit_amount: number
           deposit_receipt_url: string | null
           deposit_status: string
+          door_code: string | null
           end_time: string
           google_event_id: string | null
           id: string
@@ -60,12 +87,19 @@ export type Database = {
           overtime_minutes: number | null
           package: string
           price: number
+          recurring_series_id: string | null
+          reminder_4h_sent_at: string | null
+          reminder_hours_before: number | null
+          reminder_sent_at: string | null
           reserved_items: Json
           session_date: string
           slots: number
           start_time: string
           status: string
+          subscription_pass_id: string | null
           terms_accepted_at: string | null
+          ttlock_keyboard_pwd_id: number | null
+          ttlock_lock_id: number | null
           updated_at: string
           user_id: string
         }
@@ -75,10 +109,16 @@ export type Database = {
           cancellation_charge?: number | null
           contact_name?: string | null
           contact_phone?: string | null
+          coupon_code?: string | null
+          coupon_discount?: number
           created_at?: string
+          credit_used?: number | null
+          credit_used_cashback?: number
+          credit_used_manual?: number
           deposit_amount?: number
           deposit_receipt_url?: string | null
           deposit_status?: string
+          door_code?: string | null
           end_time: string
           google_event_id?: string | null
           id?: string
@@ -87,12 +127,19 @@ export type Database = {
           overtime_minutes?: number | null
           package?: string
           price: number
+          recurring_series_id?: string | null
+          reminder_4h_sent_at?: string | null
+          reminder_hours_before?: number | null
+          reminder_sent_at?: string | null
           reserved_items?: Json
           session_date: string
           slots: number
           start_time: string
           status?: string
+          subscription_pass_id?: string | null
           terms_accepted_at?: string | null
+          ttlock_keyboard_pwd_id?: number | null
+          ttlock_lock_id?: number | null
           updated_at?: string
           user_id: string
         }
@@ -102,10 +149,16 @@ export type Database = {
           cancellation_charge?: number | null
           contact_name?: string | null
           contact_phone?: string | null
+          coupon_code?: string | null
+          coupon_discount?: number
           created_at?: string
+          credit_used?: number | null
+          credit_used_cashback?: number
+          credit_used_manual?: number
           deposit_amount?: number
           deposit_receipt_url?: string | null
           deposit_status?: string
+          door_code?: string | null
           end_time?: string
           google_event_id?: string | null
           id?: string
@@ -114,16 +167,31 @@ export type Database = {
           overtime_minutes?: number | null
           package?: string
           price?: number
+          recurring_series_id?: string | null
+          reminder_4h_sent_at?: string | null
+          reminder_hours_before?: number | null
+          reminder_sent_at?: string | null
           reserved_items?: Json
           session_date?: string
           slots?: number
           start_time?: string
           status?: string
+          subscription_pass_id?: string | null
           terms_accepted_at?: string | null
+          ttlock_keyboard_pwd_id?: number | null
+          ttlock_lock_id?: number | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bookings_subscription_pass_id_fkey"
+            columns: ["subscription_pass_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_passes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       categories: {
         Row: {
@@ -158,6 +226,10 @@ export type Database = {
           discount_percent: number
           expires_at: string | null
           id: string
+          issued_to_email: string | null
+          newsletter_default: boolean
+          redeemed_at: string | null
+          single_use: boolean
         }
         Insert: {
           active?: boolean
@@ -167,6 +239,10 @@ export type Database = {
           discount_percent?: number
           expires_at?: string | null
           id?: string
+          issued_to_email?: string | null
+          newsletter_default?: boolean
+          redeemed_at?: string | null
+          single_use?: boolean
         }
         Update: {
           active?: boolean
@@ -176,6 +252,73 @@ export type Database = {
           discount_percent?: number
           expires_at?: string | null
           id?: string
+          issued_to_email?: string | null
+          newsletter_default?: boolean
+          redeemed_at?: string | null
+          single_use?: boolean
+        }
+        Relationships: []
+      }
+      customer_chat_logs: {
+        Row: {
+          created_at: string
+          id: string
+          messages: Json
+          session_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          messages?: Json
+          session_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          messages?: Json
+          session_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      customer_loyalty: {
+        Row: {
+          can_book_recurring: boolean
+          cashback_credit_balance: number
+          cashback_expires_at: string | null
+          cashback_percent: number
+          credit_balance: number | null
+          custom_hourly_rate: number | null
+          manual_credit_balance: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_book_recurring?: boolean
+          cashback_credit_balance?: number
+          cashback_expires_at?: string | null
+          cashback_percent?: number
+          credit_balance?: number | null
+          custom_hourly_rate?: number | null
+          manual_credit_balance?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_book_recurring?: boolean
+          cashback_credit_balance?: number
+          cashback_expires_at?: string | null
+          cashback_percent?: number
+          credit_balance?: number | null
+          custom_hourly_rate?: number | null
+          manual_credit_balance?: number
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -425,6 +568,27 @@ export type Database = {
         }
         Relationships: []
       }
+      newsletter_signups: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          source: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          source?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          source?: string | null
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string
@@ -479,17 +643,28 @@ export type Database = {
           balance_method: string | null
           camera_model: string | null
           cancellation_charge: number | null
+          confirmation_sent_at: string | null
           contact_name: string | null
           contact_phone: string | null
+          coupon_code: string | null
+          coupon_discount: number
           created_at: string
+          credit_used: number | null
+          credit_used_cashback: number
+          credit_used_manual: number
           deposit_amount: number | null
           deposit_receipt_url: string | null
           deposit_status: string | null
+          door_code: string | null
+          google_event_id: string | null
           id: string
           notes: string | null
           overtime_charge: number | null
           overtime_minutes: number | null
           pickup_at: string | null
+          reminder_4h_sent_at: string | null
+          reminder_hours_before: number | null
+          reminder_sent_at: string | null
           return_at: string | null
           return_date: string | null
           scheduled_date: string | null
@@ -498,6 +673,8 @@ export type Database = {
           terms_accepted_at: string | null
           total: number
           track: string | null
+          ttlock_keyboard_pwd_id: number | null
+          ttlock_lock_id: number | null
           updated_at: string
           user_id: string
         }
@@ -506,17 +683,28 @@ export type Database = {
           balance_method?: string | null
           camera_model?: string | null
           cancellation_charge?: number | null
+          confirmation_sent_at?: string | null
           contact_name?: string | null
           contact_phone?: string | null
+          coupon_code?: string | null
+          coupon_discount?: number
           created_at?: string
+          credit_used?: number | null
+          credit_used_cashback?: number
+          credit_used_manual?: number
           deposit_amount?: number | null
           deposit_receipt_url?: string | null
           deposit_status?: string | null
+          door_code?: string | null
+          google_event_id?: string | null
           id?: string
           notes?: string | null
           overtime_charge?: number | null
           overtime_minutes?: number | null
           pickup_at?: string | null
+          reminder_4h_sent_at?: string | null
+          reminder_hours_before?: number | null
+          reminder_sent_at?: string | null
           return_at?: string | null
           return_date?: string | null
           scheduled_date?: string | null
@@ -525,6 +713,8 @@ export type Database = {
           terms_accepted_at?: string | null
           total?: number
           track?: string | null
+          ttlock_keyboard_pwd_id?: number | null
+          ttlock_lock_id?: number | null
           updated_at?: string
           user_id: string
         }
@@ -533,17 +723,28 @@ export type Database = {
           balance_method?: string | null
           camera_model?: string | null
           cancellation_charge?: number | null
+          confirmation_sent_at?: string | null
           contact_name?: string | null
           contact_phone?: string | null
+          coupon_code?: string | null
+          coupon_discount?: number
           created_at?: string
+          credit_used?: number | null
+          credit_used_cashback?: number
+          credit_used_manual?: number
           deposit_amount?: number | null
           deposit_receipt_url?: string | null
           deposit_status?: string | null
+          door_code?: string | null
+          google_event_id?: string | null
           id?: string
           notes?: string | null
           overtime_charge?: number | null
           overtime_minutes?: number | null
           pickup_at?: string | null
+          reminder_4h_sent_at?: string | null
+          reminder_hours_before?: number | null
+          reminder_sent_at?: string | null
           return_at?: string | null
           return_date?: string | null
           scheduled_date?: string | null
@@ -552,6 +753,8 @@ export type Database = {
           terms_accepted_at?: string | null
           total?: number
           track?: string | null
+          ttlock_keyboard_pwd_id?: number | null
+          ttlock_lock_id?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -593,6 +796,175 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_voice_notifications: {
+        Row: {
+          created_at: string
+          message: string
+          phone: string
+        }
+        Insert: {
+          created_at?: string
+          message: string
+          phone: string
+        }
+        Update: {
+          created_at?: string
+          message?: string
+          phone?: string
+        }
+        Relationships: []
+      }
+      photo_client_images: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string
+          kind: string
+          selected: boolean
+          sort_order: number
+          storage_path: string
+          workflow_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url: string
+          kind: string
+          selected?: boolean
+          sort_order?: number
+          storage_path: string
+          workflow_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string
+          kind?: string
+          selected?: boolean
+          sort_order?: number
+          storage_path?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photo_client_images_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "photo_client_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      photo_client_workflows: {
+        Row: {
+          album_upgrades: string | null
+          amount_paid: number
+          balance: number | null
+          booking_id: string | null
+          created_at: string
+          has_package: boolean
+          id: string
+          location: string | null
+          package_type: string | null
+          photos_to_edit: number | null
+          session_date: string | null
+          session_time: string | null
+          stage: string
+          total_price: number | null
+          updated_at: string
+          user_id: string
+          wants_editing: boolean | null
+        }
+        Insert: {
+          album_upgrades?: string | null
+          amount_paid?: number
+          balance?: number | null
+          booking_id?: string | null
+          created_at?: string
+          has_package?: boolean
+          id?: string
+          location?: string | null
+          package_type?: string | null
+          photos_to_edit?: number | null
+          session_date?: string | null
+          session_time?: string | null
+          stage?: string
+          total_price?: number | null
+          updated_at?: string
+          user_id: string
+          wants_editing?: boolean | null
+        }
+        Update: {
+          album_upgrades?: string | null
+          amount_paid?: number
+          balance?: number | null
+          booking_id?: string | null
+          created_at?: string
+          has_package?: boolean
+          id?: string
+          location?: string | null
+          package_type?: string | null
+          photos_to_edit?: number | null
+          session_date?: string | null
+          session_time?: string | null
+          stage?: string
+          total_price?: number | null
+          updated_at?: string
+          user_id?: string
+          wants_editing?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photo_client_workflows_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      photo_edit_history: {
+        Row: {
+          admin_user_id: string | null
+          created_at: string
+          custom_instructions: string | null
+          edited_url: string | null
+          error_message: string | null
+          id: string
+          include_face: boolean
+          intensity: string
+          original_url: string
+          status: string
+          style: string
+        }
+        Insert: {
+          admin_user_id?: string | null
+          created_at?: string
+          custom_instructions?: string | null
+          edited_url?: string | null
+          error_message?: string | null
+          id?: string
+          include_face?: boolean
+          intensity?: string
+          original_url: string
+          status?: string
+          style: string
+        }
+        Update: {
+          admin_user_id?: string | null
+          created_at?: string
+          custom_instructions?: string | null
+          edited_url?: string | null
+          error_message?: string | null
+          id?: string
+          include_face?: boolean
+          intensity?: string
+          original_url?: string
+          status?: string
+          style?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
@@ -626,6 +998,84 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      site_bot_questions: {
+        Row: {
+          answer: string | null
+          created_at: string
+          created_by: string | null
+          error: string | null
+          id: string
+          question: string
+          sql_used: string | null
+        }
+        Insert: {
+          answer?: string | null
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          id?: string
+          question: string
+          sql_used?: string | null
+        }
+        Update: {
+          answer?: string | null
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          id?: string
+          question?: string
+          sql_used?: string | null
+        }
+        Relationships: []
+      }
+      site_bot_requests: {
+        Row: {
+          branch_name: string | null
+          created_at: string
+          created_by: string | null
+          error: string | null
+          id: string
+          instruction: string
+          merged_at: string | null
+          messages: Json
+          pr_number: number | null
+          pr_url: string | null
+          status: string
+          summary: string | null
+          target_path: string
+        }
+        Insert: {
+          branch_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          id?: string
+          instruction: string
+          merged_at?: string | null
+          messages?: Json
+          pr_number?: number | null
+          pr_url?: string | null
+          status?: string
+          summary?: string | null
+          target_path: string
+        }
+        Update: {
+          branch_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          id?: string
+          instruction?: string
+          merged_at?: string | null
+          messages?: Json
+          pr_number?: number | null
+          pr_url?: string | null
+          status?: string
+          summary?: string | null
+          target_path?: string
         }
         Relationships: []
       }
@@ -691,6 +1141,83 @@ export type Database = {
           },
         ]
       }
+      subscription_passes: {
+        Row: {
+          created_by: string | null
+          entries_used: number
+          id: string
+          notes: string | null
+          plan_id: string | null
+          plan_name: string
+          price_paid: number
+          purchased_at: string
+          status: string
+          total_entries: number
+          user_id: string
+        }
+        Insert: {
+          created_by?: string | null
+          entries_used?: number
+          id?: string
+          notes?: string | null
+          plan_id?: string | null
+          plan_name: string
+          price_paid?: number
+          purchased_at?: string
+          status?: string
+          total_entries: number
+          user_id: string
+        }
+        Update: {
+          created_by?: string | null
+          entries_used?: number
+          id?: string
+          notes?: string | null
+          plan_id?: string | null
+          plan_name?: string
+          price_paid?: number
+          purchased_at?: string
+          status?: string
+          total_entries?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_passes_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_plans: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          price: number
+          total_entries: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          price?: number
+          total_entries: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          price?: number
+          total_entries?: number
+        }
+        Relationships: []
+      }
       subscription_requests: {
         Row: {
           created_at: string
@@ -748,6 +1275,51 @@ export type Database = {
         }
         Relationships: []
       }
+      voice_bot_phrases: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
+      voice_call_sessions: {
+        Row: {
+          call_sid: string
+          created_at: string
+          from_number: string | null
+          messages: Json
+          stage: string
+          updated_at: string
+        }
+        Insert: {
+          call_sid: string
+          created_at?: string
+          from_number?: string | null
+          messages?: Json
+          stage?: string
+          updated_at?: string
+        }
+        Update: {
+          call_sid?: string
+          created_at?: string
+          from_number?: string | null
+          messages?: Json
+          stage?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       booking_busy_slots: {
@@ -770,9 +1342,25 @@ export type Database = {
       }
     }
     Functions: {
+      adjust_loyalty_credit: {
+        Args: { p_delta: number; p_source?: string; p_user_id: string }
+        Returns: {
+          cashback_credit_balance: number
+          credit_balance: number
+          manual_credit_balance: number
+        }[]
+      }
       count_item_reservations: {
         Args: { _from: string; _item_id: string; _to: string }
         Returns: number
+      }
+      run_readonly_query: { Args: { q: string }; Returns: Json }
+      spend_loyalty_credit: {
+        Args: { p_amount: number; p_user_id: string }
+        Returns: {
+          spent_cashback: number
+          spent_manual: number
+        }[]
       }
     }
     Enums: {
