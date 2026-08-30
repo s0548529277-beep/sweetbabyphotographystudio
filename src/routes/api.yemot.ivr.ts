@@ -54,6 +54,16 @@ async function handle(request: Request): Promise<Response> {
   const noAiBookingEnabled = noAiBookingMode !== "off";
   const nbInputMode: NbInputMode = noAiBookingMode === "dtmf" ? "dtmf" : "speech";
 
+  // TEMPORARY diagnostic — a real call reported "לא הבנתי, אפשר לחזור על
+  // זה" repeating on every turn despite real, clear speech each time
+  // ("הזמנת סטודיו" etc.). Cloudflare's logs only show HTTP status, never
+  // the actual TTS text returned, so there's no way to tell FROM THE LOGS
+  // ALONE which of the several code paths that can return phrases.
+  // didnt_hear actually fired. This single line, matched against
+  // callSid/ApiCallId across the whole call, will make that unambiguous on
+  // the next real call — remove once the cause is confirmed.
+  console.error(`[SWEETBABY][diag] yemot hit callSid=${callSid} hasAnswer=${hasAnswer} speech="${speech}" digits="${rawDigits}"`);
+
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -130,6 +140,7 @@ async function handle(request: Request): Promise<Response> {
         },
         { onConflict: "call_sid" },
       );
+      console.error(`[SWEETBABY][diag] didnt_hear via SILENCE branch, callSid=${callSid}`);
       return yemotSayAndListen(phrases.didnt_hear);
     }
 
@@ -141,7 +152,10 @@ async function handle(request: Request): Promise<Response> {
     // No session row (e.g. Yemot re-asked without ever hitting us fresh) —
     // treat like "didn't catch that" rather than starting a whole new
     // greeting mid-conversation.
-    if (!session) return yemotSayAndListen(phrases.didnt_hear);
+    if (!session) {
+      console.error(`[SWEETBABY][diag] didnt_hear via NO-SESSION branch (real speech/digits present but no DB row for this callSid), callSid=${callSid}`);
+      return yemotSayAndListen(phrases.didnt_hear);
+    }
 
     const priorMessages = ((session.messages as VoiceMessage[] | undefined) ?? []) as VoiceMessage[];
     const phone = session.from_number || callerPhone;
