@@ -121,6 +121,11 @@
     letter-spacing: -0.015em;
   }
   ::selection { background: var(--color-ink); color: var(--color-cream); }
+  /* Lovable injects a "Made with Lovable" badge into published pages via an
+     element with this id — it's not part of our own markup, so it can't be
+     removed from a component. Hiding it here is the free equivalent of the
+     paid "Hide Lovable badge" toggle in Project settings → Publishing. */
+  #lovable-badge { display: none !important; }
 }
 
 @utility container-page {
