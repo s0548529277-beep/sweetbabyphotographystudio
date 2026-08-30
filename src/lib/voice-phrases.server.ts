@@ -101,28 +101,34 @@ export const DEFAULT_PHRASES: Record<PhraseKey, string> = {
 export type VoiceMenuMode = "ai" | "fixed";
 export const MENU_MODE_KEY = "menu_mode";
 
-// Same "extra row in the same table" trick as MENU_MODE_KEY — an admin
-// on/off switch for the no-AI, fixed-question booking flow
-// (voice-noai-booking.server.ts), added per explicit request alongside a
-// monitoring view of its call sessions (see admin.voice-bot-text.tsx).
-// Default ON: absent row (or anything other than the literal "off") means
-// enabled, same "missing row = default behavior" convention MENU_MODE_KEY
-// already uses.
+// Same "extra row in the same table" trick as MENU_MODE_KEY — controls the
+// no-AI, fixed-question booking flow (voice-noai-booking.server.ts), added
+// per explicit request alongside a monitoring view of its call sessions
+// (see admin.voice-bot-text.tsx).
+//   "off"    disables the flow entirely — a repeated AI failure or a clear
+//            booking intent in "fixed" menu mode falls back to the
+//            previous behavior (offer to leave a message / call the AI).
+//   "speech" (default — missing row means this) every answer (date, time,
+//            duration, email) is free speech-to-text, keyword/regex parsed.
+//   "dtmf"   date/time/duration/confirm are captured as KEYPAD digits
+//            instead (name/email stay speech) — see voice-noai-
+//            booking.server.ts's own doc comment for why, and for the
+//            history behind not repeating a previous failed DTMF attempt.
+export type NoAiBookingMode = "off" | "speech" | "dtmf";
 export const NOAI_BOOKING_ENABLED_KEY = "noai_booking_enabled";
 
 /**
  * Resolves every phrase (DB overrides merged over DEFAULT_PHRASES), the
- * current menu mode, AND the no-AI-booking-flow toggle in one query — used
- * by the two stage-machine phone webhook routes (Yemot + Twilio's
- * /respond), which need all three every turn. Safe even if the table
- * doesn't exist yet or the query fails (falls back to defaults + "ai" +
- * enabled, so a DB hiccup here never breaks the call the way an uncaught
- * exception would).
+ * current menu mode, AND the no-AI-booking-flow mode in one query — used by
+ * the two stage-machine phone webhook routes (Yemot + Twilio's /respond),
+ * which need all three every turn. Safe even if the table doesn't exist yet
+ * or the query fails (falls back to defaults + "ai" + "speech", so a DB
+ * hiccup here never breaks the call the way an uncaught exception would).
  */
-export async function getVoiceBotConfig(): Promise<{ phrases: Record<PhraseKey, string>; menuMode: VoiceMenuMode; noAiBookingEnabled: boolean }> {
+export async function getVoiceBotConfig(): Promise<{ phrases: Record<PhraseKey, string>; menuMode: VoiceMenuMode; noAiBookingMode: NoAiBookingMode }> {
   const phrases = { ...DEFAULT_PHRASES };
   let menuMode: VoiceMenuMode = "ai";
-  let noAiBookingEnabled = true;
+  let noAiBookingMode: NoAiBookingMode = "speech";
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin.from("voice_bot_phrases").select("key, value");
@@ -132,7 +138,7 @@ export async function getVoiceBotConfig(): Promise<{ phrases: Record<PhraseKey, 
       if (key === MENU_MODE_KEY) {
         if (row.value === "fixed") menuMode = "fixed";
       } else if (key === NOAI_BOOKING_ENABLED_KEY) {
-        if (row.value === "off") noAiBookingEnabled = false;
+        if (row.value === "off" || row.value === "dtmf") noAiBookingMode = row.value;
       } else if (key in phrases) {
         (phrases as Record<string, string>)[key] = (row as { value: string }).value;
       }
@@ -140,7 +146,7 @@ export async function getVoiceBotConfig(): Promise<{ phrases: Record<PhraseKey, 
   } catch (e) {
     console.error("[SWEETBABY] voice_bot config read failed, using defaults", e);
   }
-  return { phrases, menuMode, noAiBookingEnabled };
+  return { phrases, menuMode, noAiBookingMode };
 }
 
 /** Just the phrases, for the one caller (the Twilio incoming-call greeting) that doesn't need the menu mode. */

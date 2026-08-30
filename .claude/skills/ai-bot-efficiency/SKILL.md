@@ -299,3 +299,23 @@ survivors?"
   concurrently* (independent API keys/accounts), not in shrinking the
   timeout that was already tuned against a real regression — shrinking a
   timeout is a guess about how long success takes; racing is not.
+- **2026-08-30**: Not directly a token/latency change, but the same
+  "don't ship an unverified guess" discipline applied to a different kind of
+  string: the no-AI phone booking flow (voice-noai-booking.server.ts) got a
+  DTMF/keypad input option after a PREVIOUS keypad attempt on this exact
+  Yemot line had failed live with "לא הקשת כמות מספרים נכונה" and was
+  removed entirely. Rather than guess at a fix, cloned the open-source
+  yemot-router2 wrapper (github.com/ShlomoCode/yemot-router2 — confirmed
+  against its actual source, response-functions.js's makeTapModeRead, not
+  just its README) since Yemot itself has no public API reference. That
+  revealed the real raw `read=` directive format AND that Yemot ships
+  built-in "Date"/"Time" typing_playback_mode presets which also fix the
+  exact required digit count (8 for DDMMYYYY, 4 for HHMM) — strong evidence
+  the earlier failure was a min/max digit mismatch, not a platform
+  limitation. Shipped using those exact presets instead of hand-picked
+  digit counts. **Pattern for this codebase**: when a third-party platform
+  has no public reference and a previous attempt failed mysteriously,
+  finding and reading that platform's own open-source client library's
+  SOURCE (not just its docs/README) can turn a "we don't know why this
+  failed" into a real, checkable root cause — the same category of win as
+  reading Groq's actual `/models` response instead of guessing model names.

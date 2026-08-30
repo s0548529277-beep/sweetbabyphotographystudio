@@ -3,12 +3,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
-  getNoAiBookingEnabled,
+  getNoAiBookingMode,
   getVoiceMenuMode,
   listNoAiBookingSessions,
   listVoiceBotPhrases,
   resetVoiceBotPhrase,
-  setNoAiBookingEnabled,
+  setNoAiBookingMode,
   setVoiceMenuMode,
   updateVoiceBotPhrase,
   type NoAiBookingSessionRow,
@@ -16,8 +16,7 @@ import {
 } from "@/lib/admin-voice-phrases.functions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Mic, RotateCcw, Save, Sparkles, ListChecks, PhoneCall, CalendarCheck2 } from "lucide-react";
+import { Mic, RotateCcw, Save, Sparkles, ListChecks, PhoneCall, CalendarCheck2, Keyboard, MicOff } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/voice-bot-text")({
@@ -167,20 +166,27 @@ function MenuModeCard() {
   );
 }
 
+const NB_MODE_OPTIONS: Array<{ value: "off" | "speech" | "dtmf"; icon: typeof PhoneCall; title: string; desc: string }> = [
+  { value: "off", icon: MicOff, title: "כבוי", desc: 'אם הבינה נכשלת שוב ושוב, או שנאמר "הזמנת סטודיו" במצב תפריט קבוע — חוזר להתנהגות הקודמת (הצעה להשאיר הודעה / המתנה לבינה), בלי תהליך שריון עצמאי.' },
+  { value: "speech", icon: PhoneCall, title: "בדיבור (ברירת מחדל)", desc: "כל שאלה (תאריך, שעה, משך, מייל) נענית בקול חופשי, ומפוענחת לפי מילות מפתח." },
+  { value: "dtmf", icon: Keyboard, title: "בהקלדה במקלדת הטלפון", desc: "תאריך/שעה/משך/אישור סופי מוקשים במקלדת — פורמט תאריך: יום חודש שנה (8 ספרות). פורמט שעה: 24 שעות (4 ספרות). שם ומייל עדיין בקול." },
+];
+
 function NoAiBookingCard() {
   const qc = useQueryClient();
-  const fetchEnabled = useServerFn(getNoAiBookingEnabled);
-  const doSetEnabled = useServerFn(setNoAiBookingEnabled);
-  const q = useQuery({ queryKey: ["admin-noai-booking-enabled"], queryFn: () => fetchEnabled({}) });
+  const fetchMode = useServerFn(getNoAiBookingMode);
+  const doSetMode = useServerFn(setNoAiBookingMode);
+  const q = useQuery({ queryKey: ["admin-noai-booking-mode"], queryFn: () => fetchMode({}) });
   const [saving, setSaving] = useState(false);
-  const enabled = q.data ?? true;
+  const mode = q.data ?? "speech";
 
-  const toggle = async (next: boolean) => {
+  const choose = async (next: "off" | "speech" | "dtmf") => {
+    if (next === mode || saving) return;
     setSaving(true);
     try {
-      await doSetEnabled({ data: { enabled: next } });
-      toast.success(next ? "התהליך הופעל" : "התהליך כובה");
-      qc.invalidateQueries({ queryKey: ["admin-noai-booking-enabled"] });
+      await doSetMode({ data: { mode: next } });
+      toast.success("נשמר");
+      qc.invalidateQueries({ queryKey: ["admin-noai-booking-mode"] });
     } catch (e: any) {
       toast.error(e?.message ?? "השמירה נכשלה");
     } finally {
@@ -189,18 +195,34 @@ function NoAiBookingCard() {
   };
 
   return (
-    <div className="bg-card rounded-2xl border border-primary/5 p-4 space-y-2">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 text-sm font-medium text-primary">
-            <PhoneCall className="h-4 w-4 text-blush-deep" /> שריון סטודיו בשאלות קבועות (בלי בינה בכלל)
-          </div>
-          <p className="text-xs text-muted-foreground mt-1 max-w-md">
-            כשמופעל: אם המתקשרת אומרת שהיא רוצה לשריין ובמצב "תפריט קבוע", או אם הבינה נכשלת שוב ושוב באמצע שיחה שנראית כמו הזמנה — הבוט עובר לשאול שם/תאריך/שעה/משך/מייל אחד אחרי השני ושומר שריון אמיתי, בלי לגעת בבינה בכלל.
-          </p>
+    <div className="bg-card rounded-2xl border border-primary/5 p-4 space-y-3">
+      <div>
+        <div className="flex items-center gap-2 text-sm font-medium text-primary">
+          <PhoneCall className="h-4 w-4 text-blush-deep" /> שריון סטודיו בשאלות קבועות (בלי בינה בכלל)
         </div>
-        <Switch checked={enabled} disabled={saving || q.isLoading} onCheckedChange={toggle} />
+        <p className="text-xs text-muted-foreground mt-1">
+          מופעל אוטומטית: אם המתקשרת אומרת שהיא רוצה לשריין ובמצב "תפריט קבוע", או אם הבינה נכשלת שוב ושוב באמצע שיחה שנראית כמו הזמנה — הבוט עובר לשאול שם/תאריך/שעה/משך/מייל אחד אחרי השני ושומר שריון אמיתי, בלי לגעת בבינה בכלל.
+        </p>
       </div>
+      <div className="grid sm:grid-cols-3 gap-3">
+        {NB_MODE_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            disabled={saving}
+            onClick={() => choose(opt.value)}
+            className={`text-right rounded-xl border p-3 transition-colors ${
+              mode === opt.value ? "border-primary bg-primary/5" : "border-primary/10 hover:bg-cream"
+            }`}
+          >
+            <div className="flex items-center gap-2 text-sm font-medium text-primary mb-1">
+              <opt.icon className="h-4 w-4 text-blush-deep" /> {opt.title}
+            </div>
+            <p className="text-xs text-muted-foreground">{opt.desc}</p>
+          </button>
+        ))}
+      </div>
+      {q.isLoading && <p className="text-xs text-muted-foreground">טוען מצב נוכחי…</p>}
     </div>
   );
 }

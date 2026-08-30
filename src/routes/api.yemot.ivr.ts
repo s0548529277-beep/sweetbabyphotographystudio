@@ -1,13 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
-import { parseYemotParams, yemotAck, yemotSayAndHangup, yemotSayAndListen } from "@/lib/yemot.server";
+import { parseYemotParams, yemotAck, yemotSayAndHangup, yemotSayAndListen, yemotSayAndListenTap } from "@/lib/yemot.server";
 import { runVoiceTurn, type VoiceMessage, type VoiceTurnResult } from "@/lib/voice-chat.server";
 import { sendMessageToStudio } from "@/lib/voice-message.server";
 import { detectMenuIntent, wantsFullGuide, wantsToBookNow } from "@/lib/voice-menu.server";
 import { getVoiceBotConfig } from "@/lib/voice-phrases.server";
 import { personalizedGreeting } from "@/lib/voice-caller.server";
 import { consumePendingVoiceNotification } from "@/lib/voice-pending-notification.server";
-import { startNoAiBooking, continueNoAiBooking, isNbStage, type DraftBooking } from "@/lib/voice-noai-booking.server";
+import { startNoAiBooking, continueNoAiBooking, currentNbQuestion, isNbStage, NB_TAP_STAGES, type DraftBooking, type NbInputMode } from "@/lib/voice-noai-booking.server";
 
 // One extension in ימות המשיח, configured as a "שלוחת API" pointing here —
 // unlike Twilio's two-URL pattern (incoming call vs. gather response),
@@ -43,15 +43,23 @@ async function handle(request: Request): Promise<Response> {
   // across as confused/wrong. This is part of what read as "the bot doesn't
   // understand" on live calls.
   const speech = rawSpeech.length >= 2 ? rawSpeech : "";
-  const { phrases, menuMode, noAiBookingEnabled } = await getVoiceBotConfig();
+  // Set only by yemotSayAndListenTap's valName ("digits") — a caller
+  // answering a DTMF question (no-AI booking flow, "dtmf" mode) never
+  // populates `speech` at all, so the "no answer" gate right below has to
+  // check for this too, or a real keypad answer would be misread as
+  // silence and get re-prompted with the wrong (speech) message.
+  const rawDigits = (params.digits ?? "").trim();
+  const hasAnswer = !!speech || !!rawDigits;
+  const { phrases, menuMode, noAiBookingMode } = await getVoiceBotConfig();
+  const noAiBookingEnabled = noAiBookingMode !== "off";
+  const nbInputMode: NbInputMode = noAiBookingMode === "dtmf" ? "dtmf" : "speech";
 
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    if (!speech) {
-      const { data: existing } = await supabaseAdmin
-        .from("voice_call_sessions")
-        .select("messages, from_number, stage")
+    if (!hasAnswer) {
+      const { data: existing } = await (supabaseAdmin.from("voice_call_sessions") as any)
+        .select("messages, from_number, stage, draft_booking")
         .eq("call_sid", callSid)
         .maybeSingle();
       if (!existing) {
@@ -84,6 +92,26 @@ async function handle(request: Request): Promise<Response> {
       // the same pattern already used below for repeated AI errors.
       const priorMessages = ((existing.messages as VoiceMessage[] | undefined) ?? []) as VoiceMessage[];
       const phone = existing.from_number || callerPhone;
+      const existingStage = (existing as { stage?: string }).stage ?? "menu";
+
+      // A "dtmf"-mode no-AI booking question was read with
+      // yemotSayAndListenTap, not yemotSayAndListen — falling through to the
+      // generic speech-mode didnt_hear/leave_message flow below would
+      // silently bump the caller out of keypad mode the moment she goes
+      // quiet for a beat (the re-prompt would listen for SPEECH, and any
+      // digits she then pressed would never reach params.digits at all).
+      // Re-issue the exact same tap question instead — safe to repeat
+      // indefinitely, same as a PIN pad retrying until she types something.
+      if (isNbStage(existingStage)) {
+        const draft = ((existing as any).draft_booking as DraftBooking | null) ?? {};
+        const q = currentNbQuestion(existingStage, draft);
+        await (supabaseAdmin.from("voice_call_sessions") as any).upsert(
+          { call_sid: callSid, from_number: phone, messages: priorMessages, stage: existingStage, draft_booking: draft, updated_at: new Date().toISOString() },
+          { onConflict: "call_sid" },
+        );
+        return q.tap ? yemotSayAndListenTap(q.say, q.tap) : yemotSayAndListen(q.say);
+      }
+
       const lastWasDidntHear = priorMessages[priorMessages.length - 1]?.content === phrases.didnt_hear;
       if (lastWasDidntHear) {
         await supabaseAdmin.from("voice_call_sessions").upsert(
@@ -135,9 +163,9 @@ async function handle(request: Request): Promise<Response> {
     // when the AI keeps failing but she's clearly trying to book (see the
     // catch block below).
     const respondNbStart = async (userText: string): Promise<Response> => {
-      const start = await startNoAiBooking(phone);
+      const start = await startNoAiBooking(phone, nbInputMode);
       await save([...priorMessages, { role: "user", content: userText }, { role: "assistant", content: start.say }], start.stage, start.draft);
-      return yemotSayAndListen(start.say);
+      return start.tap ? yemotSayAndListenTap(start.say, start.tap) : yemotSayAndListen(start.say);
     };
     const respondNb = async (result: Awaited<ReturnType<typeof continueNoAiBooking>>, userText: string): Promise<Response> => {
       if (result.done) {
@@ -145,7 +173,7 @@ async function handle(request: Request): Promise<Response> {
         return result.hangup ? yemotSayAndHangup(result.say) : yemotSayAndListen(result.say);
       }
       await save([...priorMessages, { role: "user", content: userText }, { role: "assistant", content: result.say }], result.stage, result.draft);
-      return yemotSayAndListen(result.say);
+      return result.tap ? yemotSayAndListenTap(result.say, result.tap) : yemotSayAndListen(result.say);
     };
 
     // Runs a real AI turn and replies with the right directive for whatever
@@ -184,8 +212,13 @@ async function handle(request: Request): Promise<Response> {
     // (see the catch block at the end of this function).
     if (isNbStage(stage)) {
       const draft = ((session as any).draft_booking as DraftBooking | null) ?? {};
-      const result = await continueNoAiBooking(stage, speech, draft, phone);
-      return await respondNb(result, speech);
+      // "dtmf" mode's tap stages (date/time/duration/confirm) come back as
+      // `digits`, never `speech` — see hasAnswer's own comment above for why
+      // the earlier silence gate already had to account for this too.
+      const usesTap = draft.inputMode === "dtmf" && NB_TAP_STAGES.has(stage);
+      const answer = usesTap ? rawDigits : speech;
+      const result = await continueNoAiBooking(stage, answer, draft, phone);
+      return await respondNb(result, answer);
     }
 
     // ---- Stage 1: the spoken-keyword menu ----
@@ -307,12 +340,12 @@ async function handle(request: Request): Promise<Response> {
       const bookingIntent = noAiBookingEnabled && (wantsToBookNow(speech) || priorMessages.some((m) => m.role === "user" && wantsToBookNow(m.content)));
 
       if (bookingIntent) {
-        const start = await startNoAiBooking(phone);
+        const start = await startNoAiBooking(phone, nbInputMode);
         await (supabaseAdmin.from("voice_call_sessions") as any).upsert(
           { call_sid: callSid, from_number: phone, messages: [...priorMessages, { role: "assistant", content: start.say }], stage: start.stage, draft_booking: start.draft, updated_at: new Date().toISOString() },
           { onConflict: "call_sid" },
         );
-        return yemotSayAndListen(start.say);
+        return start.tap ? yemotSayAndListenTap(start.say, start.tap) : yemotSayAndListen(start.say);
       }
 
       if (lastWasError && !alreadyLeftMessage) {
