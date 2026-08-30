@@ -169,7 +169,7 @@ function MenuModeCard() {
 const NB_MODE_OPTIONS: Array<{ value: "off" | "speech" | "dtmf"; icon: typeof PhoneCall; title: string; desc: string }> = [
   { value: "off", icon: MicOff, title: "כבוי", desc: 'אם הבינה נכשלת שוב ושוב, או שנאמר "הזמנת סטודיו" במצב תפריט קבוע — חוזר להתנהגות הקודמת (הצעה להשאיר הודעה / המתנה לבינה), בלי תהליך שריון עצמאי.' },
   { value: "speech", icon: PhoneCall, title: "בדיבור (ברירת מחדל)", desc: "כל שאלה (תאריך, שעה, משך, מייל) נענית בקול חופשי, ומפוענחת לפי מילות מפתח." },
-  { value: "dtmf", icon: Keyboard, title: "בהקלדה במקלדת הטלפון", desc: "תאריך/שעה/משך/אישור סופי מוקשים במקלדת — פורמט תאריך: יום חודש שנה (8 ספרות). פורמט שעה: 24 שעות (4 ספרות). שם ומייל עדיין בקול." },
+  { value: "dtmf", icon: Keyboard, title: "בהקלדה במקלדת הטלפון", desc: "תאריך/שעה/משך/אישור סופי מוקשים במקלדת — פורמט תאריך: יום וחודש בלבד (4 ספרות, השנה משלימה אוטומטית). פורמט שעה: 24 שעות (4 ספרות). שם ומייל עדיין בקול." },
 ];
 
 function NoAiBookingCard() {
@@ -209,7 +209,7 @@ function NoAiBookingCard() {
           <button
             key={opt.value}
             type="button"
-            disabled={saving}
+            disabled={saving || q.isLoading}
             onClick={() => choose(opt.value)}
             className={`text-right rounded-xl border p-3 transition-colors ${
               mode === opt.value ? "border-primary bg-primary/5" : "border-primary/10 hover:bg-cream"

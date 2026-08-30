@@ -220,9 +220,11 @@ export const requestPhoneResetCode = createServerFn({ method: "POST" })
 
       const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
       const spoken = code.split("").join("-"); // read digit by digit, not as a four-digit number, for clarity over the phone
+      const outboundText = "שלום, יש לך קוד איפוס סיסמה חדש לסטודיו סוויט בייבי. תתקשרי בבקשה חזרה לשמיעתו.";
       await sendYemotVoiceMessage({
         phone: data.phone,
         text: `שלום, קוד האיפוס שלך לסטודיו סוויט בייבי הוא: ${spoken}. הקוד בתוקף ל-${RESET_CODE_TTL_MINUTES} דקות.`,
+        outboundText,
         label: "איפוס סיסמה",
       });
       return { ok: true };
