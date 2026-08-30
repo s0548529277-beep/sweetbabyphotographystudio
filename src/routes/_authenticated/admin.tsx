@@ -26,6 +26,7 @@ import {
   Mic,
   ChevronDown,
   Gift,
+  Inbox,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -77,6 +78,7 @@ const links: NavEntry[] = [
       { to: "/admin/chat-logs", label: "שיחות בוט (צ'אט וטלפון)", icon: MessageCircle },
       { to: "/admin/notifications", label: "הודעות מערכת", icon: Bell },
       { to: "/admin/voice-bot-text", label: "מלל בוט הטלפון", icon: Mic },
+      { to: "/admin/email-assistant", label: "בוט ניהול מייל", icon: Inbox },
     ],
   },
   {
