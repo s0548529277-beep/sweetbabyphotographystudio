@@ -319,3 +319,26 @@ survivors?"
   SOURCE (not just its docs/README) can turn a "we don't know why this
   failed" into a real, checkable root cause — the same category of win as
   reading Groq's actual `/models` response instead of guessing model names.
+- **2026-08-30 (later)**: Comprehensive code-review pass over the AI-facing
+  files found the SAME class of bug the `GUIDANCE`/`GUIDANCE_FEES` comment
+  in `ai-tools.server.ts` already warned about, in the sibling constant one
+  paragraph down: `quote_studio_price` duplicated `computeStudioPrice`/
+  `isMorningPackage` from `bookings.functions.ts` as inline arithmetic
+  (`PRICE_FIRST_HOUR`/`PRICE_EXTRA_HOUR`/`MORNING_PRICE`) instead of
+  importing the real functions, and the copy had drifted in a second way:
+  it gated the 240₪ morning flat rate on an explicit `newborn: true` tool
+  argument, while the real `isMorningPackage` never checks session type at
+  all (purely slots===6 + start ∈ {08:00,09:00,10:00}) — so the bot
+  over-quoted ~300₪ for a real ~240₪ booking whenever the customer hadn't
+  used the word "ניו-בורן" in the conversation. Fixed by deleting the
+  duplicated constants/formula entirely and dynamically importing
+  `computeStudioPrice`, `isMorningPackage`, `GUIDANCE_FEES` from
+  `./bookings.functions` inside `quote_studio_price`'s `execute` (same
+  dynamic-import pattern `create_studio_booking` already uses one function
+  down, so no new static coupling between the two modules). **Pattern for
+  this codebase**: any pricing/business-rule constant that must match a
+  `*.functions.ts` server action needs to import the real function, not
+  hand-copy the formula — a comment promising "must match X exactly" is a
+  standing invitation for the two to drift the next time either side
+  changes, and this file already had two independent instances of exactly
+  that (guidance fees in 2026-08-2x, now the morning-package gate).

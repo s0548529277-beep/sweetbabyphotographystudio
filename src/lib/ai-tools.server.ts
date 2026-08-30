@@ -10,14 +10,6 @@ import {
 import { STUDIO_GUIDE_HE } from "./studio-guide.server";
 import { ARRIVAL_TEXT_HE } from "./arrival";
 
-const PRICE_FIRST_HOUR = 120;
-const PRICE_EXTRA_HOUR = 90;
-const MORNING_PRICE = 240;
-// Must match GUIDANCE_FEES in bookings.functions.ts exactly — this used to
-// say premium: 150 here while the real charge (and placeBooking) used 300,
-// so the bot quoted customers a wrong price for premium guidance.
-const GUIDANCE = { basic: 0, mini: 50, plus: 100, premium: 300 } as const;
-
 /**
  * Tools that let the chat assistant answer availability questions for real,
  * and — for a logged-in customer who confirms she wants it — actually place
@@ -140,17 +132,26 @@ export function buildAssistantTools(opts?: { isAuthenticated?: boolean }) {
         newborn: z.boolean().optional().describe("האם מדובר בצילומי ניו-בורן"),
       }),
       execute: async ({ hours, startTime, guidance, newborn }) => {
+        // Computed via the exact same functions placeBooking uses (imported,
+        // not re-implemented here) — a duplicated copy of this formula
+        // already drifted once (premium guidance used to say 150 here while
+        // the real charge was 300) and, separately, used to require an
+        // explicit `newborn: true` flag for the morning flat rate that
+        // computeStudioPrice/isMorningPackage never actually checks (it's
+        // driven purely by slots + start time) — so the bot would over-quote
+        // a real ~240₪ morning booking as ~300₪ whenever the customer hadn't
+        // said the word "ניו-בורן". `newborn` is accepted for backward
+        // compatibility but no longer changes the price.
+        void newborn;
+        const { computeStudioPrice, isMorningPackage, GUIDANCE_FEES } = await import("./bookings.functions");
         const slots = Math.max(2, Math.round(hours * 2));
-        const start = startTime?.slice(0, 5);
-        const morningStarts = ["08:00", "09:00", "10:00"];
-        const isMorning = !!newborn && slots === 6 && !!start && morningStarts.includes(start);
-        const base = isMorning
-          ? MORNING_PRICE
-          : Math.min(slots, 2) * (PRICE_FIRST_HOUR / 2) + Math.max(0, slots - 2) * (PRICE_EXTRA_HOUR / 2);
-        const add = GUIDANCE[guidance ?? "basic"];
+        const start = (startTime?.slice(0, 5) ?? "00:00") as string;
+        const isMorning = isMorningPackage(slots, start);
+        const base = computeStudioPrice(slots, start);
+        const add = GUIDANCE_FEES[guidance ?? "basic"];
         return {
           hours: slots / 2,
-          package: isMorning ? "מבצע ניו-בורן בוקר (3 שעות)" : "רגיל",
+          package: isMorning ? "מבצע בוקר ניו-בורן (3 שעות)" : "רגיל",
           basePrice: base,
           guidanceFee: add,
           total: base + add,
