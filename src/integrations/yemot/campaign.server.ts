@@ -54,27 +54,45 @@ function requiredEnv(name: string): string {
 
 type YemotCampaignResponse = { responseStatus?: string; message?: string };
 
+// Read aloud on the outbound leg itself when a call site doesn't supply its
+// own short `outboundText` — see sendYemotVoiceMessage's doc comment for why
+// this exists at all. Generic on purpose: it only has to get her to call
+// back, the actual content always arrives there via the pending
+// notification.
+const DEFAULT_SHORT_PING = "שלום, יש לך עדכון מסטודיו סוויט בייבי. תתקשרי בבקשה חזרה למספר הזה לשמיעת הפרטים.";
+
 /**
- * Places a real outbound call to `phone` that reads `text` aloud, and — if
- * `alsoSms` is true — sends the same text as an SMS in the same request.
- * Never throws: on any failure (missing secrets, network, an API-level
- * error), logs to admin_notifications (visible on /admin/notifications) and
- * returns false — a failure here must never block a booking confirmation.
+ * Places a real outbound call to `phone`. Never throws: on any failure
+ * (missing secrets, network, an API-level error), logs to
+ * admin_notifications (visible on /admin/notifications) and returns false —
+ * a failure here must never block a booking confirmation.
+ *
+ * `text` is the FULL detailed message (date/time/door code/etc.) — it's
+ * never actually spoken on this outbound call; it's stored as a pending
+ * notification and delivered in full, verbatim, the moment she calls the
+ * studio's line back (either line — Yemot and Twilio both check for one on
+ * their first-hit-of-call handling). `outboundText` is what's actually read
+ * aloud on THIS call — short by design (defaults to a generic ping if
+ * omitted) specifically to keep the outbound leg itself brief, since real
+ * campaign-completion data confirmed these calls cost units regardless of
+ * whether/how long she listens, and the full content reaches her either way
+ * on the callback. Per explicit request: every outbound call should read
+ * roughly 10 seconds or less of Hebrew TTS, not the full detailed message.
  */
 export async function sendYemotVoiceMessage(opts: {
   phone: string;
   text: string;
+  /** Short text actually spoken on the outbound call — omit to use DEFAULT_SHORT_PING. */
+  outboundText?: string;
+  /** Not currently used by any call site. NOTE: Yemot's RunCampaign sends ONE `phones` text for both the voice call and (if this is true) the SMS in the same request — so turning this on would also send outboundText's SHORT ping as the SMS body, not the full `text`. If a real use case needs the full text in the SMS, that needs a second, SMS-only RunCampaign call with `text` instead of reusing this one. */
   alsoSms?: boolean;
   /** Shown in the admin_notifications title if this fails, e.g. a booking id. */
   label: string;
 }): Promise<boolean> {
-  // Stored first, unconditionally — so the message is there to be delivered
-  // on her next call in even if the outbound "flash" ring below fails
+  // Stored first, unconditionally — so the FULL message is there to be
+  // delivered on her next call in even if the outbound leg below fails
   // outright (no units, network hiccup, wrong credentials). See
-  // voice-pending-notification.server.ts / the studio's own confirmed
-  // observation: the outbound call rings and disconnects without actually
-  // speaking (free, no units spent) — the real message is meant to reach
-  // her when she calls the studio's line back, not on this outbound leg.
+  // voice-pending-notification.server.ts.
   try {
     const { setPendingVoiceNotification } = await import("@/lib/voice-pending-notification.server");
     await setPendingVoiceNotification(opts.phone, opts.text);
@@ -87,7 +105,7 @@ export async function sendYemotVoiceMessage(opts: {
     const password = requiredEnv("YEMOT_SYSTEM_PASSWORD");
     const token = `${systemNumber}:${password}`;
     const digits = opts.phone.replace(/\D/g, "");
-    const phones = JSON.stringify({ [digits]: opts.text });
+    const phones = JSON.stringify({ [digits]: opts.outboundText ?? DEFAULT_SHORT_PING });
 
     const url = new URL(BASE_URL);
     url.searchParams.set("token", token);

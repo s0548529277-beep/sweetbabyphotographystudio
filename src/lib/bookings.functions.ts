@@ -882,7 +882,8 @@ async function finalizeBookingConfirmation(
       const text = `שלום ${b.contact_name || ""}, ההזמנה שלך בסטודיו סוויט בייבי אושרה. התאריך ${b.session_date} בשעה ${String(b.start_time).slice(0, 5)}.${
         doorCode ? ` קוד הכניסה שלך הוא ${doorCode.split("").join(" ")}. לחצי סולמית אחרי הקשת הקוד.` : ""
       } מחכות לך, ביי!`;
-      await sendYemotVoiceMessage({ phone: b.contact_phone, text, label: `אישור הזמנה ${b.id.slice(0, 8)}` });
+      const outboundText = "שלום, ההזמנה שלך בסטודיו סוויט בייבי אושרה. תתקשרי בבקשה חזרה לשמיעת כל הפרטים.";
+      await sendYemotVoiceMessage({ phone: b.contact_phone, text, outboundText, label: `אישור הזמנה ${b.id.slice(0, 8)}` });
     } catch (e) {
       console.error("[SWEETBABY] Yemot confirmation call (booking) failed", e);
     }
@@ -950,7 +951,8 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
             try {
               const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
               const text = `שלום ${b.contact_name || ""}, קוד הכניסה שלך לסטודיו סוויט בייבי הוא ${doorCode.split("").join(" ")}. לחצי סולמית אחרי הקשת הקוד. מחכות לך!`;
-              await sendYemotVoiceMessage({ phone: b.contact_phone, text, label: `קוד כניסה ${b.id.slice(0, 8)}` });
+              const outboundText = "שלום, יש לך קוד כניסה חדש לסטודיו סוויט בייבי. תתקשרי בבקשה חזרה לשמיעתו.";
+              await sendYemotVoiceMessage({ phone: b.contact_phone, text, outboundText, label: `קוד כניסה ${b.id.slice(0, 8)}` });
             } catch (e) {
               console.error("[SWEETBABY] Yemot backfilled door code call (booking) failed", e);
             }
@@ -1086,7 +1088,8 @@ export async function notifyPendingPhoneBookingConfirmations(): Promise<{ checke
 
       const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
       const text = `שלום, יש הזמנה טלפונית ממתינה לאישור תשלום בסטודיו סוויט בייבי. ${b.contact_name || "לקוחה"}, תאריך ${b.session_date} בשעה ${String(b.start_time).slice(0, 5)}, סכום ${b.price} שקל. אם ההעברה התקבלה, יש לאשר בממשק הניהול.`;
-      await sendYemotVoiceMessage({ phone: STUDIO_OWNER_PHONE, text, label: `תזכורת אישור טלפוני ${b.id.slice(0, 8)}` });
+      const outboundText = "שלום, יש הזמנה טלפונית ממתינה לאישור תשלום. תתקשרי בבקשה חזרה לפרטים, או תבדקי בממשק הניהול.";
+      await sendYemotVoiceMessage({ phone: STUDIO_OWNER_PHONE, text, outboundText, label: `תזכורת אישור טלפוני ${b.id.slice(0, 8)}` });
       called++;
 
       // Logged even though it's a call, not a written notification — this
@@ -1152,7 +1155,8 @@ export async function notifyPendingPropsRequests(): Promise<{ checked: number; c
       const phone = n.body?.phone ?? "";
       const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
       const text = `שלום, יש בקשה טלפונית להשכרת אביזרים שממתינה לטיפול בסטודיו סוויט בייבי, מהמספר ${phone || "לא ידוע"}. יש לבדוק בממשק הניהול.`;
-      await sendYemotVoiceMessage({ phone: STUDIO_OWNER_PHONE, text, label: `תזכורת בקשת אביזרים ${n.id.slice(0, 8)}` });
+      const outboundText = "שלום, יש בקשת אביזרים טלפונית שממתינה לטיפול. תבדקי בממשק הניהול.";
+      await sendYemotVoiceMessage({ phone: STUDIO_OWNER_PHONE, text, outboundText, label: `תזכורת בקשת אביזרים ${n.id.slice(0, 8)}` });
       called++;
 
       await supabaseAdmin.from("admin_notifications").insert({
@@ -1260,7 +1264,8 @@ export async function runDueBookingReminders(): Promise<{ checked: number; sent:
         try {
           const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
           const text = `שלום ${b.contact_name || ""}, תזכורת מסטודיו סוויט בייבי — הצילומים שלך מתקיימים בעוד כ-${hoursBefore} שעות, ב-${String(b.start_time).slice(0, 5)}. מחכות לך!`;
-          await sendYemotVoiceMessage({ phone: b.contact_phone, text, label: `תזכורת ${hoursBefore} שעות ${b.id.slice(0, 8)}` });
+          const outboundText = "שלום, תזכורת מסטודיו סוויט בייבי — יש לך צילומים בקרוב. תתקשרי בבקשה חזרה לפרטים.";
+          await sendYemotVoiceMessage({ phone: b.contact_phone, text, outboundText, label: `תזכורת ${hoursBefore} שעות ${b.id.slice(0, 8)}` });
         } catch (e) {
           console.error("[SWEETBABY] Yemot reminder call (booking) failed", e);
         }

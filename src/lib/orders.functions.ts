@@ -422,7 +422,8 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
             try {
               const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
               const text = `שלום ${o.contact_name || ""}, קוד הכניסה שלך לאיסוף האביזרים מסטודיו סוויט בייבי הוא ${doorCode.split("").join(" ")}. לחצי סולמית אחרי הקשת הקוד. מחכות לך!`;
-              await sendYemotVoiceMessage({ phone: o.contact_phone, text, label: `קוד כניסה ${o.id.slice(0, 8)}` });
+              const outboundText = "שלום, יש לך קוד כניסה חדש לאיסוף האביזרים מסטודיו סוויט בייבי. תתקשרי בבקשה חזרה לשמיעתו.";
+              await sendYemotVoiceMessage({ phone: o.contact_phone, text, outboundText, label: `קוד כניסה ${o.id.slice(0, 8)}` });
             } catch (e2) {
               console.error("[SWEETBABY] Yemot backfilled door code call (order) failed", e2);
             }
@@ -562,7 +563,8 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
         const text = `שלום ${o.contact_name || ""}, הזמנת האביזרים שלך מסטודיו סוויט בייבי אושרה. איסוף בתאריך ${o.session_date}${
           pickupTimeSpoken ? ` בשעה ${pickupTimeSpoken}` : ""
         }.${doorCode ? ` קוד הכניסה שלך הוא ${doorCode.split("").join(" ")}. לחצי סולמית אחרי הקשת הקוד.` : ""} מחכות לך, ביי!`;
-        await sendYemotVoiceMessage({ phone: o.contact_phone, text, label: `אישור הזמנת אביזרים ${o.id.slice(0, 8)}` });
+        const outboundText = "שלום, הזמנת האביזרים שלך מסטודיו סוויט בייבי אושרה. תתקשרי בבקשה חזרה לשמיעת כל הפרטים.";
+        await sendYemotVoiceMessage({ phone: o.contact_phone, text, outboundText, label: `אישור הזמנת אביזרים ${o.id.slice(0, 8)}` });
       } catch (e) {
         console.error("[SWEETBABY] Yemot confirmation call (order) failed", e);
       }
@@ -724,7 +726,8 @@ export async function runDueOrderReminders(): Promise<{ checked: number; sent: n
         try {
           const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
           const text = `שלום ${o.contact_name || ""}, תזכורת מסטודיו סוויט בייבי — איסוף האביזרים שלך בעוד כ-${hoursBefore} שעות${pickupTime ? `, ב-${pickupTime}` : ""}. מחכות לך!`;
-          await sendYemotVoiceMessage({ phone: o.contact_phone, text, label: `תזכורת ${hoursBefore} שעות ${o.id.slice(0, 8)}` });
+          const outboundText = `שלום, תזכורת מסטודיו סוויט בייבי — יש לך איסוף אביזרים היום. תתקשרי בבקשה חזרה לפרטים.`;
+          await sendYemotVoiceMessage({ phone: o.contact_phone, text, outboundText, label: `תזכורת ${hoursBefore} שעות ${o.id.slice(0, 8)}` });
         } catch (e) {
           console.error("[SWEETBABY] Yemot reminder call (order) failed", e);
         }
