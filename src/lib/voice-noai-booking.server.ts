@@ -134,22 +134,43 @@ export function formatSpokenDateHe(dateIso: string): string {
 
 // ---------- date/time/duration parsing (dtmf) ----------
 
-/** Yemot's "Date" typing_playback_mode preset: exactly 8 digits, DDMMYYYY. */
-export function parseDigitsDate(digits: string): string | null {
-  const d = (digits || "").trim();
-  if (!/^\d{8}$/.test(d)) return null;
-  const day = Number(d.slice(0, 2));
-  const month = Number(d.slice(2, 4));
-  const year = Number(d.slice(4, 8));
-  if (day < 1 || day > 31 || month < 1 || month > 12 || year < 2020 || year > 2100) return null;
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${year}-${pad(month)}-${pad(day)}`;
+// Yemot echoes typed digits back with separators added (confirmed live —
+// a real "Date"-mode entry came back as "02-02-2026", not raw "02022026"),
+// not just plain digits as originally assumed. Stripping everything but
+// digits first makes every parser below robust to whichever formatting
+// Yemot actually applies, instead of guessing at the exact separator.
+function digitsOnly(raw: string): string {
+  return (raw || "").replace(/\D/g, "");
 }
 
-/** Yemot's "Time" typing_playback_mode preset: exactly 4 digits, HHMM, 24h. Minutes restricted to :00/:30 — the studio only ever books on the half hour. */
-export function parseDigitsTime(digits: string): { hour: number; minute: number } | null {
-  const d = (digits || "").trim();
-  if (!/^\d{4}$/.test(d)) return null;
+/**
+ * Day + month only (4 digits, DDMM) — year is auto-filled to the current
+ * one, rolling to next year if that date has already passed this year
+ * (same rule parseExplicitDate uses for the speech-mode equivalent). Per
+ * explicit request: typing a 4-digit year on a phone keypad is friction
+ * nobody needs when "this year, or next year if it's already past" covers
+ * every realistic booking. This intentionally does NOT use Yemot's
+ * built-in "Date" typing_playback_mode preset (DDMMYYYY, 8 digits, and the
+ * source of the dash-formatted echo above) — a plain 4-digit read is both
+ * shorter to type and sidesteps that formatting question entirely.
+ */
+export function parseDigitsDate(raw: string, todayIso: string = israelNow().date): string | null {
+  const d = digitsOnly(raw);
+  if (d.length !== 4) return null;
+  const day = Number(d.slice(0, 2));
+  const month = Number(d.slice(2, 4));
+  if (day < 1 || day > 31 || month < 1 || month > 12) return null;
+  const year = Number(todayIso.slice(0, 4));
+  const pad = (n: number) => String(n).padStart(2, "0");
+  let candidate = `${year}-${pad(month)}-${pad(day)}`;
+  if (candidate < todayIso) candidate = `${year + 1}-${pad(month)}-${pad(day)}`;
+  return candidate;
+}
+
+/** 4 digits, HHMM, 24h. Minutes restricted to :00/:30 — the studio only ever books on the half hour. */
+export function parseDigitsTime(raw: string): { hour: number; minute: number } | null {
+  const d = digitsOnly(raw);
+  if (d.length !== 4) return null;
   const hour = Number(d.slice(0, 2));
   const minute = Number(d.slice(2, 4));
   if (hour < 0 || hour > 23) return null;
@@ -158,8 +179,8 @@ export function parseDigitsTime(digits: string): { hour: number; minute: number 
 }
 
 /** A single digit, 1-6 — digits_allowed on the Yemot side already rejects anything else, this just parses what came back. */
-export function parseDigitsDuration(digits: string): number | null {
-  const d = (digits || "").trim();
+export function parseDigitsDuration(raw: string): number | null {
+  const d = digitsOnly(raw);
   if (!/^[1-6]$/.test(d)) return null;
   return Number(d);
 }
@@ -258,12 +279,14 @@ function buildConfirmSummary(draft: DraftBooking): string {
   return `לסיכום: שריון סטודיו ל${draft.name ?? "עבורך"}, ${dateText}, ${hourText}, ${durationText}, ${emailText}.`;
 }
 
+const DATE_TAP: YemotTapOptions = { minDigits: 4, maxDigits: 4 };
+
 function questionForDate(draft: DraftBooking): Question {
   if (draft.inputMode === "dtmf") {
     return {
       stage: "nb_date",
-      say: "באיזה תאריך תרצי לשריין? אפשר להקיש בטלפון תאריך בפורמט יום חודש שנה, שמונה ספרות — לדוגמה חמישה עשר בנובמבר 2026 זה אחת חמש אחת אחת שתיים אפס שתיים שש.",
-      tap: { mode: "Date" },
+      say: "באיזה תאריך תרצי לשריין? אפשר להקיש יום וחודש, ארבע ספרות — לדוגמה חמישה עשר בנובמבר זה אחת חמש אחת אחת.",
+      tap: DATE_TAP,
     };
   }
   return { stage: "nb_date", say: "לאיזה יום תרצי לשריין? אפשר להגיד למשל 'היום', 'מחר', או שם של יום כמו 'יום שלישי'." };
@@ -368,8 +391,8 @@ export async function continueNoAiBooking(stage: NbStage, answerRaw: string, dra
     case "nb_date": {
       const date = mode === "dtmf" ? parseDigitsDate(answer) : parseSpokenDate(answer);
       if (!date) {
-        const retry = mode === "dtmf" ? "לא זיהיתי תאריך תקין. אפשר להקיש שוב, יום חודש שנה, שמונה ספרות?" : "לא הצלחתי להבין את התאריך. אפשר להגיד 'היום', 'מחר', 'מחרתיים', או שם של יום בשבוע?";
-        return { done: false, stage: "nb_date", draft, say: retry, tap: mode === "dtmf" ? { mode: "Date" } : undefined };
+        const retry = mode === "dtmf" ? "לא זיהיתי תאריך תקין. אפשר להקיש שוב, יום וחודש, ארבע ספרות?" : "לא הצלחתי להבין את התאריך. אפשר להגיד 'היום', 'מחר', 'מחרתיים', או שם של יום בשבוע?";
+        return { done: false, stage: "nb_date", draft, say: retry, tap: mode === "dtmf" ? DATE_TAP : undefined };
       }
       const nextDraft = { ...draft, date };
       return { done: false, draft: nextDraft, ...questionForTime(nextDraft) };
