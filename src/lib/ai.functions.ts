@@ -120,6 +120,8 @@ export const chatWithBot = createServerFn({ method: "POST" })
       : `\n\nהמשתמשת לא מחוברת. לביצוע הזמנה בפועל הציעי לה להתחבר בעמוד /auth — אבל בדיקת זמינות אפשר לעשות גם בלי התחברות.`;
     const { israelNow } = await import("./availability.server");
     const now = israelNow();
+    const { getBotKnowledgeText } = await import("./bot-knowledge.functions");
+    const extraKnowledge = await getBotKnowledgeText();
 
     const toolRules = `\n\nהיום ${now.date}, השעה בישראל ${now.time}. יש לך גישה אמיתית ליומן הסטודיו (כולל אירועים שהוזנו ישירות ביומן גוגל) ולמלאי האביזרים — הנתונים חיים ומדויקים לכל לקוחה, גם בלי התחברות:
 - שתי בדיקות זמינות שונות לגמרי, אסור לערבב ביניהן: check_studio_availability בודקת רק אם **הסטודיו עצמו** (המקום הפיזי, לפי שעות) פנוי. check_prop_availability בודקת רק אם **אביזר להשכרה** (מק״ט/שם) פנוי בטווח תאריכים — לאביזר אין שעות, רק ימים. שאלה על אביזר ("האם X פנוי", "אפשר לשכור Y") — אף פעם אל תבדקי/תזכירי זמינות הסטודיו, זה לא רלוונטי אליה. שאלה על שריון הסטודיו עצמו — רק check_studio_availability.
@@ -135,7 +137,7 @@ export const chatWithBot = createServerFn({ method: "POST" })
 - קוד קופון — לעולם אל תמציאי, תמיד תבדקי עם list_active_coupons.
 - יצירת שריון בפועל בשם הלקוחה — רק עם create_studio_booking, ורק אחרי שמתקיימים כל התנאים בתיאור הכלי (זמינות אמיתית, פרטי קשר, אישור מפורש על תנאים ומקדמה). לעולם אל תגידי ללקוחה "שריינתי לך" בלי לקרוא לכלי הזה בפועל.`;
     const { text } = await generateTextResilient({
-      system: SYSTEM + personalized + toolRules,
+      system: SYSTEM + personalized + toolRules + extraKnowledge,
       messages: data.messages,
       tools: buildAssistantTools({ isAuthenticated: isRealAccount }),
       stopWhen: stepCountIs(8),

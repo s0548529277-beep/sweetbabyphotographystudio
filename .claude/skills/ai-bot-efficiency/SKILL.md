@@ -336,3 +336,18 @@ survivors?"
   numbers — the owner's own external site (michalsiboni.co.il) couldn't be
   read from this environment (egress-blocked) to pull more, so this is
   scoped to only what was told directly, not scraped.
+- **2026-08-30 (later still)**: Added an admin-editable "extra knowledge"
+  layer — `bot_knowledge_notes` table + `/admin/bot-knowledge` page +
+  `getBotKnowledgeText()` (`bot-knowledge.functions.ts`), appended to
+  `SYSTEM` in both `chatWithBot` (ai.functions.ts) and `runVoiceTurn`
+  (voice-chat.server.ts). Deliberately NOT a tool like
+  get_photography_service_info: the whole point is admin-typed facts the
+  bot must reliably know without the model having to guess when to call a
+  tool for them (the owner's own request was prompted by exactly that kind
+  of fact — "newborn session via birth-basket benefit is free" — something
+  that should surface unprompted, not only on a matching question). Cost is
+  one extra DB read per turn (single small table, best-effort/swallowed on
+  failure) plus whatever text volume accumulates — fine as long as it stays
+  a handful of short admin notes; if this ever grows into a large knowledge
+  base, revisit as a searchable tool instead per principle #1, rather than
+  letting it inflate every single turn's token cost unboundedly.

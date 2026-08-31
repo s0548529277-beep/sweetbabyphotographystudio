@@ -378,8 +378,10 @@ function stripEchoOpener(text: string): string {
 export async function runVoiceTurn(messages: VoiceMessage[], callerPhone: string): Promise<VoiceTurnResult> {
   const { israelNow } = await import("./availability.server");
   const { lookupCallerProfile } = await import("./voice-caller.server");
+  const { getBotKnowledgeText } = await import("./bot-knowledge.functions");
   const now = israelNow();
   const caller = await lookupCallerProfile(callerPhone);
+  const extraKnowledge = await getBotKnowledgeText();
 
   const toolRules = `\n\nהיום ${now.date}, השעה בישראל ${now.time}. יש לך גישה אמיתית ליומן הסטודיו ולמלאי האביזרים — בדוק תמיד עם הכלים (check_studio_availability / check_prop_availability / find_next_available_days / quote_studio_price / list_active_coupons / hebrew_date_to_gregorian), בכל פעם מחדש, אף פעם אל תניח או תסתמך על תשובה קודמת באותה שיחה.
 כשהלקוחה שואלת משהו שקל יותר לראות בעיניים (תמונות מהסטודיו, קטלוג האביזרים המלא, גלריה) — הצע לה קודם, בקצרה, שאפשר גם לחפש בגוגל "סטודיו סוויט בייבי" ולראות הכול באתר. אם היא אומרת שזה לא נוח לה כרגע (בלי גישה נוחה לאינטרנט, מעדיפה לסגור עכשיו בטלפון וכו׳) — המשך ותעזור לה לשריין ישירות בשיחה, בלי לחזור ולהפנות אותה לאתר.${
@@ -400,7 +402,7 @@ export async function runVoiceTurn(messages: VoiceMessage[], callerPhone: string
   // this used to be.
   const result = await generateTextResilient(
     {
-      system: SYSTEM + VOICE_STYLE + toolRules,
+      system: SYSTEM + VOICE_STYLE + toolRules + extraKnowledge,
       messages,
       tools: buildVoiceTools(callerPhone),
       stopWhen: stepCountIs(6),
