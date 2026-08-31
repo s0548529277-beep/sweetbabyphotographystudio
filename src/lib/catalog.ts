@@ -80,7 +80,12 @@ export function useCatalogCategories(): CatalogCategory[] {
         }
         used.add(item.sku);
         if (row.active === false) continue; // hidden from the catalog by admin
-        push(row.categories?.name || cat.title, {
+        // Once a live DB row exists, its OWN category is authoritative — even
+        // when that's null (no category, e.g. its category was deleted in
+        // /admin/items). Falling back to the bundled JSON's original
+        // `cat.title` here used to resurrect deleted-category names forever,
+        // since studio-catalog.json is a static seed that's never updated.
+        push(row.categories?.name || "אביזרים נוספים", {
           ...item,
           name: row.name || item.name,
           price: Number(row.price ?? item.price),

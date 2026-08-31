@@ -12,9 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, ImageIcon, Upload, Download, FolderPlus, GripVertical, Sparkles } from "lucide-react";
+import { Plus, Pencil, Trash2, ImageIcon, Upload, Download, FolderPlus, GripVertical, Sparkles, Crop } from "lucide-react";
 import { toCSV, downloadCSV, parseCSVRecords } from "@/lib/csv";
 import { fetchItemInspiration, type ItemInspirationImage } from "@/lib/item-inspiration";
+import { ImageCropDialog } from "@/components/ImageCropDialog";
 
 export const Route = createFileRoute("/_authenticated/admin/items")({
   component: ItemsAdmin,
@@ -27,12 +28,22 @@ type ItemForm = {
   description: string;
   price: number;
   image_url: string | null;
+  image_hash: string | null;
   category_id: string | null;
   active: boolean;
   stock_quantity: number;
 };
 
-const empty: ItemForm = { sku: "", name: "", description: "", price: 0, image_url: null, category_id: null, active: true, stock_quantity: 1 };
+const empty: ItemForm = {
+  sku: "", name: "", description: "", price: 0, image_url: null, image_hash: null, category_id: null, active: true, stock_quantity: 1,
+};
+
+/** SHA-256 of the file's bytes, hex-encoded — used only for exact-duplicate detection (see uploadToStorage). */
+async function hashFile(file: Blob): Promise<string> {
+  const buf = await file.arrayBuffer();
+  const digest = await crypto.subtle.digest("SHA-256", buf);
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 function pad(n: number, width = 3) {
   return String(n).padStart(width, "0");
@@ -167,7 +178,7 @@ function ItemsAdmin() {
   const editItem = (i: any) => {
     setForm({
       id: i.id, sku: i.sku, name: i.name, description: i.description ?? "",
-      price: Number(i.price), image_url: i.image_url, category_id: i.category_id, active: i.active,
+      price: Number(i.price), image_url: i.image_url, image_hash: i.image_hash ?? null, category_id: i.category_id, active: i.active,
       stock_quantity: Number(i.stock_quantity ?? 1),
     });
     setOpen(true);
@@ -177,12 +188,13 @@ function ItemsAdmin() {
     if (!form.name || !form.sku) return toast.error("שם ומק״ט חובה");
     const payload = {
       sku: form.sku, name: form.name, description: form.description || null,
-      price: form.price, image_url: form.image_url, category_id: form.category_id, active: form.active,
+      price: form.price, image_url: form.image_url, image_hash: form.image_hash, category_id: form.category_id, active: form.active,
       stock_quantity: Math.max(1, Math.floor(form.stock_quantity || 1)),
     };
+    // image_hash cast past the generated types for the same reason as above.
     const { error } = form.id
-      ? await supabase.from("items").update(payload).eq("id", form.id)
-      : await supabase.from("items").insert(payload);
+      ? await supabase.from("items").update(payload as never).eq("id", form.id)
+      : await supabase.from("items").insert(payload as never);
     if (error) return toast.error(error.message);
     toast.success("נשמר");
     setOpen(false); setForm(empty);
@@ -206,9 +218,34 @@ function ItemsAdmin() {
     else { qc.invalidateQueries({ queryKey: ["admin-items"] }); qc.invalidateQueries({ queryKey: ["items"] }); }
   };
 
-  // Uploads to the private "items" bucket and returns a long-lived signed URL.
-  const uploadToStorage = async (file: File, prefix = "") => {
+  // Warns before uploading an image that's byte-identical to one already on
+  // another item (e.g. re-uploading the same file to the wrong product by
+  // mistake) — exact-hash match only, so it never false-positives on a
+  // similar-looking but different photo. Returns false if the user cancels.
+  const confirmNotDuplicate = async (hash: string, excludeItemId?: string) => {
+    // image_hash is a very recent column — cast past the generated types
+    // until they're regenerated against the live schema (same pattern as
+    // updateItemField's `as never` below).
+    let query = supabase.from("items").select("name").eq("image_hash" as never, hash).limit(1);
+    if (excludeItemId) query = query.neq("id", excludeItemId);
+    const { data } = await query.maybeSingle();
+    if (!data) return true;
+    return confirm(`כבר יש פריט "${data.name}" עם התמונה הזו בדיוק. להעלות בכל זאת?`);
+  };
+
+  // Uploads to the private "items" bucket and returns a long-lived signed URL
+  // plus a content hash (see confirmNotDuplicate/hashFile). The duplicate
+  // check is opt-in (checkDuplicate) — it's a blocking confirm() dialog, so
+  // it's only turned on for the two single-photo product-image call sites
+  // below; bulk upload / CSV import / inspiration photos skip it (a confirm
+  // per file in a loop of many would be unusable, and inspiration references
+  // legitimately reuse similar photos). excludeItemId skips the check
+  // against the item you're already editing (its own current photo
+  // obviously matches itself).
+  const uploadToStorage = async (file: File, prefix = "", opts?: { excludeItemId?: string; checkDuplicate?: boolean }) => {
     const compressed = await compressImage(file);
+    const hash = await hashFile(compressed);
+    if (opts?.checkDuplicate && !(await confirmNotDuplicate(hash, opts.excludeItemId))) return null;
     const ext = compressed.name.split(".").pop();
     const path = `${prefix}${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage.from("items").upload(path, compressed, { upsert: false });
@@ -217,30 +254,41 @@ function ItemsAdmin() {
       .from("items")
       .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
     if (signErr || !data?.signedUrl) throw signErr ?? new Error("שגיאה ביצירת קישור לתמונה");
-    return { url: data.signedUrl, path };
+    return { url: data.signedUrl, path, hash };
   };
 
   const uploadImage = async (file: File) => {
     setUploading(true);
     try {
-      const { url } = await uploadToStorage(file);
-      setForm((f) => ({ ...f, image_url: url }));
+      const res = await uploadToStorage(file, "", { excludeItemId: form.id, checkDuplicate: true });
+      if (res) setForm((f) => ({ ...f, image_url: res.url, image_hash: res.hash }));
     } catch (e: any) {
       toast.error(e.message ?? "שגיאה בהעלאה");
     }
     setUploading(false);
   };
 
+  // Saves the cropped result from ImageCropDialog as the item's new photo —
+  // no duplicate check here (it's a deliberate edit of this same item's own
+  // current photo, not an unrelated new upload).
+  const saveCroppedImage = async (blob: Blob) => {
+    const file = new File([blob], "cropped.jpg", { type: "image/jpeg" });
+    const res = await uploadToStorage(file);
+    if (res) setForm((f) => ({ ...f, image_url: res.url, image_hash: res.hash }));
+  };
+
   // Quick per-row image upload straight from the table
   const uploadRowImage = async (itemId: string, file: File) => {
     setRowUploading(itemId);
     try {
-      const { url } = await uploadToStorage(file);
-      const { error } = await supabase.from("items").update({ image_url: url }).eq("id", itemId);
-      if (error) throw error;
-      toast.success("התמונה עודכנה");
-      qc.invalidateQueries({ queryKey: ["admin-items"] });
-      qc.invalidateQueries({ queryKey: ["items"] });
+      const res = await uploadToStorage(file, "", { excludeItemId: itemId, checkDuplicate: true });
+      if (res) {
+        const { error } = await supabase.from("items").update({ image_url: res.url, image_hash: res.hash } as never).eq("id", itemId);
+        if (error) throw error;
+        toast.success("התמונה עודכנה");
+        qc.invalidateQueries({ queryKey: ["admin-items"] });
+        qc.invalidateQueries({ queryKey: ["items"] });
+      }
     } catch (e: any) {
       toast.error(e.message ?? "שגיאה בהעלאה");
     }
@@ -254,7 +302,9 @@ function ItemsAdmin() {
   const uploadRowInspiration = async (sku: string, file: File) => {
     setRowUploadingInspiration(sku);
     try {
-      const { url, path } = await uploadToStorage(file, "inspiration/");
+      const res = await uploadToStorage(file, "inspiration/");
+      if (!res) return; // checkDuplicate wasn't requested, so this can't actually happen — narrows the type
+      const { url, path } = res;
       const existing = (inspirationRows.data ?? []).filter((r) => r.sku === sku);
       const { error } = await supabase.from("item_inspiration_images").insert({
         sku,
@@ -320,7 +370,9 @@ function ItemsAdmin() {
     let ok = 0;
     for (const file of bulkFiles) {
       try {
-        const { url } = await uploadToStorage(file);
+        const res = await uploadToStorage(file);
+        if (!res) continue; // checkDuplicate wasn't requested, so this can't actually happen — narrows the type
+        const { url } = res;
         const sku = nextSkuFor(prefix, existing);
         existing.push(sku);
         const name = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim() || sku;
@@ -528,6 +580,17 @@ function ItemsAdmin() {
                       {uploading ? "מעלה…" : "העלה תמונה"}
                       <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadImage(e.target.files[0])} />
                     </label>
+                    {form.image_url && (
+                      <ImageCropDialog
+                        imageUrl={form.image_url}
+                        onSave={saveCroppedImage}
+                        trigger={
+                          <Button type="button" variant="outline" size="sm" className="rounded-full">
+                            <Crop className="h-3 w-3 ml-1.5" /> הגדלה / חיתוך
+                          </Button>
+                        }
+                      />
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
