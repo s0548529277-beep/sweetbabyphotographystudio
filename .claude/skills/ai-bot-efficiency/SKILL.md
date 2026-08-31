@@ -319,3 +319,20 @@ survivors?"
   SOURCE (not just its docs/README) can turn a "we don't know why this
   failed" into a real, checkable root cause — the same category of win as
   reading Groq's actual `/models` response instead of guessing model names.
+- **2026-08-30 (later)**: Added `get_photography_service_info` (new tool in
+  `ai-tools.server.ts`, content in `photography-options.ts`'s
+  `PHOTOGRAPHY_SERVICE_TEXT_HE`) covering Michal's own newborn/family
+  photography service (as opposed to studio rental) — a newborn+album
+  package fundable via health-fund "סל לידה" benefits (Clalit/Leumit/Maccabi
+  only), plus outdoor sessions. Followed principle #1 deliberately: this is
+  relevant to a minority of turns, so it's a tool (paid only when actually
+  called), not inlined into the always-sent `SYSTEM` prompt — `SYSTEM` only
+  got one short pointer line added, same pattern as
+  get_equipment_guide/get_arrival_directions. Because it lives in
+  `buildAssistantTools`, both site chat and voice get it automatically, no
+  separate voice-side wiring needed. Content deliberately omits exact
+  package pricing/inclusions (never verified) and instructs the model to
+  route anyone wanting specifics to direct contact rather than inventing
+  numbers — the owner's own external site (michalsiboni.co.il) couldn't be
+  read from this environment (egress-blocked) to pull more, so this is
+  scoped to only what was told directly, not scraped.
