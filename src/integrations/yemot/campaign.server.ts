@@ -1,50 +1,51 @@
-// Server-only: triggers a real, personalized outbound voice call (and
-// optionally an SMS in the same request) via ימות המשיח's campaign API —
-// used to call a customer right after her booking/order is confirmed, and
-// for her chosen reminder, with a short summary + door code.
+// Server-only: triggers a real outbound "צינתוק" (ring-then-hangup, no
+// spoken message at all) via ימות המשיח's API — used to call a customer
+// right after her booking/order is confirmed, and for her chosen reminder,
+// as a pure "please call us back" signal. The actual content (date/time/
+// door code/etc.) is never spoken on the outbound leg at all; it's always
+// delivered on her callback, via the pending-notification mechanism below.
 //
-// An earlier one-off test call (studio's own account) suggested the outbound
-// call rings and disconnects without actually speaking, and doesn't cost
-// units — that assumption turned out to be WRONG (or at least not reliable):
-// real Yemot campaign-completion emails from the account (2026-08-28) show
-// units being deducted for these calls regardless of whether they were
-// answered — sometimes MORE for an unanswered attempt than an answered one.
-// So: treat every call through this function as a real, billed unit, not a
-// free nudge. The message is ALSO stashed as a "pending" notification (see
-// voice-pending-notification.server.ts) and gets delivered for real, once,
-// the moment she calls the studio's line back (see api.yemot.ivr.ts's
-// first-hit-of-call handling) — that part of the design still holds
-// regardless of billing, since it's what makes a failed/unanswered outbound
-// leg not lose the message. But don't add new call sites assuming this is
-// free; if a call site is admin-facing/low-priority, alsoSms (or dropping
-// the call and relying on email + /admin/notifications alone) is likely
-// cheaper — ask before adding another automatic voice-call trigger.
+// Switched from RunCampaign (a real, short spoken message) to RunTzintuk
+// per explicit request, after real Yemot billing documentation confirmed
+// the cost difference: a spoken message (even a few seconds) bills a full
+// unit per number, while a tzintuk (no message, just ring+disconnect)
+// bills 1/10th of a unit — a 10x saving on every single outbound call on
+// this line. The message is ALSO (still, unconditionally) stashed as a
+// "pending" notification (see voice-pending-notification.server.ts) and
+// delivered in full, once, the moment she calls the studio's line back
+// (see api.yemot.ivr.ts's first-hit-of-call handling) — that part of the
+// design is what makes an unanswered/never-answered tzintuk still not
+// lose the message; it's not a "nice to have", it's the only way the
+// content ever reaches her now that the call itself says nothing.
 //
-// NOT YET FULLY VERIFIED AGAINST A LIVE CALL — built from real documentation found
-// via web search (the official developer forum, apiforum.yemot.tel, and the
-// community forum f2.freeivr.co.il — Yemot doesn't publish a single official
-// reference page), not tested against the actual account. Treat this the
-// same as the TTLock integration: best-effort, the first real booking is the
-// real test, and a failure is logged to admin_notifications instead of
-// disappearing into a server log no one can read.
+// NOT YET VERIFIED AGAINST A LIVE CALL/BILLING STATEMENT — RunTzintuk's
+// existence and per-unit cost are confirmed from real Yemot documentation
+// (a support answer quoted directly in the message the owner forwarded),
+// but every real usage example found for RunTzintuk's `phones` parameter
+// references a PRE-SAVED list (`tpl:<id>` / `tzl:<id>`), not a raw ad-hoc
+// number — unlike RunCampaign, which has a confirmed raw-JSON single-
+// number form. There is no confirmed example of RunTzintuk with a bare
+// number for a one-off per-customer call like this app needs (a fresh
+// number every time, never a saved list). Implemented here as the most
+// API-symmetric guess (a raw digits string, same shape RunCampaign's
+// `phones` key takes) — same "best-effort, first real send is the real
+// test" treatment as the TTLock integration and RunCampaign originally
+// got: if the very first live billing statement/campaign report doesn't
+// show tzintuk-rate (0.1 unit) billing for these calls, this needs
+// revisiting — likely meaning an ad-hoc list has to be created via a
+// separate list-management API call first, rather than passing a bare
+// number.
 //
 // Required secrets (Lovable env vars):
 //   YEMOT_SYSTEM_NUMBER — the Yemot system/account number (e.g. "0772249299")
 //   YEMOT_SYSTEM_PASSWORD — the password used to log into the ניהול
 //     (call2all.co.il) management panel.
-//
-// Confirmed from documentation (a real example given in the developer forum):
-//   GET https://www.call2all.co.il/ym/api/RunCampaign
-//     ?token=<systemNumber>:<password>&phones={"<phone>":"<text>"}&withSMS=<0|1>
-// `phones` is a JSON object mapping one phone number to the exact text to
-// read out (Yemot's own TTS) and, if withSMS=1, also send as an SMS — this
-// is the one-off single-recipient form, not the "קמפיין" bulk-broadcast
-// tool in the Yemot management UI (which dials a fixed, pre-built
-// distribution list — the wrong tool for a per-customer transactional call).
-// The response is JSON with a `responseStatus` field: "OK" on success,
-// "ERROR" / "FORBIDDEN" / "EXCEPTION" on failure.
 
-const BASE_URL = "https://www.call2all.co.il/ym/api/RunCampaign";
+const TZINTUK_URL = "https://www.call2all.co.il/ym/api/RunTzintuk";
+// Legacy path — a real spoken message via RunCampaign — kept only for the
+// (currently unused by any call site) alsoSms combo, since a tzintuk has no
+// message/SMS content to send. See sendYemotVoiceMessage's `alsoSms` doc.
+const CAMPAIGN_URL = "https://www.call2all.co.il/ym/api/RunCampaign";
 
 function requiredEnv(name: string): string {
   const v = process.env[name];
@@ -54,37 +55,30 @@ function requiredEnv(name: string): string {
 
 type YemotCampaignResponse = { responseStatus?: string; message?: string };
 
-// Read aloud on the outbound leg itself when a call site doesn't supply its
-// own short `outboundText` — see sendYemotVoiceMessage's doc comment for why
-// this exists at all. Generic on purpose: it only has to get her to call
-// back, the actual content always arrives there via the pending
-// notification.
+// Only used on the legacy alsoSms path (see CAMPAIGN_URL above) — a normal
+// tzintuk call never speaks anything.
 const DEFAULT_SHORT_PING = "שלום, יש לך עדכון מסטודיו סוויט בייבי. תתקשרי בבקשה חזרה למספר הזה לשמיעת הפרטים.";
 
 /**
- * Places a real outbound call to `phone`. Never throws: on any failure
- * (missing secrets, network, an API-level error), logs to
- * admin_notifications (visible on /admin/notifications) and returns false —
- * a failure here must never block a booking confirmation.
+ * Places a real outbound tzintuk (ring, no message, hangs up) to `phone`.
+ * Never throws: on any failure (missing secrets, network, an API-level
+ * error), logs to admin_notifications (visible on /admin/notifications) and
+ * returns false — a failure here must never block a booking confirmation.
  *
  * `text` is the FULL detailed message (date/time/door code/etc.) — it's
- * never actually spoken on this outbound call; it's stored as a pending
- * notification and delivered in full, verbatim, the moment she calls the
- * studio's line back (either line — Yemot and Twilio both check for one on
- * their first-hit-of-call handling). `outboundText` is what's actually read
- * aloud on THIS call — short by design (defaults to a generic ping if
- * omitted) specifically to keep the outbound leg itself brief, since real
- * campaign-completion data confirmed these calls cost units regardless of
- * whether/how long she listens, and the full content reaches her either way
- * on the callback. Per explicit request: every outbound call should read
- * roughly 10 seconds or less of Hebrew TTS, not the full detailed message.
+ * never spoken on any outbound call, tzintuk or otherwise; it's stored as a
+ * pending notification and delivered in full, verbatim, the moment she
+ * calls the studio's line back (either line — Yemot and Twilio both check
+ * for one on their first-hit-of-call handling). `outboundText` is now only
+ * used on the legacy alsoSms path (see below) — a plain tzintuk call reads
+ * nothing at all.
  */
 export async function sendYemotVoiceMessage(opts: {
   phone: string;
   text: string;
-  /** Short text actually spoken on the outbound call — omit to use DEFAULT_SHORT_PING. */
+  /** Only used on the alsoSms path below — ignored for a normal tzintuk call, which speaks nothing. */
   outboundText?: string;
-  /** Not currently used by any call site. NOTE: Yemot's RunCampaign sends ONE `phones` text for both the voice call and (if this is true) the SMS in the same request — so turning this on would also send outboundText's SHORT ping as the SMS body, not the full `text`. If a real use case needs the full text in the SMS, that needs a second, SMS-only RunCampaign call with `text` instead of reusing this one. */
+  /** Not currently used by any call site. A tzintuk has no message to combine with an SMS, so this forces the legacy RunCampaign (real spoken message) path instead — see that branch below. */
   alsoSms?: boolean;
   /** Shown in the admin_notifications title if this fails, e.g. a booking id. */
   label: string;
@@ -105,18 +99,25 @@ export async function sendYemotVoiceMessage(opts: {
     const password = requiredEnv("YEMOT_SYSTEM_PASSWORD");
     const token = `${systemNumber}:${password}`;
     const digits = opts.phone.replace(/\D/g, "");
-    const phones = JSON.stringify({ [digits]: opts.outboundText ?? DEFAULT_SHORT_PING });
 
-    const url = new URL(BASE_URL);
+    const url = new URL(opts.alsoSms ? CAMPAIGN_URL : TZINTUK_URL);
     url.searchParams.set("token", token);
-    url.searchParams.set("phones", phones);
-    if (opts.alsoSms) url.searchParams.set("withSMS", "1");
+    if (opts.alsoSms) {
+      // Legacy path: a real spoken message + SMS, unchanged from before.
+      url.searchParams.set("phones", JSON.stringify({ [digits]: opts.outboundText ?? DEFAULT_SHORT_PING }));
+      url.searchParams.set("withSMS", "1");
+    } else {
+      // Tzintuk: ring + hangup, no message — see this file's doc comment
+      // for why the raw-digits shape here is a best-effort guess, not a
+      // confirmed API example.
+      url.searchParams.set("phones", digits);
+    }
 
     const res = await fetch(url.toString(), { signal: AbortSignal.timeout(15_000) });
     const json = (await res.json().catch(() => null)) as YemotCampaignResponse | null;
 
     if (!res.ok || !json || json.responseStatus !== "OK") {
-      throw new Error(`Yemot RunCampaign error: ${res.status} ${JSON.stringify(json)}`);
+      throw new Error(`Yemot ${opts.alsoSms ? "RunCampaign" : "RunTzintuk"} error: ${res.status} ${JSON.stringify(json)}`);
     }
     return true;
   } catch (e) {
@@ -125,7 +126,7 @@ export async function sendYemotVoiceMessage(opts: {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       await supabaseAdmin.from("admin_notifications").insert({
         type: "yemot_voice_message_error",
-        title: `⚠️ הודעה קולית לא נשלחה — ${opts.label}`,
+        title: `⚠️ צינתוק לא נשלח — ${opts.label}`,
         body: { error: e instanceof Error ? e.message : String(e), phone: opts.phone },
       });
     } catch (e2) {
