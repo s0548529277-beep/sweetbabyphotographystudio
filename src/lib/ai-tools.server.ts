@@ -9,6 +9,7 @@ import {
 } from "./availability.server";
 import { STUDIO_GUIDE_HE } from "./studio-guide.server";
 import { ARRIVAL_TEXT_HE } from "./arrival";
+import { PHOTOGRAPHY_SERVICE_TEXT_HE } from "./photography-options";
 
 const PRICE_FIRST_HOUR = 120;
 const PRICE_EXTRA_HOUR = 90;
@@ -171,6 +172,13 @@ export function buildAssistantTools(opts?: { isAuthenticated?: boolean }) {
         "מחזירה הנחיות הגעה מלאות לסטודיו — כתובת ל-Waze, איך להגיע ברכב, וקווי אוטובוס + הליכה. קרא/י לזה רק כשלקוחה שואלת איך להגיע/דרכי הגעה — לא בכל שיחה.",
       inputSchema: z.object({}),
       execute: async () => ({ directions: ARRIVAL_TEXT_HE }),
+    }),
+
+    get_photography_service_info: tool({
+      description:
+        "מחזירה פרטים על שירות הצילום האישי של הצלמת מיכל סיבוני עצמה (ניו-בורן/משפחה בסטודיו או בחוץ) — שונה משכירת הסטודיו הרגילה. קרא/י לזה כשלקוחה שואלת שאלה שקשורה למיכל כצלמת עצמה — 'את מצלמת?', 'יש חבילת ניו-בורן עם אלבום?', 'סל לידה', 'צילומי חוץ/בטבע' וכו' — לא בכל שיחה.",
+      inputSchema: z.object({}),
+      execute: async () => ({ info: PHOTOGRAPHY_SERVICE_TEXT_HE }),
     }),
 
     current_datetime: tool({
