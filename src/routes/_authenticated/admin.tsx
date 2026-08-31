@@ -27,6 +27,7 @@ import {
   ChevronDown,
   Gift,
   Inbox,
+  BrainCircuit,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -79,6 +80,7 @@ const links: NavEntry[] = [
       { to: "/admin/notifications", label: "הודעות מערכת", icon: Bell },
       { to: "/admin/voice-bot-text", label: "מלל בוט הטלפון", icon: Mic },
       { to: "/admin/email-assistant", label: "בוט ניהול מייל", icon: Inbox },
+      { to: "/admin/bot-knowledge", label: "מידע לבוט", icon: BrainCircuit },
     ],
   },
   {
