@@ -9,6 +9,20 @@
 // carefully from TTLock's documented Open API v3 (oauth2 password grant +
 // keyboardPwd endpoints).
 //
+// SECOND live bug, fixed 2026-09-01: since the door code is DERIVED from
+// the customer's own phone number (doorCodeFromPhone), the same digit
+// string is reissued every time that phone books again — and TTLock
+// rejects a repeat /keyboardPwd/add for a passcode string already on the
+// lock (errcode -3007). This is not rare: revokeDoorCode only ever runs on
+// cancellation, never on a session's natural end, so every past code stays
+// registered forever, and ANY repeat customer's second booking would hit
+// this. addPasscode now catches exactly that error and extends the
+// already-registered passcode's window instead of failing (see
+// findAndExtendExistingPasscode below) — not yet proven against a second
+// real collision, but built from confirmed real API field names (a real
+// open-source TTLock client's source, since the official docs pages
+// weren't reachable from this sandbox), not guessed from scratch.
+//
 // The overnight-exclusion path (excludeOvernightHours, props/accessories
 // only) is NOT yet verified live — it issues several passcodes that all
 // share the same code string but different keyboardPwdId/time windows,
@@ -46,6 +60,18 @@ function requiredEnv(name: string): string {
   return v;
 }
 
+// Thrown by ttlockPost on any API-level failure (errcode !== 0), with the
+// errcode attached so callers can react to a SPECIFIC known error (e.g.
+// -3007, "duplicate passcode") without parsing the message string.
+class TTLockApiError extends Error {
+  errcode: number;
+  constructor(message: string, errcode: number) {
+    super(message);
+    this.name = "TTLockApiError";
+    this.errcode = errcode;
+  }
+}
+
 async function ttlockPost<T>(path: string, params: Record<string, string | number>): Promise<T> {
   const body = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) body.set(k, String(v));
@@ -60,7 +86,7 @@ async function ttlockPost<T>(path: string, params: Record<string, string | numbe
   // field (0 = success) — so a non-ok HTTP status OR a nonzero errcode both
   // mean failure.
   if (!res.ok || (json && typeof json.errcode === "number" && json.errcode !== 0)) {
-    throw new Error(`TTLock API error on ${path}: ${res.status} ${JSON.stringify(json)}`);
+    throw new TTLockApiError(`TTLock API error on ${path}: ${res.status} ${JSON.stringify(json)}`, json?.errcode ?? -1);
   }
   return json as T;
 }
@@ -134,6 +160,72 @@ export function displayDoorCode(code: string): string {
 
 type AddPasscodeResponse = { keyboardPwdId: number };
 
+// A door code is derived deterministically from the customer's own phone
+// number (doorCodeFromPhone) — so the SAME digit string is reused every
+// time that phone books again. TTLock rejects a second /keyboardPwd/add for
+// a passcode string that already exists on the lock (errcode -3007, "The
+// same passcode already exists") — confirmed live in production
+// (booking id ff2e8204-ca23-4187-b800-894ca8922fcc, 2026-09-01): a repeat
+// customer (or simply an earlier booking's code that was never deleted —
+// revokeDoorCode only runs on cancellation, never on a session's natural
+// end, so every past code stays registered on the lock indefinitely)
+// collides on the very next add. findAndExtendExistingPasscode below
+// recovers from exactly this by widening the ALREADY-REGISTERED passcode's
+// window to also cover the new booking, instead of failing the whole
+// confirmation — the customer keeps using the same code she may already
+// know, and nothing else on the lock is touched or narrowed.
+type ListKeyboardPwdResponse = { list: Array<{ keyboardPwdId: number; keyboardPwd: string; startDate: number; endDate: number }> };
+
+async function findAndExtendExistingPasscode(opts: {
+  lockId: number;
+  code: string;
+  startMs: number;
+  endMs: number;
+  accessToken: string;
+  clientId: string;
+}): Promise<number> {
+  // Endpoint/param/field names here (lock/listKeyboardPwd; the response's
+  // per-item "keyboardPwd" field holding the actual digit string; the
+  // change endpoint's plain startDate/endDate — NOT newStartDate/
+  // newEndDate) are confirmed from a real, actively-maintained open-source
+  // TTLock client's source (official docs weren't reachable from this
+  // sandbox) — reasonably confident, but not yet proven against a real
+  // second collision in production. If this recovery path itself ever
+  // fails or silently doesn't extend the code, that's the signal to
+  // revisit these exact field names.
+  const list = await ttlockPost<ListKeyboardPwdResponse>("/v3/lock/listKeyboardPwd", {
+    clientId: opts.clientId,
+    accessToken: opts.accessToken,
+    lockId: opts.lockId,
+    pageNo: 1,
+    pageSize: 200, // generous — this lock's total passcode history should be well under this
+    date: Date.now(),
+  });
+  const existing = list.list?.find((p) => p.keyboardPwd === opts.code);
+  if (!existing) {
+    // TTLock says it's a duplicate but it didn't show up in the list to
+    // extend — nothing safe to do (guessing a keyboardPwdId would be
+    // dangerous), surface the ambiguity rather than pretending success.
+    throw new Error(`TTLock reported passcode "${opts.code}" as a duplicate, but it wasn't found in lock/listKeyboardPwd to extend`);
+  }
+  // Only ever widens the window (never shrinks it), so an unrelated
+  // still-open access period for the same code can't accidentally be cut.
+  const newStartDate = Math.min(existing.startDate, opts.startMs);
+  const newEndDate = Math.max(existing.endDate, opts.endMs);
+  if (newStartDate === existing.startDate && newEndDate === existing.endDate) return existing.keyboardPwdId; // already covers this window
+  await ttlockPost("/v3/keyboardPwd/change", {
+    clientId: opts.clientId,
+    accessToken: opts.accessToken,
+    lockId: opts.lockId,
+    keyboardPwdId: existing.keyboardPwdId,
+    changeType: 2, // same "2" convention already confirmed working for addType below
+    startDate: newStartDate,
+    endDate: newEndDate,
+    date: Date.now(),
+  });
+  return existing.keyboardPwdId;
+}
+
 /**
  * Issues a real temporary passcode on the lock, valid only for the given
  * window (already padded with a few minutes by the caller) — meant to be
@@ -146,22 +238,31 @@ type AddPasscodeResponse = { keyboardPwdId: number };
  * if a real booking confirms and the code never actually reaches the lock
  * (or only works once someone opens the TTLock app standing next to it),
  * this is the first thing to flip and retest.
+ *
+ * On a duplicate-passcode collision (errcode -3007 — see the comment above
+ * findAndExtendExistingPasscode) this extends the existing registration
+ * instead of throwing, since a real production booking already hit this.
  */
 async function addPasscode(opts: { lockId: number; code: string; name: string; startMs: number; endMs: number }): Promise<number> {
   const { access_token: accessToken } = await getAccessToken();
   const clientId = requiredEnv("TTLOCK_CLIENT_ID");
-  const res = await ttlockPost<AddPasscodeResponse>("/v3/keyboardPwd/add", {
-    clientId,
-    accessToken,
-    lockId: opts.lockId,
-    keyboardPwd: opts.code,
-    keyboardPwdName: opts.name,
-    startDate: opts.startMs,
-    endDate: opts.endMs,
-    addType: 2,
-    date: Date.now(),
-  });
-  return res.keyboardPwdId;
+  try {
+    const res = await ttlockPost<AddPasscodeResponse>("/v3/keyboardPwd/add", {
+      clientId,
+      accessToken,
+      lockId: opts.lockId,
+      keyboardPwd: opts.code,
+      keyboardPwdName: opts.name,
+      startDate: opts.startMs,
+      endDate: opts.endMs,
+      addType: 2,
+      date: Date.now(),
+    });
+    return res.keyboardPwdId;
+  } catch (e) {
+    if (!(e instanceof TTLockApiError) || e.errcode !== -3007) throw e;
+    return await findAndExtendExistingPasscode({ lockId: opts.lockId, code: opts.code, startMs: opts.startMs, endMs: opts.endMs, accessToken, clientId });
+  }
 }
 
 /** Same addType caveat as addPasscode above applies to deleteType here. */
