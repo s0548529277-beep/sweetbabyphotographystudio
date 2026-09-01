@@ -28,6 +28,7 @@ import {
   Gift,
   Inbox,
   BrainCircuit,
+  Baby,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -58,6 +59,7 @@ const links: NavEntry[] = [
   { to: "/admin/orders", label: "הזמנות", icon: ShoppingBag },
   { to: "/admin/calendar", label: "יומן", icon: CalendarDays },
   { to: "/admin/clients", label: "לקוחות", icon: Users },
+  { to: "/admin/newborn-packages", label: "חבילות ניו-בורן", icon: Baby },
   { to: "/admin/finance", label: "הכנסות והוצאות", icon: Wallet },
   {
     key: "club",
