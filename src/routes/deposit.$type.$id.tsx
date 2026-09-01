@@ -13,6 +13,8 @@ import { confirmBookingDeposit } from "@/lib/bookings.functions";
 import { confirmOrderDeposit } from "@/lib/orders.functions";
 import { Copy, Check, Upload, Banknote, CreditCard, Wallet, PlayCircle, Bell } from "lucide-react";
 import { StudioGuideModal } from "@/components/StudioGuideModal";
+import { PrizeWheel } from "@/components/PrizeWheel";
+import { isEligibleForWheel } from "@/lib/wheel-prizes";
 
 
 export const Route = createFileRoute("/deposit/$type/$id")({
@@ -233,6 +235,7 @@ function Deposit() {
                   </div>
                 )}
               </div>
+              {isStudio && record && isEligibleForWheel(record) && <PrizeWheel bookingId={record.id} initialPrizeId={record.wheel_prize} />}
               <ArrivalDirections />
             </div>
           ) : (

@@ -11,6 +11,8 @@ import { ArrivalDirections } from "@/components/ArrivalDirections";
 import { EmailDatalist } from "@/components/EmailDatalist";
 import { finalizePhotographySession } from "@/lib/photography.functions";
 import { PAYMENT_LABELS } from "@/lib/photography-options";
+import { PrizeWheel } from "@/components/PrizeWheel";
+import { isEligibleForWheel } from "@/lib/wheel-prizes";
 import { Check, Clock, CalendarDays, Wallet, Mail } from "lucide-react";
 
 export const Route = createFileRoute("/photo-thanks/$id")({
@@ -81,12 +83,15 @@ function PhotoThanks() {
           )}
 
           {done ? (
-            <div className="glass-card rounded-3xl p-8 text-center space-y-3">
-              <h2 className="font-display text-3xl text-primary">ההזמנה אושרה ונשלחה במייל</h2>
-              <p className="text-muted-foreground">
-                השעות שלך הן <span dir="ltr" className="text-primary font-medium">{hours}</span> — יש להקפיד על הזמנים.
-              </p>
-              <Link to="/account"><Button className="rounded-full">לכרטיסייה שלי</Button></Link>
+            <div className="space-y-6">
+              <div className="glass-card rounded-3xl p-8 text-center space-y-3">
+                <h2 className="font-display text-3xl text-primary">ההזמנה אושרה ונשלחה במייל</h2>
+                <p className="text-muted-foreground">
+                  השעות שלך הן <span dir="ltr" className="text-primary font-medium">{hours}</span> — יש להקפיד על הזמנים.
+                </p>
+                <Link to="/account"><Button className="rounded-full">לכרטיסייה שלי</Button></Link>
+              </div>
+              {record && isEligibleForWheel(record) && <PrizeWheel bookingId={record.id} initialPrizeId={record.wheel_prize} />}
             </div>
           ) : (
             <div className="glass-card rounded-3xl p-6 space-y-4">
