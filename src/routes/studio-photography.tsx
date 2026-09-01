@@ -136,24 +136,24 @@ function StudioPhotographyPage() {
     `&su=${encodeURIComponent("תיאום סשן צילום")}&body=${encodeURIComponent(sessionMsg)}`;
   const telLink = `tel:${PHONE}`;
   const bookInputCls =
-    "w-full rounded-xl bg-white border border-[#9d174d]/15 px-3.5 py-2.5 text-sm outline-none focus:border-[#ec4899] transition-colors";
+    "w-full rounded-xl bg-white border border-[#2d4a2b]/15 px-3.5 py-2.5 text-sm outline-none focus:border-[#5b7a52] transition-colors";
 
 
   return (
-    <div dir="rtl" className="min-h-screen bg-[#f8ede4] text-[#3a2430]" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
+    <div dir="rtl" className="min-h-screen bg-[#f8ede4] text-[#2d3b2a]" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
       <Header />
 
       {/* Background blobs */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
         <motion.div
           className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full opacity-40"
-          style={{ background: "radial-gradient(circle, #ffd6ea 0%, transparent 70%)" }}
+          style={{ background: "radial-gradient(circle, #f5d5cf 0%, transparent 70%)" }}
           animate={{ x: [0, 40, 0], y: [0, 30, 0] }}
           transition={{ duration: 14, repeat: Infinity }}
         />
         <motion.div
           className="absolute bottom-0 -left-32 w-[600px] h-[600px] rounded-full opacity-30"
-          style={{ background: "radial-gradient(circle, #f3b8d3 0%, transparent 70%)" }}
+          style={{ background: "radial-gradient(circle, #a8bfa1 0%, transparent 70%)" }}
           animate={{ x: [0, -30, 0], y: [0, -40, 0] }}
           transition={{ duration: 16, repeat: Infinity }}
         />
@@ -166,46 +166,43 @@ function StudioPhotographyPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
         >
-          <div className="inline-flex items-center gap-2 bg-white/70 backdrop-blur px-4 py-1.5 rounded-full text-sm text-[#8a4a68] mb-6 border border-[#f3b8d3]/40">
+          <div className="inline-flex items-center gap-2 bg-white/70 backdrop-blur px-4 py-1.5 rounded-full text-sm text-[#4a5d43] mb-6 border border-[#a8bfa1]/40">
             <Camera size={14} /> צילום מקצועי · מיכל סיבוני
           </div>
           <h1 className="text-5xl md:text-7xl mb-4 leading-tight" style={{ fontFamily: "'DM Serif Display', serif" }}>
             רגעים שנשארים.
             <br />
-            <span className="text-[#ec4899]">בסטודיו או בטבע.</span>
+            <span className="text-[#5b7a52]">בסטודיו או בטבע.</span>
           </h1>
-          <p className="text-lg md:text-xl text-[#8a4a68]/80 max-w-2xl mx-auto mb-8">
+          <p className="text-lg md:text-xl text-[#4a5d43]/80 max-w-2xl mx-auto mb-8">
             סשנים אישיים עם הצלמת מיכל סיבוני – ניו-בורן, משפחה, ילדים ואירועים.
             תבחרי את האווירה שמדברת אלייך: אור רך של סטודיו או קסם טבעי בטבע.
           </p>
-          {/* Single clear primary action; the site link is a lighter secondary so it doesn't compete for attention. */}
-          <div className="flex flex-wrap items-center gap-4 justify-center mb-2">
+          <div className="flex flex-wrap gap-3 justify-center">
             <a
               href={gmailLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-white px-8 py-4 rounded-full font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
-              style={{ background: "linear-gradient(90deg,#ec4899,#c0266b)" }}
+              className="inline-flex items-center gap-2 bg-[#2d4a2b] text-white px-7 py-3.5 rounded-full hover:bg-[#3d5a3b] transition shadow-lg"
             >
-              <Mail size={18} /> לתיאום סשן במייל
+              <Mail size={18} /> לתאום סשן במייל
             </a>
             <a
               href={MICHAL_SITE}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-[#8a4a68] px-2 py-2 text-sm font-medium hover:text-[#9d174d] underline decoration-[#f3b8d3] decoration-2 underline-offset-4 transition-colors"
+              className="inline-flex items-center gap-2 bg-white/80 backdrop-blur border border-[#a8bfa1]/50 px-7 py-3.5 rounded-full hover:bg-white transition"
             >
-              <ExternalLink size={15} /> לאתר של מיכל סיבוני
+              <ExternalLink size={18} /> לאתר של מיכל סיבוני
             </a>
           </div>
         </motion.div>
       </section>
 
-      {/* Tabs — a distinct "choose a look" panel, set apart from the CTA above so the two rows of pills read as two different things. */}
-      <section className="max-w-6xl mx-auto px-6 pt-2 pb-8">
-        <div className="flex flex-col items-center gap-3">
-          <span className="text-xs tracking-[0.25em] uppercase text-[#c0266b]/70 font-semibold">בחרי את הסגנון שלך</span>
-          <div className="inline-flex bg-white p-1.5 rounded-full border border-[#f3b8d3]/50 shadow-sm">
+      {/* Tabs */}
+      <section className="max-w-6xl mx-auto px-6 pb-6">
+        <div className="flex justify-center">
+          <div className="inline-flex bg-white/70 backdrop-blur p-1.5 rounded-full border border-[#a8bfa1]/30 shadow-sm">
             {[
               { id: "studio" as const, label: "צילומים בסטודיו", icon: Sun },
               { id: "outdoor" as const, label: "צילומי חוץ בטבע", icon: Trees },
@@ -213,12 +210,11 @@ function StudioPhotographyPage() {
               <button
                 key={id}
                 onClick={() => setTab(id)}
-                className={`flex items-center gap-2 px-6 py-2.5 rounded-full transition-all text-sm md:text-base ${
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-full transition text-sm md:text-base ${
                   tab === id
-                    ? "text-white shadow font-semibold"
-                    : "text-[#8a4a68] hover:bg-[#ffd6ea]/50"
+                    ? "bg-[#2d4a2b] text-white shadow"
+                    : "text-[#4a5d43] hover:bg-white/50"
                 }`}
-                style={tab === id ? { background: "linear-gradient(90deg,#ec4899,#c0266b)" } : undefined}
               >
                 <Icon size={16} /> {label}
               </button>
@@ -252,15 +248,15 @@ function StudioPhotographyPage() {
             ).map(({ icon: Icon, title, desc }) => (
               <div
                 key={title}
-                className="bg-white/80 backdrop-blur rounded-3xl p-6 border border-[#f3b8d3]/25 shadow-sm hover:shadow-md transition"
+                className="bg-white/80 backdrop-blur rounded-3xl p-6 border border-[#a8bfa1]/25 shadow-sm hover:shadow-md transition"
               >
-                <div className="w-11 h-11 rounded-full bg-[#ffd6ea] flex items-center justify-center mb-3 text-[#9d174d]">
+                <div className="w-11 h-11 rounded-full bg-[#f5d5cf] flex items-center justify-center mb-3 text-[#2d4a2b]">
                   <Icon size={20} />
                 </div>
                 <div className="text-xl mb-1" style={{ fontFamily: "'DM Serif Display', serif" }}>
                   {title}
                 </div>
-                <div className="text-sm text-[#8a4a68]/80">{desc}</div>
+                <div className="text-sm text-[#4a5d43]/80">{desc}</div>
               </div>
             ))}
           </motion.div>
@@ -269,21 +265,21 @@ function StudioPhotographyPage() {
 
       {/* Book a session into the studio calendar — pink CTA + step-by-step modal */}
       <section id="book-michal" className="max-w-4xl mx-auto px-6 pb-14 scroll-mt-24">
-        <div className="bg-[#ffd6ea] rounded-3xl border border-[#f5b8d9] p-6 md:p-8 shadow-sm text-center">
-          <div className="flex items-center justify-center gap-2 text-[#ec4899] text-xs tracking-[0.28em] uppercase mb-2">
+        <div className="bg-[#f5d5cf] rounded-3xl border border-[#e7b9b1] p-6 md:p-8 shadow-sm text-center">
+          <div className="flex items-center justify-center gap-2 text-[#5b7a52] text-xs tracking-[0.28em] uppercase mb-2">
             <CalendarDays size={14} /> Booking
           </div>
           <h2 className="text-2xl md:text-3xl mb-2" style={{ fontFamily: "'DM Serif Display', serif" }}>
             קביעת צילומים עם מיכל ביומן הסטודיו
           </h2>
-          <p className="text-sm text-[#8a4a68]/85 mb-5 leading-relaxed">
+          <p className="text-sm text-[#4a5d43]/85 mb-5 leading-relaxed">
             בוחרים תאריך, שעה ומשך הסשן — המועד נשמר ביומן הסטודיו.{" "}
             <strong>המועד מאושר סופית לאחר תיאום עם הצלמת.</strong> תעריף: {PHOTOGRAPHY_HOURLY_RATE} ₪ לשעה.
           </p>
           <button
             type="button"
             onClick={() => { setStep(1); setWizard(true); }}
-            className="inline-flex items-center gap-2 bg-[#ec4899] text-white px-8 py-4 rounded-full text-base font-semibold hover:bg-[#db2777] transition shadow-md"
+            className="inline-flex items-center gap-2 bg-[#e19a90] text-white px-8 py-4 rounded-full text-base font-semibold hover:bg-[#d78a80] transition shadow-md"
           >
             <CalendarDays size={18} /> קביעת מועד ביומן
           </button>
@@ -301,27 +297,27 @@ function StudioPhotographyPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <div className="text-sm font-semibold text-[#9d174d]">שלב {step} מתוך 3</div>
-              <button type="button" aria-label="סגירה" onClick={() => setWizard(false)} className="h-9 w-9 rounded-full hover:bg-[#9d174d]/10 flex items-center justify-center">
+              <div className="text-sm font-semibold text-[#2d4a2b]">שלב {step} מתוך 3</div>
+              <button type="button" aria-label="סגירה" onClick={() => setWizard(false)} className="h-9 w-9 rounded-full hover:bg-[#2d4a2b]/10 flex items-center justify-center">
                 ✕
               </button>
             </div>
             <div className="h-1.5 rounded-full bg-[#e7ded6] mb-6 overflow-hidden">
-              <div className="h-full bg-[#ec4899] transition-all" style={{ width: `${(step / 3) * 100}%` }} />
+              <div className="h-full bg-[#e19a90] transition-all" style={{ width: `${(step / 3) * 100}%` }} />
             </div>
 
             {step === 1 && (
               <div className="grid sm:grid-cols-2 gap-3">
                 <label className="flex flex-col gap-1.5">
-                  <span className="text-xs font-semibold text-[#8a4a68]/80">תאריך *</span>
+                  <span className="text-xs font-semibold text-[#4a5d43]/80">תאריך *</span>
                   <input className={bookInputCls} type="date" value={book.date} onChange={(e) => setBook({ ...book, date: e.target.value })} />
                 </label>
                 <label className="flex flex-col gap-1.5">
-                  <span className="text-xs font-semibold text-[#8a4a68]/80">שעת התחלה *</span>
+                  <span className="text-xs font-semibold text-[#4a5d43]/80">שעת התחלה *</span>
                   <input className={bookInputCls} type="time" step={1800} value={book.time} onChange={(e) => setBook({ ...book, time: e.target.value })} />
                 </label>
                 <label className="flex flex-col gap-1.5">
-                  <span className="text-xs font-semibold text-[#8a4a68]/80">משך הסשן</span>
+                  <span className="text-xs font-semibold text-[#4a5d43]/80">משך הסשן</span>
                   <select className={bookInputCls} value={book.hours} onChange={(e) => setBook({ ...book, hours: e.target.value })}>
                     {["0.5", "1", "1.5", "2", "3"].map((h) => (
                       <option key={h} value={h}>
@@ -331,7 +327,7 @@ function StudioPhotographyPage() {
                   </select>
                 </label>
                 <label className="flex flex-col gap-1.5">
-                  <span className="text-xs font-semibold text-[#8a4a68]/80">סוג צילום</span>
+                  <span className="text-xs font-semibold text-[#4a5d43]/80">סוג צילום</span>
                   <select className={bookInputCls} value={book.sessionType} onChange={(e) => setBook({ ...book, sessionType: e.target.value })}>
                     {["ניו-בורן", "משפחה", "הריון", "ילדים", "סמאש קייק", "אירוע", "אחר"].map((s) => (
                       <option key={s}>{s}</option>
@@ -344,20 +340,20 @@ function StudioPhotographyPage() {
             {step === 2 && (
               <div className="grid sm:grid-cols-2 gap-3">
                 <label className="flex flex-col gap-1.5">
-                  <span className="text-xs font-semibold text-[#8a4a68]/80">שם מלא *</span>
+                  <span className="text-xs font-semibold text-[#4a5d43]/80">שם מלא *</span>
                   <input className={bookInputCls} value={book.name} onChange={(e) => setBook({ ...book, name: e.target.value })} />
                 </label>
                 <label className="flex flex-col gap-1.5">
-                  <span className="text-xs font-semibold text-[#8a4a68]/80">טלפון *</span>
+                  <span className="text-xs font-semibold text-[#4a5d43]/80">טלפון *</span>
                   <input className={bookInputCls} dir="ltr" type="tel" value={book.phone} onChange={(e) => setBook({ ...book, phone: e.target.value })} />
                 </label>
                 <label className="flex flex-col gap-1.5">
-                  <span className="text-xs font-semibold text-[#8a4a68]/80">אימייל לאישור</span>
+                  <span className="text-xs font-semibold text-[#4a5d43]/80">אימייל לאישור</span>
                   <input className={bookInputCls} dir="ltr" type="email" list="email-suggest-studio-photography" value={book.email} onChange={(e) => setBook({ ...book, email: e.target.value })} placeholder="you@example.com" />
                   <EmailDatalist id="email-suggest-studio-photography" value={book.email} />
                 </label>
                 <label className="flex flex-col gap-1.5">
-                  <span className="text-xs font-semibold text-[#8a4a68]/80">אמצעי תשלום</span>
+                  <span className="text-xs font-semibold text-[#4a5d43]/80">אמצעי תשלום</span>
                   <select className={bookInputCls} value={book.payment} onChange={(e) => setBook({ ...book, payment: e.target.value })}>
                     {Object.entries(PAYMENT_LABELS).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
@@ -365,20 +361,20 @@ function StudioPhotographyPage() {
                   </select>
                 </label>
                 <label className="flex flex-col gap-1.5 sm:col-span-2">
-                  <span className="text-xs font-semibold text-[#8a4a68]/80">הערות</span>
+                  <span className="text-xs font-semibold text-[#4a5d43]/80">הערות</span>
                   <textarea className={bookInputCls} rows={2} value={book.notes} onChange={(e) => setBook({ ...book, notes: e.target.value })} />
                 </label>
               </div>
             )}
 
             {step === 3 && (
-              <div className="rounded-2xl bg-white border border-[#f3b8d3]/30 p-5 text-sm text-[#6b2f4a] space-y-2">
-                <div className="font-semibold text-[#9d174d] text-base mb-1">סיכום לפני שליחה</div>
+              <div className="rounded-2xl bg-white border border-[#a8bfa1]/30 p-5 text-sm text-[#3c4f39] space-y-2">
+                <div className="font-semibold text-[#2d4a2b] text-base mb-1">סיכום לפני שליחה</div>
                 <div>תאריך: <strong>{book.date || "—"}</strong> · שעה: <strong>{book.time || "—"}</strong></div>
                 <div>משך: <strong>{book.hours} שעות</strong> · סוג: <strong>{book.sessionType}</strong></div>
                 <div>שם: <strong>{book.name || "—"}</strong> · טלפון: <strong>{book.phone || "—"}</strong></div>
                 <div>עלות משוערת: <strong>₪{bookPrice}</strong> · תשלום ב{PAYMENT_LABELS[book.payment]}</div>
-                <p className="text-xs text-[#8a4a68]/80 pt-2">
+                <p className="text-xs text-[#4a5d43]/80 pt-2">
                   המועד יישמר ביומן הסטודיו ואישור יישלח למייל. המועד מאושר סופית לאחר תיאום עם הצלמת.
                 </p>
               </div>
@@ -388,7 +384,7 @@ function StudioPhotographyPage() {
               <button
                 type="button"
                 onClick={() => (step === 1 ? setWizard(false) : setStep(step - 1))}
-                className="h-12 px-6 rounded-full border border-[#9d174d]/20 text-sm text-[#9d174d] hover:bg-white"
+                className="h-12 px-6 rounded-full border border-[#2d4a2b]/20 text-sm text-[#2d4a2b] hover:bg-white"
               >
                 {step === 1 ? "ביטול" : "חזרה"}
               </button>
@@ -396,7 +392,7 @@ function StudioPhotographyPage() {
                 <button
                   type="button"
                   onClick={() => setStep(step + 1)}
-                  className="h-12 px-8 rounded-full bg-[#ec4899] text-white text-sm font-semibold hover:bg-[#db2777]"
+                  className="h-12 px-8 rounded-full bg-[#e19a90] text-white text-sm font-semibold hover:bg-[#d78a80]"
                 >
                   המשך
                 </button>
@@ -405,7 +401,7 @@ function StudioPhotographyPage() {
                   type="button"
                   onClick={submitBooking}
                   disabled={sending}
-                  className="inline-flex items-center gap-2 h-12 px-8 rounded-full bg-[#9d174d] text-white text-sm font-semibold hover:bg-[#831140] disabled:opacity-50"
+                  className="inline-flex items-center gap-2 h-12 px-8 rounded-full bg-[#2d4a2b] text-white text-sm font-semibold hover:bg-[#3d5a3b] disabled:opacity-50"
                 >
                   <CalendarDays size={18} /> {sending ? "שולח…" : "שליחה וקביעה ביומן"}
                 </button>
@@ -423,7 +419,7 @@ function StudioPhotographyPage() {
             <h2 className="text-3xl md:text-4xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
               {tab === "studio" ? "מהסטודיו" : "מהטבע"}
             </h2>
-            <p className="text-sm text-[#8a4a68]/70 mt-1">
+            <p className="text-sm text-[#4a5d43]/70 mt-1">
               תמונות נבחרות מתוך התיק של מיכל סיבוני
             </p>
           </div>
@@ -431,7 +427,7 @@ function StudioPhotographyPage() {
             href={MICHAL_SITE}
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden md:inline-flex items-center gap-1 text-sm text-[#ec4899] hover:text-[#9d174d]"
+            className="hidden md:inline-flex items-center gap-1 text-sm text-[#5b7a52] hover:text-[#2d4a2b]"
           >
             כל הגלריה <ArrowLeft size={14} />
           </a>
@@ -473,9 +469,9 @@ function StudioPhotographyPage() {
 
       {/* CTA */}
       <section className="max-w-4xl mx-auto px-6 pb-20">
-        <div className="bg-[#9d174d] text-[#f8ede4] rounded-3xl p-10 md:p-14 text-center shadow-xl relative overflow-hidden">
-          <div className="absolute -top-10 -right-10 w-56 h-56 rounded-full bg-[#ffd6ea]/20" />
-          <div className="absolute -bottom-16 -left-10 w-64 h-64 rounded-full bg-[#f3b8d3]/20" />
+        <div className="bg-[#2d4a2b] text-[#f8ede4] rounded-3xl p-10 md:p-14 text-center shadow-xl relative overflow-hidden">
+          <div className="absolute -top-10 -right-10 w-56 h-56 rounded-full bg-[#f5d5cf]/20" />
+          <div className="absolute -bottom-16 -left-10 w-64 h-64 rounded-full bg-[#a8bfa1]/20" />
           <div className="relative">
             <h3 className="text-3xl md:text-4xl mb-3" style={{ fontFamily: "'DM Serif Display', serif" }}>
               מוכנים לרגע שלכם?
@@ -486,7 +482,7 @@ function StudioPhotographyPage() {
             <div className="flex flex-wrap gap-3 justify-center">
               <a
                 href={telLink}
-                className="inline-flex items-center gap-2 bg-[#ffd6ea] text-[#9d174d] px-7 py-3.5 rounded-full hover:bg-white transition"
+                className="inline-flex items-center gap-2 bg-[#f5d5cf] text-[#2d4a2b] px-7 py-3.5 rounded-full hover:bg-white transition"
               >
                 <Phone size={18} /> חיוג 054-8529277
               </a>
