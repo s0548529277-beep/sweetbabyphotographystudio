@@ -2,16 +2,12 @@
 
 export type NewbornPackage = { id: string; name: string; price: number; features: string[] };
 
-// Prices/content exactly as given, with one typo correction: the middle
-// package's price was written as "13200" right next to "1650" for the next
-// package — kept 1320 instead (sits naturally between 900 and 1650); flag
-// to Michal if that guess is wrong, it's a one-line fix in this file.
 export const NEWBORN_PACKAGES: NewbornPackage[] = [
   { id: "mini", name: "חבילה מיני", price: 900, features: ["3 סטים", "8 תמונות מעובדות", "קולאז'"] },
   {
     id: "pampering",
     name: "חבילה מפנקת",
-    price: 1320,
+    price: 1200,
     features: ["4 סטים", "סט הורים/אחים", "12 תמונות מעובדות", "קולאז'", "אלבום"],
   },
   {
