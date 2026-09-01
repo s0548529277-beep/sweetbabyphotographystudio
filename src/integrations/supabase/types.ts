@@ -193,6 +193,24 @@ export type Database = {
           },
         ]
       }
+      bot_knowledge_notes: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -1297,6 +1315,7 @@ export type Database = {
         Row: {
           call_sid: string
           created_at: string
+          draft_booking: Json | null
           from_number: string | null
           messages: Json
           stage: string
@@ -1305,6 +1324,7 @@ export type Database = {
         Insert: {
           call_sid: string
           created_at?: string
+          draft_booking?: Json | null
           from_number?: string | null
           messages?: Json
           stage?: string
@@ -1313,6 +1333,7 @@ export type Database = {
         Update: {
           call_sid?: string
           created_at?: string
+          draft_booking?: Json | null
           from_number?: string | null
           messages?: Json
           stage?: string
