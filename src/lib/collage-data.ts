@@ -5,6 +5,59 @@
  * final card is rasterized and downloaded locally, nothing is stored).
  */
 
+/**
+ * Card format (orientation) and size (real print ratio) — picked in that
+ * order: format first, then one of that format's sizes. Sizes are real
+ * print dimensions in cm; only their RATIO drives the card's pixel shape
+ * (see getCardDimensions) — resolution/detail stays consistent across
+ * every choice via a fixed target pixel area, real cm are just for a
+ * label people recognize ("13×18").
+ */
+export type CardFormatId = "portrait" | "landscape" | "panoramic";
+
+export const CARD_FORMATS: { id: CardFormatId; label: string }[] = [
+  { id: "portrait", label: "לאורך" },
+  { id: "landscape", label: "לרוחב" },
+  { id: "panoramic", label: "פנורמי" },
+];
+
+export type CardSize = { id: string; label: string; wCm: number; hCm: number };
+
+export const CARD_SIZES: Record<CardFormatId, CardSize[]> = {
+  portrait: [
+    { id: "10x15", label: "10×15", wCm: 10, hCm: 15 },
+    { id: "13x18", label: "13×18", wCm: 13, hCm: 18 },
+    { id: "15x21", label: "15×21", wCm: 15, hCm: 21 },
+    { id: "20x30", label: "20×30", wCm: 20, hCm: 30 },
+  ],
+  landscape: [
+    { id: "15x10", label: "15×10", wCm: 15, hCm: 10 },
+    { id: "18x13", label: "18×13", wCm: 18, hCm: 13 },
+    { id: "21x15", label: "21×15", wCm: 21, hCm: 15 },
+    { id: "30x20", label: "30×20", wCm: 30, hCm: 20 },
+  ],
+  panoramic: [
+    { id: "20x10", label: "20×10", wCm: 20, hCm: 10 },
+    { id: "30x10", label: "30×10", wCm: 30, hCm: 10 },
+    { id: "45x15", label: "45×15", wCm: 45, hCm: 15 },
+  ],
+};
+
+export function findCardSize(formatId: CardFormatId, sizeId: string): CardSize {
+  return CARD_SIZES[formatId].find((s) => s.id === sizeId) ?? CARD_SIZES[formatId][0];
+}
+
+const BASE_CARD_AREA = 1_250_000; // ~ the old fixed 1000×1250 default — keeps consistent resolution/detail across every ratio
+
+/** Real pixel size for the card SVG, from a format+size choice — only the size's cm RATIO matters, scaled to a consistent target area. */
+export function getCardDimensions(formatId: CardFormatId, sizeId: string): { w: number; h: number } {
+  const size = findCardSize(formatId, sizeId);
+  const ratio = size.wCm / size.hCm;
+  const h = Math.round(Math.sqrt(BASE_CARD_AREA / ratio));
+  const w = Math.round(h * ratio);
+  return { w, h };
+}
+
 export type CollageStyleId = "minimal" | "luxury" | "floral";
 
 export type CollageStyle = {
@@ -109,6 +162,14 @@ export const COLOR_PALETTES: ColorPalette[] = [
   { id: "lavender", label: "לבנדר", bg: "#f6f2fb", accent: "#8c6fb0", captionColor: "#3f2c56" },
   { id: "mono", label: "שחור-לבן קלאסי", bg: "#ffffff", accent: "#1a1a1a", captionColor: "#1a1a1a" },
   { id: "sunset", label: "שקיעה", bg: "#fff4ea", accent: "#e0763f", captionColor: "#7a3110" },
+  { id: "mint", label: "מנטה רעננה", bg: "#f1faf6", accent: "#4fae87", captionColor: "#1c4a37" },
+  { id: "dusty-rose", label: "ורוד מאובק", bg: "#f9f0f0", accent: "#b57677", captionColor: "#5c2e2f" },
+  { id: "burgundy", label: "בורדו", bg: "#2a1015", accent: "#c96b7a", captionColor: "#f3d9dc" },
+  { id: "mustard", label: "חרדל וזית", bg: "#fbf6e8", accent: "#b6912a", captionColor: "#4a3c0f" },
+  { id: "powder-blue", label: "תכלת פודרה", bg: "#eef4fb", accent: "#6f9fc7", captionColor: "#1d3a54" },
+  { id: "charcoal-cream", label: "פחם ושמנת", bg: "#f7f4ee", accent: "#3a3a3a", captionColor: "#2a2a2a" },
+  { id: "peach", label: "אפרסק", bg: "#fff2e8", accent: "#e8956b", captionColor: "#7a3d1c" },
+  { id: "teal", label: "טורקיז עמוק", bg: "#eaf6f5", accent: "#1f8f85", captionColor: "#0f3d38" },
 ];
 
 /** Themed decorative-element overlays, keyed to match the occasion ids they're most relevant for ("an option to add elements by theme") — but offered as an independent toggle, not tied to picking that occasion preset. Actual SVG rendering lives in CollageCard (it's JSX, not data). */
@@ -121,8 +182,13 @@ export const DECOR_THEMES: { id: DecorThemeId; label: string }[] = [
   { id: "chalaka", label: "חלאקה" },
 ];
 
-/** One photo-slot's position, as a FRACTION (0-1) of the photo area — scaled to real pixels by the caller. */
-export type SlotRect = { x: number; y: number; w: number; h: number };
+/**
+ * One photo-slot's position, as a FRACTION (0-1) of the photo area —
+ * scaled to real pixels by the caller. `rotation` (degrees, optional) is
+ * only set by the scatter layout — a small tilt applied around the
+ * slot's own center, independent of the x/y/w/h scaling.
+ */
+export type SlotRect = { x: number; y: number; w: number; h: number; rotation?: number };
 
 /**
  * "Featured" layouts — one hand-composed arrangement per photo count, each
@@ -221,6 +287,39 @@ function mosaicLayout(count: number): SlotRect[] {
   return split(count, 0, 0, 1, 1, "h", 0);
 }
 
+/** Cheap deterministic pseudo-random in [0,1) — no Math.random, so a given photo count always scatters the same way across re-renders. */
+function seededRand(seed: number): number {
+  const x = Math.sin(seed * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+/**
+ * The actual "take inspiration from Pinterest" layout: a loose grid of
+ * oversized, slightly overlapping, individually-tilted photos — the
+ * tossed-together scrapbook look real Pinterest collage boards have,
+ * rather than a tidy edge-to-edge tiling. Later photos paint (and hit-
+ * test) on top of earlier ones, same as a real pile of prints.
+ */
+function scatterLayout(count: number): SlotRect[] {
+  if (count <= 1) return featuredLayout(1);
+  const cols = Math.ceil(Math.sqrt(count));
+  const rows = Math.ceil(count / cols);
+  const cellW = 1 / cols;
+  const cellH = 1 / rows;
+  const grow = 1.22; // oversize each cell so neighbors overlap a little at the seams
+  return Array.from({ length: count }, (_, i) => {
+    const r = Math.floor(i / cols);
+    const c = i % cols;
+    const jx = (seededRand(i * 2 + 1) - 0.5) * cellW * 0.35;
+    const jy = (seededRand(i * 2 + 2) - 0.5) * cellH * 0.35;
+    const w = cellW * grow;
+    const h = cellH * grow;
+    const x = Math.max(0, Math.min(1 - w, c * cellW - (w - cellW) / 2 + jx));
+    const y = Math.max(0, Math.min(1 - h, r * cellH - (h - cellH) / 2 + jy));
+    return { x, y, w, h, rotation: (seededRand(i * 2 + 3) - 0.5) * 13 };
+  });
+}
+
 /** A near-square grid of equal cells for ANY count — computed, not hand-authored, so it works for every photo count without a special case. */
 function equalGridLayout(count: number): SlotRect[] {
   if (count <= 1) return featuredLayout(1);
@@ -262,6 +361,7 @@ export function getLayoutVariants(count: number): LayoutVariant[] {
   ];
   if (count <= 5) variants.push({ id: "strip", label: "פסים", rects: stripLayout(count) });
   if (count >= 3) variants.push({ id: "mosaic", label: "מוזאיקה א-סימטרית", rects: mosaicLayout(count) });
+  variants.push({ id: "scatter", label: "פזורה בהשראת פינטרסט", rects: scatterLayout(count) });
   return variants;
 }
 
@@ -275,7 +375,7 @@ export const PHOTO_SHAPES: { id: PhotoShapeId; label: string }[] = [
   { id: "heart", label: "לב" },
 ];
 
-export type PhotoEffectId = "none" | "bw" | "warm" | "vivid" | "soft";
+export type PhotoEffectId = "none" | "bw" | "warm" | "vivid" | "soft" | "dramatic" | "fade";
 
 /** cssFilter is applied to each <image> via the SVG filter attribute — same CSS filter() functions the browser already knows, so it rasterizes correctly with no extra work. */
 export const PHOTO_EFFECTS: { id: PhotoEffectId; label: string; cssFilter: string }[] = [
@@ -284,6 +384,8 @@ export const PHOTO_EFFECTS: { id: PhotoEffectId; label: string; cssFilter: strin
   { id: "warm", label: "וינטג׳ חם", cssFilter: "sepia(0.35) saturate(1.2) contrast(1.05)" },
   { id: "vivid", label: "חי וצבעוני", cssFilter: "saturate(1.6) contrast(1.12)" },
   { id: "soft", label: "רך ובהיר", cssFilter: "brightness(1.08) saturate(0.85) contrast(0.95)" },
+  { id: "dramatic", label: "דרמטי", cssFilter: "contrast(1.3) brightness(0.92) saturate(0.9)" },
+  { id: "fade", label: "פייד דהוי", cssFilter: "contrast(0.85) brightness(1.1) saturate(0.7) sepia(0.08)" },
 ];
 
 // Heart outline, sampled from the classic parametric heart curve
