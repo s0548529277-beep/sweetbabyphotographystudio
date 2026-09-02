@@ -99,6 +99,8 @@ export function CollageCard({
   shape = "rect",
   effect = "none",
   frame = false,
+  borderStyle = "none",
+  captionPlacement = "below",
   paletteOverride,
   decorId = "none",
   onSlotClick,
@@ -115,6 +117,10 @@ export function CollageCard({
   shape?: PhotoShapeId;
   effect?: PhotoEffectId;
   frame?: boolean;
+  /** "polaroid": a thick white border (in the slot's own shape) around each photo, like a printed/stacked photo — independent of the thin colored `frame` outline above. */
+  borderStyle?: "none" | "polaroid";
+  /** "overlay": caption/subtitle sit directly on the photo area (bottom-anchored, white text + shadow) instead of in the band below it. */
+  captionPlacement?: "below" | "overlay";
   /** Overrides the style's own bg/accent/captionColor — from a color-palette preset, the eyedropper, or auto photo-match. Missing keys fall back to the style's default. */
   paletteOverride?: { bg?: string; accent?: string; captionColor?: string } | null;
   decorId?: DecorThemeId;
@@ -126,6 +132,8 @@ export function CollageCard({
   const bg = paletteOverride?.bg ?? style.bg;
   const accent = paletteOverride?.accent ?? style.accent;
   const captionColor = paletteOverride?.captionColor ?? style.captionColor;
+  const polaroid = borderStyle === "polaroid";
+  const overlayCaption = captionPlacement === "overlay";
 
   // All geometry below is a fraction of the actual card size, not a fixed
   // pixel constant — the same ratios that used to be hardcoded for the one
@@ -133,19 +141,33 @@ export function CollageCard({
   const shortSide = Math.min(cardW, cardH);
   const MARGIN = Math.round(shortSide * 0.05);
   const GAP = Math.max(4, Math.round(shortSide * 0.01));
-  const captionAreaH = Math.round(cardH * 0.16);
+  // Overlay mode needs no reserved band below the photos — the caption
+  // sits on the photo itself, so the photo area gets that space instead.
+  const captionAreaH = Math.round(cardH * (overlayCaption ? 0.04 : 0.16));
   const PHOTO_H = Math.max(1, cardH - MARGIN * 2 - captionAreaH);
   const CAPTION_TOP = MARGIN + PHOTO_H + Math.round(cardH * 0.024);
   const captionFontSize = Math.round(cardH * 0.0512);
   const subtitleFontSize = Math.round(cardH * 0.024);
-  const captionY = CAPTION_TOP + captionFontSize * 1.05;
-  const subtitleY = captionY + subtitleFontSize * 2.2;
+  const overlayBottomPad = Math.round(cardH * 0.03);
+  const captionY = overlayCaption
+    ? MARGIN + PHOTO_H - overlayBottomPad - (subtitle ? subtitleFontSize * 1.6 : 0)
+    : CAPTION_TOP + captionFontSize * 1.05;
+  const subtitleY = overlayCaption ? MARGIN + PHOTO_H - overlayBottomPad : captionY + subtitleFontSize * 2.2;
   const frameInset = Math.round(MARGIN * 0.28);
 
   const variants = getLayoutVariants(photos.length);
   const layout = variants.find((v) => v.id === layoutId) ?? variants[0];
   const slots = layout.rects.map((r) => scaleRect(r, MARGIN, MARGIN, cardW - MARGIN * 2, PHOTO_H, GAP));
   const cssFilter = PHOTO_EFFECTS.find((e) => e.id === effect)?.cssFilter || undefined;
+
+  // The polaroid border insets the actual photo inside its slot, leaving a
+  // white margin in the slot's own shape (rect/circle/heart/…) around it —
+  // same shapeClipPath fn as everything else, just called on a smaller rect.
+  const photoRectFor = (rect: { x: number; y: number; w: number; h: number }) => {
+    if (!polaroid) return rect;
+    const m = Math.max(6, Math.round(Math.min(rect.w, rect.h) * 0.06));
+    return { x: rect.x + m, y: rect.y + m, w: rect.w - m * 2, h: rect.h - m * 2 };
+  };
 
   return (
     <svg
@@ -157,7 +179,7 @@ export function CollageCard({
     >
       <defs>
         {slots.map((rect, i) => {
-          const d = shapeClipPath(shape, rect);
+          const d = shapeClipPath(shape, photoRectFor(rect));
           if (!d) return null;
           return (
             <clipPath key={i} id={`collage-clip-${i}`}>
@@ -184,52 +206,53 @@ export function CollageCard({
 
       {slots.map((rect, i) => {
         const photo = photos[i];
-        const clipD = shapeClipPath(shape, rect);
+        const photoRect = photoRectFor(rect);
+        const clipD = shapeClipPath(shape, photoRect);
         const clipId = clipD ? `collage-clip-${i}` : undefined;
-        // Only the scatter layout sets a rotation — a soft drop-shadow on
-        // those tiles sells the "photos tossed on a table" depth the tilt
-        // is going for; untilted layouts stay flat, no shadow.
+        // Rotation (scatter layout) and/or the polaroid border both get a
+        // soft drop-shadow — either sells the "real printed photo" depth;
+        // flat, borderless slots stay shadow-free.
         const cx = rect.x + rect.w / 2;
         const cy = rect.y + rect.h / 2;
         const rotate = rect.rotation ? `rotate(${rect.rotation} ${cx} ${cy})` : undefined;
+        const outerD = polaroid ? shapeClipPath(shape, rect) : null;
         return (
-          <g
-            key={i}
-            clipPath={clipId ? `url(#${clipId})` : undefined}
-            transform={rotate}
-            style={rect.rotation ? { filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.28))" } : undefined}
-          >
-            {photo ? (
-              <image
-                href={photo}
-                x={rect.x}
-                y={rect.y}
-                width={rect.w}
-                height={rect.h}
-                preserveAspectRatio="xMidYMid slice"
-                style={cssFilter ? { filter: cssFilter } : undefined}
-              />
-            ) : (
-              <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} fill={style.id === "minimal" && !paletteOverride?.accent ? "#f2f2f2" : `${accent}22`} />
-            )}
-            {!photo &&
-              (() => {
-                // A plain SVG "+" (two lines), not a <foreignObject>+HTML
-                // icon — Chromium taints the whole export canvas the
-                // moment an SVG-to-canvas rasterization contains ANY
-                // foreignObject, even same-origin, unfilled content. That
-                // silently broke downloading any collage with an empty
-                // slot; plain SVG shapes have no such restriction.
-                const cx = rect.x + rect.w / 2;
-                const cy = rect.y + rect.h / 2;
-                const half = Math.min(20, rect.w * 0.125, rect.h * 0.125);
-                return (
-                  <g opacity={0.4} stroke={accent} strokeWidth={3} strokeLinecap="round">
-                    <line x1={cx - half} y1={cy} x2={cx + half} y2={cy} />
-                    <line x1={cx} y1={cy - half} x2={cx} y2={cy + half} />
-                  </g>
-                );
-              })()}
+          <g key={i} transform={rotate} style={rect.rotation || polaroid ? { filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.28))" } : undefined}>
+            {polaroid &&
+              (outerD ? <path d={outerD} fill="#ffffff" /> : <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} fill="#ffffff" />)}
+            <g clipPath={clipId ? `url(#${clipId})` : undefined}>
+              {photo ? (
+                <image
+                  href={photo}
+                  x={photoRect.x}
+                  y={photoRect.y}
+                  width={photoRect.w}
+                  height={photoRect.h}
+                  preserveAspectRatio="xMidYMid slice"
+                  style={cssFilter ? { filter: cssFilter } : undefined}
+                />
+              ) : (
+                <rect x={photoRect.x} y={photoRect.y} width={photoRect.w} height={photoRect.h} fill={style.id === "minimal" && !paletteOverride?.accent ? "#f2f2f2" : `${accent}22`} />
+              )}
+              {!photo &&
+                (() => {
+                  // A plain SVG "+" (two lines), not a <foreignObject>+HTML
+                  // icon — Chromium taints the whole export canvas the
+                  // moment an SVG-to-canvas rasterization contains ANY
+                  // foreignObject, even same-origin, unfilled content. That
+                  // silently broke downloading any collage with an empty
+                  // slot; plain SVG shapes have no such restriction.
+                  const pcx = photoRect.x + photoRect.w / 2;
+                  const pcy = photoRect.y + photoRect.h / 2;
+                  const half = Math.min(20, photoRect.w * 0.125, photoRect.h * 0.125);
+                  return (
+                    <g opacity={0.4} stroke={accent} strokeWidth={3} strokeLinecap="round">
+                      <line x1={pcx - half} y1={pcy} x2={pcx + half} y2={pcy} />
+                      <line x1={pcx} y1={pcy - half} x2={pcx} y2={pcy + half} />
+                    </g>
+                  );
+                })()}
+            </g>
           </g>
         );
       })}
@@ -257,11 +280,28 @@ export function CollageCard({
 
       <OccasionDecor theme={decorId} accent={accent} cardW={cardW} />
 
-      <text x={cardW / 2} y={captionY} textAnchor="middle" fontSize={captionFontSize} fontFamily={style.fontFamily} fill={captionColor}>
+      <text
+        x={cardW / 2}
+        y={captionY}
+        textAnchor="middle"
+        fontSize={captionFontSize}
+        fontFamily={style.fontFamily}
+        fill={overlayCaption ? "#ffffff" : captionColor}
+        style={overlayCaption ? { filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.65))" } : undefined}
+      >
         {caption || " "}
       </text>
       {subtitle && (
-        <text x={cardW / 2} y={subtitleY} textAnchor="middle" fontSize={subtitleFontSize} fontFamily={style.fontFamily} fill={captionColor} opacity={0.85}>
+        <text
+          x={cardW / 2}
+          y={subtitleY}
+          textAnchor="middle"
+          fontSize={subtitleFontSize}
+          fontFamily={style.fontFamily}
+          fill={overlayCaption ? "#ffffff" : captionColor}
+          opacity={overlayCaption ? 0.95 : 0.85}
+          style={overlayCaption ? { filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.65))" } : undefined}
+        >
           {subtitle}
         </text>
       )}

@@ -23,23 +23,33 @@ export const CARD_FORMATS: { id: CardFormatId; label: string }[] = [
 
 export type CardSize = { id: string; label: string; wCm: number; hCm: number };
 
+// Real, universally-recognized print sizes (the standard "4R/5R/6R/8×12/A4"
+// ladder sold at every photo lab, plus the standard 1:3 panorama print
+// ratio) — not made-up ratios, so the size someone picks here is one they
+// can actually go print.
 export const CARD_SIZES: Record<CardFormatId, CardSize[]> = {
   portrait: [
     { id: "10x15", label: "10×15", wCm: 10, hCm: 15 },
     { id: "13x18", label: "13×18", wCm: 13, hCm: 18 },
-    { id: "15x21", label: "15×21", wCm: 15, hCm: 21 },
+    { id: "15x20", label: "15×20", wCm: 15, hCm: 20 },
     { id: "20x30", label: "20×30", wCm: 20, hCm: 30 },
+    { id: "21x30", label: "21×30 (A4)", wCm: 21, hCm: 30 },
   ],
   landscape: [
     { id: "15x10", label: "15×10", wCm: 15, hCm: 10 },
     { id: "18x13", label: "18×13", wCm: 18, hCm: 13 },
-    { id: "21x15", label: "21×15", wCm: 21, hCm: 15 },
+    { id: "20x15", label: "20×15", wCm: 20, hCm: 15 },
     { id: "30x20", label: "30×20", wCm: 30, hCm: 20 },
+    { id: "30x21", label: "30×21 (A4)", wCm: 30, hCm: 21 },
   ],
   panoramic: [
-    { id: "20x10", label: "20×10", wCm: 20, hCm: 10 },
-    { id: "30x10", label: "30×10", wCm: 30, hCm: 10 },
-    { id: "45x15", label: "45×15", wCm: 45, hCm: 15 },
+    // Commercial panorama prints are commonly labeled "short×long" (a
+    // 10×30 panorama is a 30cm-long strip) — wCm/hCm below are the actual
+    // wide/tall pixel-ratio inputs, kept in the wide orientation the label
+    // implies.
+    { id: "10x30", label: "10×30", wCm: 30, hCm: 10 },
+    { id: "15x45", label: "15×45", wCm: 45, hCm: 15 },
+    { id: "20x60", label: "20×60", wCm: 60, hCm: 20 },
   ],
 };
 
@@ -365,7 +375,7 @@ export function getLayoutVariants(count: number): LayoutVariant[] {
   return variants;
 }
 
-export type PhotoShapeId = "rect" | "rounded" | "circle" | "arch" | "heart";
+export type PhotoShapeId = "rect" | "rounded" | "circle" | "arch" | "heart" | "blob";
 
 export const PHOTO_SHAPES: { id: PhotoShapeId; label: string }[] = [
   { id: "rect", label: "מלבן" },
@@ -373,6 +383,7 @@ export const PHOTO_SHAPES: { id: PhotoShapeId; label: string }[] = [
   { id: "circle", label: "עיגול" },
   { id: "arch", label: "קשת" },
   { id: "heart", label: "לב" },
+  { id: "blob", label: "אורגני" },
 ];
 
 export type PhotoEffectId = "none" | "bw" | "warm" | "vivid" | "soft" | "dramatic" | "fade";
@@ -412,13 +423,44 @@ const HEART_UNIT: [number, number][] = HEART_RAW.map(([x, y]) => [
   0.02 + (0.94 * (HEART_MAX_Y - y)) / (HEART_MAX_Y - HEART_MIN_Y),
 ]);
 
+// Organic "blob" outline — inspired by the free-form irregular photo
+// crops in real collage templates (a smooth wobbly shape rather than any
+// geometric one). Built from 9 points spaced around a circle with a
+// deterministic per-point radius jitter, connected as a closed loop of
+// quadratic Béziers using each point as the control and the midpoint to
+// its neighbor as the actual curve point — a standard, cheap way to turn
+// a point ring into a smooth blob outline (no need for real Bézier-fit
+// math). Same seededRand as the scatter layout, so it's stable across
+// re-renders, just like every other shape here.
+const BLOB_POINTS = 9;
+const BLOB_UNIT: [number, number][] = Array.from({ length: BLOB_POINTS }, (_, i) => {
+  const angle = (i / BLOB_POINTS) * Math.PI * 2;
+  const r = 0.33 + seededRand(i + 200) * 0.15; // 0.33..0.48 from center
+  return [0.5 + Math.cos(angle) * r, 0.5 + Math.sin(angle) * r];
+});
+
+function blobClipPath(rect: SlotRect): string {
+  const { x, y, w, h } = rect;
+  const pts = BLOB_UNIT.map(([nx, ny]) => ({ x: x + nx * w, y: y + ny * h }));
+  const mid = (a: { x: number; y: number }, b: { x: number; y: number }) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+  const start = mid(pts[pts.length - 1], pts[0]);
+  let d = `M ${start.x},${start.y} `;
+  for (let i = 0; i < pts.length; i++) {
+    const next = pts[(i + 1) % pts.length];
+    const m = mid(pts[i], next);
+    d += `Q ${pts[i].x},${pts[i].y} ${m.x},${m.y} `;
+  }
+  return d + "Z";
+}
+
 /**
  * The clip path `d` string for one photo slot, in its given shape — "rect"
  * needs no clipping (returns null, caller skips the clipPath entirely).
  * "arch" is the classic rounded-top/flat-bottom doorway shape; its radius
  * is capped at the slot's own height so a short, wide slot doesn't produce
  * an impossible arc. "heart" maps the precomputed unit-box point list onto
- * the slot rect and joins it as a straight-segment polygon.
+ * the slot rect and joins it as a straight-segment polygon. "blob" maps a
+ * similar precomputed point ring through smooth quadratic curves.
  */
 export function shapeClipPath(shape: PhotoShapeId, rect: SlotRect): string | null {
   const { x, y, w, h } = rect;
@@ -427,6 +469,8 @@ export function shapeClipPath(shape: PhotoShapeId, rect: SlotRect): string | nul
       const pts = HEART_UNIT.map(([nx, ny]) => `${x + nx * w},${y + ny * h}`);
       return `M ${pts[0]} L ${pts.slice(1).join(" L ")} Z`;
     }
+    case "blob":
+      return blobClipPath(rect);
     case "rounded": {
       const r = Math.min(w, h) * 0.08;
       return `M ${x + r},${y} H ${x + w - r} A ${r},${r} 0 0 1 ${x + w},${y + r} V ${y + h - r} A ${r},${r} 0 0 1 ${x + w - r},${y + h} H ${x + r} A ${r},${r} 0 0 1 ${x},${y + h - r} V ${y + r} A ${r},${r} 0 0 1 ${x + r},${y} Z`;
