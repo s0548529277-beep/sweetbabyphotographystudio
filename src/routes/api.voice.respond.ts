@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 import { parseTwilioForm, twimlSayAndDial, twimlSayAndGather, twimlSayAndHangup, verifyTwilioSignature } from "@/lib/twilio.server";
 import { runVoiceTurn, type VoiceMessage } from "@/lib/voice-chat.server";
+import { getVoiceBotSayAttrs } from "@/lib/voice-settings.server";
 
 const NO_HUMAN_AVAILABLE =
   "מצטערת, כרגע אי אפשר להעביר אותך לנציג/ה. נציגת הסטודיו תחזור אליך טלפונית בהקדם האפשרי. תודה ולהתראות!";
@@ -23,8 +24,9 @@ export const Route = createFileRoute("/api/voice/respond")({
 
         const base = new URL(request.url);
         const actionUrl = `${base.protocol}//${base.host}/api/voice/respond`;
+        const sayAttrs = await getVoiceBotSayAttrs();
 
-        if (!speech) return twimlSayAndGather(DIDNT_HEAR, actionUrl);
+        if (!speech) return twimlSayAndGather(DIDNT_HEAR, actionUrl, sayAttrs);
 
         try {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -48,14 +50,14 @@ export const Route = createFileRoute("/api/voice/respond")({
 
           if (action === "transfer") {
             const humanPhone = process.env.STUDIO_OWNER_PHONE;
-            if (!humanPhone) return twimlSayAndHangup(`${text} ${NO_HUMAN_AVAILABLE}`);
-            return twimlSayAndDial(text, humanPhone);
+            if (!humanPhone) return twimlSayAndHangup(`${text} ${NO_HUMAN_AVAILABLE}`, sayAttrs);
+            return twimlSayAndDial(text, humanPhone, sayAttrs);
           }
-          if (action === "hangup") return twimlSayAndHangup(text);
-          return twimlSayAndGather(text, actionUrl);
+          if (action === "hangup") return twimlSayAndHangup(text, sayAttrs);
+          return twimlSayAndGather(text, actionUrl, sayAttrs);
         } catch (e) {
           console.error("[SWEETBABY] voice respond failed", e);
-          return twimlSayAndHangup("מצטערת, נתקלנו בתקלה. נציגת הסטודיו תחזור אליך טלפונית. תודה ולהתראות!");
+          return twimlSayAndHangup("מצטערת, נתקלנו בתקלה. נציגת הסטודיו תחזור אליך טלפונית. תודה ולהתראות!", sayAttrs);
         }
       },
     },

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 import { parseTwilioForm, twimlSayAndGather, verifyTwilioSignature } from "@/lib/twilio.server";
+import { getVoiceBotSayAttrs } from "@/lib/voice-settings.server";
 
 const GREETING =
   "שלום, הגעת לסטודיו סוויט בייבי, איתך נועה, העוזרת הקולית. אפשר לשאול אותי על שעות, מחירים, זמינות, או לבקש לשריין תור. איך אפשר לעזור?";
@@ -36,7 +37,8 @@ export const Route = createFileRoute("/api/voice/incoming")({
 
         const base = new URL(request.url);
         const actionUrl = `${base.protocol}//${base.host}/api/voice/respond`;
-        return twimlSayAndGather(GREETING, actionUrl);
+        const sayAttrs = await getVoiceBotSayAttrs();
+        return twimlSayAndGather(GREETING, actionUrl, sayAttrs);
       },
     },
   },
