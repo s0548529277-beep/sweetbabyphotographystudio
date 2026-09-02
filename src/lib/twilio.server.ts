@@ -61,26 +61,30 @@ function twimlResponse(body: string): Response {
 }
 
 const HE_IL = 'language="he-IL"';
+// Google's Hebrew WaveNet female voice, via Twilio's `voice` attribute on
+// <Say> (Twilio's default he-IL voice reads male). Only valid on <Say> —
+// <Gather> has no voice output of its own, so it keeps plain HE_IL.
+const HE_IL_VOICE = `${HE_IL} voice="Google.he-IL-Wavenet-C"`;
 
 /** Speaks `text` in Hebrew, then listens for the caller's next reply and posts it to `actionUrl`. */
 export function twimlSayAndGather(text: string, actionUrl: string): Response {
   return twimlResponse(
-    `<Say ${HE_IL}>${xmlEscape(text)}</Say>` +
+    `<Say ${HE_IL_VOICE}>${xmlEscape(text)}</Say>` +
       `<Gather input="speech" ${HE_IL} speechTimeout="auto" action="${xmlEscape(actionUrl)}" method="POST">` +
       `</Gather>` +
       // No speech heard within Gather's own timeout — try once more before giving up.
-      `<Say ${HE_IL}>לא שמעתי, אפשר לנסות שוב?</Say>` +
+      `<Say ${HE_IL_VOICE}>לא שמעתי, אפשר לנסות שוב?</Say>` +
       `<Gather input="speech" ${HE_IL} speechTimeout="auto" action="${xmlEscape(actionUrl)}" method="POST"></Gather>` +
-      `<Say ${HE_IL}>לא הצלחנו להתחבר, ניצור איתך קשר. תודה ולהתראות!</Say>`,
+      `<Say ${HE_IL_VOICE}>לא הצלחנו להתחבר, ניצור איתך קשר. תודה ולהתראות!</Say>`,
   );
 }
 
 /** Speaks `text` in Hebrew and ends the call. */
 export function twimlSayAndHangup(text: string): Response {
-  return twimlResponse(`<Say ${HE_IL}>${xmlEscape(text)}</Say><Hangup/>`);
+  return twimlResponse(`<Say ${HE_IL_VOICE}>${xmlEscape(text)}</Say><Hangup/>`);
 }
 
 /** Speaks `text` in Hebrew, then transfers the call to a real phone number. */
 export function twimlSayAndDial(text: string, phoneNumber: string): Response {
-  return twimlResponse(`<Say ${HE_IL}>${xmlEscape(text)}</Say><Dial>${xmlEscape(phoneNumber)}</Dial>`);
+  return twimlResponse(`<Say ${HE_IL_VOICE}>${xmlEscape(text)}</Say><Dial>${xmlEscape(phoneNumber)}</Dial>`);
 }
