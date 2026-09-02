@@ -26,7 +26,8 @@ export type PhraseKey =
   | "anything_else"
   | "no_human_transfer"
   | "temporary_error"
-  | "final_error_hangup";
+  | "final_error_hangup"
+  | "thinking_filler";
 
 export const PHRASE_LABELS: Record<PhraseKey, string> = {
   greeting: "ברכת פתיחה (השורה הראשונה שהמתקשרת שומעת)",
@@ -43,6 +44,7 @@ export const PHRASE_LABELS: Record<PhraseKey, string> = {
   no_human_transfer: "אין אפשרות להעביר לנציגה עכשיו",
   temporary_error: "תקלה זמנית (עדיין ממשיך את השיחה)",
   final_error_hangup: "תקלה סופית (השיחה מסתיימת)",
+  thinking_filler: 'מילת המתנה (נאמרת מיד, לפני שהבינה "חושבת" על התשובה האמיתית — ראו "מענה מיידי בזמן חשיבה" למטה)',
 };
 
 export const DEFAULT_PHRASES: Record<PhraseKey, string> = {
@@ -80,6 +82,11 @@ export const DEFAULT_PHRASES: Record<PhraseKey, string> = {
   temporary_error:
     "מִצְטַעֶרֶת, נִתְקַלְנוּ בְּתַקָּלָה זְמַנִּית. בֶּטַח, אֶפְשָׁר לְהַגִּיד אֶת הַהוֹדָעָה עַכְשָׁיו, וַאֲנִי אֶשְׁלַח אוֹתָהּ מִיָּד לְצֶוֶת הסטודיו כּוֹלֵל הַמִּסְפָּר שֶׁמִּמֶּנּוּ הִתְקַשַּׁרְתֶּם.",
   final_error_hangup: "מִצְטַעֶרֶת, נִתְקַלְנוּ בְּתַקָּלָה. נְצִיגַת הסטודיו תַּחֲזֹר אֵלֶיךָ טֶלֶפוֹנִית. תּוֹדָה וּלְהִתְרָאוֹת!",
+  // Deliberately gender-neutral (no inflected verb) — no need to touch
+  // applyMaleGenderToPhrase for this one. Kept short on purpose: it has to
+  // finish playing fast so the real work can start on the very next hit —
+  // see THINKING_FILLER_KEY's doc comment below.
+  thinking_filler: "רֶגַע אֶחָד...",
 };
 
 // Which grammatical gender the phone bot speaks itself in (Hebrew verbs/
@@ -152,6 +159,50 @@ export const MENU_MODE_KEY = "menu_mode";
 export type NoAiBookingMode = "off" | "speech" | "dtmf";
 export const NOAI_BOOKING_ENABLED_KEY = "noai_booking_enabled";
 
+// Added 2026-09-02 per a direct report that the AI-answered stages
+// (runOpenTurn in api.yemot.ivr.ts) "think" for a long time before saying
+// anything — real, structural, not a misconfiguration: Yemot's protocol is
+// fully synchronous (one HTTP hit in, one response out), and a single AI
+// turn there is allowed up to 30s and up to 6 tool-call rounds (see
+// runVoiceTurn's own comment for why that budget isn't safe to shrink — a
+// tighter one was tried and made real calls fail more often, not less).
+// During all of that the caller hears total silence, because Yemot says
+// nothing until our response arrives.
+//
+// This setting hides that dead air with a two-hit pattern instead of
+// shrinking the AI's actual budget:
+//   1) The moment a turn needs the AI, save the caller's message and jump
+//      to stage "ai_pending", then reply with ONLY phrases.thinking_filler
+//      via yemotSayThenContinue (yemot.server.ts) — a bare
+//      `id_list_message=t-<text>` with no read/hangup after it. Per this
+//      repo's own yemot.server.ts doc comment (sourced from the
+//      yemot-router2 library, not guessed), that directive shape speaks the
+//      text and then immediately re-hits this same URL on its own, with no
+//      new speech/digits — it does NOT wait for the caller to say anything.
+//   2) That follow-up hit lands with hasAnswer=false (nothing was asked).
+//      api.yemot.ivr.ts's `!hasAnswer` branch checks for stage
+//      "ai_pending" BEFORE its normal silence handling and, if found, runs
+//      the real (slow) AI turn right then — using the caller's message
+//      already saved in step 1 — and replies for real.
+// Net effect: the caller hears "רגע אחד..." right away instead of dead air,
+// then the same total wait as before for the real answer. Total time to a
+// real answer is unchanged — this only fills the silence, it doesn't make
+// the AI itself faster.
+//
+// Defaults to OFF (missing row = off), unlike this file's other toggles
+// (which default to their NEW behavior) — specifically because the one
+// load-bearing assumption above (a bare id_list_message really does
+// auto-continue rather than, say, silently hanging up after speaking) has
+// only ever been used in this codebase combined with go_to_folder=hangup
+// (yemotSayAndHangup) — never alone, never confirmed on a real live call.
+// Turn this on and make ONE real test call: if it continues normally after
+// "רגע אחד", leave it on. If the call goes dead right after that phrase,
+// turn it back off immediately at /admin/voice-bot-text (one click, no
+// redeploy) and report back — that would mean the directive needs a
+// different shape than the one currently sourced from yemot-router2.
+export type ThinkingFillerMode = "on" | "off";
+export const THINKING_FILLER_KEY = "thinking_filler_enabled";
+
 /**
  * Resolves every phrase (DB overrides merged over DEFAULT_PHRASES), the
  * current menu mode, AND the no-AI-booking-flow mode in one query — used by
@@ -165,11 +216,13 @@ export async function getVoiceBotConfig(): Promise<{
   menuMode: VoiceMenuMode;
   noAiBookingMode: NoAiBookingMode;
   botVoiceGender: BotVoiceGender;
+  thinkingFillerEnabled: boolean;
 }> {
   const phrases = { ...DEFAULT_PHRASES };
   let menuMode: VoiceMenuMode = "ai";
   let noAiBookingMode: NoAiBookingMode = "speech";
   let botVoiceGender: BotVoiceGender = "female";
+  let thinkingFillerEnabled = false;
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin.from("voice_bot_phrases").select("key, value");
@@ -182,6 +235,8 @@ export async function getVoiceBotConfig(): Promise<{
         if (row.value === "off" || row.value === "dtmf") noAiBookingMode = row.value;
       } else if (key === BOT_VOICE_GENDER_KEY) {
         if (row.value === "male") botVoiceGender = "male";
+      } else if (key === THINKING_FILLER_KEY) {
+        if (row.value === "on") thinkingFillerEnabled = true;
       } else if (key in phrases) {
         (phrases as Record<string, string>)[key] = (row as { value: string }).value;
       }
@@ -192,7 +247,7 @@ export async function getVoiceBotConfig(): Promise<{
   if (botVoiceGender === "male") {
     for (const key of Object.keys(phrases) as PhraseKey[]) phrases[key] = applyMaleGenderToPhrase(phrases[key]);
   }
-  return { phrases, menuMode, noAiBookingMode, botVoiceGender };
+  return { phrases, menuMode, noAiBookingMode, botVoiceGender, thinkingFillerEnabled };
 }
 
 /** Just the phrases, for the one caller (the Twilio incoming-call greeting) that doesn't need the menu mode. */

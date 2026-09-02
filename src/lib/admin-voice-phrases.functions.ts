@@ -7,9 +7,11 @@ import {
   MENU_MODE_KEY,
   NOAI_BOOKING_ENABLED_KEY,
   PHRASE_LABELS,
+  THINKING_FILLER_KEY,
   type BotVoiceGender,
   type NoAiBookingMode,
   type PhraseKey,
+  type ThinkingFillerMode,
   type VoiceMenuMode,
 } from "@/lib/voice-phrases.server";
 
@@ -133,6 +135,28 @@ export const setBotVoiceGender = createServerFn({ method: "POST" })
     const { error } = await context.supabase
       .from("voice_bot_phrases")
       .upsert({ key: BOT_VOICE_GENDER_KEY, value: data.gender, updated_at: new Date().toISOString() }, { onConflict: "key" });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Whether the "thinking filler" (say something right away, then do the real AI work on the follow-up hit) is on for the Yemot line — see THINKING_FILLER_KEY's doc comment in voice-phrases.server.ts. Twilio's channel is unaffected — its <Gather> only ever runs one directive shape, not Yemot's two-hit id_list_message re-continue. */
+export const getThinkingFillerEnabled = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<ThinkingFillerMode> => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data, error } = await context.supabase.from("voice_bot_phrases").select("value").eq("key", THINKING_FILLER_KEY).maybeSingle();
+    if (error) throw new Error(error.message);
+    return data?.value === "on" ? "on" : "off";
+  });
+
+export const setThinkingFillerEnabled = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ mode: z.enum(["on", "off"]) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await context.supabase
+      .from("voice_bot_phrases")
+      .upsert({ key: THINKING_FILLER_KEY, value: data.mode, updated_at: new Date().toISOString() }, { onConflict: "key" });
     if (error) throw new Error(error.message);
     return { ok: true };
   });

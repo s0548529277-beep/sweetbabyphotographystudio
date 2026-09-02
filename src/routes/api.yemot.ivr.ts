@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
-import { parseYemotParams, yemotAck, yemotSayAndHangup, yemotSayAndListen, yemotSayAndListenTap } from "@/lib/yemot.server";
+import { parseYemotParams, yemotAck, yemotSayAndHangup, yemotSayAndListen, yemotSayAndListenTap, yemotSayThenContinue } from "@/lib/yemot.server";
 import { runVoiceTurn, type VoiceMessage, type VoiceTurnResult } from "@/lib/voice-chat.server";
 import { sendMessageToStudio } from "@/lib/voice-message.server";
 import { detectMenuIntent, wantsFullGuide, wantsToBookNow } from "@/lib/voice-menu.server";
@@ -116,7 +116,7 @@ async function handle(request: Request): Promise<Response> {
   // silence and get re-prompted with the wrong (speech) message.
   const rawDigits = (params.digits ?? "").trim();
   const hasAnswer = !!speech || !!rawDigits;
-  const { phrases, menuMode, noAiBookingMode } = await getVoiceBotConfig();
+  const { phrases, menuMode, noAiBookingMode, thinkingFillerEnabled } = await getVoiceBotConfig();
   const noAiBookingEnabled = noAiBookingMode !== "off";
   const nbInputMode: NbInputMode = noAiBookingMode === "dtmf" ? "dtmf" : "speech";
 
@@ -133,8 +133,48 @@ async function handle(request: Request): Promise<Response> {
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    // Runs the actual (possibly slow) AI turn against an already-built
+    // message list and replies with whatever directive the model's action
+    // calls for — shared by the normal path (runOpenTurn below, when
+    // thinkingFillerEnabled is off) and the "ai_pending" resume branch
+    // right below (when it's on, this runs on the follow-up hit AFTER the
+    // filler already played). Same "always await, never bare-return" rule
+    // as runOpenTurn used to note inline — a rejection here must hit this
+    // function's own caller's try/catch, never escape raw.
+    const runDeferredAiTurn = async (fullMessages: VoiceMessage[], phone: string): Promise<Response> => {
+      const { text, action }: VoiceTurnResult = await runVoiceTurn(fullMessages, phone);
+      const updatedMessages: VoiceMessage[] = [...fullMessages, { role: "assistant", content: text }];
+      if (action === "transfer") {
+        await upsertVoiceSession(supabaseAdmin, {
+          call_sid: callSid,
+          from_number: phone,
+          messages: [...updatedMessages, { role: "assistant", content: phrases.no_human_transfer }],
+          stage: "leaving_message",
+        });
+        return yemotSayAndListen(`${text} ${phrases.no_human_transfer}`);
+      }
+      await upsertVoiceSession(supabaseAdmin, { call_sid: callSid, from_number: phone, messages: updatedMessages, stage: "chat" });
+      if (action === "hangup") return yemotSayAndHangup(text);
+      return yemotSayAndListen(text);
+    };
+
     if (!hasAnswer) {
       const existing = await selectVoiceSession(supabaseAdmin, callSid);
+
+      // Resume half of the thinking-filler mechanic (THINKING_FILLER_KEY in
+      // voice-phrases.server.ts) — this specific re-hit is Yemot
+      // auto-continuing right after speaking phrases.thinking_filler, not a
+      // real caller reply, so hasAnswer is (expectedly) false here. The
+      // caller's real turn is already the last message in
+      // existing.messages (saved by runOpenTurn below before the filler was
+      // spoken) — do the real work now instead of treating this as silence
+      // and re-prompting her with "didn't hear that".
+      if (existing && (existing as { stage?: string }).stage === "ai_pending") {
+        const priorMessages = ((existing.messages as VoiceMessage[] | undefined) ?? []) as VoiceMessage[];
+        const phone = existing.from_number || callerPhone;
+        return await runDeferredAiTurn(priorMessages, phone);
+      }
+
       if (!existing) {
         // Genuinely the first hit of the call — no session yet. If there's a
         // message waiting for this number (a booking confirmation/reminder
@@ -251,21 +291,22 @@ async function handle(request: Request): Promise<Response> {
     // graceful phrases.temporary_error fallback — silently breaking the call.
     const runOpenTurn = async (userText: string): Promise<Response> => {
       const messages: VoiceMessage[] = [...priorMessages, { role: "user", content: userText }];
-      const { text, action }: VoiceTurnResult = await runVoiceTurn(messages, phone);
-      const updatedMessages: VoiceMessage[] = [...messages, { role: "assistant", content: text }];
-      if (action === "transfer") {
-        // A live transfer (routing_yemot) needs a real extension configured
-        // on Yemot's side pointing at a phone number — confirmed live that
-        // it isn't set up ("השלוחה אליה ביקשתם לעבור אינה פעילה עקב חוסר
-        // בהגדרות"), so this line always offers a message instead of
-        // attempting a transfer that's known to fail. Twilio's Dial verb
-        // (api.voice.respond.ts) doesn't have this dependency.
-        await save([...updatedMessages, { role: "assistant", content: phrases.no_human_transfer }], "leaving_message");
-        return yemotSayAndListen(`${text} ${phrases.no_human_transfer}`);
+      if (thinkingFillerEnabled) {
+        // Say something right away instead of leaving her in dead air while
+        // the AI (and its tool calls) run — sometimes many seconds, see
+        // runVoiceTurn's own 30s-budget comment. jump to "ai_pending" and
+        // let the resume branch above (the very next hit, triggered by
+        // yemotSayThenContinue itself) do the real work and reply for real.
+        await save(messages, "ai_pending");
+        return yemotSayThenContinue(phrases.thinking_filler);
       }
-      await save(updatedMessages, "chat");
-      if (action === "hangup") return yemotSayAndHangup(text);
-      return yemotSayAndListen(text);
+      // A live transfer (routing_yemot) needs a real extension configured
+      // on Yemot's side pointing at a phone number — confirmed live that
+      // it isn't set up ("השלוחה אליה ביקשתם לעבור אינה פעילה עקב חוסר
+      // בהגדרות"), so runDeferredAiTurn always offers a message instead of
+      // attempting a transfer that's known to fail. Twilio's Dial verb
+      // (api.voice.respond.ts) doesn't have this dependency.
+      return await runDeferredAiTurn(messages, phone);
     };
 
     // ---- Stage 0: the no-AI, fixed-question booking flow ----

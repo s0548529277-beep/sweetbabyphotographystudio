@@ -80,6 +80,30 @@ export function yemotSayAndHangup(text: string): Response {
   return yemotResponse(`id_list_message=${textSegment(text)}&go_to_folder=hangup`);
 }
 
+/**
+ * Speaks `text` in Hebrew and then IMMEDIATELY re-hits this same
+ * extension's URL on its own — no `go_to_folder` (so it doesn't hang up,
+ * unlike yemotSayAndHangup above) and no `read`/listen step (so it doesn't
+ * wait for the caller to say anything, unlike yemotSayAndListen). Same
+ * `id_list_message` directive as yemotSayAndHangup, just without the
+ * hangup tacked on — per this file's own top-of-file protocol notes
+ * (sourced from yemot-router2, not guessed), that's what a bare
+ * id_list_message does on its own.
+ *
+ * Built for hiding AI "thinking" latency on a phone call: say something
+ * short right away instead of leaving the caller in dead air while a slow
+ * step runs, then do the real work on the follow-up hit this triggers (see
+ * THINKING_FILLER_KEY's doc comment in voice-phrases.server.ts and the
+ * "ai_pending" stage in api.yemot.ivr.ts for the other half). Flagged
+ * off by default there specifically because — unlike every other directive
+ * in this file — a BARE id_list_message (no hangup after it) has not yet
+ * been confirmed against a real live call; see that doc comment before
+ * turning it on.
+ */
+export function yemotSayThenContinue(text: string): Response {
+  return yemotResponse(`id_list_message=${textSegment(text)}`);
+}
+
 // Yemot's own built-in typing_playback_mode presets that ALSO fix the
 // required digit count (min_digits === max_digits) — used instead of a
 // hand-picked count specifically because a PREVIOUS keypad attempt on this

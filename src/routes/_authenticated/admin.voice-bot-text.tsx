@@ -5,12 +5,14 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   getBotVoiceGender,
   getNoAiBookingMode,
+  getThinkingFillerEnabled,
   getVoiceMenuMode,
   listNoAiBookingSessions,
   listVoiceBotPhrases,
   resetVoiceBotPhrase,
   setBotVoiceGender,
   setNoAiBookingMode,
+  setThinkingFillerEnabled,
   setVoiceMenuMode,
   updateVoiceBotPhrase,
   type NoAiBookingSessionRow,
@@ -18,7 +20,7 @@ import {
 } from "@/lib/admin-voice-phrases.functions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Mic, RotateCcw, Save, Sparkles, ListChecks, PhoneCall, CalendarCheck2, Keyboard, MicOff, VenusAndMars, User, UserRound } from "lucide-react";
+import { Mic, RotateCcw, Save, Sparkles, ListChecks, PhoneCall, CalendarCheck2, Keyboard, MicOff, VenusAndMars, User, UserRound, Timer, TimerOff } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/voice-bot-text")({
@@ -234,6 +236,73 @@ function BotVoiceGenderCard() {
   );
 }
 
+function ThinkingFillerCard() {
+  const qc = useQueryClient();
+  const fetchMode = useServerFn(getThinkingFillerEnabled);
+  const doSetMode = useServerFn(setThinkingFillerEnabled);
+  const q = useQuery({ queryKey: ["admin-thinking-filler"], queryFn: () => fetchMode({}) });
+  const [saving, setSaving] = useState(false);
+  const mode = q.data ?? "off";
+
+  const choose = async (next: "on" | "off") => {
+    if (next === mode || saving) return;
+    setSaving(true);
+    try {
+      await doSetMode({ data: { mode: next } });
+      toast.success(next === "on" ? "הופעל — כדאי לבצע שיחת בדיקה אחת ולוודא שהשיחה ממשיכה כרגיל" : "כובה, חוזר להתנהגות הקודמת");
+      qc.invalidateQueries({ queryKey: ["admin-thinking-filler"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "השמירה נכשלה");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-card rounded-2xl border border-primary/5 p-4 space-y-3">
+      <div className="flex items-center gap-2 text-sm font-medium text-primary">
+        <Timer className="h-4 w-4 text-blush-deep" /> מענה מיידי בזמן שהבינה "חושבת" (קו ימות המשיח בלבד)
+      </div>
+      <p className="text-xs text-muted-foreground">
+        כשהבינה עונה (לא תפריט קבוע), היא לפעמים לוקחת כמה שניות — הלקוחה שומעת שקט מוחלט בזמן הזה, כי ימות לא אומר כלום עד שהתשובה
+        המלאה מוכנה. במצב "מופעל", הבוט אומר מיד "רגע אחד..." ורק אחר כך ממשיך לתשובה האמיתית — כך שיש קול מיידי במקום שקט, אבל{" "}
+        <strong>הזמן הכולל עד לתשובה עצמה לא משתנה</strong>, רק השקט מתמלא. <strong>זה לא בדוק עדיין על שיחה אמיתית</strong> — אחרי
+        הפעלה כדאי לבצע שיחת בדיקה אחת ולוודא שהשיחה ממשיכה כרגיל אחרי "רגע אחד" ולא מתנתקת. אם היא מתנתקת — לכבות כאן מיד (לחיצה
+        אחת, בלי פריסה מחדש) ולדווח. משפיע רק על קו ימות המשיח (בטלפון של Twilio אין את המנגנון הזה).
+      </p>
+      <div className="grid sm:grid-cols-2 gap-3">
+        <button
+          type="button"
+          disabled={saving}
+          onClick={() => choose("off")}
+          className={`text-right rounded-xl border p-3 transition-colors ${
+            mode === "off" ? "border-primary bg-primary/5" : "border-primary/10 hover:bg-cream"
+          }`}
+        >
+          <div className="flex items-center gap-2 text-sm font-medium text-primary mb-1">
+            <TimerOff className="h-4 w-4 text-blush-deep" /> כבוי (ברירת מחדל)
+          </div>
+          <p className="text-xs text-muted-foreground">ההתנהגות הקודמת — שקט עד שהתשובה מוכנה.</p>
+        </button>
+        <button
+          type="button"
+          disabled={saving}
+          onClick={() => choose("on")}
+          className={`text-right rounded-xl border p-3 transition-colors ${
+            mode === "on" ? "border-primary bg-primary/5" : "border-primary/10 hover:bg-cream"
+          }`}
+        >
+          <div className="flex items-center gap-2 text-sm font-medium text-primary mb-1">
+            <Timer className="h-4 w-4 text-blush-deep" /> מופעל
+          </div>
+          <p className="text-xs text-muted-foreground">אומר "רגע אחד..." מיד, לפני התשובה עצמה. דורש שיחת בדיקה.</p>
+        </button>
+      </div>
+      {q.isLoading && <p className="text-xs text-muted-foreground">טוען מצב נוכחי…</p>}
+    </div>
+  );
+}
+
 const NB_MODE_OPTIONS: Array<{ value: "off" | "speech" | "dtmf"; icon: typeof PhoneCall; title: string; desc: string }> = [
   { value: "off", icon: MicOff, title: "כבוי", desc: 'אם הבינה נכשלת שוב ושוב, או שנאמר "הזמנת סטודיו" במצב תפריט קבוע — חוזר להתנהגות הקודמת (הצעה להשאיר הודעה / המתנה לבינה), בלי תהליך שריון עצמאי.' },
   { value: "speech", icon: PhoneCall, title: "בדיבור (ברירת מחדל)", desc: "כל שאלה (תאריך, שעה, משך, מייל) נענית בקול חופשי, ומפוענחת לפי מילות מפתח." },
@@ -391,11 +460,12 @@ function VoiceBotTextAdmin() {
       <div className="space-y-3">
         <div className="pt-1">
           <h3 className="text-sm font-semibold text-primary">אפשרויות התנהגות הבוט</h3>
-          <p className="text-xs text-muted-foreground">שלוש הגדרות נפרדות — כל אחת עומדת בפני עצמה, בכרטיס משלה, עם הסבר מלא מתחת לאפשרויות.</p>
+          <p className="text-xs text-muted-foreground">ארבע הגדרות נפרדות — כל אחת עומדת בפני עצמה, בכרטיס משלה, עם הסבר מלא מתחת לאפשרויות.</p>
         </div>
         <MenuModeCard />
         <NoAiBookingCard />
         <BotVoiceGenderCard />
+        <ThinkingFillerCard />
       </div>
 
       <NoAiBookingSessionsCard />
