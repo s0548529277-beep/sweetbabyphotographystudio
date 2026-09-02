@@ -6,6 +6,7 @@ import {
   getBotVoiceGender,
   getNoAiBookingMode,
   getThinkingFillerEnabled,
+  getThinkingFillerMusicId,
   getVoiceMenuMode,
   listNoAiBookingSessions,
   listVoiceBotPhrases,
@@ -13,14 +14,16 @@ import {
   setBotVoiceGender,
   setNoAiBookingMode,
   setThinkingFillerEnabled,
+  setThinkingFillerMusicId,
   setVoiceMenuMode,
   updateVoiceBotPhrase,
   type NoAiBookingSessionRow,
   type VoiceBotPhraseRow,
 } from "@/lib/admin-voice-phrases.functions";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Mic, RotateCcw, Save, Sparkles, ListChecks, PhoneCall, CalendarCheck2, Keyboard, MicOff, VenusAndMars, User, UserRound, Timer, TimerOff } from "lucide-react";
+import { Mic, RotateCcw, Save, Sparkles, ListChecks, PhoneCall, CalendarCheck2, Keyboard, MicOff, VenusAndMars, User, UserRound, Timer, TimerOff, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/voice-bot-text")({
@@ -240,21 +243,41 @@ function ThinkingFillerCard() {
   const qc = useQueryClient();
   const fetchMode = useServerFn(getThinkingFillerEnabled);
   const doSetMode = useServerFn(setThinkingFillerEnabled);
+  const fetchMusicId = useServerFn(getThinkingFillerMusicId);
+  const doSetMusicId = useServerFn(setThinkingFillerMusicId);
   const q = useQuery({ queryKey: ["admin-thinking-filler"], queryFn: () => fetchMode({}) });
+  const musicQ = useQuery({ queryKey: ["admin-thinking-filler-music"], queryFn: () => fetchMusicId({}) });
   const [saving, setSaving] = useState(false);
-  const mode = q.data ?? "off";
+  const [musicDraft, setMusicDraft] = useState<string | null>(null);
+  const [savingMusic, setSavingMusic] = useState(false);
+  const mode = q.data ?? "on";
+  const musicId = musicDraft ?? musicQ.data ?? "";
 
   const choose = async (next: "on" | "off") => {
     if (next === mode || saving) return;
     setSaving(true);
     try {
       await doSetMode({ data: { mode: next } });
-      toast.success(next === "on" ? "הופעל — כדאי לבצע שיחת בדיקה אחת ולוודא שהשיחה ממשיכה כרגיל" : "כובה, חוזר להתנהגות הקודמת");
+      toast.success(next === "on" ? "הופעל" : "כובה, חוזר לשקט עד שהתשובה מוכנה");
       qc.invalidateQueries({ queryKey: ["admin-thinking-filler"] });
     } catch (e: any) {
       toast.error(e?.message ?? "השמירה נכשלה");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const saveMusic = async () => {
+    setSavingMusic(true);
+    try {
+      await doSetMusicId({ data: { musicId } });
+      toast.success(musicId ? "נשמר — יתווסף צליל קצר לפני המילים" : "נשמר — בלי צליל, רק המילים");
+      qc.invalidateQueries({ queryKey: ["admin-thinking-filler-music"] });
+      setMusicDraft(null);
+    } catch (e: any) {
+      toast.error(e?.message ?? "השמירה נכשלה");
+    } finally {
+      setSavingMusic(false);
     }
   };
 
@@ -265,25 +288,11 @@ function ThinkingFillerCard() {
       </div>
       <p className="text-xs text-muted-foreground">
         כשהבינה עונה (לא תפריט קבוע), היא לפעמים לוקחת כמה שניות — הלקוחה שומעת שקט מוחלט בזמן הזה, כי ימות לא אומר כלום עד שהתשובה
-        המלאה מוכנה. במצב "מופעל", הבוט אומר מיד "רגע אחד..." ורק אחר כך ממשיך לתשובה האמיתית — כך שיש קול מיידי במקום שקט, אבל{" "}
-        <strong>הזמן הכולל עד לתשובה עצמה לא משתנה</strong>, רק השקט מתמלא. <strong>זה לא בדוק עדיין על שיחה אמיתית</strong> — אחרי
-        הפעלה כדאי לבצע שיחת בדיקה אחת ולוודא שהשיחה ממשיכה כרגיל אחרי "רגע אחד" ולא מתנתקת. אם היא מתנתקת — לכבות כאן מיד (לחיצה
-        אחת, בלי פריסה מחדש) ולדווח. משפיע רק על קו ימות המשיח (בטלפון של Twilio אין את המנגנון הזה).
+        המלאה מוכנה. במצב "מופעל" (ברירת המחדל), הבוט אומר מיד "רגע אחד..." (אפשר לערוך את הניסוח למטה, בשורה "מילת המתנה") ורק
+        אחר כך ממשיך לתשובה האמיתית — כך שיש קול מיידי במקום שקט. <strong>הזמן הכולל עד לתשובה עצמה לא משתנה</strong>, רק השקט
+        מתמלא. משפיע רק על קו ימות המשיח (בטלפון של Twilio אין שקט כזה מלכתחילה).
       </p>
       <div className="grid sm:grid-cols-2 gap-3">
-        <button
-          type="button"
-          disabled={saving}
-          onClick={() => choose("off")}
-          className={`text-right rounded-xl border p-3 transition-colors ${
-            mode === "off" ? "border-primary bg-primary/5" : "border-primary/10 hover:bg-cream"
-          }`}
-        >
-          <div className="flex items-center gap-2 text-sm font-medium text-primary mb-1">
-            <TimerOff className="h-4 w-4 text-blush-deep" /> כבוי (ברירת מחדל)
-          </div>
-          <p className="text-xs text-muted-foreground">ההתנהגות הקודמת — שקט עד שהתשובה מוכנה.</p>
-        </button>
         <button
           type="button"
           disabled={saving}
@@ -293,12 +302,48 @@ function ThinkingFillerCard() {
           }`}
         >
           <div className="flex items-center gap-2 text-sm font-medium text-primary mb-1">
-            <Timer className="h-4 w-4 text-blush-deep" /> מופעל
+            <Timer className="h-4 w-4 text-blush-deep" /> מופעל (ברירת מחדל)
           </div>
-          <p className="text-xs text-muted-foreground">אומר "רגע אחד..." מיד, לפני התשובה עצמה. דורש שיחת בדיקה.</p>
+          <p className="text-xs text-muted-foreground">אומר "רגע אחד..." מיד, לפני התשובה עצמה.</p>
+        </button>
+        <button
+          type="button"
+          disabled={saving}
+          onClick={() => choose("off")}
+          className={`text-right rounded-xl border p-3 transition-colors ${
+            mode === "off" ? "border-primary bg-primary/5" : "border-primary/10 hover:bg-cream"
+          }`}
+        >
+          <div className="flex items-center gap-2 text-sm font-medium text-primary mb-1">
+            <TimerOff className="h-4 w-4 text-blush-deep" /> כבוי
+          </div>
+          <p className="text-xs text-muted-foreground">ההתנהגות הקודמת — שקט עד שהתשובה מוכנה.</p>
         </button>
       </div>
       {q.isLoading && <p className="text-xs text-muted-foreground">טוען מצב נוכחי…</p>}
+
+      <div className="pt-2 border-t border-primary/5 space-y-2">
+        <div className="flex items-center gap-2 text-xs font-medium text-primary">
+          <Volume2 className="h-3.5 w-3.5 text-blush-deep" /> צליל/מוזיקה קצרה לפני "רגע אחד..." (אופציונלי)
+        </div>
+        <p className="text-xs text-muted-foreground">
+          זה לא קובץ שאפשר להעלות מכאן — זה מזהה של קובץ מוזיקה/צליל שכבר קיים <strong>במערכת ימות המשיח עצמה</strong> (בממשק
+          הניהול של ימות, תחת קבצי מערכת/מוזיקה — לא באתר הזה). אם יש לך מזהה כזה, אפשר להדביק אותו כאן כדי שיתווסף צליל קצר לפני
+          המילים. אם לא בטוחים או שאין — עדיף להשאיר ריק, כדי לא לגרום לרעש לא צפוי בשיחה אמיתית.
+        </p>
+        <div className="flex gap-2">
+          <Input
+            dir="ltr"
+            placeholder="למשל: 1 (ריק = בלי צליל)"
+            value={musicId}
+            onChange={(e) => setMusicDraft(e.target.value)}
+            className="text-sm"
+          />
+          <Button size="sm" className="rounded-full gap-1.5 shrink-0" disabled={savingMusic || musicQ.isLoading} onClick={saveMusic}>
+            <Save className="h-3.5 w-3.5" /> שמירה
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

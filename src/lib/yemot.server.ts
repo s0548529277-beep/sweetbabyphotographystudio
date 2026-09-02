@@ -80,28 +80,56 @@ export function yemotSayAndHangup(text: string): Response {
   return yemotResponse(`id_list_message=${textSegment(text)}&go_to_folder=hangup`);
 }
 
+// A previous version of this helper (yemotSayThenContinue) used a BARE
+// id_list_message — no go_to_folder, no read — banking on an unconfirmed
+// assumption (sourced from yemot-router2's docs, never actually exercised
+// live) that Yemot auto-continues to the next hit on its own after a bare
+// id_list_message instead of just... stopping. It shipped OFF by default
+// for exactly that reason and was never turned on. Replaced below with
+// yemotSayThenResume, built entirely out of the SAME `read`/speech-listen
+// directive every other turn in this app already uses successfully, every
+// single call — zero new protocol risk.
+
 /**
- * Speaks `text` in Hebrew and then IMMEDIATELY re-hits this same
- * extension's URL on its own — no `go_to_folder` (so it doesn't hang up,
- * unlike yemotSayAndHangup above) and no `read`/listen step (so it doesn't
- * wait for the caller to say anything, unlike yemotSayAndListen). Same
- * `id_list_message` directive as yemotSayAndHangup, just without the
- * hangup tacked on — per this file's own top-of-file protocol notes
- * (sourced from yemot-router2, not guessed), that's what a bare
- * id_list_message does on its own.
+ * Speaks `text` (optionally preceded by a short hold-tone/music segment —
+ * see `musicOnHoldId`) and then listens briefly for speech, same as
+ * yemotSayAndListen — but built for a DIFFERENT purpose: hiding AI
+ * "thinking" latency (see THINKING_FILLER_KEY in voice-phrases.server.ts).
+ * The caller isn't actually being asked anything here; we just want Yemot
+ * to re-hit this URL soon after so the real (slow) work can run. Rather
+ * than the unconfirmed "bare id_list_message auto-continues" behavior this
+ * used to rely on, this reuses the READ directive itself — proven, in
+ * production, on every single turn already — so if she stays quiet (the
+ * expected case, since nothing was actually asked), Yemot's own normal
+ * "no speech within the wait window" behavior re-hits us with no answer,
+ * landing in the exact same `!hasAnswer` handling every other silent hit
+ * already goes through. If she DOES say something in that window (adding
+ * more detail, repeating herself), that comes back as ordinary `speech` —
+ * api.yemot.ivr.ts's "ai_pending" handling covers both cases.
  *
- * Built for hiding AI "thinking" latency on a phone call: say something
- * short right away instead of leaving the caller in dead air while a slow
- * step runs, then do the real work on the follow-up hit this triggers (see
- * THINKING_FILLER_KEY's doc comment in voice-phrases.server.ts and the
- * "ai_pending" stage in api.yemot.ivr.ts for the other half). Flagged
- * off by default there specifically because — unlike every other directive
- * in this file — a BARE id_list_message (no hangup after it) has not yet
- * been confirmed against a real live call; see that doc comment before
- * turning it on.
+ * `musicOnHoldId` is an optional Yemot system music-file id (the studio
+ * owner finds this in Yemot's own ניהול panel → קבצי מערכת/מוזיקה — it is
+ * NOT something this codebase can discover or guess, so it's admin-entered
+ * text, not a hardcoded default) — when set, plays that music/tone for up
+ * to a couple of seconds BEFORE the spoken text, giving an audible cue
+ * that isn't just Yemot's TTS voice. Left unset, only the spoken phrase
+ * plays (same as before). Per makeMessagesData in yemot-router2's own
+ * source (github.com/ShlomoCode/yemot-router2, lib/response-functions.js),
+ * a `music_on_hold` segment is `h-<musicName>` or `h-<musicName>,<maxSec>`,
+ * joined with other segments by `.` — same message-list format
+ * `id_list_message`/`read` both share.
  */
-export function yemotSayThenContinue(text: string): Response {
-  return yemotResponse(`id_list_message=${textSegment(text)}`);
+export function yemotSayThenResume(text: string, musicOnHoldId?: string | null): Response {
+  const holdSegment = musicOnHoldId ? `h-${sanitize(musicOnHoldId)},2.` : "";
+  // Short quiet_max (7th field of the speech-mode read ops, after
+  // valName,re_enter,voice,lang,block_typing,max_digits) so Yemot gives up
+  // waiting for speech quickly instead of its longer default — she wasn't
+  // actually asked a question, so there's nothing to wait long for. If this
+  // specific field turns out not to behave as documented, the worst case is
+  // simply Yemot's own normal default wait — never a dropped call, since
+  // `read` itself is the same directive already proven safe everywhere else
+  // in this file.
+  return yemotResponse(`read=${holdSegment}${textSegment(text)}=speech,no,voice,he,,,1`);
 }
 
 // Yemot's own built-in typing_playback_mode presets that ALSO fix the

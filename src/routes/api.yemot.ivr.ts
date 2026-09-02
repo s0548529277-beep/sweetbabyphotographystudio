@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
-import { parseYemotParams, yemotAck, yemotSayAndHangup, yemotSayAndListen, yemotSayAndListenTap, yemotSayThenContinue } from "@/lib/yemot.server";
+import { parseYemotParams, yemotAck, yemotSayAndHangup, yemotSayAndListen, yemotSayAndListenTap, yemotSayThenResume } from "@/lib/yemot.server";
 import { runVoiceTurn, type VoiceMessage, type VoiceTurnResult } from "@/lib/voice-chat.server";
 import { sendMessageToStudio } from "@/lib/voice-message.server";
 import { detectMenuIntent, wantsFullGuide, wantsToBookNow } from "@/lib/voice-menu.server";
@@ -116,7 +116,7 @@ async function handle(request: Request): Promise<Response> {
   // silence and get re-prompted with the wrong (speech) message.
   const rawDigits = (params.digits ?? "").trim();
   const hasAnswer = !!speech || !!rawDigits;
-  const { phrases, menuMode, noAiBookingMode, thinkingFillerEnabled } = await getVoiceBotConfig();
+  const { phrases, menuMode, noAiBookingMode, thinkingFillerEnabled, thinkingFillerMusicId } = await getVoiceBotConfig();
   const noAiBookingEnabled = noAiBookingMode !== "off";
   const nbInputMode: NbInputMode = noAiBookingMode === "dtmf" ? "dtmf" : "speech";
 
@@ -261,6 +261,21 @@ async function handle(request: Request): Promise<Response> {
     const save = (messages: VoiceMessage[], newStage: string, draft?: DraftBooking | null) =>
       upsertVoiceSession(supabaseAdmin, { call_sid: callSid, from_number: phone, messages, stage: newStage, draft_booking: draft ?? null });
 
+    // The OTHER half of the thinking-filler resume (see the `!hasAnswer`
+    // branch's own "ai_pending" check above for the normal case). This one
+    // covers the less common case: she said something DURING the filler's
+    // brief listen window (yemotSayThenResume) instead of staying quiet —
+    // e.g. adding a detail, or just repeating herself while waiting. Her
+    // original request is already the last message in priorMessages (saved
+    // right before the filler played); append what she just said as a
+    // follow-up rather than dropping it, then run the real (slow) AI turn
+    // exactly like the silent case does — never leave "ai_pending" stranded
+    // with an unanswered user turn sitting in the session.
+    if (stage === "ai_pending") {
+      const withFollowUp: VoiceMessage[] = [...priorMessages, { role: "user", content: speech || rawDigits }];
+      return await runDeferredAiTurn(withFollowUp, phone);
+    }
+
     // Responds with one turn of the no-AI booking flow (voice-noai-
     // booking.server.ts) — shared by both ways into it: the explicit
     // "book now" phrasing in fixed-menu mode, and the automatic escalation
@@ -295,10 +310,12 @@ async function handle(request: Request): Promise<Response> {
         // Say something right away instead of leaving her in dead air while
         // the AI (and its tool calls) run — sometimes many seconds, see
         // runVoiceTurn's own 30s-budget comment. jump to "ai_pending" and
-        // let the resume branch above (the very next hit, triggered by
-        // yemotSayThenContinue itself) do the real work and reply for real.
+        // let the resume handling (the `!hasAnswer` branch above for the
+        // normal "stayed quiet" case, or the "ai_pending" check right after
+        // `session` loads below if she said something in that window) do
+        // the real work and reply for real.
         await save(messages, "ai_pending");
-        return yemotSayThenContinue(phrases.thinking_filler);
+        return yemotSayThenResume(phrases.thinking_filler, thinkingFillerMusicId);
       }
       // A live transfer (routing_yemot) needs a real extension configured
       // on Yemot's side pointing at a phone number — confirmed live that
@@ -328,24 +345,28 @@ async function handle(request: Request): Promise<Response> {
 
     // ---- Stage 1: the spoken-keyword menu ----
     if (stage === "menu") {
+      // Checked BEFORE the "ai" mode early-return below, and before
+      // detectMenuIntent — independent of menu mode entirely. Per direct
+      // report: a caller saying an explicit, unambiguous "book now" phrase
+      // ("רוצה לשריין", "הזמנת סטודיו" etc. — see BOOKING_INTENT_WORDS'
+      // narrow word list) needs to reliably end in a REAL reservation, the
+      // same guarantee "fixed" mode always gave via this exact deterministic
+      // flow — not left to depend on whether the AI's own tool-calling
+      // happens to follow through this specific turn. This only fires on
+      // that narrow, explicit phrasing; anything less direct (a date
+      // mention, a general pricing question) still goes to the AI in "ai"
+      // mode exactly as before, so its natural flexibility for everything
+      // else is untouched.
+      if (noAiBookingEnabled && wantsToBookNow(speech)) return await respondNbStart(speech);
+
       // "ai" mode (see MENU_MODE_KEY's doc comment): skip the canned-phrase
-      // keyword routing entirely — every stage-1 utterance goes straight
-      // into the real AI conversation, which already knows all the same
-      // facts (pricing, hours, policies in SYSTEM; arrival/equipment guide
-      // via on-demand tools). "fixed" mode (the admin-toggleable revert)
+      // keyword routing entirely — every OTHER stage-1 utterance goes
+      // straight into the real AI conversation, which already knows all the
+      // same facts (pricing, hours, policies in SYSTEM; arrival/equipment
+      // guide via on-demand tools) and can book naturally via
+      // create_phone_booking. "fixed" mode (the admin-toggleable revert)
       // keeps the exact original behavior below unchanged.
       if (menuMode === "ai") return await runOpenTurn(speech);
-
-      // Checked BEFORE detectMenuIntent, independent of its word-count gate
-      // (looksLikeMenuPick caps at 4 words) — a longer, natural sentence
-      // like "אני רוצה לעשות הזמנת סטודיו למחר בבוקר" used to fall through
-      // detectMenuIntent entirely (null: too many words) straight to
-      // runOpenTurn below, which means "fixed" mode's whole AI-avoidance
-      // point was defeated for exactly the sentences that most clearly
-      // signal "book now". Checking here first closes that gap for every
-      // phrasing wantsToBookNow recognizes, not just the short ones that
-      // also happen to classify as menu intent 1/2.
-      if (noAiBookingEnabled && wantsToBookNow(speech)) return await respondNbStart(speech);
 
       const intent = detectMenuIntent(speech);
       if (intent === 3) {

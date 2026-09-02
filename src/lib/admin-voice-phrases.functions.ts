@@ -8,6 +8,7 @@ import {
   NOAI_BOOKING_ENABLED_KEY,
   PHRASE_LABELS,
   THINKING_FILLER_KEY,
+  THINKING_FILLER_MUSIC_KEY,
   type BotVoiceGender,
   type NoAiBookingMode,
   type PhraseKey,
@@ -139,14 +140,14 @@ export const setBotVoiceGender = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** Whether the "thinking filler" (say something right away, then do the real AI work on the follow-up hit) is on for the Yemot line — see THINKING_FILLER_KEY's doc comment in voice-phrases.server.ts. Twilio's channel is unaffected — its <Gather> only ever runs one directive shape, not Yemot's two-hit id_list_message re-continue. */
+/** Whether the "thinking filler" (say something right away, then do the real AI work on the follow-up hit) is on for the Yemot line — see THINKING_FILLER_KEY's doc comment in voice-phrases.server.ts. Defaults ON (missing row = on) — an explicit "off" row is the only way to disable it. Twilio's channel is unaffected — its <Gather> already has its own natural "one moment" framing built into how it prompts, not Yemot's two-hit re-listen pattern. */
 export const getThinkingFillerEnabled = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<ThinkingFillerMode> => {
     await assertAdmin(context.supabase, context.userId);
     const { data, error } = await context.supabase.from("voice_bot_phrases").select("value").eq("key", THINKING_FILLER_KEY).maybeSingle();
     if (error) throw new Error(error.message);
-    return data?.value === "on" ? "on" : "off";
+    return data?.value === "off" ? "off" : "on";
   });
 
 export const setThinkingFillerEnabled = createServerFn({ method: "POST" })
@@ -157,6 +158,34 @@ export const setThinkingFillerEnabled = createServerFn({ method: "POST" })
     const { error } = await context.supabase
       .from("voice_bot_phrases")
       .upsert({ key: THINKING_FILLER_KEY, value: data.mode, updated_at: new Date().toISOString() }, { onConflict: "key" });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Optional Yemot system music/tone id played briefly before phrases.thinking_filler — see THINKING_FILLER_MUSIC_KEY's doc comment in voice-phrases.server.ts. Empty string = no tone, just the spoken phrase (default). */
+export const getThinkingFillerMusicId = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<string> => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data, error } = await context.supabase.from("voice_bot_phrases").select("value").eq("key", THINKING_FILLER_MUSIC_KEY).maybeSingle();
+    if (error) throw new Error(error.message);
+    return data?.value ?? "";
+  });
+
+export const setThinkingFillerMusicId = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ musicId: z.string().max(100) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const trimmed = data.musicId.trim();
+    if (!trimmed) {
+      const { error } = await context.supabase.from("voice_bot_phrases").delete().eq("key", THINKING_FILLER_MUSIC_KEY);
+      if (error) throw new Error(error.message);
+      return { ok: true };
+    }
+    const { error } = await context.supabase
+      .from("voice_bot_phrases")
+      .upsert({ key: THINKING_FILLER_MUSIC_KEY, value: trimmed, updated_at: new Date().toISOString() }, { onConflict: "key" });
     if (error) throw new Error(error.message);
     return { ok: true };
   });

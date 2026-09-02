@@ -172,36 +172,46 @@ export const NOAI_BOOKING_ENABLED_KEY = "noai_booking_enabled";
 // This setting hides that dead air with a two-hit pattern instead of
 // shrinking the AI's actual budget:
 //   1) The moment a turn needs the AI, save the caller's message and jump
-//      to stage "ai_pending", then reply with ONLY phrases.thinking_filler
-//      via yemotSayThenContinue (yemot.server.ts) — a bare
-//      `id_list_message=t-<text>` with no read/hangup after it. Per this
-//      repo's own yemot.server.ts doc comment (sourced from the
-//      yemot-router2 library, not guessed), that directive shape speaks the
-//      text and then immediately re-hits this same URL on its own, with no
-//      new speech/digits — it does NOT wait for the caller to say anything.
-//   2) That follow-up hit lands with hasAnswer=false (nothing was asked).
-//      api.yemot.ivr.ts's `!hasAnswer` branch checks for stage
-//      "ai_pending" BEFORE its normal silence handling and, if found, runs
-//      the real (slow) AI turn right then — using the caller's message
-//      already saved in step 1 — and replies for real.
-// Net effect: the caller hears "רגע אחד..." right away instead of dead air,
-// then the same total wait as before for the real answer. Total time to a
-// real answer is unchanged — this only fills the silence, it doesn't make
-// the AI itself faster.
+//      to stage "ai_pending", then reply with phrases.thinking_filler (plus
+//      an optional hold-tone, see THINKING_FILLER_MUSIC_KEY below) via
+//      yemotSayThenResume (yemot.server.ts).
+//   2) The re-hit that follows lands EITHER with no new speech (the normal
+//      case — nothing was actually asked, she just stayed quiet) or with
+//      whatever she said in that window. api.yemot.ivr.ts's "ai_pending"
+//      handling covers both: the `!hasAnswer` branch resumes the real work
+//      immediately; the `hasAnswer` branch appends what she said and THEN
+//      resumes. Either way the real (slow) AI turn runs and replies for
+//      real, using the caller's original message already saved in step 1.
+// Net effect: the caller hears "רגע אחד..." (and, if a hold-tone id is set,
+// a short tone) right away instead of dead air, then the same total wait as
+// before for the real answer. Total time to a real answer is unchanged —
+// this only fills the silence, it doesn't make the AI itself faster.
 //
-// Defaults to OFF (missing row = off), unlike this file's other toggles
-// (which default to their NEW behavior) — specifically because the one
-// load-bearing assumption above (a bare id_list_message really does
-// auto-continue rather than, say, silently hanging up after speaking) has
-// only ever been used in this codebase combined with go_to_folder=hangup
-// (yemotSayAndHangup) — never alone, never confirmed on a real live call.
-// Turn this on and make ONE real test call: if it continues normally after
-// "רגע אחד", leave it on. If the call goes dead right after that phrase,
-// turn it back off immediately at /admin/voice-bot-text (one click, no
-// redeploy) and report back — that would mean the directive needs a
-// different shape than the one currently sourced from yemot-router2.
+// 2026-09-02, later same day: redesigned from a first version that used a
+// BARE id_list_message (no read/listen step) on the unconfirmed assumption
+// that Yemot auto-continues to the next hit on its own afterward — that
+// version shipped OFF by default and was never actually tested live.
+// yemotSayThenResume now reuses the ordinary `read` (speech-listen)
+// directive instead — the exact same mechanism every other turn in this app
+// already relies on successfully — so there is no new, unconfirmed protocol
+// behavior being bet on here anymore. Defaults ON per direct request; still
+// worth one real test call after deploying this change, same as any other
+// phone-bot behavior change, but not gated behind a manual opt-in anymore.
 export type ThinkingFillerMode = "on" | "off";
 export const THINKING_FILLER_KEY = "thinking_filler_enabled";
+
+// Optional Yemot system music/tone id to play for a couple of seconds right
+// before phrases.thinking_filler (see yemotSayThenResume's own doc comment
+// for the exact `h-<id>,<maxSec>` syntax, sourced from yemot-router2). This
+// is NOT something this codebase can discover or default sensibly — it's a
+// file that has to already exist in THIS Yemot account's own file/music
+// library (ניהול panel), and guessing a numeric id that doesn't actually
+// exist there risks silence or an odd noise instead of a clean tone. Left
+// blank (missing row = ""), only the spoken phrase plays, exactly like
+// before this existed — an admin can find a real id in Yemot's own panel
+// and enter it at /admin/voice-bot-text to add an audible tone on top of
+// the words.
+export const THINKING_FILLER_MUSIC_KEY = "thinking_filler_music_id";
 
 /**
  * Resolves every phrase (DB overrides merged over DEFAULT_PHRASES), the
@@ -217,12 +227,18 @@ export async function getVoiceBotConfig(): Promise<{
   noAiBookingMode: NoAiBookingMode;
   botVoiceGender: BotVoiceGender;
   thinkingFillerEnabled: boolean;
+  thinkingFillerMusicId: string | null;
 }> {
   const phrases = { ...DEFAULT_PHRASES };
   let menuMode: VoiceMenuMode = "ai";
   let noAiBookingMode: NoAiBookingMode = "speech";
   let botVoiceGender: BotVoiceGender = "female";
-  let thinkingFillerEnabled = false;
+  // Defaults ON now that yemotSayThenResume reuses the proven `read`
+  // directive instead of the old unconfirmed bare id_list_message — see
+  // THINKING_FILLER_KEY's doc comment above. An explicit "off" row (an
+  // admin turning it back off at /admin/voice-bot-text) still wins.
+  let thinkingFillerEnabled = true;
+  let thinkingFillerMusicId: string | null = null;
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin.from("voice_bot_phrases").select("key, value");
@@ -236,7 +252,9 @@ export async function getVoiceBotConfig(): Promise<{
       } else if (key === BOT_VOICE_GENDER_KEY) {
         if (row.value === "male") botVoiceGender = "male";
       } else if (key === THINKING_FILLER_KEY) {
-        if (row.value === "on") thinkingFillerEnabled = true;
+        thinkingFillerEnabled = row.value !== "off";
+      } else if (key === THINKING_FILLER_MUSIC_KEY) {
+        thinkingFillerMusicId = (row as { value: string }).value.trim() || null;
       } else if (key in phrases) {
         (phrases as Record<string, string>)[key] = (row as { value: string }).value;
       }
@@ -247,7 +265,7 @@ export async function getVoiceBotConfig(): Promise<{
   if (botVoiceGender === "male") {
     for (const key of Object.keys(phrases) as PhraseKey[]) phrases[key] = applyMaleGenderToPhrase(phrases[key]);
   }
-  return { phrases, menuMode, noAiBookingMode, botVoiceGender, thinkingFillerEnabled };
+  return { phrases, menuMode, noAiBookingMode, botVoiceGender, thinkingFillerEnabled, thinkingFillerMusicId };
 }
 
 /** Just the phrases, for the one caller (the Twilio incoming-call greeting) that doesn't need the menu mode. */
