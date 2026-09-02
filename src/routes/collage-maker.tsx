@@ -197,6 +197,8 @@ function CollageMaker() {
   const [shape, setShape] = useState<PhotoShapeId>("rect");
   const [effect, setEffect] = useState<PhotoEffectId>("none");
   const [frame, setFrame] = useState(false);
+  const [borderStyle, setBorderStyle] = useState<"none" | "polaroid">("none");
+  const [captionPlacement, setCaptionPlacement] = useState<"below" | "overlay">("below");
   const [customPalette, setCustomPalette] = useState<{ bg: string; accent: string; captionColor: string } | null>(null);
   const [decorId, setDecorId] = useState<DecorThemeId>("none");
   const [matchingColor, setMatchingColor] = useState(false);
@@ -492,6 +494,26 @@ function CollageMaker() {
                 <input type="checkbox" checked={frame} onChange={(e) => setFrame(e.target.checked)} className="h-4 w-4 accent-primary" />
                 מסגרת סביב כל תמונה
               </label>
+
+              <label className="flex items-center gap-2 text-sm text-primary cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={borderStyle === "polaroid"}
+                  onChange={(e) => setBorderStyle(e.target.checked ? "polaroid" : "none")}
+                  className="h-4 w-4 accent-primary"
+                />
+                מסגרת פולארויד לבנה (כמו ערימת תמונות מודפסות)
+              </label>
+
+              <label className="flex items-center gap-2 text-sm text-primary cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={captionPlacement === "overlay"}
+                  onChange={(e) => setCaptionPlacement(e.target.checked ? "overlay" : "below")}
+                  className="h-4 w-4 accent-primary"
+                />
+                כיתוב על גבי התמונה (במקום מתחת)
+              </label>
             </div>
 
             <div className="glass-card rounded-3xl p-5 space-y-4">
@@ -611,6 +633,8 @@ function CollageMaker() {
                 shape={shape}
                 effect={effect}
                 frame={frame}
+                borderStyle={borderStyle}
+                captionPlacement={captionPlacement}
                 paletteOverride={customPalette}
                 decorId={decorId}
                 onSlotClick={openFilePicker}
