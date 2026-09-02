@@ -168,6 +168,13 @@ function extractGmailPlainText(payload: any): string {
   return "";
 }
 
+export type GmailSearchResult = {
+  from: string;
+  subject: string;
+  date: string;
+  snippet: string;
+};
+
 export type GmailSummary = {
   id: string;
   threadId: string;
@@ -178,6 +185,58 @@ export type GmailSummary = {
 };
 
 /**
+ * Searches the studio's Gmail inbox for correspondence with one specific
+ * email address (matches "from:" or "to:" that address only) and returns
+ * lightweight metadata — sender, subject, date, snippet — never the full
+ * message body. The query is always built server-side from a single email
+ * address, never from free text, specifically so a caller can't use this to
+ * fish for other people's correspondence (e.g. by name, phone number, or
+ * keyword) — see search_email in voice-chat.server.ts, its only caller.
+ * For an admin-trusted, free-text search see searchGmail below instead.
+ */
+export async function searchGmailByEmail(email: string, maxResults = 5): Promise<GmailSearchResult[]> {
+  const keys = requiredGmailKeys();
+  if (!keys) {
+    console.error("[SWEETBABY] gmail search skipped — missing LOVABLE_API_KEY/GOOGLE_MAIL_API_KEY");
+    return [];
+  }
+  const headers = gmailAuthHeaders(keys);
+
+  const q = `(from:${email} OR to:${email})`;
+  const listRes = await fetch(
+    `${GATEWAY_URL}/users/me/messages?q=${encodeURIComponent(q)}&maxResults=${maxResults}`,
+    { headers },
+  );
+  if (!listRes.ok) {
+    console.error("[SWEETBABY] gmail search list error", listRes.status, await listRes.text().catch(() => ""));
+    return [];
+  }
+  const listData = (await listRes.json()) as { messages?: Array<{ id: string }> };
+  const ids = (listData.messages ?? []).map((m) => m.id);
+
+  const results: GmailSearchResult[] = [];
+  for (const id of ids) {
+    const msgRes = await fetch(
+      `${GATEWAY_URL}/users/me/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`,
+      { headers },
+    );
+    if (!msgRes.ok) continue;
+    const msg = (await msgRes.json()) as {
+      snippet?: string;
+      payload?: { headers?: Array<{ name: string; value: string }> };
+    };
+    const header = (name: string) => msg.payload?.headers?.find((h) => h.name === name)?.value ?? "";
+    results.push({
+      from: header("From"),
+      subject: header("Subject"),
+      date: header("Date"),
+      snippet: msg.snippet ?? "",
+    });
+  }
+  return results;
+}
+
+/**
  * Searches the studio's connected Gmail inbox through the same connector
  * gateway sendGmail already uses (Gmail's real REST API, proxied — search
  * syntax is Gmail's own: "from:x", "is:unread", "subject:...", free text,
@@ -185,7 +244,8 @@ export type GmailSummary = {
  * getGmailMessageBody for one message's full text once you know its id).
  * Never throws: logs and returns [] on any failure, same as sendGmail's
  * best-effort contract, since this always runs inside an AI tool call or
- * an admin-only page that already has its own error handling.
+ * an admin-only page that already has its own error handling. Free-text
+ * query — only for trusted (admin) callers, unlike searchGmailByEmail.
  */
 export async function searchGmail(query: string, maxResults = 10): Promise<GmailSummary[]> {
   const keys = requiredGmailKeys();

@@ -62,25 +62,32 @@ function twimlResponse(body: string): Response {
 
 const HE_IL = 'language="he-IL"';
 
-/** Speaks `text` in Hebrew, then listens for the caller's next reply and posts it to `actionUrl`. */
-export function twimlSayAndGather(text: string, actionUrl: string): Response {
+/**
+ * Speaks `text` in Hebrew, then listens for the caller's next reply and
+ * posts it to `actionUrl`. `sayAttrs` is the full attribute string for the
+ * <Say> tags (language + optional voice) — get it from
+ * getVoiceBotSayAttrs() in voice-settings.server.ts, which resolves the
+ * admin's chosen voice (see /admin/voice-bot). <Gather> always keeps plain
+ * HE_IL — it only listens, it has no voice output of its own.
+ */
+export function twimlSayAndGather(text: string, actionUrl: string, sayAttrs: string): Response {
   return twimlResponse(
-    `<Say ${HE_IL}>${xmlEscape(text)}</Say>` +
+    `<Say ${sayAttrs}>${xmlEscape(text)}</Say>` +
       `<Gather input="speech" ${HE_IL} speechTimeout="auto" action="${xmlEscape(actionUrl)}" method="POST">` +
       `</Gather>` +
       // No speech heard within Gather's own timeout — try once more before giving up.
-      `<Say ${HE_IL}>לא שמעתי, אפשר לנסות שוב?</Say>` +
+      `<Say ${sayAttrs}>לא שמעתי, אפשר לנסות שוב?</Say>` +
       `<Gather input="speech" ${HE_IL} speechTimeout="auto" action="${xmlEscape(actionUrl)}" method="POST"></Gather>` +
-      `<Say ${HE_IL}>לא הצלחנו להתחבר, ניצור איתך קשר. תודה ולהתראות!</Say>`,
+      `<Say ${sayAttrs}>לא הצלחנו להתחבר, ניצור איתך קשר. תודה ולהתראות!</Say>`,
   );
 }
 
-/** Speaks `text` in Hebrew and ends the call. */
-export function twimlSayAndHangup(text: string): Response {
-  return twimlResponse(`<Say ${HE_IL}>${xmlEscape(text)}</Say><Hangup/>`);
+/** Speaks `text` in Hebrew and ends the call. See twimlSayAndGather for `sayAttrs`. */
+export function twimlSayAndHangup(text: string, sayAttrs: string): Response {
+  return twimlResponse(`<Say ${sayAttrs}>${xmlEscape(text)}</Say><Hangup/>`);
 }
 
-/** Speaks `text` in Hebrew, then transfers the call to a real phone number. */
-export function twimlSayAndDial(text: string, phoneNumber: string): Response {
-  return twimlResponse(`<Say ${HE_IL}>${xmlEscape(text)}</Say><Dial>${xmlEscape(phoneNumber)}</Dial>`);
+/** Speaks `text` in Hebrew, then transfers the call to a real phone number. See twimlSayAndGather for `sayAttrs`. */
+export function twimlSayAndDial(text: string, phoneNumber: string, sayAttrs: string): Response {
+  return twimlResponse(`<Say ${sayAttrs}>${xmlEscape(text)}</Say><Dial>${xmlEscape(phoneNumber)}</Dial>`);
 }

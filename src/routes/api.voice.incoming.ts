@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 import { parseTwilioForm, twimlSayAndGather, verifyTwilioSignature } from "@/lib/twilio.server";
+import { getVoiceBotSayAttrs } from "@/lib/voice-settings.server";
 import { getPhraseMap } from "@/lib/voice-phrases.server";
 import { personalizedGreeting } from "@/lib/voice-caller.server";
 import { consumePendingVoiceNotification } from "@/lib/voice-pending-notification.server";
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/api/voice/incoming")({
         if (!callSid) return new Response("Bad Request", { status: 400 });
 
         const phrases = await getPhraseMap();
+        const sayAttrs = await getVoiceBotSayAttrs();
         // If there's a message waiting for this number (a booking
         // confirmation/reminder), play it once before the normal greeting —
         // see the matching comment in api.yemot.ivr.ts.
@@ -44,7 +46,7 @@ export const Route = createFileRoute("/api/voice/incoming")({
 
         const base = new URL(request.url);
         const actionUrl = `${base.protocol}//${base.host}/api/voice/respond`;
-        return twimlSayAndGather(fullGreeting, actionUrl);
+        return twimlSayAndGather(fullGreeting, actionUrl, sayAttrs);
       },
     },
   },

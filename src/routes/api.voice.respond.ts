@@ -5,6 +5,7 @@ import { runVoiceTurn, type VoiceMessage, type VoiceTurnResult } from "@/lib/voi
 import { sendMessageToStudio } from "@/lib/voice-message.server";
 import { detectMenuIntent, wantsFullGuide, wantsToBookNow } from "@/lib/voice-menu.server";
 import { getVoiceBotConfig } from "@/lib/voice-phrases.server";
+import { getVoiceBotSayAttrs } from "@/lib/voice-settings.server";
 
 // Called repeatedly by Twilio (as the `action` of each <Gather>) for every
 // turn of the call after the initial greeting from /api/voice/incoming.
@@ -27,6 +28,7 @@ export const Route = createFileRoute("/api/voice/respond")({
         const base = new URL(request.url);
         const actionUrl = `${base.protocol}//${base.host}/api/voice/respond`;
         const { phrases, menuMode } = await getVoiceBotConfig();
+        const sayAttrs = await getVoiceBotSayAttrs();
 
         try {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -62,21 +64,21 @@ export const Route = createFileRoute("/api/voice/respond")({
               const humanPhone = process.env.STUDIO_OWNER_PHONE;
               if (!humanPhone) {
                 await save([...updatedMessages, { role: "assistant", content: phrases.no_human_transfer }], "leaving_message");
-                return twimlSayAndGather(`${text} ${phrases.no_human_transfer}`, actionUrl);
+                return twimlSayAndGather(`${text} ${phrases.no_human_transfer}`, actionUrl, sayAttrs);
               }
               await save(updatedMessages, "chat");
-              return twimlSayAndDial(text, humanPhone);
+              return twimlSayAndDial(text, humanPhone, sayAttrs);
             }
             await save(updatedMessages, "chat");
-            if (action === "hangup") return twimlSayAndHangup(text);
-            return twimlSayAndGather(text, actionUrl);
+            if (action === "hangup") return twimlSayAndHangup(text, sayAttrs);
+            return twimlSayAndGather(text, actionUrl, sayAttrs);
           };
 
           // ---- Stage 1: the spoken-keyword menu ----
           if (stage === "menu") {
             if (!speech) {
               await save(priorMessages, "menu");
-              return twimlSayAndGather(phrases.didnt_hear, actionUrl);
+              return twimlSayAndGather(phrases.didnt_hear, actionUrl, sayAttrs);
             }
             // "ai" mode (see MENU_MODE_KEY's doc comment in
             // voice-phrases.server.ts): skip the canned-phrase keyword
@@ -89,15 +91,15 @@ export const Route = createFileRoute("/api/voice/respond")({
             if (intent === 3) {
               const text = `${phrases.arrival_spoken} ${phrases.anything_else}`;
               await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: text }], "chat");
-              return twimlSayAndGather(text, actionUrl);
+              return twimlSayAndGather(text, actionUrl, sayAttrs);
             }
             if (intent === 4) {
               await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: phrases.guide_choice_prompt }], "guide_choice");
-              return twimlSayAndGather(phrases.guide_choice_prompt, actionUrl);
+              return twimlSayAndGather(phrases.guide_choice_prompt, actionUrl, sayAttrs);
             }
             if (intent === 6) {
               await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: phrases.leave_message_prompt }], "leaving_message");
-              return twimlSayAndGather(phrases.leave_message_prompt, actionUrl);
+              return twimlSayAndGather(phrases.leave_message_prompt, actionUrl, sayAttrs);
             }
             if (intent === 1 || intent === 2) {
               // She already said she wants to book/reserve, not just hear
@@ -107,7 +109,7 @@ export const Route = createFileRoute("/api/voice/respond")({
               const blurb = intent === 1 ? phrases.studio_blurb : phrases.props_blurb;
               const text = `${blurb} ${phrases.anything_else}`;
               await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: text }], "chat");
-              return twimlSayAndGather(text, actionUrl);
+              return twimlSayAndGather(text, actionUrl, sayAttrs);
             }
             // No keyword matched — this was very likely a real question, not
             // a failed menu pick. Just answer it.
@@ -116,11 +118,11 @@ export const Route = createFileRoute("/api/voice/respond")({
 
           // ---- Stage 2: option 4's own sub-choice (hear it all vs. ask something) ----
           if (stage === "guide_choice") {
-            if (!speech) return twimlSayAndGather(phrases.guide_choice_prompt, actionUrl);
+            if (!speech) return twimlSayAndGather(phrases.guide_choice_prompt, actionUrl, sayAttrs);
             if (wantsFullGuide(speech)) {
               const text = `${phrases.full_guide_spoken} ${phrases.anything_else}`;
               await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: text }], "chat");
-              return twimlSayAndGather(text, actionUrl);
+              return twimlSayAndGather(text, actionUrl, sayAttrs);
             }
             // Not "tell me everything" — treat it as a real question and let
             // the AI answer it (it already has the full guide in SYSTEM).
@@ -129,14 +131,14 @@ export const Route = createFileRoute("/api/voice/respond")({
 
           // ---- Stage 2b: "leave a message" — collect it and email it for real ----
           if (stage === "leaving_message") {
-            if (!speech) return twimlSayAndGather(phrases.leave_message_prompt, actionUrl);
+            if (!speech) return twimlSayAndGather(phrases.leave_message_prompt, actionUrl, sayAttrs);
             await sendMessageToStudio({ message: speech, callerPhone, context: "התקבל דרך הבוט הטלפוני (טוויליו)" });
             await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: phrases.leave_message_thanks }], "chat");
-            return twimlSayAndGather(phrases.leave_message_thanks, actionUrl);
+            return twimlSayAndGather(phrases.leave_message_thanks, actionUrl, sayAttrs);
           }
 
           // ---- Stage 3: open conversation (same AI turn as before) ----
-          if (!speech) return twimlSayAndGather(phrases.didnt_hear, actionUrl);
+          if (!speech) return twimlSayAndGather(phrases.didnt_hear, actionUrl, sayAttrs);
           return await runOpenTurn(speech);
         } catch (e) {
           console.error("[SWEETBABY] voice respond failed", e);
@@ -178,17 +180,17 @@ export const Route = createFileRoute("/api/voice/respond")({
                 { call_sid: callSid, from_number: phone, messages: [...priorMessages, { role: "assistant", content: phrases.leave_message_prompt }], stage: "leaving_message", updated_at: new Date().toISOString() },
                 { onConflict: "call_sid" },
               );
-              return twimlSayAndGather(phrases.leave_message_prompt, actionUrl);
+              return twimlSayAndGather(phrases.leave_message_prompt, actionUrl, sayAttrs);
             }
 
             await supabaseAdmin.from("voice_call_sessions").upsert(
               { call_sid: callSid, from_number: phone, messages: [...priorMessages, { role: "assistant", content: phrases.temporary_error }], stage: "chat", updated_at: new Date().toISOString() },
               { onConflict: "call_sid" },
             );
-            return twimlSayAndGather(phrases.temporary_error, actionUrl);
+            return twimlSayAndGather(phrases.temporary_error, actionUrl, sayAttrs);
           } catch (e2) {
             console.error("[SWEETBABY] voice respond fallback-to-message also failed", e2);
-            return twimlSayAndHangup(phrases.final_error_hangup);
+            return twimlSayAndHangup(phrases.final_error_hangup, sayAttrs);
           }
         }
       },
