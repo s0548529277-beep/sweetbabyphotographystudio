@@ -94,26 +94,71 @@ this environment), not guessed:
 ### `THINKING_FILLER_KEY` — hiding AI "thinking" latency on the Yemot line
 
 Added 2026-09-02, in code this time (`voice-phrases.server.ts`,
-`yemot.server.ts`'s `yemotSayThenContinue`, `api.yemot.ivr.ts`'s
+`yemot.server.ts`'s `yemotSayThenResume`, `api.yemot.ivr.ts`'s
 `ai_pending` stage) — see `THINKING_FILLER_KEY`'s own doc comment in
 `voice-phrases.server.ts` for the full mechanism. Short version: Yemot's
 protocol is fully synchronous, so an AI turn that takes several seconds
 (up to 30s, up to 6 tool-call rounds — see `runVoiceTurn`'s own comment for
 why that budget isn't safe to shrink) means the caller hears total silence
 the whole time. This setting makes the bot say `phrases.thinking_filler`
-("רגע אחד...") immediately via a bare `id_list_message` (no `read`, no
-`go_to_folder` after it), which — per this file's own protocol notes,
-sourced from the `yemot-router2` library — re-hits the same URL on its own
-with no new input; that follow-up hit does the real (slow) work. **It does
-not make the AI faster, only fills the dead air.**
+("רגע אחד...") immediately, then does the real (slow) work on the follow-up
+hit. **It does not make the AI faster, only fills the dead air.**
 
-Toggle at `/admin/voice-bot-text` (new "מענה מיידי בזמן שהבינה חושבת"
-card), **defaults OFF** — unlike this file's other admin toggles (which
-default to their new behavior), because the one load-bearing assumption (a
-bare `id_list_message` really does auto-continue rather than hang up right
-after speaking) had, as of this writing, only ever been exercised in this
-codebase combined with `go_to_folder=hangup` (`yemotSayAndHangup`) — never
-alone, never confirmed on a real live call. If you're reading this because
-it's now been tested: update this note with the result. If it turned out
-to hang up instead of continuing, the fix is a different directive shape
-in `yemotSayThenContinue`, not a revert of the whole mechanism.
+**Redesigned same day, later:** the first version used a bare
+`id_list_message` (no `read`/listen step) banking on an unconfirmed
+assumption — sourced from `yemot-router2`'s docs, never actually exercised
+live — that Yemot auto-continues to the next hit on its own after a bare
+`id_list_message` instead of just stopping. It shipped OFF by default and
+was never tested. `yemotSayThenResume` now reuses the ordinary `read`
+(speech-listen) directive instead — the exact same mechanism every other
+turn in this app already relies on successfully, every call — so there is
+no new, unconfirmed protocol behavior being bet on. **Defaults ON** as of
+this redesign (an explicit "off" row at `/admin/voice-bot-text` still wins)
+— still worth one real test call after deploying, same as any phone-bot
+change, but no longer gated behind a manual, unverified opt-in.
+
+An optional short hold-tone/music segment (`THINKING_FILLER_MUSIC_KEY`, also
+admin-editable) can play for a couple of seconds right before the spoken
+filler — syntax is `h-<musicName>[,<maxSec>]` per `makeMessagesData` in
+`yemot-router2`'s own source (`github.com/ShlomoCode/yemot-router2`,
+`lib/response-functions.js`; the full directive-name mapping there:
+`file:f, text:t, speech:s, digits:d, number:n, alpha:a, zmanim:z,
+go_to_folder:g, system_message:m, music_on_hold:h, date:date, dateH:dateH`,
+segments joined by `.`). `musicName` has to already exist as an uploaded
+file in **this specific Yemot account's own** file/music library (their
+ניהול panel) — nothing in this codebase can discover or default that id
+sensibly, so it's left blank (no tone, words only) until an admin finds a
+real id there and enters it.
+
+### Speed — what's actually controllable from here vs. Yemot's own side
+
+A direct report ("תשפר מהירות") is mostly about *perceived* speed on the
+Yemot line specifically — the thinking-filler above is the main lever this
+codebase has (fills dead air; doesn't shorten the real wait). Two more
+levers exist but live entirely in Yemot's own `ext.ini`/`ivr.ini` (see
+below, un-verified whether they're actually SET on the live account — worth
+checking if speed is still a live complaint after the filler ships):
+`tts_rate=10` (already the documented ceiling, no faster setting exists)
+and `api_say_tts=no` (stops Yemot's own speech-recognition readback, which
+otherwise doubles perceived latency by repeating what she just said before
+continuing). A tighter AI tool-call/timeout budget was tried before and
+made real calls fail *more* often (see `runVoiceTurn`'s own comment) — don't
+re-try shrinking that without new evidence it's actually safe now.
+
+### Booking intent overrides menu mode, always (2026-09-02)
+
+`api.yemot.ivr.ts`'s stage-"menu" handling checks `wantsToBookNow(speech)`
+(a narrow, explicit word list — "לשריין", "רוצה תור", "הזמנת סטודיו" etc.,
+see `voice-menu.server.ts`) **before** the `menuMode === "ai"` early-return,
+not just in "fixed" mode. Reasoning: an explicit, unambiguous "book now"
+utterance should reliably end in a real reservation via the deterministic
+no-AI flow (`voice-noai-booking.server.ts`) — the same guarantee "fixed"
+mode always gave — rather than depend on whether the AI's own tool-calling
+happens to follow through on that specific turn. This is deliberately
+narrow: anything less direct (a bare date mention, a pricing question)
+still goes to the AI in "ai" mode exactly as before, so its natural
+flexibility for everything else is untouched. Added per a direct report
+that phone bookings had stopped completing reliably after "ai" mode became
+the default — if that report turns out to have had a different root cause
+(e.g. `create_phone_booking` itself failing), this reorder is still a
+reasonable safety net to keep, not something to revert on its own.
