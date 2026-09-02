@@ -125,6 +125,65 @@ export async function sendGmail(message: GmailMessage): Promise<boolean> {
   }
 }
 
+export type GmailSearchResult = {
+  from: string;
+  subject: string;
+  date: string;
+  snippet: string;
+};
+
+/**
+ * Searches the studio's Gmail inbox for correspondence with one specific
+ * email address (matches "from:" or "to:" that address only) and returns
+ * lightweight metadata — sender, subject, date, snippet — never the full
+ * message body. The query is always built server-side from a single email
+ * address, never from free text, specifically so a caller can't use this to
+ * fish for other people's correspondence (e.g. by name, phone number, or
+ * keyword) — see search_email in voice-chat.server.ts, its only caller.
+ */
+export async function searchGmailByEmail(email: string, maxResults = 5): Promise<GmailSearchResult[]> {
+  const lovableKey = process.env.LOVABLE_API_KEY;
+  const connKey = process.env.GOOGLE_MAIL_API_KEY;
+  if (!lovableKey || !connKey) {
+    console.error("[SWEETBABY] gmail search skipped — missing LOVABLE_API_KEY/GOOGLE_MAIL_API_KEY");
+    return [];
+  }
+  const headers = { Authorization: `Bearer ${lovableKey}`, "X-Connection-Api-Key": connKey };
+
+  const q = `(from:${email} OR to:${email})`;
+  const listRes = await fetch(
+    `${GATEWAY_URL}/users/me/messages?q=${encodeURIComponent(q)}&maxResults=${maxResults}`,
+    { headers },
+  );
+  if (!listRes.ok) {
+    console.error("[SWEETBABY] gmail search list error", listRes.status, await listRes.text().catch(() => ""));
+    return [];
+  }
+  const listData = (await listRes.json()) as { messages?: Array<{ id: string }> };
+  const ids = (listData.messages ?? []).map((m) => m.id);
+
+  const results: GmailSearchResult[] = [];
+  for (const id of ids) {
+    const msgRes = await fetch(
+      `${GATEWAY_URL}/users/me/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`,
+      { headers },
+    );
+    if (!msgRes.ok) continue;
+    const msg = (await msgRes.json()) as {
+      snippet?: string;
+      payload?: { headers?: Array<{ name: string; value: string }> };
+    };
+    const header = (name: string) => msg.payload?.headers?.find((h) => h.name === name)?.value ?? "";
+    results.push({
+      from: header("From"),
+      subject: header("Subject"),
+      date: header("Date"),
+      snippet: msg.snippet ?? "",
+    });
+  }
+  return results;
+}
+
 /** Sends the same message (optionally with attachments) to the studio inbox plus (optionally) the customer — deduped case-insensitively so a test order using the studio's own address (in any casing) never sends the same email twice to one inbox. */
 export async function sendStudioAndCustomer(opts: {
   customerEmail?: string | null;
