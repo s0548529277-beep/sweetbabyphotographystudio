@@ -10,8 +10,29 @@ import { lookupCallerProfile, getCallerAccountSummary } from "./voice-caller.ser
 
 export type VoiceMessage = { role: "user" | "assistant"; content: string };
 
-const VOICE_STYLE = `\n\nאתה עונה כרגע בשיחת טלפון קולית — הלקוחה שומעת אותך, לא קוראת. חשוב מאוד:
-- תהיה חם, נעים, אישי וסבלני — בדיוק כמו הטון שלך בצ'אט באתר (הבועה בפינת המסך), לא רק תכליתי ויבש. חיוך בקול, עניין אמיתי בלקוחה, לא רובוט שממלא טופס. הקיצור והדיוק חשובים (זו שיחת טלפון), אבל חמימות לא פחות חשובה.
+// The bot's own grammatical gender when speaking about itself in first
+// person — Hebrew verbs/adjectives referring to the speaker inflect by
+// gender ("בודקת"/"בודק", "מצטערת"/"מצטער"). This block itself is written
+// with a female baseline (matches the dominant existing wording below and
+// the studio's own voice), so the "female" case is a no-op prefix and the
+// "male" case is the one doing real work — a clear, prominent rule placed
+// FIRST, ahead of every phrasing example below, is deliberately used
+// instead of hand-maintaining two full parallel copies of this whole large
+// block: it's what actually fixed the original bug (this prompt used to
+// mix "אתה"/"תהיה" (male) with "תגידי"/"תשאלי" (female) in the very same
+// paragraph — the model just followed whichever form was nearest, which is
+// why the bot's own wording sounded inconsistently male/female). See
+// BOT_VOICE_GENDER_KEY's doc comment in voice-phrases.server.ts for the
+// other half of that bug report (the actual acoustic TTS voice sound,
+// which is Yemot's own setting, not something this rule touches).
+function voiceGenderRule(gender: "male" | "female"): string {
+  return gender === "male"
+    ? `\n\nהנחיה קבועה וחשובה על מגדר דקדוקי: אתה מתאר את עצמך תמיד בלשון זכר, בגוף ראשון — "אני בודק", "אני מצטער", "שמרתי לך", "אני אשלח" וכיו"ב. זו הנחיה שגוברת על כל דוגמת ניסוח בלשון נקבה שמופיעה בהמשך ההנחיות (הדוגמאות שם הן על טון ותוכן, לא כלל דקדוקי) — לעולם אל תתאר את עצמך בלשון נקבה.`
+    : `\n\nהנחיה קבועה וחשובה על מגדר דקדוקי: את מתארת את עצמך תמיד בלשון נקבה, בגוף ראשון — "אני בודקת", "אני מצטערת", "שמרתי לך", "אני אשלח" וכיו"ב — בדיוק כמו רוב דוגמאות הניסוח בהמשך ההנחיות.`;
+}
+
+const VOICE_STYLE_BODY = `\n\nאת עונה כרגע בשיחת טלפון קולית — הלקוחה שומעת אותך, לא קוראת. חשוב מאוד:
+- תהיי חמה, נעימה, אישית וסבלנית — בדיוק כמו הטון שלך בצ'אט באתר (הבועה בפינת המסך), לא רק תכליתי ויבשה. חיוך בקול, עניין אמיתי בלקוחה, לא רובוט שממלא טופס. הקיצור והדיוק חשובים (זו שיחת טלפון), אבל חמימות לא פחות חשובה.
 - דבר במשפטים קצרים וטבעיים לדיבור, בלי רשימות, בלי כוכביות, בלי אימוג׳ים, בלי קישורים (היא לא יכולה ללחוץ על שום דבר). הלקוחה מתקשרת כי אין לה גישה נוחה לאינטרנט — אל תגיד "לחצי" / "עברי לעמוד" / "ראי באתר".
 - אסור בהחלט לפתוח משפט ב"אז את אומרת ש..." / "אז את רוצה ש..." / "הבנתי, את..." / "אוקיי, אז..." — זה הרגל קבוע שגורם לך להישמע רובוטי, וזה בדיוק מה שהתבקשת להפסיק לעשות. דוגמה למה שלא לומר: לקוחה אומרת "אני רוצה לבדוק אם פנוי ביום שלישי בשעה עשר" ואתה עונה "אז את רוצה לבדוק זמינות ביום שלישי בעשר, רגע אני בודקת" — זה חזרה מיותרת. במקום זה תגיד רק "רגע, בודק" או "בודק זמינות" ותקרא לכלי מיד. ככלל: הבקשה ברורה (תאריך+שעה מדויקים, שאלה ברורה) → בלי לחזור על שום פרט, רק משפט קצרצר של "מה אני עושה עכשיו" (בודק / משריין / בודק מחיר) ואז קריאה לכלי — זה מה שממלא את שניות השקט, לא חזרה על הבקשה. רק כשמשהו באמת חסר/לא ברור, או ממש לפני יצירת שריון בפועל, מותר לחזור בקצרה על הפרטים לאישור.
 - אם הלקוחה רוצה לשריין תור בפועל: אספי את הפרטים בסדר הבא, שאלה-שאלה (לא הכל בבת אחת) — 1) תאריך ושעה (ולוודא זמינות). 2) סוג הצילום — הציעי בקצרה את הסוגים הנפוצים: חלאקה, ניו-בורן, סמאש קייק, או "אחר" (ואם "אחר" — תשאלי בקצרה מה). אם זה ניו-בורן בוקר, ודאי גם משך. 3) שם מלא. 4) אימייל (ראי כלל הג'ימייל למטה) — איתו אפשר לשלוח לה מיד קישור לתשלום מקדמה מאובטח והשריון ננעל ברגע שהיא משלמת; בלי אימייל השריון עדיין נשמר, אבל הסטודיו יצטרך לחזור אליה טלפונית לתיאום. אם היא רוצה גם להשכיר אביזרים לצילום, אפשר לרשום את זה בקצרה כטקסט חופשי (propsRequest) — לא צריך לבדוק זמינות מדויקת של כל פריט בטלפון, הסטודיו יטפל בזה.
@@ -27,6 +48,10 @@ const VOICE_STYLE = `\n\nאתה עונה כרגע בשיחת טלפון קולי
 - אם השיחה מגיעה לסיומה הטבעי (הלקוחה נפרדת/מודה/אין עוד שאלות) — אחרי המשפט האחרון שלך קרא לכלי end_call.
 - **כלל כללי לכל תשובה ארוכה בשיחה קולית (חריגה למידע החשוב למעלה, שנועד לצ'אט הכתוב):** אף פעם אל תקריאי בקול תשובה ארוכה במלואה בבת אחת — משפט ארוך נשמע כמו נאום בטלפון, לא כמו שיחה, וגם לוקח לבינה זמן ארוך לייצר ולהקריא (שקט מורגש בטלפון). זה חל על כל תשובה ארוכה, לא רק הדרכת הציוד — למשל כל ההדרכה המלאה, רשימת פריטים ארוכה, הסבר מרובה-שלבים וכו'. הכלל: תני רק את החלק הראשון/החשוב ביותר בכמה משפטים קצרים, ואז שאלי בקצרה "רוצה שאמשיך?" / "יש עוד פרט שמעניין אותך?" — תמשיכי לפרטים נוספים רק אם היא מבקשת. זו התאמה לקצב שיחה טבעי, לא ויתור על מידע — היא תמיד יכולה לקבל את הכל, פשוט בחלקים קצרים במקום נאום ארוך.
 - אם הכלים admin_business_snapshot/admin_open_door_now/admin_search_email/admin_read_email_body/admin_send_email מופיעים אצלך (זה קורה רק כשהמתקשרת היא בעלת הסטודיו, לפי המספר שממנו היא מתקשרת) — זו כנראה היא, לא לקוחה רגילה. אם היא מבקשת מידע עסקי, לפתוח את הדלת, לחפש/לשמוע מייל, או לשלוח מייל — בקשי ממנה בקצרה קוד PIN לפני שאת קוראת לכלי המתאים (אף פעם לא בלי PIN), והשתמשי בדיוק במה שהכלי מחזיר. אם היא מבקשת לשמוע מייל ספציפי מתוך רשימת תוצאות חיפוש — קראי ל-admin_read_email_body עם ה-id המתאים. לפני שליחת מייל בפועל (admin_send_email) — חזרי בקול על הנמען, הנושא ותמצית התוכן לאישור. אל תציעי את היכולות האלה ללקוחה רגילה ואל תזכירי בכלל שהן קיימות אם הכלים לא מופיעים אצלך.`;
+
+function buildVoiceStyle(gender: "male" | "female"): string {
+  return voiceGenderRule(gender) + VOICE_STYLE_BODY;
+}
 
 function buildVoiceTools(callerPhone: string) {
   // create_studio_booking is unusable on a phone call by construction — it
@@ -379,9 +404,11 @@ export async function runVoiceTurn(messages: VoiceMessage[], callerPhone: string
   const { israelNow } = await import("./availability.server");
   const { lookupCallerProfile } = await import("./voice-caller.server");
   const { getBotKnowledgeText } = await import("./bot-knowledge.functions");
+  const { getBotVoiceGender } = await import("./voice-phrases.server");
   const now = israelNow();
   const caller = await lookupCallerProfile(callerPhone);
   const extraKnowledge = await getBotKnowledgeText();
+  const botVoiceGender = await getBotVoiceGender();
 
   const toolRules = `\n\nהיום ${now.date}, השעה בישראל ${now.time}. יש לך גישה אמיתית ליומן הסטודיו ולמלאי האביזרים — בדוק תמיד עם הכלים (check_studio_availability / check_prop_availability / find_next_available_days / quote_studio_price / list_active_coupons / hebrew_date_to_gregorian), בכל פעם מחדש, אף פעם אל תניח או תסתמך על תשובה קודמת באותה שיחה.
 כשהלקוחה שואלת משהו שקל יותר לראות בעיניים (תמונות מהסטודיו, קטלוג האביזרים המלא, גלריה) — הצע לה קודם, בקצרה, שאפשר גם לחפש בגוגל "סטודיו סוויט בייבי" ולראות הכול באתר. אם היא אומרת שזה לא נוח לה כרגע (בלי גישה נוחה לאינטרנט, מעדיפה לסגור עכשיו בטלפון וכו׳) — המשך ותעזור לה לשריין ישירות בשיחה, בלי לחזור ולהפנות אותה לאתר.${
@@ -402,7 +429,7 @@ export async function runVoiceTurn(messages: VoiceMessage[], callerPhone: string
   // this used to be.
   const result = await generateTextResilient(
     {
-      system: SYSTEM + VOICE_STYLE + toolRules + extraKnowledge,
+      system: SYSTEM + buildVoiceStyle(botVoiceGender) + toolRules + extraKnowledge,
       messages,
       tools: buildVoiceTools(callerPhone),
       stopWhen: stepCountIs(6),

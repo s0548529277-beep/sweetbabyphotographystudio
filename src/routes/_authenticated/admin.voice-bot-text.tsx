@@ -3,11 +3,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
+  getBotVoiceGender,
   getNoAiBookingMode,
   getVoiceMenuMode,
   listNoAiBookingSessions,
   listVoiceBotPhrases,
   resetVoiceBotPhrase,
+  setBotVoiceGender,
   setNoAiBookingMode,
   setVoiceMenuMode,
   updateVoiceBotPhrase,
@@ -16,7 +18,7 @@ import {
 } from "@/lib/admin-voice-phrases.functions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Mic, RotateCcw, Save, Sparkles, ListChecks, PhoneCall, CalendarCheck2, Keyboard, MicOff } from "lucide-react";
+import { Mic, RotateCcw, Save, Sparkles, ListChecks, PhoneCall, CalendarCheck2, Keyboard, MicOff, VenusAndMars, User, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/voice-bot-text")({
@@ -159,6 +161,72 @@ function MenuModeCard() {
           <p className="text-xs text-muted-foreground">
             שאלות נפוצות (הגעה, הדרכה, מחירון, השארת הודעה) נענות מיידית מהטקסטים למטה — בלי הבינה בכלל. מהיר וחינמי, אבל פחות גמיש.
           </p>
+        </button>
+      </div>
+      {q.isLoading && <p className="text-xs text-muted-foreground">טוען מצב נוכחי…</p>}
+    </div>
+  );
+}
+
+function BotVoiceGenderCard() {
+  const qc = useQueryClient();
+  const fetchGender = useServerFn(getBotVoiceGender);
+  const doSetGender = useServerFn(setBotVoiceGender);
+  const q = useQuery({ queryKey: ["admin-bot-voice-gender"], queryFn: () => fetchGender({}) });
+  const [saving, setSaving] = useState(false);
+  const gender = q.data ?? "female";
+
+  const choose = async (next: "male" | "female") => {
+    if (next === gender || saving) return;
+    setSaving(true);
+    try {
+      await doSetGender({ data: { gender: next } });
+      toast.success("נשמר — הבוט ידבר על עצמו בלשון הזו כבר בשיחה הבאה");
+      qc.invalidateQueries({ queryKey: ["admin-bot-voice-gender"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "השמירה נכשלה");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-card rounded-2xl border border-primary/5 p-4 space-y-3">
+      <div className="flex items-center gap-2 text-sm font-medium text-primary">
+        <VenusAndMars className="h-4 w-4 text-blush-deep" /> באיזו לשון הבוט מדבר על עצמו
+      </div>
+      <p className="text-xs text-muted-foreground">
+        קובע רק את הניסוח הדקדוקי (זכר/נקבה) שהבוט משתמש בו כשהוא מתאר את עצמו — למשל "בודקת" מול "בודק", "מצטערת" מול "מצטער". זה{" "}
+        <strong>לא</strong> משנה איך הקול עצמו נשמע (גבוה/נמוך, "כמו גבר/אישה") — הצליל של הקול הוא הגדרה של ימות המשיח עצמה, לא של האתר, ואם הוא
+        משתנה תוך כדי שיחה זה צריך להיבדק שם, מול התמיכה של ימות. עד עכשיו הניסוח לא היה עקבי (חלק מההנחיות לבינה היו כתובות בלשון זכר וחלק בלשון
+        נקבה בערבוביה) — זה תוקן, וברירת המחדל היא לשון נקבה.
+      </p>
+      <div className="grid sm:grid-cols-2 gap-3">
+        <button
+          type="button"
+          disabled={saving}
+          onClick={() => choose("female")}
+          className={`text-right rounded-xl border p-3 transition-colors ${
+            gender === "female" ? "border-primary bg-primary/5" : "border-primary/10 hover:bg-cream"
+          }`}
+        >
+          <div className="flex items-center gap-2 text-sm font-medium text-primary mb-1">
+            <UserRound className="h-4 w-4 text-blush-deep" /> לשון נקבה (ברירת מחדל)
+          </div>
+          <p className="text-xs text-muted-foreground">"אני בודקת", "אני מצטערת", "שמרתי לך"</p>
+        </button>
+        <button
+          type="button"
+          disabled={saving}
+          onClick={() => choose("male")}
+          className={`text-right rounded-xl border p-3 transition-colors ${
+            gender === "male" ? "border-primary bg-primary/5" : "border-primary/10 hover:bg-cream"
+          }`}
+        >
+          <div className="flex items-center gap-2 text-sm font-medium text-primary mb-1">
+            <User className="h-4 w-4 text-blush-deep" /> לשון זכר
+          </div>
+          <p className="text-xs text-muted-foreground">"אני בודק", "אני מצטער", "שמרתי לך"</p>
         </button>
       </div>
       {q.isLoading && <p className="text-xs text-muted-foreground">טוען מצב נוכחי…</p>}
@@ -320,11 +388,20 @@ function VoiceBotTextAdmin() {
         </p>
       </div>
 
-      <MenuModeCard />
-      <NoAiBookingCard />
+      <div className="space-y-3">
+        <div className="pt-1">
+          <h3 className="text-sm font-semibold text-primary">אפשרויות התנהגות הבוט</h3>
+          <p className="text-xs text-muted-foreground">שלוש הגדרות נפרדות — כל אחת עומדת בפני עצמה, בכרטיס משלה, עם הסבר מלא מתחת לאפשרויות.</p>
+        </div>
+        <MenuModeCard />
+        <NoAiBookingCard />
+        <BotVoiceGenderCard />
+      </div>
+
       <NoAiBookingSessionsCard />
 
       <div className="space-y-3">
+        <h3 className="text-sm font-semibold text-primary pt-1">כל משפט שהבוט אומר (לעריכה חופשית)</h3>
         {rows.map((row) => (
           // Remount whenever the resolved value changes (after a save or
           // reset elsewhere/refetch) so local draft state can't go stale.
