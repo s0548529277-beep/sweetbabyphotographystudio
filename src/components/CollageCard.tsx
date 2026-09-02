@@ -4,7 +4,16 @@
 // Photos are embedded as data: URLs (never uploaded anywhere) so the same
 // markup works standalone once serialized, with no external image loads to
 // wait on or fail.
-import { findCollageStyle, layoutForCount, type CollageStyleId, type SlotRect } from "@/lib/collage-data";
+import {
+  findCollageStyle,
+  getLayoutVariants,
+  shapeClipPath,
+  PHOTO_EFFECTS,
+  type CollageStyleId,
+  type PhotoShapeId,
+  type PhotoEffectId,
+  type SlotRect,
+} from "@/lib/collage-data";
 import { Plus } from "lucide-react";
 
 export const CARD_W = 1000;
@@ -27,6 +36,10 @@ export function CollageCard({
   svgRef,
   styleId,
   photos,
+  layoutId = "featured",
+  shape = "rect",
+  effect = "none",
+  frame = false,
   onSlotClick,
   caption,
   subtitle,
@@ -34,12 +47,19 @@ export function CollageCard({
   svgRef?: React.RefObject<SVGSVGElement | null>;
   styleId: CollageStyleId;
   photos: (string | null)[];
+  layoutId?: string;
+  shape?: PhotoShapeId;
+  effect?: PhotoEffectId;
+  frame?: boolean;
   onSlotClick?: (index: number) => void;
   caption: string;
   subtitle: string;
 }) {
   const style = findCollageStyle(styleId);
-  const slots = layoutForCount(photos.length).map((r) => scaleRect(r, MARGIN, MARGIN, CARD_W - MARGIN * 2, PHOTO_H));
+  const variants = getLayoutVariants(photos.length);
+  const layout = variants.find((v) => v.id === layoutId) ?? variants[0];
+  const slots = layout.rects.map((r) => scaleRect(r, MARGIN, MARGIN, CARD_W - MARGIN * 2, PHOTO_H));
+  const cssFilter = PHOTO_EFFECTS.find((e) => e.id === effect)?.cssFilter || undefined;
 
   return (
     <svg
@@ -49,6 +69,18 @@ export function CollageCard({
       className="rounded-2xl shadow-lg"
       style={{ background: style.bg }}
     >
+      <defs>
+        {slots.map((rect, i) => {
+          const d = shapeClipPath(shape, rect);
+          if (!d) return null;
+          return (
+            <clipPath key={i} id={`collage-clip-${i}`}>
+              <path d={d} />
+            </clipPath>
+          );
+        })}
+      </defs>
+
       <rect x={0} y={0} width={CARD_W} height={CARD_H} fill={style.bg} />
 
       {style.decorative && (
@@ -66,8 +98,10 @@ export function CollageCard({
 
       {slots.map((rect, i) => {
         const photo = photos[i];
+        const clipD = shapeClipPath(shape, rect);
+        const clipId = clipD ? `collage-clip-${i}` : undefined;
         return (
-          <g key={i}>
+          <g key={i} clipPath={clipId ? `url(#${clipId})` : undefined}>
             {photo ? (
               <image
                 href={photo}
@@ -76,21 +110,10 @@ export function CollageCard({
                 width={rect.w}
                 height={rect.h}
                 preserveAspectRatio="xMidYMid slice"
+                style={cssFilter ? { filter: cssFilter } : undefined}
               />
             ) : (
               <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} fill={style.id === "minimal" ? "#f2f2f2" : `${style.accent}22`} />
-            )}
-            {/* Clickable overlay — only meaningful in the live editor; harmless (invisible, un-clickable via CSS) once exported/serialized since onSlotClick is omitted there. */}
-            {onSlotClick && (
-              <rect
-                x={rect.x}
-                y={rect.y}
-                width={rect.w}
-                height={rect.h}
-                fill="transparent"
-                className="cursor-pointer"
-                onClick={() => onSlotClick(i)}
-              />
             )}
             {!photo && (
               <foreignObject x={rect.x} y={rect.y} width={rect.w} height={rect.h} pointerEvents="none">
@@ -98,6 +121,24 @@ export function CollageCard({
                   <Plus className="opacity-40" style={{ width: Math.min(40, rect.w * 0.25), height: Math.min(40, rect.w * 0.25), color: style.accent }} />
                 </div>
               </foreignObject>
+            )}
+          </g>
+        );
+      })}
+
+      {/* Frame outlines + click overlays live OUTSIDE the clipped <g> above — an outline needs to trace the shape's own edge, not be clipped by it, and a click target must stay full-size even inside a circle/arch slot. */}
+      {slots.map((rect, i) => {
+        const clipD = shapeClipPath(shape, rect);
+        return (
+          <g key={`overlay-${i}`}>
+            {frame &&
+              (clipD ? (
+                <path d={clipD} fill="none" stroke={style.accent} strokeWidth={3} />
+              ) : (
+                <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} fill="none" stroke={style.accent} strokeWidth={3} />
+              ))}
+            {onSlotClick && (
+              <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} fill="transparent" className="cursor-pointer" onClick={() => onSlotClick(i)} />
             )}
           </g>
         );

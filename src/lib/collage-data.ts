@@ -96,19 +96,21 @@ export const CAPTION_GROUPS: { group: string; items: string[] }[] = [
 export type SlotRect = { x: number; y: number; w: number; h: number };
 
 /**
- * Fixed (not freely draggable/resizable) grid layouts per photo count —
- * the tradeoff that keeps this a realistic scope: every count from 1 to 7
- * gets one clean, pre-composed arrangement instead of a full drag/resize
- * canvas editor.
+ * "Featured" layouts — one hand-composed arrangement per photo count, each
+ * giving one photo visual emphasis (a big frame + smaller ones), rather
+ * than a plain grid. Paired with equalGridLayout below as the second
+ * option every count offers — see getLayoutVariants.
  */
-export function layoutForCount(count: number): SlotRect[] {
+function featuredLayout(count: number): SlotRect[] {
   switch (count) {
     case 1:
       return [{ x: 0, y: 0, w: 1, h: 1 }];
     case 2:
+      // Stacked top/bottom — deliberately different from the grid variant's
+      // side-by-side split, so the two options actually look distinct.
       return [
-        { x: 0, y: 0, w: 0.5, h: 1 },
-        { x: 0.5, y: 0, w: 0.5, h: 1 },
+        { x: 0, y: 0, w: 1, h: 0.55 },
+        { x: 0, y: 0.55, w: 1, h: 0.45 },
       ];
     case 3:
       return [
@@ -118,10 +120,10 @@ export function layoutForCount(count: number): SlotRect[] {
       ];
     case 4:
       return [
-        { x: 0, y: 0, w: 0.5, h: 0.5 },
-        { x: 0.5, y: 0, w: 0.5, h: 0.5 },
-        { x: 0, y: 0.5, w: 0.5, h: 0.5 },
-        { x: 0.5, y: 0.5, w: 0.5, h: 0.5 },
+        { x: 0, y: 0, w: 1, h: 0.55 },
+        { x: 0, y: 0.55, w: 1 / 3, h: 0.45 },
+        { x: 1 / 3, y: 0.55, w: 1 / 3, h: 0.45 },
+        { x: 2 / 3, y: 0.55, w: 1 / 3, h: 0.45 },
       ];
     case 5:
       return [
@@ -142,5 +144,98 @@ export function layoutForCount(count: number): SlotRect[] {
       for (let r = 0; r < 2; r++) for (let c = 0; c < 3; c++) rects.push({ x: c / 3, y: 0.42 + r * 0.29, w: 1 / 3, h: 0.29 });
       return rects;
     }
+  }
+}
+
+/** A near-square grid of equal cells for ANY count — computed, not hand-authored, so it works for every photo count without a special case. */
+function equalGridLayout(count: number): SlotRect[] {
+  if (count <= 1) return featuredLayout(1);
+  const rows = Math.max(1, Math.round(Math.sqrt(count)));
+  const baseCols = Math.floor(count / rows);
+  const extraRows = count % rows; // this many rows get one extra column
+  const rowH = 1 / rows;
+  const rects: SlotRect[] = [];
+  for (let r = 0; r < rows; r++) {
+    const cols = r < extraRows ? baseCols + 1 : baseCols;
+    if (cols <= 0) continue;
+    const colW = 1 / cols;
+    for (let c = 0; c < cols; c++) rects.push({ x: c * colW, y: r * rowH, w: colW, h: rowH });
+  }
+  return rects;
+}
+
+/** Full-width equal vertical strips — a third, simple option for smaller counts (gets visually thin past ~5, so only offered up to 5). */
+function stripLayout(count: number): SlotRect[] {
+  const w = 1 / count;
+  return Array.from({ length: count }, (_, i) => ({ x: i * w, y: 0, w, h: 1 }));
+}
+
+export type LayoutVariant = { id: string; label: string; rects: SlotRect[] };
+
+/**
+ * Every layout option offered for a given photo count — "featured" (one
+ * emphasized photo) and "grid" (equal cells) always; "strip" (equal
+ * columns) added for counts small enough that it still reads well. Fixed,
+ * pre-composed arrangements — not a freeform drag/resize canvas — is the
+ * deliberate scope tradeoff that keeps this buildable; see collage-
+ * maker.tsx's own top comment.
+ */
+export function getLayoutVariants(count: number): LayoutVariant[] {
+  if (count <= 1) return [{ id: "featured", label: "יחיד", rects: featuredLayout(1) }];
+  const variants: LayoutVariant[] = [
+    { id: "featured", label: "מודגש", rects: featuredLayout(count) },
+    { id: "grid", label: "רשת", rects: equalGridLayout(count) },
+  ];
+  if (count <= 5) variants.push({ id: "strip", label: "פסים", rects: stripLayout(count) });
+  return variants;
+}
+
+export type PhotoShapeId = "rect" | "rounded" | "circle" | "arch";
+
+export const PHOTO_SHAPES: { id: PhotoShapeId; label: string }[] = [
+  { id: "rect", label: "מלבן" },
+  { id: "rounded", label: "פינות מעוגלות" },
+  { id: "circle", label: "עיגול" },
+  { id: "arch", label: "קשת" },
+];
+
+export type PhotoEffectId = "none" | "bw" | "warm" | "vivid" | "soft";
+
+/** cssFilter is applied to each <image> via the SVG filter attribute — same CSS filter() functions the browser already knows, so it rasterizes correctly with no extra work. */
+export const PHOTO_EFFECTS: { id: PhotoEffectId; label: string; cssFilter: string }[] = [
+  { id: "none", label: "רגיל", cssFilter: "" },
+  { id: "bw", label: "שחור-לבן", cssFilter: "grayscale(1) contrast(1.05)" },
+  { id: "warm", label: "וינטג׳ חם", cssFilter: "sepia(0.35) saturate(1.2) contrast(1.05)" },
+  { id: "vivid", label: "חי וצבעוני", cssFilter: "saturate(1.6) contrast(1.12)" },
+  { id: "soft", label: "רך ובהיר", cssFilter: "brightness(1.08) saturate(0.85) contrast(0.95)" },
+];
+
+/**
+ * The clip path `d` string for one photo slot, in its given shape — "rect"
+ * needs no clipping (returns null, caller skips the clipPath entirely).
+ * "arch" is the classic rounded-top/flat-bottom doorway shape; its radius
+ * is capped at the slot's own height so a short, wide slot doesn't produce
+ * an impossible arc.
+ */
+export function shapeClipPath(shape: PhotoShapeId, rect: SlotRect): string | null {
+  const { x, y, w, h } = rect;
+  switch (shape) {
+    case "rounded": {
+      const r = Math.min(w, h) * 0.08;
+      return `M ${x + r},${y} H ${x + w - r} A ${r},${r} 0 0 1 ${x + w},${y + r} V ${y + h - r} A ${r},${r} 0 0 1 ${x + w - r},${y + h} H ${x + r} A ${r},${r} 0 0 1 ${x},${y + h - r} V ${y + r} A ${r},${r} 0 0 1 ${x + r},${y} Z`;
+    }
+    case "circle": {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const r = Math.min(w, h) / 2;
+      return `M ${cx - r},${cy} A ${r},${r} 0 1 1 ${cx + r},${cy} A ${r},${r} 0 1 1 ${cx - r},${cy} Z`;
+    }
+    case "arch": {
+      const r = Math.min(w / 2, h);
+      return `M ${x},${y + h} L ${x},${y + r} A ${r},${r} 0 0 1 ${x + w},${y + r} L ${x + w},${y + h} Z`;
+    }
+    case "rect":
+    default:
+      return null;
   }
 }

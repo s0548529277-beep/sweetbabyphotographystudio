@@ -11,8 +11,20 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CollageCard, CARD_W, CARD_H } from "@/components/CollageCard";
-import { COLLAGE_STYLES, COLLAGE_OCCASIONS, CAPTION_GROUPS, findCollageStyle, type CollageStyleId, type CollageOccasionId } from "@/lib/collage-data";
-import { Download, Sparkles, Image as ImageIcon, Type } from "lucide-react";
+import {
+  COLLAGE_STYLES,
+  COLLAGE_OCCASIONS,
+  CAPTION_GROUPS,
+  PHOTO_SHAPES,
+  PHOTO_EFFECTS,
+  getLayoutVariants,
+  findCollageStyle,
+  type CollageStyleId,
+  type CollageOccasionId,
+  type PhotoShapeId,
+  type PhotoEffectId,
+} from "@/lib/collage-data";
+import { Download, Sparkles, Image as ImageIcon, Type, LayoutGrid, Wand2, Square } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/collage-maker")({
@@ -93,6 +105,10 @@ function CollageMaker() {
   const [styleId, setStyleId] = useState<CollageStyleId>("floral");
   const [photoCount, setPhotoCount] = useState(3);
   const [photos, setPhotos] = useState<(string | null)[]>(Array(3).fill(null));
+  const [layoutId, setLayoutId] = useState("featured");
+  const [shape, setShape] = useState<PhotoShapeId>("rect");
+  const [effect, setEffect] = useState<PhotoEffectId>("none");
+  const [frame, setFrame] = useState(false);
   const [caption, setCaption] = useState("שנה טובה");
   const [subtitle, setSubtitle] = useState("");
   const [downloading, setDownloading] = useState(false);
@@ -101,6 +117,7 @@ function CollageMaker() {
   const pendingSlotRef = useRef<number | null>(null);
 
   const style = useMemo(() => findCollageStyle(styleId), [styleId]);
+  const layoutVariants = useMemo(() => getLayoutVariants(photoCount), [photoCount]);
 
   const changeCount = (n: number) => {
     setPhotoCount(n);
@@ -109,6 +126,12 @@ function CollageMaker() {
       while (next.length < n) next.push(null);
       return next;
     });
+    // Not every count offers every layout (e.g. "strip" only exists up to
+    // 5) — fall back to "featured" (always available) rather than silently
+    // rendering nothing if the previously-selected variant doesn't exist
+    // for the new count.
+    const stillValid = getLayoutVariants(n).some((v) => v.id === layoutId);
+    if (!stillValid) setLayoutId("featured");
   };
 
   const applyOccasion = (id: CollageOccasionId) => {
@@ -230,6 +253,73 @@ function CollageMaker() {
             </div>
 
             <div className="glass-card rounded-3xl p-5 space-y-4">
+              <div>
+                <h2 className="font-display text-xl text-primary mb-3 flex items-center gap-2">
+                  <LayoutGrid className="h-4 w-4" /> פריסה
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  {layoutVariants.map((v) => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => setLayoutId(v.id)}
+                      className={`rounded-full px-4 py-2 text-xs font-medium border transition-colors ${
+                        layoutId === v.id ? "bg-primary text-primary-foreground border-primary" : "border-primary/20 hover:border-primary"
+                      }`}
+                    >
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-primary mb-2 flex items-center gap-2">
+                  <Square className="h-4 w-4" /> צורת תמונה
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {PHOTO_SHAPES.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setShape(s.id)}
+                      className={`rounded-full px-4 py-2 text-xs font-medium border transition-colors ${
+                        shape === s.id ? "bg-primary text-primary-foreground border-primary" : "border-primary/20 hover:border-primary"
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-primary mb-2 flex items-center gap-2">
+                  <Wand2 className="h-4 w-4" /> אפקט
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {PHOTO_EFFECTS.map((e) => (
+                    <button
+                      key={e.id}
+                      type="button"
+                      onClick={() => setEffect(e.id)}
+                      className={`rounded-full px-4 py-2 text-xs font-medium border transition-colors ${
+                        effect === e.id ? "bg-primary text-primary-foreground border-primary" : "border-primary/20 hover:border-primary"
+                      }`}
+                    >
+                      {e.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <label className="flex items-center gap-2 text-sm text-primary cursor-pointer pt-1">
+                <input type="checkbox" checked={frame} onChange={(e) => setFrame(e.target.checked)} className="h-4 w-4 accent-primary" />
+                מסגרת סביב כל תמונה
+              </label>
+            </div>
+
+            <div className="glass-card rounded-3xl p-5 space-y-4">
               <h2 className="font-display text-xl text-primary flex items-center gap-2">
                 <Type className="h-4 w-4" /> כיתוב
               </h2>
@@ -266,7 +356,18 @@ function CollageMaker() {
           {/* Live preview */}
           <div className="order-1 lg:order-2 lg:sticky lg:top-24">
             <div className="max-w-md mx-auto">
-              <CollageCard svgRef={svgRef} styleId={styleId} photos={photos} onSlotClick={openFilePicker} caption={caption} subtitle={subtitle} />
+              <CollageCard
+                svgRef={svgRef}
+                styleId={styleId}
+                photos={photos}
+                layoutId={layoutId}
+                shape={shape}
+                effect={effect}
+                frame={frame}
+                onSlotClick={openFilePicker}
+                caption={caption}
+                subtitle={subtitle}
+              />
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onFileSelected} />
               <Button onClick={download} disabled={downloading} className="w-full h-12 rounded-full gap-2 mt-4">
                 <Download className="h-4 w-4" /> {downloading ? "מכינה קובץ…" : "הורדת הקולאז' כתמונה"}
