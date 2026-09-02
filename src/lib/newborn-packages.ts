@@ -1,20 +1,22 @@
 /** Shared constants for the newborn-package admin order tracker (client + server safe). See newborn-orders.functions.ts and /admin/newborn-packages. */
 
-export type NewbornPackage = { id: string; name: string; price: number; features: string[] };
+export type NewbornPackage = { id: string; name: string; price: number; features: string[]; photosToEdit: number };
 
 export const NEWBORN_PACKAGES: NewbornPackage[] = [
-  { id: "mini", name: "חבילה מיני", price: 900, features: ["3 סטים", "8 תמונות מעובדות", "קולאז'"] },
+  { id: "mini", name: "חבילה מיני", price: 900, features: ["3 סטים", "8 תמונות מעובדות", "קולאז'"], photosToEdit: 8 },
   {
     id: "pampering",
     name: "חבילה מפנקת",
     price: 1200,
     features: ["4 סטים", "סט הורים/אחים", "12 תמונות מעובדות", "קולאז'", "אלבום"],
+    photosToEdit: 12,
   },
   {
     id: "dreamy",
     name: "חבילה חלומית",
     price: 1650,
     features: ["5 סטים", "15 תמונות מעובדות", "קולאז'", "סט הורים", "סט אחים", "אלבום"],
+    photosToEdit: 15,
   },
 ];
 
