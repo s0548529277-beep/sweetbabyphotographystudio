@@ -1,7 +1,17 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { DEFAULT_PHRASES, MENU_MODE_KEY, NOAI_BOOKING_ENABLED_KEY, PHRASE_LABELS, type NoAiBookingMode, type PhraseKey, type VoiceMenuMode } from "@/lib/voice-phrases.server";
+import {
+  BOT_VOICE_GENDER_KEY,
+  DEFAULT_PHRASES,
+  MENU_MODE_KEY,
+  NOAI_BOOKING_ENABLED_KEY,
+  PHRASE_LABELS,
+  type BotVoiceGender,
+  type NoAiBookingMode,
+  type PhraseKey,
+  type VoiceMenuMode,
+} from "@/lib/voice-phrases.server";
 
 async function assertAdmin(supabase: any, userId: string) {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
@@ -101,6 +111,28 @@ export const setNoAiBookingMode = createServerFn({ method: "POST" })
     const { error } = await context.supabase
       .from("voice_bot_phrases")
       .upsert({ key: NOAI_BOOKING_ENABLED_KEY, value: data.mode, updated_at: new Date().toISOString() }, { onConflict: "key" });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Which grammatical gender the bot speaks itself in — see BOT_VOICE_GENDER_KEY's doc comment in voice-phrases.server.ts for the full picture (this only fixes the bot's own WORDING; the acoustic TTS voice sound is a separate, Yemot-side setting). */
+export const getBotVoiceGender = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<BotVoiceGender> => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data, error } = await context.supabase.from("voice_bot_phrases").select("value").eq("key", BOT_VOICE_GENDER_KEY).maybeSingle();
+    if (error) throw new Error(error.message);
+    return data?.value === "male" ? "male" : "female";
+  });
+
+export const setBotVoiceGender = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ gender: z.enum(["male", "female"]) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await context.supabase
+      .from("voice_bot_phrases")
+      .upsert({ key: BOT_VOICE_GENDER_KEY, value: data.gender, updated_at: new Date().toISOString() }, { onConflict: "key" });
     if (error) throw new Error(error.message);
     return { ok: true };
   });

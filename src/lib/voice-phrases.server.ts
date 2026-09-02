@@ -78,9 +78,44 @@ export const DEFAULT_PHRASES: Record<PhraseKey, string> = {
   no_human_transfer:
     "כְּרֶגַע אִי אֶפְשָׁר לְהַעֲבִיר אוֹתְךָ לִנְצִיגָה יְשִׁירוֹת. בֶּטַח, אֶפְשָׁר לְהַגִּיד אֶת הַהוֹדָעָה עַכְשָׁיו, וַאֲנִי אֶשְׁלַח אוֹתָהּ מִיָּד לְצֶוֶת הסטודיו כּוֹלֵל הַמִּסְפָּר שֶׁמִּמֶּנּוּ הִתְקַשַּׁרְתֶּם.",
   temporary_error:
-    "מִצְטַעֵר, נִתְקַלְנוּ בְּתַקָּלָה זְמַנִּית. בֶּטַח, אֶפְשָׁר לְהַגִּיד אֶת הַהוֹדָעָה עַכְשָׁיו, וַאֲנִי אֶשְׁלַח אוֹתָהּ מִיָּד לְצֶוֶת הסטודיו כּוֹלֵל הַמִּסְפָּר שֶׁמִּמֶּנּוּ הִתְקַשַּׁרְתֶּם.",
-  final_error_hangup: "מִצְטַעֵר, נִתְקַלְנוּ בְּתַקָּלָה. נְצִיגַת הסטודיו תַּחֲזֹר אֵלֶיךָ טֶלֶפוֹנִית. תּוֹדָה וּלְהִתְרָאוֹת!",
+    "מִצְטַעֶרֶת, נִתְקַלְנוּ בְּתַקָּלָה זְמַנִּית. בֶּטַח, אֶפְשָׁר לְהַגִּיד אֶת הַהוֹדָעָה עַכְשָׁיו, וַאֲנִי אֶשְׁלַח אוֹתָהּ מִיָּד לְצֶוֶת הסטודיו כּוֹלֵל הַמִּסְפָּר שֶׁמִּמֶּנּוּ הִתְקַשַּׁרְתֶּם.",
+  final_error_hangup: "מִצְטַעֶרֶת, נִתְקַלְנוּ בְּתַקָּלָה. נְצִיגַת הסטודיו תַּחֲזֹר אֵלֶיךָ טֶלֶפוֹנִית. תּוֹדָה וּלְהִתְרָאוֹת!",
 };
+
+// Which grammatical gender the phone bot speaks itself in (Hebrew verbs/
+// adjectives referring to the bot in first person inflect by gender —
+// "מצטערת" vs "מצטער", "בודקת" vs "בודק"). Added after a real report that
+// the bot sounded inconsistently male/female — the actual root cause turned
+// out to be TWO separate things, only one of which is ours to fix:
+//   1) our own system prompt (VOICE_STYLE in voice-chat.server.ts) used to
+//      mix "אתה"/"תהיה" (male) with "תגידי"/"תשאלי" (female) in the same
+//      block — the AI just followed whichever form was nearest, so its
+//      OWN generated wording really was inconsistent. Fixed: the prompt is
+//      now internally consistent (female baseline) plus an explicit,
+//      prominent gender rule built from this setting.
+//   2) the actual acoustic TTS voice (does it *sound* male or female) is
+//      NOT something this app's API calls control at all — Yemot's own
+//      read/id_list_message directives carry no voice-selection parameter;
+//      that lives in Yemot's own system config (their ivr.ini/ext.ini,
+//      set from the ניהול panel/file manager, not from here). If the
+//      SOUND still switches after this fix, that part needs checking on
+//      Yemot's side, not this codebase's.
+// DEFAULT_PHRASES above is written in FEMALE form (matches the dominant
+// existing style and "הצלמת"/studio voice) — when this setting is "male",
+// getVoiceBotConfig applies a small, exact, known-word substitution
+// (applyMaleGenderToPhrase below) rather than maintaining two full parallel
+// phrase sets, since female-gendered self-reference only actually appears
+// in these two phrases (everything else here is either gender-neutral
+// Hebrew grammar — future tense, "אני" with no inflected verb — or
+// addresses the CALLER, a separate and unrelated concern from the bot's
+// own voice).
+export type BotVoiceGender = "male" | "female";
+export const BOT_VOICE_GENDER_KEY = "bot_voice_gender";
+
+/** The one known female→male substitution needed in the DEFAULT_PHRASES text above — see BOT_VOICE_GENDER_KEY's doc comment. Only touches this exact word, so a phrase an admin already customized in her own words is untouched unless it happens to contain it too. */
+function applyMaleGenderToPhrase(text: string): string {
+  return text.replace(/מִצְטַעֶרֶת/g, "מִצְטַעֵר").replace(/מצטערת/g, "מצטער");
+}
 
 // Which "menu" stage behavior the live call uses — stored in the SAME
 // voice_bot_phrases table as a non-PhraseKey row (key=MENU_MODE_KEY), so no
@@ -125,10 +160,16 @@ export const NOAI_BOOKING_ENABLED_KEY = "noai_booking_enabled";
  * or the query fails (falls back to defaults + "ai" + "speech", so a DB
  * hiccup here never breaks the call the way an uncaught exception would).
  */
-export async function getVoiceBotConfig(): Promise<{ phrases: Record<PhraseKey, string>; menuMode: VoiceMenuMode; noAiBookingMode: NoAiBookingMode }> {
+export async function getVoiceBotConfig(): Promise<{
+  phrases: Record<PhraseKey, string>;
+  menuMode: VoiceMenuMode;
+  noAiBookingMode: NoAiBookingMode;
+  botVoiceGender: BotVoiceGender;
+}> {
   const phrases = { ...DEFAULT_PHRASES };
   let menuMode: VoiceMenuMode = "ai";
   let noAiBookingMode: NoAiBookingMode = "speech";
+  let botVoiceGender: BotVoiceGender = "female";
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin.from("voice_bot_phrases").select("key, value");
@@ -139,6 +180,8 @@ export async function getVoiceBotConfig(): Promise<{ phrases: Record<PhraseKey, 
         if (row.value === "fixed") menuMode = "fixed";
       } else if (key === NOAI_BOOKING_ENABLED_KEY) {
         if (row.value === "off" || row.value === "dtmf") noAiBookingMode = row.value;
+      } else if (key === BOT_VOICE_GENDER_KEY) {
+        if (row.value === "male") botVoiceGender = "male";
       } else if (key in phrases) {
         (phrases as Record<string, string>)[key] = (row as { value: string }).value;
       }
@@ -146,10 +189,18 @@ export async function getVoiceBotConfig(): Promise<{ phrases: Record<PhraseKey, 
   } catch (e) {
     console.error("[SWEETBABY] voice_bot config read failed, using defaults", e);
   }
-  return { phrases, menuMode, noAiBookingMode };
+  if (botVoiceGender === "male") {
+    for (const key of Object.keys(phrases) as PhraseKey[]) phrases[key] = applyMaleGenderToPhrase(phrases[key]);
+  }
+  return { phrases, menuMode, noAiBookingMode, botVoiceGender };
 }
 
 /** Just the phrases, for the one caller (the Twilio incoming-call greeting) that doesn't need the menu mode. */
 export async function getPhraseMap(): Promise<Record<PhraseKey, string>> {
   return (await getVoiceBotConfig()).phrases;
+}
+
+/** Just the gender setting — for runVoiceTurn (voice-chat.server.ts), which needs it every turn but not the rest of getVoiceBotConfig. */
+export async function getBotVoiceGender(): Promise<BotVoiceGender> {
+  return (await getVoiceBotConfig()).botVoiceGender;
 }

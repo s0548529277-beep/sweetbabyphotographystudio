@@ -351,3 +351,31 @@ survivors?"
   a handful of short admin notes; if this ever grows into a large knowledge
   base, revisit as a searchable tool instead per principle #1, rather than
   letting it inflate every single turn's token cost unboundedly.
+- **2026-09-02**: Fixed a real bug reported live — the voice bot's own
+  self-reference (first-person Hebrew, which inflects by grammatical
+  gender: "בודקת"/"בודק", "מצטערת"/"מצטער") sounded inconsistently
+  male/female. Root cause found in `VOICE_STYLE` (`voice-chat.server.ts`):
+  the block mixed "אתה"/"תהיה" (male) with "תגידי"/"תשאלי" (female) in the
+  same paragraph, so the model just followed whichever form was nearest —
+  a genuine prompt bug, not a hallucination. Fix, in the interest of
+  keeping the prompt lean (principle #1): rather than hand-maintaining two
+  full parallel copies of the ~1,700-character style block (double the
+  token cost on every turn, and a maintenance trap the next time it's
+  edited), added one small, clear, prominent rule (`voiceGenderRule`, ~150
+  characters) placed FIRST, ahead of the block's own (now internally
+  consistent, female-baseline) phrasing examples, plus a new admin-toggled
+  setting (`bot_voice_gender`, reusing the existing `voice_bot_phrases`
+  key-value table — no migration needed) read once per call via
+  `getBotVoiceGender()`. A separate, smaller fix in `voice-phrases.server.ts`
+  handles the two FIXED (non-AI) phrases that had the same baked-in male
+  word ("מִצְטַעֵר") — a one-word exact substitution
+  (`applyMaleGenderToPhrase`), not a second phrase set. Explicitly told the
+  owner the acoustic TTS voice pitch (does it *sound* male/female) is a
+  SEPARATE, Yemot-account-level setting this app's API calls have no
+  parameter for at all — confirmed via a real Yemot community thread titled
+  exactly "קול ההקראה השתנה לפתע" (the reading voice suddenly changed) and
+  a companion explainer thread, both found via WebSearch snippets only
+  (f2.freeivr.co.il itself is egress-blocked from this sandbox, same as
+  every previous Yemot-doc lookup this session) — voice type/speed is
+  documented there as an `ivr.ini`/`ext.ini` setting on Yemot's own side,
+  outside anything this codebase sends.
