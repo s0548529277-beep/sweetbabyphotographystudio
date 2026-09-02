@@ -4,8 +4,11 @@
  * and wheel.functions.ts for the server-side spin (which is where the
  * actual prize is picked — never trust the client to pick its own prize).
  *
- * Eligibility (studio-owner's rule, exactly as given):
- *  - a regular studio-rental booking for MORE than 3 hours (slots > 6 —
+ * Eligibility (studio-owner's rule — originally "over 3 hours", widened to
+ * include exactly 3 hours too after real bookings showed the popular
+ * newborn-morning package, which is always exactly 3 hours/6 slots, was
+ * being excluded by a strict ">"):
+ *  - a regular studio-rental booking of 3 HOURS OR MORE (slots >= 6 —
  *    slots are half-hours, see bookings.functions.ts), OR
  *  - ANY photography session/package with Michal herself
  *    (package === "photography" — see photography.functions.ts), any
@@ -17,7 +20,7 @@
 export function isEligibleForWheel(record: { package?: string | null; slots?: number | null } | null | undefined): boolean {
   if (!record) return false;
   if (record.package === "photography") return true;
-  return Number(record.slots ?? 0) > 6;
+  return Number(record.slots ?? 0) >= 6;
 }
 
 export type WheelPrize = {
