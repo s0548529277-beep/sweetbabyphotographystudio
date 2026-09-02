@@ -90,6 +90,35 @@ export const CAPTION_GROUPS: { group: string; items: string[] }[] = [
     items: ["אני בן 3", "אני בת 3", "יום הולדת שמח", "החלאקה שלי", "הצעד הראשון שלי", "התחלתי גן", "ברוכים הבאים לעולם"],
   },
   { group: "משפחה", items: ["להורים הכי טובים בעולם", "לסבא ולסבתא האהובים", "המשפחה שלנו", "אנחנו משפחה", "ביחד זה הכי טוב"] },
+  {
+    group: "ניו-בורן",
+    items: ["נולדתי", "ברוכה הבאה לעולם", "ברוך הבא לעולם", "המלכה הקטנה שלנו", "הנסיך הקטן שלנו", "עוד קצת ונתאהב"],
+  },
+  { group: "חלאקה", items: ["החלאקה שלי", "הגיע הזמן לתספורת", "שלוש שנות אהבה", "מהיום קטן וגדול"] },
+];
+
+/** Preset color combinations — an alternative starting point to the fixed per-style palette; picking one overrides the current style's bg/accent/captionColor (see paletteOverride on CollageCard) while everything else about the style (font, decorative frame) stays. */
+export type ColorPalette = { id: string; label: string; bg: string; accent: string; captionColor: string };
+
+export const COLOR_PALETTES: ColorPalette[] = [
+  { id: "blush", label: "רוד עדין", bg: "#fdf1f0", accent: "#d98a92", captionColor: "#7a3540" },
+  { id: "sage", label: "ירוק מרווה", bg: "#f3f6f1", accent: "#7c9473", captionColor: "#3c4a36" },
+  { id: "navy-gold", label: "נייבי וזהב", bg: "#12203a", accent: "#d4af6a", captionColor: "#f3e6cf" },
+  { id: "terracotta", label: "טרה-קוטה", bg: "#fbf1e9", accent: "#c1652f", captionColor: "#5a2c14" },
+  { id: "ocean", label: "כחול אוקיינוס", bg: "#eef6f8", accent: "#2f7f95", captionColor: "#123844" },
+  { id: "lavender", label: "לבנדר", bg: "#f6f2fb", accent: "#8c6fb0", captionColor: "#3f2c56" },
+  { id: "mono", label: "שחור-לבן קלאסי", bg: "#ffffff", accent: "#1a1a1a", captionColor: "#1a1a1a" },
+  { id: "sunset", label: "שקיעה", bg: "#fff4ea", accent: "#e0763f", captionColor: "#7a3110" },
+];
+
+/** Themed decorative-element overlays, keyed to match the occasion ids they're most relevant for ("an option to add elements by theme") — but offered as an independent toggle, not tied to picking that occasion preset. Actual SVG rendering lives in CollageCard (it's JSX, not data). */
+export type DecorThemeId = "none" | "birthday1" | "newborn" | "chalaka";
+
+export const DECOR_THEMES: { id: DecorThemeId; label: string }[] = [
+  { id: "none", label: "ללא" },
+  { id: "birthday1", label: "גיל שנה" },
+  { id: "newborn", label: "ניו-בורן" },
+  { id: "chalaka", label: "חלאקה" },
 ];
 
 /** One photo-slot's position, as a FRACTION (0-1) of the photo area — scaled to real pixels by the caller. */
@@ -138,13 +167,58 @@ function featuredLayout(count: number): SlotRect[] {
       for (let r = 0; r < 2; r++) for (let c = 0; c < 3; c++) rects.push({ x: c / 3, y: r * 0.5, w: 1 / 3, h: 0.5 });
       return rects;
     }
-    case 7:
-    default: {
+    case 7: {
       const rects: SlotRect[] = [{ x: 0, y: 0, w: 1, h: 0.42 }];
       for (let r = 0; r < 2; r++) for (let c = 0; c < 3; c++) rects.push({ x: c / 3, y: 0.42 + r * 0.29, w: 1 / 3, h: 0.29 });
       return rects;
     }
+    default: {
+      // Past 7, hand-authoring every arrangement stops paying off — one big
+      // photo on top, the rest tiled as evenly as possible below it. Still
+      // visually distinct from the plain equal grid thanks to the big top
+      // photo, and works for any count without a new special case.
+      const restCount = count - 1;
+      const rows = Math.max(1, Math.round(Math.sqrt(restCount)));
+      const baseCols = Math.floor(restCount / rows);
+      const extraRows = restCount % rows;
+      const topH = 0.38;
+      const rowH = (1 - topH) / rows;
+      const rects: SlotRect[] = [{ x: 0, y: 0, w: 1, h: topH }];
+      for (let r = 0; r < rows; r++) {
+        const cols = r < extraRows ? baseCols + 1 : baseCols;
+        if (cols <= 0) continue;
+        const colW = 1 / cols;
+        for (let c = 0; c < cols; c++) rects.push({ x: c * colW, y: topH + r * rowH, w: colW, h: rowH });
+      }
+      return rects;
+    }
   }
+}
+
+/**
+ * Asymmetric "mosaic" tiling via recursive binary splitting (a small
+ * treemap) — each split's ratio is nudged off dead-center and the split
+ * axis alternates with recursion depth, so the result reads as an
+ * irregular Pinterest-board-style mosaic rather than a disguised grid.
+ * Deterministic (no Math.random) so the same photo count always produces
+ * the same layout across re-renders. Works for any count.
+ */
+function mosaicLayout(count: number): SlotRect[] {
+  function split(n: number, x: number, y: number, w: number, h: number, axis: "h" | "v", depth: number): SlotRect[] {
+    if (n <= 1) return [{ x, y, w, h }];
+    const firstN = Math.ceil(n / 2);
+    const secondN = n - firstN;
+    const bias = depth % 2 === 0 ? 0.07 : -0.07;
+    const ratio = Math.min(0.72, Math.max(0.28, firstN / n + bias));
+    const nextAxis = axis === "h" ? "v" : "h";
+    if (axis === "h") {
+      const w1 = w * ratio;
+      return [...split(firstN, x, y, w1, h, nextAxis, depth + 1), ...split(secondN, x + w1, y, w - w1, h, nextAxis, depth + 1)];
+    }
+    const h1 = h * ratio;
+    return [...split(firstN, x, y, w, h1, nextAxis, depth + 1), ...split(secondN, x, y + h1, w, h - h1, nextAxis, depth + 1)];
+  }
+  return split(count, 0, 0, 1, 1, "h", 0);
 }
 
 /** A near-square grid of equal cells for ANY count — computed, not hand-authored, so it works for every photo count without a special case. */
@@ -187,16 +261,18 @@ export function getLayoutVariants(count: number): LayoutVariant[] {
     { id: "grid", label: "רשת", rects: equalGridLayout(count) },
   ];
   if (count <= 5) variants.push({ id: "strip", label: "פסים", rects: stripLayout(count) });
+  if (count >= 3) variants.push({ id: "mosaic", label: "מוזאיקה א-סימטרית", rects: mosaicLayout(count) });
   return variants;
 }
 
-export type PhotoShapeId = "rect" | "rounded" | "circle" | "arch";
+export type PhotoShapeId = "rect" | "rounded" | "circle" | "arch" | "heart";
 
 export const PHOTO_SHAPES: { id: PhotoShapeId; label: string }[] = [
   { id: "rect", label: "מלבן" },
   { id: "rounded", label: "פינות מעוגלות" },
   { id: "circle", label: "עיגול" },
   { id: "arch", label: "קשת" },
+  { id: "heart", label: "לב" },
 ];
 
 export type PhotoEffectId = "none" | "bw" | "warm" | "vivid" | "soft";
@@ -210,16 +286,45 @@ export const PHOTO_EFFECTS: { id: PhotoEffectId; label: string; cssFilter: strin
   { id: "soft", label: "רך ובהיר", cssFilter: "brightness(1.08) saturate(0.85) contrast(0.95)" },
 ];
 
+// Heart outline, sampled from the classic parametric heart curve
+// x=16sin³t, y=13cos t − 5cos 2t − 2cos 3t − cos 4t, then normalized into a
+// 0..1 unit box (with a small inset so the point doesn't touch the slot
+// edges) — computed once at module load, reused as a plain point list
+// (straight segments read plenty smooth at collage scale, no need for
+// hand-tuned beziers).
+const HEART_STEPS = 48;
+const HEART_RAW: [number, number][] = Array.from({ length: HEART_STEPS }, (_, i) => {
+  const t = (i / HEART_STEPS) * Math.PI * 2;
+  const x = 16 * Math.pow(Math.sin(t), 3);
+  const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+  return [x, y];
+});
+const HEART_MIN_X = Math.min(...HEART_RAW.map((p) => p[0]));
+const HEART_MAX_X = Math.max(...HEART_RAW.map((p) => p[0]));
+const HEART_MIN_Y = Math.min(...HEART_RAW.map((p) => p[1]));
+const HEART_MAX_Y = Math.max(...HEART_RAW.map((p) => p[1]));
+// Note the flipped y mapping: the curve's most-NEGATIVE y is its bottom
+// cusp, and we want that cusp at the BOTTOM of the box (large SVG y).
+const HEART_UNIT: [number, number][] = HEART_RAW.map(([x, y]) => [
+  0.04 + (0.92 * (x - HEART_MIN_X)) / (HEART_MAX_X - HEART_MIN_X),
+  0.02 + (0.94 * (HEART_MAX_Y - y)) / (HEART_MAX_Y - HEART_MIN_Y),
+]);
+
 /**
  * The clip path `d` string for one photo slot, in its given shape — "rect"
  * needs no clipping (returns null, caller skips the clipPath entirely).
  * "arch" is the classic rounded-top/flat-bottom doorway shape; its radius
  * is capped at the slot's own height so a short, wide slot doesn't produce
- * an impossible arc.
+ * an impossible arc. "heart" maps the precomputed unit-box point list onto
+ * the slot rect and joins it as a straight-segment polygon.
  */
 export function shapeClipPath(shape: PhotoShapeId, rect: SlotRect): string | null {
   const { x, y, w, h } = rect;
   switch (shape) {
+    case "heart": {
+      const pts = HEART_UNIT.map(([nx, ny]) => `${x + nx * w},${y + ny * h}`);
+      return `M ${pts[0]} L ${pts.slice(1).join(" L ")} Z`;
+    }
     case "rounded": {
       const r = Math.min(w, h) * 0.08;
       return `M ${x + r},${y} H ${x + w - r} A ${r},${r} 0 0 1 ${x + w},${y + r} V ${y + h - r} A ${r},${r} 0 0 1 ${x + w - r},${y + h} H ${x + r} A ${r},${r} 0 0 1 ${x},${y + h - r} V ${y + r} A ${r},${r} 0 0 1 ${x + r},${y} Z`;
