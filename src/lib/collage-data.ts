@@ -160,6 +160,67 @@ export const CAPTION_GROUPS: { group: string; items: string[] }[] = [
   { group: "חלאקה", items: ["החלאקה שלי", "הגיע הזמן לתספורת", "שלוש שנות אהבה", "מהיום קטן וגדול"] },
 ];
 
+/**
+ * English versions of every preset caption/subtitle above (and every
+ * COLLAGE_OCCASIONS caption/subtitle) — keyed by the exact Hebrew phrase,
+ * so the "כיתוב באנגלית" button can translate whatever's currently in the
+ * caption/subtitle fields as long as it's one of these ready-made
+ * phrases. Free-typed custom text has no entry here (real translation
+ * needs an API this client-only tool doesn't call) — the button leaves
+ * unknown text as-is and says so.
+ */
+export const CAPTION_TRANSLATIONS: Record<string, string> = {
+  // חגים
+  "שנה טובה": "Happy New Year",
+  "פורים שמח": "Happy Purim",
+  "חג שמח": "Happy Holiday",
+  "חג פסח שמח": "Happy Passover",
+  "חנוכה שמח": "Happy Hanukkah",
+  "חג סוכות שמח": "Happy Sukkot",
+  "שבת שלום": "Shabbat Shalom",
+  // איחולים
+  "טיסה נעימה": "Bon Voyage",
+  "בהצלחה": "Good Luck",
+  "מזל טוב": "Congratulations",
+  "איחולים חמים": "Warm Wishes",
+  "בשעה טובה": "Best Wishes",
+  "דרך צלחה": "Safe Travels",
+  // אבני דרך
+  "אני בן 3": "I'm 3 Years Old",
+  "אני בת 3": "I'm 3 Years Old",
+  "יום הולדת שמח": "Happy Birthday",
+  "החלאקה שלי": "My First Haircut",
+  "הצעד הראשון שלי": "My First Step",
+  "התחלתי גן": "Starting Preschool",
+  "ברוכים הבאים לעולם": "Welcome to the World",
+  // משפחה
+  "להורים הכי טובים בעולם": "To the Best Parents in the World",
+  "לסבא ולסבתא האהובים": "To Our Beloved Grandparents",
+  "המשפחה שלנו": "Our Family",
+  "אנחנו משפחה": "We Are Family",
+  "ביחד זה הכי טוב": "Together Is Best",
+  // ניו-בורן
+  "נולדתי": "I Was Born",
+  "ברוכה הבאה לעולם": "Welcome to the World",
+  "ברוך הבא לעולם": "Welcome to the World",
+  "המלכה הקטנה שלנו": "Our Little Queen",
+  "הנסיך הקטן שלנו": "Our Little Prince",
+  "עוד קצת ונתאהב": "Love at First Sight",
+  // חלאקה
+  "הגיע הזמן לתספורת": "Time for the First Haircut",
+  "שלוש שנות אהבה": "Three Years of Love",
+  "מהיום קטן וגדול": "A Little Bigger Today",
+  // COLLAGE_OCCASIONS captions/subtitles
+  "יש לי מלכה": "I Have a Queen",
+  "אני בת שנה 🎂": "I'm One Year Old 🎂",
+  "ברוכים הבאים": "Welcome",
+  "הצטרפ/ה אלינו": "Join Us",
+  "שלוש שנים מלאות אהבה": "Three Years Full of Love",
+  "רגעים שנשארים": "Moments That Stay",
+  "בת מצווה שמחה": "Happy Bat Mitzvah",
+  "לחיים ולאושר": "To Life and Happiness",
+};
+
 /** Preset color combinations — an alternative starting point to the fixed per-style palette; picking one overrides the current style's bg/accent/captionColor (see paletteOverride on CollageCard) while everything else about the style (font, decorative frame) stays. */
 export type ColorPalette = { id: string; label: string; bg: string; accent: string; captionColor: string };
 
