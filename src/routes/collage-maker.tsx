@@ -4,7 +4,7 @@
 // downloadCollagePng below). Intentionally scoped to fixed (not freely
 // draggable/resizable) layouts per photo count — a real, useful v1, not a
 // full drag/resize/sticker design tool.
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -15,6 +15,7 @@ import {
   COLLAGE_STYLES,
   COLLAGE_OCCASIONS,
   CAPTION_GROUPS,
+  CAPTION_TRANSLATIONS,
   PHOTO_SHAPES,
   PHOTO_EFFECTS,
   COLOR_PALETTES,
@@ -32,7 +33,7 @@ import {
   type CardFormatId,
 } from "@/lib/collage-data";
 import { rgbToHex, paletteFromAccent } from "@/lib/collage-color";
-import { Download, Sparkles, Image as ImageIcon, Type, LayoutGrid, Wand2, Square, Palette, Pipette, PartyPopper, RectangleVertical } from "lucide-react";
+import { Download, Sparkles, Image as ImageIcon, Type, LayoutGrid, Wand2, Square, Palette, Pipette, PartyPopper, RectangleVertical, Languages, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/collage-maker")({
@@ -250,6 +251,21 @@ function CollageMaker() {
     changeCount(o.photoCount);
   };
 
+  // Translates the current caption/subtitle to English when they match one
+  // of the ready-made phrases (see CAPTION_TRANSLATIONS) — free-typed text
+  // has no dictionary entry, so it's left alone with an explanation rather
+  // than silently doing nothing.
+  const translateCaptionToEnglish = () => {
+    const enCaption = CAPTION_TRANSLATIONS[caption];
+    const enSubtitle = subtitle ? CAPTION_TRANSLATIONS[subtitle] : undefined;
+    if (!enCaption && !enSubtitle) {
+      toast.error("התרגום זמין רק לכיתובים המוכנים ברשימה למטה, לא לטקסט חופשי");
+      return;
+    }
+    if (enCaption) setCaption(enCaption);
+    if (subtitle && enSubtitle) setSubtitle(enSubtitle);
+  };
+
   const useEyedropper = async () => {
     const EyeDropperCtor = (window as any).EyeDropper;
     if (!EyeDropperCtor) {
@@ -327,9 +343,27 @@ function CollageMaker() {
           <Sparkles className="h-3.5 w-3.5" /> חינם לכולם
         </div>
         <h1 className="font-display text-4xl md:text-5xl text-primary mb-2">עיצוב קולאז׳ וברכה</h1>
-        <p className="text-muted-foreground max-w-2xl mb-8">
+        <p className="text-muted-foreground max-w-2xl mb-6">
           עד 10 תמונות, כיתוב מוכן או משלך, ועיצוב שמתאים לרגע — ואז מורידים כתמונה, בלי הרשמה ובלי לשמור כלום אצלנו.
         </p>
+
+        <Link
+          to="/collage-studio"
+          className="group flex items-center justify-between gap-4 rounded-2xl bg-[#2d3d2b] text-[#f8ede4] px-5 py-4 mb-8 hover:bg-[#2d3d2b]/90 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <span className="h-9 w-9 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+              <Wand2 className="h-4 w-4" />
+            </span>
+            <div>
+              <div className="text-sm font-semibold">רוצה עוד יותר שליטה? נסי את סטודיו קולאז'ים</div>
+              <div className="text-xs text-[#f8ede4]/70">עורך מקצועי עם תבניות, שכבות, גרירה חופשית וגופנים — כמו Canva קטן, בעברית</div>
+            </div>
+          </div>
+          <span className="inline-flex items-center gap-1.5 bg-[#f5d5cf] text-[#2d3d2b] px-4 py-2 rounded-full text-xs font-semibold shrink-0 group-hover:bg-[#f8ede4] transition-colors">
+            כניסה לסטודיו <ArrowLeft className="h-3.5 w-3.5" />
+          </span>
+        </Link>
 
         <div className="grid lg:grid-cols-[1fr_1.1fr] gap-8 items-start">
           {/* Controls */}
@@ -598,6 +632,13 @@ function CollageMaker() {
                 <label className="text-xs font-semibold text-muted-foreground">שורה קטנה מתחת (אופציונלי)</label>
                 <Input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} maxLength={60} className="mt-1" />
               </div>
+              <button
+                type="button"
+                onClick={translateCaptionToEnglish}
+                className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 hover:border-primary px-3 py-1.5 text-xs font-medium text-primary transition-colors"
+              >
+                <Languages className="h-3.5 w-3.5" /> אותו כיתוב באנגלית
+              </button>
               <div className="space-y-2">
                 {CAPTION_GROUPS.map((g) => (
                   <div key={g.group}>

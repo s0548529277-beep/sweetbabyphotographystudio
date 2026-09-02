@@ -148,7 +148,9 @@ export function CollageCard({
   const CAPTION_TOP = MARGIN + PHOTO_H + Math.round(cardH * 0.024);
   const captionFontSize = Math.round(cardH * 0.0512);
   const subtitleFontSize = Math.round(cardH * 0.024);
-  const overlayBottomPad = Math.round(cardH * 0.03);
+  // Sits close to the very bottom edge of the photo area — pulled down
+  // from an earlier, higher placement per explicit feedback.
+  const overlayBottomPad = Math.round(cardH * 0.012);
   const captionY = overlayCaption
     ? MARGIN + PHOTO_H - overlayBottomPad - (subtitle ? subtitleFontSize * 1.6 : 0)
     : CAPTION_TOP + captionFontSize * 1.05;
