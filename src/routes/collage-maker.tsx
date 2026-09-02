@@ -17,14 +17,18 @@ import {
   CAPTION_GROUPS,
   PHOTO_SHAPES,
   PHOTO_EFFECTS,
+  COLOR_PALETTES,
+  DECOR_THEMES,
   getLayoutVariants,
   findCollageStyle,
   type CollageStyleId,
   type CollageOccasionId,
   type PhotoShapeId,
   type PhotoEffectId,
+  type DecorThemeId,
 } from "@/lib/collage-data";
-import { Download, Sparkles, Image as ImageIcon, Type, LayoutGrid, Wand2, Square } from "lucide-react";
+import { rgbToHex, paletteFromAccent } from "@/lib/collage-color";
+import { Download, Sparkles, Image as ImageIcon, Type, LayoutGrid, Wand2, Square, Palette, Pipette, PartyPopper } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/collage-maker")({
@@ -32,13 +36,84 @@ export const Route = createFileRoute("/collage-maker")({
   head: () => ({
     meta: [
       { title: "עיצוב קולאז׳ חינם | Sweetbaby" },
-      { name: "description", content: "עיצוב קולאז' תמונות וכיתובים בחינם — עד 7 תמונות, כיתובים מוכנים או משלכם, ועיצובים מוכנים לכל אירוע." },
+      { name: "description", content: "עיצוב קולאז' תמונות וכיתובים בחינם — עד 10 תמונות, כיתובים מוכנים או משלכם, ועיצובים מוכנים לכל אירוע." },
       { name: "robots", content: "index, follow" },
     ],
   }),
 });
 
-const PHOTO_COUNTS = [1, 2, 3, 4, 5, 6, 7] as const;
+const PHOTO_COUNTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+
+/**
+ * Reads an already-loaded (data: URL) photo's dominant color via an
+ * offscreen canvas — coarse histogram over a downscaled 40x40 sample,
+ * skipping near-white/near-black/near-gray pixels so the result is an
+ * actual dominant *color*, not just "average toward grey". Falls back to
+ * a plain average if every sampled pixel was near-neutral.
+ */
+function getDominantColor(dataUrl: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const size = 40;
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Canvas לא נתמך בדפדפן הזה"));
+        return;
+      }
+      ctx.drawImage(img, 0, 0, size, size);
+      let data: Uint8ClampedArray;
+      try {
+        data = ctx.getImageData(0, 0, size, size).data;
+      } catch (e) {
+        reject(e);
+        return;
+      }
+      const buckets = new Map<string, { count: number; r: number; g: number; b: number }>();
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const a = data[i + 3];
+        if (a < 200) continue;
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        if (max > 240 && min > 220) continue; // near white
+        if (max < 25) continue; // near black
+        if (max - min < 12) continue; // near gray/desaturated
+        const key = `${r >> 4}-${g >> 4}-${b >> 4}`;
+        const cur = buckets.get(key) ?? { count: 0, r: 0, g: 0, b: 0 };
+        cur.count++;
+        cur.r += r;
+        cur.g += g;
+        cur.b += b;
+        buckets.set(key, cur);
+      }
+      let best: { count: number; r: number; g: number; b: number } | null = null;
+      for (const b of buckets.values()) if (!best || b.count > best.count) best = b;
+      if (!best) {
+        let r = 0;
+        let g = 0;
+        let b = 0;
+        let n = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          r += data[i];
+          g += data[i + 1];
+          b += data[i + 2];
+          n++;
+        }
+        resolve(rgbToHex(r / n, g / n, b / n));
+        return;
+      }
+      resolve(rgbToHex(best.r / best.count, best.g / best.count, best.b / best.count));
+    };
+    img.onerror = () => reject(new Error("טעינת התמונה נכשלה"));
+    img.src = dataUrl;
+  });
+}
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -109,6 +184,9 @@ function CollageMaker() {
   const [shape, setShape] = useState<PhotoShapeId>("rect");
   const [effect, setEffect] = useState<PhotoEffectId>("none");
   const [frame, setFrame] = useState(false);
+  const [customPalette, setCustomPalette] = useState<{ bg: string; accent: string; captionColor: string } | null>(null);
+  const [decorId, setDecorId] = useState<DecorThemeId>("none");
+  const [matchingColor, setMatchingColor] = useState(false);
   const [caption, setCaption] = useState("שנה טובה");
   const [subtitle, setSubtitle] = useState("");
   const [downloading, setDownloading] = useState(false);
@@ -140,7 +218,43 @@ function CollageMaker() {
     setStyleId(o.style);
     setCaption(o.caption);
     setSubtitle(o.subtitle ?? "");
+    setCustomPalette(null);
+    // Suggest matching themed decor for the occasions that have one —
+    // still just a starting point, the "אלמנטים דקורטיביים" toggle below
+    // can turn it off or switch it any time.
+    setDecorId(id === "birthday1" || id === "newborn" || id === "chalaka" ? id : "none");
     changeCount(o.photoCount);
+  };
+
+  const useEyedropper = async () => {
+    const EyeDropperCtor = (window as any).EyeDropper;
+    if (!EyeDropperCtor) {
+      toast.error("טפטפת הצבע נתמכת כרגע רק בדפדפני כרום / אדג'");
+      return;
+    }
+    try {
+      const result = await new EyeDropperCtor().open();
+      if (result?.sRGBHex) setCustomPalette(paletteFromAccent(result.sRGBHex));
+    } catch {
+      // user cancelled the eyedropper — nothing to do
+    }
+  };
+
+  const autoMatchColor = async () => {
+    const first = photos.find((p): p is string => Boolean(p));
+    if (!first) {
+      toast.error("צריך להעלות תמונה קודם כדי להתאים לפיה צבעים");
+      return;
+    }
+    setMatchingColor(true);
+    try {
+      const dominant = await getDominantColor(first);
+      setCustomPalette(paletteFromAccent(dominant));
+    } catch {
+      toast.error("ניתוח הצבע נכשל, נסי שוב");
+    } finally {
+      setMatchingColor(false);
+    }
   };
 
   const openFilePicker = (slotIndex: number) => {
@@ -190,7 +304,7 @@ function CollageMaker() {
         </div>
         <h1 className="font-display text-4xl md:text-5xl text-primary mb-2">עיצוב קולאז׳ וברכה</h1>
         <p className="text-muted-foreground max-w-2xl mb-8">
-          עד 7 תמונות, כיתוב מוכן או משלך, ועיצוב שמתאים לרגע — ואז מורידים כתמונה, בלי הרשמה ובלי לשמור כלום אצלנו.
+          עד 10 תמונות, כיתוב מוכן או משלך, ועיצוב שמתאים לרגע — ואז מורידים כתמונה, בלי הרשמה ובלי לשמור כלום אצלנו.
         </p>
 
         <div className="grid lg:grid-cols-[1fr_1.1fr] gap-8 items-start">
@@ -320,6 +434,76 @@ function CollageMaker() {
             </div>
 
             <div className="glass-card rounded-3xl p-5 space-y-4">
+              <div>
+                <h2 className="font-display text-xl text-primary mb-3 flex items-center gap-2">
+                  <Palette className="h-4 w-4" /> שילוב צבעים
+                </h2>
+                <div className="grid grid-cols-4 gap-2">
+                  {COLOR_PALETTES.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setCustomPalette({ bg: p.bg, accent: p.accent, captionColor: p.captionColor })}
+                      title={p.label}
+                      className={`h-10 rounded-xl border-2 flex overflow-hidden transition-colors ${
+                        customPalette?.accent === p.accent && customPalette?.bg === p.bg ? "border-primary" : "border-transparent"
+                      }`}
+                    >
+                      <span className="w-1/2 h-full" style={{ background: p.bg }} />
+                      <span className="w-1/2 h-full" style={{ background: p.accent }} />
+                    </button>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  <button
+                    type="button"
+                    onClick={useEyedropper}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 hover:border-primary px-3 py-1.5 text-xs font-medium text-primary transition-colors"
+                  >
+                    <Pipette className="h-3.5 w-3.5" /> טפטפת צבע
+                  </button>
+                  <button
+                    type="button"
+                    onClick={autoMatchColor}
+                    disabled={matchingColor}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 hover:border-primary px-3 py-1.5 text-xs font-medium text-primary transition-colors disabled:opacity-50"
+                  >
+                    <Wand2 className="h-3.5 w-3.5" /> {matchingColor ? "מתאימה…" : "התאמה אוטומטית לפי התמונה"}
+                  </button>
+                  {customPalette && (
+                    <button
+                      type="button"
+                      onClick={() => setCustomPalette(null)}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 hover:border-primary px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors"
+                    >
+                      איפוס לצבעי הסגנון
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-primary mb-2 flex items-center gap-2">
+                  <PartyPopper className="h-4 w-4" /> אלמנטים דקורטיביים
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {DECOR_THEMES.map((d) => (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => setDecorId(d.id)}
+                      className={`rounded-full px-4 py-2 text-xs font-medium border transition-colors ${
+                        decorId === d.id ? "bg-primary text-primary-foreground border-primary" : "border-primary/20 hover:border-primary"
+                      }`}
+                    >
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="glass-card rounded-3xl p-5 space-y-4">
               <h2 className="font-display text-xl text-primary flex items-center gap-2">
                 <Type className="h-4 w-4" /> כיתוב
               </h2>
@@ -364,6 +548,8 @@ function CollageMaker() {
                 shape={shape}
                 effect={effect}
                 frame={frame}
+                paletteOverride={customPalette}
+                decorId={decorId}
                 onSlotClick={openFilePicker}
                 caption={caption}
                 subtitle={subtitle}
