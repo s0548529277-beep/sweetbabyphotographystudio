@@ -10,7 +10,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CollageCard, CARD_W, CARD_H } from "@/components/CollageCard";
+import { CollageCard } from "@/components/CollageCard";
 import {
   COLLAGE_STYLES,
   COLLAGE_OCCASIONS,
@@ -19,6 +19,9 @@ import {
   PHOTO_EFFECTS,
   COLOR_PALETTES,
   DECOR_THEMES,
+  CARD_FORMATS,
+  CARD_SIZES,
+  getCardDimensions,
   getLayoutVariants,
   findCollageStyle,
   type CollageStyleId,
@@ -26,9 +29,10 @@ import {
   type PhotoShapeId,
   type PhotoEffectId,
   type DecorThemeId,
+  type CardFormatId,
 } from "@/lib/collage-data";
 import { rgbToHex, paletteFromAccent } from "@/lib/collage-color";
-import { Download, Sparkles, Image as ImageIcon, Type, LayoutGrid, Wand2, Square, Palette, Pipette, PartyPopper } from "lucide-react";
+import { Download, Sparkles, Image as ImageIcon, Type, LayoutGrid, Wand2, Square, Palette, Pipette, PartyPopper, RectangleVertical } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/collage-maker")({
@@ -134,10 +138,17 @@ async function downloadCollagePng(svgEl: SVGSVGElement) {
   } catch {
     // best effort — proceed anyway
   }
+  // Real pixel size comes straight off the live SVG's own viewBox — it
+  // varies per format/size choice (portrait/landscape/panoramic × print
+  // ratio), so there's no fixed constant to fall back on here.
+  const vb = svgEl.viewBox.baseVal;
+  const cardW = vb && vb.width ? vb.width : svgEl.clientWidth || 1000;
+  const cardH = vb && vb.height ? vb.height : svgEl.clientHeight || 1250;
+
   const clone = svgEl.cloneNode(true) as SVGSVGElement;
   clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-  clone.setAttribute("width", String(CARD_W));
-  clone.setAttribute("height", String(CARD_H));
+  clone.setAttribute("width", String(cardW));
+  clone.setAttribute("height", String(cardH));
   const svgString = new XMLSerializer().serializeToString(clone);
   const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
   const svgUrl = URL.createObjectURL(svgBlob);
@@ -145,10 +156,10 @@ async function downloadCollagePng(svgEl: SVGSVGElement) {
   await new Promise<void>((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
-      const scale = 2; // 2000x2500 — good enough for sharing/printing from a free web tool
+      const scale = 2; // 2x the card's own pixel size — good enough for sharing/printing from a free web tool
       const canvas = document.createElement("canvas");
-      canvas.width = CARD_W * scale;
-      canvas.height = CARD_H * scale;
+      canvas.width = cardW * scale;
+      canvas.height = cardH * scale;
       const ctx = canvas.getContext("2d");
       if (!ctx) {
         reject(new Error("Canvas לא נתמך בדפדפן הזה"));
@@ -177,6 +188,8 @@ async function downloadCollagePng(svgEl: SVGSVGElement) {
 }
 
 function CollageMaker() {
+  const [formatId, setFormatId] = useState<CardFormatId>("portrait");
+  const [sizeId, setSizeId] = useState("13x18");
   const [styleId, setStyleId] = useState<CollageStyleId>("floral");
   const [photoCount, setPhotoCount] = useState(3);
   const [photos, setPhotos] = useState<(string | null)[]>(Array(3).fill(null));
@@ -196,6 +209,15 @@ function CollageMaker() {
 
   const style = useMemo(() => findCollageStyle(styleId), [styleId]);
   const layoutVariants = useMemo(() => getLayoutVariants(photoCount), [photoCount]);
+  const cardDims = useMemo(() => getCardDimensions(formatId, sizeId), [formatId, sizeId]);
+
+  const changeFormat = (id: CardFormatId) => {
+    setFormatId(id);
+    // Each format offers its own size list — jump to that format's first
+    // (and, per the requested order, default) size rather than keeping an
+    // id that belongs to the format just left.
+    setSizeId(CARD_SIZES[id][0].id);
+  };
 
   const changeCount = (n: number) => {
     setPhotoCount(n);
@@ -310,6 +332,45 @@ function CollageMaker() {
         <div className="grid lg:grid-cols-[1fr_1.1fr] gap-8 items-start">
           {/* Controls */}
           <div className="space-y-6 order-2 lg:order-1">
+            <div className="glass-card rounded-3xl p-5 space-y-4">
+              <div>
+                <h2 className="font-display text-xl text-primary mb-3 flex items-center gap-2">
+                  <RectangleVertical className="h-4 w-4" /> פורמט
+                </h2>
+                <div className="grid grid-cols-3 gap-2">
+                  {CARD_FORMATS.map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => changeFormat(f.id)}
+                      className={`rounded-xl px-2 py-3 text-xs font-medium border-2 transition-colors ${
+                        formatId === f.id ? "border-primary bg-primary text-primary-foreground" : "border-primary/15 hover:border-primary bg-card text-primary"
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-primary mb-2">גודל</h3>
+                <div className="flex flex-wrap gap-2">
+                  {CARD_SIZES[formatId].map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setSizeId(s.id)}
+                      className={`rounded-full px-4 py-2 text-xs font-medium border transition-colors ${
+                        sizeId === s.id ? "bg-primary text-primary-foreground border-primary" : "border-primary/20 hover:border-primary"
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             <div className="glass-card rounded-3xl p-5">
               <h2 className="font-display text-xl text-primary mb-3">עיצובים מוכנים</h2>
               <div className="grid grid-cols-3 gap-2">
@@ -542,6 +603,8 @@ function CollageMaker() {
             <div className="max-w-md mx-auto">
               <CollageCard
                 svgRef={svgRef}
+                cardW={cardDims.w}
+                cardH={cardDims.h}
                 styleId={styleId}
                 photos={photos}
                 layoutId={layoutId}
