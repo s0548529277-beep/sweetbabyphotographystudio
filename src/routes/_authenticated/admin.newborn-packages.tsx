@@ -1,8 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { he } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
 import {
   listNewbornOrders,
   createNewbornOrder,
@@ -17,9 +19,10 @@ import {
   updateNewbornOrderContact,
   deleteNewbornOrder,
 } from "@/lib/newborn-orders.functions";
+import { createPhotoClient } from "@/lib/photo-clients.functions";
 import { NEWBORN_PACKAGES, NEWBORN_ADDONS, NEWBORN_TIMELINE_STEPS, findNewbornPackage } from "@/lib/newborn-packages";
 import { heError } from "@/lib/he-errors";
-import { Baby, Plus, Pencil, Trash2, Check, Circle, Phone, Mail, CalendarDays, Loader2 } from "lucide-react";
+import { Baby, Plus, Pencil, Trash2, Check, Circle, Phone, Mail, CalendarDays, Loader2, Images, List, CalendarRange } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/newborn-packages")({
   component: NewbornPackagesAdmin,
@@ -65,19 +68,23 @@ function toEditForm(o: OrderRow): EditForm {
 
 function NewbornPackagesAdmin() {
   const qc = useQueryClient();
+  const nav = useNavigate();
   const fetchOrders = useServerFn(listNewbornOrders);
   const runCreate = useServerFn(createNewbornOrder);
   const runToggle = useServerFn(toggleNewbornOrderStep);
   const runUpdateContact = useServerFn(updateNewbornOrderContact);
   const runDelete = useServerFn(deleteNewbornOrder);
+  const runCreatePhotoClient = useServerFn(createPhotoClient);
 
   const orders = useQuery({ queryKey: ["newborn-orders"], queryFn: () => fetchOrders({}) });
   const rows = (orders.data ?? []) as OrderRow[];
 
+  const [view, setView] = useState<"list" | "calendar">("list");
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState(emptyCreateForm);
   const [saving, setSaving] = useState(false);
   const [busyStep, setBusyStep] = useState<string | null>(null); // `${orderId}:${stepKey}`
+  const [openingGalleryId, setOpeningGalleryId] = useState<string | null>(null);
 
   const [editTarget, setEditTarget] = useState<OrderRow | null>(null);
   const [editForm, setEditForm] = useState<EditForm | null>(null);
@@ -173,6 +180,41 @@ function NewbornPackagesAdmin() {
     }
   };
 
+  // Opens (or reuses, if one already exists for her email) a real client
+  // gallery in the existing photo-delivery system (/admin/photo-clients) —
+  // upload, client photo selection, editing/album stages all already live
+  // there, so this reuses it rather than rebuilding a second gallery
+  // system inside this page.
+  const openGallery = async (order: OrderRow) => {
+    if (!order.contact_email) {
+      toast.error("צריך קודם להוסיף מייל ללקוחה — פותחת עריכה");
+      openEdit(order);
+      return;
+    }
+    const pkg = findNewbornPackage(order.package_id);
+    setOpeningGalleryId(order.id);
+    try {
+      const res = await runCreatePhotoClient({
+        data: {
+          email: order.contact_email,
+          name: order.contact_name,
+          phone: order.contact_phone,
+          sessionDate: order.session_date || undefined,
+          packageType: "custom",
+          photosToEdit: pkg?.photosToEdit,
+          albumUpgrades: pkg ? [pkg.name, ...pkg.features, ...order.addons.map((a) => a.label)].join(", ") : undefined,
+          sendEmail: false,
+        },
+      });
+      toast.success(res.isNewAccount ? "נפתחה גלריה + חשבון חדש ללקוחה" : "נפתחה הגלריה שלה");
+      nav({ to: "/admin/photo-clients/$bookingId", params: { bookingId: res.workflowId } });
+    } catch (e) {
+      toast.error(heError(e, "פתיחת הגלריה נכשלה"));
+    } finally {
+      setOpeningGalleryId(null);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-4xl">
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -182,15 +224,37 @@ function NewbornPackagesAdmin() {
           </h2>
           <p className="text-sm text-muted-foreground">מעקב פנימי בלבד — מרגע סגירת החבילה ועד הגעת האלבום ללקוחה. לא מוצג לאתר או ללקוחות.</p>
         </div>
-        <Button
-          onClick={() => {
-            setCreateForm(emptyCreateForm);
-            setCreateOpen(true);
-          }}
-          className="rounded-full gap-2"
-        >
-          <Plus className="h-4 w-4" /> הזמנה חדשה
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex bg-card rounded-full border border-primary/10 p-1">
+            <button
+              type="button"
+              onClick={() => setView("list")}
+              className={`h-8 px-3 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors ${
+                view === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-cream"
+              }`}
+            >
+              <List className="h-3.5 w-3.5" /> רשימה
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("calendar")}
+              className={`h-8 px-3 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors ${
+                view === "calendar" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-cream"
+              }`}
+            >
+              <CalendarRange className="h-3.5 w-3.5" /> לוח
+            </button>
+          </div>
+          <Button
+            onClick={() => {
+              setCreateForm(emptyCreateForm);
+              setCreateOpen(true);
+            }}
+            className="rounded-full gap-2"
+          >
+            <Plus className="h-4 w-4" /> הזמנה חדשה
+          </Button>
+        </div>
       </div>
 
       {orders.isLoading && <p className="text-sm text-muted-foreground">טוען…</p>}
@@ -200,18 +264,24 @@ function NewbornPackagesAdmin() {
         </div>
       )}
 
-      <div className="space-y-4">
-        {rows.map((order) => (
-          <OrderCard
-            key={order.id}
-            order={order}
-            busyStep={busyStep}
-            onToggleStep={(stepKey, done) => toggleStep(order, stepKey, done)}
-            onEdit={() => openEdit(order)}
-            onDelete={() => remove(order)}
-          />
-        ))}
-      </div>
+      {view === "calendar" ? (
+        <NewbornCalendarView rows={rows} onEdit={openEdit} onOpenGallery={openGallery} openingGalleryId={openingGalleryId} />
+      ) : (
+        <div className="space-y-4">
+          {rows.map((order) => (
+            <OrderCard
+              key={order.id}
+              order={order}
+              busyStep={busyStep}
+              openingGallery={openingGalleryId === order.id}
+              onToggleStep={(stepKey, done) => toggleStep(order, stepKey, done)}
+              onEdit={() => openEdit(order)}
+              onDelete={() => remove(order)}
+              onOpenGallery={() => openGallery(order)}
+            />
+          ))}
+        </div>
+      )}
 
       {/* New order */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -337,15 +407,19 @@ function NewbornPackagesAdmin() {
 function OrderCard({
   order,
   busyStep,
+  openingGallery,
   onToggleStep,
   onEdit,
   onDelete,
+  onOpenGallery,
 }: {
   order: OrderRow;
   busyStep: string | null;
+  openingGallery?: boolean;
   onToggleStep: (stepKey: string, done: boolean) => void;
   onEdit: () => void;
   onDelete: () => void;
+  onOpenGallery: () => void;
 }) {
   const pkg = findNewbornPackage(order.package_id);
   const doneCount = NEWBORN_TIMELINE_STEPS.filter((s) => order[`${s.key}_at`]).length;
@@ -385,6 +459,17 @@ function OrderCard({
         </div>
       </div>
 
+      <button
+        type="button"
+        onClick={onOpenGallery}
+        disabled={openingGallery}
+        title={order.contact_email ? undefined : "יש להוסיף מייל ללקוחה קודם"}
+        className="w-full mb-3 h-9 rounded-xl border border-primary/15 hover:bg-primary/5 text-sm text-primary flex items-center justify-center gap-1.5 transition-colors disabled:opacity-60"
+      >
+        {openingGallery ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Images className="h-3.5 w-3.5" />}
+        פתיחת גלריה ללקוחה
+      </button>
+
       {order.notes && <p className="text-xs text-muted-foreground bg-blush/30 rounded-lg p-2 mb-3 whitespace-pre-line">{order.notes}</p>}
 
       <div className="mb-2 flex items-center gap-2">
@@ -421,6 +506,131 @@ function OrderCard({
             </button>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// Month calendar of orders by session_date — same shadcn Calendar
+// component + "scheduled day" modifier pattern as /admin/calendar, so this
+// reads like a familiar view rather than a one-off widget.
+function NewbornCalendarView({
+  rows,
+  onEdit,
+  onOpenGallery,
+  openingGalleryId,
+}: {
+  rows: OrderRow[];
+  onEdit: (order: OrderRow) => void;
+  onOpenGallery: (order: OrderRow) => void;
+  openingGalleryId: string | null;
+}) {
+  const [selected, setSelected] = useState<Date | undefined>(new Date());
+
+  const { byDate, scheduledDates } = useMemo(() => {
+    const map = new Map<string, OrderRow[]>();
+    for (const o of rows) {
+      if (!o.session_date) continue;
+      const list = map.get(o.session_date) ?? [];
+      list.push(o);
+      map.set(o.session_date, list);
+    }
+    return {
+      byDate: map,
+      scheduledDates: Array.from(map.keys()).map((s) => {
+        const [y, m, d] = s.split("-").map(Number);
+        return new Date(y, m - 1, d);
+      }),
+    };
+  }, [rows]);
+
+  const toLocalKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const key = selected ? toLocalKey(selected) : "";
+  const dayOrders = byDate.get(key) ?? [];
+  const withoutDate = rows.filter((o) => !o.session_date);
+
+  return (
+    <div className="grid lg:grid-cols-[auto_1fr] gap-6">
+      <div className="bg-card rounded-2xl p-4 border border-primary/10 w-fit h-fit">
+        <Calendar
+          mode="single"
+          selected={selected}
+          onSelect={setSelected}
+          locale={he}
+          modifiers={{ scheduled: scheduledDates }}
+          modifiersClassNames={{ scheduled: "bg-blush text-primary font-medium rounded-full" }}
+        />
+        <div className="text-xs text-muted-foreground mt-3 flex items-center gap-2">
+          <span className="inline-block h-3 w-3 rounded-full bg-blush" /> יום עם צילום קבוע
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <div className="bg-card rounded-2xl p-5 border border-primary/10">
+          <h3 className="font-display text-xl text-primary mb-3">
+            {selected?.toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "long" })}
+          </h3>
+          {dayOrders.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8 border border-dashed border-primary/15 rounded-xl">אין צילומים ליום זה</p>
+          ) : (
+            <div className="space-y-2">
+              {dayOrders.map((o) => (
+                <MiniOrderRow key={o.id} order={o} openingGallery={openingGalleryId === o.id} onEdit={() => onEdit(o)} onOpenGallery={() => onOpenGallery(o)} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {withoutDate.length > 0 && (
+          <div className="bg-card rounded-2xl p-5 border border-primary/10">
+            <h3 className="text-sm font-semibold text-primary mb-3">בלי תאריך צילום עדיין ({withoutDate.length})</h3>
+            <div className="space-y-2">
+              {withoutDate.map((o) => (
+                <MiniOrderRow key={o.id} order={o} openingGallery={openingGalleryId === o.id} onEdit={() => onEdit(o)} onOpenGallery={() => onOpenGallery(o)} />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MiniOrderRow({
+  order,
+  openingGallery,
+  onEdit,
+  onOpenGallery,
+}: {
+  order: OrderRow;
+  openingGallery: boolean;
+  onEdit: () => void;
+  onOpenGallery: () => void;
+}) {
+  const pkg = findNewbornPackage(order.package_id);
+  return (
+    <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-blush/25">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-medium text-primary">{order.contact_name}</span>
+          <Badge variant="secondary" className="text-[10px]">{pkg?.name ?? order.package_id}</Badge>
+        </div>
+        <div className="text-xs text-muted-foreground" dir="ltr">{order.contact_phone}</div>
+      </div>
+      <div className="flex items-center gap-1 shrink-0">
+        <button type="button" onClick={onEdit} className="h-8 w-8 rounded-full hover:bg-primary/10 text-primary flex items-center justify-center">
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={onOpenGallery}
+          disabled={openingGallery}
+          title={order.contact_email ? undefined : "יש להוסיף מייל ללקוחה קודם"}
+          className="h-8 px-3 rounded-full border border-primary/15 hover:bg-primary/5 text-xs text-primary flex items-center gap-1.5 disabled:opacity-60"
+        >
+          {openingGallery ? <Loader2 className="h-3 w-3 animate-spin" /> : <Images className="h-3 w-3" />}
+          גלריה
+        </button>
       </div>
     </div>
   );
