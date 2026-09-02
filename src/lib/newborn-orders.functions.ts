@@ -121,3 +121,41 @@ export const deleteNewbornOrder = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+const paymentSchema = z.object({ id: z.string().uuid(), amount_paid: z.number().nonnegative().max(1000000) });
+
+/**
+ * Sets the total amount paid so far on an order (not a delta — the admin
+ * types the running total, same as editing a balance field directly).
+ * last_payment_at is stamped "now" every time this runs, purely so the
+ * dashboard's "paid this month" stat has something to filter on — it's a
+ * snapshot approximation (whichever orders were last touched this month),
+ * not a real payment ledger with per-transaction history.
+ */
+export const updateNewbornOrderPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => paymentSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await (context.supabase as any)
+      .from("newborn_package_orders")
+      .update({ amount_paid: data.amount_paid, last_payment_at: new Date().toISOString() })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Stamps gallery_opened_at (idempotent — safe to call every time "פתיחת גלריה" is clicked) so the dashboard can count how many orders actually have a gallery started. */
+export const markNewbornGalleryOpened = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await (context.supabase as any)
+      .from("newborn_package_orders")
+      .update({ gallery_opened_at: new Date().toISOString() })
+      .eq("id", data.id)
+      .is("gallery_opened_at", null);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

@@ -17,12 +17,33 @@ import {
   createNewbornOrder,
   toggleNewbornOrderStep,
   updateNewbornOrderContact,
+  updateNewbornOrderPayment,
+  markNewbornGalleryOpened,
   deleteNewbornOrder,
 } from "@/lib/newborn-orders.functions";
 import { createPhotoClient } from "@/lib/photo-clients.functions";
 import { NEWBORN_PACKAGES, NEWBORN_ADDONS, NEWBORN_TIMELINE_STEPS, findNewbornPackage } from "@/lib/newborn-packages";
 import { heError } from "@/lib/he-errors";
-import { Baby, Plus, Pencil, Trash2, Check, Circle, Phone, Mail, CalendarDays, Loader2, Images, List, CalendarRange } from "lucide-react";
+import {
+  Baby,
+  Plus,
+  Pencil,
+  Trash2,
+  Check,
+  Circle,
+  Phone,
+  Mail,
+  CalendarDays,
+  Loader2,
+  Images,
+  List,
+  CalendarRange,
+  LayoutDashboard,
+  Wallet,
+  Wallet2,
+  Clock,
+  CalendarCheck2,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/newborn-packages")({
   component: NewbornPackagesAdmin,
@@ -35,6 +56,9 @@ type OrderRow = {
   base_price: number;
   addons_price: number;
   total_price: number;
+  amount_paid: number;
+  last_payment_at: string | null;
+  gallery_opened_at: string | null;
   contact_name: string;
   contact_phone: string;
   contact_email: string | null;
@@ -75,11 +99,13 @@ function NewbornPackagesAdmin() {
   const runUpdateContact = useServerFn(updateNewbornOrderContact);
   const runDelete = useServerFn(deleteNewbornOrder);
   const runCreatePhotoClient = useServerFn(createPhotoClient);
+  const runUpdatePayment = useServerFn(updateNewbornOrderPayment);
+  const runMarkGalleryOpened = useServerFn(markNewbornGalleryOpened);
 
   const orders = useQuery({ queryKey: ["newborn-orders"], queryFn: () => fetchOrders({}) });
   const rows = (orders.data ?? []) as OrderRow[];
 
-  const [view, setView] = useState<"list" | "calendar">("list");
+  const [view, setView] = useState<"dashboard" | "list" | "calendar" | "payments">("dashboard");
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState(emptyCreateForm);
   const [saving, setSaving] = useState(false);
@@ -207,6 +233,13 @@ function NewbornPackagesAdmin() {
         },
       });
       toast.success(res.isNewAccount ? "נפתחה גלריה + חשבון חדש ללקוחה" : "נפתחה הגלריה שלה");
+      if (!order.gallery_opened_at) {
+        runMarkGalleryOpened({ data: { id: order.id } })
+          .then(() => qc.invalidateQueries({ queryKey: ["newborn-orders"] }))
+          .catch(() => {
+            // best-effort — this only feeds the dashboard's "galleries" stat, never blocks the real navigation below
+          });
+      }
       nav({ to: "/admin/photo-clients/$bookingId", params: { bookingId: res.workflowId } });
     } catch (e) {
       toast.error(heError(e, "פתיחת הגלריה נכשלה"));
@@ -224,26 +257,27 @@ function NewbornPackagesAdmin() {
           </h2>
           <p className="text-sm text-muted-foreground">מעקב פנימי בלבד — מרגע סגירת החבילה ועד הגעת האלבום ללקוחה. לא מוצג לאתר או ללקוחות.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="inline-flex bg-card rounded-full border border-primary/10 p-1">
-            <button
-              type="button"
-              onClick={() => setView("list")}
-              className={`h-8 px-3 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors ${
-                view === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-cream"
-              }`}
-            >
-              <List className="h-3.5 w-3.5" /> רשימה
-            </button>
-            <button
-              type="button"
-              onClick={() => setView("calendar")}
-              className={`h-8 px-3 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors ${
-                view === "calendar" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-cream"
-              }`}
-            >
-              <CalendarRange className="h-3.5 w-3.5" /> לוח
-            </button>
+            {(
+              [
+                { key: "dashboard", label: "מסך ראשי", icon: LayoutDashboard },
+                { key: "list", label: "רשימה", icon: List },
+                { key: "calendar", label: "לוח", icon: CalendarRange },
+                { key: "payments", label: "תשלומים", icon: Wallet },
+              ] as const
+            ).map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setView(t.key)}
+                className={`h-8 px-3 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors ${
+                  view === t.key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-cream"
+                }`}
+              >
+                <t.icon className="h-3.5 w-3.5" /> {t.label}
+              </button>
+            ))}
           </div>
           <Button
             onClick={() => {
@@ -264,9 +298,15 @@ function NewbornPackagesAdmin() {
         </div>
       )}
 
-      {view === "calendar" ? (
+      {view === "dashboard" && <NewbornDashboardView rows={rows} onGoToCalendar={() => setView("calendar")} />}
+
+      {view === "calendar" && (
         <NewbornCalendarView rows={rows} onEdit={openEdit} onOpenGallery={openGallery} openingGalleryId={openingGalleryId} />
-      ) : (
+      )}
+
+      {view === "payments" && <NewbornPaymentsView rows={rows} runUpdatePayment={runUpdatePayment} onSaved={() => qc.invalidateQueries({ queryKey: ["newborn-orders"] })} />}
+
+      {view === "list" && (
         <div className="space-y-4">
           {rows.map((order) => (
             <OrderCard
@@ -631,6 +671,170 @@ function MiniOrderRow({
           {openingGallery ? <Loader2 className="h-3 w-3 animate-spin" /> : <Images className="h-3 w-3" />}
           גלריה
         </button>
+      </div>
+    </div>
+  );
+}
+
+function todayKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function StatCard({ icon: Icon, value, label, tone }: { icon: typeof Wallet; value: string; label: string; tone?: "warn" }) {
+  return (
+    <div className="bg-card rounded-2xl border border-primary/10 p-4">
+      <div className={`font-display text-2xl mb-1 ${tone === "warn" ? "text-destructive" : "text-primary"}`}>{value}</div>
+      <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+        <Icon className="h-3.5 w-3.5" /> {label}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * "מסך ראשי" — mirrors the reference tool's dashboard, built from the SAME
+ * newborn_package_orders rows the other views use (no separate data
+ * source). "שולם החודש" is a snapshot approximation (see
+ * updateNewbornOrderPayment's own doc comment) — this table has no
+ * per-payment ledger, only a running amount_paid total per order, stamped
+ * with when it was last touched.
+ */
+function NewbornDashboardView({ rows, onGoToCalendar }: { rows: OrderRow[]; onGoToCalendar: () => void }) {
+  const today = todayKey();
+  const now = new Date();
+
+  const openBalance = rows.reduce((sum, o) => sum + Math.max(0, Number(o.total_price) - Number(o.amount_paid)), 0);
+  const paidThisMonth = rows.reduce((sum, o) => {
+    if (!o.last_payment_at) return sum;
+    const d = new Date(o.last_payment_at);
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() ? sum + Number(o.amount_paid) : sum;
+  }, 0);
+  const galleriesCount = rows.filter((o) => o.gallery_opened_at).length;
+  const upcoming = rows.filter((o) => o.session_date && o.session_date >= today).sort((a, b) => (a.session_date! < b.session_date! ? -1 : 1));
+  const todayCount = rows.filter((o) => o.session_date === today).length;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <StatCard icon={Wallet2} value={`₪${openBalance.toFixed(0)}`} label="יתרה פתוחה" tone={openBalance > 0 ? "warn" : undefined} />
+        <StatCard icon={Wallet} value={`₪${paidThisMonth.toFixed(0)}`} label="שולם החודש" />
+        <StatCard icon={Images} value={String(galleriesCount)} label="גלריות" />
+        <StatCard icon={Clock} value={String(upcoming.length)} label="צילומים קרובים" />
+        <StatCard icon={CalendarCheck2} value={String(todayCount)} label="צילומים היום" />
+      </div>
+
+      <div className="bg-card rounded-2xl border border-primary/10 p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-display text-lg text-primary">צילומים קרובים</h3>
+          <button type="button" onClick={onGoToCalendar} className="text-xs text-primary hover:underline">
+            ללוח המלא ←
+          </button>
+        </div>
+        {upcoming.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-6">אין צילומים עתידיים עם תאריך קבוע.</p>
+        ) : (
+          <div className="space-y-2">
+            {upcoming.slice(0, 6).map((o) => {
+              const pkg = findNewbornPackage(o.package_id);
+              return (
+                <div key={o.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-blush/25">
+                  <div className="flex items-center gap-2 flex-wrap min-w-0">
+                    <span className="font-medium text-primary">{o.contact_name}</span>
+                    <Badge variant="secondary" className="text-[10px]">{pkg?.name ?? o.package_id}</Badge>
+                  </div>
+                  <span className="text-xs text-muted-foreground shrink-0">{o.session_date}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** "תשלומים" — running balance per order, editable inline (types the new total-paid amount, not a delta). */
+function NewbornPaymentsView({
+  rows,
+  runUpdatePayment,
+  onSaved,
+}: {
+  rows: OrderRow[];
+  runUpdatePayment: (opts: { data: { id: string; amount_paid: number } }) => Promise<{ ok: true }>;
+  onSaved: () => void;
+}) {
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [savingId, setSavingId] = useState<string | null>(null);
+
+  const paidTotal = rows.reduce((s, o) => s + Number(o.amount_paid), 0);
+  const openTotal = rows.reduce((s, o) => s + Math.max(0, Number(o.total_price) - Number(o.amount_paid)), 0);
+
+  const save = async (order: OrderRow) => {
+    const raw = drafts[order.id];
+    const amount = raw === undefined ? order.amount_paid : Number(raw);
+    if (Number.isNaN(amount) || amount < 0) return toast.error("סכום לא תקין");
+    setSavingId(order.id);
+    try {
+      await runUpdatePayment({ data: { id: order.id, amount_paid: Math.min(amount, order.total_price) } });
+      setDrafts((d) => {
+        const next = { ...d };
+        delete next[order.id];
+        return next;
+      });
+      onSaved();
+    } catch (e) {
+      toast.error(heError(e, "השמירה נכשלה"));
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <StatCard icon={Wallet} value={`₪${paidTotal.toFixed(0)}`} label="שולם סה״כ" />
+        <StatCard icon={Wallet2} value={`₪${openTotal.toFixed(0)}`} label="יתרה פתוחה סה״כ" tone={openTotal > 0 ? "warn" : undefined} />
+      </div>
+
+      <div className="space-y-3">
+        {rows.map((order) => {
+          const draft = drafts[order.id];
+          const shown = draft ?? String(order.amount_paid);
+          const pct = order.total_price > 0 ? Math.min(100, (Number(order.amount_paid) / order.total_price) * 100) : 0;
+          const balance = Math.max(0, order.total_price - Number(order.amount_paid));
+          return (
+            <div key={order.id} className="bg-card rounded-2xl border border-primary/10 p-4">
+              <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
+                <span className="font-medium text-primary">{order.contact_name}</span>
+                <span className="text-sm text-muted-foreground">
+                  מתוך <span className="font-display text-primary">₪{order.total_price}</span>
+                </span>
+              </div>
+              <div className="h-1.5 rounded-full bg-border overflow-hidden mb-3">
+                <div className="h-full bg-forest rounded-full transition-all" style={{ width: `${pct}%` }} />
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={0}
+                  max={order.total_price}
+                  value={shown}
+                  onChange={(e) => setDrafts((d) => ({ ...d, [order.id]: e.target.value }))}
+                  className="h-9 max-w-[120px]"
+                  dir="ltr"
+                />
+                <Button size="sm" onClick={() => save(order)} disabled={savingId === order.id} className="rounded-full h-9">
+                  {savingId === order.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "שמירה"}
+                </Button>
+                <span className={`text-xs mr-auto ${balance > 0 ? "text-destructive" : "text-forest"}`}>
+                  {balance > 0 ? `יתרה ₪${balance}` : "שולם במלואו"}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+        {rows.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">אין עדיין הזמנות.</p>}
       </div>
     </div>
   );
