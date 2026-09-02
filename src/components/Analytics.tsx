@@ -30,10 +30,10 @@ function loadGoogleAnalytics(id: string) {
 
 function loadMetaPixel(id: string) {
   if (window.fbq) return;
-  const fbq: Window["fbq"] = (...args: unknown[]) => {
+  const fbq = ((...args: unknown[]) => {
     if (fbq.callMethod) (fbq.callMethod as (...a: unknown[]) => void)(...args);
     else fbq.queue!.push(args);
-  };
+  }) as NonNullable<Window["fbq"]>;
   fbq.queue = [];
   fbq.loaded = true;
   fbq.version = "2.0";

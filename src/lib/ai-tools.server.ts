@@ -7,6 +7,9 @@ import {
   propsAvailability,
   studioAvailability,
 } from "./availability.server";
+import { STUDIO_GUIDE_HE } from "./studio-guide.server";
+import { ARRIVAL_TEXT_HE } from "./arrival";
+import { PHOTOGRAPHY_SERVICE_TEXT_HE } from "./photography-options";
 
 const PRICE_FIRST_HOUR = 120;
 const PRICE_EXTRA_HOUR = 90;
@@ -32,27 +35,43 @@ export function buildAssistantTools(opts?: { isAuthenticated?: boolean }) {
         time: z.string().optional().describe("HH:MM"),
         hours: z.number().optional().describe("כמה שעות רצופות צריך (ברירת מחדל 1)"),
       }),
+      // Any failure here (a Supabase hiccup, a slow/broken Google Calendar
+      // read that studioAvailability itself didn't manage to swallow) used
+      // to throw straight out of the tool call — on the phone that killed
+      // the *entire* turn (the outer route handler's catch-all fired and
+      // hung up on the caller with a generic "נתקלנו בתקלה"), even though
+      // it was just one tool failing. Now it degrades to a soft result the
+      // model can talk around instead of ending the call.
       execute: async ({ date, time, hours }) => {
-        const res = await studioAvailability(date, time);
-        if (res.closed) return { date, closed: true, message: "הסטודיו סגור ביום זה" };
-        const needed = Math.max(2, Math.round((hours ?? 1) * 2));
-        let enoughFromRequested: boolean | null = null;
-        if (time) {
-          const [h, m] = time.slice(0, 5).split(":").map(Number);
-          enoughFromRequested = Array.from({ length: needed }, (_, i) => {
-            const t = h * 60 + m + i * 30;
-            return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
-          }).every((s) => res.freeSlots.includes(s));
+        try {
+          const res = await studioAvailability(date, time);
+          if (res.closed) return { date, closed: true, message: "הסטודיו סגור ביום זה" };
+          const needed = Math.max(2, Math.round((hours ?? 1) * 2));
+          let enoughFromRequested: boolean | null = null;
+          if (time) {
+            const [h, m] = time.slice(0, 5).split(":").map(Number);
+            enoughFromRequested = Array.from({ length: needed }, (_, i) => {
+              const t = h * 60 + m + i * 30;
+              return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
+            }).every((s) => res.freeSlots.includes(s));
+          }
+          return {
+            date,
+            closed: false,
+            requestedTime: time ?? null,
+            requestedTimeFree: time ? res.wantedFree : null,
+            enoughConsecutiveTime: enoughFromRequested,
+            freeSlots: res.freeSlots,
+            calendarLinked: res.calendarLinked ?? true,
+          };
+        } catch (e) {
+          console.error("[SWEETBABY] check_studio_availability failed", e);
+          return {
+            date,
+            error: true,
+            message: "בדיקת הזמינות נכשלה זמנית — אל תמציאי זמינות, תסבירי שיש תקלה זמנית בבדיקה ושהסטודיו יאשר בחזרה, או הציעי לנסות שוב עוד רגע.",
+          };
         }
-        return {
-          date,
-          closed: false,
-          requestedTime: time ?? null,
-          requestedTimeFree: time ? res.wantedFree : null,
-          enoughConsecutiveTime: enoughFromRequested,
-          freeSlots: res.freeSlots,
-          calendarLinked: res.calendarLinked ?? true,
-        };
       },
     }),
 
@@ -65,8 +84,18 @@ export function buildAssistantTools(opts?: { isAuthenticated?: boolean }) {
       }),
       execute: async ({ from, hours }) => {
         const start = from || israelNow().date;
-        const days = await nextAvailableDays(start, hours ?? 1, 21, 5);
-        return { from: start, hours: hours ?? 1, options: days };
+        try {
+          const days = await nextAvailableDays(start, hours ?? 1, 21, 5);
+          return { from: start, hours: hours ?? 1, options: days };
+        } catch (e) {
+          console.error("[SWEETBABY] find_next_available_days failed", e);
+          return {
+            from: start,
+            hours: hours ?? 1,
+            error: true,
+            message: "בדיקת התאריכים הפנויים נכשלה זמנית — אל תמציאי תאריכים, תסבירי שיש תקלה זמנית ושהסטודיו יחזור עם תאריכים בקרוב, או הציעי לנסות שוב עוד רגע.",
+          };
+        }
       },
     }),
 
@@ -131,10 +160,62 @@ export function buildAssistantTools(opts?: { isAuthenticated?: boolean }) {
       },
     }),
 
+    get_equipment_guide: tool({
+      description:
+        "מחזירה את מדריך השימוש הרשמי בציוד הסטודיו (משדר, פלאש, מצלמה, רקעים, רצפות עץ). קרא/י לזה רק כשלקוחה שואלת שאלה ספציפית על ציוד/הפעלה, או מדווחת על תקלה — לא בכל שיחה.",
+      inputSchema: z.object({}),
+      execute: async () => ({ guide: STUDIO_GUIDE_HE }),
+    }),
+
+    get_arrival_directions: tool({
+      description:
+        "מחזירה הנחיות הגעה מלאות לסטודיו — כתובת ל-Waze, איך להגיע ברכב, וקווי אוטובוס + הליכה. קרא/י לזה רק כשלקוחה שואלת איך להגיע/דרכי הגעה — לא בכל שיחה.",
+      inputSchema: z.object({}),
+      execute: async () => ({ directions: ARRIVAL_TEXT_HE }),
+    }),
+
+    get_photography_service_info: tool({
+      description:
+        "מחזירה פרטים על שירות הצילום האישי של הצלמת מיכל סיבוני עצמה (ניו-בורן/משפחה בסטודיו או בחוץ) — שונה משכירת הסטודיו הרגילה. קרא/י לזה בכל פעם שעולה נושא צילומי ניו-בורן (גם בלי לשאול במפורש על מיכל/חבילה/אלבום — יש הטבה חשובה של 'סל לידה' שכדאי להזכיר ביוזמתך), וגם כשלקוחה שואלת 'את מצלמת?', 'סל לידה', 'צילומי חוץ/בטבע' וכו' — לא בכל שיחה אחרת.",
+      inputSchema: z.object({}),
+      execute: async () => ({ info: PHOTOGRAPHY_SERVICE_TEXT_HE }),
+    }),
+
     current_datetime: tool({
       description: "מחזיר את התאריך והשעה הנוכחיים בישראל — להמרת 'מחר', 'שבוע הבא' וכו׳ לתאריך מלא.",
       inputSchema: z.object({}),
       execute: async () => israelNow(),
+    }),
+
+    // Hebrew-calendar-to-Gregorian conversion is real calendrical arithmetic
+    // (variable month lengths, leap years on a 19-year Metonic cycle) — not
+    // something to let the model guess at from its own "knowledge", which is
+    // exactly the kind of task LLMs are unreliable at. @hebcal/hdate does the
+    // real Rata Die conversion and accepts Hebrew month names in Hebrew
+    // script directly (e.g. new HDate(25, 'כסלו', 5787)), so the model just
+    // needs to pull day/month/year out of what the caller said in natural
+    // language and hand them here — no manual math required on either side.
+    hebrew_date_to_gregorian: tool({
+      description:
+        'ממירה תאריך עברי (יום בחודש + חודש עברי, למשל "כ\"ה בכסלו" או "ט\"ו בשבט", ושנה עברית אם נאמרה) לתאריך לועזי מדויק — תמיד להשתמש בכלי הזה כשלקוחה אומרת תאריך לפי הלוח העברי, ולעולם לא לנחש/לחשב את ההמרה לבד.',
+      inputSchema: z.object({
+        day: z.number().int().min(1).max(30).describe("היום בחודש העברי, מספר בין 1 ל-30 (למשל 25 עבור כ״ה)"),
+        monthName: z.string().describe('שם החודש העברי בעברית, למשל "כסלו", "שבט", "ניסן", "אלול", "תשרי"'),
+        year: z.number().int().optional().describe("שנה עברית (למשל 5787) אם נאמרה — אם לא, משתמשים בשנה העברית הנוכחית"),
+      }),
+      execute: async ({ day, monthName, year }) => {
+        try {
+          const { HDate } = await import("@hebcal/hdate");
+          const hebrewYear = year ?? new HDate().getFullYear();
+          const hd = new HDate(day, monthName, hebrewYear);
+          return { ok: true, date: hd.greg().toISOString().slice(0, 10) };
+        } catch (e: any) {
+          return {
+            ok: false,
+            message: `לא הצלחתי להמיר את התאריך העברי (${e?.message ?? "שגיאה"}) — תבקשי מהלקוחה תאריך לועזי במקום, או תוודאי איתה שוב את היום/החודש/השנה העברית.`,
+          };
+        }
+      },
     }),
 
     list_active_coupons: tool({

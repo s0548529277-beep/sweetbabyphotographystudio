@@ -1,4 +1,40 @@
 import { ARRIVAL_TEXT_HE } from "@/lib/arrival";
+import { hebrewDate } from "@/lib/hebrew-date";
+
+/** "2026-08-28 · כ״ח באב תשפ״ו" — the Gregorian date row value with the Hebrew calendar date alongside it, for every confirmation email. */
+function dateWithHebrew(isoDate: string | null | undefined): string {
+  if (!isoDate) return "";
+  const heb = hebrewDate(isoDate);
+  return heb ? `${isoDate} · ${heb}` : isoDate;
+}
+
+// Shared with PayOnlineButton.tsx (the in-site iframe version of the same
+// link) — one hosted payment page for both the on-site checkout flow and
+// any email that needs to hand a customer a payment link directly (e.g. a
+// phone booking, where there's no browser session to send her back to).
+export const TAKBULL_PAY_URL = "https://paypage.takbull.co.il/4fk6g";
+
+/** A prominent "pay now" button for emails that can't rely on the customer being on the site (e.g. a phone booking). */
+export function buildPaymentButtonHtml(amount: number): string {
+  return `<div style="margin:20px 0;text-align:center">
+    <a href="${TAKBULL_PAY_URL}" target="_blank" rel="noopener noreferrer"
+       style="display:inline-block;background:#2d3d2b;color:#f8ede4;text-decoration:none;font-weight:bold;padding:14px 28px;border-radius:999px">
+      לתשלום מאובטח באשראי · ₪${amount}
+    </a>
+  </div>`;
+}
+
+/** The TTLock door passcode, with the "press # to confirm" instruction customers need after keying it in — see integrations/ttlock/client.server.ts. */
+export function buildDoorCodeHtml(code: string, extraNote?: string): string {
+  return `<div style="margin:20px 0;padding:16px;background:#faf7f4;border-radius:10px;border:1px solid #e8ddd3;text-align:center">
+    <p style="margin:0 0 8px;color:#2d3d2b;font-weight:bold;font-size:14px">🔑 קוד כניסה לדלת הסטודיו</p>
+    <p style="margin:0 0 8px;font-size:22px;letter-spacing:2px;color:#2d3d2b;font-weight:bold" dir="ltr">${code}</p>
+    <p style="margin:0;color:#6b8a63;font-size:13px">תקף רק בשעות ההזמנה שלך. אחרי הקשת הקוד יש ללחוץ על # לאישור.${extraNote ? ` ${extraNote}` : ""}</p>
+  </div>`;
+}
+
+/** The extra caveat shown only on props/accessories orders — the code doesn't just cover a fixed window, it goes dead overnight. */
+const PROPS_DOOR_CODE_NOTE = "הקוד לא פעיל בין 00:00 ל-07:00. אין לקחת או להחזיר אביזרים בלי לתאם טלפונית מראש · 054-8529277.";
 
 /**
  * Maps the raw studio-intake questionnaire payload (studio_intake_forms.payload)
@@ -86,8 +122,12 @@ export function buildBookingSummaryHtml(opts: {
   includeArrival?: boolean;
   includeIntake?: boolean;
   footerNote?: string;
+  /** Amount to show on an embedded "pay now" button — used for bookings made outside a browser session (phone), where there's no /deposit page to send her back to. */
+  paymentAmount?: number;
+  /** TTLock door passcode, once issued — see integrations/ttlock/client.server.ts. */
+  doorCode?: string | null;
 }): string {
-  const { heading, intro, booking, intakePayload, includeArrival = true, includeIntake = true, footerNote } = opts;
+  const { heading, intro, booking, intakePayload, includeArrival = true, includeIntake = true, footerNote, paymentAmount, doorCode } = opts;
   const b = booking;
   const balance = b.balance_amount ?? Math.max(0, (b.price ?? 0) - (b.deposit_amount ?? 0));
 
@@ -95,6 +135,8 @@ export function buildBookingSummaryHtml(opts: {
     b.reserved_items && b.reserved_items.length > 0
       ? `<p><strong>אביזרים ששוריינו:</strong> ${b.reserved_items.map((s) => `#${s}`).join(", ")}</p>`
       : "";
+  const paymentHtml = paymentAmount != null ? buildPaymentButtonHtml(paymentAmount) : "";
+  const doorCodeHtml = doorCode ? buildDoorCodeHtml(doorCode) : "";
 
   return `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:600px;margin:auto">
     <h2 style="color:#2d3d2b">${escapeHtml(heading)}</h2>
@@ -103,7 +145,7 @@ export function buildBookingSummaryHtml(opts: {
     <h3 style="color:#2d3d2b">סיכום הזמנה</h3>
     <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">
       <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>מספר הזמנה</strong></td><td style="padding:6px 10px" dir="ltr">#${b.id.slice(0, 8)}</td></tr>
-      ${row("תאריך", b.session_date)}
+      ${row("תאריך", dateWithHebrew(b.session_date))}
       ${row("שעה", `${String(b.start_time).slice(0, 5)} - ${String(b.end_time).slice(0, 5)}`)}
       ${row("מחיר כולל", `₪${b.price}`)}
       ${b.deposit_amount != null ? row("מקדמה ששולמה", `₪${b.deposit_amount}`) : ""}
@@ -112,6 +154,8 @@ export function buildBookingSummaryHtml(opts: {
       ${b.notes ? row("הערות", escapeHtml(String(b.notes))) : ""}
     </table>
     ${itemsHtml}
+    ${paymentHtml}
+    ${doorCodeHtml}
     ${includeIntake ? buildIntakeHtml(intakePayload) : ""}
     ${includeArrival ? buildArrivalHtml() : ""}
     ${footerNote ? `<p style="color:#6b8a63;font-size:13px;margin-top:16px">${footerNote}</p>` : ""}
@@ -154,8 +198,11 @@ export function buildPropsOrderSummaryHtml(opts: {
   order: SummaryOrder;
   includeArrival?: boolean;
   footerNote?: string;
+  /** TTLock door passcode, once issued — see integrations/ttlock/client.server.ts. */
+  doorCode?: string | null;
 }): string {
-  const { heading, intro, order: o, includeArrival = true, footerNote } = opts;
+  const { heading, intro, order: o, includeArrival = true, footerNote, doorCode } = opts;
+  const doorCodeHtml = doorCode ? buildDoorCodeHtml(doorCode, PROPS_DOOR_CODE_NOTE) : "";
 
   const itemsRows = o.lines
     .map(
@@ -171,14 +218,15 @@ export function buildPropsOrderSummaryHtml(opts: {
     <h3 style="color:#2d3d2b">סיכום הזמנה</h3>
     <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">
       <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>מספר הזמנה</strong></td><td style="padding:6px 10px" dir="ltr">#${o.id.slice(0, 8)}</td></tr>
-      ${row("איסוף", `${o.session_date}${o.pickup_time ? ` בשעה ${o.pickup_time}` : ""}`)}
-      ${row("החזרה", `${o.return_date}${o.return_time ? ` בשעה ${o.return_time}` : ""}`)}
+      ${row("איסוף", `${dateWithHebrew(o.session_date)}${o.pickup_time ? ` בשעה ${o.pickup_time}` : ""}`)}
+      ${row("החזרה", `${dateWithHebrew(o.return_date)}${o.return_time ? ` בשעה ${o.return_time}` : ""}`)}
       ${o.balance_method ? row("אמצעי תשלום", PAYMENT_METHOD_LABELS[o.balance_method] ?? escapeHtml(o.balance_method)) : ""}
       ${o.notes ? row("הערות", escapeHtml(String(o.notes))) : ""}
     </table>
     <h3 style="color:#2d3d2b;margin-top:24px">פריטים</h3>
     <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">${itemsRows}</table>
     <p style="margin-top:12px"><strong>סה״כ לתשלום:</strong> ₪${o.total}</p>
+    ${doorCodeHtml}
     ${includeArrival ? buildArrivalHtml() : ""}
     ${footerNote ? `<p style="color:#6b8a63;font-size:13px;margin-top:16px">${footerNote}</p>` : ""}
     <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: תלמוד ירושלמי 24, בית שמש · לשאלות: s0548529277@gmail.com / 054-8529277</p>

@@ -14,6 +14,7 @@ import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
 import { ProductImage } from "@/components/ProductImage";
 import { GoogleCompleteCard } from "@/components/GoogleCompleteCard";
+import { AddEmailCard } from "@/components/AddEmailCard";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { cancelBooking, cancelOrder } from "@/lib/bookings.functions";
@@ -185,6 +186,7 @@ function Account() {
 
           <div className="space-y-8">
             <GoogleCompleteCard phone={profile.phone} onPhoneSaved={(p: string) => setProfile((x) => ({ ...x, phone: p }))} />
+            <AddEmailCard />
             {/* Current cart */}
 
             <div>

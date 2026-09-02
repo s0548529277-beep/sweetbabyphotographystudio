@@ -7,3 +7,26 @@ export const PAYMENT_LABELS: Record<string, string> = {
   bit: "ביט / פייבוקס",
   later: "סגירה טלפונית עם הצלמת",
 };
+
+/**
+ * On-demand detail for the AI bots (site chat + voice — see
+ * get_photography_service_info in ai-tools.server.ts) about Michal's OWN
+ * photography services, as distinct from the studio-rental business: the
+ * same phone number (054-8529277) that customers call for studio rental
+ * also reaches Michal Sibony personally as a photographer who shoots
+ * newborn/family sessions herself, in the studio or on location.
+ *
+ * Package pricing/inclusions beyond what's below aren't hardcoded here on
+ * purpose — never invent specifics the bot doesn't actually have (SYSTEM's
+ * own rule). Point an interested customer to email/phone or the full page
+ * for anything more specific than this.
+ */
+export const PHOTOGRAPHY_SERVICE_TEXT_HE = [
+  "צילומים עם הצלמת מיכל סיבוני (בעלת הסטודיו) — שירות נפרד מהשכרת הסטודיו: מיכל עצמה מצלמת ניו-בורן ומשפחה, גם בסטודיו וגם בחוץ (בטבע/לוקיישן לפי בחירה).",
+  `מחיר סשן צילום רגיל בסטודיו (בלי חבילה/אלבום): ${PHOTOGRAPHY_HOURLY_RATE}₪ לשעה, אפשרות לחצי שעה (150₪), בניית סטים נוספים +100₪ — בדרך כלל כ-2 סטים בסשן של כשעה. המחיר הזה הוא לסשן רגיל בלבד — לא רלוונטי לחבילות (ראה סעיף הבא).`,
+  "⚠️ חבילות צילום (כולל חבילת ניו-בורן+אלבום) — אין מחיר מדויק וקבוע שידוע לבוט, ואסור להעריך/להמציא מחיר או להשתמש במחיר הסשן הרגיל בתור מחיר חבילה. לכל שאלה על חבילה ומחירה — התשובה תמיד: להפנות ליצירת קשר במייל (s0548529277@gmail.com) לקבלת הצעת מחיר מדויקת ממיכל עצמה.",
+  "חבילת ניו-בורן במימוש 'סל לידה' (הטבת קופת חולים) — רלוונטי רק למבוטחות כללית, לאומית או מכבי (לא קופות אחרות): סשן הצילום עצמו בחינם ללקוחה (ממומן על ידי הקופה), כולל אלבום. חשוב להזכיר את זה בעצמך כשמישהי שואלת על צילומי ניו-בורן — לא כל אחת יודעת שההטבה הזו קיימת. גם כאן — בלי מספרים מדויקים, רק את העיקרון שהסשן יוצא בחינם.",
+  "איך מנגנון הסל עובד באופן כללי (אם נשאלת): כל קופה מקצה סכום קבוע לסל לידה (בסביבות 2,300–2,350₪, משתנה מעט בין קופות). מול חשבונית בסכום שקצת גבוה מגובה הסל, הקופה מחזירה ללקוחה את מלוא סכום הסל, וההפרש הקטן שנשאר הוא בדרך כלל זעום — אצל מיכל, ההפרש הזה מכוסה ואין תשלום בפועל מהלקוחה על הסשן. מספרים מדויקים (סכום הסל לפי כל קופה, ניצול חלקי של הסל) עלולים להשתנות — לפרטים מדויקים ותיאום בפועל יש להפנות ליצירת קשר ישיר עם מיכל, לא להתחייב על מספרים שלא כתובים כאן.",
+  "צילומי חוץ (בטבע/לוקיישן): מתואמים אישית — הכי נכון להפנות ליצירת קשר במייל.",
+  "יצירת קשר: s0548529277@gmail.com · 054-8529277 (אותו מספר של הסטודיו) · עמוד מלא עם גלריה וקביעת תור ביומן: /studio-photography · אתר נוסף של מיכל: https://michalsiboni.co.il/",
+].join("\n");

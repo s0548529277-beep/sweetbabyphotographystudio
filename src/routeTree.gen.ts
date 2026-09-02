@@ -16,6 +16,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BookingRouteImport } from './routes/booking'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as CollageMakerRouteImport } from './routes/collage-maker'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as PaymentFailedRouteImport } from './routes/payment-failed'
 import { Route as PhotoRetouchRouteImport } from './routes/photo-retouch'
@@ -35,18 +36,24 @@ import { Route as ApiSendBookingRemindersRouteImport } from './routes/api.send-b
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogChalakahPhotoshootGuideRouteImport } from './routes/blog.chalakah-photoshoot-guide'
 import { Route as BlogEssentialNewbornPropsRouteImport } from './routes/blog.essential-newborn-props'
+import { Route as CollageStudioIndexRouteImport } from './routes/collage-studio.index'
+import { Route as CollageStudioTemplateIdRouteImport } from './routes/collage-studio.$templateId'
 import { Route as ItemsIdRouteImport } from './routes/items.$id'
 import { Route as PhotoThanksIdRouteImport } from './routes/photo-thanks.$id'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as AuthenticatedAdminBotKnowledgeRouteImport } from './routes/_authenticated/admin.bot-knowledge'
 import { Route as AuthenticatedAdminCalendarRouteImport } from './routes/_authenticated/admin.calendar'
 import { Route as AuthenticatedAdminChatLogsRouteImport } from './routes/_authenticated/admin.chat-logs'
 import { Route as AuthenticatedAdminClientsRouteImport } from './routes/_authenticated/admin.clients'
 import { Route as AuthenticatedAdminCouponsRouteImport } from './routes/_authenticated/admin.coupons'
+import { Route as AuthenticatedAdminEmailAssistantRouteImport } from './routes/_authenticated/admin.email-assistant'
 import { Route as AuthenticatedAdminFinanceRouteImport } from './routes/_authenticated/admin.finance'
 import { Route as AuthenticatedAdminGalleryRouteImport } from './routes/_authenticated/admin.gallery'
 import { Route as AuthenticatedAdminInspirationRouteImport } from './routes/_authenticated/admin.inspiration'
 import { Route as AuthenticatedAdminItemsRouteImport } from './routes/_authenticated/admin.items'
+import { Route as AuthenticatedAdminNewbornPackagesRouteImport } from './routes/_authenticated/admin.newborn-packages'
 import { Route as AuthenticatedAdminNewsletterRouteImport } from './routes/_authenticated/admin.newsletter'
+import { Route as AuthenticatedAdminNotificationsRouteImport } from './routes/_authenticated/admin.notifications'
 import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenticated/admin.orders'
 import { Route as AuthenticatedAdminPhotoBatchRouteImport } from './routes/_authenticated/admin.photo-batch'
 import { Route as AuthenticatedAdminPhotoClientsRouteImport } from './routes/_authenticated/admin.photo-clients'
@@ -56,8 +63,10 @@ import { Route as AuthenticatedAdminSiteBotRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminSiteBotAskRouteImport } from './routes/_authenticated/admin.site-bot-ask'
 import { Route as AuthenticatedAdminSubscriptionsRouteImport } from './routes/_authenticated/admin.subscriptions'
 import { Route as AuthenticatedAdminVoiceBotRouteImport } from './routes/_authenticated/admin.voice-bot'
+import { Route as AuthenticatedAdminVoiceBotTextRouteImport } from './routes/_authenticated/admin.voice-bot-text'
 import { Route as ApiVoiceIncomingRouteImport } from './routes/api.voice.incoming'
 import { Route as ApiVoiceRespondRouteImport } from './routes/api.voice.respond'
+import { Route as ApiYemotIvrRouteImport } from './routes/api.yemot.ivr'
 import { Route as DepositTypeIdRouteImport } from './routes/deposit.$type.$id'
 import { Route as SummaryTypeIdRouteImport } from './routes/summary.$type.$id'
 import { Route as AuthenticatedAdminPhotoClientsBookingIdRouteImport } from './routes/_authenticated/admin.photo-clients.$bookingId'
@@ -95,6 +104,11 @@ const CartRoute = CartRouteImport.update({
 const CheckoutRoute = CheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CollageMakerRoute = CollageMakerRouteImport.update({
+  id: '/collage-maker',
+  path: '/collage-maker',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -194,6 +208,16 @@ const BlogEssentialNewbornPropsRoute =
     path: '/blog/essential-newborn-props',
     getParentRoute: () => rootRouteImport,
   } as any)
+const CollageStudioIndexRoute = CollageStudioIndexRouteImport.update({
+  id: '/collage-studio/',
+  path: '/collage-studio/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CollageStudioTemplateIdRoute = CollageStudioTemplateIdRouteImport.update({
+  id: '/collage-studio/$templateId',
+  path: '/collage-studio/$templateId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ItemsIdRoute = ItemsIdRouteImport.update({
   id: '/items/$id',
   path: '/items/$id',
@@ -209,6 +233,12 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminBotKnowledgeRoute =
+  AuthenticatedAdminBotKnowledgeRouteImport.update({
+    id: '/bot-knowledge',
+    path: '/bot-knowledge',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminCalendarRoute =
   AuthenticatedAdminCalendarRouteImport.update({
     id: '/calendar',
@@ -231,6 +261,12 @@ const AuthenticatedAdminCouponsRoute =
   AuthenticatedAdminCouponsRouteImport.update({
     id: '/coupons',
     path: '/coupons',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminEmailAssistantRoute =
+  AuthenticatedAdminEmailAssistantRouteImport.update({
+    id: '/email-assistant',
+    path: '/email-assistant',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminFinanceRoute =
@@ -256,10 +292,22 @@ const AuthenticatedAdminItemsRoute = AuthenticatedAdminItemsRouteImport.update({
   path: '/items',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminNewbornPackagesRoute =
+  AuthenticatedAdminNewbornPackagesRouteImport.update({
+    id: '/newborn-packages',
+    path: '/newborn-packages',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminNewsletterRoute =
   AuthenticatedAdminNewsletterRouteImport.update({
     id: '/newsletter',
     path: '/newsletter',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminNotificationsRoute =
+  AuthenticatedAdminNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminOrdersRoute =
@@ -316,6 +364,12 @@ const AuthenticatedAdminVoiceBotRoute =
     path: '/voice-bot',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminVoiceBotTextRoute =
+  AuthenticatedAdminVoiceBotTextRouteImport.update({
+    id: '/voice-bot-text',
+    path: '/voice-bot-text',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const ApiVoiceIncomingRoute = ApiVoiceIncomingRouteImport.update({
   id: '/api/voice/incoming',
   path: '/api/voice/incoming',
@@ -324,6 +378,11 @@ const ApiVoiceIncomingRoute = ApiVoiceIncomingRouteImport.update({
 const ApiVoiceRespondRoute = ApiVoiceRespondRouteImport.update({
   id: '/api/voice/respond',
   path: '/api/voice/respond',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiYemotIvrRoute = ApiYemotIvrRouteImport.update({
+  id: '/api/yemot/ivr',
+  path: '/api/yemot/ivr',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DepositTypeIdRoute = DepositTypeIdRouteImport.update({
@@ -356,6 +415,7 @@ export interface FileRoutesByFullPath {
   '/booking': typeof BookingRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
+  '/collage-maker': typeof CollageMakerRoute
   '/contact': typeof ContactRoute
   '/payment-failed': typeof PaymentFailedRoute
   '/photo-retouch': typeof PhotoRetouchRoute
@@ -374,18 +434,24 @@ export interface FileRoutesByFullPath {
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
+  '/collage-studio/$templateId': typeof CollageStudioTemplateIdRoute
   '/items/$id': typeof ItemsIdRoute
   '/photo-thanks/$id': typeof PhotoThanksIdRoute
   '/blog/': typeof BlogIndexRoute
+  '/collage-studio/': typeof CollageStudioIndexRoute
+  '/admin/bot-knowledge': typeof AuthenticatedAdminBotKnowledgeRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/chat-logs': typeof AuthenticatedAdminChatLogsRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/admin/coupons': typeof AuthenticatedAdminCouponsRoute
+  '/admin/email-assistant': typeof AuthenticatedAdminEmailAssistantRoute
   '/admin/finance': typeof AuthenticatedAdminFinanceRoute
   '/admin/gallery': typeof AuthenticatedAdminGalleryRoute
   '/admin/inspiration': typeof AuthenticatedAdminInspirationRoute
   '/admin/items': typeof AuthenticatedAdminItemsRoute
+  '/admin/newborn-packages': typeof AuthenticatedAdminNewbornPackagesRoute
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
+  '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/admin/photo-batch': typeof AuthenticatedAdminPhotoBatchRoute
   '/admin/photo-clients': typeof AuthenticatedAdminPhotoClientsRouteWithChildren
@@ -395,8 +461,10 @@ export interface FileRoutesByFullPath {
   '/admin/site-bot-ask': typeof AuthenticatedAdminSiteBotAskRoute
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/admin/voice-bot': typeof AuthenticatedAdminVoiceBotRoute
+  '/admin/voice-bot-text': typeof AuthenticatedAdminVoiceBotTextRoute
   '/api/voice/incoming': typeof ApiVoiceIncomingRoute
   '/api/voice/respond': typeof ApiVoiceRespondRoute
+  '/api/yemot/ivr': typeof ApiYemotIvrRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -410,6 +478,7 @@ export interface FileRoutesByTo {
   '/booking': typeof BookingRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
+  '/collage-maker': typeof CollageMakerRoute
   '/contact': typeof ContactRoute
   '/payment-failed': typeof PaymentFailedRoute
   '/photo-retouch': typeof PhotoRetouchRoute
@@ -427,18 +496,24 @@ export interface FileRoutesByTo {
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
+  '/collage-studio/$templateId': typeof CollageStudioTemplateIdRoute
   '/items/$id': typeof ItemsIdRoute
   '/photo-thanks/$id': typeof PhotoThanksIdRoute
   '/blog': typeof BlogIndexRoute
+  '/collage-studio': typeof CollageStudioIndexRoute
+  '/admin/bot-knowledge': typeof AuthenticatedAdminBotKnowledgeRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/chat-logs': typeof AuthenticatedAdminChatLogsRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/admin/coupons': typeof AuthenticatedAdminCouponsRoute
+  '/admin/email-assistant': typeof AuthenticatedAdminEmailAssistantRoute
   '/admin/finance': typeof AuthenticatedAdminFinanceRoute
   '/admin/gallery': typeof AuthenticatedAdminGalleryRoute
   '/admin/inspiration': typeof AuthenticatedAdminInspirationRoute
   '/admin/items': typeof AuthenticatedAdminItemsRoute
+  '/admin/newborn-packages': typeof AuthenticatedAdminNewbornPackagesRoute
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
+  '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/admin/photo-batch': typeof AuthenticatedAdminPhotoBatchRoute
   '/admin/photo-clients': typeof AuthenticatedAdminPhotoClientsRouteWithChildren
@@ -448,8 +523,10 @@ export interface FileRoutesByTo {
   '/admin/site-bot-ask': typeof AuthenticatedAdminSiteBotAskRoute
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/admin/voice-bot': typeof AuthenticatedAdminVoiceBotRoute
+  '/admin/voice-bot-text': typeof AuthenticatedAdminVoiceBotTextRoute
   '/api/voice/incoming': typeof ApiVoiceIncomingRoute
   '/api/voice/respond': typeof ApiVoiceRespondRoute
+  '/api/yemot/ivr': typeof ApiYemotIvrRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -465,6 +542,7 @@ export interface FileRoutesById {
   '/booking': typeof BookingRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
+  '/collage-maker': typeof CollageMakerRoute
   '/contact': typeof ContactRoute
   '/payment-failed': typeof PaymentFailedRoute
   '/photo-retouch': typeof PhotoRetouchRoute
@@ -483,18 +561,24 @@ export interface FileRoutesById {
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
+  '/collage-studio/$templateId': typeof CollageStudioTemplateIdRoute
   '/items/$id': typeof ItemsIdRoute
   '/photo-thanks/$id': typeof PhotoThanksIdRoute
   '/blog/': typeof BlogIndexRoute
+  '/collage-studio/': typeof CollageStudioIndexRoute
+  '/_authenticated/admin/bot-knowledge': typeof AuthenticatedAdminBotKnowledgeRoute
   '/_authenticated/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/_authenticated/admin/chat-logs': typeof AuthenticatedAdminChatLogsRoute
   '/_authenticated/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/_authenticated/admin/coupons': typeof AuthenticatedAdminCouponsRoute
+  '/_authenticated/admin/email-assistant': typeof AuthenticatedAdminEmailAssistantRoute
   '/_authenticated/admin/finance': typeof AuthenticatedAdminFinanceRoute
   '/_authenticated/admin/gallery': typeof AuthenticatedAdminGalleryRoute
   '/_authenticated/admin/inspiration': typeof AuthenticatedAdminInspirationRoute
   '/_authenticated/admin/items': typeof AuthenticatedAdminItemsRoute
+  '/_authenticated/admin/newborn-packages': typeof AuthenticatedAdminNewbornPackagesRoute
   '/_authenticated/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
+  '/_authenticated/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/_authenticated/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/_authenticated/admin/photo-batch': typeof AuthenticatedAdminPhotoBatchRoute
   '/_authenticated/admin/photo-clients': typeof AuthenticatedAdminPhotoClientsRouteWithChildren
@@ -504,8 +588,10 @@ export interface FileRoutesById {
   '/_authenticated/admin/site-bot-ask': typeof AuthenticatedAdminSiteBotAskRoute
   '/_authenticated/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/_authenticated/admin/voice-bot': typeof AuthenticatedAdminVoiceBotRoute
+  '/_authenticated/admin/voice-bot-text': typeof AuthenticatedAdminVoiceBotTextRoute
   '/api/voice/incoming': typeof ApiVoiceIncomingRoute
   '/api/voice/respond': typeof ApiVoiceRespondRoute
+  '/api/yemot/ivr': typeof ApiYemotIvrRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -521,6 +607,7 @@ export interface FileRouteTypes {
     | '/booking'
     | '/cart'
     | '/checkout'
+    | '/collage-maker'
     | '/contact'
     | '/payment-failed'
     | '/photo-retouch'
@@ -539,18 +626,24 @@ export interface FileRouteTypes {
     | '/api/send-booking-reminders'
     | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
+    | '/collage-studio/$templateId'
     | '/items/$id'
     | '/photo-thanks/$id'
     | '/blog/'
+    | '/collage-studio/'
+    | '/admin/bot-knowledge'
     | '/admin/calendar'
     | '/admin/chat-logs'
     | '/admin/clients'
     | '/admin/coupons'
+    | '/admin/email-assistant'
     | '/admin/finance'
     | '/admin/gallery'
     | '/admin/inspiration'
     | '/admin/items'
+    | '/admin/newborn-packages'
     | '/admin/newsletter'
+    | '/admin/notifications'
     | '/admin/orders'
     | '/admin/photo-batch'
     | '/admin/photo-clients'
@@ -560,8 +653,10 @@ export interface FileRouteTypes {
     | '/admin/site-bot-ask'
     | '/admin/subscriptions'
     | '/admin/voice-bot'
+    | '/admin/voice-bot-text'
     | '/api/voice/incoming'
     | '/api/voice/respond'
+    | '/api/yemot/ivr'
     | '/deposit/$type/$id'
     | '/summary/$type/$id'
     | '/admin/'
@@ -575,6 +670,7 @@ export interface FileRouteTypes {
     | '/booking'
     | '/cart'
     | '/checkout'
+    | '/collage-maker'
     | '/contact'
     | '/payment-failed'
     | '/photo-retouch'
@@ -592,18 +688,24 @@ export interface FileRouteTypes {
     | '/api/send-booking-reminders'
     | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
+    | '/collage-studio/$templateId'
     | '/items/$id'
     | '/photo-thanks/$id'
     | '/blog'
+    | '/collage-studio'
+    | '/admin/bot-knowledge'
     | '/admin/calendar'
     | '/admin/chat-logs'
     | '/admin/clients'
     | '/admin/coupons'
+    | '/admin/email-assistant'
     | '/admin/finance'
     | '/admin/gallery'
     | '/admin/inspiration'
     | '/admin/items'
+    | '/admin/newborn-packages'
     | '/admin/newsletter'
+    | '/admin/notifications'
     | '/admin/orders'
     | '/admin/photo-batch'
     | '/admin/photo-clients'
@@ -613,8 +715,10 @@ export interface FileRouteTypes {
     | '/admin/site-bot-ask'
     | '/admin/subscriptions'
     | '/admin/voice-bot'
+    | '/admin/voice-bot-text'
     | '/api/voice/incoming'
     | '/api/voice/respond'
+    | '/api/yemot/ivr'
     | '/deposit/$type/$id'
     | '/summary/$type/$id'
     | '/admin'
@@ -629,6 +733,7 @@ export interface FileRouteTypes {
     | '/booking'
     | '/cart'
     | '/checkout'
+    | '/collage-maker'
     | '/contact'
     | '/payment-failed'
     | '/photo-retouch'
@@ -647,18 +752,24 @@ export interface FileRouteTypes {
     | '/api/send-booking-reminders'
     | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
+    | '/collage-studio/$templateId'
     | '/items/$id'
     | '/photo-thanks/$id'
     | '/blog/'
+    | '/collage-studio/'
+    | '/_authenticated/admin/bot-knowledge'
     | '/_authenticated/admin/calendar'
     | '/_authenticated/admin/chat-logs'
     | '/_authenticated/admin/clients'
     | '/_authenticated/admin/coupons'
+    | '/_authenticated/admin/email-assistant'
     | '/_authenticated/admin/finance'
     | '/_authenticated/admin/gallery'
     | '/_authenticated/admin/inspiration'
     | '/_authenticated/admin/items'
+    | '/_authenticated/admin/newborn-packages'
     | '/_authenticated/admin/newsletter'
+    | '/_authenticated/admin/notifications'
     | '/_authenticated/admin/orders'
     | '/_authenticated/admin/photo-batch'
     | '/_authenticated/admin/photo-clients'
@@ -668,8 +779,10 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/site-bot-ask'
     | '/_authenticated/admin/subscriptions'
     | '/_authenticated/admin/voice-bot'
+    | '/_authenticated/admin/voice-bot-text'
     | '/api/voice/incoming'
     | '/api/voice/respond'
+    | '/api/yemot/ivr'
     | '/deposit/$type/$id'
     | '/summary/$type/$id'
     | '/_authenticated/admin/'
@@ -685,6 +798,7 @@ export interface RootRouteChildren {
   BookingRoute: typeof BookingRoute
   CartRoute: typeof CartRoute
   CheckoutRoute: typeof CheckoutRoute
+  CollageMakerRoute: typeof CollageMakerRoute
   ContactRoute: typeof ContactRoute
   PaymentFailedRoute: typeof PaymentFailedRoute
   PhotoRetouchRoute: typeof PhotoRetouchRoute
@@ -700,11 +814,14 @@ export interface RootRouteChildren {
   ApiSendBookingRemindersRoute: typeof ApiSendBookingRemindersRoute
   BlogChalakahPhotoshootGuideRoute: typeof BlogChalakahPhotoshootGuideRoute
   BlogEssentialNewbornPropsRoute: typeof BlogEssentialNewbornPropsRoute
+  CollageStudioTemplateIdRoute: typeof CollageStudioTemplateIdRoute
   ItemsIdRoute: typeof ItemsIdRoute
   PhotoThanksIdRoute: typeof PhotoThanksIdRoute
   BlogIndexRoute: typeof BlogIndexRoute
+  CollageStudioIndexRoute: typeof CollageStudioIndexRoute
   ApiVoiceIncomingRoute: typeof ApiVoiceIncomingRoute
   ApiVoiceRespondRoute: typeof ApiVoiceRespondRoute
+  ApiYemotIvrRoute: typeof ApiYemotIvrRoute
   DepositTypeIdRoute: typeof DepositTypeIdRoute
   SummaryTypeIdRoute: typeof SummaryTypeIdRoute
 }
@@ -758,6 +875,13 @@ declare module '@tanstack/react-router' {
       path: '/checkout'
       fullPath: '/checkout'
       preLoaderRoute: typeof CheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/collage-maker': {
+      id: '/collage-maker'
+      path: '/collage-maker'
+      fullPath: '/collage-maker'
+      preLoaderRoute: typeof CollageMakerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -893,6 +1017,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogEssentialNewbornPropsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/collage-studio/': {
+      id: '/collage-studio/'
+      path: '/collage-studio'
+      fullPath: '/collage-studio/'
+      preLoaderRoute: typeof CollageStudioIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/collage-studio/$templateId': {
+      id: '/collage-studio/$templateId'
+      path: '/collage-studio/$templateId'
+      fullPath: '/collage-studio/$templateId'
+      preLoaderRoute: typeof CollageStudioTemplateIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/items/$id': {
       id: '/items/$id'
       path: '/items/$id'
@@ -912,6 +1050,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/bot-knowledge': {
+      id: '/_authenticated/admin/bot-knowledge'
+      path: '/bot-knowledge'
+      fullPath: '/admin/bot-knowledge'
+      preLoaderRoute: typeof AuthenticatedAdminBotKnowledgeRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/calendar': {
@@ -942,6 +1087,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCouponsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/email-assistant': {
+      id: '/_authenticated/admin/email-assistant'
+      path: '/email-assistant'
+      fullPath: '/admin/email-assistant'
+      preLoaderRoute: typeof AuthenticatedAdminEmailAssistantRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/finance': {
       id: '/_authenticated/admin/finance'
       path: '/finance'
@@ -970,11 +1122,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminItemsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/newborn-packages': {
+      id: '/_authenticated/admin/newborn-packages'
+      path: '/newborn-packages'
+      fullPath: '/admin/newborn-packages'
+      preLoaderRoute: typeof AuthenticatedAdminNewbornPackagesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/newsletter': {
       id: '/_authenticated/admin/newsletter'
       path: '/newsletter'
       fullPath: '/admin/newsletter'
       preLoaderRoute: typeof AuthenticatedAdminNewsletterRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/notifications': {
+      id: '/_authenticated/admin/notifications'
+      path: '/notifications'
+      fullPath: '/admin/notifications'
+      preLoaderRoute: typeof AuthenticatedAdminNotificationsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/orders': {
@@ -1040,6 +1206,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminVoiceBotRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/voice-bot-text': {
+      id: '/_authenticated/admin/voice-bot-text'
+      path: '/voice-bot-text'
+      fullPath: '/admin/voice-bot-text'
+      preLoaderRoute: typeof AuthenticatedAdminVoiceBotTextRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/api/voice/incoming': {
       id: '/api/voice/incoming'
       path: '/api/voice/incoming'
@@ -1052,6 +1225,13 @@ declare module '@tanstack/react-router' {
       path: '/api/voice/respond'
       fullPath: '/api/voice/respond'
       preLoaderRoute: typeof ApiVoiceRespondRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/yemot/ivr': {
+      id: '/api/yemot/ivr'
+      path: '/api/yemot/ivr'
+      fullPath: '/api/yemot/ivr'
+      preLoaderRoute: typeof ApiYemotIvrRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/deposit/$type/$id': {
@@ -1101,15 +1281,19 @@ const AuthenticatedAdminPhotoClientsRouteWithChildren =
   )
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminBotKnowledgeRoute: typeof AuthenticatedAdminBotKnowledgeRoute
   AuthenticatedAdminCalendarRoute: typeof AuthenticatedAdminCalendarRoute
   AuthenticatedAdminChatLogsRoute: typeof AuthenticatedAdminChatLogsRoute
   AuthenticatedAdminClientsRoute: typeof AuthenticatedAdminClientsRoute
   AuthenticatedAdminCouponsRoute: typeof AuthenticatedAdminCouponsRoute
+  AuthenticatedAdminEmailAssistantRoute: typeof AuthenticatedAdminEmailAssistantRoute
   AuthenticatedAdminFinanceRoute: typeof AuthenticatedAdminFinanceRoute
   AuthenticatedAdminGalleryRoute: typeof AuthenticatedAdminGalleryRoute
   AuthenticatedAdminInspirationRoute: typeof AuthenticatedAdminInspirationRoute
   AuthenticatedAdminItemsRoute: typeof AuthenticatedAdminItemsRoute
+  AuthenticatedAdminNewbornPackagesRoute: typeof AuthenticatedAdminNewbornPackagesRoute
   AuthenticatedAdminNewsletterRoute: typeof AuthenticatedAdminNewsletterRoute
+  AuthenticatedAdminNotificationsRoute: typeof AuthenticatedAdminNotificationsRoute
   AuthenticatedAdminOrdersRoute: typeof AuthenticatedAdminOrdersRoute
   AuthenticatedAdminPhotoBatchRoute: typeof AuthenticatedAdminPhotoBatchRoute
   AuthenticatedAdminPhotoClientsRoute: typeof AuthenticatedAdminPhotoClientsRouteWithChildren
@@ -1119,19 +1303,25 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminSiteBotAskRoute: typeof AuthenticatedAdminSiteBotAskRoute
   AuthenticatedAdminSubscriptionsRoute: typeof AuthenticatedAdminSubscriptionsRoute
   AuthenticatedAdminVoiceBotRoute: typeof AuthenticatedAdminVoiceBotRoute
+  AuthenticatedAdminVoiceBotTextRoute: typeof AuthenticatedAdminVoiceBotTextRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminBotKnowledgeRoute: AuthenticatedAdminBotKnowledgeRoute,
   AuthenticatedAdminCalendarRoute: AuthenticatedAdminCalendarRoute,
   AuthenticatedAdminChatLogsRoute: AuthenticatedAdminChatLogsRoute,
   AuthenticatedAdminClientsRoute: AuthenticatedAdminClientsRoute,
   AuthenticatedAdminCouponsRoute: AuthenticatedAdminCouponsRoute,
+  AuthenticatedAdminEmailAssistantRoute: AuthenticatedAdminEmailAssistantRoute,
   AuthenticatedAdminFinanceRoute: AuthenticatedAdminFinanceRoute,
   AuthenticatedAdminGalleryRoute: AuthenticatedAdminGalleryRoute,
   AuthenticatedAdminInspirationRoute: AuthenticatedAdminInspirationRoute,
   AuthenticatedAdminItemsRoute: AuthenticatedAdminItemsRoute,
+  AuthenticatedAdminNewbornPackagesRoute:
+    AuthenticatedAdminNewbornPackagesRoute,
   AuthenticatedAdminNewsletterRoute: AuthenticatedAdminNewsletterRoute,
+  AuthenticatedAdminNotificationsRoute: AuthenticatedAdminNotificationsRoute,
   AuthenticatedAdminOrdersRoute: AuthenticatedAdminOrdersRoute,
   AuthenticatedAdminPhotoBatchRoute: AuthenticatedAdminPhotoBatchRoute,
   AuthenticatedAdminPhotoClientsRoute:
@@ -1142,6 +1332,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminSiteBotAskRoute: AuthenticatedAdminSiteBotAskRoute,
   AuthenticatedAdminSubscriptionsRoute: AuthenticatedAdminSubscriptionsRoute,
   AuthenticatedAdminVoiceBotRoute: AuthenticatedAdminVoiceBotRoute,
+  AuthenticatedAdminVoiceBotTextRoute: AuthenticatedAdminVoiceBotTextRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }
 
@@ -1173,6 +1364,7 @@ const rootRouteChildren: RootRouteChildren = {
   BookingRoute: BookingRoute,
   CartRoute: CartRoute,
   CheckoutRoute: CheckoutRoute,
+  CollageMakerRoute: CollageMakerRoute,
   ContactRoute: ContactRoute,
   PaymentFailedRoute: PaymentFailedRoute,
   PhotoRetouchRoute: PhotoRetouchRoute,
@@ -1188,11 +1380,14 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSendBookingRemindersRoute: ApiSendBookingRemindersRoute,
   BlogChalakahPhotoshootGuideRoute: BlogChalakahPhotoshootGuideRoute,
   BlogEssentialNewbornPropsRoute: BlogEssentialNewbornPropsRoute,
+  CollageStudioTemplateIdRoute: CollageStudioTemplateIdRoute,
   ItemsIdRoute: ItemsIdRoute,
   PhotoThanksIdRoute: PhotoThanksIdRoute,
   BlogIndexRoute: BlogIndexRoute,
+  CollageStudioIndexRoute: CollageStudioIndexRoute,
   ApiVoiceIncomingRoute: ApiVoiceIncomingRoute,
   ApiVoiceRespondRoute: ApiVoiceRespondRoute,
+  ApiYemotIvrRoute: ApiYemotIvrRoute,
   DepositTypeIdRoute: DepositTypeIdRoute,
   SummaryTypeIdRoute: SummaryTypeIdRoute,
 }

@@ -1,0 +1,161 @@
+// Server-only: recognizes a phone caller (Yemot or Twilio) against the
+// site's own "personal area" accounts (profiles.phone), so the bot can
+// greet a known customer by name and reference her upcoming booking
+// instead of starting from zero every call. Best-effort throughout — a
+// lookup failure or no-match just falls back to the plain, impersonal
+// greeting/context, it never blocks or breaks the call.
+
+function lastDigits(phone: string, n = 8): string {
+  return phone.replace(/\D/g, "").slice(-n);
+}
+
+export type CallerProfile = {
+  userId: string;
+  name: string | null;
+  email: string | null;
+  /** Short Hebrew one-liner about her nearest upcoming booking/order, for the AI's context — null if she has none. */
+  upcomingText: string | null;
+};
+
+/**
+ * Matches the incoming call's phone number against profiles.phone by
+ * comparing the last 8 digits — robust to the "+972" / leading "0" /
+ * dashes formatting differences a phone number can show up in. profiles.phone
+ * is free text (no normalized column to index), so this pre-filters with an
+ * ILIKE on the last 6 digits and confirms the real match in JS.
+ */
+export async function lookupCallerProfile(callerPhone: string): Promise<CallerProfile | null> {
+  const digits = lastDigits(callerPhone);
+  if (digits.length < 6) return null; // too short a number to match reliably
+
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: candidates } = await supabaseAdmin
+      .from("profiles")
+      .select("id, full_name, phone")
+      .ilike("phone", `%${digits.slice(-6)}%`);
+
+    const match = (candidates ?? []).find((p: any) => lastDigits(String(p.phone ?? "")) === digits);
+    if (!match) return null;
+
+    const today = new Date().toISOString().slice(0, 10);
+    const [{ data: booking }, { data: order }] = await Promise.all([
+      supabaseAdmin
+        .from("bookings")
+        .select("session_date, start_time, end_time")
+        .eq("user_id", match.id)
+        .neq("status", "cancelled")
+        .gte("session_date", today)
+        .order("session_date", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("orders")
+        .select("session_date, pickup_at")
+        .eq("user_id", match.id)
+        .neq("status", "cancelled")
+        .gte("session_date", today)
+        .order("session_date", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    let upcomingText: string | null = null;
+    if (booking) {
+      upcomingText = `יש לה הזמנת סטודיו קרובה: ${(booking as any).session_date} בשעה ${String((booking as any).start_time).slice(0, 5)}-${String((booking as any).end_time).slice(0, 5)}.`;
+    } else if (order) {
+      upcomingText = `יש לה הזמנת אביזרים קרובה, איסוף בתאריך ${(order as any).session_date}.`;
+    }
+
+    // profiles has no email column (see admin-site-bot's own schema notes —
+    // email lives in the internal auth.users table). Fetched here via the
+    // Auth Admin API (only reachable with the service-role client, exactly
+    // what supabaseAdmin is) so a recognized returning caller never has to
+    // spell her email out loud on the phone at all — see runVoiceTurn's use
+    // of caller.email below.
+    let email: string | null = null;
+    try {
+      const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(match.id as string);
+      email = authUser?.user?.email ?? null;
+    } catch (e) {
+      console.error("[SWEETBABY] caller email lookup failed", e);
+    }
+
+    return { userId: match.id as string, name: ((match as any).full_name as string | null) || null, email, upcomingText };
+  } catch (e) {
+    console.error("[SWEETBABY] caller profile lookup failed", e);
+    return null;
+  }
+}
+
+/** Builds the very first thing the caller hears — personalized with her name up front when she's a recognized account, otherwise the plain greeting. */
+export async function personalizedGreeting(greetingAndMenu: string, callerPhone: string): Promise<string> {
+  // Checked first, before the generic profiles-table lookup below — the
+  // studio's own admin numbers (voice-admin.server.ts) don't necessarily
+  // have a real customer profile row, so they'd otherwise get the plain,
+  // impersonal greeting.
+  const { adminVoiceCallerName } = await import("./voice-admin.server");
+  const adminName = adminVoiceCallerName(callerPhone);
+  if (adminName) return `שלום ${adminName}, בעלת הסטודיו! ${greetingAndMenu}`;
+
+  const profile = await lookupCallerProfile(callerPhone);
+  if (!profile?.name) return greetingAndMenu;
+  return `שלום ${profile.name}! ${greetingAndMenu}`;
+}
+
+export type CallerAccountSummary = {
+  bookings: Array<{ date: string; time: string; status: string; price: number | null }>;
+  orders: Array<{ date: string; status: string; total: number | null }>;
+  creditBalance: number | null;
+  passes: Array<{ planName: string; entriesLeft: number; status: string }>;
+};
+
+/**
+ * A recognized customer's own full personal-area summary, for the "any
+ * identified customer can ask about her whole personal area" voice
+ * capability — deliberately scoped to exactly her own userId (never
+ * cross-customer), mirroring what /account already shows her on the site,
+ * just condensed for speech. Safe to expose to any matched caller since
+ * it's her own data — no PIN/admin gate needed here, unlike
+ * voice-admin.server.ts's owner-only tools.
+ */
+export async function getCallerAccountSummary(userId: string): Promise<CallerAccountSummary> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const today = new Date().toISOString().slice(0, 10);
+
+  const [bookingsRes, ordersRes, loyaltyRes, passesRes] = await Promise.all([
+    supabaseAdmin
+      .from("bookings")
+      .select("session_date, start_time, status, price")
+      .eq("user_id", userId)
+      .neq("status", "cancelled")
+      .gte("session_date", today)
+      .order("session_date", { ascending: true })
+      .limit(5),
+    supabaseAdmin
+      .from("orders")
+      .select("session_date, status, total")
+      .eq("user_id", userId)
+      .neq("status", "cancelled")
+      .order("created_at", { ascending: false })
+      .limit(5),
+    supabaseAdmin
+      .from("customer_loyalty" as never)
+      .select("credit_balance")
+      .eq("user_id" as never, userId as never)
+      .maybeSingle(),
+    supabaseAdmin
+      .from("subscription_passes" as never)
+      .select("plan_name, total_entries, entries_used, status")
+      .eq("user_id" as never, userId as never)
+      .order("purchased_at" as never, { ascending: false } as never)
+      .limit(5),
+  ]);
+
+  return {
+    bookings: (bookingsRes.data ?? []).map((b: any) => ({ date: b.session_date, time: String(b.start_time).slice(0, 5), status: b.status, price: b.price ?? null })),
+    orders: (ordersRes.data ?? []).map((o: any) => ({ date: o.session_date, status: o.status, total: o.total ?? null })),
+    creditBalance: (loyaltyRes.data as any)?.credit_balance ?? null,
+    passes: ((passesRes.data ?? []) as any[]).map((p) => ({ planName: p.plan_name, entriesLeft: Math.max(0, (p.total_entries ?? 0) - (p.entries_used ?? 0)), status: p.status })),
+  };
+}

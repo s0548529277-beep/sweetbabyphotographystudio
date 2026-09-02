@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
-import { Camera, Home as HomeIcon, Sparkles, ArrowLeft, MapPin, Star, Heart, Clock } from "lucide-react";
+import { Camera, Home as HomeIcon, Sparkles, ArrowLeft, MapPin, Star, Heart, Clock, LayoutGrid } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CountUp } from "@/components/CountUp";
@@ -412,7 +412,40 @@ function Home() {
         </div>
       </section>
 
-
+      {/* COLLAGE STUDIO — new "קולאזים" category */}
+      <section className="container-page pb-16 md:pb-24" dir="rtl">
+        <motion.div initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={0} variants={fadeUp}>
+          <Link
+            to="/collage-studio"
+            className="group block rounded-[2rem] overflow-hidden border border-[#2d3d2b]/5 bg-white hover:shadow-2xl transition-all hover:-translate-y-1"
+          >
+            <div className="grid md:grid-cols-[1.1fr_1fr] items-center">
+              <div className="p-8 md:p-12">
+                <div className="text-[11px] tracking-[0.28em] uppercase text-[#6b8a63] mb-3">04 · Collages</div>
+                <h2 className="text-3xl md:text-4xl text-[#2d3d2b] mb-3" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                  קולאז'ים
+                </h2>
+                <p className="text-sm text-[#2d3d2b]/70 leading-relaxed max-w-md mb-6">
+                  סטודיו קולאז'ים מקצועי — בוחרים תבנית, מעלים תמונות, עורכים טקסטים וצבעים, ומורידים עיצוב מוכן להדפסה. כלי עיצוב אמיתי, בעברית, לצלמות.
+                </p>
+                <span className="inline-flex items-center gap-2 bg-[#2d3d2b] text-[#f8ede4] px-6 py-3 rounded-full text-sm font-semibold group-hover:bg-[#2d3d2b]/90 transition-colors">
+                  כניסה לסטודיו קולאז'ים <ArrowLeft className="h-3.5 w-3.5" />
+                </span>
+              </div>
+              <div className="h-56 md:h-full min-h-56 relative overflow-hidden bg-[#f5d5cf] flex items-center justify-center">
+                <div className="grid grid-cols-3 gap-2 p-6 w-full max-w-xs">
+                  {[0, 1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className={`rounded-lg bg-white/70 border border-white ${i === 0 ? "col-span-2 row-span-2 aspect-square" : "aspect-square"}`} />
+                  ))}
+                </div>
+                <div className="absolute top-4 left-4 h-11 w-11 rounded-full bg-white/90 backdrop-blur flex items-center justify-center">
+                  <LayoutGrid className="h-5 w-5 text-[#2d3d2b]" />
+                </div>
+              </div>
+            </div>
+          </Link>
+        </motion.div>
+      </section>
 
       {/* TRUST STRIP */}
       <section className="container-page pb-16 md:pb-24" dir="rtl">

@@ -1,19 +1,19 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { generateText } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { createLovableAiGatewayProvider } from "./ai-gateway.server";
+import { generateTextResilient } from "./ai-gateway.server";
 
-// Routed through the same Lovable AI Gateway the customer-facing ChatBot
-// already uses (see ai.functions.ts) — reuses the existing LOVABLE_API_KEY
-// secret instead of requiring a separate ANTHROPIC_API_KEY to be added.
-const AI_MODEL = "google/gemini-2.5-flash";
-
-function aiGateway() {
-  const key = process.env.LOVABLE_API_KEY;
-  if (!key) throw new Error("LOVABLE_API_KEY לא מוגדר ב-Supabase secrets");
-  return createLovableAiGatewayProvider(key);
-}
+// Every AI call in this file (both the read-only "ask about the data" bot
+// and the code-EDITING bot below) now goes through generateTextResilient —
+// the same Gemini → Groq → Lovable fallback chain the customer-facing bots
+// use — instead of Lovable alone (see git history: this used to be
+// Lovable-only, which meant this admin tool broke every time the Lovable
+// AI Gateway ran out of credits, same as the customer bot did before
+// tonight's fix). A whole-file rewrite can be a genuinely large response,
+// so it's given a longer budget (60s) than the default; this is a
+// background admin action (posts a PR, no one is on hold waiting on a live
+// call), so the extra time is cheap and safe.
+const FILE_EDIT_TIMEOUT_MS = 60_000;
 
 async function assertAdmin(supabase: any, userId: string) {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
@@ -49,8 +49,6 @@ async function gh(path: string, init?: RequestInit) {
 
 /** Asks the AI to rewrite one file's full contents per the admin's instruction. Returns the new file text and a one-line summary of what changed. */
 async function askClaudeForFileEdit(currentContent: string, targetPath: string, instruction: string): Promise<{ newContent: string; summary: string }> {
-  const gateway = aiGateway();
-
   const system = `אתה עורך קוד עבור אתר סטודיו צילום (React + TanStack Start + Tailwind, RTL בעברית). תפקידך: לקבל תוכן קובץ קיים ובקשת שינוי בעברית, ולהחזיר את הקובץ המלא אחרי השינוי — בלי לשבור קוד עובד.
 
 כללים מחייבים:
@@ -72,11 +70,7 @@ ${currentContent}
 
 בקשת השינוי: ${instruction}`;
 
-  const { text } = await generateText({
-    model: gateway(AI_MODEL),
-    system,
-    messages: [{ role: "user", content: user }],
-  });
+  const { text } = await generateTextResilient({ system, messages: [{ role: "user", content: user }] }, FILE_EDIT_TIMEOUT_MS);
 
   let parsed: { new_content: string; summary: string };
   try {
@@ -265,9 +259,7 @@ export const reviseSiteChange = createServerFn({ method: "POST" })
  */
 async function describeVisibleChange(patch: string, targetPath: string): Promise<string> {
   if (!patch) return "";
-  const gateway = aiGateway();
-  const { text } = await generateText({
-    model: gateway(AI_MODEL),
+  const { text } = await generateTextResilient({
     system: `את מסבירה למנהלת סטודיו צילום שלא קוראת קוד מה בדיוק ישתנה למי שיבקר באתר, על סמך diff של קובץ. תתמקדי אך ורק במה שרואים: טקסט/מילים שהשתנו (תני ציטוט "היה" → "יהיה"), אלמנטים שנוספו/הוסרו, שינויי עיצוב מורגשים (צבע, גודל, מרווח, מיקום). אל תסבירי קוד, שמות משתנים, לוגיקה טכנית, או דברים שלא משפיעים על מה שרואים בעין. אם השינוי טכני לגמרי בלי השפעה נראית לעין (תיקון קוד פנימי, לוגיקה) — תגידי את זה במפורש בפשטות. תשובה קצרה, נקודות ברורות, בלי מבוא.`,
     messages: [{ role: "user", content: `קובץ: ${targetPath}\n\ndiff:\n${patch.slice(0, 8000)}` }],
   });
@@ -348,8 +340,6 @@ function historyBlock(history: ChatTurn[]): string {
 
 /** Asks Claude to write a single read-only SELECT that answers the question, given a fixed summary of the schema and the recent conversation for context. */
 async function askClaudeForSql(question: string, history: ChatTurn[]): Promise<string | null> {
-  const gateway = aiGateway();
-
   const schema = `טבלאות רלוונטיות (סכמה ציבורית, PostgreSQL) — הרשימה המלאה, אל תניחי עמודות שלא מפורטות כאן:
 
 - orders — הזמנות אביזרים (props). id, user_id, track, status ('pending'/'confirmed'/'active'/'returned'/'cancelled'), total, deposit_amount, balance_amount, deposit_status, balance_method ('cash'/'card'/'transfer'/'bit'), coupon_code, coupon_discount, credit_used_cashback, credit_used_manual, contact_name, contact_phone, camera_model, session_date, scheduled_date, return_date, pickup_at, return_at, notes, google_event_id, terms_accepted_at, created_at, updated_at.
@@ -385,8 +375,7 @@ async function askClaudeForSql(question: string, history: ChatTurn[]): Promise<s
 - אם השאלה היא לא שאלה על הנתונים בכלל — שיחת חולין, ברכה, "תודה", "מה נשמע", בקשה לעזרה כללית וכו' — אל תמציא שאילתה מלאכותית. החזירי {"sql": null}.
 - אחרת החזירי אך ורק JSON: {"sql": "<השאילתה>"}, בלי טקסט נוסף, בלי markdown fences.`;
 
-  const { text } = await generateText({
-    model: gateway(AI_MODEL),
+  const { text } = await generateTextResilient({
     system,
     messages: [{ role: "user", content: question + historyBlock(history) }],
   });
@@ -405,9 +394,7 @@ const CHAT_PERSONA =
 
 /** Asks the AI to phrase the query result as a short Hebrew answer, as a reply in an ongoing chat (not a one-off). */
 async function askClaudeToSummarize(question: string, rows: unknown, history: ChatTurn[]): Promise<string> {
-  const gateway = aiGateway();
-  const { text } = await generateText({
-    model: gateway(AI_MODEL),
+  const { text } = await generateTextResilient({
     system: `${CHAT_PERSONA} עני על שאלה של מיכל בהתבסס אך ורק על תוצאות ה-JSON שמצורפות — לעולם אל תמציאי או תעריכי מספר שלא נמצא שם. תמיד תני מספרים מדויקים (₪ בעברית). זו שיחת צ'אט מתמשכת, לא שאלה בודדת — אפשר ורצוי להתייחס לדברים שנאמרו קודם בשיחה ("כמו ששאלת קודם...", "בהמשך לזה..."). אם יש בתוצאה משהו שכדאי להבליט (מגמה בולטת, חריגה) אפשר להוסיף משפט קצר על זה — אבל רק אם זה נתמך ישירות בנתונים. אם התוצאה ריקה, אמרי זאת בפשטות ובנעימות, לא בהתנצלות יבשה.`,
     messages: [{ role: "user", content: `שאלה: ${question}${historyBlock(history)}\n\nתוצאות מה-DB עבור השאלה הנוכחית (JSON):\n${JSON.stringify(rows).slice(0, 6000)}` }],
   });
@@ -416,9 +403,7 @@ async function askClaudeToSummarize(question: string, rows: unknown, history: Ch
 
 /** Handles a message that isn't actually a data question (greeting, thanks, small talk) — warm and human, without touching the DB. */
 async function askClaudeSmallTalk(question: string, history: ChatTurn[]): Promise<string> {
-  const gateway = aiGateway();
-  const { text } = await generateText({
-    model: gateway(AI_MODEL),
+  const { text } = await generateTextResilient({
     system: `${CHAT_PERSONA} ההודעה הזו לא שאלה על נתוני הסטודיו — ענה לה בטבעיות (ברכה, תודה, שיחת חולין קצרה), ואם רלוונטי הזכירי בעדינות שאת יכולה גם לענות על שאלות עם מספרים אמיתיים מהעסק (הזמנות, הכנסות, לקוחות וכו'). קצר, חם, בלי להישמע רובוטי.`,
     messages: [{ role: "user", content: question + historyBlock(history) }],
   });

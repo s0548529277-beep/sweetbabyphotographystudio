@@ -13,7 +13,9 @@ export const Route = createFileRoute("/_authenticated/my-photos")({
 });
 
 type Img = { id: string; kind: "proof" | "edited"; image_url: string; selected: boolean };
-type Gallery = { booking: { id: string; session_date: string; contact_name: string }; stage: WorkflowStage; images: Img[] };
+// booking is null for a workflow the admin started manually, with no
+// underlying package='photography' booking (see startManualPhotoWorkflow).
+type Gallery = { id: string; booking: { id: string; session_date: string; contact_name: string } | null; stage: WorkflowStage; images: Img[] };
 
 const STAGE_MESSAGE: Record<WorkflowStage, string> = {
   booked: "השריון והמקדמה התקבלו — עדיין אין תמונות להצגה.",
@@ -101,10 +103,10 @@ function MyPhotosPage() {
         {rows.length === 0 && <p className="text-sm text-muted-foreground">עדיין אין לך הזמנת צילומים.</p>}
 
         {rows.map((g) => (
-          <div key={g.booking.id} className="space-y-3">
+          <div key={g.id} className="space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="font-display text-xl text-primary" dir="ltr">
-                {g.booking.session_date}
+                {g.booking?.session_date ?? "הצילום שלך"}
               </h2>
               {g.stage === "proofs_ready" && (
                 <span className="text-xs text-primary flex items-center gap-1">

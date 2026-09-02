@@ -11,12 +11,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
-const nav: { to: string; label: string; hash?: string }[] = [
+const nav: { to: string; label: string; hash?: string; soon?: boolean }[] = [
   { to: "/", label: "בית" },
   { to: "/studio-photography", label: "צילומים בסטודיו" },
   { to: "/studio-rental", label: "השכרת סטודיו" },
   { to: "/rental-catalog", label: "קטלוג אביזרים להשכרה" },
-  { to: "/photo-retouch", label: "עיבוד תמונות AI" },
+  { to: "/collage-maker", label: "עיצוב קולאז׳ חינם" },
+  { to: "/collage-studio", label: "סטודיו קולאז'ים" },
+  { to: "/photo-retouch", label: "עיבוד תמונות AI", soon: true },
   { to: "/about", label: "אודות ויצירת קשר" },
 ];
 
@@ -92,7 +94,7 @@ export function Header() {
           <img src={logo} alt="Sweetbaby" className="h-16 md:h-20 w-auto" />
         </Link>
 
-        <nav className="hidden md:flex items-center gap-10 text-[13px] tracking-[0.28em] uppercase">
+        <nav className="hidden md:flex items-center gap-8 text-[14px] tracking-[0.16em] uppercase">
 
           {nav.map((n) => (
             <Link
@@ -100,10 +102,15 @@ export function Header() {
               to={n.to}
               hash={n.hash}
               onClick={scrollToHash(n.hash)}
-              className="text-foreground/70 hover:text-foreground transition-colors relative py-1"
+              className="text-foreground/70 hover:text-foreground transition-colors relative py-1 inline-flex items-center gap-1.5"
               activeProps={{ className: "text-foreground" }}
             >
               {n.label}
+              {n.soon && (
+                <span className="text-[9px] tracking-normal normal-case bg-peach-deep/60 text-primary rounded-full px-1.5 py-0.5 leading-none">
+                  בקרוב
+                </span>
+              )}
             </Link>
           ))}
         </nav>
@@ -184,9 +191,14 @@ export function Header() {
                     to={n.to}
                     hash={n.hash}
                     onClick={(e) => { scrollToHash(n.hash)(e); setOpen(false); }}
-                    className="text-lg font-display"
+                    className="text-lg font-display inline-flex items-center gap-2"
                   >
                     {n.label}
+                    {n.soon && (
+                      <span className="text-[10px] font-sans bg-peach-deep/60 text-primary rounded-full px-2 py-0.5 leading-none">
+                        בקרוב
+                      </span>
+                    )}
                   </Link>
                 ))}
                 {!user && (

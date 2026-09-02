@@ -160,41 +160,76 @@ function StudioPhotographyPage() {
       </div>
 
       {/* Hero */}
-      <section className="max-w-6xl mx-auto px-6 pt-16 pb-10 text-center">
+      <section className="max-w-6xl mx-auto px-6 pt-14 pb-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
+          className="relative text-center rounded-[2.5rem] px-6 md:px-16 py-14 md:py-20 overflow-hidden border border-[#eec7bf] shadow-[var(--shadow-soft)]"
+          style={{ background: "linear-gradient(135deg, #fdeef0 0%, #f5d5cf 45%, #f8ede4 100%)" }}
         >
-          <div className="inline-flex items-center gap-2 bg-white/70 backdrop-blur px-4 py-1.5 rounded-full text-sm text-[#4a5d43] mb-6 border border-[#a8bfa1]/40">
-            <Camera size={14} /> צילום מקצועי · מיכל סיבוני
+          {/* decorative petals */}
+          <div className="pointer-events-none absolute inset-0">
+            <motion.div
+              className="absolute -top-10 -left-10 w-44 h-44 rounded-full"
+              style={{ background: "radial-gradient(circle, rgba(255,255,255,.85) 0%, transparent 70%)" }}
+              animate={{ scale: [1, 1.15, 1] }}
+              transition={{ duration: 8, repeat: Infinity }}
+            />
+            <motion.div
+              className="absolute top-8 right-10 w-16 h-16 rounded-full border-2 border-[#e19a90]/40"
+              animate={{ y: [0, -8, 0] }}
+              transition={{ duration: 5, repeat: Infinity }}
+            />
+            <motion.div
+              className="absolute bottom-10 left-16 w-8 h-8 rounded-full bg-[#a8bfa1]/50"
+              animate={{ y: [0, 8, 0] }}
+              transition={{ duration: 6, repeat: Infinity }}
+            />
+            <Sparkles className="absolute top-10 left-1/4 text-[#e19a90]/60" size={22} />
+            <Sparkles className="absolute bottom-12 right-1/4 text-[#5b7a52]/40" size={16} />
           </div>
-          <h1 className="text-5xl md:text-7xl mb-4 leading-tight" style={{ fontFamily: "'DM Serif Display', serif" }}>
-            רגעים שנשארים.
-            <br />
-            <span className="text-[#5b7a52]">בסטודיו או בטבע.</span>
-          </h1>
-          <p className="text-lg md:text-xl text-[#4a5d43]/80 max-w-2xl mx-auto mb-8">
-            סשנים אישיים עם הצלמת מיכל סיבוני – ניו-בורן, משפחה, ילדים ואירועים.
-            תבחרי את האווירה שמדברת אלייך: אור רך של סטודיו או קסם טבעי בטבע.
-          </p>
-          <div className="flex flex-wrap gap-3 justify-center">
-            <a
-              href={gmailLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-[#2d4a2b] text-white px-7 py-3.5 rounded-full hover:bg-[#3d5a3b] transition shadow-lg"
-            >
-              <Mail size={18} /> לתאום סשן במייל
-            </a>
-            <a
-              href={MICHAL_SITE}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-white/80 backdrop-blur border border-[#a8bfa1]/50 px-7 py-3.5 rounded-full hover:bg-white transition"
-            >
-              <ExternalLink size={18} /> לאתר של מיכל סיבוני
-            </a>
+
+          <div className="relative">
+            <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur px-5 py-2 rounded-full text-sm text-[#8a5a54] mb-7 border border-[#eec7bf] shadow-sm">
+              <Camera size={14} /> צילום מקצועי · מיכל סיבוני
+            </div>
+            <h1 className="text-5xl md:text-7xl mb-5 leading-[1.15]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+              רגעים שנשארים.
+              <br />
+              <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(120deg, #d78a80, #5b7a52)" }}>
+                בסטודיו או בטבע.
+              </span>
+            </h1>
+            <p className="text-lg md:text-xl text-[#7a5a52]/90 max-w-2xl mx-auto mb-10 leading-relaxed">
+              סשנים אישיים עם הצלמת מיכל סיבוני – ניו-בורן, משפחה, ילדים ואירועים.
+              תבחרי את האווירה שמדברת אלייך: אור רך של סטודיו או קסם טבעי בטבע.
+            </p>
+            <div className="flex flex-wrap items-stretch justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => { setStep(1); setWizard(true); }}
+                className="inline-flex items-center gap-2 bg-[#e19a90] text-white px-7 py-3.5 rounded-full hover:bg-[#d78a80] transition shadow-lg shadow-[#e19a90]/40 font-semibold"
+              >
+                <CalendarDays size={18} /> קביעת מועד ביומן
+              </button>
+              <a
+                href={gmailLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-[#2d4a2b] text-white px-7 py-3.5 rounded-full hover:bg-[#3d5a3b] transition shadow-lg shadow-[#2d4a2b]/25 font-semibold"
+              >
+                <Mail size={18} /> לתאום סשן במייל
+              </a>
+              <a
+                href={MICHAL_SITE}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-white/90 backdrop-blur border-2 border-[#e19a90]/50 text-[#a05a52] px-7 py-3.5 rounded-full hover:bg-white hover:border-[#e19a90] transition font-semibold"
+              >
+                <ExternalLink size={18} /> לאתר של מיכל סיבוני
+              </a>
+            </div>
           </div>
         </motion.div>
       </section>

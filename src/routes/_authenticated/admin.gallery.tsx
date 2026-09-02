@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Images, Loader2, Trash2, Upload, ChevronLeft, ChevronRight, Eye, GripVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { compressImage } from "@/lib/image-compress";
 import { builtinEntries, fetchPageImages, PAGE_IMAGE_KEYS, resolveAspect, rowUrl, saveAspect, type PageImage } from "@/lib/page-images";
 
 export const Route = createFileRoute("/_authenticated/admin/gallery")({
@@ -83,7 +84,8 @@ function AdminGalleryPage() {
     let sort = (rows.length ?? 0) + 1;
     for (const file of list) {
       try {
-        const { url, path } = await uploadToStorage(file);
+        const compressed = await compressImage(file);
+        const { url, path } = await uploadToStorage(compressed);
         const { error } = await supabase.from("page_images").insert({
           page,
           url,

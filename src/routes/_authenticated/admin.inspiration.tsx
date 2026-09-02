@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Camera, Loader2, Search, Trash2, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { compressImage } from "@/lib/image-compress";
 import { fetchItemInspiration } from "@/lib/item-inspiration";
 import { inspirationFor } from "@/lib/inspiration";
 import catalog from "@/data/studio-catalog.json";
@@ -88,7 +89,8 @@ function AdminInspirationPage() {
     let ok = 0;
     for (const file of Array.from(files)) {
       try {
-        const { url, path } = await uploadToStorage(file);
+        const compressed = await compressImage(file);
+        const { url, path } = await uploadToStorage(compressed);
         await addUrl(url, file.name.replace(/\.[^.]+$/, ""), "upload", path);
         ok++;
       } catch (e: any) {

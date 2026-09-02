@@ -1,0 +1,381 @@
+---
+name: ai-bot-efficiency
+description: Keep every AI-powered bot in this repo (site chat, phone/voice assistant, catalog search, and any future one) fast, cheap, and resilient — token-lean prompts, no wasted retries, safe fallback chains. Use this whenever touching src/lib/ai-gateway.server.ts, src/lib/ai-tools.server.ts, src/lib/ai.functions.ts, src/lib/voice-chat.server.ts, or any file that builds a system prompt / tool list for generateTextResilient, or when the user asks to make a bot cheaper, faster, more efficient, or to save on AI/API costs or tokens.
+---
+
+# AI bot efficiency — living checklist for this repo
+
+This is a **living document**, not a one-time fix. Every time an AI-calling
+code path in this app is touched, re-check it against the list below, and
+**add a dated entry to the changelog at the bottom** describing what changed
+and why — so the next session (or the next me) can see what's already been
+tried instead of rediscovering it.
+
+The owner explicitly wants this maintained ongoing: "סקיל מתחדש לפי הצורך
+שיהיו תמיד חסכונים ויעילים" — keep the bots economical and efficient,
+updating this skill as new opportunities or regressions are found.
+
+## Core principles (apply to every bot: site chat, voice, catalog search, future ones)
+
+1. **System prompt = only what's needed on (almost) every turn.** Anything
+   relevant to a minority of requests (a detailed how-to guide, a rarely-used
+   policy, a long reference table) belongs behind an on-demand **tool**, not
+   inline in the system prompt. Every token in the system prompt is paid on
+   *every single turn*, tool results are paid only when actually fetched.
+   Precedent: the equipment-usage guide (transmitter/flash/backgrounds) used
+   to be embedded in `SYSTEM` in `ai.functions.ts` (~1,800 chars, >1/3 of the
+   whole prompt) and got sent even for "is Tuesday free?". Moved to the
+   `get_equipment_guide` tool in `ai-tools.server.ts` — see changelog.
+
+2. **No redundant internal retries.** `generateText`'s SDK-level retry
+   (`maxRetries`, default 2 → 3 attempts with backoff) is pure waste in this
+   app: `generateTextResilient` already retries across every configured key
+   and then across providers (Gemini → Groq → Lovable). A quota-exceeded or
+   bad-model error will not resolve by waiting a few seconds and trying the
+   *same* key again — it just burns the attempt's timeout budget for nothing
+   (confirmed live: a single quota error ate ~30s of a live phone call
+   before the outer loop ever moved to the next key). Every `generateText`
+   call in `ai-gateway.server.ts` passes `maxRetries: 0` for this reason —
+   keep it that way, and apply the same rule to any new call site.
+
+3. **Never guess a model name — discover or verify it.** Groq and Gemini
+   both silently deprecate/retire model ids over time, and a bad id doesn't
+   always fail fast (a nonexistent Gemini id can *hang to a full timeout*
+   instead of 404ing). Prefer:
+   - Querying the provider's own `/models` endpoint at runtime (see
+     `fetchAvailableGroqModels`) over a hardcoded guess.
+   - When you must hardcode a fallback list, only put well-established,
+     long-standing model ids in it, and only as a last-resort tail after a
+     dynamic lookup — never a specific new/preview name you haven't
+     confirmed responds.
+   - Reading the *actual* error body (see `describeApiError`) instead of a
+     bare `error.message` — a generic "Bad Request" tells you nothing; the
+     response body usually names the real reason (e.g. a missing
+     `thought_signature`, a decommissioned model, a scope/terms issue).
+
+4. **Log failures with enough detail to diagnose from logs alone**, since
+   the fastest real debugging loop in this project is the owner exporting
+   production logs. Every `catch` around a provider call should log with the
+   `[SWEETBABY]` prefix, the provider/model/key identifier, and
+   `describeApiError(e)` (or equivalent) — not just `console.error("failed", e)`.
+   A bare unguarded call whose failure surfaces as a cryptic unhandled error
+   (e.g. the Lovable-gateway 402 that used to have no `[SWEETBABY]` log line
+   at all) is a bug in itself — wrap it.
+
+5. **Prefer the provider's native SDK over a generic OpenAI-compatible shim**
+   when the generic shim can't carry a provider-specific feature your prompt
+   flow depends on. Precedent: Gemini's "thinking" models require a
+   `thought_signature` echoed back on multi-step tool-calling turns: the
+   generic `@ai-sdk/openai-compatible` transport has no field for it and
+   fails almost every real request, while `@ai-sdk/google` (the native
+   provider) handles it correctly. Don't try to route around a structural
+   transport gap by chasing model names — fix the transport.
+
+6. **When pinning a new package version for this repo, check its publish
+   age.** Lovable/bun blocks installing a package version published less
+   than ~24h ago (anti-supply-chain-attack guard) — pin an exact version
+   (`"x.y.z"`, no `^`) that's a few days old, not `latest`, or the deploy
+   itself will fail with `"failed to resolve"`.
+
+7. **A quality/correctness instruction is not a token-savings target.**
+   Anti-hallucination rules (always call `check_studio_availability` fresh,
+   never invent a coupon code, etc.) stay in the system prompt even though
+   they cost tokens — cutting them trades a real risk (wrong availability
+   told to a customer, an invented discount code) for a small token savings.
+   Only move/trim content that's genuinely low-relevance on most turns.
+
+## Where this applies today
+
+- `src/lib/ai-gateway.server.ts` — the shared resilient fallback chain
+  (Gemini keys → Groq → Lovable) used by every bot. Any latency/cost/
+  reliability fix belongs here so all bots inherit it at once.
+- `src/lib/ai-tools.server.ts` — tool definitions shared by site chat and
+  voice chat (`buildAssistantTools`). Keep tool `description`s short but
+  unambiguous — they're also paid tokens on every turn.
+- `src/lib/ai.functions.ts` — site chat's `SYSTEM` prompt + `chatWithBot`.
+- `src/lib/voice-chat.server.ts` — voice's `VOICE_STYLE` addition + tool
+  loop. Voice has a tighter latency budget (a live caller is waiting) —
+  changes here matter more for speed than for the site chat's async UI.
+- `src/lib/voice-booking.server.ts`, `src/lib/voice-message.server.ts` —
+  voice-specific tools (`create_phone_booking`, `leave_message_for_studio`).
+
+## Prompt caching — deliberately not added for Gemini/Groq/Lovable
+
+Don't reach for provider prompt caching as a quick win without checking this
+first — it was evaluated and correctly skipped for the current chain:
+
+- **Gemini** (`@ai-sdk/google`): explicit caching needs a separately-created
+  `cachedContents` resource with its own lifecycle (TTL management), and its
+  minimum prefix is ~32K tokens on most models — this app's system prompt is
+  nowhere near that (especially after the equipment-guide trim above).
+  Implicit/automatic caching, if Google applies it below that floor, needs no
+  code from us either way.
+- **Groq**: no prompt-caching feature on the OpenAI-compatible endpoint used
+  here.
+- **Lovable AI Gateway**: an opaque pass-through to Google's Gemini — no
+  caching control surfaced to us.
+- **Claude API** (if/when added as a provider — see "Future" below): this is
+  where caching is trivial and genuinely pays off — `cache_control:
+  {type: "ephemeral"}` on the stable system-prompt/tool-list prefix, no
+  minimum-token cliff to worry about at this app's prompt size, ~90% cheaper
+  on cache reads. Add it at the same time Claude is wired in, not before.
+
+## Future: adding Claude as a fallback tier
+
+The owner is evaluating adding `ANTHROPIC_API_KEY` as a 4th tier in
+`generateTextResilient` (after Gemini → Groq, before/alongside Lovable) —
+paid pay-as-you-go, not subject to the free-tier quota walls that hit
+Gemini/Groq. When that happens:
+- Use the `@anthropic-ai/sdk` directly (or `@ai-sdk/anthropic` if staying
+  inside the current `generateText` abstraction) — see the `claude-api`
+  skill in this environment for current model ids, pricing, and API shape.
+  Do not guess a model id from training-data memory; that skill's cached
+  table is more current, and if the user asks for "the latest"/"current"
+  model, it says to WebFetch live docs on top of that.
+- Add `cache_control: {type: "ephemeral"}` on the stable prefix (system
+  prompt + tool definitions) per the prompt-caching section above.
+- Keep `maxRetries: 0` / equivalent for the same reason as every other tier
+  (principle #2).
+
+## Checking data files sent as prompt content, not just system prompts
+
+Principle #1 (only what's needed on most turns) applies to **any** large
+data blob interpolated into a prompt, not just the system prompt — check
+`smartSearchItems` in `ai.functions.ts` as the reference case: it used to
+send the *entire* product catalog (394 items, ~9,400 chars — bigger than
+the equipment guide) on every single search call, regardless of the query.
+Fixed by local keyword pre-filtering (match query tokens against item
+name/sku/category title) before ever building the prompt, with a full-
+catalog fallback only when the filter finds nothing or barely narrows
+anything (a genuinely abstract query still needs full context). Measured
+85-96% smaller prompts on realistic queries. When adding a new AI feature
+that stuffs a JSON/data file into a prompt, always ask "does this need the
+*whole* dataset, or can a cheap local filter (string match, date range,
+category) narrow it down first and let the model only rank/pick from the
+survivors?"
+
+## Changelog
+
+- **2026-08-28**: Moved the equipment-usage guide out of the always-sent
+  `SYSTEM` prompt into the on-demand `get_equipment_guide` tool (principle
+  #1). Removed the redundant SDK-level retry on all three
+  `generateTextResilient` provider attempts via `maxRetries: 0` (principle
+  #2) — real logs showed a single quota-exceeded Gemini call eating ~30s of
+  a live phone call on internal retries alone. Switched Gemini's direct
+  provider from `@ai-sdk/openai-compatible` to the native `@ai-sdk/google`
+  (principle #5) after confirming live that the generic transport
+  structurally cannot carry Gemini 3's `thought_signature` through
+  multi-step tool calls. Added dynamic Groq model discovery
+  (`fetchAvailableGroqModels`, principle #3) after two consecutive
+  hardcoded-model-name guesses were each confirmed dead within days.
+- **2026-08-28 (later same day)**: Found and fixed the single biggest token
+  cost in the app — `smartSearchItems`' full-catalog dump (see the data-file
+  section above). This was a bigger win than the equipment-guide move
+  earlier the same day; check for more of these before assuming the
+  system-prompt trims already found everything.
+- **2026-08-28 (same day, later still)**: Found `find_next_available_days`
+  (`nextAvailableDays` in `availability.server.ts`) was calling
+  `studioAvailability()` — 2-3 network round trips including a Google
+  Calendar read — separately for EACH of up to 21 scanned days, sequentially
+  in a loop. Not a token cost (no AI involved in the tool's own execution)
+  but the same "heavy operation that should be light" family of bug — a
+  slow tool makes the whole turn slow regardless of prompt size. Batched to
+  one query per data source (closures, bookings, calendar) for the whole
+  date range, computed per-day locally with no network left in the loop.
+  Also parallelized the two independent queries in single-day
+  `studioAvailability`. This class of fix — check any loop that calls an
+  async/network function per-item instead of batching — applies beyond the
+  AI bots too; keep an eye out for it in any tool execution, not just prompt
+  construction.
+- **2026-08-28 (later still)**: Found the same per-item-network-call pattern
+  a second time, in a completely different feature: `placeRecurringBooking`
+  (bookings.functions.ts, a multi-week recurring series) called
+  `studioAvailability()` once per week, sequentially — up to 13 calls × 2-3
+  round trips each. Extracted the batch-fetch logic that fixed
+  `nextAvailableDays` into a shared exported helper,
+  `fetchAvailabilityBatch(fromDate, toDate)` in availability.server.ts —
+  both callers now do 3 network calls total regardless of range size. Safe
+  because each week in a recurring series is a distinct date (always 7 days
+  apart), so no week's availability check depends on another week's result
+  within the same call. **Pattern to keep checking for**: any loop over
+  dates/items that calls an availability/network function per iteration —
+  this was the second instance found in one day, there may be more.
+- **2026-08-29**: Found a reliability bug, not a cost/latency one, but same
+  root cause family (a resilient fallback chain doing nothing if the code
+  around it is wrong). `api.yemot.ivr.ts` and `api.voice.respond.ts` each
+  define a shared `runOpenTurn` helper (the actual AI-turn call) and every
+  stage that falls through to it did `return runOpenTurn(speech)` — a bare
+  return of an un-awaited promise inside the route's own `try` block. When
+  ALL THREE fallback tiers failed in the same call (confirmed live: Gemini
+  free-tier quota exhausted on both keys, every discovered/static Groq
+  candidate broken, Lovable out of credits), the rejection never reached
+  that `try`'s `catch` — a `try { return promise; }` does NOT catch a later
+  rejection of `promise` unless it's awaited first. The rejection escaped
+  the whole route handler uncaught, and the runtime turned the AI SDK
+  error's own `.statusCode` (402, from Lovable's "out of credits") into the
+  literal HTTP response status sent back to Yemot/Twilio — instead of the
+  graceful `phrases.temporary_error` fallback this file was clearly built to
+  give. Fixed by changing every call site to `return await runOpenTurn(...)`
+  (8 call sites total across both files). **Lesson for this codebase**: any
+  `return someAsyncFn(...)` inside a `try` block whose `catch` is meant to
+  handle that call's failures is a live bug — always `return await`.
+  Same log batch also showed Groq's dynamically-discovered candidates
+  reliably dying on `allam` (no tool-calling support) and `qwen` (this app's
+  ~9K-token voice request always exceeds the account's 8000 TPM cap for
+  that model) — added both to `GROQ_UNUSABLE_MODEL_ID` so those attempts
+  aren't wasted, and bumped the discovery slice 4→6 to keep the same pool
+  size of real candidates after excluding two more prefixes. The underlying
+  quota/credit exhaustion itself (Gemini free tier, Lovable balance) is a
+  capacity/billing issue, not a code bug — flagged to the user rather than
+  "fixed", since there's no code-level fix for an account being out of
+  quota/credits.
+- **2026-08-29 (later)**: The owner asked for more accurate TTS pronunciation
+  (niqqud/vowel points) on the voice bot's spoken replies, explicitly
+  conditioned on not making it less efficient. Considered and rejected:
+  asking the model to add niqqud to its own free-form replies — that would
+  cost real extra *output* tokens (niqqud are combining Unicode marks that
+  don't compress well under BPE) on every single voice turn, plus the extra
+  generation time to produce them, on a call where a live caller is
+  waiting — a real, recurring cost for a benefit limited to a handful of
+  words, with the added risk of the model producing *wrong* niqqud that
+  sounds worse than none. Shipped instead: `applyNiqqudFixups` in
+  `voice-chat.server.ts` — a small hardcoded word→niqqud'd-word dictionary
+  (שריון, מקדמה, הדרכה, הגעה, אביזרים, חלאקה — spellings matched to the
+  existing hand-vocalized fixed phrases in `voice-phrases.server.ts` for
+  consistency) applied as a deterministic string-replace on the model's
+  *already-generated* reply, the same pattern already used for
+  `stripEchoOpener`. Zero AI tokens, zero added latency. **Pattern for this
+  codebase**: when quality trades directly against tokens/latency, look for
+  a deterministic post-processing fix before reaching for a prompt
+  instruction — a fixed/known-vocabulary substitution belongs in code, not
+  in every model call. **Reverted the same day**: the owner listened to the
+  actual call and confirmed the hand-picked niqqud itself was wrong — this
+  environment has no way to hear real Yemot TTS output to verify a
+  vocalization is correct before shipping it, so a guessed niqqud fixup is
+  exactly the kind of unverifiable guess principle #3 warns against for
+  model names, just applied to a different kind of string. The mechanism
+  (deterministic post-processing, zero token cost) was sound; the *content*
+  wasn't verifiable from here. Don't re-add a niqqud dictionary without a
+  real way to confirm the vocalization against actual TTS audio first.
+- **2026-08-29 (later)**: Added two admin-only voice tools
+  (admin_business_snapshot, admin_open_door_now — voice-admin.server.ts) —
+  not primarily an efficiency change, but worth noting the pattern: they're
+  spread into buildVoiceTools' return object only `...(isAdminVoiceCaller(callerPhone)
+  ? {...} : {})`, so a regular customer's tool list — and prompt token
+  count — never includes them at all. Conditionally-present tools based on
+  caller identity is a real token-savings lever beyond principle #1's
+  "move rarely-needed content to a tool" — some tools shouldn't even be
+  offered most of the time, not just described briefly.
+- **2026-08-29 (later still)**: Diagnosed a "the bot got stuck" report from a
+  real Cloudflare/Yemot log batch. Two separate findings: (1) confirmed the
+  earlier `return await runOpenTurn(...)` fix (see the entry above it,
+  further up this file) IS working correctly live — a call that hit a full
+  3-provider failure now returns a graceful 200 to Yemot instead of a raw
+  402. (2) a NEW pattern in this batch: Gemini failing via `TimeoutError`
+  (not the earlier fast-failing 429 quota error) on BOTH configured keys, in
+  the same call. `generateTextResilient` tried the keys **sequentially**,
+  each getting the full `timeoutMs` (30s for voice calls) before moving to
+  the next — so 2 keys both timing out meant ~60s of dead air before the
+  flow even reached Groq/Lovable. Tempting fix was to shrink `timeoutMs`,
+  but that budget was deliberately set generous after a *tighter* one (10s,
+  tried together with a smaller `stepCountIs`) was shown to cut off
+  legitimately slow-but-working calls (a real availability check needs a
+  Supabase query + a Google Calendar round trip + the model's own
+  reasoning) — shrinking it again would risk repeating that same regression,
+  and picking a "safer" smaller number without real evidence of how long a
+  genuine slow-success case takes would be exactly the unverified-guess
+  mistake documented in the niqqud entry above, just applied to a timeout
+  value instead of a string. Shipped instead: race every configured Gemini
+  key **in parallel** (`Promise.any`, each with its own `AbortController`
+  torn down the instant any one succeeds, so losers don't keep burning
+  quota/cost in the background). This bounds the worst case to a single
+  `timeoutMs` no matter how many keys are configured, without touching the
+  per-attempt budget or the tool-call step budget at all — a single
+  slow-but-eventually-successful key still gets its full 30s, and with only
+  one key configured this degenerates to exactly the old sequential
+  behavior (no change for that case). **Pattern for this codebase**: when
+  several independent fallback options each need a generous timeout to stay
+  correct, the win is in *parallelizing the ones that are safe to run
+  concurrently* (independent API keys/accounts), not in shrinking the
+  timeout that was already tuned against a real regression — shrinking a
+  timeout is a guess about how long success takes; racing is not.
+- **2026-08-30**: Not directly a token/latency change, but the same
+  "don't ship an unverified guess" discipline applied to a different kind of
+  string: the no-AI phone booking flow (voice-noai-booking.server.ts) got a
+  DTMF/keypad input option after a PREVIOUS keypad attempt on this exact
+  Yemot line had failed live with "לא הקשת כמות מספרים נכונה" and was
+  removed entirely. Rather than guess at a fix, cloned the open-source
+  yemot-router2 wrapper (github.com/ShlomoCode/yemot-router2 — confirmed
+  against its actual source, response-functions.js's makeTapModeRead, not
+  just its README) since Yemot itself has no public API reference. That
+  revealed the real raw `read=` directive format AND that Yemot ships
+  built-in "Date"/"Time" typing_playback_mode presets which also fix the
+  exact required digit count (8 for DDMMYYYY, 4 for HHMM) — strong evidence
+  the earlier failure was a min/max digit mismatch, not a platform
+  limitation. Shipped using those exact presets instead of hand-picked
+  digit counts. **Pattern for this codebase**: when a third-party platform
+  has no public reference and a previous attempt failed mysteriously,
+  finding and reading that platform's own open-source client library's
+  SOURCE (not just its docs/README) can turn a "we don't know why this
+  failed" into a real, checkable root cause — the same category of win as
+  reading Groq's actual `/models` response instead of guessing model names.
+- **2026-08-30 (later)**: Added `get_photography_service_info` (new tool in
+  `ai-tools.server.ts`, content in `photography-options.ts`'s
+  `PHOTOGRAPHY_SERVICE_TEXT_HE`) covering Michal's own newborn/family
+  photography service (as opposed to studio rental) — a newborn+album
+  package fundable via health-fund "סל לידה" benefits (Clalit/Leumit/Maccabi
+  only), plus outdoor sessions. Followed principle #1 deliberately: this is
+  relevant to a minority of turns, so it's a tool (paid only when actually
+  called), not inlined into the always-sent `SYSTEM` prompt — `SYSTEM` only
+  got one short pointer line added, same pattern as
+  get_equipment_guide/get_arrival_directions. Because it lives in
+  `buildAssistantTools`, both site chat and voice get it automatically, no
+  separate voice-side wiring needed. Content deliberately omits exact
+  package pricing/inclusions (never verified) and instructs the model to
+  route anyone wanting specifics to direct contact rather than inventing
+  numbers — the owner's own external site (michalsiboni.co.il) couldn't be
+  read from this environment (egress-blocked) to pull more, so this is
+  scoped to only what was told directly, not scraped.
+- **2026-08-30 (later still)**: Added an admin-editable "extra knowledge"
+  layer — `bot_knowledge_notes` table + `/admin/bot-knowledge` page +
+  `getBotKnowledgeText()` (`bot-knowledge.functions.ts`), appended to
+  `SYSTEM` in both `chatWithBot` (ai.functions.ts) and `runVoiceTurn`
+  (voice-chat.server.ts). Deliberately NOT a tool like
+  get_photography_service_info: the whole point is admin-typed facts the
+  bot must reliably know without the model having to guess when to call a
+  tool for them (the owner's own request was prompted by exactly that kind
+  of fact — "newborn session via birth-basket benefit is free" — something
+  that should surface unprompted, not only on a matching question). Cost is
+  one extra DB read per turn (single small table, best-effort/swallowed on
+  failure) plus whatever text volume accumulates — fine as long as it stays
+  a handful of short admin notes; if this ever grows into a large knowledge
+  base, revisit as a searchable tool instead per principle #1, rather than
+  letting it inflate every single turn's token cost unboundedly.
+- **2026-09-02**: Fixed a real bug reported live — the voice bot's own
+  self-reference (first-person Hebrew, which inflects by grammatical
+  gender: "בודקת"/"בודק", "מצטערת"/"מצטער") sounded inconsistently
+  male/female. Root cause found in `VOICE_STYLE` (`voice-chat.server.ts`):
+  the block mixed "אתה"/"תהיה" (male) with "תגידי"/"תשאלי" (female) in the
+  same paragraph, so the model just followed whichever form was nearest —
+  a genuine prompt bug, not a hallucination. Fix, in the interest of
+  keeping the prompt lean (principle #1): rather than hand-maintaining two
+  full parallel copies of the ~1,700-character style block (double the
+  token cost on every turn, and a maintenance trap the next time it's
+  edited), added one small, clear, prominent rule (`voiceGenderRule`, ~150
+  characters) placed FIRST, ahead of the block's own (now internally
+  consistent, female-baseline) phrasing examples, plus a new admin-toggled
+  setting (`bot_voice_gender`, reusing the existing `voice_bot_phrases`
+  key-value table — no migration needed) read once per call via
+  `getBotVoiceGender()`. A separate, smaller fix in `voice-phrases.server.ts`
+  handles the two FIXED (non-AI) phrases that had the same baked-in male
+  word ("מִצְטַעֵר") — a one-word exact substitution
+  (`applyMaleGenderToPhrase`), not a second phrase set. Explicitly told the
+  owner the acoustic TTS voice pitch (does it *sound* male/female) is a
+  SEPARATE, Yemot-account-level setting this app's API calls have no
+  parameter for at all — confirmed via a real Yemot community thread titled
+  exactly "קול ההקראה השתנה לפתע" (the reading voice suddenly changed) and
+  a companion explainer thread, both found via WebSearch snippets only
+  (f2.freeivr.co.il itself is egress-blocked from this sandbox, same as
+  every previous Yemot-doc lookup this session) — voice type/speed is
+  documented there as an `ivr.ini`/`ext.ini` setting on Yemot's own side,
+  outside anything this codebase sends.

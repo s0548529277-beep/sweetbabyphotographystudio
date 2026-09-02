@@ -2,6 +2,8 @@ import { z } from "zod";
 import { GUIDANCE_FEES, isMorningPackage, priceForBooking } from "@/lib/bookings.functions";
 import { bookingBlocksSlot, PENDING_HOLD_MINUTES } from "@/lib/availability.server";
 import { buildBookingSummaryHtml } from "@/lib/orderSummary";
+import { toAuthPassword } from "@/lib/password";
+import { lookupCallerProfile } from "@/lib/voice-caller.server";
 
 export const PhoneBookingInput = z.object({
   session_date: z.string().min(10),
@@ -9,12 +11,22 @@ export const PhoneBookingInput = z.object({
   slots: z.number().int().min(2).max(30),
   contact_name: z.string().min(1).max(120),
   contact_phone: z.string().min(5).max(40),
+  contact_email: z.string().email().max(200).optional(),
   session_type: z.string().max(200).optional(),
   guidance: z.enum(["basic", "mini", "plus", "premium"]).optional(),
+  // Free-text request for accessories/props alongside the studio session —
+  // not checked against real availability like the site's own catalog
+  // flow, just passed along to the studio for manual follow-up (matching
+  // how create_studio_booking's needProps field works in the text chat).
+  props_request: z.string().max(500).optional(),
   notes: z.string().max(1000).optional(),
 });
 
 export type PhoneBookingInput = z.infer<typeof PhoneBookingInput>;
+
+// The same code every time, by explicit request — see createPhoneBooking's
+// own doc comment for the trade-off this accepts.
+const FIXED_PHONE_ACCOUNT_PIN = "1234";
 
 /**
  * Creates a real (pending) studio booking from a phone-call conversation —
@@ -40,11 +52,45 @@ export async function createPhoneBooking(input: PhoneBookingInput) {
   const guidanceFee = GUIDANCE_FEES[guidanceKey] ?? 0;
   const price = priceForBooking(input.slots, input.start_time, null) + guidanceFee;
 
+  // Idempotency guard — confirmed live: the model can call this tool twice
+  // for the SAME request across two separate turns of the same call (e.g.
+  // it already said "שמרתי לך את הסטודיו... שלחתי קישור" after the first
+  // call, then the customer says "תסגור את ההזמנה" and the model calls this
+  // again). The second insert used to collide with the first in the overlap
+  // check below and get rejected as "someone else grabbed it" — wrong and
+  // confusing, since it was blocked by its own just-created row — and the
+  // studio got two separate booking-request emails for one real request. A
+  // recent (same call, effectively), still-pending booking for the exact
+  // same phone/date/time is treated as "already booked" instead of creating
+  // a duplicate.
+  const RECENT_DUPLICATE_WINDOW_MINUTES = 30;
+  const dupCutoff = new Date(Date.now() - RECENT_DUPLICATE_WINDOW_MINUTES * 60 * 1000).toISOString();
+  const { data: dup } = await supabaseAdmin
+    .from("bookings")
+    .select("id, price, deposit_amount, end_time")
+    .eq("contact_phone", input.contact_phone)
+    .eq("session_date", input.session_date)
+    .eq("start_time", input.start_time)
+    .neq("status", "cancelled")
+    .gte("created_at", dupCutoff)
+    .limit(1)
+    .maybeSingle();
+  if (dup) {
+    return {
+      id: dup.id,
+      price: dup.price,
+      deposit: dup.deposit_amount,
+      endTime: String(dup.end_time).slice(0, 5),
+      emailSent: !!input.contact_email,
+      alreadyExisted: true as const,
+    };
+  }
+
   // Overlap check — same shared rule the site and text chat already use, so
   // a phone booking can never disagree with what the calendar/chat show.
   const { data: existing, error: exErr } = await supabaseAdmin
     .from("bookings")
-    .select("id, start_time, end_time, status, deposit_status, created_at")
+    .select("id, start_time, end_time, status, deposit_status, created_at, notes")
     .eq("session_date", input.session_date)
     .neq("status", "cancelled");
   if (exErr) throw new Error(exErr.message);
@@ -72,18 +118,80 @@ export async function createPhoneBooking(input: PhoneBookingInput) {
     console.error("[SWEETBABY] voice booking calendar conflict check failed", e);
   }
 
-  // bookings.user_id is NOT NULL — mint a fresh anonymous account for this
-  // caller, exactly like the "continue as guest" flow does client-side.
-  const { createClient } = await import("@supabase/supabase-js");
-  const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
-  if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) throw new Error("Missing SUPABASE_URL/SUPABASE_PUBLISHABLE_KEY");
-  const anon = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { data: anonAuth, error: anonErr } = await anon.auth.signInAnonymously();
-  if (anonErr || !anonAuth.user) throw new Error(anonErr?.message ?? "יצירת זהות זמנית ללקוחה נכשלה");
-  const userId = anonAuth.user.id;
+  // Real, login-capable personal area — per explicit request: a phone
+  // customer should get one automatically, not the anonymous placeholder
+  // account this used to always mint (which nobody could ever sign into —
+  // see finalizeBookingConfirmation's own doc comment for the gap that
+  // caused). Three cases, in order:
+  //   1. Already a recognized account (same phone already has a real
+  //      profile, e.g. she's booked/registered before) — reuse it. No new
+  //      password: she already knows her own.
+  //   2. Not recognized, but gave an email on this call — create a REAL
+  //      account right now (supabaseAdmin.auth.admin.createUser, not the
+  //      client-side signUp flow — there's no browser session to run that
+  //      through) with the fixed PIN below, same short-numeric-password
+  //      scheme the site's own signup form already uses (see password.ts).
+  //      FIXED_PHONE_ACCOUNT_PIN is explicitly requested — a random
+  //      per-customer PIN was tried first and reverted: the owner wants
+  //      the same simple, memorable code every time. Real trade-off worth
+  //      knowing: anyone who knows a phone-booking customer's account
+  //      email could sign into her personal area with this same fixed
+  //      code — same risk class the site already accepts for any customer
+  //      who happens to pick "1234" herself at signup, just guaranteed
+  //      instead of possible.
+  //   3. Not recognized, no email — falls back to the previous anonymous
+  //      account (Supabase has no phone/password identity to create one
+  //      under without an email, and this app doesn't have a phone-auth
+  //      provider configured); she just won't get a personal area this
+  //      time.
+  let userId: string;
+  let newAccountPin: string | null = null;
+  const existingCaller = await lookupCallerProfile(input.contact_phone);
+  if (existingCaller) {
+    userId = existingCaller.userId;
+  } else if (input.contact_email) {
+    const pin = FIXED_PHONE_ACCOUNT_PIN;
+    const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+      email: input.contact_email,
+      password: toAuthPassword(pin),
+      email_confirm: true,
+      user_metadata: { full_name: input.contact_name, phone: input.contact_phone },
+    });
+    if (createErr || !created.user) {
+      // Most likely cause: this email is already registered under a
+      // different phone number than the one she's calling from right now
+      // (lookupCallerProfile only matched by phone). Rather than guess at
+      // recovering that account's id from an unconfirmed admin-API shape,
+      // fall back to the anonymous account — same as case 3 — and log it
+      // so it's diagnosable if it turns out to happen often.
+      console.error("[SWEETBABY] voice booking real-account creation failed, falling back to anonymous", createErr);
+      const { createClient } = await import("@supabase/supabase-js");
+      const SUPABASE_URL = process.env.SUPABASE_URL;
+      const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
+      if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) throw new Error("Missing SUPABASE_URL/SUPABASE_PUBLISHABLE_KEY");
+      const anon = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+      const { data: anonAuth, error: anonErr } = await anon.auth.signInAnonymously();
+      if (anonErr || !anonAuth.user) throw new Error(anonErr?.message ?? "יצירת זהות זמנית ללקוחה נכשלה");
+      userId = anonAuth.user.id;
+    } else {
+      userId = created.user.id;
+      newAccountPin = pin;
+      try {
+        await supabaseAdmin.from("profiles").upsert({ id: userId, full_name: input.contact_name, phone: input.contact_phone });
+      } catch (e) {
+        console.error("[SWEETBABY] voice booking profile upsert failed (account still created)", e);
+      }
+    }
+  } else {
+    const { createClient } = await import("@supabase/supabase-js");
+    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
+    if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) throw new Error("Missing SUPABASE_URL/SUPABASE_PUBLISHABLE_KEY");
+    const anon = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data: anonAuth, error: anonErr } = await anon.auth.signInAnonymously();
+    if (anonErr || !anonAuth.user) throw new Error(anonErr?.message ?? "יצירת זהות זמנית ללקוחה נכשלה");
+    userId = anonAuth.user.id;
+  }
 
   const today = new Date().toISOString().slice(0, 10);
   const sameDay = input.session_date === today;
@@ -105,7 +213,10 @@ export async function createPhoneBooking(input: PhoneBookingInput) {
       deposit_status: "pending",
       contact_name: input.contact_name,
       contact_phone: input.contact_phone,
-      notes: ["התקבל בשיחה טלפונית עם הבינה הקולית", input.session_type, input.notes].filter(Boolean).join("\n") || null,
+      notes:
+        ["התקבל בשיחה טלפונית עם הבינה הקולית", input.session_type, input.props_request ? `בקשת אביזרים: ${input.props_request}` : null, input.notes]
+          .filter(Boolean)
+          .join("\n") || null,
       reserved_items: [],
       terms_accepted_at: new Date().toISOString(),
     })
@@ -127,6 +238,8 @@ export async function createPhoneBooking(input: PhoneBookingInput) {
         deposit,
         contact_name: input.contact_name,
         contact_phone: input.contact_phone,
+        contact_email: input.contact_email ?? null,
+        props_request: input.props_request ?? null,
         source: "voice_call",
       },
     });
@@ -135,9 +248,16 @@ export async function createPhoneBooking(input: PhoneBookingInput) {
   }
 
   try {
+    // No browser session to send her back to (this came from a phone call),
+    // so — when she gave an email — the confirmation email itself carries a
+    // real "pay now" button (same hosted Takbull page as the site's own
+    // secure-payment button), instead of just bank/Bit details she'd have to
+    // act on separately.
     const html = buildBookingSummaryHtml({
       heading: "בקשת שריון טלפונית התקבלה 📞",
-      intro: `לקוחה שוחחה עם הבינה הקולית של הסטודיו וביקשה לשריין תאריך. <strong>התאריך עדיין לא סופי</strong> — יש ליצור איתה קשר לתיאום תשלום מקדמה תוך ${PENDING_HOLD_MINUTES / 60} שעה, אחרת התאריך ישתחרר.`,
+      intro: input.contact_email
+        ? `שוחחנו איתך בטלפון עכשיו וביקשת לשריין תאריך. <strong>התאריך שמור זמנית</strong> — כדי לאשר אותו סופית יש לשלם את המקדמה בלחיצה על הכפתור למטה תוך ${PENDING_HOLD_MINUTES / 60} שעות, אחרת התאריך ישתחרר.`
+        : `לקוחה שוחחה עם הבינה הקולית של הסטודיו וביקשה לשריין תאריך. <strong>התאריך עדיין לא סופי</strong> — יש ליצור איתה קשר לתיאום תשלום מקדמה תוך ${PENDING_HOLD_MINUTES / 60} שעה, אחרת התאריך ישתחרר.`,
       booking: {
         id: booking.id,
         contact_name: input.contact_name,
@@ -147,14 +267,25 @@ export async function createPhoneBooking(input: PhoneBookingInput) {
         price,
         deposit_amount: deposit,
         balance_amount: Math.max(0, price - deposit),
-        notes: input.notes ?? null,
+        notes: input.props_request ? `בקשת אביזרים: ${input.props_request}` : (input.notes ?? null),
         reserved_items: [],
       },
       intakePayload: null,
+      paymentAmount: input.contact_email ? deposit : undefined,
+      // Read out in full only if she asks for it on the call (per VOICE_STYLE) —
+      // otherwise the terms just ride along here, in writing, instead of eating
+      // call time reciting them.
+      footerNote: input.contact_email
+        ? `<strong>תקנון בקצרה:</strong> מקדמה 90₪ אינה מוחזרת בביטול · ביטול ביום האירוע עצמו = חיוב מלא (100%) · נזק לציוד = עלות תיקון/רכישה + 20% דמי טיפול · ניקיון לא תקין = 150₪.${
+            newAccountPin
+              ? `<br/><br/><strong>נפתח לך אזור אישי באתר!</strong> אפשר להיכנס עם האימייל הזה והקוד <strong dir="ltr">${newAccountPin}</strong> ולראות את כל פרטי ההזמנה, לעדכן אותה, ולעקוב אחרי סטטוס התשלום.`
+              : ""
+          }`
+        : undefined,
     });
     const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
     await sendStudioAndCustomer({
-      customerEmail: null,
+      customerEmail: input.contact_email ?? null,
       subject: `בקשת שריון טלפונית #${booking.id.slice(0, 8)} · Sweetbaby`,
       html,
     });
@@ -162,5 +293,5 @@ export async function createPhoneBooking(input: PhoneBookingInput) {
     console.error("[SWEETBABY] voice booking email failed", e);
   }
 
-  return { id: booking.id, price, deposit, endTime };
+  return { id: booking.id, price, deposit, endTime, emailSent: !!input.contact_email, newAccountPin };
 }

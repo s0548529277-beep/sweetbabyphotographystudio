@@ -17,8 +17,8 @@ export function ChatBot() {
 
   const [open, setOpen] = useState(false);
   const greeting = isAuth
-    ? `שלום ${userName || ""} 💬 אני העוזרת של Sweetbaby. אפשר לשאול אותי ישירות "האם הסטודיו פנוי ב-12.8 בשעה 9:00?" או "האם מק״ט 461 פנוי בשבוע הבא?" — אני בודקת ביומן ובמלאי בזמן אמת.`
-    : `שלום! אני העוזרת של Sweetbaby 💬 אפשר לשאול אותי ישירות "האם הסטודיו פנוי ב-12.8 בשעה 9:00?" או "האם מק״ט 461 פנוי מחר?" — אני בודקת ביומן ובמלאי בזמן אמת.`;
+    ? `שלום ${userName || ""} 💬 אני בוט Sweetbaby. אפשר לשאול אותי ישירות "האם הסטודיו פנוי ב-12.8 בשעה 9:00?" או "האם מק״ט 461 פנוי בשבוע הבא?" — אני בודק ביומן ובמלאי בזמן אמת.`
+    : `שלום! אני בוט Sweetbaby 💬 אפשר לשאול אותי ישירות "האם הסטודיו פנוי ב-12.8 בשעה 9:00?" או "האם מק״ט 461 פנוי מחר?" — אני בודק ביומן ובמלאי בזמן אמת.`;
 
   const [messages, setMessages] = useState<Msg[]>([{ role: "assistant", content: greeting }]);
   // One id per browser tab's chat session (kept in sessionStorage so it
@@ -61,13 +61,20 @@ export function ChatBot() {
     try {
       const { reply } = await chat({ data: { messages: next, userName, isAuthenticated: isAuth, sessionId } });
       setMessages([...next, { role: "assistant", content: reply }]);
-    } catch {
+    } catch (e) {
+      // The generic message below is what the customer sees, but it was
+      // swallowing the real error entirely — impossible to tell from the
+      // console whether this was a Gemini/Lovable key problem, a network
+      // failure, or something else. Now it's at least visible to whoever
+      // opens devtools (admin debugging this exact "why doesn't the bot
+      // work" question), without changing what the customer sees.
+      console.error("[SWEETBABY] chat bot request failed", e);
       setMessages([
         ...next,
         {
           role: "assistant",
           content:
-            "מצטערת, אני קצת עמוסה כרגע 💗 אפשר לנסות שוב בעוד כמה דקות, ואם זה דחוף — אפשר גם ליצור קשר ישיר: 054-8529277 או s0548529277@gmail.com",
+            "מצטער, אני קצת עמוס כרגע 💗 אפשר לנסות שוב בעוד כמה דקות, ואם זה דחוף — אפשר גם ליצור קשר ישיר: 054-8529277 או s0548529277@gmail.com",
         },
       ]);
     } finally {
@@ -136,7 +143,7 @@ export function ChatBot() {
           overflow: "hidden", fontFamily: "'Assistant',sans-serif",
         }}>
           <div style={{ background: "#163126", color: "#f5c5b3", padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ fontWeight: 700 }}>Sweetbaby · עוזרת</div>
+            <div style={{ fontWeight: 700 }}>Sweetbaby · בוט</div>
             <button onClick={() => setOpen(false)} aria-label="סגור" style={{ background: "none", border: "none", color: "#f5c5b3", fontSize: 22, cursor: "pointer" }}>×</button>
           </div>
           <div ref={scrollRef} style={{ flex: 1, padding: 14, overflowY: "auto", background: "#faf7f4" }}>

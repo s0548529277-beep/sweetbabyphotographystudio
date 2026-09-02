@@ -11,8 +11,10 @@ import { ArrivalDirections } from "@/components/ArrivalDirections";
 import { PayOnlineButton } from "@/components/PayOnlineButton";
 import { confirmBookingDeposit } from "@/lib/bookings.functions";
 import { confirmOrderDeposit } from "@/lib/orders.functions";
-import { Copy, Check, Upload, Banknote, CreditCard, Wallet, PlayCircle } from "lucide-react";
+import { Copy, Check, Upload, Banknote, CreditCard, Wallet, PlayCircle, Bell } from "lucide-react";
 import { StudioGuideModal } from "@/components/StudioGuideModal";
+import { PrizeWheel } from "@/components/PrizeWheel";
+import { isEligibleForWheel } from "@/lib/wheel-prizes";
 
 
 export const Route = createFileRoute("/deposit/$type/$id")({
@@ -57,6 +59,9 @@ function Deposit() {
   const [done, setDone] = useState(false);
   const [confirmedPaid, setConfirmedPaid] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [doorCode, setDoorCode] = useState<string | null>(null);
+  const [wantsReminder, setWantsReminder] = useState(false);
+  const [reminderHoursBefore, setReminderHoursBefore] = useState("12");
   const confirmDeposit = useServerFn(confirmBookingDeposit);
   const confirmOrder = useServerFn(confirmOrderDeposit);
 
@@ -117,11 +122,24 @@ function Deposit() {
         })
         .eq("id", id);
       if (updErr) throw updErr;
+      // Separate, best-effort update — the reminder opt-in must never be
+      // able to block the actual payment confirmation above (e.g. if the
+      // reminder_hours_before migration hasn't been run yet on this
+      // database, this fails on its own instead of taking the whole
+      // confirmation down with it).
+      if (wantsReminder) {
+        try {
+          await (supabase.from(table) as any).update({ reminder_hours_before: Number(reminderHoursBefore) }).eq("id", id);
+        } catch (e) {
+          console.error("[SWEETBABY] reminder opt-in save failed", e);
+        }
+      }
       // The studio slot is written to the calendar only now — after the
       // deposit was actually transferred / a receipt was uploaded.
       if (isStudio && method !== "cash") {
         try {
-          await confirmDeposit({ data: { id } });
+          const res = await confirmDeposit({ data: { id } });
+          if (res?.doorCode) setDoorCode(res.doorCode);
         } catch (e) {
           console.error("[SWEETBABY] calendar sync after deposit failed", e);
         }
@@ -131,7 +149,8 @@ function Deposit() {
       // is completed — any method, cash included.
       if (!isStudio) {
         try {
-          await confirmOrder({ data: { id } });
+          const res = await confirmOrder({ data: { id } });
+          if (res?.doorCode) setDoorCode(res.doorCode);
         } catch (e) {
           console.error("[SWEETBABY] order confirmation email trigger failed", e);
         }
@@ -186,6 +205,18 @@ function Deposit() {
                       ? "קיבלנו את האסמכתא ואישור נשלח למייל. מחכות לפגוש אותך!"
                       : "התאריך נשמר ואישור נשלח למייל. התשלום יאומת ויסומן כ'שולם' בהמשך, עד לסיום ההזמנה."}
                 </p>
+                {doorCode && (
+                  <div className="mx-auto max-w-sm mb-6 p-4 rounded-2xl bg-[#faf7f4] border border-primary/10 text-center">
+                    <p className="text-sm font-semibold text-primary mb-1">🔑 קוד כניסה לדלת הסטודיו</p>
+                    <p className="font-display text-2xl tracking-widest text-primary mb-1" dir="ltr">
+                      {doorCode}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      תקף רק בשעות ההשכרה שלך. אחרי הקשת הקוד יש ללחוץ על # לאישור. הקוד נשלח גם למייל.
+                      {!isStudio && " הקוד לא פעיל בין 00:00 ל-07:00. אין לקחת או להחזיר אביזרים בלי לתאם טלפונית מראש · 054-8529277."}
+                    </p>
+                  </div>
+                )}
                 <Link to="/account">
                   <Button className="rounded-full">לחשבון שלי</Button>
                 </Link>
@@ -204,6 +235,7 @@ function Deposit() {
                   </div>
                 )}
               </div>
+              {isStudio && record && isEligibleForWheel(record) && <PrizeWheel bookingId={record.id} initialPrizeId={record.wheel_prize} />}
               <ArrivalDirections />
             </div>
           ) : (
@@ -324,6 +356,38 @@ function Deposit() {
                     </p>
                   </>
                 )}
+
+                <div className="rounded-2xl border border-border p-4 space-y-3">
+                  <label className="flex items-start gap-2 cursor-pointer text-sm">
+                    <input
+                      type="checkbox"
+                      checked={wantsReminder}
+                      onChange={(e) => setWantsReminder(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 accent-primary"
+                    />
+                    <span className="flex items-center gap-1.5 text-primary font-medium">
+                      <Bell className="h-4 w-4 text-blush-deep" /> תרצי תזכורת {isStudio ? "לפני הצילומים" : "לפני האיסוף"}?
+                    </span>
+                  </label>
+                  {wantsReminder && (
+                    <div className="pr-6">
+                      <select
+                        value={reminderHoursBefore}
+                        onChange={(e) => setReminderHoursBefore(e.target.value)}
+                        className="h-10 rounded-xl border border-border bg-card px-3 text-sm"
+                      >
+                        <option value="1">שעה לפני</option>
+                        <option value="2">שעתיים לפני</option>
+                        <option value="4">4 שעות לפני</option>
+                        <option value="12">12 שעות לפני</option>
+                        <option value="24">יום לפני</option>
+                      </select>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        נתקשר אלייך ממספר הסטודיו (077-2249299) עם תזכורת קצרה, וגם נשלח מייל.
+                      </p>
+                    </div>
+                  )}
+                </div>
 
                 <Button
                   disabled={uploading || (showReceiptUpload && !file && !confirmedPaid)}

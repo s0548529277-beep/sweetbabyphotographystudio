@@ -3,6 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { buildBookingSummaryHtml } from "@/lib/orderSummary";
 import { bookingBlocksSlot, PENDING_HOLD_MINUTES } from "@/lib/availability.server";
+import { PROPS_REQUEST_CONTEXT_MARKER } from "@/lib/voice-message.server";
 
 // Studio pricing rules
 // - Minimum 2 half-hour slots (1 hour)
@@ -190,7 +191,7 @@ export const placeBooking = createServerFn({ method: "POST" })
     // disagree about whether a given pending-deposit hold still counts.
     const { data: existing, error: exErr } = await supabase
       .from("bookings")
-      .select("id, start_time, end_time, status, deposit_status, created_at")
+      .select("id, start_time, end_time, status, deposit_status, created_at, notes")
       .eq("session_date", data.session_date)
       .neq("status", "cancelled");
     if (exErr) throw new Error(exErr.message);
@@ -431,7 +432,7 @@ export const placeRecurringBooking = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => recurringInputSchema.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { studioAvailability } = await import("./availability.server");
+    const { fetchAvailabilityBatch } = await import("./availability.server");
 
     const { data: loyaltyRow } = await supabase
       .from("customer_loyalty")
@@ -472,18 +473,28 @@ export const placeRecurringBooking = createServerFn({ method: "POST" })
     const today = new Date().toISOString().slice(0, 10);
 
     const base = new Date(`${data.start_date}T00:00:00`);
+
+    // All `weeks` dates (always exactly 7 days apart) are independent of
+    // each other for availability purposes — booking week 1 can never
+    // affect whether week 2's slot is free, since they're different dates
+    // — so it's safe to fetch the whole series' availability data ONCE
+    // up front (3 network calls total, including one Google Calendar read)
+    // instead of once per week (up to 13 × 3 = 39 calls for a full series).
+    const lastSessionIso = new Date(base.getTime() + (data.weeks - 1) * 7 * 86400000).toISOString().slice(0, 10);
+    const { freeSlotsFor, isClosed } = await fetchAvailabilityBatch(data.start_date, lastSessionIso);
+
     for (let i = 0; i < data.weeks; i++) {
       const d = new Date(base);
       d.setDate(d.getDate() + i * 7);
       const iso = d.toISOString().slice(0, 10);
 
       try {
-        const avail = await studioAvailability(iso, data.start_time);
-        if (avail.closed) {
+        if (isClosed(iso)) {
           skipped.push({ date: iso, reason: "הסטודיו סגור בתאריך זה" });
           continue;
         }
-        if (!wantedSlots.every((slot) => avail.freeSlots.includes(slot))) {
+        const freeSlots = freeSlotsFor(iso);
+        if (!wantedSlots.every((slot) => freeSlots.includes(slot))) {
           skipped.push({ date: iso, reason: "התאריך/שעה תפוסים" });
           continue;
         }
@@ -725,6 +736,162 @@ async function fetchReceiptAttachment(
   }
 }
 
+type ConfirmableBooking = {
+  id: string;
+  user_id: string;
+  session_date: string;
+  start_time: string;
+  end_time: string;
+  price: number;
+  deposit_amount: number;
+  balance_amount: number;
+  balance_method?: string | null;
+  notes: string | null;
+  reserved_items: string[] | null;
+  contact_name: string | null;
+  contact_phone: string | null;
+  deposit_receipt_url?: string | null;
+};
+
+/**
+ * The actual "you're reserved" work, done once a deposit is confirmed paid:
+ * writes the Google Calendar event, issues a real TTLock door passcode,
+ * awards cashback, sends the FULL order-summary confirmation email (price
+ * breakdown, questionnaire, arrival details, receipt attached, door code),
+ * and places a short Yemot voice call reading back the booking + code.
+ *
+ * Shared by two very different triggers: confirmBookingDeposit (the
+ * customer's own browser, on the /deposit page, after a website booking)
+ * and adminConfirmPhoneBookingDeposit (a staff member manually confirming a
+ * phone-booked customer's bank transfer/Bit payment — a phone booking's
+ * user_id is a server-minted anonymous account she never actually signs
+ * into in her own browser, so she can never reach the customer-triggered
+ * path at all; see that function's own comment for the full story). Always
+ * uses supabaseAdmin (never the customer's own request-scoped client) so it
+ * works identically regardless of which of those two callers invoked it.
+ */
+async function finalizeBookingConfirmation(
+  b: ConfirmableBooking,
+  customerEmail: string | undefined,
+): Promise<{ doorCode: string | null }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { createGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
+  const event = await createGoogleCalendarEvent({
+    summary: `סטודיו · ${b.contact_name ?? ""}`.trim(),
+    description: [
+      `טלפון: ${b.contact_phone ?? ""}`,
+      `מחיר: ₪${b.price}`,
+      "מקדמה שולמה ✓",
+      b.notes ? `הערות: ${b.notes}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    startISO: `${b.session_date}T${String(b.start_time).slice(0, 5)}:00`,
+    endISO: `${b.session_date}T${String(b.end_time).slice(0, 5)}:00`,
+    location: "תלמוד ירושלמי 24, בית שמש",
+    attendees: customerEmail ? [customerEmail] : [],
+  });
+  if (event) {
+    await supabaseAdmin.from("bookings").update({ google_event_id: event.id }).eq("id", b.id);
+  }
+
+  // Award cashback loyalty credit (if this customer is enrolled) on the
+  // real amount paid, now that payment is actually confirmed.
+  try {
+    const { awardCashback } = await import("@/lib/loyalty");
+    await awardCashback(supabaseAdmin, b.user_id, Number(b.price));
+  } catch (e) {
+    console.error("[SWEETBABY] cashback award (booking) failed", e);
+  }
+
+  // Issues a real temporary door passcode (TTLock) for the booked window,
+  // best-effort — never blocks the confirmation itself if it fails.
+  let doorCode: string | null = null;
+  if (b.contact_phone) {
+    try {
+      const { issueDoorCodeForBooking } = await import("@/integrations/ttlock/client.server");
+      const doorCodeResult = await issueDoorCodeForBooking({
+        phone: b.contact_phone,
+        date: b.session_date,
+        startTime: String(b.start_time).slice(0, 5),
+        endTime: String(b.end_time).slice(0, 5),
+        label: b.contact_name ? `${b.contact_name} סטודיו` : `הזמנה ${b.id.slice(0, 8)}`,
+      });
+      if (doorCodeResult) {
+        doorCode = doorCodeResult.code;
+        await supabaseAdmin
+          .from("bookings")
+          .update({
+            door_code: doorCodeResult.code,
+            ttlock_keyboard_pwd_id: doorCodeResult.keyboardPwdId,
+            ttlock_lock_id: doorCodeResult.lockId,
+          })
+          .eq("id", b.id);
+      }
+    } catch (e) {
+      console.error("[SWEETBABY] TTLock door code issue (booking) failed", e);
+    }
+  }
+
+  // This is the actual "you're reserved" confirmation — sent only now,
+  // after payment/receipt was confirmed, never earlier. It's a FULL order
+  // summary: price breakdown, the signed questionnaire, arrival directions,
+  // door code, and the uploaded payment receipt attached as a file.
+  try {
+    const intakePayload = await fetchLatestIntake(supabaseAdmin, b.user_id);
+    const receiptAttachment = await fetchReceiptAttachment(supabaseAdmin, b.deposit_receipt_url ?? null);
+
+    const html = buildBookingSummaryHtml({
+      heading: "אישור הזמנה — השכרת סטודיו ✓",
+      intro:
+        "קיבלנו את התשלום/האסמכתא, וההזמנה מאושרת — התאריך שוריין עבורך בפועל ביומן הסטודיו. למטה תמצאי סיכום מלא של ההזמנה, פרטי הגעה, וקובץ האסמכתא ששלחת מצורף להמשך תיעוד. מחכות לפגוש אותך!",
+      booking: {
+        id: b.id,
+        contact_name: b.contact_name,
+        session_date: b.session_date,
+        start_time: b.start_time,
+        end_time: b.end_time,
+        price: b.price,
+        deposit_amount: b.deposit_amount,
+        balance_amount: b.balance_amount,
+        balance_method: b.balance_method ?? null,
+        notes: b.notes,
+        reserved_items: b.reserved_items ?? [],
+      },
+      intakePayload,
+      footerNote: receiptAttachment ? "קובץ האסמכתא שצירפת מופיע כקובץ מצורף למייל זה." : undefined,
+      doorCode,
+    });
+
+    const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+    await sendStudioAndCustomer({
+      customerEmail,
+      subject: `אישור הזמנה — השכרת סטודיו #${b.id.slice(0, 8)} · Sweetbaby`,
+      html,
+      attachments: receiptAttachment ? [receiptAttachment] : undefined,
+    });
+  } catch (e) {
+    console.error("[SWEETBABY] deposit confirmation email failed", e);
+  }
+
+  // A real phone call from the studio's line reading back the booking +
+  // door code — best-effort, never blocks the confirmation.
+  if (b.contact_phone) {
+    try {
+      const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
+      const text = `שלום ${b.contact_name || ""}, ההזמנה שלך בסטודיו סוויט בייבי אושרה. התאריך ${b.session_date} בשעה ${String(b.start_time).slice(0, 5)}.${
+        doorCode ? ` קוד הכניסה שלך הוא ${doorCode.split("").join(" ")}. לחצי סולמית אחרי הקשת הקוד.` : ""
+      } מחכות לך, ביי!`;
+      const outboundText = "שלום, ההזמנה שלך בסטודיו סוויט בייבי אושרה. תתקשרי בבקשה חזרה לשמיעת כל הפרטים.";
+      await sendYemotVoiceMessage({ phone: b.contact_phone, text, outboundText, label: `אישור הזמנה ${b.id.slice(0, 8)}` });
+    } catch (e) {
+      console.error("[SWEETBABY] Yemot confirmation call (booking) failed", e);
+    }
+  }
+
+  return { doorCode };
+}
+
 /**
  * Writes the studio booking into the Google Calendar and sends the FULL
  * order-summary "reservation confirmed" email (price breakdown, questionnaire,
@@ -741,13 +908,61 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
     const { data: b, error } = await supabase
       .from("bookings")
       .select(
-        "id, user_id, session_date, start_time, end_time, price, deposit_amount, balance_amount, balance_method, notes, reserved_items, contact_name, contact_phone, deposit_receipt_url, google_event_id",
+        "id, user_id, session_date, start_time, end_time, price, deposit_amount, balance_amount, balance_method, notes, reserved_items, contact_name, contact_phone, deposit_receipt_url, google_event_id, door_code",
       )
       .eq("id", data.id)
       .maybeSingle();
     if (error || !b) throw new Error("השריון לא נמצא");
     if (b.user_id !== userId) throw new Error("אין הרשאה");
-    if (b.google_event_id) return { ok: true, already: true };
+    if (b.google_event_id) {
+      // Already confirmed on an earlier visit (calendar/email already sent).
+      // If she's revisiting this exact confirmation screen and no door code
+      // was ever issued (e.g. this booking predates the TTLock feature, or
+      // the first attempt failed), backfill one now instead of just
+      // returning null forever — this is exactly the "no code, no error"
+      // symptom reported live: re-confirming an already-confirmed booking
+      // used to skip issuance entirely, silently.
+      let doorCode = ((b as any).door_code as string | null) ?? null;
+      if (!doorCode && b.contact_phone) {
+        try {
+          const { issueDoorCodeForBooking } = await import("@/integrations/ttlock/client.server");
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const doorCodeResult = await issueDoorCodeForBooking({
+            phone: b.contact_phone,
+            date: b.session_date,
+            startTime: String(b.start_time).slice(0, 5),
+            endTime: String(b.end_time).slice(0, 5),
+            label: b.contact_name ? `${b.contact_name} סטודיו` : `הזמנה ${b.id.slice(0, 8)}`,
+          });
+          if (doorCodeResult) {
+            doorCode = doorCodeResult.code;
+            await supabaseAdmin
+              .from("bookings")
+              .update({
+                door_code: doorCodeResult.code,
+                ttlock_keyboard_pwd_id: doorCodeResult.keyboardPwdId,
+                ttlock_lock_id: doorCodeResult.lockId,
+              })
+              .eq("id", b.id);
+            // A freshly-backfilled code was never spoken on the original
+            // confirmation call (that already happened, without a code) —
+            // send one now so she actually hears it, not just sees it on
+            // this revisit of the screen.
+            try {
+              const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
+              const text = `שלום ${b.contact_name || ""}, קוד הכניסה שלך לסטודיו סוויט בייבי הוא ${doorCode.split("").join(" ")}. לחצי סולמית אחרי הקשת הקוד. מחכות לך!`;
+              const outboundText = "שלום, יש לך קוד כניסה חדש לסטודיו סוויט בייבי. תתקשרי בבקשה חזרה לשמיעתו.";
+              await sendYemotVoiceMessage({ phone: b.contact_phone, text, outboundText, label: `קוד כניסה ${b.id.slice(0, 8)}` });
+            } catch (e) {
+              console.error("[SWEETBABY] Yemot backfilled door code call (booking) failed", e);
+            }
+          }
+        } catch (e) {
+          console.error("[SWEETBABY] TTLock door code backfill (booking) failed", e);
+        }
+      }
+      return { ok: true, already: true, doorCode };
+    }
 
     let customerEmail: string | undefined;
     try {
@@ -760,110 +975,237 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
     }
 
     try {
-      const { createGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const event = await createGoogleCalendarEvent({
-        summary: `סטודיו · ${b.contact_name ?? ""}`.trim(),
-        description: [
-          `טלפון: ${b.contact_phone ?? ""}`,
-          `מחיר: ₪${b.price}`,
-          "מקדמה שולמה ✓",
-          b.notes ? `הערות: ${b.notes}` : null,
-        ]
-          .filter(Boolean)
-          .join("\n"),
-        startISO: `${b.session_date}T${String(b.start_time).slice(0, 5)}:00`,
-        endISO: `${b.session_date}T${String(b.end_time).slice(0, 5)}:00`,
-        location: "תלמוד ירושלמי 24, בית שמש",
-        attendees: customerEmail ? [customerEmail] : [],
-      });
-      if (event) {
-        await supabaseAdmin.from("bookings").update({ google_event_id: event.id }).eq("id", b.id);
-      }
-
-      // Award cashback loyalty credit (if this customer is enrolled) on the
-      // real amount paid, now that payment is actually confirmed.
-      try {
-        const { awardCashback } = await import("@/lib/loyalty");
-        await awardCashback(supabaseAdmin, userId, Number(b.price));
-      } catch (e) {
-        console.error("[SWEETBABY] cashback award (booking) failed", e);
-      }
-
-      // This is the actual "you're reserved" confirmation — sent only now,
-      // after payment/receipt was confirmed, never earlier. It's a FULL
-      // order summary: price breakdown, the signed questionnaire, arrival
-      // directions, and the uploaded payment receipt attached as a file.
-      try {
-        const intakePayload = await fetchLatestIntake(supabase, userId);
-        const receiptAttachment = await fetchReceiptAttachment(supabaseAdmin, b.deposit_receipt_url as string | null);
-
-        const html = buildBookingSummaryHtml({
-          heading: "אישור הזמנה — השכרת סטודיו ✓",
-          intro:
-            "קיבלנו את התשלום/האסמכתא, וההזמנה מאושרת — התאריך שוריין עבורך בפועל ביומן הסטודיו. למטה תמצאי סיכום מלא של ההזמנה, פרטי הגעה, וקובץ האסמכתא ששלחת מצורף להמשך תיעוד. מחכות לפגוש אותך!",
-          booking: {
-            id: b.id,
-            contact_name: b.contact_name,
-            session_date: b.session_date,
-            start_time: b.start_time,
-            end_time: b.end_time,
-            price: b.price,
-            deposit_amount: b.deposit_amount,
-            balance_amount: b.balance_amount,
-            balance_method: b.balance_method,
-            notes: b.notes,
-            reserved_items: (b.reserved_items as string[] | null) ?? [],
-          },
-          intakePayload,
-          footerNote: receiptAttachment ? "קובץ האסמכתא שצירפת מופיע כקובץ מצורף למייל זה." : undefined,
-        });
-
-        const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
-        await sendStudioAndCustomer({
-          customerEmail,
-          subject: `אישור הזמנה — השכרת סטודיו #${b.id.slice(0, 8)} · Sweetbaby`,
-          html,
-          attachments: receiptAttachment ? [receiptAttachment] : undefined,
-        });
-      } catch (e) {
-        console.error("[SWEETBABY] deposit confirmation email failed", e);
-      }
-
-      return { ok: true, already: false };
+      const { doorCode } = await finalizeBookingConfirmation(b as unknown as ConfirmableBooking, customerEmail);
+      return { ok: true, already: false, doorCode };
     } catch (e) {
       console.error("[SWEETBABY] deposit calendar sync failed", e);
-      return { ok: false, already: false };
+      return { ok: false, already: false, doorCode: null as string | null };
     }
   });
 
-// ---------- 12-hours-before-session reminder email ----------
+/**
+ * Admin-triggered equivalent of confirmBookingDeposit, for a booking that
+ * came in through the phone bot (voice-booking.server.ts). A phone booking's
+ * user_id is a fresh anonymous account minted server-side purely so the
+ * `bookings` row satisfies its NOT NULL constraint — it's never actually
+ * signed into in the customer's own browser, so she can never reach the
+ * customer-triggered /deposit page (its auth check requires her session's
+ * userId to match the booking's user_id). The generic "pay now" button in
+ * her confirmation email also isn't booking-specific (see
+ * buildPaymentButtonHtml — a flat constant URL), so there is currently no
+ * automatic way to detect her payment either.
+ *
+ * This closes that gap the way the studio already handles phone/bank-
+ * transfer payments in practice: a staff member sees the transfer/Bit
+ * receipt actually arrive and confirms it here — same door code + full
+ * order-summary email + Yemot voice call as a website booking gets, just
+ * admin-triggered instead of customer-triggered. contactEmail is passed in
+ * explicitly (from the admin_notifications row that createPhoneBooking
+ * already wrote) since `bookings` itself has no email column — the address
+ * the caller gave was never persisted anywhere else.
+ */
+const adminConfirmBookingInput = z.object({ id: z.string().uuid(), contactEmail: z.string().email().optional() });
 
-const REMINDER_WINDOW_MIN_HOURS = 11.5;
-const REMINDER_WINDOW_MAX_HOURS = 12.5;
+export const adminConfirmPhoneBookingDeposit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => adminConfirmBookingInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+    if (!roles?.some((r: any) => r.role === "admin")) throw new Error("אין הרשאת ניהול");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: b, error } = await supabaseAdmin
+      .from("bookings")
+      .select(
+        "id, user_id, session_date, start_time, end_time, price, deposit_amount, balance_amount, balance_method, notes, reserved_items, contact_name, contact_phone, deposit_receipt_url, google_event_id, door_code",
+      )
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error || !b) throw new Error("השריון לא נמצא");
+    if (b.google_event_id) return { ok: true, already: true, doorCode: (b as any).door_code ?? null };
+
+    try {
+      const { doorCode } = await finalizeBookingConfirmation(b as unknown as ConfirmableBooking, data.contactEmail);
+      return { ok: true, already: false, doorCode };
+    } catch (e) {
+      console.error("[SWEETBABY] admin phone-booking confirmation failed", e);
+      return { ok: false, already: false, doorCode: null as string | null };
+    }
+  });
+
+// ---------- pending phone-booking confirmation nudge ----------
+
+// Grace period before nudging — long enough that a normal "she said she'd
+// transfer it in a few minutes" isn't a false alarm, short enough that a
+// booking doesn't sit forgotten for a whole day.
+const PHONE_CONFIRM_REMINDER_AFTER_MINUTES = 120;
+const STUDIO_OWNER_PHONE = "0548529277";
 
 /**
- * Scans for confirmed bookings whose session starts in ~12 hours and haven't
- * had a reminder sent yet, and emails the customer a reminder (order summary
- * + arrival details). Meant to be called periodically (e.g. every 30 min) by
- * an external scheduler hitting /api/send-booking-reminders — see that route.
- * Not wrapped in createServerFn/requireSupabaseAuth on purpose: this runs as
- * a trusted service job, not on behalf of a logged-in user.
+ * A phone booking only ever reaches "confirmed" (door code + full email +
+ * calendar event) through a staff member manually clicking "אשר תשלום
+ * והנפק קוד" in /admin/notifications (see adminConfirmPhoneBookingDeposit's
+ * own comment for why there's no automatic path). A notification sitting
+ * unread/forgotten there means the customer's slot silently never gets
+ * finalized. This scans for phone bookings still pending
+ * PHONE_CONFIRM_REMINDER_AFTER_MINUTES after they came in, and places a
+ * short Yemot voice call to the STUDIO'S OWN phone (not the customer's) —
+ * an actual ring, not just another easy-to-miss notification. Fires at most
+ * once per booking (tracked via a dedicated admin_notifications row, so a
+ * repeat cron run never calls twice for the same booking). Meant to run
+ * alongside runDueBookingReminders/runDueOrderReminders from the same
+ * periodic /api/send-booking-reminders cron hit — no separate scheduler
+ * needed.
+ */
+export async function notifyPendingPhoneBookingConfirmations(): Promise<{ checked: number; called: number }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const cutoff = new Date(Date.now() - PHONE_CONFIRM_REMINDER_AFTER_MINUTES * 60 * 1000).toISOString();
+
+  const { data: candidates, error } = await supabaseAdmin
+    .from("bookings")
+    .select("id, contact_name, session_date, start_time, price, notes, created_at")
+    .is("google_event_id", null)
+    .neq("status", "cancelled")
+    .lte("created_at", cutoff)
+    .ilike("notes", "%התקבל בשיחה טלפונית%"); // set verbatim by createPhoneBooking — see voice-booking.server.ts
+  if (error) {
+    console.error("[SWEETBABY] pending phone booking scan failed", error);
+    return { checked: 0, called: 0 };
+  }
+
+  let called = 0;
+  for (const b of (candidates ?? []) as any[]) {
+    try {
+      // Already nudged for this exact booking? Skip — never call twice.
+      const { data: already } = await supabaseAdmin
+        .from("admin_notifications")
+        .select("id")
+        .eq("type", "phone_booking_reminder_call")
+        .contains("body", { booking_id: b.id })
+        .limit(1);
+      if (already && already.length > 0) continue;
+
+      const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
+      const text = `שלום, יש הזמנה טלפונית ממתינה לאישור תשלום בסטודיו סוויט בייבי. ${b.contact_name || "לקוחה"}, תאריך ${b.session_date} בשעה ${String(b.start_time).slice(0, 5)}, סכום ${b.price} שקל. אם ההעברה התקבלה, יש לאשר בממשק הניהול.`;
+      const outboundText = "שלום, יש הזמנה טלפונית ממתינה לאישור תשלום. תתקשרי בבקשה חזרה לפרטים, או תבדקי בממשק הניהול.";
+      await sendYemotVoiceMessage({ phone: STUDIO_OWNER_PHONE, text, outboundText, label: `תזכורת אישור טלפוני ${b.id.slice(0, 8)}` });
+      called++;
+
+      // Logged even though it's a call, not a written notification — this
+      // row's only real job is the dedup check above (never call twice),
+      // but it also leaves a visible trail of when each nudge went out.
+      await supabaseAdmin.from("admin_notifications").insert({
+        type: "phone_booking_reminder_call",
+        title: `📞 תזכורת טלפונית: הזמנה ממתינה לאישור · ${b.contact_name ?? ""}`,
+        body: { booking_id: b.id, session_date: b.session_date, start_time: b.start_time },
+      });
+    } catch (e) {
+      console.error("[SWEETBABY] pending phone booking reminder call failed", e);
+    }
+  }
+  return { checked: (candidates ?? []).length, called };
+}
+
+// ---------- pending props-rental phone request nudge ----------
+
+// Same grace period as the phone-booking confirmation nudge above — long
+// enough that a message left minutes ago isn't a false alarm.
+const PROPS_REQUEST_REMINDER_AFTER_MINUTES = 120;
+
+/**
+ * Mirrors notifyPendingPhoneBookingConfirmations above, but for props-only
+ * phone requests (voice-chat.server.ts's request_props_rental tool) — those
+ * never create a booking row, only an admin_notifications row of type
+ * "voice_message" with body.context === PROPS_REQUEST_CONTEXT_MARKER, so
+ * "still pending" here means that row's read_at is still null (nobody in
+ * /admin/notifications has marked it read/handled yet). Fires at most once
+ * per notification (tracked via a dedicated admin_notifications row, exactly
+ * like the phone-booking version). Meant to run alongside the other reminder
+ * scans from the same periodic /api/send-booking-reminders cron hit.
+ */
+export async function notifyPendingPropsRequests(): Promise<{ checked: number; called: number }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const cutoff = new Date(Date.now() - PROPS_REQUEST_REMINDER_AFTER_MINUTES * 60 * 1000).toISOString();
+
+  const { data: candidates, error } = await supabaseAdmin
+    .from("admin_notifications")
+    .select("id, body, created_at")
+    .eq("type", "voice_message")
+    .is("read_at", null)
+    .lte("created_at", cutoff)
+    .contains("body", { context: PROPS_REQUEST_CONTEXT_MARKER });
+  if (error) {
+    console.error("[SWEETBABY] pending props request scan failed", error);
+    return { checked: 0, called: 0 };
+  }
+
+  let called = 0;
+  for (const n of (candidates ?? []) as any[]) {
+    try {
+      // Already nudged for this exact notification? Skip — never call twice.
+      const { data: already } = await supabaseAdmin
+        .from("admin_notifications")
+        .select("id")
+        .eq("type", "props_request_reminder_call")
+        .contains("body", { notification_id: n.id })
+        .limit(1);
+      if (already && already.length > 0) continue;
+
+      const phone = n.body?.phone ?? "";
+      const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
+      const text = `שלום, יש בקשה טלפונית להשכרת אביזרים שממתינה לטיפול בסטודיו סוויט בייבי, מהמספר ${phone || "לא ידוע"}. יש לבדוק בממשק הניהול.`;
+      const outboundText = "שלום, יש בקשת אביזרים טלפונית שממתינה לטיפול. תבדקי בממשק הניהול.";
+      await sendYemotVoiceMessage({ phone: STUDIO_OWNER_PHONE, text, outboundText, label: `תזכורת בקשת אביזרים ${n.id.slice(0, 8)}` });
+      called++;
+
+      await supabaseAdmin.from("admin_notifications").insert({
+        type: "props_request_reminder_call",
+        title: "📞 תזכורת טלפונית: בקשת השכרת אביזרים ממתינה לטיפול",
+        body: { notification_id: n.id, phone },
+      });
+    } catch (e) {
+      console.error("[SWEETBABY] pending props request reminder call failed", e);
+    }
+  }
+  return { checked: (candidates ?? []).length, called };
+}
+
+// ---------- opt-in reminder, customer-chosen hours-before ----------
+
+// Half an hour of slack either side of her chosen "hours before" — the
+// scheduler runs every 15-30 min, not continuously, so the exact instant
+// almost never lines up perfectly.
+const REMINDER_WINDOW_SLACK_HOURS = 0.5;
+
+/**
+ * Scans for confirmed bookings where the customer opted into a reminder on
+ * the deposit/checkout screen (reminder_hours_before set) and hasn't had it
+ * sent yet, and — once her chosen "hours before" window arrives — emails her
+ * the full order summary AND places a short Yemot voice call. Replaces the
+ * old fixed-12h/4h automatic reminders: now nobody gets a reminder unless
+ * she asked for one, at the timing she picked. Meant to be called
+ * periodically (e.g. every 30 min) by an external scheduler hitting
+ * /api/send-booking-reminders — see that route. Not wrapped in
+ * createServerFn/requireSupabaseAuth on purpose: this runs as a trusted
+ * service job, not on behalf of a logged-in user.
  */
 export async function runDueBookingReminders(): Promise<{ checked: number; sent: number }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  // Bound the query to the next 2 days so we don't scan the whole table;
-  // the precise 12h window is checked in JS below since it spans a date+time.
+  // Bound the query to the next 3 days so we don't scan the whole table
+  // (a reminder can be asked for up to 48h ahead — see the deposit page);
+  // the precise per-booking window is checked in JS below.
   const today = new Date();
-  const windowEnd = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const windowEnd = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
   const { data: candidates, error } = await supabaseAdmin
     .from("bookings")
     .select(
-      "id, user_id, session_date, start_time, end_time, price, deposit_amount, balance_amount, balance_method, notes, reserved_items, contact_name, google_event_id, reminder_sent_at, status",
+      "id, user_id, session_date, start_time, end_time, price, deposit_amount, balance_amount, balance_method, notes, reserved_items, contact_name, contact_phone, google_event_id, reminder_sent_at, reminder_hours_before, status",
     )
     .is("reminder_sent_at", null)
+    .not("reminder_hours_before", "is", null) // opt-in only
     .neq("status", "cancelled")
     .not("google_event_id", "is", null) // only actually-confirmed bookings
     .gte("session_date", today.toISOString().slice(0, 10))
@@ -878,10 +1220,12 @@ export async function runDueBookingReminders(): Promise<{ checked: number; sent:
   let sent = 0;
 
   for (const b of candidates ?? []) {
+    const hoursBefore = Number((b as any).reminder_hours_before);
+    if (!hoursBefore || hoursBefore <= 0) continue;
     const startISO = `${b.session_date}T${String(b.start_time).slice(0, 5)}:00`;
     const startMs = new Date(startISO).getTime();
     const hoursUntil = (startMs - now) / (1000 * 60 * 60);
-    if (hoursUntil < REMINDER_WINDOW_MIN_HOURS || hoursUntil > REMINDER_WINDOW_MAX_HOURS) continue;
+    if (hoursUntil < hoursBefore - REMINDER_WINDOW_SLACK_HOURS || hoursUntil > hoursBefore + REMINDER_WINDOW_SLACK_HOURS) continue;
 
     try {
       const {
@@ -891,9 +1235,8 @@ export async function runDueBookingReminders(): Promise<{ checked: number; sent:
 
       const intakePayload = await fetchLatestIntake(supabaseAdmin, b.user_id);
       const html = buildBookingSummaryHtml({
-        heading: "תזכורת: הצילומים שלך היום ⏰",
-        intro:
-          "רק תזכורת חמה — הצילומים שלך בסטודיו Sweetbaby מתקיימים בעוד כ-12 שעות. למטה סיכום ההזמנה ופרטי ההגעה, שיהיה קל להתארגן.",
+        heading: "תזכורת: הצילומים שלך מתקרבים ⏰",
+        intro: `רק תזכורת חמה — הצילומים שלך בסטודיו Sweetbaby מתקיימים בעוד כ-${hoursBefore} שעות. למטה סיכום ההזמנה ופרטי ההגעה, שיהיה קל להתארגן.`,
         booking: {
           id: b.id,
           contact_name: b.contact_name,
@@ -913,9 +1256,20 @@ export async function runDueBookingReminders(): Promise<{ checked: number; sent:
       const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
       await sendStudioAndCustomer({
         customerEmail,
-        subject: `תזכורת לצילומים היום #${b.id.slice(0, 8)} · Sweetbaby`,
+        subject: `תזכורת לצילומים המתקרבים #${b.id.slice(0, 8)} · Sweetbaby`,
         html,
       });
+
+      if (b.contact_phone) {
+        try {
+          const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
+          const text = `שלום ${b.contact_name || ""}, תזכורת מסטודיו סוויט בייבי — הצילומים שלך מתקיימים בעוד כ-${hoursBefore} שעות, ב-${String(b.start_time).slice(0, 5)}. מחכות לך!`;
+          const outboundText = "שלום, תזכורת מסטודיו סוויט בייבי — יש לך צילומים בקרוב. תתקשרי בבקשה חזרה לפרטים.";
+          await sendYemotVoiceMessage({ phone: b.contact_phone, text, outboundText, label: `תזכורת ${hoursBefore} שעות ${b.id.slice(0, 8)}` });
+        } catch (e) {
+          console.error("[SWEETBABY] Yemot reminder call (booking) failed", e);
+        }
+      }
 
       await supabaseAdmin.from("bookings").update({ reminder_sent_at: new Date().toISOString() }).eq("id", b.id);
       sent += 1;

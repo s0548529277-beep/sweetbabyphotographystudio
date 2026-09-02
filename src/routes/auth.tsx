@@ -2,6 +2,7 @@ import { heError } from "@/lib/he-errors";
 import { createFileRoute, useNavigate, useSearch, Link } from "@tanstack/react-router";
 import { z } from "zod";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { Header } from "@/components/Header";
@@ -12,7 +13,8 @@ import { Label } from "@/components/ui/label";
 import { EmailDatalist } from "@/components/EmailDatalist";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth";
-import { MIN_PIN, authPasswordCandidates, toAuthPassword } from "@/lib/password";
+import { MIN_PIN } from "@/lib/password";
+import { signInWithPhoneOrEmail, signUpWithPhoneOrEmail, requestPhoneResetCode, resetPasswordWithPhoneCode } from "@/lib/auth.functions";
 import { GuestContinueButton } from "@/components/GuestContinueButton";
 import { toast } from "sonner";
 
@@ -39,25 +41,40 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
+  const [resetMode, setResetMode] = useState<"email" | "phone">("email");
+  const [resetPhone, setResetPhone] = useState("");
+  const [phoneResetStep, setPhoneResetStep] = useState<"request" | "confirm">("request");
+  const [resetCode, setResetCode] = useState("");
+  const [resetNewPassword, setResetNewPassword] = useState("");
 
   useEffect(() => {
     if (user) nav({ to: (redirect as any) || "/account" });
   }, [user, nav, redirect]);
 
+  const doSignIn = useServerFn(signInWithPhoneOrEmail);
+  const doSignUp = useServerFn(signUpWithPhoneOrEmail);
+  const doRequestPhoneReset = useServerFn(requestPhoneResetCode);
+  const doConfirmPhoneReset = useServerFn(resetPasswordWithPhoneCode);
+
   const signIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setBusy(true);
     const fd = new FormData(e.currentTarget);
-    const email = String(fd.get("email"));
-    const typed = String(fd.get("password"));
-    let lastError: string | null = null;
-    for (const password of authPasswordCandidates(typed)) {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (!error) { lastError = null; break; }
-      lastError = heError(error);
+    const identifier = String(fd.get("identifier"));
+    const password = String(fd.get("password"));
+    try {
+      const res = await doSignIn({ data: { identifier, password } });
+      if (!res.ok) {
+        toast.error(res.error);
+      } else {
+        const { error } = await supabase.auth.setSession(res.session);
+        if (error) toast.error(heError(error));
+      }
+    } catch (e2) {
+      toast.error(heError(e2, "ההתחברות נכשלה"));
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
-    if (lastError) toast.error(lastError);
   };
 
   const sendReset = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -76,25 +93,71 @@ function AuthPage() {
     }
   };
 
+  const requestPhoneReset = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const phone = resetPhone.trim();
+    if (!phone) return;
+    setBusy(true);
+    try {
+      await doRequestPhoneReset({ data: { phone } });
+      toast.success("אם המספר הזה משויך לחשבון, תקבלי עכשיו שיחה עם קוד איפוס.");
+      setPhoneResetStep("confirm");
+    } catch (e2) {
+      toast.error(heError(e2, "השליחה נכשלה"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirmPhoneReset = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!resetCode.trim() || !resetNewPassword.trim()) return;
+    setBusy(true);
+    try {
+      const res = await doConfirmPhoneReset({ data: { phone: resetPhone.trim(), code: resetCode.trim(), newPassword: resetNewPassword } });
+      if (!res.ok) {
+        toast.error(res.error);
+      } else {
+        toast.success("הסיסמה עודכנה! אפשר להתחבר איתה עכשיו.");
+        setForgotOpen(false);
+        setPhoneResetStep("request");
+        setResetCode("");
+        setResetNewPassword("");
+      }
+    } catch (e2) {
+      toast.error(heError(e2, "עדכון הסיסמה נכשל"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
 
   const signUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setBusy(true);
     const fd = new FormData(e.currentTarget);
-    const { error } = await supabase.auth.signUp({
-      email: String(fd.get("email")),
-      password: toAuthPassword(String(fd.get("password"))),
-      options: {
-        emailRedirectTo: window.location.origin,
+    const rawEmail = String(fd.get("email") ?? "").trim();
+    try {
+      const res = await doSignUp({
         data: {
-          full_name: String(fd.get("full_name")),
+          fullName: String(fd.get("full_name")),
           phone: String(fd.get("phone")),
+          email: rawEmail || undefined,
+          password: String(fd.get("password")),
         },
-      },
-    });
-    setBusy(false);
-    if (error) toast.error(heError(error));
-    else toast.success("החשבון נוצר! ניתן להתחבר.");
+      });
+      if (!res.ok) {
+        toast.error(res.error);
+      } else {
+        const { error } = await supabase.auth.setSession(res.session);
+        if (error) toast.error(heError(error));
+        else toast.success("החשבון נוצר!");
+      }
+    } catch (e2) {
+      toast.error(heError(e2, "יצירת החשבון נכשלה"));
+    } finally {
+      setBusy(false);
+    }
   };
 
   const google = async () => {
@@ -134,7 +197,7 @@ function AuthPage() {
             </TabsList>
             <TabsContent value="signin">
               <form onSubmit={signIn} className="space-y-4 mt-6">
-                <Field label="אימייל" name="email" type="email" required />
+                <Field label="אימייל או טלפון" name="identifier" type="text" required dir="ltr" />
                 <Field label="סיסמה / קוד סודי" name="password" type="password" required minLength={MIN_PIN} />
                 <Button type="submit" disabled={busy} className="w-full rounded-full h-11">
                   {busy ? "…" : "כניסה"}
@@ -150,30 +213,95 @@ function AuthPage() {
                 </div>
               </form>
               {forgotOpen && (
-                <form onSubmit={sendReset} className="space-y-3 mt-4 p-4 rounded-2xl bg-cream border border-primary/10">
-                  <p className="text-xs text-muted-foreground">
-                    הזינו את כתובת המייל ונשלח קישור לאיפוס סיסמה.
-                  </p>
-                  <Input
-                    type="email"
-                    required
-                    list="email-suggest-auth-forgot"
-                    placeholder="you@example.com"
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                  />
-                  <EmailDatalist id="email-suggest-auth-forgot" value={forgotEmail} />
-                  <Button type="submit" disabled={busy} className="w-full rounded-full h-10">
-                    {busy ? "שולח…" : "שליחת קישור איפוס"}
-                  </Button>
-                </form>
+                <div className="mt-4 p-4 rounded-2xl bg-cream border border-primary/10 space-y-3">
+                  <div className="flex gap-2 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setResetMode("email")}
+                      className={`px-3 py-1.5 rounded-full ${resetMode === "email" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}
+                    >
+                      איפוס במייל
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setResetMode("phone")}
+                      className={`px-3 py-1.5 rounded-full ${resetMode === "phone" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}
+                    >
+                      איפוס בשיחה טלפונית
+                    </button>
+                  </div>
+
+                  {resetMode === "email" ? (
+                    <form onSubmit={sendReset} className="space-y-3">
+                      <p className="text-xs text-muted-foreground">הזינו את כתובת המייל ונשלח קישור לאיפוס סיסמה.</p>
+                      <Input
+                        type="email"
+                        required
+                        list="email-suggest-auth-forgot"
+                        placeholder="you@example.com"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                      />
+                      <EmailDatalist id="email-suggest-auth-forgot" value={forgotEmail} />
+                      <Button type="submit" disabled={busy} className="w-full rounded-full h-10">
+                        {busy ? "שולח…" : "שליחת קישור איפוס"}
+                      </Button>
+                    </form>
+                  ) : phoneResetStep === "request" ? (
+                    <form onSubmit={requestPhoneReset} className="space-y-3">
+                      <p className="text-xs text-muted-foreground">נחייג אליך ונקריא קוד איפוס בשיחה קולית.</p>
+                      <Input
+                        type="tel"
+                        dir="ltr"
+                        required
+                        placeholder="050-1234567"
+                        value={resetPhone}
+                        onChange={(e) => setResetPhone(e.target.value)}
+                      />
+                      <Button type="submit" disabled={busy} className="w-full rounded-full h-10">
+                        {busy ? "שולח…" : "לקבל שיחה עם קוד"}
+                      </Button>
+                    </form>
+                  ) : (
+                    <form onSubmit={confirmPhoneReset} className="space-y-3">
+                      <p className="text-xs text-muted-foreground">הקלידי את הקוד שנקרא לך בשיחה, ואת הסיסמה החדשה.</p>
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        dir="ltr"
+                        required
+                        placeholder="קוד מהשיחה"
+                        value={resetCode}
+                        onChange={(e) => setResetCode(e.target.value)}
+                      />
+                      <Input
+                        type="password"
+                        inputMode="numeric"
+                        dir="ltr"
+                        required
+                        minLength={MIN_PIN}
+                        placeholder="סיסמה חדשה"
+                        value={resetNewPassword}
+                        onChange={(e) => setResetNewPassword(e.target.value)}
+                      />
+                      <div className="flex gap-2">
+                        <Button type="submit" disabled={busy} className="flex-1 rounded-full h-10">
+                          {busy ? "מעדכן…" : "עדכון סיסמה"}
+                        </Button>
+                        <Button type="button" variant="ghost" className="rounded-full h-10" onClick={() => setPhoneResetStep("request")}>
+                          לא קיבלתי קוד
+                        </Button>
+                      </div>
+                    </form>
+                  )}
+                </div>
               )}
             </TabsContent>
             <TabsContent value="signup">
               <form onSubmit={signUp} className="space-y-4 mt-6">
                 <Field label="שם מלא" name="full_name" required />
                 <Field label="טלפון" name="phone" type="tel" required dir="ltr" />
-                <Field label="אימייל" name="email" type="email" required />
+                <Field label="אימייל (אפשר להוסיף גם אחר כך)" name="email" type="email" dir="ltr" />
                 <Field label="קוד סודי (4 ספרות ומעלה)" name="password" type="password" required minLength={MIN_PIN} inputMode="numeric" placeholder="למשל 1234" />
                 <Button type="submit" disabled={busy} className="w-full rounded-full h-11">
                   {busy ? "…" : "צור חשבון"}

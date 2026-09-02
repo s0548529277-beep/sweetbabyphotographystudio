@@ -382,13 +382,58 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
     const { data: o, error } = await supabase
       .from("orders")
       .select(
-        "id, user_id, session_date, return_date, pickup_at, return_at, total, notes, contact_name, contact_phone, camera_model, deposit_receipt_url, balance_method, confirmation_sent_at, google_event_id",
+        "id, user_id, session_date, return_date, pickup_at, return_at, total, notes, contact_name, contact_phone, camera_model, deposit_receipt_url, balance_method, confirmation_sent_at, google_event_id, door_code",
       )
       .eq("id", data.id)
       .maybeSingle();
     if (error || !o) throw new Error("ההזמנה לא נמצאה");
     if (o.user_id !== userId) throw new Error("אין הרשאה");
-    if (o.confirmation_sent_at) return { ok: true, already: true };
+    if (o.confirmation_sent_at) {
+      // Same backfill as confirmBookingDeposit — a revisit of an
+      // already-confirmed order used to silently skip door-code issuance.
+      let doorCode = ((o as any).door_code as string | null) ?? null;
+      if (!doorCode && o.contact_phone && o.pickup_at && o.return_at) {
+        try {
+          const { issueDoorCodeForBooking } = await import("@/integrations/ttlock/client.server");
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const pickup = { date: String(o.pickup_at).slice(0, 10), time: String(o.pickup_at).slice(11, 16) };
+          const ret = { date: String(o.return_at).slice(0, 10), time: String(o.return_at).slice(11, 16) };
+          const doorCodeResult = await issueDoorCodeForBooking({
+            phone: o.contact_phone,
+            date: pickup.date,
+            startTime: pickup.time,
+            endDate: ret.date,
+            endTime: ret.time,
+            label: o.contact_name ? `${o.contact_name} אביזרים` : `הזמנת אביזרים ${o.id.slice(0, 8)}`,
+            excludeOvernightHours: true,
+          });
+          if (doorCodeResult) {
+            doorCode = doorCodeResult.code;
+            await supabaseAdmin
+              .from("orders")
+              .update({
+                door_code: doorCodeResult.code,
+                ttlock_keyboard_pwd_id: doorCodeResult.keyboardPwdId,
+                ttlock_lock_id: doorCodeResult.lockId,
+              })
+              .eq("id", o.id);
+            // A freshly-backfilled code was never spoken on the original
+            // confirmation call — send one now so she actually hears it.
+            try {
+              const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
+              const text = `שלום ${o.contact_name || ""}, קוד הכניסה שלך לאיסוף האביזרים מסטודיו סוויט בייבי הוא ${doorCode.split("").join(" ")}. לחצי סולמית אחרי הקשת הקוד. מחכות לך!`;
+              const outboundText = "שלום, יש לך קוד כניסה חדש לאיסוף האביזרים מסטודיו סוויט בייבי. תתקשרי בבקשה חזרה לשמיעתו.";
+              await sendYemotVoiceMessage({ phone: o.contact_phone, text, outboundText, label: `קוד כניסה ${o.id.slice(0, 8)}` });
+            } catch (e2) {
+              console.error("[SWEETBABY] Yemot backfilled door code call (order) failed", e2);
+            }
+          }
+        } catch (e) {
+          console.error("[SWEETBABY] TTLock door code backfill (order) failed", e);
+        }
+      }
+      return { ok: true, already: true, doorCode };
+    }
 
     const { data: itemRows } = await supabase
       .from("order_items")
@@ -411,6 +456,11 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
       /* ignore */
     }
 
+    // Declared here (not inside the try below) so it's still in scope for
+    // the function's final return — the door code needs to reach the
+    // client so the success screen can show it, not just the email.
+    let doorCode: string | null = null;
+
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const receiptAttachment = await fetchReceiptAttachment(supabaseAdmin, o.deposit_receipt_url as string | null);
@@ -431,6 +481,42 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
         ? new Date(o.return_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
         : null;
 
+      // Issues a real temporary door passcode (TTLock) covering the whole
+      // pickup→return window — best-effort, never blocks the confirmation.
+      // pickup_at/return_at are stored as naive Israel-local strings (see
+      // the insert above: `${date}T${time}:00`), so this reads them by
+      // slicing rather than through `new Date()`, which would otherwise
+      // reinterpret them in the server's own runtime timezone.
+      if (o.contact_phone && o.pickup_at && o.return_at) {
+        try {
+          const { issueDoorCodeForBooking } = await import("@/integrations/ttlock/client.server");
+          const pickup = { date: String(o.pickup_at).slice(0, 10), time: String(o.pickup_at).slice(11, 16) };
+          const ret = { date: String(o.return_at).slice(0, 10), time: String(o.return_at).slice(11, 16) };
+          const doorCodeResult = await issueDoorCodeForBooking({
+            phone: o.contact_phone,
+            date: pickup.date,
+            startTime: pickup.time,
+            endDate: ret.date,
+            endTime: ret.time,
+            label: o.contact_name ? `${o.contact_name} אביזרים` : `הזמנת אביזרים ${o.id.slice(0, 8)}`,
+            excludeOvernightHours: true,
+          });
+          if (doorCodeResult) {
+            doorCode = doorCodeResult.code;
+            await supabaseAdmin
+              .from("orders")
+              .update({
+                door_code: doorCodeResult.code,
+                ttlock_keyboard_pwd_id: doorCodeResult.keyboardPwdId,
+                ttlock_lock_id: doorCodeResult.lockId,
+              })
+              .eq("id", o.id);
+          }
+        } catch (e) {
+          console.error("[SWEETBABY] TTLock door code issue (order) failed", e);
+        }
+      }
+
       const html = buildPropsOrderSummaryHtml({
         heading: "אישור הזמנה — השכרת אביזרים ✓",
         intro:
@@ -438,9 +524,9 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
         order: {
           id: o.id,
           contact_name: o.contact_name,
-          session_date: o.session_date,
+          session_date: o.session_date ?? "",
           pickup_time: pickupTime,
-          return_date: o.return_date,
+          return_date: o.return_date ?? "",
           return_time: returnTime,
           total: o.total,
           notes: o.notes,
@@ -448,6 +534,7 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
           lines,
         },
         footerNote: receiptAttachment ? "קובץ האסמכתא שצירפת מופיע כקובץ מצורף למייל זה." : undefined,
+        doorCode,
       });
 
       const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
@@ -461,6 +548,26 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
       await supabaseAdmin.from("orders").update({ confirmation_sent_at: new Date().toISOString() }).eq("id", o.id);
     } catch (e) {
       console.error("[SWEETBABY] order confirmation email failed", e);
+    }
+
+    // A real phone call from the studio's line reading back the order +
+    // door code — best-effort, never blocks the confirmation. See
+    // integrations/yemot/campaign.server.ts for why this isn't verified
+    // against a live call yet.
+    if (o.contact_phone) {
+      try {
+        const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
+        const pickupTimeSpoken = o.pickup_at
+          ? new Date(o.pickup_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
+          : "";
+        const text = `שלום ${o.contact_name || ""}, הזמנת האביזרים שלך מסטודיו סוויט בייבי אושרה. איסוף בתאריך ${o.session_date}${
+          pickupTimeSpoken ? ` בשעה ${pickupTimeSpoken}` : ""
+        }.${doorCode ? ` קוד הכניסה שלך הוא ${doorCode.split("").join(" ")}. לחצי סולמית אחרי הקשת הקוד.` : ""} מחכות לך, ביי!`;
+        const outboundText = "שלום, הזמנת האביזרים שלך מסטודיו סוויט בייבי אושרה. תתקשרי בבקשה חזרה לשמיעת כל הפרטים.";
+        await sendYemotVoiceMessage({ phone: o.contact_phone, text, outboundText, label: `אישור הזמנת אביזרים ${o.id.slice(0, 8)}` });
+      } catch (e) {
+        console.error("[SWEETBABY] Yemot confirmation call (order) failed", e);
+      }
     }
 
     // Add the props pickup to the studio's Google Calendar — only now, after
@@ -513,34 +620,40 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
       }
     }
 
-    return { ok: true, already: false };
+    return { ok: true, already: false, doorCode };
   });
 
-// ---------- 12-hours-before-pickup reminder email (props/equipment orders) ----------
-
-const ORDER_REMINDER_WINDOW_MIN_HOURS = 11.5;
-const ORDER_REMINDER_WINDOW_MAX_HOURS = 12.5;
+// ---------- opt-in reminder, customer-chosen hours-before (props/equipment orders) ----------
 
 /**
- * Scans for confirmed props/equipment orders whose pickup is in ~12 hours and
- * haven't had a reminder sent yet, and emails the customer a reminder (order
- * summary + arrival details). Mirrors `runDueBookingReminders` for studio
- * bookings. Meant to be called periodically by /api/send-booking-reminders.
- * Not wrapped in createServerFn/requireSupabaseAuth on purpose: this runs as
- * a trusted service job, not on behalf of a logged-in user.
+ * Scans for confirmed props/equipment orders where the customer opted into a
+ * reminder on the deposit/checkout screen (reminder_hours_before set) and
+ * hasn't had it sent yet, and — once her chosen "hours before pickup" window
+ * arrives — emails her the full order summary AND places a short Yemot
+ * voice call. Mirrors `runDueBookingReminders` for studio bookings — see
+ * that function's comment for why this replaced the old fixed-12h/4h
+ * automatic reminders. Meant to be called periodically by
+ * /api/send-booking-reminders. Not wrapped in createServerFn/
+ * requireSupabaseAuth on purpose: this runs as a trusted service job, not on
+ * behalf of a logged-in user.
  */
+// Half an hour of slack either side of her chosen "hours before" — the
+// scheduler runs every 15-30 min, not continuously.
+const REMINDER_WINDOW_SLACK_HOURS = 0.5;
+
 export async function runDueOrderReminders(): Promise<{ checked: number; sent: number }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   const today = new Date();
-  const windowEnd = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const windowEnd = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
   const { data: candidates, error } = await supabaseAdmin
     .from("orders")
     .select(
-      "id, user_id, session_date, return_date, pickup_at, return_at, total, notes, contact_name, balance_method, confirmation_sent_at, reminder_sent_at, status",
+      "id, user_id, session_date, return_date, pickup_at, return_at, total, notes, contact_name, contact_phone, balance_method, confirmation_sent_at, reminder_sent_at, reminder_hours_before, status",
     )
     .is("reminder_sent_at", null)
+    .not("reminder_hours_before", "is", null) // opt-in only
     .neq("status", "cancelled")
     .not("confirmation_sent_at", "is", null) // only actually-confirmed (paid) orders
     .gte("session_date", today.toISOString().slice(0, 10))
@@ -556,8 +669,10 @@ export async function runDueOrderReminders(): Promise<{ checked: number; sent: n
 
   for (const o of candidates ?? []) {
     if (!o.pickup_at) continue;
+    const hoursBefore = Number((o as any).reminder_hours_before);
+    if (!hoursBefore || hoursBefore <= 0) continue;
     const hoursUntil = (new Date(o.pickup_at).getTime() - now) / (1000 * 60 * 60);
-    if (hoursUntil < ORDER_REMINDER_WINDOW_MIN_HOURS || hoursUntil > ORDER_REMINDER_WINDOW_MAX_HOURS) continue;
+    if (hoursUntil < hoursBefore - REMINDER_WINDOW_SLACK_HOURS || hoursUntil > hoursBefore + REMINDER_WINDOW_SLACK_HOURS) continue;
 
     try {
       const {
@@ -584,15 +699,14 @@ export async function runDueOrderReminders(): Promise<{ checked: number; sent: n
         : null;
 
       const html = buildPropsOrderSummaryHtml({
-        heading: "תזכורת: איסוף האביזרים היום ⏰",
-        intro:
-          "רק תזכורת חמה — איסוף האביזרים ששכרת מסטודיו Sweetbaby מתוכנן בעוד כ-12 שעות. למטה סיכום ההזמנה ופרטי ההגעה, שיהיה קל להתארגן.",
+        heading: "תזכורת: איסוף האביזרים מתקרב ⏰",
+        intro: `רק תזכורת חמה — איסוף האביזרים ששכרת מסטודיו Sweetbaby מתוכנן בעוד כ-${hoursBefore} שעות. למטה סיכום ההזמנה ופרטי ההגעה, שיהיה קל להתארגן.`,
         order: {
           id: o.id,
           contact_name: o.contact_name,
-          session_date: o.session_date,
+          session_date: o.session_date ?? "",
           pickup_time: pickupTime,
-          return_date: o.return_date,
+          return_date: o.return_date ?? "",
           return_time: returnTime,
           total: o.total,
           notes: o.notes,
@@ -607,6 +721,17 @@ export async function runDueOrderReminders(): Promise<{ checked: number; sent: n
         subject: `תזכורת לאיסוף היום #${o.id.slice(0, 8)} · Sweetbaby`,
         html,
       });
+
+      if (o.contact_phone) {
+        try {
+          const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
+          const text = `שלום ${o.contact_name || ""}, תזכורת מסטודיו סוויט בייבי — איסוף האביזרים שלך בעוד כ-${hoursBefore} שעות${pickupTime ? `, ב-${pickupTime}` : ""}. מחכות לך!`;
+          const outboundText = `שלום, תזכורת מסטודיו סוויט בייבי — יש לך איסוף אביזרים היום. תתקשרי בבקשה חזרה לפרטים.`;
+          await sendYemotVoiceMessage({ phone: o.contact_phone, text, outboundText, label: `תזכורת ${hoursBefore} שעות ${o.id.slice(0, 8)}` });
+        } catch (e) {
+          console.error("[SWEETBABY] Yemot reminder call (order) failed", e);
+        }
+      }
 
       await supabaseAdmin.from("orders").update({ reminder_sent_at: new Date().toISOString() }).eq("id", o.id);
       sent += 1;

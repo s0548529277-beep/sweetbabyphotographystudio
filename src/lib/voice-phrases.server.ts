@@ -1,0 +1,206 @@
+// Every fixed phrase the phone bot (Twilio + Yemot) speaks verbatim —
+// requested to be admin-editable ("שיעבוד ישירות", live, no redeploy).
+// DEFAULT_PHRASES is the shipped wording (same text that used to live as
+// plain exported constants in voice-menu.server.ts); voice_bot_phrases in
+// Supabase holds only the rows an admin actually overrode via
+// /admin/voice-bot-text — getPhraseMap() merges the two, defaults winning
+// only where nothing was saved.
+//
+// Niqqud (vowel points) is on native-Hebrew words so the TTS engines read
+// them the way they're meant to sound; loanwords (סטודיו, גוגל, בייבי…)
+// are left bare on purpose. Best-effort hand vocalization, not a linguist's
+// proofread — if a specific word still comes out wrong, it's easy to fix
+// either here (ships to everyone) or per-installation via the admin editor.
+
+export type PhraseKey =
+  | "greeting"
+  | "menu_prompt"
+  | "studio_blurb"
+  | "props_blurb"
+  | "guide_choice_prompt"
+  | "full_guide_spoken"
+  | "arrival_spoken"
+  | "leave_message_prompt"
+  | "leave_message_thanks"
+  | "didnt_hear"
+  | "anything_else"
+  | "no_human_transfer"
+  | "temporary_error"
+  | "final_error_hangup";
+
+export const PHRASE_LABELS: Record<PhraseKey, string> = {
+  greeting: "ברכת פתיחה (השורה הראשונה שהמתקשרת שומעת)",
+  menu_prompt: "תפריט האפשרויות (אחרי הברכה)",
+  studio_blurb: "תשובה קצרה — השכרת סטודיו",
+  props_blurb: "תשובה קצרה — השכרת אביזרים",
+  guide_choice_prompt: "שאלה לפני ההדרכה — הכול או שאלה ספציפית",
+  full_guide_spoken: "ההדרכה המלאה לשימוש בסטודיו (הטקסט הארוך)",
+  arrival_spoken: "דרכי הגעה (מוקרא במלואו)",
+  leave_message_prompt: "בקשה להשאיר הודעה",
+  leave_message_thanks: "תודה אחרי השארת הודעה",
+  didnt_hear: "לא שמעתי / לא הבנתי",
+  anything_else: "יש עוד משהו שאפשר לעזור בו",
+  no_human_transfer: "אין אפשרות להעביר לנציגה עכשיו",
+  temporary_error: "תקלה זמנית (עדיין ממשיך את השיחה)",
+  final_error_hangup: "תקלה סופית (השיחה מסתיימת)",
+};
+
+export const DEFAULT_PHRASES: Record<PhraseKey, string> = {
+  greeting:
+    "שָׁלוֹם, הִגַּעְתֶּם לסטודיו סוויט בייבי. לֹא הָיָה מַעֲנֶה כְּרֶגַע, הֲכִי מָהִיר בְּדֶרֶךְ כְּלָל לְחַפֵּשׂ בגוגל סטודיו סוויט בייבי וְלִמְצוֹא הַכֹּל בָּאֲתָר. אֲנִי כָּאן לַעֲזוֹר.",
+  menu_prompt:
+    "אֶפְשָׁר לוֹמַר בַּמֶּה לַעֲזוֹר: הַשְׂכָּרַת סטודיו, הַשְׂכָּרַת אֲבִיזָרִים, דַּרְכֵי הַגָּעָה, הַדְרָכָה לְשִׁמּוּשׁ בסטודיו, אוֹ לְהַשְׁאִיר הוֹדָעָה. אוֹ פָּשׁוּט לִשְׁאוֹל אוֹתִי כָּל שְׁאֵלָה אַחֶרֶת.",
+  studio_blurb:
+    "הַשְׂכָּרַת סטודיו: שָׁעָה רִאשׁוֹנָה 120 שֶׁקֶל, כָּל שָׁעָה נוֹסֶפֶת 90 שֶׁקֶל. שִׁרְיוּן דּוֹרֵשׁ מִקְדָּמָה שֶׁל 90 שֶׁקֶל. אֶפְשָׁר גַּם חֲבִילַת ניו-בורן בֹּקֶר, 3 שָׁעוֹת ב-240 שֶׁקֶל.",
+  props_blurb:
+    "הַשְׂכָּרַת אֲבִיזָרִים: יֵשׁ קָטָלוֹג שֶׁל יוֹתֵר מ-400 אֲבִיזָרִים בָּאֲתָר, מִינִימוּם הַזְמָנָה 50 שֶׁקֶל, לְפִי 24 שָׁעוֹת הַשְׂכָּרָה.",
+  guide_choice_prompt:
+    "רוֹצִים שֶׁאֲסַפֵּר אֶת כָּל הַהַדְרָכָה לְשִׁמּוּשׁ בסטודיו, אוֹ שֶׁיֵּשׁ שְׁאֵלָה סְפֶּצִיפִית אוֹ תַּקָּלָה?",
+  full_guide_spoken:
+    "אָז כָּכָה, הַהַדְרָכָה הַמְּלֵאָה לְשִׁמּוּשׁ בסטודיו. " +
+    "קֹדֶם, הַמְּשַׁדֵּר: יֵשׁ קוּפְסָה עִם הַמְּשַׁדֵּר מֵאֲחוֹרֵי הַדֶּלֶת בַּכְּנִיסָה. מְחַבְּרִים אֶת הַמְּשַׁדֵּר לַמַּצְלֵמָה עַד הַסּוֹף מַמָּשׁ. מַפְעִילִים אוֹתוֹ: יֵשׁ שְׁנֵי לַחְצָנִים בַּצַּד, מְזִיזִים אוֹתָם יָמִינָה וּלְמַעְלָה. לֹא נִדְלָק? מְנַסִּים שׁוּב. עֲדַיִן לֹא? מַחְלִיפִים סוֹלְלָה, הַסּוֹלְלוֹת נִמְצָאוֹת בְּקֻפְסַת הַצִּיּוּד שֶׁמֵּעַל עֶמְדַּת הָרֶקַע הַוָּרֹד. " +
+    "וְאָז, הַפְלָאשׁ: מַפְעִילִים בִּלְחִיצָה אֲרֻכָּה עַל הַכַּפְתּוֹר עִם סִימָן הַבָּרָק, וּמִיָּד מְסוֹבְבִים אֶת הַגַּלְגֶּלֶת. בּוֹדְקִים שֶׁהַמָּסָךְ דָּלוּק. עוֹשִׂים צִלּוּם בְּדִיקָה קָצָר, הַפְלָאשׁ אָמוּר לְהַבְזִיק. בּוֹדְקִים אֶת הַתְּמוּנָה: לֹא שְׂרוּפָה מִדַּי וְלֹא חֲשׁוּכָה מִדַּי. לְתִקּוּן עֹצְמָה, מְסוֹבְבִים אֶת הַגַּלְגֶּלֶת שׁוּב, מִסְפָּר נָמוּךְ יוֹתֵר בַּגַּלְגֶּלֶת אוֹמֵר אוֹר חָזָק יוֹתֵר. " +
+    "וְאָז, הַמַּצְלֵמָה: לְמִי שֶׁאֵין לוֹ נִסָּיוֹן בְּצִלּוּם מִקְצוֹעִי, מוּמְלָץ לְכַוֵּן אֶת הַמַּצְלֵמָה עַל אוטומט, וְחוֹבָה לְצַלֵּם דֶּרֶךְ הָעַיִנִית וְלֹא דֶּרֶךְ הַמָּסָךְ, כִּי בְּרֹב הַמַּצְלֵמוֹת בְּמַצָּב הַזֶּה הַמָּסָךְ לֹא יַעֲבֹד בִּכְלָל. " +
+    "וְאָז, אִם הַפְלָאשׁ לֹא הִבְזִיק, לִבְדֹּק בַּסֵּדֶר הַזֶּה: שֶׁהַמְּשַׁדֵּר מְחֻבָּר עַד הַסּוֹף לַמַּצְלֵמָה, שֶׁהַמְּשַׁדֵּר מֻפְעָל כְּמוֹ שֶׁצָּרִיךְ, וְשֶׁהַפְלָאשׁ עַצְמוֹ דָּלוּק וּמְחֻבָּר. " +
+    "וְאָז, רִקְעֵי צֶבַע, חוּם בָּהִיר, צָהֹב, אוֹ כָּחֹל, אֶפְשָׁר לִדְרֹךְ עֲלֵיהֶם בִּזְהִירוּת, אֲבָל רַק הַמְּצֻלָּמִים. יְלָדִים עִם נַעֲלַיִם בְּסֵדֶר, אֲבָל הוֹרִים וְצַלָּמִים בְּלִי נַעֲלַיִם עַל הָרֶקַע בְּבַקָּשָׁה. " +
+    "וְאָז, רִקְעֵי נְיָר, לָבָן אוֹ יָרֹק בַּמְבּוּק, אָסוּר לִדְרֹךְ עֲלֵיהֶם בִּכְלָל, בְּשׁוּם מַצָּב! עַל הָרִצְפָּה לִפְנֵיהֶם חוֹבָה לְהַנִּיחַ פְּלָטַת פורמייקה לְבָנָה מַבְרִיקָה, אוֹ קַרְשֵׁי עֵץ לְבָנִים אוֹ חוּמִים, כִּי זֶה מֵגֵן עַל הַנְּיָר וְנוֹתֵן בְּרָק. הַנְּיָר יוֹרֵד מֵהַקִּיר רַק עַד תְּחִלַּת הַקְּרָשִׁים, אוֹ שֶׁמְּרִימִים אֶת הַקְּרָשִׁים הַצִּדָּה, אַחֶרֶת הַנְּיָר נִקְרָע. אֶפְשָׁר לְהַשְׁאִיר אֶת הַנְּיָר מְגֻלְגָּל בַּתַּחְתִּית עִם רִצְפַּת הָעֵץ, וְלִפְתֹּחַ וְלִסְגֹּר בַּעֲדִינוּת. " +
+    "וְאָז, עוֹד פִּנּוֹת רֶקַע בסטודיו: קִיר עֵץ עִם רולי רְקָעִים, שָׁם מְאֻחְסָנִים גְּלִילֵי הַנְּיָר בְּכָחֹל, יָרֹק, וְלָבָן. קִיר עֵץ עִם כִּסֵּא צָהֹב, פִּנָּה כַּפְרִית וַחֲמִימָה, מַתְאִימָה לְגִיל שָׁנָה. וִילוֹן וְסַפָּה בָּהִירָה, אוֹ וִילוֹן לְבַד בְּלִי הַסַּפָּה, פִּנָּה נְקִיָּה וְרַכָּה. לְהַשְׁרָאָה בִּתְמוּנוֹת אֲמִתִּיּוֹת מֵהָרְקָעִים, יֵשׁ טאבלט בסטודיו, בְּדַף הַשְׂכָּרַת אֲבִיזָרִים לְמַטָּה. " +
+    "וְאָז, רִצְפוֹת עֵץ, צַד לָבָן וְצַד אֱגוֹז חוּם, אֶפְשָׁר לַהֲפֹךְ אֶת הַקְּרָשִׁים וּלְקַבֵּל מַרְאֶה חָדָשׁ. אַזְהָרָה חֲשׁוּבָה: יֵשׁ בַּרְזֶל בְּכָל קֶרֶשׁ, לַהֲפֹךְ בִּזְהִירוּת רַבָּה! לְנַקּוֹת הֵיטֵב לִפְנֵי הַצִּלּוּמִים, עִם מַטְלִית אוֹ מַגְבוֹנִים. " +
+    "וְאָז, שְׁאֵלָה אוֹ תַּקָּלָה שֶׁלֹּא מְכֻסָּה כָּאן, כְּדַאי לְהַצִּיעַ לְהִתְקַשֵּׁר: 054-8529277.",
+  arrival_spoken:
+    "דַּרְכֵי הַגָּעָה: בָּרֶכֶב, לִרְשֹׁם בְּוֵויז תַּלְמוּד יְרוּשַׁלְמִי עֶשְׂרִים וְאַרְבַּע, בֵּית שֶׁמֶשׁ. הסטודיו נִמְצָא בַּחֶדֶר הַכָּחֹל בַּחֲנָיָה. בְּאוטובוס, קַוִּים שְׁתַּיִם, אַרְבַּע, אוֹ שֵׁשׁ, לָרֶדֶת בְּתַחֲנַת פומבדיתא אוֹ שְׂדֵרוֹת הָאָמוֹרָאִים. מִשָּׁם לָגֶשֶׁת לַמַּעֲבָר עִם מַדְרֵגוֹת בֵּין הַבִּנְיָנִים בִּשְׂדֵרוֹת הָאָמוֹרָאִים חֲמִשִּׁים וְשֶׁבַע עַד חֲמִשִּׁים וָתֵשַׁע. בְּסוֹף הַמַּעֲבָר, בַּצַּד יָמִין, זֶה בִּנְיָן עֶשְׂרִים וְאַרְבַּע. הסטודיו בַּחֶדֶר הַכָּחֹל בַּחֲנָיָה.",
+  leave_message_prompt:
+    "בֶּטַח, אֶפְשָׁר לְהַגִּיד אֶת הַהוֹדָעָה עַכְשָׁיו, וַאֲנִי אֶשְׁלַח אוֹתָהּ מִיָּד לְצֶוֶת הסטודיו כּוֹלֵל הַמִּסְפָּר שֶׁמִּמֶּנּוּ הִתְקַשַּׁרְתֶּם.",
+  leave_message_thanks:
+    "תּוֹדָה, הַהוֹדָעָה נִשְׁלְחָה בְּמַייל לסטודיו בְּהַצְלָחָה, וְיַחְזְרוּ אֲלֵיכֶם בְּהֶקְדֵּם. יֵשׁ עוֹד מַשֶּׁהוּ שֶׁאֶפְשָׁר לַעֲזוֹר בּוֹ?",
+  didnt_hear: "לֹא הֵבַנְתִּי, אֶפְשָׁר לַחֲזֹר עַל זֶה?",
+  anything_else: "יֵשׁ עוֹד מַשֶּׁהוּ שֶׁאֶפְשָׁר לַעֲזוֹר בּוֹ?",
+  no_human_transfer:
+    "כְּרֶגַע אִי אֶפְשָׁר לְהַעֲבִיר אוֹתְךָ לִנְצִיגָה יְשִׁירוֹת. בֶּטַח, אֶפְשָׁר לְהַגִּיד אֶת הַהוֹדָעָה עַכְשָׁיו, וַאֲנִי אֶשְׁלַח אוֹתָהּ מִיָּד לְצֶוֶת הסטודיו כּוֹלֵל הַמִּסְפָּר שֶׁמִּמֶּנּוּ הִתְקַשַּׁרְתֶּם.",
+  temporary_error:
+    "מִצְטַעֶרֶת, נִתְקַלְנוּ בְּתַקָּלָה זְמַנִּית. בֶּטַח, אֶפְשָׁר לְהַגִּיד אֶת הַהוֹדָעָה עַכְשָׁיו, וַאֲנִי אֶשְׁלַח אוֹתָהּ מִיָּד לְצֶוֶת הסטודיו כּוֹלֵל הַמִּסְפָּר שֶׁמִּמֶּנּוּ הִתְקַשַּׁרְתֶּם.",
+  final_error_hangup: "מִצְטַעֶרֶת, נִתְקַלְנוּ בְּתַקָּלָה. נְצִיגַת הסטודיו תַּחֲזֹר אֵלֶיךָ טֶלֶפוֹנִית. תּוֹדָה וּלְהִתְרָאוֹת!",
+};
+
+// Which grammatical gender the phone bot speaks itself in (Hebrew verbs/
+// adjectives referring to the bot in first person inflect by gender —
+// "מצטערת" vs "מצטער", "בודקת" vs "בודק"). Added after a real report that
+// the bot sounded inconsistently male/female — the actual root cause turned
+// out to be TWO separate things, only one of which is ours to fix:
+//   1) our own system prompt (VOICE_STYLE in voice-chat.server.ts) used to
+//      mix "אתה"/"תהיה" (male) with "תגידי"/"תשאלי" (female) in the same
+//      block — the AI just followed whichever form was nearest, so its
+//      OWN generated wording really was inconsistent. Fixed: the prompt is
+//      now internally consistent (female baseline) plus an explicit,
+//      prominent gender rule built from this setting.
+//   2) the actual acoustic TTS voice (does it *sound* male or female) is
+//      NOT something this app's API calls control at all — Yemot's own
+//      read/id_list_message directives carry no voice-selection parameter;
+//      that lives in Yemot's own system config (their ivr.ini/ext.ini,
+//      set from the ניהול panel/file manager, not from here). If the
+//      SOUND still switches after this fix, that part needs checking on
+//      Yemot's side, not this codebase's.
+// DEFAULT_PHRASES above is written in FEMALE form (matches the dominant
+// existing style and "הצלמת"/studio voice) — when this setting is "male",
+// getVoiceBotConfig applies a small, exact, known-word substitution
+// (applyMaleGenderToPhrase below) rather than maintaining two full parallel
+// phrase sets, since female-gendered self-reference only actually appears
+// in these two phrases (everything else here is either gender-neutral
+// Hebrew grammar — future tense, "אני" with no inflected verb — or
+// addresses the CALLER, a separate and unrelated concern from the bot's
+// own voice).
+export type BotVoiceGender = "male" | "female";
+export const BOT_VOICE_GENDER_KEY = "bot_voice_gender";
+
+/** The one known female→male substitution needed in the DEFAULT_PHRASES text above — see BOT_VOICE_GENDER_KEY's doc comment. Only touches this exact word, so a phrase an admin already customized in her own words is untouched unless it happens to contain it too. */
+function applyMaleGenderToPhrase(text: string): string {
+  return text.replace(/מִצְטַעֶרֶת/g, "מִצְטַעֵר").replace(/מצטערת/g, "מצטער");
+}
+
+// Which "menu" stage behavior the live call uses — stored in the SAME
+// voice_bot_phrases table as a non-PhraseKey row (key=MENU_MODE_KEY), so no
+// schema migration is needed for a second admin-editable setting.
+//   "ai"    (new default, per explicit request 2026-08-29): the keyword-
+//           menu/canned-blurb routing is skipped entirely — every stage-1
+//           utterance goes straight to the open AI conversation, which
+//           already has the same facts (pricing, hours, policies) in SYSTEM
+//           and the arrival/equipment guide via on-demand tools, so nothing
+//           is actually lost — just no more separate free/instant canned-
+//           phrase path for those specific intents.
+//   "fixed" (the previous, original behavior — a safety net to revert to):
+//           arrival/guidance/leave-message/studio-blurb/props-blurb keep
+//           their own free, zero-AI-cost canned-phrase fast path, and only
+//           an unmatched utterance falls through to the AI.
+// Admin-switchable live at /admin/voice-bot-text, no redeploy — see
+// admin-voice-phrases.functions.ts's getVoiceMenuMode/setVoiceMenuMode.
+export type VoiceMenuMode = "ai" | "fixed";
+export const MENU_MODE_KEY = "menu_mode";
+
+// Same "extra row in the same table" trick as MENU_MODE_KEY — controls the
+// no-AI, fixed-question booking flow (voice-noai-booking.server.ts), added
+// per explicit request alongside a monitoring view of its call sessions
+// (see admin.voice-bot-text.tsx).
+//   "off"    disables the flow entirely — a repeated AI failure or a clear
+//            booking intent in "fixed" menu mode falls back to the
+//            previous behavior (offer to leave a message / call the AI).
+//   "speech" (default — missing row means this) every answer (date, time,
+//            duration, email) is free speech-to-text, keyword/regex parsed.
+//   "dtmf"   date/time/duration/confirm are captured as KEYPAD digits
+//            instead (name/email stay speech) — see voice-noai-
+//            booking.server.ts's own doc comment for why, and for the
+//            history behind not repeating a previous failed DTMF attempt.
+export type NoAiBookingMode = "off" | "speech" | "dtmf";
+export const NOAI_BOOKING_ENABLED_KEY = "noai_booking_enabled";
+
+/**
+ * Resolves every phrase (DB overrides merged over DEFAULT_PHRASES), the
+ * current menu mode, AND the no-AI-booking-flow mode in one query — used by
+ * the two stage-machine phone webhook routes (Yemot + Twilio's /respond),
+ * which need all three every turn. Safe even if the table doesn't exist yet
+ * or the query fails (falls back to defaults + "ai" + "speech", so a DB
+ * hiccup here never breaks the call the way an uncaught exception would).
+ */
+export async function getVoiceBotConfig(): Promise<{
+  phrases: Record<PhraseKey, string>;
+  menuMode: VoiceMenuMode;
+  noAiBookingMode: NoAiBookingMode;
+  botVoiceGender: BotVoiceGender;
+}> {
+  const phrases = { ...DEFAULT_PHRASES };
+  let menuMode: VoiceMenuMode = "ai";
+  let noAiBookingMode: NoAiBookingMode = "speech";
+  let botVoiceGender: BotVoiceGender = "female";
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin.from("voice_bot_phrases").select("key, value");
+    if (error) throw error;
+    for (const row of data ?? []) {
+      const key = (row as { key: string }).key;
+      if (key === MENU_MODE_KEY) {
+        if (row.value === "fixed") menuMode = "fixed";
+      } else if (key === NOAI_BOOKING_ENABLED_KEY) {
+        if (row.value === "off" || row.value === "dtmf") noAiBookingMode = row.value;
+      } else if (key === BOT_VOICE_GENDER_KEY) {
+        if (row.value === "male") botVoiceGender = "male";
+      } else if (key in phrases) {
+        (phrases as Record<string, string>)[key] = (row as { value: string }).value;
+      }
+    }
+  } catch (e) {
+    console.error("[SWEETBABY] voice_bot config read failed, using defaults", e);
+  }
+  if (botVoiceGender === "male") {
+    for (const key of Object.keys(phrases) as PhraseKey[]) phrases[key] = applyMaleGenderToPhrase(phrases[key]);
+  }
+  return { phrases, menuMode, noAiBookingMode, botVoiceGender };
+}
+
+/** Just the phrases, for the one caller (the Twilio incoming-call greeting) that doesn't need the menu mode. */
+export async function getPhraseMap(): Promise<Record<PhraseKey, string>> {
+  return (await getVoiceBotConfig()).phrases;
+}
+
+/** Just the gender setting — for runVoiceTurn (voice-chat.server.ts), which needs it every turn but not the rest of getVoiceBotConfig. */
+export async function getBotVoiceGender(): Promise<BotVoiceGender> {
+  return (await getVoiceBotConfig()).botVoiceGender;
+}

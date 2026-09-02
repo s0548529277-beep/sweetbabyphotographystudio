@@ -238,32 +238,44 @@ export const listPhotoEditHistory = createServerFn({ method: "POST" })
     return data ?? [];
   });
 
-const emailSchema = z.object({
-  to: z.string().email(),
-  imageUrl: z.string().url(),
-});
+const deleteHistorySchema = z.object({ id: z.string().uuid() });
 
-/** Sends an already-edited photo as an email attachment — the "שליחה למייל" button after a successful edit. */
-export const emailPhotoEditResult = createServerFn({ method: "POST" })
+/**
+ * Deletes one old edit from the history list — the row, and (best-effort)
+ * its edited-image storage file. Only the EDITED output is removed, never
+ * original_url's file: the original was uploaded from elsewhere (e.g. an
+ * item photo) and may still be referenced there, while the edited output
+ * at `photo-editor/<row id>.<ext>` only ever belongs to this one row. The
+ * storage path is parsed straight out of the signed edited_url rather than
+ * guessed, so it works regardless of extension.
+ */
+export const deletePhotoEditHistory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => emailSchema.parse(d))
+  .inputValidator((d: unknown) => deleteHistorySchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const res = await fetch(data.imageUrl);
-    if (!res.ok) throw new Error("שליפת התמונה המעובדת נכשלה");
-    const contentType = res.headers.get("content-type") || "image/jpeg";
-    const arrayBuffer = await res.arrayBuffer();
-    const base64Data = Buffer.from(arrayBuffer).toString("base64");
-    const ext = contentType.split("/")[1]?.split("+")[0] ?? "jpg";
+    const { data: row, error: fetchErr } = await supabaseAdmin
+      .from("photo_edit_history")
+      .select("edited_url")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (fetchErr) throw new Error(fetchErr.message);
 
-    const { sendGmail } = await import("@/integrations/google/gmail.server");
-    const ok = await sendGmail({
-      to: data.to,
-      subject: "תמונה מעובדת · Sweetbaby",
-      html: `<div dir="rtl" style="font-family:sans-serif">התמונה המעובדת מצורפת לקובץ.</div>`,
-      attachments: [{ filename: `edited.${ext}`, contentType, base64Data }],
-    });
-    if (!ok) throw new Error("שליחת המייל נכשלה");
+    if (row?.edited_url) {
+      const match = row.edited_url.match(/\/object\/sign\/items\/([^?]+)/);
+      const path = match?.[1] ? decodeURIComponent(match[1]) : null;
+      if (path) {
+        const { error: storageErr } = await supabaseAdmin.storage.from("items").remove([path]);
+        // Best-effort: an already-missing file (or a URL shape we didn't
+        // parse) shouldn't block removing the history row itself.
+        if (storageErr) console.error("[SWEETBABY] photo-editor history storage cleanup failed", storageErr);
+      }
+    }
+
+    const { error: delErr } = await supabaseAdmin.from("photo_edit_history").delete().eq("id", data.id);
+    if (delErr) throw new Error(delErr.message);
     return { ok: true };
   });
+

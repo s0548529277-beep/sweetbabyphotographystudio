@@ -3,11 +3,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { editPhoto, emailPhotoEditResult, listPhotoEditHistory, PHOTO_EDIT_STYLES } from "@/lib/photo-editor.functions";
+import { deletePhotoEditHistory, editPhoto, listPhotoEditHistory, PHOTO_EDIT_STYLES } from "@/lib/photo-editor.functions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Wand2, Download, ImageIcon, Loader2, Mail } from "lucide-react";
+import { Wand2, Download, ImageIcon, Loader2, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/photo-editor")({
   component: PhotoEditorAdmin,
@@ -38,9 +37,23 @@ async function uploadOriginal(file: File): Promise<string> {
 function PhotoEditorAdmin() {
   const qc = useQueryClient();
   const runEdit = useServerFn(editPhoto);
-  const runEmail = useServerFn(emailPhotoEditResult);
   const fetchHistory = useServerFn(listPhotoEditHistory);
+  const runDeleteHistory = useServerFn(deletePhotoEditHistory);
   const history = useQuery({ queryKey: ["photo-edit-history"], queryFn: () => fetchHistory({}) });
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const deleteHistoryRow = async (id: string) => {
+    if (!confirm("למחוק את העריכה הזו מההיסטוריה?")) return;
+    setDeletingId(id);
+    try {
+      await runDeleteHistory({ data: { id } });
+      qc.invalidateQueries({ queryKey: ["photo-edit-history"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "המחיקה נכשלה");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -50,21 +63,6 @@ function PhotoEditorAdmin() {
   const [customInstructions, setCustomInstructions] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ originalUrl: string; editedUrl: string } | null>(null);
-  const [emailTo, setEmailTo] = useState("");
-  const [sendingEmail, setSendingEmail] = useState(false);
-
-  const sendResultByEmail = async () => {
-    if (!result || !emailTo.trim()) return;
-    setSendingEmail(true);
-    try {
-      await runEmail({ data: { to: emailTo.trim(), imageUrl: result.editedUrl } });
-      toast.success("התמונה נשלחה למייל");
-    } catch (e: any) {
-      toast.error(e?.message ?? "שליחת המייל נכשלה");
-    } finally {
-      setSendingEmail(false);
-    }
-  };
 
   const onPickFile = (f: File | null) => {
     setFile(f);
@@ -201,28 +199,6 @@ function PhotoEditorAdmin() {
               <Download className="h-3.5 w-3.5" /> הורדה באיכות מלאה
             </a>
           </div>
-
-          <div className="sm:col-span-2 flex flex-wrap items-center gap-2 pt-1">
-            <Input
-              type="email"
-              value={emailTo}
-              onChange={(e) => setEmailTo(e.target.value)}
-              placeholder="אימייל לשליחת התמונה"
-              dir="ltr"
-              className="max-w-xs"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={!emailTo.trim() || sendingEmail}
-              onClick={sendResultByEmail}
-              className="rounded-full"
-            >
-              {sendingEmail ? <Loader2 className="h-3.5 w-3.5 ml-1.5 animate-spin" /> : <Mail className="h-3.5 w-3.5 ml-1.5" />}
-              שליחה למייל
-            </Button>
-          </div>
         </div>
       )}
 
@@ -231,7 +207,16 @@ function PhotoEditorAdmin() {
         <h3 className="font-display text-lg text-primary mb-3">היסטוריית עריכות</h3>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {rows.map((r) => (
-            <div key={r.id} className="bg-card rounded-xl border border-primary/10 p-3 space-y-2">
+            <div key={r.id} className="bg-card rounded-xl border border-primary/10 p-3 space-y-2 relative group">
+              <button
+                type="button"
+                onClick={() => deleteHistoryRow(r.id)}
+                disabled={deletingId === r.id}
+                className="absolute top-2 left-2 z-10 h-8 w-8 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition disabled:opacity-100"
+                aria-label="מחיקת עריכה מההיסטוריה"
+              >
+                {deletingId === r.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+              </button>
               <div className="grid grid-cols-2 gap-1.5">
                 <img src={r.original_url} alt="לפני" className="aspect-square w-full rounded-lg object-cover" />
                 {r.status === "done" && r.edited_url ? (

@@ -2,14 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { adminSetStatus } from "@/lib/admin-orders.functions";
+import { adminDeleteRecord, adminSetStatus, PHOTO_WORKFLOW_LINKED_PREFIX } from "@/lib/admin-orders.functions";
 import { heError } from "@/lib/he-errors";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Camera, Package, RefreshCw } from "lucide-react";
+import { ChevronDown, ChevronUp, Camera, Package, RefreshCw, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/orders")({
   component: OrdersAdmin,
@@ -111,6 +111,26 @@ function OrdersAdmin() {
     }
   };
 
+  const doDelete = useServerFn(adminDeleteRecord);
+  const deleteRow = async (row: Row, force = false) => {
+    if (!force && !confirm(`למחוק לצמיתות את ${row.kind === "booking" ? "השריון" : "ההזמנה"} של ${row.name}?`)) return;
+    try {
+      await doDelete({ data: { kind: row.kind, id: row.id, force } });
+      toast.success("נמחק");
+      qc.invalidateQueries({ queryKey: ["admin-all-orders"] });
+    } catch (e: any) {
+      const message = e?.message ?? "";
+      if (message.includes(PHOTO_WORKFLOW_LINKED_PREFIX)) {
+        const detail = message.slice(message.indexOf(PHOTO_WORKFLOW_LINKED_PREFIX) + PHOTO_WORKFLOW_LINKED_PREFIX.length);
+        if (confirm(`${detail}\n\nלמחוק בכל זאת, כולל כל התמונות? זה לא ניתן לביטול.`)) {
+          deleteRow(row, true);
+        }
+        return;
+      }
+      toast.error(heError(e, "המחיקה נכשלה"));
+    }
+  };
+
   const tabs = [
     { v: "all" as const, l: "הכל", icon: null },
     { v: "booking" as const, l: "השכרות סטודיו", icon: Camera },
@@ -154,6 +174,7 @@ function OrdersAdmin() {
               <th className="p-3 font-medium">תאריך צילום</th>
               <th className="p-3 font-medium">סה״כ</th>
               <th className="p-3 font-medium">סטטוס</th>
+              <th className="p-3" />
             </tr>
           </thead>
           <tbody>
@@ -191,10 +212,23 @@ function OrdersAdmin() {
                         </SelectContent>
                       </Select>
                     </td>
+                    <td className="p-2">
+                      {r.status === "cancelled" && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => deleteRow(r)}
+                          aria-label="מחיקה"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </td>
                   </tr>
                   {expanded === key && (
                     <tr className="bg-cream/40">
-                      <td colSpan={8} className="p-4">
+                      <td colSpan={9} className="p-4">
                         <div className="grid md:grid-cols-2 gap-4">
                           <div>
                             <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">פריטים</div>
@@ -238,7 +272,7 @@ function OrdersAdmin() {
               );
             })}
             {rows.length === 0 && (
-              <tr><td colSpan={8} className="p-16 text-center text-muted-foreground">אין הזמנות עדיין.</td></tr>
+              <tr><td colSpan={9} className="p-16 text-center text-muted-foreground">אין הזמנות עדיין.</td></tr>
             )}
           </tbody>
         </table>
