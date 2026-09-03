@@ -22,7 +22,7 @@ import {
   deleteNewbornOrder,
 } from "@/lib/newborn-orders.functions";
 import { createPhotoClient } from "@/lib/photo-clients.functions";
-import { NEWBORN_PACKAGES, NEWBORN_ADDONS, NEWBORN_TIMELINE_STEPS, findNewbornPackage } from "@/lib/newborn-packages";
+import { NEWBORN_PACKAGES, NEWBORN_PACKAGE_CATEGORIES, NEWBORN_ADDONS, NEWBORN_TIMELINE_STEPS, findNewbornPackage } from "@/lib/newborn-packages";
 import { heError } from "@/lib/he-errors";
 import {
   Baby,
@@ -354,26 +354,33 @@ function NewbornPackagesAdmin() {
             <DialogTitle>הזמנת חבילת ניו-בורן חדשה</DialogTitle>
           </DialogHeader>
           <div className="space-y-5 py-2">
-            <div>
+            <div className="space-y-4">
               <Label className="mb-2 block">בחירת חבילה</Label>
-              <div className="space-y-2">
-                {NEWBORN_PACKAGES.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => setCreateForm((f) => ({ ...f, package_id: p.id }))}
-                    className={`w-full text-right rounded-xl border p-3 transition-colors ${
-                      createForm.package_id === p.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-primary">{p.name}</span>
-                      <span className="font-display text-lg text-primary">₪{p.price}</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">{p.features.join(" · ")}</div>
-                  </button>
-                ))}
-              </div>
+              {NEWBORN_PACKAGE_CATEGORIES.map((cat) => {
+                const pkgs = NEWBORN_PACKAGES.filter((p) => p.categories.includes(cat.id));
+                if (pkgs.length === 0) return null;
+                return (
+                  <div key={cat.id} className="space-y-2">
+                    <div className="text-xs font-semibold text-blush-deep">{cat.label}</div>
+                    {pkgs.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setCreateForm((f) => ({ ...f, package_id: p.id }))}
+                        className={`w-full text-right rounded-xl border p-3 transition-colors ${
+                          createForm.package_id === p.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-primary">{p.name}</span>
+                          <span className="font-display text-lg text-primary">₪{p.price}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">{p.features.join(" · ")}</div>
+                      </button>
+                    ))}
+                  </div>
+                );
+              })}
             </div>
 
             <div>
@@ -846,7 +853,7 @@ function NewbornTableView({ rows }: { rows: OrderRow[] }) {
                     <span className="text-muted-foreground">טרם נקבע</span>
                   )}
                 </td>
-                <td className="px-3 py-2.5 text-center">{pkg?.sets ?? "—"}</td>
+                <td className="px-3 py-2.5 text-center">{pkg ? (pkg.sessions > 1 ? `${pkg.sets} · ${pkg.sessions} סשנים` : pkg.sets) : "—"}</td>
                 <td className="px-3 py-2.5 text-center">{pkg?.photosToEdit ?? "—"}</td>
                 <td className="px-3 py-2.5 text-center"><YesNo yes={!!pkg?.hasCollage} /></td>
                 <td className="px-3 py-2.5 text-center"><YesNo yes={!!pkg?.hasAlbum} /></td>
