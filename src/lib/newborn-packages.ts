@@ -1,15 +1,41 @@
 /** Shared constants for the newborn-package admin order tracker (client + server safe). See newborn-orders.functions.ts and /admin/newborn-packages. */
 
-export type NewbornPackage = { id: string; name: string; price: number; features: string[]; photosToEdit: number };
+// sets/hasCollage/hasAlbum are structured duplicates of what the `features`
+// strings already say in prose (e.g. "3 סטים", "קולאז'", "אלבום") — kept as
+// real fields instead of parsed out of that free text so the order table
+// (/admin/newborn-packages, "טבלה" view) and calendar sync can read them
+// directly rather than fragile substring matching.
+export type NewbornPackage = {
+  id: string;
+  name: string;
+  price: number;
+  features: string[];
+  photosToEdit: number;
+  sets: number;
+  hasCollage: boolean;
+  hasAlbum: boolean;
+};
 
 export const NEWBORN_PACKAGES: NewbornPackage[] = [
-  { id: "mini", name: "חבילה מיני", price: 900, features: ["3 סטים", "8 תמונות מעובדות", "קולאז'"], photosToEdit: 8 },
+  {
+    id: "mini",
+    name: "חבילה מיני",
+    price: 900,
+    features: ["3 סטים", "8 תמונות מעובדות", "קולאז'"],
+    photosToEdit: 8,
+    sets: 3,
+    hasCollage: true,
+    hasAlbum: false,
+  },
   {
     id: "pampering",
     name: "חבילה מפנקת",
     price: 1200,
     features: ["4 סטים", "סט הורים/אחים", "12 תמונות מעובדות", "קולאז'", "אלבום"],
     photosToEdit: 12,
+    sets: 4,
+    hasCollage: true,
+    hasAlbum: true,
   },
   {
     id: "dreamy",
@@ -17,6 +43,9 @@ export const NEWBORN_PACKAGES: NewbornPackage[] = [
     price: 1650,
     features: ["5 סטים", "15 תמונות מעובדות", "קולאז'", "סט הורים", "סט אחים", "אלבום"],
     photosToEdit: 15,
+    sets: 5,
+    hasCollage: true,
+    hasAlbum: true,
   },
 ];
 
