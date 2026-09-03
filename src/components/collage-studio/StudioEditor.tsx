@@ -9,7 +9,7 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectLabel, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import {
   StudioCanvas,
@@ -20,12 +20,17 @@ import {
 import type { CollageTemplate } from "@/lib/collage-studio-data";
 import {
   STUDIO_TEXT_PRESETS,
+  STUDIO_TEXT_PRESETS_EN,
   STUDIO_FONTS,
+  STUDIO_FONT_CATEGORY_LABELS,
+  STUDIO_FONT_LANG_LABELS,
   STUDIO_PALETTES,
   ELEMENT_CATEGORIES,
   ELEMENT_LIBRARY,
   DESIGN_PRESETS,
   type ElementCategoryId,
+  type StudioFontLang,
+  type StudioFontCategory,
 } from "@/lib/collage-studio-library";
 import {
   ArrowRight,
@@ -64,6 +69,24 @@ const TABS: { id: TabId; label: string; icon: typeof ImageIcon }[] = [
   { id: "layers", label: "שכבות", icon: LayersIcon },
 ];
 
+// Groups the flat STUDIO_FONTS list into (lang → category → fonts) sections
+// for the font <Select>, in a fixed, deliberate order (Hebrew before
+// English, sans before serif before script within each) rather than
+// whatever order the source array happens to list them in.
+const FONT_GROUP_ORDER: { lang: StudioFontLang; category: StudioFontCategory }[] = [
+  { lang: "he", category: "sans" },
+  { lang: "he", category: "serif" },
+  { lang: "he", category: "script" },
+  { lang: "en", category: "sans" },
+  { lang: "en", category: "serif" },
+  { lang: "en", category: "script" },
+];
+const FONT_GROUPS = FONT_GROUP_ORDER.map((g) => ({
+  ...g,
+  label: `${STUDIO_FONT_LANG_LABELS[g.lang]} · ${STUDIO_FONT_CATEGORY_LABELS[g.category]}`,
+  fonts: STUDIO_FONTS.filter((f) => f.lang === g.lang && f.category === g.category),
+})).filter((g) => g.fonts.length > 0);
+
 function readFilesAsDataUrls(files: FileList): Promise<string[]> {
   return Promise.all(
     Array.from(files).map(
@@ -89,6 +112,7 @@ export function StudioEditor({ template }: { template: CollageTemplate }) {
   const [tab, setTab] = useState<TabId>("images");
   const [photos, setPhotos] = useState<{ id: string; url: string }[]>([]);
   const [elementCategory, setElementCategory] = useState<ElementCategoryId>("flowers");
+  const [textLang, setTextLang] = useState<StudioFontLang>("he");
   const [zoomLevel, setZoomLevel] = useState(1);
   const [downloading, setDownloading] = useState(false);
 
@@ -261,7 +285,21 @@ export function StudioEditor({ template }: { template: CollageTemplate }) {
                 <Button variant="outline" className="w-full rounded-full" onClick={() => canvasHandleRef.current?.addCustomText()}>
                   הוספת טקסט חופשי
                 </Button>
-                {STUDIO_TEXT_PRESETS.map((g) => (
+                <div className="inline-flex rounded-full border border-primary/15 p-0.5 bg-[#faf8f3]">
+                  {(["he", "en"] as const).map((lang) => (
+                    <button
+                      key={lang}
+                      type="button"
+                      onClick={() => setTextLang(lang)}
+                      className={`text-xs rounded-full px-3 py-1.5 transition-colors ${
+                        textLang === lang ? "bg-primary text-primary-foreground" : "text-primary"
+                      }`}
+                    >
+                      {STUDIO_FONT_LANG_LABELS[lang]}
+                    </button>
+                  ))}
+                </div>
+                {(textLang === "he" ? STUDIO_TEXT_PRESETS : STUDIO_TEXT_PRESETS_EN).map((g) => (
                   <div key={g.group}>
                     <div className="text-[11px] tracking-[0.2em] uppercase text-forest/70 mb-1.5">{g.group}</div>
                     <div className="flex flex-wrap gap-1.5">
@@ -440,8 +478,13 @@ export function StudioEditor({ template }: { template: CollageTemplate }) {
                 <Select value={selection.fontFamily} onValueChange={(v) => canvasHandleRef.current?.updateSelectedText({ fontFamily: v })}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {STUDIO_FONTS.map((f) => (
-                      <SelectItem key={f.id} value={f.family} style={{ fontFamily: f.family }}>{f.label}</SelectItem>
+                    {FONT_GROUPS.map((g) => (
+                      <SelectGroup key={`${g.lang}-${g.category}`}>
+                        <SelectLabel>{g.label}</SelectLabel>
+                        {g.fonts.map((f) => (
+                          <SelectItem key={f.id} value={f.family} style={{ fontFamily: f.family }}>{f.label}</SelectItem>
+                        ))}
+                      </SelectGroup>
                     ))}
                   </SelectContent>
                 </Select>
