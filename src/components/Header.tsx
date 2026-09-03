@@ -19,6 +19,7 @@ const nav: { to: string; label: string; hash?: string; soon?: boolean }[] = [
   { to: "/collage-maker", label: "עיצוב קולאז׳ חינם" },
   { to: "/collage-studio", label: "סטודיו קולאז'ים" },
   { to: "/photo-retouch", label: "עיבוד תמונות AI", soon: true },
+  { to: "/album-builder", label: "בניית אלבום מותאם אישית", soon: true },
   { to: "/about", label: "אודות ויצירת קשר" },
 ];
 
