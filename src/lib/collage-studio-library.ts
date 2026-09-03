@@ -142,19 +142,24 @@ export const TEXT_STYLE_PRESETS: TextStylePreset[] = [
 
 // ---------------------------------------------------------------------
 // Fonts — real Hebrew- and English-supporting Google Fonts (loaded via the
-// collage-studio route's own head links, not site-wide), covering all four
-// requested combinations: serif/sans-serif × print/script(handwriting), in
-// both Hebrew and English. `category` and `lang` are only used to GROUP
-// this same flat list in the font picker (StudioEditor.tsx) — every font
-// still works as a plain family string wherever one's already used.
-// True Hebrew script/handwriting webfonts are rare; Gveret Levin (cursive
-// "school exercise book" Hebrew) and Solitreo (a revival of the Sephardic
-// cursive Hebrew hand) are the two real ones on Google Fonts — confirmed
-// via Google's own Hebrew-subset font listing, not guessed. Montserrat/
-// Playfair/Cormorant from the original ask don't ship Hebrew glyphs, so
-// Hebrew keeps its own equivalents (Frank Ruhl Libre for an elegant serif,
-// Secular One for a bold display face) — those same Latin-oriented families
-// are used for the English rows instead, where they belong.
+// collage-studio route's own head links, not site-wide): at least 20 per
+// language, covering all four requested combinations — serif/sans-serif ×
+// print/script(handwriting) — in both Hebrew and English, per explicit
+// request. `category` and `lang` are only used to GROUP this same flat
+// list in the font picker (StudioEditor.tsx) — every font still works as a
+// plain family string wherever one's already used.
+//
+// True Hebrew script/handwriting webfonts are genuinely rare — Gveret Levin
+// (cursive "school exercise book" Hebrew), Solitreo (a revival of the
+// Sephardic cursive Hebrew hand), Playpen Sans Hebrew (a playful, kids-
+// handwriting sans), and Noto Rashi Hebrew (based on 15th-century Sephardic
+// semi-cursive handwriting) are the four real ones found on Google Fonts —
+// cross-checked against Google's own Hebrew-subset listing and the
+// community-maintained danielrosehill/Awesome-Hebrew-Fonts catalog, not
+// guessed. The rest of the Hebrew list below (sans/serif) is sourced the
+// same way. Montserrat/Playfair/Cormorant from the original ask don't ship
+// Hebrew glyphs, so they're used for the English rows instead, where they
+// belong.
 // ---------------------------------------------------------------------
 export type StudioFontCategory = "serif" | "sans" | "script";
 export type StudioFontLang = "he" | "en";
@@ -167,55 +172,108 @@ export const STUDIO_FONT_CATEGORY_LABELS: Record<StudioFontCategory, string> = {
 export const STUDIO_FONT_LANG_LABELS: Record<StudioFontLang, string> = { he: "עברית", en: "אנגלית" };
 
 export const STUDIO_FONTS: { id: string; label: string; family: string; category: StudioFontCategory; lang: StudioFontLang }[] = [
-  // Hebrew — sans-serif
+  // Hebrew — sans-serif (10)
   { id: "assistant", label: "אסיסטנט", family: "Assistant, sans-serif", category: "sans", lang: "he" },
   { id: "heebo", label: "היבו", family: "Heebo, sans-serif", category: "sans", lang: "he" },
   { id: "rubik", label: "רוביק", family: "Rubik, sans-serif", category: "sans", lang: "he" },
   { id: "alef", label: "אלף", family: "Alef, sans-serif", category: "sans", lang: "he" },
   { id: "secular-one", label: "סקולר וואן", family: "'Secular One', sans-serif", category: "sans", lang: "he" },
-  // Hebrew — serif
+  { id: "arimo", label: "אארימו", family: "Arimo, sans-serif", category: "sans", lang: "he" },
+  { id: "miriam-libre", label: "מרים ליברה", family: "'Miriam Libre', sans-serif", category: "sans", lang: "he" },
+  { id: "open-sans-he", label: "אופן סאנס", family: "'Open Sans', sans-serif", category: "sans", lang: "he" },
+  { id: "fredoka", label: "פרדוקה (עגול)", family: "Fredoka, sans-serif", category: "sans", lang: "he" },
+  { id: "mplus-rounded", label: "M PLUS מעוגל", family: "'M PLUS Rounded 1c', sans-serif", category: "sans", lang: "he" },
+  // Hebrew — serif (8)
   { id: "david-libre", label: "דיוויד ליברה", family: "'David Libre', serif", category: "serif", lang: "he" },
   { id: "frank-ruhl", label: "פרנק רוהל ליברה", family: "'Frank Ruhl Libre', serif", category: "serif", lang: "he" },
   { id: "noto-serif-he", label: "נוטו סריף עברית", family: "'Noto Serif Hebrew', serif", category: "serif", lang: "he" },
-  // Hebrew — script / handwriting
+  { id: "suez-one", label: "סואץ וואן", family: "'Suez One', serif", category: "serif", lang: "he" },
+  { id: "tinos", label: "טינוס", family: "Tinos, serif", category: "serif", lang: "he" },
+  { id: "cardo", label: "קרדו", family: "Cardo, serif", category: "serif", lang: "he" },
+  { id: "libertinus-serif", label: "ליברטינוס סריף", family: "'Libertinus Serif', serif", category: "serif", lang: "he" },
+  { id: "bellefair", label: "בלפייר", family: "Bellefair, serif", category: "serif", lang: "he" },
+  // Hebrew — script / handwriting (4)
   { id: "gveret-levin", label: "גברת לוין (כתב יד)", family: "'Gveret Levin', cursive", category: "script", lang: "he" },
   { id: "solitreo", label: "סוליטריאו (כתב יד)", family: "Solitreo, cursive", category: "script", lang: "he" },
-  // English — sans-serif
+  { id: "playpen-sans-he", label: "פלייפן סאנס (כתב יד)", family: "'Playpen Sans Hebrew', cursive", category: "script", lang: "he" },
+  { id: "noto-rashi", label: "נוטו רש״י (כתב יד)", family: "'Noto Rashi Hebrew', cursive", category: "script", lang: "he" },
+  // English — sans-serif (8)
   { id: "poppins", label: "Poppins", family: "Poppins, sans-serif", category: "sans", lang: "en" },
   { id: "montserrat", label: "Montserrat", family: "Montserrat, sans-serif", category: "sans", lang: "en" },
   { id: "inter", label: "Inter", family: "Inter, sans-serif", category: "sans", lang: "en" },
-  // English — serif
+  { id: "raleway", label: "Raleway", family: "Raleway, sans-serif", category: "sans", lang: "en" },
+  { id: "nunito", label: "Nunito", family: "Nunito, sans-serif", category: "sans", lang: "en" },
+  { id: "quicksand", label: "Quicksand", family: "Quicksand, sans-serif", category: "sans", lang: "en" },
+  { id: "josefin-sans", label: "Josefin Sans", family: "'Josefin Sans', sans-serif", category: "sans", lang: "en" },
+  { id: "karla", label: "Karla", family: "Karla, sans-serif", category: "sans", lang: "en" },
+  // English — serif (7)
   { id: "playfair", label: "Playfair Display", family: "'Playfair Display', serif", category: "serif", lang: "en" },
   { id: "cormorant", label: "Cormorant Garamond", family: "'Cormorant Garamond', serif", category: "serif", lang: "en" },
   { id: "lora", label: "Lora", family: "Lora, serif", category: "serif", lang: "en" },
   { id: "dm-serif", label: "DM Serif Display", family: "'DM Serif Display', serif", category: "serif", lang: "en" },
-  // English — script / handwriting
+  { id: "merriweather", label: "Merriweather", family: "Merriweather, serif", category: "serif", lang: "en" },
+  { id: "libre-baskerville", label: "Libre Baskerville", family: "'Libre Baskerville', serif", category: "serif", lang: "en" },
+  { id: "crimson-text", label: "Crimson Text", family: "'Crimson Text', serif", category: "serif", lang: "en" },
+  // English — script / handwriting (6)
   { id: "dancing-script", label: "Dancing Script", family: "'Dancing Script', cursive", category: "script", lang: "en" },
   { id: "caveat", label: "Caveat", family: "Caveat, cursive", category: "script", lang: "en" },
   { id: "great-vibes", label: "Great Vibes", family: "'Great Vibes', cursive", category: "script", lang: "en" },
+  { id: "pacifico", label: "Pacifico", family: "Pacifico, cursive", category: "script", lang: "en" },
+  { id: "sacramento", label: "Sacramento", family: "Sacramento, cursive", category: "script", lang: "en" },
+  { id: "parisienne", label: "Parisienne", family: "Parisienne, cursive", category: "script", lang: "en" },
 ];
 
 export const STUDIO_FONTS_GOOGLE_HREF =
   "https://fonts.googleapis.com/css2" +
-  "?family=Heebo:wght@300;400;500;600;700" +
+  // Hebrew — sans
+  "?family=Assistant:wght@400;500;600;700" +
+  "&family=Heebo:wght@300;400;500;600;700" +
   "&family=Rubik:wght@400;500;600;700" +
   "&family=Alef:wght@400;700" +
+  "&family=Secular+One" +
+  "&family=Arimo:wght@400;500;600;700" +
+  "&family=Miriam+Libre:wght@400;700" +
+  "&family=Open+Sans:wght@400;600;700" +
+  "&family=Fredoka:wght@400;500;600;700" +
+  "&family=M+PLUS+Rounded+1c:wght@400;500;700" +
+  // Hebrew — serif
   "&family=David+Libre:wght@400;500;700" +
   "&family=Frank+Ruhl+Libre:wght@400;500;700" +
-  "&family=Secular+One" +
   "&family=Noto+Serif+Hebrew:wght@400;500;600;700" +
+  "&family=Suez+One" +
+  "&family=Tinos:wght@400;700" +
+  "&family=Cardo:wght@400;700" +
+  "&family=Libertinus+Serif:wght@400;700" +
+  "&family=Bellefair" +
+  // Hebrew — script
   "&family=Gveret+Levin" +
   "&family=Solitreo" +
+  "&family=Playpen+Sans+Hebrew:wght@400;600;700" +
+  "&family=Noto+Rashi+Hebrew:wght@400;500;600;700" +
+  // English — sans
   "&family=Poppins:wght@400;500;600;700" +
   "&family=Montserrat:wght@400;500;600;700" +
   "&family=Inter:wght@400;500;600;700" +
+  "&family=Raleway:wght@400;500;600;700" +
+  "&family=Nunito:wght@400;600;700" +
+  "&family=Quicksand:wght@400;500;600;700" +
+  "&family=Josefin+Sans:wght@400;500;600;700" +
+  "&family=Karla:wght@400;500;600;700" +
+  // English — serif
   "&family=Playfair+Display:wght@400;500;600;700" +
   "&family=Cormorant+Garamond:wght@400;500;600;700" +
   "&family=Lora:wght@400;500;600;700" +
   "&family=DM+Serif+Display" +
+  "&family=Merriweather:wght@400;700" +
+  "&family=Libre+Baskerville:wght@400;700" +
+  "&family=Crimson+Text:wght@400;600;700" +
+  // English — script
   "&family=Dancing+Script:wght@400;600;700" +
   "&family=Caveat:wght@400;600;700" +
   "&family=Great+Vibes" +
+  "&family=Pacifico" +
+  "&family=Sacramento" +
+  "&family=Parisienne" +
   "&display=swap";
 
 // ---------------------------------------------------------------------

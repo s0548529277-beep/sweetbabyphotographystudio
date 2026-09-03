@@ -96,24 +96,36 @@ export const createNewbornOrder = createServerFn({ method: "POST" })
     if (!pkg) throw new Error("חבילה לא מוכרת");
     const chosenAddons = NEWBORN_ADDONS.filter((a) => data.addon_ids.includes(a.id));
     const addonsPrice = chosenAddons.reduce((sum, a) => sum + a.price, 0);
-    const { data: row, error } = await (context.supabase as any)
-      .from("newborn_package_orders")
-      .insert({
-        package_id: pkg.id,
-        addons: chosenAddons,
-        base_price: pkg.price,
-        addons_price: addonsPrice,
-        total_price: pkg.price + addonsPrice,
-        contact_name: data.contact_name,
-        contact_phone: data.contact_phone,
-        contact_email: data.contact_email || null,
-        session_date: data.session_date || null,
-        session_time: data.session_time || null,
-        birth_basket_used: data.birth_basket_used ?? false,
-        notes: data.notes || null,
-      })
-      .select("*")
-      .single();
+    const payload = {
+      package_id: pkg.id,
+      addons: chosenAddons,
+      base_price: pkg.price,
+      addons_price: addonsPrice,
+      total_price: pkg.price + addonsPrice,
+      contact_name: data.contact_name,
+      contact_phone: data.contact_phone,
+      contact_email: data.contact_email || null,
+      session_date: data.session_date || null,
+      session_time: data.session_time || null,
+      birth_basket_used: data.birth_basket_used ?? false,
+      notes: data.notes || null,
+    };
+    let { data: row, error } = await (context.supabase as any).from("newborn_package_orders").insert(payload).select("*").single();
+    if (error) {
+      // session_time/birth_basket_used are recently added columns — if this
+      // deployment's database migration hasn't actually landed yet, the
+      // WHOLE insert fails (a real report: "ההזמנה לא נשלחת, כותב שגיאה").
+      // Same defensive fallback already used for draft_booking in
+      // api.yemot.ivr.ts (selectVoiceSession/upsertVoiceSession) — retry
+      // without the new columns so creating an order never hard-fails over
+      // a schema-deploy lag; worst case the two new fields are silently
+      // dropped until the migration catches up.
+      console.error("[SWEETBABY] newborn order insert with new columns failed, retrying without them", error);
+      const { session_time: _st, birth_basket_used: _bb, ...withoutNewCols } = payload;
+      const retry = await (context.supabase as any).from("newborn_package_orders").insert(withoutNewCols).select("*").single();
+      row = retry.data;
+      error = retry.error;
+    }
     if (error || !row) throw new Error(error?.message ?? "יצירת ההזמנה נכשלה");
     // Best-effort, never blocks the order itself — see syncNewbornCalendarEvent's own doc comment.
     await syncNewbornCalendarEvent(context.supabase, row);
@@ -167,7 +179,21 @@ export const updateNewbornOrderContact = createServerFn({ method: "POST" })
       if (v !== undefined) patch[k] = k === "contact_email" && v === "" ? null : v;
     }
     if (Object.keys(patch).length === 0) return { ok: true };
-    const { error } = await (context.supabase as any).from("newborn_package_orders").update(patch).eq("id", id);
+    let { error } = await (context.supabase as any).from("newborn_package_orders").update(patch).eq("id", id);
+    if (error && ("session_time" in patch || "birth_basket_used" in patch)) {
+      // Same schema-deploy-lag fallback as createNewbornOrder above — retry
+      // without the possibly-missing new columns rather than failing the
+      // whole save (which would also silently drop any OTHER field in the
+      // same edit, e.g. a name/phone fix bundled with a time change).
+      console.error("[SWEETBABY] newborn order update with new columns failed, retrying without them", error);
+      const { session_time: _st, birth_basket_used: _bb, ...withoutNewCols } = patch;
+      if (Object.keys(withoutNewCols).length > 0) {
+        const retry = await (context.supabase as any).from("newborn_package_orders").update(withoutNewCols).eq("id", id);
+        error = retry.error;
+      } else {
+        error = null;
+      }
+    }
     if (error) throw new Error(error.message);
 
     const touchesCalendar = Object.keys(patch).some((k) => CALENDAR_RELEVANT_FIELDS.has(k));
