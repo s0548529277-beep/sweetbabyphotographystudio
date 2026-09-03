@@ -160,6 +160,41 @@ export const finalizePhotographySession = createServerFn({ method: "POST" })
       .single();
     if (error || !booking) throw new Error(error?.message ?? "סגירת ההזמנה נכשלה");
 
+    // Real reservation into the studio's actual Google Calendar — mirrors
+    // bookings.functions.ts's finalizeBookingConfirmation (regular studio
+    // bookings), reusing the same `bookings.google_event_id` column and the
+    // same "sync happens once she actually confirms, not on the earlier
+    // pending request" convention already used there. Best-effort: a
+    // calendar hiccup must never block the confirmation email/response
+    // below, which is why this is its own try/catch, separate from the
+    // notification/email ones that follow.
+    try {
+      const { createGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
+      const { data: userRes } = await supabase.auth.getUser();
+      const calendarEmail = data.email || userRes?.user?.email || undefined;
+      const event = await createGoogleCalendarEvent({
+        summary: `צילומים · ${booking.contact_name ?? ""}`.trim(),
+        description: [
+          `טלפון: ${booking.contact_phone ?? ""}`,
+          `מחיר: ₪${booking.price}`,
+          PAYMENT_LABELS[data.payment_method] ? `אמצעי תשלום: ${PAYMENT_LABELS[data.payment_method]}` : null,
+          booking.notes ? `הערות: ${booking.notes}` : null,
+        ]
+          .filter(Boolean)
+          .join("\n"),
+        startISO: `${booking.session_date}T${String(booking.start_time).slice(0, 5)}:00`,
+        endISO: `${booking.session_date}T${String(booking.end_time).slice(0, 5)}:00`,
+        location: "תלמוד ירושלמי 24, בית שמש",
+        attendees: calendarEmail ? [calendarEmail] : [],
+      });
+      if (event) {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        await supabaseAdmin.from("bookings").update({ google_event_id: event.id }).eq("id", booking.id);
+      }
+    } catch (e) {
+      console.error("[SWEETBABY] photography session calendar sync failed", e);
+    }
+
     try {
       const { data: userRes } = await supabase.auth.getUser();
       const customerEmail = data.email || userRes?.user?.email || undefined;

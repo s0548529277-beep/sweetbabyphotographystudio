@@ -43,6 +43,9 @@ import {
   Wallet2,
   Clock,
   CalendarCheck2,
+  Table2,
+  Gift,
+  X as XIcon,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/newborn-packages")({
@@ -63,6 +66,8 @@ type OrderRow = {
   contact_phone: string;
   contact_email: string | null;
   session_date: string | null;
+  session_time: string | null;
+  birth_basket_used: boolean;
   notes: string | null;
   created_at: string;
   [key: string]: any; // ${step.key}_at columns
@@ -75,10 +80,20 @@ const emptyCreateForm = {
   contact_phone: "",
   contact_email: "",
   session_date: "",
+  session_time: "",
+  birth_basket_used: false,
   notes: "",
 };
 
-type EditForm = { contact_name: string; contact_phone: string; contact_email: string; session_date: string; notes: string };
+type EditForm = {
+  contact_name: string;
+  contact_phone: string;
+  contact_email: string;
+  session_date: string;
+  session_time: string;
+  birth_basket_used: boolean;
+  notes: string;
+};
 
 function toEditForm(o: OrderRow): EditForm {
   return {
@@ -86,6 +101,8 @@ function toEditForm(o: OrderRow): EditForm {
     contact_phone: o.contact_phone,
     contact_email: o.contact_email ?? "",
     session_date: o.session_date ?? "",
+    session_time: o.session_time ?? "",
+    birth_basket_used: !!o.birth_basket_used,
     notes: o.notes ?? "",
   };
 }
@@ -105,7 +122,7 @@ function NewbornPackagesAdmin() {
   const orders = useQuery({ queryKey: ["newborn-orders"], queryFn: () => fetchOrders({}) });
   const rows = (orders.data ?? []) as OrderRow[];
 
-  const [view, setView] = useState<"dashboard" | "list" | "calendar" | "payments">("dashboard");
+  const [view, setView] = useState<"dashboard" | "list" | "table" | "calendar" | "payments">("dashboard");
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState(emptyCreateForm);
   const [saving, setSaving] = useState(false);
@@ -136,6 +153,8 @@ function NewbornPackagesAdmin() {
           contact_phone: createForm.contact_phone.trim(),
           contact_email: createForm.contact_email.trim() || null,
           session_date: createForm.session_date || null,
+          session_time: createForm.session_time || null,
+          birth_basket_used: createForm.birth_basket_used,
           notes: createForm.notes.trim() || null,
         },
       });
@@ -183,6 +202,8 @@ function NewbornPackagesAdmin() {
           contact_phone: editForm.contact_phone.trim(),
           contact_email: editForm.contact_email.trim() || null,
           session_date: editForm.session_date || null,
+          session_time: editForm.session_time || null,
+          birth_basket_used: editForm.birth_basket_used,
           notes: editForm.notes.trim() || null,
         },
       });
@@ -263,6 +284,7 @@ function NewbornPackagesAdmin() {
               [
                 { key: "dashboard", label: "מסך ראשי", icon: LayoutDashboard },
                 { key: "list", label: "רשימה", icon: List },
+                { key: "table", label: "טבלה", icon: Table2 },
                 { key: "calendar", label: "לוח", icon: CalendarRange },
                 { key: "payments", label: "תשלומים", icon: Wallet },
               ] as const
@@ -303,6 +325,8 @@ function NewbornPackagesAdmin() {
       {view === "calendar" && (
         <NewbornCalendarView rows={rows} onEdit={openEdit} onOpenGallery={openGallery} openingGalleryId={openingGalleryId} />
       )}
+
+      {view === "table" && <NewbornTableView rows={rows} />}
 
       {view === "payments" && <NewbornPaymentsView rows={rows} runUpdatePayment={runUpdatePayment} onSaved={() => qc.invalidateQueries({ queryKey: ["newborn-orders"] })} />}
 
@@ -387,7 +411,12 @@ function NewbornPackagesAdmin() {
                 <Label>תאריך צילום (אם ידוע)</Label>
                 <Input type="date" value={createForm.session_date} onChange={(e) => setCreateForm((f) => ({ ...f, session_date: e.target.value }))} />
               </div>
+              <div>
+                <Label>שעת צילום</Label>
+                <Input type="time" value={createForm.session_time} onChange={(e) => setCreateForm((f) => ({ ...f, session_time: e.target.value }))} />
+              </div>
             </div>
+            <BirthBasketToggle value={createForm.birth_basket_used} onChange={(v) => setCreateForm((f) => ({ ...f, birth_basket_used: v }))} />
             <div>
               <Label>הערות</Label>
               <Textarea value={createForm.notes} onChange={(e) => setCreateForm((f) => ({ ...f, notes: e.target.value }))} />
@@ -427,6 +456,11 @@ function NewbornPackagesAdmin() {
                 <Input type="date" value={editForm.session_date} onChange={(e) => setEditForm((f) => f && { ...f, session_date: e.target.value })} />
               </div>
               <div>
+                <Label>שעת צילום</Label>
+                <Input type="time" value={editForm.session_time} onChange={(e) => setEditForm((f) => f && { ...f, session_time: e.target.value })} />
+              </div>
+              <BirthBasketToggle value={editForm.birth_basket_used} onChange={(v) => setEditForm((f) => f && { ...f, birth_basket_used: v })} />
+              <div>
                 <Label>הערות</Label>
                 <Textarea value={editForm.notes} onChange={(e) => setEditForm((f) => f && { ...f, notes: e.target.value })} />
               </div>
@@ -441,6 +475,24 @@ function NewbornPackagesAdmin() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+/** A single toggle button (not a checkbox — requested specifically as "כפתור") for whether the קופת חולים "סל לידה" birth-basket benefit was used for this order — see photography-options.ts's own doc comment on how the benefit works. Purely informational bookkeeping; doesn't affect pricing anywhere in this page. */
+function BirthBasketToggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!value)}
+      className={`w-full flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm transition-colors ${
+        value ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:border-primary/50"
+      }`}
+    >
+      <span className="flex items-center gap-2">
+        <Gift className="h-4 w-4" /> נוצל סל לידה (הטבת קופת חולים)
+      </span>
+      {value ? <Check className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
+    </button>
   );
 }
 
@@ -750,6 +802,61 @@ function NewbornDashboardView({ rows, onGoToCalendar }: { rows: OrderRow[]; onGo
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/** "טבלה" — one row per order, all the at-a-glance fields Michal asked for in a single scan: contact info, date+time, how many sets/edited photos the package includes, whether it has a collage/album, and whether it's fully paid. Read-only (editing happens via the pencil icon → the same edit dialog every other view uses). */
+function NewbornTableView({ rows }: { rows: OrderRow[] }) {
+  const YesNo = ({ yes }: { yes: boolean }) =>
+    yes ? <Check className="h-4 w-4 text-forest inline" /> : <XIcon className="h-4 w-4 text-destructive/70 inline" />;
+
+  return (
+    <div className="bg-card rounded-2xl border border-primary/10 overflow-x-auto">
+      <table className="w-full text-sm min-w-[900px]">
+        <thead>
+          <tr className="border-b border-primary/10 text-right text-xs text-muted-foreground">
+            <th className="px-3 py-3 font-medium">שם</th>
+            <th className="px-3 py-3 font-medium">טלפון</th>
+            <th className="px-3 py-3 font-medium">מייל</th>
+            <th className="px-3 py-3 font-medium">תאריך ושעה</th>
+            <th className="px-3 py-3 font-medium text-center">כמות סטים</th>
+            <th className="px-3 py-3 font-medium text-center">תמונות מעובדות</th>
+            <th className="px-3 py-3 font-medium text-center">קולאז'</th>
+            <th className="px-3 py-3 font-medium text-center">אלבום</th>
+            <th className="px-3 py-3 font-medium text-center">שולם</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((o) => {
+            const pkg = findNewbornPackage(o.package_id);
+            const paid = Number(o.amount_paid) >= Number(o.total_price) && Number(o.total_price) > 0;
+            return (
+              <tr key={o.id} className="border-b border-primary/5 last:border-0 hover:bg-cream/40">
+                <td className="px-3 py-2.5 font-medium text-primary whitespace-nowrap">{o.contact_name}</td>
+                <td className="px-3 py-2.5 whitespace-nowrap" dir="ltr">{o.contact_phone}</td>
+                <td className="px-3 py-2.5 whitespace-nowrap" dir="ltr">{o.contact_email || "—"}</td>
+                <td className="px-3 py-2.5 whitespace-nowrap">
+                  {o.session_date ? (
+                    <>
+                      {o.session_date}
+                      {o.session_time ? <span className="text-muted-foreground"> · {o.session_time}</span> : null}
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">טרם נקבע</span>
+                  )}
+                </td>
+                <td className="px-3 py-2.5 text-center">{pkg?.sets ?? "—"}</td>
+                <td className="px-3 py-2.5 text-center">{pkg?.photosToEdit ?? "—"}</td>
+                <td className="px-3 py-2.5 text-center"><YesNo yes={!!pkg?.hasCollage} /></td>
+                <td className="px-3 py-2.5 text-center"><YesNo yes={!!pkg?.hasAlbum} /></td>
+                <td className="px-3 py-2.5 text-center"><YesNo yes={paid} /></td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {rows.length === 0 && <p className="text-sm text-muted-foreground text-center py-10">אין עדיין הזמנות.</p>}
     </div>
   );
 }
