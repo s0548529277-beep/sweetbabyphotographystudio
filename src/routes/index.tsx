@@ -412,11 +412,15 @@ function Home() {
         </div>
       </section>
 
-      {/* COLLAGE STUDIO — new "קולאזים" category */}
+      {/* COLLAGE STUDIO — new "קולאזים" category. Links to the FREE tool
+          (/collage-maker), not the pro Studio directly — the Studio is
+          reached from inside that page's own promo banner, per explicit
+          request that it live under this one "קולאז'ים" entry point rather
+          than being a separate parallel destination. */}
       <section className="container-page pb-16 md:pb-24" dir="rtl">
         <motion.div initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={0} variants={fadeUp}>
           <Link
-            to="/collage-studio"
+            to="/collage-maker"
             className="group block rounded-[2rem] overflow-hidden border border-[#2d3d2b]/5 bg-white hover:shadow-2xl transition-all hover:-translate-y-1"
           >
             <div className="grid md:grid-cols-[1.1fr_1fr] items-center">
@@ -426,10 +430,10 @@ function Home() {
                   קולאז'ים
                 </h2>
                 <p className="text-sm text-[#2d3d2b]/70 leading-relaxed max-w-md mb-6">
-                  סטודיו קולאז'ים מקצועי — בוחרים תבנית, מעלים תמונות, עורכים טקסטים וצבעים, ומורידים עיצוב מוכן להדפסה. כלי עיצוב אמיתי, בעברית, לצלמות.
+                  עיצוב קולאז' חינם בכמה קליקים, ובשביל מי שרוצה עוד יותר שליטה — סטודיו קולאז'ים מקצועי עם תבניות, עריכת טקסטים וצבעים, והורדה מוכנה להדפסה.
                 </p>
                 <span className="inline-flex items-center gap-2 bg-[#2d3d2b] text-[#f8ede4] px-6 py-3 rounded-full text-sm font-semibold group-hover:bg-[#2d3d2b]/90 transition-colors">
-                  כניסה לסטודיו קולאז'ים <ArrowLeft className="h-3.5 w-3.5" />
+                  לעיצוב קולאז' <ArrowLeft className="h-3.5 w-3.5" />
                 </span>
               </div>
               <div className="h-56 md:h-full min-h-56 relative overflow-hidden bg-[#f5d5cf] flex items-center justify-center">

@@ -16,8 +16,11 @@ const nav: { to: string; label: string; hash?: string; soon?: boolean }[] = [
   { to: "/studio-photography", label: "צילומים בסטודיו" },
   { to: "/studio-rental", label: "השכרת סטודיו" },
   { to: "/rental-catalog", label: "קטלוג אביזרים להשכרה" },
+  // "/collage-studio" (the pro editor) is deliberately NOT its own top-level
+  // nav item — per explicit request it lives UNDER "עיצוב קולאז׳ חינם",
+  // reached only via the promo banner inside /collage-maker, not as a peer
+  // entry point of its own.
   { to: "/collage-maker", label: "עיצוב קולאז׳ חינם" },
-  { to: "/collage-studio", label: "סטודיו קולאז'ים" },
   { to: "/photo-retouch", label: "עיבוד תמונות AI", soon: true },
   { to: "/about", label: "אודות ויצירת קשר" },
 ];
