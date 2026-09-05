@@ -145,7 +145,7 @@ function NewbornPackagesAdmin() {
     if (!createForm.contact_name.trim() || !createForm.contact_phone.trim()) return toast.error("שם וטלפון הם שדות חובה");
     setSaving(true);
     try {
-      await runCreate({
+      const created: any = await runCreate({
         data: {
           package_id: createForm.package_id,
           addon_ids: createForm.addon_ids,
@@ -158,7 +158,18 @@ function NewbornPackagesAdmin() {
           notes: createForm.notes.trim() || null,
         },
       });
-      toast.success("ההזמנה נוצרה — הכרטיסייה מוכנה למטה");
+      if (created?._schemaFallback) {
+        // Honest, not a silent drop: the order itself WAS created, but
+        // session_time/birth_basket_used couldn't be saved yet — the
+        // database update that adds those columns hasn't landed on this
+        // deployment. Surfaced instead of a plain success toast so it
+        // doesn't read as "the time was saved" when it wasn't (this is also
+        // why the calendar event can land on the default 10:00 instead of
+        // the real chosen time).
+        toast.warning("ההזמנה נוצרה, אבל שעת הצילום/סל לידה עדיין לא נשמרו — יש לעדכן את מסד הנתונים ולנסות שוב");
+      } else {
+        toast.success("ההזמנה נוצרה — הכרטיסייה מוכנה למטה");
+      }
       setCreateForm(emptyCreateForm);
       setCreateOpen(false);
       qc.invalidateQueries({ queryKey: ["newborn-orders"] });
@@ -195,7 +206,7 @@ function NewbornPackagesAdmin() {
     if (!editForm.contact_name.trim() || !editForm.contact_phone.trim()) return toast.error("שם וטלפון הם שדות חובה");
     setEditSaving(true);
     try {
-      await runUpdateContact({
+      const result: any = await runUpdateContact({
         data: {
           id: editTarget.id,
           contact_name: editForm.contact_name.trim(),
@@ -207,7 +218,12 @@ function NewbornPackagesAdmin() {
           notes: editForm.notes.trim() || null,
         },
       });
-      toast.success("הפרטים עודכנו");
+      if (result?._schemaFallback) {
+        // See submitCreate's matching comment.
+        toast.warning("שאר הפרטים עודכנו, אבל שעת הצילום/סל לידה עדיין לא נשמרו — יש לעדכן את מסד הנתונים ולנסות שוב");
+      } else {
+        toast.success("הפרטים עודכנו");
+      }
       setEditTarget(null);
       qc.invalidateQueries({ queryKey: ["newborn-orders"] });
     } catch (e) {
