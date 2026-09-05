@@ -167,6 +167,12 @@ function NewbornPackagesAdmin() {
         // why the calendar event can land on the default 10:00 instead of
         // the real chosen time).
         toast.warning("ההזמנה נוצרה, אבל שעת הצילום/סל לידה עדיין לא נשמרו — יש לעדכן את מסד הנתונים ולנסות שוב");
+      } else if (created?._calendarError) {
+        // The OTHER real report ("נוצר אבל לא משריין ביומן") — previously
+        // invisible beyond a server log nobody could read. Shows the actual
+        // reason (e.g. the Google Calendar connector not being linked)
+        // instead of a plain success toast that implied it worked.
+        toast.warning(`ההזמנה נוצרה, אבל השריון ביומן נכשל: ${created._calendarError}`);
       } else {
         toast.success("ההזמנה נוצרה — הכרטיסייה מוכנה למטה");
       }
@@ -221,6 +227,8 @@ function NewbornPackagesAdmin() {
       if (result?._schemaFallback) {
         // See submitCreate's matching comment.
         toast.warning("שאר הפרטים עודכנו, אבל שעת הצילום/סל לידה עדיין לא נשמרו — יש לעדכן את מסד הנתונים ולנסות שוב");
+      } else if (result?._calendarError) {
+        toast.warning(`הפרטים עודכנו, אבל השריון ביומן נכשל: ${result._calendarError}`);
       } else {
         toast.success("הפרטים עודכנו");
       }
