@@ -111,6 +111,7 @@ export const createNewbornOrder = createServerFn({ method: "POST" })
       notes: data.notes || null,
     };
     let { data: row, error } = await (context.supabase as any).from("newborn_package_orders").insert(payload).select("*").single();
+    let schemaFallback = false;
     if (error) {
       // session_time/birth_basket_used are recently added columns — if this
       // deployment's database migration hasn't actually landed yet, the
@@ -125,11 +126,19 @@ export const createNewbornOrder = createServerFn({ method: "POST" })
       const retry = await (context.supabase as any).from("newborn_package_orders").insert(withoutNewCols).select("*").single();
       row = retry.data;
       error = retry.error;
+      schemaFallback = !error;
     }
     if (error || !row) throw new Error(error?.message ?? "יצירת ההזמנה נכשלה");
     // Best-effort, never blocks the order itself — see syncNewbornCalendarEvent's own doc comment.
     await syncNewbornCalendarEvent(context.supabase, row);
-    return row;
+    // `schemaFallback` tells the caller the order WAS created but the
+    // shooting-time/birth-basket fields could NOT be saved (the columns
+    // aren't live on this database yet) — surfaced as an honest warning in
+    // the admin UI instead of silently succeeding while quietly dropping
+    // what she actually typed (this is exactly why the calendar event can
+    // end up at the default 10:00 instead of the real chosen time: the time
+    // never made it into the row for syncNewbornCalendarEvent to read).
+    return { ...row, _schemaFallback: schemaFallback };
   });
 
 const toggleSchema = z.object({
@@ -180,6 +189,7 @@ export const updateNewbornOrderContact = createServerFn({ method: "POST" })
     }
     if (Object.keys(patch).length === 0) return { ok: true };
     let { error } = await (context.supabase as any).from("newborn_package_orders").update(patch).eq("id", id);
+    let schemaFallback = false;
     if (error && ("session_time" in patch || "birth_basket_used" in patch)) {
       // Same schema-deploy-lag fallback as createNewbornOrder above — retry
       // without the possibly-missing new columns rather than failing the
@@ -193,19 +203,27 @@ export const updateNewbornOrderContact = createServerFn({ method: "POST" })
       } else {
         error = null;
       }
+      schemaFallback = !error;
     }
     if (error) throw new Error(error.message);
 
     const touchesCalendar = Object.keys(patch).some((k) => CALENDAR_RELEVANT_FIELDS.has(k));
     if (touchesCalendar) {
-      const { data: fresh } = await (context.supabase as any)
-        .from("newborn_package_orders")
-        .select("id, contact_name, contact_email, session_date, session_time, google_event_id")
-        .eq("id", id)
-        .maybeSingle();
-      if (fresh) await syncNewbornCalendarEvent(context.supabase, fresh);
+      // Drop session_time from the select too when it's not live yet — the
+      // read would otherwise fail outright over the same missing column,
+      // which would skip re-syncing the calendar for a plain name/date
+      // change that has nothing to do with the missing field.
+      const cols = schemaFallback
+        ? "id, contact_name, contact_email, session_date, google_event_id"
+        : "id, contact_name, contact_email, session_date, session_time, google_event_id";
+      const { data: fresh } = await (context.supabase as any).from("newborn_package_orders").select(cols).eq("id", id).maybeSingle();
+      if (fresh) await syncNewbornCalendarEvent(context.supabase, { ...fresh, session_time: fresh.session_time ?? null });
     }
-    return { ok: true };
+    // See createNewbornOrder's matching comment — this tells the admin UI
+    // the shooting-time/birth-basket part of the edit didn't actually save
+    // (columns not live on this database yet), instead of silently
+    // reporting success while quietly dropping what she just typed.
+    return { ok: true, _schemaFallback: schemaFallback };
   });
 
 export const deleteNewbornOrder = createServerFn({ method: "POST" })
