@@ -162,3 +162,45 @@ that phone bookings had stopped completing reliably after "ai" mode became
 the default — if that report turns out to have had a different root cause
 (e.g. `create_phone_booking` itself failing), this reorder is still a
 reasonable safety net to keep, not something to revert on its own.
+
+### Newborn-package orders actually block studio availability (2026-09-05)
+
+Per a direct report, an admin-created newborn-package order
+(`/admin/newborn-packages`, `newborn_package_orders` table — a lightweight
+internal CRM, see that table's own migration comment) was expected to stop
+a customer from renting the studio during the same window, and didn't.
+`studioAvailability` (`availability.server.ts`) is the ONE function every
+real availability check in this app calls — it reads busy time from the
+`bookings` table directly and only SECONDARILY merges in Google Calendar
+(`listGoogleCalendarBusy`) as an extra source, not a replacement. A Google
+Calendar event alone (`newborn-orders.functions.ts`'s
+`syncNewbornCalendarEvent`) is therefore a visual-only mirror that doesn't
+actually protect availability if that connector isn't linked/working —
+`syncNewbornBookingBlock` (same file) is the part that does: it inserts a
+REAL row into `bookings` for the order's session window, exactly like any
+other studio booking, and keeps it in sync (delete-then-recreate, same
+pattern as the calendar sync) as the order's date/time/contact changes.
+
+Two non-obvious things this needed:
+- **`bookings.deposit_status` must NOT be `"pending"`.** `bookingBlocksSlot()`
+  (`availability.server.ts`) treats a `"pending"` deposit as a temporary
+  hold that EXPIRES after `PENDING_HOLD_MINUTES` (60, or
+  `PHONE_BOOKING_HOLD_MINUTES` for a marked phone booking) unless renewed —
+  wrong for a session an admin already committed to. Any other string
+  (`syncNewbornBookingBlock` uses `"not_required"`) blocks permanently,
+  matching a real booking once its deposit is actually paid.
+- **`bookings.user_id` is `NOT NULL` + a real FK to `auth.users`.** A
+  newborn-package customer usually has no site account at all, so the
+  blocking booking is owned by the ADMIN'S OWN user id (the one
+  creating/editing the order) instead of inventing a customer account just
+  to satisfy the constraint — reads as "the studio owner blocked this slot
+  herself," which is exactly what's happening.
+
+Also worth knowing for next time: **supabase-js's query builder
+(`PostgrestBuilder`) is `PromiseLike`-only — it implements `.then()`, NOT
+`.catch()` or `.finally()`.** `someQuery.catch(() => {})` throws
+`TypeError: ...catch is not a function` at runtime; use plain `await` (a
+query error resolves as `{ data, error }`, it never rejects the promise
+over an ordinary query failure) or check `.then()`'s own result instead.
+This is different from a real `Promise`-returning function like
+`deleteGoogleCalendarEvent`, which genuinely does support `.catch()`.
