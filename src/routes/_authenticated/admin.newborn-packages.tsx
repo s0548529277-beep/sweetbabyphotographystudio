@@ -167,14 +167,18 @@ function NewbornPackagesAdmin() {
         // why the calendar event can land on the default 10:00 instead of
         // the real chosen time).
         toast.warning("ההזמנה נוצרה, אבל שעת הצילום/סל לידה עדיין לא נשמרו — יש לעדכן את מסד הנתונים ולנסות שוב");
+      } else if (created?._bookingBlockError) {
+        // This is the important one: it means the slot is NOT actually
+        // blocked, so a customer could still rent the studio at the same
+        // time. Shown ahead of a calendar-only failure since it's the real
+        // double-booking risk, not just a missing visual mirror.
+        toast.warning(`ההזמנה נוצרה, אבל חסימת השעות ביומן הסטודיו נכשלה — יתכן שהשעות עדיין פתוחות להזמנה: ${created._bookingBlockError}`);
       } else if (created?._calendarError) {
-        // The OTHER real report ("נוצר אבל לא משריין ביומן") — previously
-        // invisible beyond a server log nobody could read. Shows the actual
-        // reason (e.g. the Google Calendar connector not being linked)
-        // instead of a plain success toast that implied it worked.
-        toast.warning(`ההזמנה נוצרה, אבל השריון ביומן נכשל: ${created._calendarError}`);
+        // Secondary — Google Calendar is a visual mirror only; the studio's
+        // own availability is already protected via the booking block above.
+        toast.warning(`ההזמנה נוצרה והשעות חסומות באתר, אבל השריון ביומן Google נכשל: ${created._calendarError}`);
       } else {
-        toast.success("ההזמנה נוצרה — הכרטיסייה מוכנה למטה");
+        toast.success("ההזמנה נוצרה, והשעות נחסמו ביומן הסטודיו — הכרטיסייה מוכנה למטה");
       }
       setCreateForm(emptyCreateForm);
       setCreateOpen(false);
@@ -227,8 +231,10 @@ function NewbornPackagesAdmin() {
       if (result?._schemaFallback) {
         // See submitCreate's matching comment.
         toast.warning("שאר הפרטים עודכנו, אבל שעת הצילום/סל לידה עדיין לא נשמרו — יש לעדכן את מסד הנתונים ולנסות שוב");
+      } else if (result?._bookingBlockError) {
+        toast.warning(`הפרטים עודכנו, אבל חסימת השעות ביומן הסטודיו נכשלה — יתכן שהשעות עדיין פתוחות להזמנה: ${result._bookingBlockError}`);
       } else if (result?._calendarError) {
-        toast.warning(`הפרטים עודכנו, אבל השריון ביומן נכשל: ${result._calendarError}`);
+        toast.warning(`הפרטים עודכנו והשעות חסומות באתר, אבל השריון ביומן Google נכשל: ${result._calendarError}`);
       } else {
         toast.success("הפרטים עודכנו");
       }

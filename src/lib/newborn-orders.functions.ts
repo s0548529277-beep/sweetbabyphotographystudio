@@ -28,6 +28,15 @@ async function assertAdmin(supabase: any, userId: string) {
 const DEFAULT_SESSION_TIME = "10:00";
 const NEWBORN_SESSION_HOURS = 2; // typical newborn session length — a real, exact per-order duration isn't tracked anywhere yet.
 
+/** `[startTime, endTime]` (both "HH:MM"), given a possibly-missing session_time — shared by the calendar sync and the availability-blocking sync below so the two always agree on the exact same window. */
+function newbornSessionWindow(sessionTime: string | null): [string, string] {
+  const start = sessionTime || DEFAULT_SESSION_TIME;
+  const [h, m] = start.split(":").map(Number);
+  const endMin = h * 60 + m + NEWBORN_SESSION_HOURS * 60;
+  const end = `${String(Math.floor(endMin / 60) % 24).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
+  return [start, end];
+}
+
 /**
  * Returns null on success (or "nothing to do" — no date set), or the real
  * error message on failure. Previously this swallowed every failure with
@@ -50,10 +59,7 @@ async function syncNewbornCalendarEvent(
       if (order.google_event_id) await db.from("newborn_package_orders").update({ google_event_id: null }).eq("id", order.id);
       return null;
     }
-    const time = order.session_time || DEFAULT_SESSION_TIME;
-    const [h, m] = time.split(":").map(Number);
-    const endMin = h * 60 + m + NEWBORN_SESSION_HOURS * 60;
-    const endTime = `${String(Math.floor(endMin / 60) % 24).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
+    const [time, endTime] = newbornSessionWindow(order.session_time);
     const event = await createGoogleCalendarEvent({
       summary: `ניו-בורן · ${order.contact_name}`,
       description: order.contact_email ? `מייל: ${order.contact_email}` : undefined,
@@ -68,6 +74,99 @@ async function syncNewbornCalendarEvent(
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     console.error("[SWEETBABY] newborn order calendar sync failed", e);
+    return message;
+  }
+}
+
+/**
+ * THE part that actually stops a customer from renting the studio during a
+ * scheduled newborn session — per explicit request ("אני רוצה שזה יסגור
+ * את השעות... שאנשים לא יוכלו להשכיר את הסטודיו"). Google Calendar sync
+ * above is a nice-to-have visual mirror, but studioAvailability
+ * (availability.server.ts) — the function every real availability check in
+ * this app calls — reads busy time from the `bookings` table directly and
+ * ONLY secondarily merges in Google Calendar; it doesn't depend on that
+ * connector being linked at all. So this creates a REAL row in `bookings`
+ * for the order's session window, exactly like any other studio booking.
+ *
+ * `deposit_status` is deliberately NOT "pending": bookingBlocksSlot()
+ * treats a "pending" deposit as a temporary hold that EXPIRES after
+ * PENDING_HOLD_MINUTES (60) unless renewed — wrong for a newborn session an
+ * admin already committed to. "not_required" (any value other than the
+ * literal "pending" works) blocks permanently, matching a confirmed studio
+ * booking after its deposit is paid.
+ *
+ * `user_id` has to be a real auth.users row (bookings.user_id is NOT
+ * NULL + a foreign key) — a newborn-package customer usually has no site
+ * account at all, so this uses the ADMIN'S OWN id (the one creating/editing
+ * the order) rather than inventing a customer account just to satisfy the
+ * constraint. It reads as "the studio owner blocked this slot herself",
+ * which is exactly what's happening.
+ *
+ * Same delete-then-recreate approach as the calendar sync (no in-place
+ * "move" primitive needed for this low write-frequency), and the same
+ * "never throw, return the real error message" contract.
+ */
+async function syncNewbornBookingBlock(
+  db: any,
+  adminUserId: string,
+  order: {
+    id: string;
+    contact_name: string;
+    contact_phone: string;
+    session_date: string | null;
+    session_time: string | null;
+    total_price?: number | null;
+    blocking_booking_id?: string | null;
+  },
+): Promise<string | null> {
+  try {
+    if (order.blocking_booking_id) {
+      // Supabase's query builder is PromiseLike (only `.then`, no
+      // `.catch`/`.finally`) — plain `await` is correct here; a query
+      // error resolves as `{ error }`, it doesn't reject the promise, so
+      // there's nothing further to handle even on failure (best-effort
+      // cleanup of the old row before creating its replacement below).
+      await db.from("bookings").delete().eq("id", order.blocking_booking_id);
+    }
+    if (!order.session_date) {
+      if (order.blocking_booking_id) await db.from("newborn_package_orders").update({ blocking_booking_id: null }).eq("id", order.id);
+      return null;
+    }
+    const [start, end] = newbornSessionWindow(order.session_time);
+    const { data: booking, error } = await db
+      .from("bookings")
+      .insert({
+        user_id: adminUserId,
+        session_date: order.session_date,
+        start_time: start,
+        end_time: end,
+        slots: NEWBORN_SESSION_HOURS * 2,
+        package: "newborn",
+        price: order.total_price ?? 0,
+        status: "confirmed",
+        deposit_status: "not_required",
+        deposit_amount: 0,
+        balance_amount: 0,
+        contact_name: order.contact_name,
+        contact_phone: order.contact_phone,
+        notes: `חסימת יומן אוטומטית — הזמנת חבילת ניו-בורן (מזהה ${order.id.slice(0, 8)})`,
+      })
+      .select("id")
+      .single();
+    if (error || !booking) return error?.message ?? "יצירת חסימת השעות ביומן הסטודיו נכשלה";
+    // Best-effort link-back — if blocking_booking_id itself isn't live on
+    // this database yet (same schema-deploy-lag class as session_time/
+    // birth_basket_used), the actual blocking booking row above was still
+    // created successfully (that's what really stops a double-booking), so
+    // this is reported as success regardless; only future re-sync/cleanup
+    // on this specific order loses track of which booking row to replace.
+    const { error: linkError } = await db.from("newborn_package_orders").update({ blocking_booking_id: booking.id }).eq("id", order.id);
+    if (linkError) console.error("[SWEETBABY] newborn order booking-block created but link-back failed (likely missing column)", linkError);
+    return null;
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    console.error("[SWEETBABY] newborn order booking-block sync failed", e);
     return message;
   }
 }
@@ -142,8 +241,14 @@ export const createNewbornOrder = createServerFn({ method: "POST" })
       schemaFallback = !error;
     }
     if (error || !row) throw new Error(error?.message ?? "יצירת ההזמנה נכשלה");
-    // Best-effort, never blocks the order itself — see syncNewbornCalendarEvent's own doc comment.
-    const calendarError = await syncNewbornCalendarEvent(context.supabase, row);
+    // Best-effort, never blocks the order itself — see each sync function's own doc comment.
+    // bookingBlockError is the one that actually stops a double-booking
+    // (syncNewbornBookingBlock's own comment) — calendarError is the
+    // secondary, visual-only Google Calendar mirror.
+    const [calendarError, bookingBlockError] = await Promise.all([
+      syncNewbornCalendarEvent(context.supabase, row),
+      syncNewbornBookingBlock(context.supabase, context.userId, row),
+    ]);
     // `schemaFallback` tells the caller the order WAS created but the
     // shooting-time/birth-basket fields could NOT be saved (the columns
     // aren't live on this database yet) — surfaced as an honest warning in
@@ -151,9 +256,7 @@ export const createNewbornOrder = createServerFn({ method: "POST" })
     // what she actually typed (this is exactly why the calendar event can
     // end up at the default 10:00 instead of the real chosen time: the time
     // never made it into the row for syncNewbornCalendarEvent to read).
-    // `calendarError` is the OTHER real report ("נוצר אבל לא משריין ביומן")
-    // — previously invisible beyond a server log nobody could read.
-    return { ...row, _schemaFallback: schemaFallback, _calendarError: calendarError };
+    return { ...row, _schemaFallback: schemaFallback, _calendarError: calendarError, _bookingBlockError: bookingBlockError };
   });
 
 const toggleSchema = z.object({
@@ -188,9 +291,10 @@ const updateContactSchema = z.object({
   notes: z.string().trim().max(1000).optional().nullable(),
 });
 
-// Fields that, if changed, mean the calendar event (if any) needs re-syncing —
-// everything the event's summary/time/attendee actually depends on.
-const CALENDAR_RELEVANT_FIELDS = new Set(["contact_name", "contact_email", "session_date", "session_time"]);
+// Fields that, if changed, mean the calendar event AND the availability-
+// blocking booking (if either exists) need re-syncing — everything both of
+// them actually depend on.
+const CALENDAR_RELEVANT_FIELDS = new Set(["contact_name", "contact_email", "contact_phone", "session_date", "session_time"]);
 
 export const updateNewbornOrderContact = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -223,23 +327,38 @@ export const updateNewbornOrderContact = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     let calendarError: string | null = null;
+    let bookingBlockError: string | null = null;
     const touchesCalendar = Object.keys(patch).some((k) => CALENDAR_RELEVANT_FIELDS.has(k));
     if (touchesCalendar) {
-      // Drop session_time from the select too when it's not live yet — the
-      // read would otherwise fail outright over the same missing column,
-      // which would skip re-syncing the calendar for a plain name/date
-      // change that has nothing to do with the missing field.
-      const cols = schemaFallback
-        ? "id, contact_name, contact_email, session_date, google_event_id"
-        : "id, contact_name, contact_email, session_date, session_time, google_event_id";
-      const { data: fresh } = await (context.supabase as any).from("newborn_package_orders").select(cols).eq("id", id).maybeSingle();
-      if (fresh) calendarError = await syncNewbornCalendarEvent(context.supabase, { ...fresh, session_time: fresh.session_time ?? null });
+      // Drop session_time/blocking_booking_id from the select when either
+      // isn't live yet — the read would otherwise fail outright over a
+      // missing column, which would skip re-syncing EVERYTHING (including
+      // the calendar, which has nothing to do with the missing field) for a
+      // plain name/date change.
+      const baseCols = "id, contact_name, contact_phone, contact_email, session_date, total_price, google_event_id";
+      let { data: fresh } = await (context.supabase as any)
+        .from("newborn_package_orders")
+        .select(`${baseCols}, session_time, blocking_booking_id`)
+        .eq("id", id)
+        .maybeSingle();
+      if (!fresh) {
+        const retry = await (context.supabase as any).from("newborn_package_orders").select(baseCols).eq("id", id).maybeSingle();
+        fresh = retry.data;
+      }
+      if (fresh) {
+        const freshWithTime = { ...fresh, session_time: fresh.session_time ?? null };
+        [calendarError, bookingBlockError] = await Promise.all([
+          syncNewbornCalendarEvent(context.supabase, freshWithTime),
+          syncNewbornBookingBlock(context.supabase, context.userId, freshWithTime),
+        ]);
+      }
     }
-    // See createNewbornOrder's matching comments — _schemaFallback and
-    // _calendarError tell the admin UI exactly what didn't save/sync,
-    // instead of silently reporting success while quietly dropping
-    // something she just typed or failing to touch the calendar.
-    return { ok: true, _schemaFallback: schemaFallback, _calendarError: calendarError };
+    // See createNewbornOrder's matching comments — _schemaFallback,
+    // _calendarError and _bookingBlockError tell the admin UI exactly what
+    // didn't save/sync, instead of silently reporting success while
+    // quietly dropping something she just typed or failing to block the
+    // slot.
+    return { ok: true, _schemaFallback: schemaFallback, _calendarError: calendarError, _bookingBlockError: bookingBlockError };
   });
 
 export const deleteNewbornOrder = createServerFn({ method: "POST" })
@@ -247,7 +366,18 @@ export const deleteNewbornOrder = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
-    const { data: existing } = await (context.supabase as any).from("newborn_package_orders").select("google_event_id").eq("id", data.id).maybeSingle();
+    // blocking_booking_id is a newer column than google_event_id — select
+    // with a fallback so a missing column doesn't also break the
+    // already-working google_event_id cleanup.
+    let { data: existing } = await (context.supabase as any)
+      .from("newborn_package_orders")
+      .select("google_event_id, blocking_booking_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!existing) {
+      const retry = await (context.supabase as any).from("newborn_package_orders").select("google_event_id").eq("id", data.id).maybeSingle();
+      existing = retry.data;
+    }
     const { error } = await (context.supabase as any).from("newborn_package_orders").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     if (existing?.google_event_id) {
@@ -255,6 +385,16 @@ export const deleteNewbornOrder = createServerFn({ method: "POST" })
       import("@/integrations/google/calendar.server")
         .then(({ deleteGoogleCalendarEvent }) => deleteGoogleCalendarEvent(existing.google_event_id))
         .catch((e) => console.error("[SWEETBABY] newborn order delete: calendar cleanup failed", e));
+    }
+    if (existing?.blocking_booking_id) {
+      // Best-effort — same reasoning: never fail the delete itself over cleanup of the now-orphaned blocking booking row.
+      (context.supabase as any)
+        .from("bookings")
+        .delete()
+        .eq("id", existing.blocking_booking_id)
+        .then(({ error: delErr }: any) => {
+          if (delErr) console.error("[SWEETBABY] newborn order delete: booking-block cleanup failed", delErr);
+        });
     }
     return { ok: true };
   });
