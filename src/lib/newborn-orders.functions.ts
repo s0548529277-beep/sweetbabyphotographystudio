@@ -28,10 +28,19 @@ async function assertAdmin(supabase: any, userId: string) {
 const DEFAULT_SESSION_TIME = "10:00";
 const NEWBORN_SESSION_HOURS = 2; // typical newborn session length — a real, exact per-order duration isn't tracked anywhere yet.
 
+/**
+ * Returns null on success (or "nothing to do" — no date set), or the real
+ * error message on failure. Previously this swallowed every failure with
+ * only a console.error — invisible to the admin, who just saw "created,
+ * not on the calendar" with zero way to know why (a real report). Still
+ * NEVER throws — a Calendar hiccup must never block saving the order
+ * itself — but now the caller can surface the actual reason instead of a
+ * silent gap.
+ */
 async function syncNewbornCalendarEvent(
   db: any,
   order: { id: string; contact_name: string; contact_email: string | null; session_date: string | null; session_time: string | null; google_event_id?: string | null },
-): Promise<void> {
+): Promise<string | null> {
   try {
     const { createGoogleCalendarEvent, deleteGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
     if (order.google_event_id) {
@@ -39,7 +48,7 @@ async function syncNewbornCalendarEvent(
     }
     if (!order.session_date) {
       if (order.google_event_id) await db.from("newborn_package_orders").update({ google_event_id: null }).eq("id", order.id);
-      return;
+      return null;
     }
     const time = order.session_time || DEFAULT_SESSION_TIME;
     const [h, m] = time.split(":").map(Number);
@@ -53,9 +62,13 @@ async function syncNewbornCalendarEvent(
       location: "תלמוד ירושלמי 24, בית שמש",
       attendees: order.contact_email ? [order.contact_email] : [],
     });
-    await db.from("newborn_package_orders").update({ google_event_id: event?.id ?? null }).eq("id", order.id);
+    if (!event) return "יצירת האירוע ביומן החזירה תוצאה ריקה";
+    await db.from("newborn_package_orders").update({ google_event_id: event.id }).eq("id", order.id);
+    return null;
   } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
     console.error("[SWEETBABY] newborn order calendar sync failed", e);
+    return message;
   }
 }
 
@@ -130,7 +143,7 @@ export const createNewbornOrder = createServerFn({ method: "POST" })
     }
     if (error || !row) throw new Error(error?.message ?? "יצירת ההזמנה נכשלה");
     // Best-effort, never blocks the order itself — see syncNewbornCalendarEvent's own doc comment.
-    await syncNewbornCalendarEvent(context.supabase, row);
+    const calendarError = await syncNewbornCalendarEvent(context.supabase, row);
     // `schemaFallback` tells the caller the order WAS created but the
     // shooting-time/birth-basket fields could NOT be saved (the columns
     // aren't live on this database yet) — surfaced as an honest warning in
@@ -138,7 +151,9 @@ export const createNewbornOrder = createServerFn({ method: "POST" })
     // what she actually typed (this is exactly why the calendar event can
     // end up at the default 10:00 instead of the real chosen time: the time
     // never made it into the row for syncNewbornCalendarEvent to read).
-    return { ...row, _schemaFallback: schemaFallback };
+    // `calendarError` is the OTHER real report ("נוצר אבל לא משריין ביומן")
+    // — previously invisible beyond a server log nobody could read.
+    return { ...row, _schemaFallback: schemaFallback, _calendarError: calendarError };
   });
 
 const toggleSchema = z.object({
@@ -207,6 +222,7 @@ export const updateNewbornOrderContact = createServerFn({ method: "POST" })
     }
     if (error) throw new Error(error.message);
 
+    let calendarError: string | null = null;
     const touchesCalendar = Object.keys(patch).some((k) => CALENDAR_RELEVANT_FIELDS.has(k));
     if (touchesCalendar) {
       // Drop session_time from the select too when it's not live yet — the
@@ -217,13 +233,13 @@ export const updateNewbornOrderContact = createServerFn({ method: "POST" })
         ? "id, contact_name, contact_email, session_date, google_event_id"
         : "id, contact_name, contact_email, session_date, session_time, google_event_id";
       const { data: fresh } = await (context.supabase as any).from("newborn_package_orders").select(cols).eq("id", id).maybeSingle();
-      if (fresh) await syncNewbornCalendarEvent(context.supabase, { ...fresh, session_time: fresh.session_time ?? null });
+      if (fresh) calendarError = await syncNewbornCalendarEvent(context.supabase, { ...fresh, session_time: fresh.session_time ?? null });
     }
-    // See createNewbornOrder's matching comment — this tells the admin UI
-    // the shooting-time/birth-basket part of the edit didn't actually save
-    // (columns not live on this database yet), instead of silently
-    // reporting success while quietly dropping what she just typed.
-    return { ok: true, _schemaFallback: schemaFallback };
+    // See createNewbornOrder's matching comments — _schemaFallback and
+    // _calendarError tell the admin UI exactly what didn't save/sync,
+    // instead of silently reporting success while quietly dropping
+    // something she just typed or failing to touch the calendar.
+    return { ok: true, _schemaFallback: schemaFallback, _calendarError: calendarError };
   });
 
 export const deleteNewbornOrder = createServerFn({ method: "POST" })
