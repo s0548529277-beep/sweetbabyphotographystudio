@@ -18,6 +18,7 @@ const TABS = [
   { key: PAGE_IMAGE_KEYS.photographyOutdoor, label: "צילומים – בטבע" },
   { key: PAGE_IMAGE_KEYS.homeHero, label: "דף הבית – תמונות מתחלפות" },
   { key: PAGE_IMAGE_KEYS.rentalInspiration, label: "השכרת אביזרים – תמונות מתחלפות" },
+  { key: PAGE_IMAGE_KEYS.about, label: "עלינו – תמונות" },
 ] as const;
 
 async function uploadToStorage(file: File) {

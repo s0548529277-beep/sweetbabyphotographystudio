@@ -9,6 +9,7 @@ export const PAGE_IMAGE_KEYS = {
   photographyOutdoor: "photography-outdoor",
   homeHero: "home-hero",
   rentalInspiration: "rental-inspiration",
+  about: "about",
 } as const;
 
 export type PageImageKey = (typeof PAGE_IMAGE_KEYS)[keyof typeof PAGE_IMAGE_KEYS];
