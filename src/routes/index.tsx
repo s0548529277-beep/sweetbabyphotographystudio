@@ -122,7 +122,7 @@ function Home() {
                 style={{ fontFamily: "'DM Serif Display', serif" }}
               >
                 <span className="block mb-3">
-                  <img src={logo} alt="Sweetbaby" className="h-28 md:h-40 w-auto" />
+                  <img src={logo} alt="Sweetbaby" className="h-[21rem] md:h-[30rem] w-auto" />
                 </span>
                 <span className="relative inline-block">
                   כאן נולדת התמונה
