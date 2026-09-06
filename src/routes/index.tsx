@@ -130,7 +130,7 @@ function Home() {
                       logo size as before, now cropped so this height maps
                       directly to the visible mark instead of mostly to
                       transparent padding. */}
-                  <img src={logo} alt="Sweetbaby" className="inline-block h-24 md:h-36 w-auto" />
+                  <img src={logo} alt="Sweetbaby" className="inline-block h-16 md:h-24 w-auto" />
                 </span>
                 <span className="relative inline-block">
                   כאן נולדת התמונה
