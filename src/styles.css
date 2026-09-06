@@ -73,15 +73,20 @@
   --accent-foreground: #2d3d2b;
   --destructive: oklch(0.55 0.19 25);
   --destructive-foreground: #ffffff;
-  --border: #e6d8c8;
-  --input: #ece0cf;
+  /* A hairline, barely-there dark-green line rather than the old solid tan
+     border — per direct request: pink-cream surfaces, green used only as a
+     near-invisible outline, never a filled block. */
+  --border: color-mix(in oklab, var(--ink) 12%, transparent);
+  --input: color-mix(in oklab, var(--ink) 14%, transparent);
   --ring: #2d3d2b;
 
   --font-display: "DM Serif Display", "Cormorant Garamond", ui-serif, Georgia, serif;
   --font-body: "Fira Sans", "Assistant", ui-sans-serif, system-ui, sans-serif;
 
-  --shadow-soft: 0 40px 80px -40px rgb(45 61 43 / 0.18);
-  --shadow-card: 0 12px 40px -20px rgb(45 61 43 / 0.10);
+  /* Softened — the old values read as heavy "designed" shadows; flatter
+     hairline-bordered cards fit the clean/quiet direction better. */
+  --shadow-soft: 0 24px 48px -32px rgb(45 61 43 / 0.10);
+  --shadow-card: 0 8px 24px -16px rgb(45 61 43 / 0.06);
   --gradient-hero: linear-gradient(135deg, #f8ede4 0%, #f5d5cf 100%);
 }
 
