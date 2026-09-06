@@ -5,6 +5,7 @@ import { Camera, Home as HomeIcon, Sparkles, ArrowLeft, MapPin, Star, Heart, Clo
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CountUp } from "@/components/CountUp";
+import { SideLeaves } from "@/components/decor/SideLeaves";
 
 import heroImg from "@/assets/hero-studio.jpg.asset.json";
 import { PAGE_IMAGE_KEYS, usePageGalleryWithAspect } from "@/lib/page-images";
@@ -122,12 +123,28 @@ function Home() {
           transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
         />
 
+        {/* Faint hand-drawn leaf sketches at the section's edges — a quiet
+            editorial accent, purely decorative (hidden on small screens,
+            where there's no room to spare) */}
+        <SideLeaves className="hidden lg:block absolute top-1/2 -translate-y-1/2 right-2 h-[26rem] w-40 text-[#2d3d2b]/25 z-[1]" />
+        <SideLeaves flip className="hidden lg:block absolute top-1/2 -translate-y-1/2 left-2 h-[22rem] w-36 text-[#6b8a63]/25 z-[1]" />
+
         <div className="relative container-page pt-14 md:pt-20 pb-10" dir="rtl">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
             <motion.div
               initial="hidden" animate="show" variants={fadeUp}
               className="lg:col-span-7 relative z-10"
             >
+              {/* Soft "brush stroke" card behind the headline, like a
+                  torn-paper accent under the title — pure decoration. */}
+              <svg
+                aria-hidden viewBox="0 0 620 260"
+                className="hidden md:block absolute -right-8 -top-6 w-[38rem] h-[16rem] -z-10 text-white/80"
+                fill="currentColor"
+              >
+                <path d="M40 60 C 10 30, 90 4, 180 10 C 300 18, 380 -6, 470 14 C 560 32, 610 60, 604 110 C 598 168, 560 190, 480 202 C 380 216, 300 250, 190 244 C 100 240, 20 214, 10 150 C 4 108, 14 84, 40 60Z" />
+              </svg>
+
               <div className="inline-flex items-center gap-2 rounded-full bg-white/70 backdrop-blur px-4 py-1.5 border border-[#2d3d2b]/10">
                 <Star className="h-3.5 w-3.5 fill-[#a8c4a2] text-[#a8c4a2]" />
                 <span className="text-[11px] tracking-[0.28em] uppercase text-[#2d3d2b]/70 font-medium">
@@ -140,7 +157,10 @@ function Home() {
                 style={{ fontFamily: "'DM Serif Display', serif" }}
               >
                 <span className="block">סוויט בייבי</span>
-                <span className="relative inline-block">
+                <span
+                  className="relative inline-block text-[#6b8a63] py-1"
+                  style={{ fontFamily: "'Gveret Levin', cursive", lineHeight: 1.3 }}
+                >
                   כאן נולדת התמונה
                   <motion.svg
                     viewBox="0 0 420 22" className="absolute -bottom-2 right-0 w-full h-5 text-[#f5d5cf]"
@@ -202,7 +222,14 @@ function Home() {
               initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
               className="lg:col-span-5 relative"
             >
-              <div className={`relative ${heroAspect} rounded-[2rem] overflow-hidden shadow-2xl bg-[#f5d5cf]`}>
+              {/* Organic "blob" frame instead of a plain rounded rectangle —
+                  the asymmetric border-radius trick, like the free-form
+                  cutout around a hero photo in editorial nature-style
+                  templates. */}
+              <div
+                className={`relative ${heroAspect} overflow-hidden shadow-2xl bg-[#f5d5cf]`}
+                style={{ borderRadius: "63% 37% 54% 46% / 43% 47% 53% 57%" }}
+              >
                 <AnimatePresence mode="wait">
                   <motion.img
                     key={slide}

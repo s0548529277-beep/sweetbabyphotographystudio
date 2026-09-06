@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { InspirationStrip } from "@/components/InspirationStrip";
 import { usePageGallery, PAGE_IMAGE_KEYS } from "@/lib/page-images";
 import { ArrivalDirections } from "@/components/ArrivalDirections";
+import { SideLeaves } from "@/components/decor/SideLeaves";
 
 
 export const Route = createFileRoute("/studio-rental")({
@@ -234,6 +235,8 @@ function StudioRentalPage() {
           animate={{ y: [0, -20, 0], x: [0, 15, 0] }}
           transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
         />
+        <SideLeaves flip className="hidden lg:block absolute top-1/2 -translate-y-1/2 left-2 h-96 w-36 text-[#2d3d2b]/25 z-[1]" />
+        <SideLeaves className="hidden lg:block absolute top-1/2 -translate-y-1/2 right-2 h-80 w-32 text-[#6b8a63]/25 z-[1]" />
 
         <div className="relative container-page pt-6 pb-8">
           <div className="flex flex-wrap gap-3 justify-end mb-5">
