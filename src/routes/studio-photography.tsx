@@ -18,7 +18,6 @@ import {
 } from "@/lib/page-images";
 
 import { Camera, Sun, Trees, Sparkles, Clock, Phone, Mail, ExternalLink, ArrowLeft, CalendarDays } from "lucide-react";
-import { SideLeaves } from "@/components/decor/SideLeaves";
 
 export const Route = createFileRoute("/studio-photography")({
   head: () => ({
@@ -161,9 +160,7 @@ function StudioPhotographyPage() {
       </div>
 
       {/* Hero */}
-      <section className="relative max-w-6xl mx-auto px-6 pt-14 pb-10">
-        <SideLeaves className="hidden lg:block absolute top-1/2 -translate-y-1/2 -right-2 h-96 w-36 text-[#2d3d2b]/25 z-[1]" />
-        <SideLeaves flip className="hidden lg:block absolute top-1/2 -translate-y-1/2 -left-2 h-80 w-32 text-[#6b8a63]/25 z-[1]" />
+      <section className="max-w-6xl mx-auto px-6 pt-14 pb-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
