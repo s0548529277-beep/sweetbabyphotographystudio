@@ -99,28 +99,9 @@ function Home() {
 
       {/* HERO */}
       <section className="relative overflow-hidden">
-        {/* Soft editorial gradient like the reference */}
-        <div
-          aria-hidden
-          className="absolute inset-0 -z-10"
-          style={{
-            background: "linear-gradient(135deg, #f8ede4 0%, #f1e6dc 45%, #e1e8d9 100%)",
-          }}
-        />
-
-        {/* Decorative floating shapes */}
-        <motion.div
-          aria-hidden
-          className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-[#f5d5cf] blur-3xl opacity-70"
-          animate={{ y: [0, 30, 0], x: [0, 20, 0] }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          aria-hidden
-          className="absolute top-40 -right-32 h-[28rem] w-[28rem] rounded-full bg-[#a8c4a2] blur-3xl opacity-40"
-          animate={{ y: [0, -25, 0], x: [0, -15, 0] }}
-          transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
-        />
+        {/* Flat pink-cream wash — no blurred color blobs, keeps the section
+            calm and lets the hairline borders/real photo do the work. */}
+        <div aria-hidden className="absolute inset-0 -z-10" style={{ background: "var(--gradient-hero)" }} />
 
         <div className="relative container-page pt-14 md:pt-20 pb-10" dir="rtl">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
@@ -202,7 +183,13 @@ function Home() {
               initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
               className="lg:col-span-5 relative"
             >
-              <div className={`relative ${heroAspect} rounded-[2rem] overflow-hidden shadow-2xl bg-[#f5d5cf]`}>
+              {/* One clean arch — fully rounded top corners, modest rounded
+                  bottom — the single decorative touch borrowed from the
+                  reference, kept plain (no organic/blob shape). */}
+              <div
+                className={`relative ${heroAspect} overflow-hidden border border-[#2d3d2b]/10 bg-[#f5d5cf]`}
+                style={{ borderRadius: "999px 999px 1.5rem 1.5rem" }}
+              >
                 <AnimatePresence mode="wait">
                   <motion.img
                     key={slide}
@@ -233,57 +220,37 @@ function Home() {
                   ))}
                 </div>
               </div>
-              <motion.button
+              {/* Static caption row under the photo — same information as
+                  before, just no longer floating/overlapping/rotating on
+                  top of the image, so the layout reads clearly at a glance. */}
+              <button
                 type="button"
                 onClick={() => document.getElementById("testimonials")?.scrollIntoView({ behavior: "smooth" })}
-                aria-label="מעבר להמלצות משפחות"
-                animate={{ y: [0, -10, 0], rotate: [-3, -6, -3] }}
-                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -top-6 -left-6 md:-left-10 bg-[#f5d5cf] rounded-3xl px-5 py-4 shadow-xl border border-white/50 cursor-pointer text-right"
+                className="mt-4 w-full flex items-center justify-between gap-4 rounded-2xl border border-[#2d3d2b]/10 bg-white/70 px-5 py-3.5 text-right hover:bg-white transition-colors"
               >
                 <div className="flex items-center gap-2">
-                  <div className="flex -space-x-1">
-                    {["א", "ג", "כ"].map((letter) => (
-                      <div
-                        key={letter}
-                        className="h-7 w-7 rounded-full bg-[#a8c4a2] border-2 border-[#f5d5cf] text-[#2d3d2b] text-xs flex items-center justify-center"
-                        style={{ fontFamily: "'DM Serif Display', serif" }}
-                      >
-                        {letter}
-                      </div>
-                    ))}
-                  </div>
-                  <div>
-                    <div className="text-xs text-[#2d3d2b]/60">משפחות מרוצות</div>
-                    <div className="text-lg text-[#2d3d2b] font-medium" style={{ fontFamily: "'DM Serif Display', serif" }}>★ 5.0</div>
-                  </div>
+                  <Star className="h-4 w-4 fill-[#a8c4a2] text-[#a8c4a2]" />
+                  <span className="text-sm text-[#2d3d2b]">
+                    <strong className="font-medium">5.0</strong> · משפחות מרוצות
+                  </span>
                 </div>
-              </motion.button>
-              <motion.div
-                animate={{ y: [0, 12, 0], rotate: [4, 8, 4] }}
-                transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -bottom-6 -right-6 md:-right-10 bg-white rounded-3xl px-5 py-4 shadow-xl border border-[#2d3d2b]/5"
-              >
-                <div className="flex items-center gap-3">
-                  <MapPin className="h-5 w-5 text-[#6b8a63]" />
-                  <div>
-                    <div className="text-xs text-[#2d3d2b]/60 uppercase tracking-wider">מיקום</div>
-                    <div className="text-sm text-[#2d3d2b] font-semibold">תלמוד ירושלמי 24, בית שמש</div>
-                  </div>
+                <div className="flex items-center gap-2 text-sm text-[#2d3d2b]/70">
+                  <MapPin className="h-4 w-4 text-[#6b8a63]" />
+                  תלמוד ירושלמי 24, בית שמש
                 </div>
-              </motion.div>
+              </button>
             </motion.div>
           </div>
         </div>
 
         {/* Marquee */}
-        <div className="mt-6 py-5 bg-[#2d3d2b] text-[#f8ede4] overflow-hidden border-y border-[#6b8a63]/30">
+        <div className="mt-6 py-5 bg-[#f5d5cf]/30 text-[#2d3d2b] overflow-hidden border-y border-[#2d3d2b]/10">
           <div className="marquee-track text-2xl md:text-3xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
             {Array.from({ length: 2 }).map((_, k) => (
               <div key={k} className="flex items-center gap-12 pl-12">
                 {["ניוברן", "גיל שנה", "חלאקה", "משפחה", "הריון", "סמאש קייק"].flatMap((w, i) => [
                   <span key={`w-${k}-${i}`} className="whitespace-nowrap">{w}</span>,
-                  <Sparkles key={`s-${k}-${i}`} className="h-5 w-5 text-[#a8c4a2] shrink-0" />,
+                  <Sparkles key={`s-${k}-${i}`} className="h-5 w-5 text-[#6b8a63] shrink-0" />,
                 ])}
               </div>
             ))}
@@ -370,45 +337,74 @@ function Home() {
             </Link>
           </motion.div>
 
-          {/* Catalog */}
+          {/* Catalog — same real-photo-topped card shape as the other two,
+              instead of a solid dark-green block, so all three "offerings"
+              read as one consistent family. */}
           <motion.div initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={2} variants={fadeUp}>
-            <Link to="/rental-catalog" className="group block bg-[#2d3d2b] text-[#f8ede4] rounded-[2rem] overflow-hidden h-full flex flex-col hover:shadow-2xl transition-all hover:-translate-y-1 relative">
-              <div className="absolute inset-0 opacity-20">
-                <div className="absolute top-10 right-10 h-32 w-32 rounded-full bg-[#a8c4a2] blur-2xl" />
-                <div className="absolute bottom-10 left-10 h-40 w-40 rounded-full bg-[#f5d5cf] blur-2xl" />
-              </div>
-              <div className="p-7 flex flex-col flex-grow relative">
-                <div className="flex justify-between items-start">
-                  <div className="text-[11px] tracking-[0.28em] uppercase text-[#a8c4a2] mb-2">03 · Collection</div>
-                  <div className="h-12 w-12 rounded-full bg-white/10 backdrop-blur flex items-center justify-center">
-                    <Sparkles className="h-5 w-5 text-[#a8c4a2]" />
-                  </div>
+            <Link to="/rental-catalog" className="group block bg-white rounded-[2rem] overflow-hidden border border-[#2d3d2b]/5 h-full flex flex-col hover:shadow-2xl transition-all hover:-translate-y-1">
+              <div className="h-64 relative overflow-hidden bg-[#f5d5cf]">
+                <img src={studioPropsCorner} alt="פינת אביזרים לצילום" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
+                <img src={hero2.url} alt="אביזרים נוספים" className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500" loading="lazy" />
+                <div className="absolute top-4 right-4 h-12 w-12 rounded-full bg-white/90 backdrop-blur flex items-center justify-center">
+                  <Sparkles className="h-5 w-5 text-[#2d3d2b]" />
                 </div>
-                <h3 className="text-3xl mt-3" style={{ fontFamily: "'DM Serif Display', serif" }}>
+              </div>
+              <div className="p-7 flex flex-col flex-grow">
+                <div className="text-[11px] tracking-[0.28em] uppercase text-[#6b8a63] mb-2">03 · Collection</div>
+                <h3 className="text-2xl text-[#2d3d2b] mb-3" style={{ fontFamily: "'DM Serif Display', serif" }}>
                   קטלוג האביזרים
                 </h3>
-                <p className="text-sm text-[#f8ede4]/70 mt-3 leading-relaxed">
-                  מעל <CountUp end={400} suffix="" className="text-[#a8c4a2] font-semibold" /> פריטים ייחודיים לצילומי ניוברן, ילדים והריון — וינטג׳, מקרמה, סרוגים ועבודות יד.
+                <p className="text-sm text-[#2d3d2b]/70 leading-relaxed flex-grow">
+                  מעל <CountUp end={400} suffix="" className="font-semibold" /> פריטים ייחודיים לצילומי ניוברן, ילדים והריון — וינטג׳, מקרמה, סרוגים ועבודות יד.
                 </p>
-
-                <div className="mt-8 grid grid-cols-3 gap-2 text-center">
-                  {["וינטג׳", "מקרמה", "סרוגים"].map((t) => (
-                    <div key={t} className="rounded-full border border-white/15 py-2 text-[11px] tracking-wider">{t}</div>
-                  ))}
-                </div>
-
-                <div className="mt-auto pt-8 flex items-end justify-between border-t border-white/10">
+                <div className="mt-6 flex items-end justify-between pt-6 border-t border-[#2d3d2b]/10">
                   <div>
-                    <div className="text-[10px] uppercase tracking-wider text-[#a8c4a2]/70">החל מ-</div>
-                    <div className="text-2xl" style={{ fontFamily: "'DM Serif Display', serif" }}>₪50</div>
+                    <div className="text-[10px] uppercase tracking-wider text-[#2d3d2b]/50">החל מ-</div>
+                    <div className="text-2xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>₪50</div>
                   </div>
-                  <span className="inline-flex items-center gap-2 bg-[#f5d5cf] text-[#2d3d2b] px-5 py-2.5 rounded-full text-sm font-semibold group-hover:bg-[#f8ede4] transition-colors">
-                    לצפייה בקטלוג <ArrowLeft className="h-3.5 w-3.5" />
-                  </span>
+                  <div className="h-10 w-10 rounded-full border border-[#2d3d2b]/20 flex items-center justify-center group-hover:bg-[#2d3d2b] group-hover:text-[#f8ede4] transition-colors">
+                    <ArrowLeft className="h-4 w-4" />
+                  </div>
                 </div>
               </div>
             </Link>
           </motion.div>
+        </div>
+      </section>
+
+      {/* GALLERY — a real, asymmetric photo grid (the editorial-portfolio
+          side of the two references), using the studio's own bundled
+          photos. Real captions, real photos, no icon badges or filled
+          color blocks — just the pictures themselves. */}
+      <section className="container-page pb-16 md:pb-24" dir="rtl">
+        <div className="mb-10">
+          <div className="text-xs tracking-[0.3em] uppercase text-[#6b8a63] font-medium mb-3">
+            רגעים מהסטודיו
+          </div>
+          <h2 className="text-4xl md:text-5xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+            קצת מהאווירה שלנו
+          </h2>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 auto-rows-[9rem] md:auto-rows-[11rem]">
+          {GALLERY_IMAGES.map((g, i) => (
+            <motion.div
+              key={g.src}
+              initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }} custom={i % 5} variants={fadeUp}
+              className={`group relative overflow-hidden rounded-2xl border border-[#2d3d2b]/10 ${
+                i === 0 ? "col-span-2 row-span-2" : i === 5 ? "md:col-span-2" : ""
+              }`}
+            >
+              <img
+                src={g.src}
+                alt={g.caption}
+                loading="lazy"
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+              />
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/45 to-transparent px-3 py-2.5">
+                <span className="text-[12px] text-white/90">{g.caption}</span>
+              </div>
+            </motion.div>
+          ))}
         </div>
       </section>
 
@@ -453,13 +449,8 @@ function Home() {
 
       {/* TRUST STRIP */}
       <section className="container-page pb-16 md:pb-24" dir="rtl">
-        <div className="rounded-[2rem] bg-[#f5d5cf] p-8 md:p-12 relative overflow-hidden">
-          <motion.div
-            aria-hidden
-            animate={{ rotate: 360 }} transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
-            className="absolute -top-16 -left-16 h-64 w-64 rounded-full border-2 border-dashed border-[#2d3d2b]/15"
-          />
-          <div className="grid md:grid-cols-4 gap-8 items-center relative">
+        <div className="rounded-[2rem] bg-[#f5d5cf]/40 border border-[#2d3d2b]/10 p-8 md:p-12">
+          <div className="grid md:grid-cols-4 gap-8 items-center">
             {[
               { icon: Heart, title: "רגעים אמיתיים", desc: "אווירה רגועה שמאפשרת לילד להיות עצמו" },
               { icon: Sparkles, title: "עיצוב מוקפד", desc: "אביזרים בעבודת יד וטקסטורות ייחודיות" },
@@ -470,7 +461,7 @@ function Home() {
                 key={f.title} custom={i} initial="hidden" whileInView="show" viewport={{ once: true }} variants={fadeUp}
                 className="text-[#2d3d2b]"
               >
-                <div className="h-12 w-12 rounded-2xl bg-white/60 backdrop-blur flex items-center justify-center mb-4">
+                <div className="h-12 w-12 rounded-2xl bg-white border border-[#2d3d2b]/10 flex items-center justify-center mb-4">
                   <f.icon className="h-5 w-5" />
                 </div>
                 <div className="text-lg font-semibold" style={{ fontFamily: "'DM Serif Display', serif" }}>{f.title}</div>
