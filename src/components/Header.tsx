@@ -21,7 +21,6 @@ const nav: { to: string; label: string; hash?: string; soon?: boolean }[] = [
   // reached only via the promo banner inside /collage-maker, not as a peer
   // entry point of its own.
   { to: "/collage-maker", label: "עיצוב קולאז׳ חינם" },
-  { to: "/photo-retouch", label: "עיבוד תמונות AI", soon: true },
   { to: "/about", label: "אודות ויצירת קשר" },
 ];
 
