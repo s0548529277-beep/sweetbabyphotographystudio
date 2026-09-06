@@ -107,6 +107,8 @@ async function syncNewbornCalendarEvent(
  * "move" primitive needed for this low write-frequency), and the same
  * "never throw, return the real error message" contract.
  */
+type BookingBlockResult = { error: string | null; confirmed?: { date: string; start: string; end: string } };
+
 async function syncNewbornBookingBlock(
   db: any,
   adminUserId: string,
@@ -119,7 +121,7 @@ async function syncNewbornBookingBlock(
     total_price?: number | null;
     blocking_booking_id?: string | null;
   },
-): Promise<string | null> {
+): Promise<BookingBlockResult> {
   try {
     if (order.blocking_booking_id) {
       // Supabase's query builder is PromiseLike (only `.then`, no
@@ -131,7 +133,7 @@ async function syncNewbornBookingBlock(
     }
     if (!order.session_date) {
       if (order.blocking_booking_id) await db.from("newborn_package_orders").update({ blocking_booking_id: null }).eq("id", order.id);
-      return null;
+      return { error: null };
     }
     const [start, end] = newbornSessionWindow(order.session_time);
     const { data: booking, error } = await db
@@ -154,7 +156,7 @@ async function syncNewbornBookingBlock(
       })
       .select("id")
       .single();
-    if (error || !booking) return error?.message ?? "יצירת חסימת השעות ביומן הסטודיו נכשלה";
+    if (error || !booking) return { error: error?.message ?? "יצירת חסימת השעות ביומן הסטודיו נכשלה" };
     // Best-effort link-back — if blocking_booking_id itself isn't live on
     // this database yet (same schema-deploy-lag class as session_time/
     // birth_basket_used), the actual blocking booking row above was still
@@ -163,11 +165,20 @@ async function syncNewbornBookingBlock(
     // on this specific order loses track of which booking row to replace.
     const { error: linkError } = await db.from("newborn_package_orders").update({ blocking_booking_id: booking.id }).eq("id", order.id);
     if (linkError) console.error("[SWEETBABY] newborn order booking-block created but link-back failed (likely missing column)", linkError);
-    return null;
+    // Reads the row back with a FRESH, independent select — not just
+    // trusting the insert's own .select() response — so a genuine
+    // "created but somehow not visible again" case (RLS oddity, replica
+    // lag) is caught here instead of reporting a false success. Added
+    // after a real report of the block silently not showing up anywhere.
+    const { data: verify, error: verifyError } = await db.from("bookings").select("id, session_date, start_time, end_time").eq("id", booking.id).maybeSingle();
+    if (verifyError || !verify) {
+      return { error: `נוצר (מזהה ${booking.id.slice(0, 8)}) אבל קריאה חוזרת מיד אחרי נכשלה: ${verifyError?.message ?? "לא נמצא"}` };
+    }
+    return { error: null, confirmed: { date: verify.session_date, start: String(verify.start_time).slice(0, 5), end: String(verify.end_time).slice(0, 5) } };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     console.error("[SWEETBABY] newborn order booking-block sync failed", e);
-    return message;
+    return { error: message };
   }
 }
 
@@ -242,10 +253,10 @@ export const createNewbornOrder = createServerFn({ method: "POST" })
     }
     if (error || !row) throw new Error(error?.message ?? "יצירת ההזמנה נכשלה");
     // Best-effort, never blocks the order itself — see each sync function's own doc comment.
-    // bookingBlockError is the one that actually stops a double-booking
+    // bookingBlock is the one that actually stops a double-booking
     // (syncNewbornBookingBlock's own comment) — calendarError is the
     // secondary, visual-only Google Calendar mirror.
-    const [calendarError, bookingBlockError] = await Promise.all([
+    const [calendarError, bookingBlock] = await Promise.all([
       syncNewbornCalendarEvent(context.supabase, row),
       syncNewbornBookingBlock(context.supabase, context.userId, row),
     ]);
@@ -256,7 +267,16 @@ export const createNewbornOrder = createServerFn({ method: "POST" })
     // what she actually typed (this is exactly why the calendar event can
     // end up at the default 10:00 instead of the real chosen time: the time
     // never made it into the row for syncNewbornCalendarEvent to read).
-    return { ...row, _schemaFallback: schemaFallback, _calendarError: calendarError, _bookingBlockError: bookingBlockError };
+    // `_bookingBlockConfirmed` carries back the ACTUAL date/time read from a
+    // fresh, independent select right after insert (syncNewbornBookingBlock's
+    // own doc comment) — real proof for the admin UI, not just "trust me".
+    return {
+      ...row,
+      _schemaFallback: schemaFallback,
+      _calendarError: calendarError,
+      _bookingBlockError: bookingBlock.error,
+      _bookingBlockConfirmed: bookingBlock.confirmed ?? null,
+    };
   });
 
 const toggleSchema = z.object({
@@ -327,7 +347,7 @@ export const updateNewbornOrderContact = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
 
     let calendarError: string | null = null;
-    let bookingBlockError: string | null = null;
+    let bookingBlock: BookingBlockResult = { error: null };
     const touchesCalendar = Object.keys(patch).some((k) => CALENDAR_RELEVANT_FIELDS.has(k));
     if (touchesCalendar) {
       // Drop session_time/blocking_booking_id from the select when either
@@ -347,7 +367,7 @@ export const updateNewbornOrderContact = createServerFn({ method: "POST" })
       }
       if (fresh) {
         const freshWithTime = { ...fresh, session_time: fresh.session_time ?? null };
-        [calendarError, bookingBlockError] = await Promise.all([
+        [calendarError, bookingBlock] = await Promise.all([
           syncNewbornCalendarEvent(context.supabase, freshWithTime),
           syncNewbornBookingBlock(context.supabase, context.userId, freshWithTime),
         ]);
@@ -357,8 +377,15 @@ export const updateNewbornOrderContact = createServerFn({ method: "POST" })
     // _calendarError and _bookingBlockError tell the admin UI exactly what
     // didn't save/sync, instead of silently reporting success while
     // quietly dropping something she just typed or failing to block the
-    // slot.
-    return { ok: true, _schemaFallback: schemaFallback, _calendarError: calendarError, _bookingBlockError: bookingBlockError };
+    // slot. _bookingBlockConfirmed is real proof (a fresh independent
+    // read-back), not just "the insert didn't error".
+    return {
+      ok: true,
+      _schemaFallback: schemaFallback,
+      _calendarError: calendarError,
+      _bookingBlockError: bookingBlock.error,
+      _bookingBlockConfirmed: bookingBlock.confirmed ?? null,
+    };
   });
 
 export const deleteNewbornOrder = createServerFn({ method: "POST" })
