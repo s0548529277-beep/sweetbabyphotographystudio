@@ -5,6 +5,7 @@ import { Camera, Home as HomeIcon, Sparkles, ArrowLeft, MapPin, Star, Heart, Clo
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CountUp } from "@/components/CountUp";
+import logo from "@/assets/logo-green.png";
 
 import heroImg from "@/assets/hero-studio.jpg.asset.json";
 import { PAGE_IMAGE_KEYS, usePageGalleryWithAspect } from "@/lib/page-images";
@@ -120,7 +121,9 @@ function Home() {
                 className="mt-6 text-[2.9rem] leading-[1.05] md:text-[4.8rem] md:leading-[1.02] text-[#2d3d2b]"
                 style={{ fontFamily: "'DM Serif Display', serif" }}
               >
-                <span className="block">סוויט בייבי</span>
+                <span className="block mb-2">
+                  <img src={logo} alt="Sweetbaby" className="h-16 md:h-24 w-auto" />
+                </span>
                 <span className="relative inline-block">
                   כאן נולדת התמונה
                   <motion.svg

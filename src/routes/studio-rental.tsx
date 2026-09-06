@@ -222,18 +222,7 @@ function StudioRentalPage() {
 
       {/* HERO */}
       <section className="relative overflow-hidden" dir="rtl">
-        <motion.div
-          aria-hidden
-          className="absolute -top-24 -right-24 h-80 w-80 rounded-full bg-[#f5d5cf] blur-3xl opacity-70"
-          animate={{ y: [0, 25, 0], x: [0, -15, 0] }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          aria-hidden
-          className="absolute top-32 -left-24 h-80 w-80 rounded-full bg-[#a8c4a2] blur-3xl opacity-40"
-          animate={{ y: [0, -20, 0], x: [0, 15, 0] }}
-          transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
-        />
+        <div aria-hidden className="absolute inset-0 -z-10" style={{ background: "var(--gradient-hero)" }} />
 
         <div className="relative container-page pt-6 pb-8">
           <div className="flex flex-wrap gap-3 justify-end mb-5">
@@ -285,10 +274,9 @@ function StudioRentalPage() {
         <div className="grid md:grid-cols-2 gap-4 md:gap-5 max-w-3xl mx-auto">
           <motion.div
             initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={0} variants={fadeUp}
-            className="bg-white rounded-2xl border border-[#2d3d2b]/5 px-4 py-5 relative overflow-hidden"
+            className="bg-white rounded-2xl border border-[#2d3d2b]/10 px-4 py-5"
           >
-            <div className="absolute -top-10 -left-10 h-24 w-24 rounded-full bg-[#f5d5cf]/60 blur-2xl" />
-            <div className="relative">
+            <div>
               <div className="text-[14px] tracking-[0.16em] uppercase text-[#6b8a63] mb-1">01 · Flexible</div>
               <h3 className="text-lg text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>שעתי גמיש</h3>
               <div className="mt-2 flex items-baseline gap-2">
@@ -304,10 +292,9 @@ function StudioRentalPage() {
 
           <motion.div
             initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={1} variants={fadeUp}
-            className="bg-[#f5d5cf] text-[#2d3d2b] rounded-2xl px-4 py-5 relative overflow-hidden"
+            className="bg-[#f5d5cf]/50 text-[#2d3d2b] rounded-2xl border border-[#2d3d2b]/10 px-4 py-5"
           >
-            <div className="absolute top-6 -left-10 h-24 w-24 rounded-full bg-white/40 blur-2xl" />
-            <div className="relative">
+            <div>
               <div className="flex items-center justify-between">
                 <div className="text-[14px] tracking-[0.16em] uppercase text-[#6b8a63] mb-1">02 · Morning</div>
                 <span className="text-[9px] tracking-[0.2em] uppercase bg-[#2d3d2b] text-[#f8ede4] px-2 py-0.5 rounded-full font-semibold">ניוברן</span>
@@ -352,11 +339,11 @@ function StudioRentalPage() {
 
             <div className="mt-7 grid md:grid-cols-3 gap-3 md:gap-4">
               {[
-                { n: "01", title: "שאלון והסכם", desc: "ממלאים את הסכם תיאום הציפיות — פרטים, סוג הצילום ואישור כללי הסטודיו.", tone: "bg-[#f5d5cf]/50 border-[#f5d5cf]" },
-                { n: "02", title: "קביעת יומן", desc: "בוחרים תאריך ושעה פנויים ביומן החי, משך שהות ואביזרים לשריון (עד 20 חינם).", tone: "bg-[#a8c4a2]/20 border-[#a8c4a2]/50" },
-                { n: "03", title: "תשלום מקדמה", desc: "מקדמה 90 ₪ לשריון המועד (ביום ההגעה — תשלום מלא). ואז הכל נסגר.", tone: "bg-[#f8ede4] border-[#2d3d2b]/10" },
+                { n: "01", title: "שאלון והסכם", desc: "ממלאים את הסכם תיאום הציפיות — פרטים, סוג הצילום ואישור כללי הסטודיו." },
+                { n: "02", title: "קביעת יומן", desc: "בוחרים תאריך ושעה פנויים ביומן החי, משך שהות ואביזרים לשריון (עד 20 חינם)." },
+                { n: "03", title: "תשלום מקדמה", desc: "מקדמה 90 ₪ לשריון המועד (ביום ההגעה — תשלום מלא). ואז הכל נסגר." },
               ].map((s) => (
-                <div key={s.n} className={`rounded-2xl border p-5 ${s.tone}`}>
+                <div key={s.n} className="rounded-2xl border border-[#2d3d2b]/10 bg-white p-5">
                   <div className="text-[14px] tracking-[0.18em] uppercase text-[#6b8a63] mb-1">Step {s.n}</div>
                   <h3 className="text-lg text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>{s.title}</h3>
                   <p className="mt-1.5 text-[15px] text-[#2d3d2b]/75 leading-relaxed">{s.desc}</p>
@@ -396,31 +383,30 @@ function StudioRentalPage() {
         </motion.div>
 
 
-        <div className="mt-6 max-w-3xl mx-auto bg-[#2d3d2b] text-[#f8ede4] rounded-[2rem] px-4 py-5 relative overflow-hidden">
-          <div className="absolute -top-10 -left-10 h-32 w-32 rounded-full bg-[#a8c4a2]/30 blur-2xl" />
-          <div className="relative flex flex-wrap items-center justify-between gap-4">
+        <div className="mt-6 max-w-3xl mx-auto bg-white text-[#2d3d2b] rounded-[2rem] border border-[#2d3d2b]/10 px-4 py-5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex-1 min-w-[240px]">
-              <div className="text-[15px] tracking-[0.18em] uppercase text-[#a8c4a2] mb-1">Add-on · חינם</div>
+              <div className="text-[15px] tracking-[0.18em] uppercase text-[#6b8a63] mb-1">Add-on · חינם</div>
               <h4 className="text-xl" style={{ fontFamily: "'DM Serif Display', serif" }}>צריכה גם אביזרים?</h4>
-              <p className="text-sm text-[#f8ede4]/85 mt-1 leading-relaxed">
-                <strong className="text-[#f5d5cf]">עד 20 אביזרים שריון חינם</strong> לשעות ההשכרה בסטודיו — ללא תוספת תשלום.
+              <p className="text-sm text-[#2d3d2b]/80 mt-1 leading-relaxed">
+                <strong>עד 20 אביזרים שריון חינם</strong> לשעות ההשכרה בסטודיו — ללא תוספת תשלום.
                 אנו מתחייבים שכ-80% מהקטלוג יהיה בהישג יד בזמן הצילום (בכפוף לזמינות).
               </p>
-              <p className="text-[15px] text-[#f8ede4]/60 mt-2">
+              <p className="text-[15px] text-[#2d3d2b]/60 mt-2">
                 רוצה לשריין אביזרים ספציפיים? ציין/י אותם בהערות בטופס תיאום הציפיות.
               </p>
             </div>
             <div className="flex flex-col items-stretch gap-2">
               <Link
                 to="/rental-catalog"
-                className="inline-flex items-center justify-center gap-2 bg-[#f5d5cf] text-[#2d3d2b] px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-[#f8ede4] transition-colors group whitespace-nowrap"
+                className="inline-flex items-center justify-center gap-2 bg-[#2d3d2b] text-[#f8ede4] px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-[#2d3d2b]/90 transition-colors group whitespace-nowrap"
               >
                 לצפייה בקטלוג
                 <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-1" />
               </Link>
               <a
                 href="#studio-inspiration"
-                className="inline-flex items-center justify-center gap-2 border border-[#f5d5cf]/60 text-[#f8ede4] px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-[#f8ede4]/10 transition-colors whitespace-nowrap"
+                className="inline-flex items-center justify-center gap-2 border border-[#2d3d2b]/20 text-[#2d3d2b] px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-[#f8ede4] transition-colors whitespace-nowrap"
               >
                 <Sparkles className="h-3.5 w-3.5" />
                 השראה מהסטודיו
