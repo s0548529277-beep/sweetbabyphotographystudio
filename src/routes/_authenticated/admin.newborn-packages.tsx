@@ -177,8 +177,15 @@ function NewbornPackagesAdmin() {
         // Secondary — Google Calendar is a visual mirror only; the studio's
         // own availability is already protected via the booking block above.
         toast.warning(`ההזמנה נוצרה והשעות חסומות באתר, אבל השריון ביומן Google נכשל: ${created._calendarError}`);
+      } else if (created?._bookingBlockConfirmed) {
+        // Real proof — a fresh, independent read-back right after the
+        // insert, not just "the insert didn't error". Shows the exact
+        // date/time so it's obvious whether it matches what was actually
+        // typed.
+        const c = created._bookingBlockConfirmed;
+        toast.success(`ההזמנה נוצרה, והשעות נחסמו ביומן הסטודיו: ${c.date} ${c.start}–${c.end} — הכרטיסייה מוכנה למטה`);
       } else {
-        toast.success("ההזמנה נוצרה, והשעות נחסמו ביומן הסטודיו — הכרטיסייה מוכנה למטה");
+        toast.success("ההזמנה נוצרה — הכרטיסייה מוכנה למטה");
       }
       setCreateForm(emptyCreateForm);
       setCreateOpen(false);
@@ -235,6 +242,9 @@ function NewbornPackagesAdmin() {
         toast.warning(`הפרטים עודכנו, אבל חסימת השעות ביומן הסטודיו נכשלה — יתכן שהשעות עדיין פתוחות להזמנה: ${result._bookingBlockError}`);
       } else if (result?._calendarError) {
         toast.warning(`הפרטים עודכנו והשעות חסומות באתר, אבל השריון ביומן Google נכשל: ${result._calendarError}`);
+      } else if (result?._bookingBlockConfirmed) {
+        const c = result._bookingBlockConfirmed;
+        toast.success(`הפרטים עודכנו, והשעות נחסמו ביומן הסטודיו: ${c.date} ${c.start}–${c.end}`);
       } else {
         toast.success("הפרטים עודכנו");
       }
