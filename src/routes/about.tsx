@@ -3,6 +3,8 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { ArrivalDirections } from "@/components/ArrivalDirections";
+import { InspirationStrip } from "@/components/InspirationStrip";
+import { usePageGallery, PAGE_IMAGE_KEYS } from "@/lib/page-images";
 import { Camera, Aperture, Clock, Sparkles, Phone, Mail, MapPin } from "lucide-react";
 
 export const Route = createFileRoute("/about")({
@@ -65,6 +67,11 @@ export const Route = createFileRoute("/about")({
 });
 
 function About() {
+  // Plain photo grid managed from /admin/gallery ("עלינו – תמונות") — no
+  // shapes, no decorative frame, just real photos in the same rounded-2xl
+  // tiles used across the rest of the site.
+  const aboutGallery = usePageGallery(PAGE_IMAGE_KEYS.about);
+
   const contactCards = [
     { icon: Phone, t: "טלפון", v: "054-8529277", href: "tel:0548529277", ltr: true },
     { icon: Mail, t: "אימייל", v: "s0548529277@gmail.com", href: "mailto:s0548529277@gmail.com", ltr: true },
@@ -122,6 +129,9 @@ function About() {
           </div>
         </article>
 
+        {aboutGallery.images.length > 0 && (
+          <InspirationStrip images={aboutGallery.images} title="רגעים מהסטודיו" />
+        )}
 
         <div className="mt-16 grid md:grid-cols-4 gap-6">
           {[
