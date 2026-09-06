@@ -91,6 +91,7 @@ function CalendarAdmin() {
   }, [q.data]);
 
   const key = selected ? toLocalKey(selected) : "";
+  const todayKey = toLocalKey(new Date());
   const dayEntries = byDate.get(key) ?? [];
   const bookingsCount = dayEntries.filter((e) => e.kind === "booking").length;
   const ordersCount = dayEntries.filter((e) => e.kind === "order").length;
@@ -153,7 +154,9 @@ function CalendarAdmin() {
                   key={`${e.kind}-${e.id}`}
                   to="/summary/$type/$id"
                   params={{ type: e.kind, id: e.id }}
-                  className="flex items-center justify-between p-4 rounded-xl bg-blush/25 hover:bg-blush/40 transition-colors"
+                  className={`flex items-center justify-between p-4 rounded-xl transition-colors ${
+                    e.date < todayKey ? "bg-rose-50/70 hover:bg-rose-50" : "bg-blush/25 hover:bg-blush/40"
+                  }`}
                 >
                   <div className="flex items-center gap-3">
                     <div className={`h-9 w-9 rounded-full flex items-center justify-center ${e.kind === "booking" ? "bg-forest/15 text-forest" : "bg-blush-deep/15 text-blush-deep"}`}>
