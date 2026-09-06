@@ -98,6 +98,7 @@ function OrdersAdmin() {
   });
 
   const rows = (q.data ?? []).filter((r) => tab === "all" || r.kind === tab);
+  const todayKey = new Date().toISOString().slice(0, 10);
 
   const doSetStatus = useServerFn(adminSetStatus);
   const setStatus = async (row: Row, status: string) => {
@@ -184,7 +185,7 @@ function OrdersAdmin() {
               const key = `${r.kind}-${r.id}`;
               return (
                 <>
-                  <tr key={key} className="border-t border-border">
+                  <tr key={key} className={`border-t border-border ${r.date && r.date < todayKey ? "bg-rose-50/70" : ""}`}>
                     <td className="p-2">
                       <Button size="icon" variant="ghost" onClick={() => setExpanded(expanded === key ? null : key)}>
                         {expanded === key ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
