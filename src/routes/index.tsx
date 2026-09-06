@@ -5,7 +5,11 @@ import { Camera, Home as HomeIcon, Sparkles, ArrowLeft, MapPin, Star, Heart, Clo
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CountUp } from "@/components/CountUp";
-import logo from "@/assets/logo-green.png";
+// A tightly-cropped copy of the header's logo (that file has a lot of
+// transparent padding baked in) — trimmed so its visible right edge lines
+// up with the text right below it in this right-aligned RTL heading;
+// the header keeps using the original, padded file.
+import logo from "@/assets/logo-green-hero.png";
 
 import heroImg from "@/assets/hero-studio.jpg.asset.json";
 import { PAGE_IMAGE_KEYS, usePageGalleryWithAspect } from "@/lib/page-images";
@@ -121,8 +125,12 @@ function Home() {
                 className="mt-6 text-[2.9rem] leading-[1.05] md:text-[4.8rem] md:leading-[1.02] text-[#2d3d2b]"
                 style={{ fontFamily: "'DM Serif Display', serif" }}
               >
-                <span className="block mb-3">
-                  <img src={logo} alt="Sweetbaby" className="h-[21rem] md:h-[30rem] w-auto" />
+                <span className="block mb-3 text-right">
+                  {/* Trimmed asset (see import comment) — same on-screen
+                      logo size as before, now cropped so this height maps
+                      directly to the visible mark instead of mostly to
+                      transparent padding. */}
+                  <img src={logo} alt="Sweetbaby" className="inline-block h-24 md:h-36 w-auto" />
                 </span>
                 <span className="relative inline-block">
                   כאן נולדת התמונה
