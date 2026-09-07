@@ -70,7 +70,7 @@ export function bookingBlocksSlot(
 }
 
 /** Loads {status, deposit_status, created_at} for a set of order/booking ids, keyed by id — used to resolve who "owns" an item_availability row. */
-async function loadOwners(supabaseAdmin: any, table: "orders" | "bookings", ids: string[]) {
+export async function loadOwners(supabaseAdmin: any, table: "orders" | "bookings", ids: string[]) {
   const map = new Map<string, { status: string; deposit_status?: string | null; created_at?: string | null }>();
   if (ids.length === 0) return map;
   const { data } = await supabaseAdmin.from(table).select("id, status, deposit_status, created_at").in("id", ids);

@@ -2,7 +2,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { buildPropsOrderSummaryHtml, type SummaryOrderLine } from "@/lib/orderSummary";
-import { releaseAbandonedItemLocks } from "@/lib/availability.server";
+import {
+  releaseAbandonedItemLocks,
+  bookingBlocksSlot,
+  loadOwners,
+  PROPS_HOLD_MINUTES,
+  PENDING_HOLD_MINUTES,
+} from "@/lib/availability.server";
 
 const lineSchema = z.object({
   id: z.string().min(1),
@@ -769,16 +775,40 @@ export const checkItemsAvailability = createServerFn({ method: "POST" })
     const stockBySku = new Map(items.map((i) => [i.sku, Number(i.stock_quantity ?? 1)]));
     const realIds = items.map((i) => i.id);
 
-    const avail = await supabaseAdmin
-      .from("item_availability")
-      .select("item_id")
-      .in("item_id", realIds)
-      .lte("start_date", to)
-      .gte("end_date", from);
-    if (avail.error) throw new Error(avail.error.message);
-
     const busyByRealId = new Map<string, number>();
-    for (const r of avail.data ?? []) busyByRealId.set(r.item_id, (busyByRealId.get(r.item_id) ?? 0) + 1);
+    if (realIds.length > 0) {
+      const avail = await supabaseAdmin
+        .from("item_availability")
+        .select("item_id, order_id, booking_id")
+        .in("item_id", realIds)
+        .lte("start_date", to)
+        .gte("end_date", from);
+      if (avail.error) throw new Error(avail.error.message);
+      const rows = avail.data ?? [];
+
+      // Same rule as propsAvailability: a reservation row only counts as
+      // actually busy if its owning order/booking still "blocks" per
+      // bookingBlocksSlot. Without this, a cancelled order/booking (its
+      // item_availability row isn't deleted just because status flips to
+      // "cancelled" — only a real row DELETE cascades) or an abandoned,
+      // never-finished checkout kept an item "טוב, אין מלאי" forever, with
+      // no way for a customer or admin to see why — this is what a direct
+      // report ("bears show fully taken, no active reservation") traced
+      // back to.
+      const orderIds = Array.from(new Set(rows.map((r: any) => r.order_id).filter(Boolean))) as string[];
+      const bookingIds = Array.from(new Set(rows.map((r: any) => r.booking_id).filter(Boolean))) as string[];
+      const [ordersMap, bookingsMap] = await Promise.all([
+        loadOwners(supabaseAdmin, "orders", orderIds),
+        loadOwners(supabaseAdmin, "bookings", bookingIds),
+      ]);
+      const now = Date.now();
+      for (const r of rows as any[]) {
+        const owner = r.order_id ? ordersMap.get(r.order_id) : bookingsMap.get(r.booking_id);
+        const holdMinutes = r.order_id ? PROPS_HOLD_MINUTES : PENDING_HOLD_MINUTES;
+        if (owner && !bookingBlocksSlot(owner, now, holdMinutes)) continue;
+        busyByRealId.set(r.item_id, (busyByRealId.get(r.item_id) ?? 0) + 1);
+      }
+    }
 
     const result: Record<string, { stock: number; taken: number; available: number }> = {};
     for (const sku of data.skus) {
