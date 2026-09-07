@@ -379,3 +379,46 @@ survivors?"
   every previous Yemot-doc lookup this session) — voice type/speed is
   documented there as an `ivr.ini`/`ext.ini` setting on Yemot's own side,
   outside anything this codebase sends.
+- **2026-09-07**: Diagnosed a real Cloudflare log batch showing a live call
+  eating ~30s+ before succeeding: both Gemini keys aborted, then EVERY Groq
+  candidate failed (`fetchAvailableGroqModels` returned 14 real models for
+  this account, `GROQ_UNUSABLE_MODEL_ID` correctly filtered out all 14 —
+  `openai/gpt-oss-*`, `groq/compound*`, `allam`, `qwen`, `whisper`,
+  `orpheus`/`canopylabs` — each for a reason already documented and
+  confirmed live in this exact file's own comments), so it fell through to
+  the 3 hardcoded last-resort names, also confirmed dead, before finally
+  succeeding on Lovable. **Conclusion: this is expected behavior exactly as
+  documented, not a new bug** — for this Groq account, at this moment,
+  there is currently no chat+tool-calling model it can use at all (every
+  offered model is either non-chat or has a confirmed structural
+  incompatibility). Did NOT guess a new Groq model name to add (principle
+  #3 — no evidence any untried name would fare differently) and did NOT
+  touch `DEFAULT_TIMEOUT_MS`/the Gemini parallel-race logic (both already
+  tuned against real regressions, see the two entries above). Also traced a
+  second, real, different report from the same batch: a direct "the bot
+  said tomorrow's all free but only part of the day actually was" — the
+  `check_studio_availability` tool itself was always accurate (it returns
+  the real `freeSlots` array), but `SYSTEM`'s own instruction for phrasing
+  the answer only covered the binary free/not-free case, never told the
+  model what to do with a PARTIAL result — so it was free to summarize any
+  non-empty `freeSlots` as a blanket "כן, פנוי". Fixed with an explicit rule
+  in `ai.functions.ts`'s `toolRules` (shared by both chat and voice, since
+  voice imports the same `SYSTEM`): state the actual free hours, never
+  "the whole day's free" unless `freeSlots` genuinely covers every open
+  hour. **Pattern for this codebase**: a tool returning correct data is not
+  the same as the prompt correctly instructing how to summarize it —
+  worth checking specifically for the "returns an array/range, model
+  collapses it to a boolean in its own reply" shape when a report sounds
+  like "gave a mostly-true-but-imprecise answer" rather than "gave a
+  false one". Separately (not a token/latency change, but same batch,
+  same request): added `admin_lookup_customer` — a real capability gap, not
+  a bug — the owner asked the voice bot for a specific customer's phone
+  number, PIN-verified, and it had no way to answer: `getAdminVoiceSnapshot`
+  deliberately never selects contact_phone/contact_email at all (a bounded
+  summary, not a customer-data dump, by original design), and no other tool
+  existed to look up one specific customer on request. New tool follows the
+  exact same per-call PIN-verification pattern as the other 5 admin tools;
+  content is genuinely new access (a phone number), so unlike the
+  prompt-only fixes above this is worth flagging here as a place the next
+  session should double check RLS/PIN gating stays tight if this tool is
+  ever extended further.
