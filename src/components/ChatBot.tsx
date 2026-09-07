@@ -16,6 +16,34 @@ export function ChatBot() {
     undefined;
 
   const [open, setOpen] = useState(false);
+  // Proactive "seems stuck" nudge: a friendly callout above the closed chat
+  // button, inviting her to ask/book through the chat instead of struggling
+  // with the regular form alone — added per direct request that the bot
+  // reach out to visitors who look stuck, not just wait to be clicked.
+  // "Stuck" has no real behavioral signal available here (no form-field
+  // tracking, no click-repeat detection) — the honest, simple proxy is
+  // "spent a while on the page without ever opening the chat", which is what
+  // this actually measures. Once per browser tab (sessionStorage) so it
+  // doesn't nag on every page navigation within the same visit.
+  const [showNudge, setShowNudge] = useState(false);
+  useEffect(() => {
+    if (open) return;
+    try {
+      if (sessionStorage.getItem("sweetbaby-chat-nudge-shown")) return;
+    } catch {
+      /* ignore storage errors, show it anyway */
+    }
+    const t = setTimeout(() => {
+      setShowNudge(true);
+      try {
+        sessionStorage.setItem("sweetbaby-chat-nudge-shown", "1");
+      } catch {
+        /* ignore */
+      }
+    }, 35_000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const greeting = isAuth
     ? `שלום ${userName || ""} 💬 אני בוט Sweetbaby. אפשר לשאול אותי ישירות "האם הסטודיו פנוי ב-12.8 בשעה 9:00?" או "האם מק״ט 461 פנוי בשבוע הבא?" — אני בודק ביומן ובמלאי בזמן אמת.`
     : `שלום! אני בוט Sweetbaby 💬 אפשר לשאול אותי ישירות "האם הסטודיו פנוי ב-12.8 בשעה 9:00?" או "האם מק״ט 461 פנוי מחר?" — אני בודק ביומן ובמלאי בזמן אמת.`;
@@ -114,9 +142,39 @@ export function ChatBot() {
 
   return (
     <div dir="rtl" style={{ position: "fixed", bottom: 20, left: 20, zIndex: 100 }}>
+      {!open && showNudge && (
+        <div>
+        <style>{`@keyframes sweetbaby-nudge-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+        <div
+          style={{
+            position: "absolute", bottom: "calc(100% + 12px)", left: 0,
+            width: 260, background: "#fff", color: "#163126", borderRadius: 16,
+            padding: "12px 14px", boxShadow: "0 12px 32px rgba(22,49,38,0.25)",
+            fontFamily: "'Assistant',sans-serif", fontSize: "0.88rem", lineHeight: 1.5,
+            animation: "sweetbaby-nudge-in 0.35s ease-out",
+          }}
+        >
+          <button
+            onClick={() => setShowNudge(false)}
+            aria-label="סגירת הודעה"
+            style={{ position: "absolute", top: 6, left: 8, background: "none", border: "none", color: "#163126", opacity: 0.5, fontSize: 16, cursor: "pointer" }}
+          >
+            ×
+          </button>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>נתקעת? 😊</div>
+          <div>אפשר לשאול אותי כל שאלה, ואפשר גם פשוט להזמין דרכי ישר כאן בצ׳אט — הרבה פעמים זה יותר מהיר מהטופס.</div>
+          <button
+            onClick={() => { setShowNudge(false); setOpen(true); }}
+            style={{ marginTop: 8, width: "100%", background: "#163126", color: "#f5c5b3", border: "none", padding: "7px 10px", borderRadius: 9, fontWeight: 700, cursor: "pointer", fontSize: "0.85rem" }}
+          >
+            בואי נדבר 💬
+          </button>
+        </div>
+        </div>
+      )}
       {!open && (
         <button
-          onClick={() => setOpen(true)}
+          onClick={() => { setOpen(true); setShowNudge(false); }}
           aria-label="פתח צ'אט"
           style={{
             display: "flex", alignItems: "center", gap: 12,

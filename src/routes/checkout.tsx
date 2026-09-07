@@ -369,6 +369,9 @@ function Checkout() {
             >
               {busy ? "שולח…" : "אישור הזמנה"}
             </Button>
+            {!form.terms_accepted && (
+              <div className="text-xs text-blush mt-2 text-center">יש ללחוץ על אישור ההסכם למעלה כדי שהכפתור יופעל</div>
+            )}
             {anyUnavailable && (
               <div className="text-xs text-blush mt-2 text-center">חלק מהאביזרים תפוסים בתאריכים שנבחרו</div>
             )}
