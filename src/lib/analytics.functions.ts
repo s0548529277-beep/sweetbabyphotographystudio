@@ -248,16 +248,31 @@ export const getAnalyticsSummary = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const since = new Date(Date.now() - data.days * 24 * 60 * 60 * 1000).toISOString();
 
-    const [sessionsRes, eventsRes, collagesRes] = await Promise.all([
-      (supabaseAdmin as any).from("analytics_sessions").select("id, first_seen, last_seen, source").gte("first_seen", since),
-      (supabaseAdmin as any).from("analytics_events").select("type, path, created_at").gte("created_at", since).limit(50_000),
-      (supabaseAdmin as any)
-        .from("collage_creations")
-        .select("id, storage_path, format_id, size_id, style_id, photo_count, caption, subtitle, created_at")
-        .gte("created_at", since)
-        .order("created_at", { ascending: false })
-        .limit(60),
-    ]);
+    const runQueries = () =>
+      Promise.all([
+        (supabaseAdmin as any).from("analytics_sessions").select("id, first_seen, last_seen, source").gte("first_seen", since),
+        (supabaseAdmin as any).from("analytics_events").select("type, path, created_at").gte("created_at", since).limit(50_000),
+        (supabaseAdmin as any)
+          .from("collage_creations")
+          .select("id, storage_path, format_id, size_id, style_id, photo_count, caption, subtitle, created_at")
+          .gte("created_at", since)
+          .order("created_at", { ascending: false })
+          .limit(60),
+      ]);
+
+    let [sessionsRes, eventsRes, collagesRes] = await runQueries();
+    // Self-healing for "Could not find the table ... in the schema cache" —
+    // PostgREST's own message for a table that's real in Postgres but not
+    // yet in its cached API schema (see 20260908220000's own doc comment
+    // for why a migration's own NOTIFY doesn't always reach it). One retry,
+    // through a live request connection instead of a migration-time one,
+    // after asking Postgres to notify PostgREST again via the RPC below —
+    // never loops, never masks a genuinely different error.
+    const schemaCacheMiss = [sessionsRes, eventsRes, collagesRes].some((r) => /schema cache/i.test(r.error?.message ?? ""));
+    if (schemaCacheMiss) {
+      await (supabaseAdmin as any).rpc("reload_pgrst_schema").catch(() => {});
+      [sessionsRes, eventsRes, collagesRes] = await runQueries();
+    }
     if (sessionsRes.error) throw new Error(sessionsRes.error.message);
     if (eventsRes.error) throw new Error(eventsRes.error.message);
     if (collagesRes.error) throw new Error(collagesRes.error.message);
