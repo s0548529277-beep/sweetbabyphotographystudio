@@ -1,0 +1,14 @@
+-- Real progress: the admin page's error changed from "table doesn't exist"
+-- to PostgREST's specific "Could not find the table 'public.analytics_sessions'
+-- in the schema cache" — that message means the table IS actually there in
+-- Postgres now (confirms the previous migration worked), PostgREST's own
+-- cached API schema just hasn't picked it up yet. Every migration in this
+-- batch already ends with `NOTIFY pgrst, 'reload schema'`, which is the
+-- standard way to ask PostgREST to refresh without waiting for its own
+-- periodic recheck — this migration just re-sends that notification on
+-- its own, in case the earlier one landed before the table-creating
+-- transaction had actually committed (a real timing gap: NOTIFY fired
+-- inside the same transaction as the CREATE TABLE is only visible to
+-- LISTENers after that transaction commits, and depending on how this
+-- project's Postgres connection is pooled, that isn't always instant).
+NOTIFY pgrst, 'reload schema';
