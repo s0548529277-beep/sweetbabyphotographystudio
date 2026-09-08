@@ -270,7 +270,15 @@ export const getAnalyticsSummary = createServerFn({ method: "POST" })
     // never loops, never masks a genuinely different error.
     const schemaCacheMiss = [sessionsRes, eventsRes, collagesRes].some((r) => /schema cache/i.test(r.error?.message ?? ""));
     if (schemaCacheMiss) {
-      await (supabaseAdmin as any).rpc("reload_pgrst_schema").catch(() => {});
+      // Supabase's rpc() builder is thenable (has .then) but isn't a real
+      // Promise — .catch() isn't guaranteed to exist on it directly, and
+      // calling it threw its own error here. try/catch on the awaited call
+      // is the form that's actually safe regardless of the builder's shape.
+      try {
+        await (supabaseAdmin as any).rpc("reload_pgrst_schema");
+      } catch {
+        // best-effort — fall through to the retry either way
+      }
       [sessionsRes, eventsRes, collagesRes] = await runQueries();
     }
     if (sessionsRes.error) throw new Error(sessionsRes.error.message);
