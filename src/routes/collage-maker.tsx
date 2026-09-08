@@ -1,7 +1,11 @@
-// Free, public collage/greeting-card maker — no account needed, nothing
-// ever leaves the browser (photos are read locally as data: URLs and the
-// finished card is rasterized + downloaded client-side; see
-// downloadCollagePng below). Intentionally scoped to fixed (not freely
+// Free, public collage/greeting-card maker — no account needed. Photos are
+// read locally as data: URLs and the finished card is rasterized client-side
+// (see downloadCollagePng below); the separate source photos never leave
+// the browser. The one exception: once a card is actually downloaded, the
+// final flattened PNG (not the source photos) is also uploaded to a
+// private admin-only bucket so the studio owner can see what people are
+// making — see saveCollageCreation in analytics.functions.ts and
+// /admin/analytics. Intentionally scoped to fixed (not freely
 // draggable/resizable) layouts per photo count — a real, useful v1, not a
 // full drag/resize/sticker design tool.
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -33,6 +37,7 @@ import {
   type CardFormatId,
 } from "@/lib/collage-data";
 import { rgbToHex, paletteFromAccent } from "@/lib/collage-color";
+import { getSiteSessionId } from "@/lib/site-tracking";
 import { Download, Sparkles, Image as ImageIcon, Type, LayoutGrid, Wand2, Square, Palette, Pipette, PartyPopper, RectangleVertical, Languages, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
@@ -129,8 +134,8 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
-/** Serializes the live SVG (exactly what's on screen) and rasterizes it to a downloadable PNG — see this file's top doc comment for why the SVG itself is the single source of truth for both preview and export. */
-async function downloadCollagePng(svgEl: SVGSVGElement) {
+/** Serializes the live SVG (exactly what's on screen) and rasterizes it to a downloadable PNG — see this file's top doc comment for why the SVG itself is the single source of truth for both preview and export. Returns the same rendered PNG as a data URL so the caller can also log it for the admin gallery, without re-rasterizing a second time. */
+async function downloadCollagePng(svgEl: SVGSVGElement): Promise<string> {
   // Make sure the custom font (loaded site-wide in __root.tsx) is actually
   // ready before rasterizing, or the exported PNG can silently fall back to
   // a system serif for one render.
@@ -154,7 +159,7 @@ async function downloadCollagePng(svgEl: SVGSVGElement) {
   const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
   const svgUrl = URL.createObjectURL(svgBlob);
 
-  await new Promise<void>((resolve, reject) => {
+  return new Promise<string>((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
       const scale = 2; // 2x the card's own pixel size — good enough for sharing/printing from a free web tool
@@ -168,6 +173,7 @@ async function downloadCollagePng(svgEl: SVGSVGElement) {
       }
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       URL.revokeObjectURL(svgUrl);
+      const dataUrl = canvas.toDataURL("image/png");
       canvas.toBlob((blob) => {
         if (!blob) {
           reject(new Error("יצירת הקובץ נכשלה"));
@@ -180,7 +186,7 @@ async function downloadCollagePng(svgEl: SVGSVGElement) {
         link.click();
         link.remove();
         setTimeout(() => URL.revokeObjectURL(link.href), 5000);
-        resolve();
+        resolve(dataUrl);
       }, "image/png");
     };
     img.onerror = () => reject(new Error("טעינת התצוגה נכשלה"));
@@ -327,7 +333,27 @@ function CollageMaker() {
     if (!svgRef.current) return;
     setDownloading(true);
     try {
-      await downloadCollagePng(svgRef.current);
+      const dataUrl = await downloadCollagePng(svgRef.current);
+      // Best-effort, fire-and-forget: never block or fail the visitor's own
+      // download over this — it's purely so the admin gallery has something
+      // to show (see saveCollageCreation's own doc comment).
+      const sessionId = getSiteSessionId();
+      if (sessionId) {
+        import("@/lib/analytics.functions").then(({ saveCollageCreation }) =>
+          saveCollageCreation({
+            data: {
+              sessionId,
+              imageDataUrl: dataUrl,
+              formatId,
+              sizeId,
+              styleId,
+              photoCount,
+              caption,
+              subtitle: subtitle || undefined,
+            },
+          }).catch(() => {}),
+        );
+      }
     } catch (e: any) {
       toast.error(e?.message ?? "ההורדה נכשלה, נסי שוב");
     } finally {

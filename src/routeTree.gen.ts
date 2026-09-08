@@ -69,6 +69,7 @@ import { Route as AuthenticatedAdminClientsRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminChatLogsRouteImport } from './routes/_authenticated/admin.chat-logs'
 import { Route as AuthenticatedAdminCalendarRouteImport } from './routes/_authenticated/admin.calendar'
 import { Route as AuthenticatedAdminBotKnowledgeRouteImport } from './routes/_authenticated/admin.bot-knowledge'
+import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin.analytics'
 import { Route as AuthenticatedOrdersIdReceiptRouteImport } from './routes/_authenticated/orders.$id.receipt'
 import { Route as AuthenticatedAdminPhotoClientsBookingIdRouteImport } from './routes/_authenticated/admin.photo-clients.$bookingId'
 
@@ -395,6 +396,12 @@ const AuthenticatedAdminBotKnowledgeRoute =
     path: '/bot-knowledge',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminAnalyticsRoute =
+  AuthenticatedAdminAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedOrdersIdReceiptRoute =
   AuthenticatedOrdersIdReceiptRouteImport.update({
     id: '/orders/$id/receipt',
@@ -439,6 +446,7 @@ export interface FileRoutesByFullPath {
   '/photo-thanks/$id': typeof PhotoThanksIdRoute
   '/blog/': typeof BlogIndexRoute
   '/collage-studio/': typeof CollageStudioIndexRoute
+  '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/bot-knowledge': typeof AuthenticatedAdminBotKnowledgeRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/chat-logs': typeof AuthenticatedAdminChatLogsRoute
@@ -501,6 +509,7 @@ export interface FileRoutesByTo {
   '/photo-thanks/$id': typeof PhotoThanksIdRoute
   '/blog': typeof BlogIndexRoute
   '/collage-studio': typeof CollageStudioIndexRoute
+  '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/bot-knowledge': typeof AuthenticatedAdminBotKnowledgeRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/chat-logs': typeof AuthenticatedAdminChatLogsRoute
@@ -566,6 +575,7 @@ export interface FileRoutesById {
   '/photo-thanks/$id': typeof PhotoThanksIdRoute
   '/blog/': typeof BlogIndexRoute
   '/collage-studio/': typeof CollageStudioIndexRoute
+  '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/_authenticated/admin/bot-knowledge': typeof AuthenticatedAdminBotKnowledgeRoute
   '/_authenticated/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/_authenticated/admin/chat-logs': typeof AuthenticatedAdminChatLogsRoute
@@ -631,6 +641,7 @@ export interface FileRouteTypes {
     | '/photo-thanks/$id'
     | '/blog/'
     | '/collage-studio/'
+    | '/admin/analytics'
     | '/admin/bot-knowledge'
     | '/admin/calendar'
     | '/admin/chat-logs'
@@ -693,6 +704,7 @@ export interface FileRouteTypes {
     | '/photo-thanks/$id'
     | '/blog'
     | '/collage-studio'
+    | '/admin/analytics'
     | '/admin/bot-knowledge'
     | '/admin/calendar'
     | '/admin/chat-logs'
@@ -757,6 +769,7 @@ export interface FileRouteTypes {
     | '/photo-thanks/$id'
     | '/blog/'
     | '/collage-studio/'
+    | '/_authenticated/admin/analytics'
     | '/_authenticated/admin/bot-knowledge'
     | '/_authenticated/admin/calendar'
     | '/_authenticated/admin/chat-logs'
@@ -1248,6 +1261,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminBotKnowledgeRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/analytics': {
+      id: '/_authenticated/admin/analytics'
+      path: '/analytics'
+      fullPath: '/admin/analytics'
+      preLoaderRoute: typeof AuthenticatedAdminAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/orders/$id/receipt': {
       id: '/_authenticated/orders/$id/receipt'
       path: '/orders/$id/receipt'
@@ -1281,6 +1301,7 @@ const AuthenticatedAdminPhotoClientsRouteWithChildren =
   )
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
   AuthenticatedAdminBotKnowledgeRoute: typeof AuthenticatedAdminBotKnowledgeRoute
   AuthenticatedAdminCalendarRoute: typeof AuthenticatedAdminCalendarRoute
   AuthenticatedAdminChatLogsRoute: typeof AuthenticatedAdminChatLogsRoute
@@ -1308,6 +1329,7 @@ interface AuthenticatedAdminRouteChildren {
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
   AuthenticatedAdminBotKnowledgeRoute: AuthenticatedAdminBotKnowledgeRoute,
   AuthenticatedAdminCalendarRoute: AuthenticatedAdminCalendarRoute,
   AuthenticatedAdminChatLogsRoute: AuthenticatedAdminChatLogsRoute,
