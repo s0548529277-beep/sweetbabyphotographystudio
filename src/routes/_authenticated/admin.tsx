@@ -30,6 +30,7 @@ import {
   BrainCircuit,
   Baby,
   Phone,
+  BarChart3,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -56,6 +57,7 @@ function isGroup(entry: NavEntry): entry is NavGroup {
 // flat — click the group to expand/collapse its own pages.
 const links: NavEntry[] = [
   { to: "/admin", label: "סקירה", icon: LayoutDashboard, exact: true },
+  { to: "/admin/analytics", label: "אנליטיקס", icon: BarChart3 },
   { to: "/admin/items", label: "אביזרים", icon: Package },
   { to: "/admin/orders", label: "הזמנות", icon: ShoppingBag },
   { to: "/admin/calendar", label: "יומן", icon: CalendarDays },
