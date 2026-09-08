@@ -64,20 +64,25 @@ export const startAnalyticsSession = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const source = classifySource(data.referrer, data.entryPath);
-    await (supabaseAdmin as any)
-      .from("analytics_sessions")
-      .upsert(
-        {
-          id: data.sessionId,
-          entry_path: data.entryPath,
-          referrer: data.referrer || null,
-          source,
-          user_agent: data.userAgent || null,
-        },
-        { onConflict: "id", ignoreDuplicates: true },
-      );
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const source = classifySource(data.referrer, data.entryPath);
+      await (supabaseAdmin as any)
+        .from("analytics_sessions")
+        .upsert(
+          {
+            id: data.sessionId,
+            entry_path: data.entryPath,
+            referrer: data.referrer || null,
+            source,
+            user_agent: data.userAgent || null,
+          },
+          { onConflict: "id", ignoreDuplicates: true },
+        );
+    } catch (e) {
+      // Analytics must never break the page it's measuring.
+      console.error("[SWEETBABY] startAnalyticsSession failed", e);
+    }
     return { ok: true };
   });
 
