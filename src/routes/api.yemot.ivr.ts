@@ -170,6 +170,14 @@ async function handle(request: Request): Promise<Response> {
       // spoken) — do the real work now instead of treating this as silence
       // and re-prompting her with "didn't hear that".
       if (existing && (existing as { stage?: string }).stage === "ai_pending") {
+        // TEMPORARY diagnostic, same reasoning as the one above — a direct
+        // report said the filler ("רגע אחד...") sometimes doesn't actually
+        // lead to the real check running (falls through to leave-a-message
+        // instead). yemotSayThenResume's quiet_max=1 was reverted as the
+        // most likely cause (see its own doc comment), but this line makes
+        // it possible to CONFIRM the resume actually reached here — vs.
+        // never reaching this branch at all — on the next real call.
+        console.error(`[SWEETBABY][diag] ai_pending resume reached, running deferred AI turn — callSid=${callSid}`);
         const priorMessages = ((existing.messages as VoiceMessage[] | undefined) ?? []) as VoiceMessage[];
         const phone = existing.from_number || callerPhone;
         return await runDeferredAiTurn(priorMessages, phone);

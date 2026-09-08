@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Trash2, TrendingUp, TrendingDown, Wallet, Search } from "lucide-react";
+import { Trash2, TrendingUp, TrendingDown, Wallet, Search, Clock3, PieChart } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/finance")({
   component: FinanceAdmin,
@@ -33,6 +33,10 @@ type Txn = {
   date: string;
   amount: number;
   removable: null | "manual_income" | "expenses";
+  // Only set for income rows sourced from a real order/booking — manual
+  // income and expenses have no deposit to track, so this stays null for
+  // them (treated as "not pending" everywhere it's checked).
+  depositStatus: string | null;
 };
 
 function FinanceAdmin() {
@@ -45,13 +49,14 @@ function FinanceAdmin() {
   const [to, setTo] = useState("");
   const [client, setClient] = useState("");
   const [type, setType] = useState("all");
+  const [paymentFilter, setPaymentFilter] = useState<"all" | "pending" | "paid">("all");
 
   const data = useQuery({
     queryKey: ["admin-finance"],
     queryFn: async () => {
       const [ordersRes, bookingsRes, expensesRes, manualRes] = await Promise.all([
-        supabase.from("orders").select("id,total,status,created_at,scheduled_date,contact_name"),
-        supabase.from("bookings").select("id,price,status,created_at,session_date,contact_name,package"),
+        supabase.from("orders").select("id,total,status,created_at,scheduled_date,contact_name,deposit_status"),
+        supabase.from("bookings").select("id,price,status,created_at,session_date,contact_name,package,deposit_status"),
         supabase.from("expenses").select("*").order("spent_on", { ascending: false }),
         supabase.from("manual_income").select("*").order("received_on", { ascending: false }),
       ]);
@@ -76,6 +81,7 @@ function FinanceAdmin() {
         client: o.contact_name ?? "",
         date: String(o.scheduled_date ?? o.created_at).slice(0, 10),
         amount: Number(o.total ?? 0), removable: null,
+        depositStatus: (o as { deposit_status?: string | null }).deposit_status ?? null,
       });
     }
     for (const b of data.data?.bookings ?? []) {
@@ -87,6 +93,7 @@ function FinanceAdmin() {
         client: b.contact_name ?? "",
         date: String(b.session_date ?? b.created_at).slice(0, 10),
         amount: Number(b.price ?? 0), removable: null,
+        depositStatus: (b as { deposit_status?: string | null }).deposit_status ?? null,
       });
     }
     for (const mi of data.data?.manual ?? []) {
@@ -95,6 +102,7 @@ function FinanceAdmin() {
         title: mi.title, client: (mi.notes as string) ?? "",
         date: String(mi.received_on).slice(0, 10),
         amount: Number(mi.amount ?? 0), removable: "manual_income",
+        depositStatus: null,
       });
     }
     for (const e of data.data?.expenses ?? []) {
@@ -103,6 +111,7 @@ function FinanceAdmin() {
         title: e.title, client: (e.notes as string) ?? "",
         date: String(e.spent_on).slice(0, 10),
         amount: Number(e.amount ?? 0), removable: "expenses",
+        depositStatus: null,
       });
     }
     return out.sort((a, b) => b.date.localeCompare(a.date));
@@ -115,9 +124,11 @@ function FinanceAdmin() {
       if (to && t.date > to) return false;
       if (type !== "all" && t.type !== type) return false;
       if (c && !(`${t.client} ${t.title}`.toLowerCase().includes(c))) return false;
+      if (paymentFilter === "pending" && t.depositStatus !== "pending") return false;
+      if (paymentFilter === "paid" && t.depositStatus === "pending") return false;
       return true;
     });
-  }, [allTxns, from, to, client, type]);
+  }, [allTxns, from, to, client, type, paymentFilter]);
 
   const months = useMemo(() => {
     const map = new Map<string, { key: string; props: number; studio: number; photo: number; manual: number; expenses: number }>();
@@ -148,7 +159,26 @@ function FinanceAdmin() {
     [txns],
   );
 
+  // Orders/bookings whose deposit was never actually paid — these still
+  // count toward "סה״כ הכנסות" above (that total reflects the value of
+  // active, non-cancelled orders regardless of payment), so this is a
+  // separate, explicit "money expected but not yet in hand" figure, not a
+  // subtraction from it.
+  const pending = useMemo(() => {
+    const rows = txns.filter((t) => t.kind === "income" && t.depositStatus === "pending");
+    return { count: rows.length, total: rows.reduce((s, t) => s + t.amount, 0) };
+  }, [txns]);
+
+  const expenseByCategory = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const t of txns) if (t.kind === "expense") map.set(t.type, (map.get(t.type) ?? 0) + t.amount);
+    return Array.from(map.entries())
+      .map(([category, amount]) => ({ category, amount }))
+      .sort((a, b) => b.amount - a.amount);
+  }, [txns]);
+
   const maxBar = Math.max(1, ...months.map((m) => Math.max(m.props + m.studio + m.photo + m.manual, m.expenses)));
+  const maxExpenseCategory = Math.max(1, ...expenseByCategory.map((e) => e.amount));
 
   const addExpense = async () => {
     const amount = Number(form.amount);
@@ -203,7 +233,7 @@ function FinanceAdmin() {
         <div className="flex items-center gap-2 text-sm font-medium mb-3">
           <Search className="h-4 w-4" /> סינון וחיפוש
         </div>
-        <div className="grid sm:grid-cols-5 gap-3">
+        <div className="grid sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <div>
             <label className="text-xs text-muted-foreground">מתאריך</label>
             <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
@@ -212,7 +242,7 @@ function FinanceAdmin() {
             <label className="text-xs text-muted-foreground">עד תאריך</label>
             <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
           </div>
-          <div className="sm:col-span-2">
+          <div className="sm:col-span-2 lg:col-span-2">
             <label className="text-xs text-muted-foreground">חיפוש לפי לקוח / תיאור</label>
             <Input placeholder="שם לקוח…" value={client} onChange={(e) => setClient(e.target.value)} />
           </div>
@@ -229,25 +259,50 @@ function FinanceAdmin() {
               ))}
             </select>
           </div>
+          <div>
+            <label className="text-xs text-muted-foreground">סטטוס תשלום</label>
+            <select
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              value={paymentFilter}
+              onChange={(e) => setPaymentFilter(e.target.value as "all" | "pending" | "paid")}
+            >
+              <option value="all">הכל</option>
+              <option value="pending">ממתין לתשלום</option>
+              <option value="paid">שולם</option>
+            </select>
+          </div>
         </div>
-        {(from || to || client || type !== "all") && (
-          <Button variant="ghost" size="sm" className="mt-3" onClick={() => { setFrom(""); setTo(""); setClient(""); setType("all"); }}>
+        {(from || to || client || type !== "all" || paymentFilter !== "all") && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-3"
+            onClick={() => { setFrom(""); setTo(""); setClient(""); setType("all"); setPaymentFilter("all"); }}
+          >
             ניקוי סינון
           </Button>
         )}
       </div>
 
-      <div className="grid sm:grid-cols-3 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "סה״כ הכנסות", value: totals.income, icon: TrendingUp, cls: "text-forest" },
-          { label: "סה״כ הוצאות", value: totals.expenses, icon: TrendingDown, cls: "text-destructive" },
-          { label: "רווח נקי", value: totals.income - totals.expenses, icon: Wallet, cls: "text-primary" },
+          { label: "סה״כ הכנסות", value: totals.income, icon: TrendingUp, cls: "text-forest", sub: null as string | null },
+          { label: "סה״כ הוצאות", value: totals.expenses, icon: TrendingDown, cls: "text-destructive", sub: null },
+          { label: "רווח נקי", value: totals.income - totals.expenses, icon: Wallet, cls: "text-primary", sub: null },
+          {
+            label: "ממתין לתשלום",
+            value: pending.total,
+            icon: Clock3,
+            cls: "text-amber-600",
+            sub: pending.count > 0 ? `${pending.count} הזמנות ללא מקדמה ששולמה` : "הכל שולם 🎉",
+          },
         ].map((c) => (
           <div key={c.label} className="bg-card rounded-2xl border border-primary/5 p-5">
             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
               <c.icon className="h-4 w-4" /> {c.label}
             </div>
             <div className={`font-display text-3xl ${c.cls}`}>{ils(c.value)}</div>
+            {c.sub && <div className="text-xs text-muted-foreground mt-1">{c.sub}</div>}
           </div>
         ))}
       </div>
@@ -291,6 +346,30 @@ function FinanceAdmin() {
         )}
       </div>
 
+      {/* Expense breakdown by category — where the money is actually going, not just the flat monthly total */}
+      <div className="bg-card rounded-2xl border border-primary/5 p-5">
+        <div className="flex items-center gap-2 text-sm font-medium mb-4">
+          <PieChart className="h-4 w-4" /> הוצאות לפי קטגוריה
+        </div>
+        {expenseByCategory.length === 0 ? (
+          <p className="text-sm text-muted-foreground">אין הוצאות לסינון הנוכחי.</p>
+        ) : (
+          <div className="space-y-3">
+            {expenseByCategory.map((e) => (
+              <div key={e.category}>
+                <div className="flex items-center justify-between text-sm mb-1">
+                  <span>{e.category}</span>
+                  <span className="text-muted-foreground tabular-nums">{ils(e.amount)}</span>
+                </div>
+                <div className="h-2.5 rounded-full bg-destructive/10 overflow-hidden">
+                  <div className="h-full bg-destructive rounded-full" style={{ width: `${(e.amount / maxExpenseCategory) * 100}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Transactions */}
       <div className="bg-card rounded-2xl border border-primary/5 p-5">
         <h3 className="font-display text-lg mb-4">תנועות ({txns.length})</h3>
@@ -298,9 +377,12 @@ function FinanceAdmin() {
           {txns.map((t) => (
             <div key={t.id} className="flex items-center justify-between py-2.5 text-sm gap-3">
               <div className="min-w-0">
-                <div className="font-medium truncate">
+                <div className="font-medium truncate flex items-center gap-2">
                   {t.title}
-                  {t.client ? <span className="text-muted-foreground"> · {t.client}</span> : null}
+                  {t.client ? <span className="text-muted-foreground font-normal"> · {t.client}</span> : null}
+                  {t.depositStatus === "pending" && (
+                    <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">ממתין לתשלום</span>
+                  )}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {new Date(t.date).toLocaleDateString("he-IL")} · {t.type}
