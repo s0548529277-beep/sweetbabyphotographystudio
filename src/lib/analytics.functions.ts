@@ -119,13 +119,17 @@ export const trackClicks = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const now = new Date().toISOString();
-    const rows = data.clicks.map((c) => ({ session_id: data.sessionId, type: "click" as const, path: c.path, created_at: now }));
-    await Promise.all([
-      (supabaseAdmin as any).from("analytics_events").insert(rows),
-      (supabaseAdmin as any).from("analytics_sessions").update({ last_seen: now }).eq("id", data.sessionId),
-    ]);
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const now = new Date().toISOString();
+      const rows = data.clicks.map((c) => ({ session_id: data.sessionId, type: "click" as const, path: c.path, created_at: now }));
+      await Promise.all([
+        (supabaseAdmin as any).from("analytics_events").insert(rows),
+        (supabaseAdmin as any).from("analytics_sessions").update({ last_seen: now }).eq("id", data.sessionId),
+      ]);
+    } catch (e) {
+      console.error("[SWEETBABY] trackClicks failed", e);
+    }
     return { ok: true };
   });
 
@@ -133,8 +137,12 @@ export const trackClicks = createServerFn({ method: "POST" })
 export const trackHeartbeat = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ sessionId: sessionIdSchema }).parse(d))
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await (supabaseAdmin as any).from("analytics_sessions").update({ last_seen: new Date().toISOString() }).eq("id", data.sessionId);
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await (supabaseAdmin as any).from("analytics_sessions").update({ last_seen: new Date().toISOString() }).eq("id", data.sessionId);
+    } catch (e) {
+      console.error("[SWEETBABY] trackHeartbeat failed", e);
+    }
     return { ok: true };
   });
 
