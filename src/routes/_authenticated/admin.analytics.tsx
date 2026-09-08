@@ -103,6 +103,11 @@ function AnalyticsAdmin() {
     queryKey: ["admin-analytics", days],
     queryFn: () => fetchSummary({ data: { days } }),
     refetchInterval: 60_000,
+    // Default retry (3 attempts, growing backoff) can make a real failure
+    // look "stuck" on a loading spinner for up to a minute before the
+    // actual error message ever shows — fail fast instead, straight to the
+    // (now-detailed) error state below.
+    retry: 1,
   });
 
   const data = q.data;
