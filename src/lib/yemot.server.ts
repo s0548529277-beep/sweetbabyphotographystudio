@@ -69,10 +69,30 @@ function yemotResponse(body: string): Response {
  * this same extension's URL with the transcript under the `speech` field.
  */
 export function yemotSayAndListen(text: string): Response {
-  // read=<prompt>=<valName>,<re_enter:no>,voice,<lang>
+  // read=<prompt>=<valName>,<re_enter:no>,voice,<lang>,<block_typing>,
+  //      <max_digits>,<quiet_max>
   // re_enter=no: don't re-ask the same question if `speech` was already
   // filled on a prior hit of this call — we always want a *new* answer.
-  return yemotResponse(`read=${textSegment(text)}=speech,no,voice,he`);
+  //
+  // quiet_max=4 (2026-09-08): was previously left blank — Yemot's own
+  // unstated default — until a direct report that Yemot's own NATIVE
+  // "לא זוהה דיבור" message (error M1613, "speech not recognized",
+  // confirmed via Yemot's own forum — this app never speaks that phrase
+  // itself, so it can only be Yemot's own STT engine giving up) sometimes
+  // plays right after an ordinary, successful bot reply. Field order
+  // confirmed against yemot-router2's own source this same day
+  // (makeSttModeRead in response-functions.js: valName, re_enter, "voice",
+  // lang, block_typing, max_digits, quiet_max, max_length,
+  // use_records_recognition_engine) — not guessed, see yemotSayThenResume's
+  // doc comment for the mistake an earlier, unconfirmed guess at this same
+  // field caused. An explicit, generous 4-second value can only give the
+  // recognizer MORE patience before deciding she's done talking than
+  // whatever the unknown default was — never less — so this is a safe
+  // change either way. Not guaranteed to fully fix it: "didn't recognize
+  // speech" can also be genuine low STT confidence on Yemot's own engine
+  // (background noise, a soft reply) that no parameter here controls —
+  // worth confirming against a real call.
+  return yemotResponse(`read=${textSegment(text)}=speech,no,voice,he,,,4`);
 }
 
 /** Speaks `text` in Hebrew and ends the call. */
@@ -121,15 +141,25 @@ export function yemotSayAndHangup(text: string): Response {
  */
 export function yemotSayThenResume(text: string, musicOnHoldId?: string | null): Response {
   const holdSegment = musicOnHoldId ? `h-${sanitize(musicOnHoldId)},2.` : "";
-  // Short quiet_max (7th field of the speech-mode read ops, after
-  // valName,re_enter,voice,lang,block_typing,max_digits) so Yemot gives up
-  // waiting for speech quickly instead of its longer default — she wasn't
-  // actually asked a question, so there's nothing to wait long for. If this
-  // specific field turns out not to behave as documented, the worst case is
-  // simply Yemot's own normal default wait — never a dropped call, since
-  // `read` itself is the same directive already proven safe everywhere else
-  // in this file.
-  return yemotResponse(`read=${holdSegment}${textSegment(text)}=speech,no,voice,he,,,1`);
+  // REVERTED 2026-09-08: this used to add `,,,1` — quiet_max=1, one whole
+  // second — to make Yemot give up waiting for speech quickly, since she
+  // wasn't actually asked a question. Per a direct report, the resume that
+  // follows sometimes landed somewhere wrong (fell through to "leave a
+  // message" instead of actually running the deferred AI check) — and per
+  // yemotSayAndListen's own doc comment above, this same session confirmed
+  // (via yemot-router2's real source, not a guess) that quiet_max genuinely
+  // is a live max-silence-before-giving-up control on Yemot's STT engine.
+  // A single second is an extremely tight window for that engine's own
+  // audio pipeline, independent of whether she says anything — plausible
+  // enough as the cause that, combined with a live bug report squarely
+  // hitting this exact mechanism, the safe move is to stop gambling on it.
+  // Reverting to the plain, proven 4-field format (same as
+  // yemotSayAndListen without an explicit quiet_max) was already this
+  // function's own pre-agreed fallback plan ("the worst case is simply
+  // Yemot's own normal default wait — never a dropped call") — just
+  // actually taking it now that there's a real report to act on, instead
+  // of a hypothetical one.
+  return yemotResponse(`read=${holdSegment}${textSegment(text)}=speech,no,voice,he`);
 }
 
 // Yemot's own built-in typing_playback_mode presets that ALSO fix the

@@ -422,3 +422,37 @@ survivors?"
   prompt-only fixes above this is worth flagging here as a place the next
   session should double check RLS/PIN gating stays tight if this tool is
   ever extended further.
+- **2026-09-08**: Two direct reports, both Yemot `read`-directive bugs, not
+  AI-cost ones — logged here anyway since it's the same "confirm the real
+  protocol instead of guessing" discipline principle #3 asks for, just
+  applied to Yemot's own directive syntax instead of a model id. (1) The
+  thinking-filler resume ("רגע אחד..." → real check) sometimes fell through
+  to offering "leave a message" instead of ever running the deferred AI
+  turn. (2) Yemot's own NATIVE "לא זוהה דיבור" message (confirmed via
+  Yemot's forum: error M1613, "speech not recognized" — this app never
+  speaks that phrase itself) sometimes played right after an ordinary,
+  successful bot reply. Root-caused to `yemotSayThenResume`'s `quiet_max=1`
+  (yemot.server.ts) — added 2026-09-02 on an EXPLICITLY unconfirmed guess
+  at the read directive's 7th field (its own comment said so at the time).
+  This session fetched yemot-router2's actual source (raw.githubusercontent
+  — f2.freeivr.co.il itself stayed egress-blocked, same as every previous
+  Yemot-doc attempt) and confirmed the real field order for a speech-mode
+  read: `valName, re_enter, "voice", lang, block_typing, max_digits,
+  quiet_max, max_length, use_records_recognition_engine` — so quiet_max
+  really was field 7, the guess had the RIGHT field, just a value (1 whole
+  second) almost certainly too tight for Yemot's own STT engine, plausibly
+  explaining both reports at once. Fixed: reverted
+  `yemotSayThenResume` to the plain proven format (no quiet_max override —
+  this was already that function's own pre-agreed safe fallback, see its
+  comment), and added an explicit, generous `quiet_max=4` to
+  `yemotSayAndListen` (used for every ordinary reply) — previously left
+  blank/Yemot's own unstated default. Also added one more `[SWEETBABY][diag]`
+  line (api.yemot.ivr.ts, same house pattern as this file's existing
+  diagnostics) at the ai_pending resume point, since there's no way to
+  place a real test call from this environment — only a live log can
+  confirm whether this actually fixed it. **Pattern for this codebase**: a
+  protocol field guessed under real uncertainty, even a reasoned one with a
+  documented safe-fallback plan, is exactly the kind of thing worth
+  revisiting with real source access the moment a live report points at it
+  — don't leave "if this turns out wrong" comments unresolved once there's
+  a concrete report to check them against.
