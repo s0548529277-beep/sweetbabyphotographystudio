@@ -133,7 +133,15 @@ function AnalyticsAdmin() {
       {q.isLoading ? (
         <div className="text-muted-foreground text-sm py-10 text-center">טוען נתונים…</div>
       ) : !data ? (
-        <div className="text-muted-foreground text-sm py-10 text-center">שגיאה בטעינת הנתונים.</div>
+        // Shows the real error message, not just a generic "failed" —
+        // learned the hard way: this page shipped once already with a bare
+        // "שגיאה בטעינת הנתונים" that gave no way to tell "the tables
+        // don't exist yet" from "no admin role" from anything else short
+        // of digging through server logs. If she reports this again, the
+        // text itself now names the actual problem.
+        <div className="text-sm py-10 text-center text-destructive">
+          שגיאה בטעינת הנתונים{q.error instanceof Error ? `: ${q.error.message}` : ""}
+        </div>
       ) : (
         <>
           <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">

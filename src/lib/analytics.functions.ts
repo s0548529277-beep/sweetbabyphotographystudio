@@ -177,7 +177,21 @@ export const saveCollageCreation = createServerFn({ method: "POST" })
     const ext = mediaType.split("/")[1]?.split("+")[0] ?? "png";
     const path = `${data.sessionId}/${Date.now()}.${ext}`;
     const bytes = Buffer.from(base64, "base64");
-    const { error: upErr } = await supabaseAdmin.storage.from("collages").upload(path, bytes, { contentType: mediaType, upsert: true });
+    let { error: upErr } = await supabaseAdmin.storage.from("collages").upload(path, bytes, { contentType: mediaType, upsert: true });
+    // Self-healing fallback: the bucket is normally created by a migration
+    // (see 20260908190001_add_collages_storage_bucket.sql's own doc comment
+    // for why that's isolated from the table-creation migration — an
+    // earlier combined version silently rolled back BOTH). If it's still
+    // missing for any reason, create it here via the Storage API itself
+    // (not raw SQL — this is the officially-supported path and doesn't
+    // depend on whatever permissions a migration role has on
+    // storage.buckets) and retry the upload once.
+    if (upErr && /bucket.*not.*found/i.test(upErr.message)) {
+      const { error: createErr } = await supabaseAdmin.storage.createBucket("collages", { public: false });
+      if (!createErr) {
+        ({ error: upErr } = await supabaseAdmin.storage.from("collages").upload(path, bytes, { contentType: mediaType, upsert: true }));
+      }
+    }
     if (upErr) throw new Error(upErr.message);
 
     const { error: insErr } = await (supabaseAdmin as any).from("collage_creations").insert({
