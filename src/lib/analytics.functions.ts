@@ -64,20 +64,25 @@ export const startAnalyticsSession = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const source = classifySource(data.referrer, data.entryPath);
-    await (supabaseAdmin as any)
-      .from("analytics_sessions")
-      .upsert(
-        {
-          id: data.sessionId,
-          entry_path: data.entryPath,
-          referrer: data.referrer || null,
-          source,
-          user_agent: data.userAgent || null,
-        },
-        { onConflict: "id", ignoreDuplicates: true },
-      );
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const source = classifySource(data.referrer, data.entryPath);
+      await (supabaseAdmin as any)
+        .from("analytics_sessions")
+        .upsert(
+          {
+            id: data.sessionId,
+            entry_path: data.entryPath,
+            referrer: data.referrer || null,
+            source,
+            user_agent: data.userAgent || null,
+          },
+          { onConflict: "id", ignoreDuplicates: true },
+        );
+    } catch (e) {
+      // Analytics must never break the page it's measuring.
+      console.error("[SWEETBABY] startAnalyticsSession failed", e);
+    }
     return { ok: true };
   });
 
@@ -85,12 +90,16 @@ export const startAnalyticsSession = createServerFn({ method: "POST" })
 export const trackPageview = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ sessionId: sessionIdSchema, path: z.string().min(1).max(500) }).parse(d))
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const now = new Date().toISOString();
-    await Promise.all([
-      (supabaseAdmin as any).from("analytics_events").insert({ session_id: data.sessionId, type: "pageview", path: data.path, created_at: now }),
-      (supabaseAdmin as any).from("analytics_sessions").update({ last_seen: now }).eq("id", data.sessionId),
-    ]);
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const now = new Date().toISOString();
+      await Promise.all([
+        (supabaseAdmin as any).from("analytics_events").insert({ session_id: data.sessionId, type: "pageview", path: data.path, created_at: now }),
+        (supabaseAdmin as any).from("analytics_sessions").update({ last_seen: now }).eq("id", data.sessionId),
+      ]);
+    } catch (e) {
+      console.error("[SWEETBABY] trackPageview failed", e);
+    }
     return { ok: true };
   });
 
@@ -110,13 +119,17 @@ export const trackClicks = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const now = new Date().toISOString();
-    const rows = data.clicks.map((c) => ({ session_id: data.sessionId, type: "click" as const, path: c.path, created_at: now }));
-    await Promise.all([
-      (supabaseAdmin as any).from("analytics_events").insert(rows),
-      (supabaseAdmin as any).from("analytics_sessions").update({ last_seen: now }).eq("id", data.sessionId),
-    ]);
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const now = new Date().toISOString();
+      const rows = data.clicks.map((c) => ({ session_id: data.sessionId, type: "click" as const, path: c.path, created_at: now }));
+      await Promise.all([
+        (supabaseAdmin as any).from("analytics_events").insert(rows),
+        (supabaseAdmin as any).from("analytics_sessions").update({ last_seen: now }).eq("id", data.sessionId),
+      ]);
+    } catch (e) {
+      console.error("[SWEETBABY] trackClicks failed", e);
+    }
     return { ok: true };
   });
 
@@ -124,8 +137,12 @@ export const trackClicks = createServerFn({ method: "POST" })
 export const trackHeartbeat = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ sessionId: sessionIdSchema }).parse(d))
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await (supabaseAdmin as any).from("analytics_sessions").update({ last_seen: new Date().toISOString() }).eq("id", data.sessionId);
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await (supabaseAdmin as any).from("analytics_sessions").update({ last_seen: new Date().toISOString() }).eq("id", data.sessionId);
+    } catch (e) {
+      console.error("[SWEETBABY] trackHeartbeat failed", e);
+    }
     return { ok: true };
   });
 

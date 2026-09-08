@@ -102,6 +102,8 @@ export type Database = {
           ttlock_lock_id: number | null
           updated_at: string
           user_id: string
+          wheel_prize: string | null
+          wheel_prize_won_at: string | null
         }
         Insert: {
           balance_amount?: number | null
@@ -142,6 +144,8 @@ export type Database = {
           ttlock_lock_id?: number | null
           updated_at?: string
           user_id: string
+          wheel_prize?: string | null
+          wheel_prize_won_at?: string | null
         }
         Update: {
           balance_amount?: number | null
@@ -182,6 +186,8 @@ export type Database = {
           ttlock_lock_id?: number | null
           updated_at?: string
           user_id?: string
+          wheel_prize?: string | null
+          wheel_prize_won_at?: string | null
         }
         Relationships: [
           {
@@ -477,6 +483,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          image_hash: string | null
           image_url: string | null
           name: string
           price: number
@@ -491,6 +498,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          image_hash?: string | null
           image_url?: string | null
           name: string
           price?: number
@@ -505,6 +513,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          image_hash?: string | null
           image_url?: string | null
           name?: string
           price?: number
@@ -586,24 +595,120 @@ export type Database = {
         }
         Relationships: []
       }
+      newborn_package_orders: {
+        Row: {
+          addons: Json
+          addons_price: number
+          album_design_done_at: string | null
+          amount_paid: number
+          base_price: number
+          birth_basket_used: boolean
+          contact_email: string | null
+          contact_name: string
+          contact_phone: string
+          created_at: string
+          date_deposit_at: string | null
+          delivered_at: string | null
+          editing_done_at: string | null
+          gallery_opened_at: string | null
+          google_event_id: string | null
+          id: string
+          last_payment_at: string | null
+          notes: string | null
+          package_id: string
+          payment_done_at: string | null
+          photos_sent_at: string | null
+          printing_done_at: string | null
+          session_date: string | null
+          session_time: string | null
+          shoot_done_at: string | null
+          total_price: number
+        }
+        Insert: {
+          addons?: Json
+          addons_price?: number
+          album_design_done_at?: string | null
+          amount_paid?: number
+          base_price?: number
+          birth_basket_used?: boolean
+          contact_email?: string | null
+          contact_name: string
+          contact_phone: string
+          created_at?: string
+          date_deposit_at?: string | null
+          delivered_at?: string | null
+          editing_done_at?: string | null
+          gallery_opened_at?: string | null
+          google_event_id?: string | null
+          id?: string
+          last_payment_at?: string | null
+          notes?: string | null
+          package_id: string
+          payment_done_at?: string | null
+          photos_sent_at?: string | null
+          printing_done_at?: string | null
+          session_date?: string | null
+          session_time?: string | null
+          shoot_done_at?: string | null
+          total_price?: number
+        }
+        Update: {
+          addons?: Json
+          addons_price?: number
+          album_design_done_at?: string | null
+          amount_paid?: number
+          base_price?: number
+          birth_basket_used?: boolean
+          contact_email?: string | null
+          contact_name?: string
+          contact_phone?: string
+          created_at?: string
+          date_deposit_at?: string | null
+          delivered_at?: string | null
+          editing_done_at?: string | null
+          gallery_opened_at?: string | null
+          google_event_id?: string | null
+          id?: string
+          last_payment_at?: string | null
+          notes?: string | null
+          package_id?: string
+          payment_done_at?: string | null
+          photos_sent_at?: string | null
+          printing_done_at?: string | null
+          session_date?: string | null
+          session_time?: string | null
+          shoot_done_at?: string | null
+          total_price?: number
+        }
+        Relationships: []
+      }
       newsletter_signups: {
         Row: {
           created_at: string
           email: string
           id: string
           source: string | null
+          wheel_coupon_code: string | null
+          wheel_prize_sequence: Json | null
+          wheel_spun_at: string | null
         }
         Insert: {
           created_at?: string
           email: string
           id?: string
           source?: string | null
+          wheel_coupon_code?: string | null
+          wheel_prize_sequence?: Json | null
+          wheel_spun_at?: string | null
         }
         Update: {
           created_at?: string
           email?: string
           id?: string
           source?: string | null
+          wheel_coupon_code?: string | null
+          wheel_prize_sequence?: Json | null
+          wheel_spun_at?: string | null
         }
         Relationships: []
       }
@@ -1407,12 +1512,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1436,11 +1541,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1461,11 +1566,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1486,11 +1591,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1503,11 +1608,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
