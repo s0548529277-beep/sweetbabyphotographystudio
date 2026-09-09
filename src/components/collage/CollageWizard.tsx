@@ -271,14 +271,38 @@ export function CollageWizard() {
                     </Button>
                   ))}
                 </div>
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
-                  {CARD_SIZES[formatId].map((size) => (
-                    <Button key={size.id} type="button" variant="outline" onClick={() => setSizeId(size.id)} className={`h-auto min-h-20 flex-col rounded-xl px-3 py-4 ${sizeId === size.id ? "border-secondary bg-secondary/20" : "bg-background"}`}>
-                      <span className="text-sm font-semibold text-primary">{size.label}</span>
-                      <span className="text-xs text-muted-foreground">{size.use ?? `${size.wCm}×${size.hCm} ס״מ`}</span>
-                    </Button>
-                  ))}
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  {CARD_SIZES[formatId].map((size) => {
+                    const ratio = size.wCm / size.hCm;
+                    const boxW = ratio >= 1 ? 112 : Math.round(112 * ratio);
+                    const boxH = ratio >= 1 ? Math.round(112 / ratio) : 112;
+                    const active = sizeId === size.id;
+                    return (
+                      <button
+                        key={size.id}
+                        type="button"
+                        onClick={() => setSizeId(size.id)}
+                        className={`flex flex-col items-center gap-3 rounded-2xl border-2 p-4 transition-colors ${active ? "border-secondary bg-secondary/15" : "border-border bg-background hover:border-secondary/60"}`}
+                      >
+                        <span className="flex h-32 items-center justify-center">
+                          <span className="block overflow-hidden rounded-md border border-border bg-card p-1 shadow-sm" style={{ width: boxW, height: boxH }}>
+                            <span className="grid h-full w-full grid-cols-3 grid-rows-3 gap-[2px]">
+                              <i className="col-span-2 row-span-2 rounded-sm bg-secondary/70" />
+                              <i className="rounded-sm bg-accent/50" />
+                              <i className="rounded-sm bg-muted" />
+                              <i className="col-span-3 rounded-sm bg-primary/15" />
+                            </span>
+                          </span>
+                        </span>
+                        <span className="text-center">
+                          <span className="block text-sm font-semibold text-primary">{size.label}</span>
+                          <span className="block text-xs text-muted-foreground">{size.use ?? `${size.wCm}×${size.hCm} ס״מ`}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
+
               </div>
             )}
 
