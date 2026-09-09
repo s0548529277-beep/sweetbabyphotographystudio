@@ -37,7 +37,17 @@ import {
   type PhotoShapeId,
 } from "@/lib/collage-data";
 import { COLLAGE_IDEAS, COLLAGE_IDEA_CATEGORIES, type CollageIdeaCategory } from "@/lib/collage-ideas";
+import {
+  BACKGROUND_PATTERNS,
+  BACKGROUND_SWATCHES,
+  CAPTION_STICKERS,
+  STICKERS,
+  type BackgroundPatternId,
+  type PlacedSticker,
+  type StickerKind,
+} from "@/lib/collage-decor";
 import { getSiteSessionId } from "@/lib/site-tracking";
+
 
 type Step = 1 | 2 | 3 | 4;
 
