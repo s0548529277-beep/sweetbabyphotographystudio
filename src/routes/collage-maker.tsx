@@ -375,7 +375,7 @@ function CollageMaker() {
 
         <Link
           to="/collage-studio"
-          className="group flex items-center justify-between gap-4 rounded-2xl bg-[#2d3d2b] text-[#f8ede4] px-5 py-4 mb-8 hover:bg-[#2d3d2b]/90 transition-colors"
+          className="group flex items-center justify-between gap-4 rounded-2xl bg-[#2d3d2b] text-[#f8ede4] px-5 py-4 mb-4 hover:bg-[#2d3d2b]/90 transition-colors"
         >
           <div className="flex items-center gap-3">
             <span className="h-9 w-9 rounded-full bg-white/10 flex items-center justify-center shrink-0">
@@ -388,6 +388,24 @@ function CollageMaker() {
           </div>
           <span className="inline-flex items-center gap-1.5 bg-[#f5d5cf] text-[#2d3d2b] px-4 py-2 rounded-full text-xs font-semibold shrink-0 group-hover:bg-[#f8ede4] transition-colors">
             כניסה לסטודיו <ArrowLeft className="h-3.5 w-3.5" />
+          </span>
+        </Link>
+
+        <Link
+          to="/collage-text"
+          className="group flex items-center justify-between gap-4 rounded-2xl border-2 border-primary/15 bg-card px-5 py-4 mb-8 hover:border-primary transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <span className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary">
+              <Type className="h-4 w-4" />
+            </span>
+            <div>
+              <div className="text-sm font-semibold text-primary">מילה עשויה מתמונות? נסי את "טקסט מתמונות"</div>
+              <div className="text-xs text-muted-foreground">כל אות בברכה שלכם מלאה בפסיפס של התמונות שהעליתם</div>
+            </div>
+          </div>
+          <span className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-4 py-2 rounded-full text-xs font-semibold shrink-0 group-hover:bg-primary/90 transition-colors">
+            כניסה לכלי <ArrowLeft className="h-3.5 w-3.5" />
           </span>
         </Link>
 
