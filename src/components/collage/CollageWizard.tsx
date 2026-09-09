@@ -344,9 +344,11 @@ export function CollageWizard() {
                 <div className="mb-6 text-center">
                   <span className="text-sm font-semibold text-secondary-foreground">שלב שני</span>
                   <h2 className="mt-1 font-display text-3xl text-primary">איזה סיפור תרצי ליצור?</h2>
-                  <p className="mt-2 text-sm text-muted-foreground">יותר מ־30 רעיונות מקוריים בהשראת טרנדים של קולאז׳ים מודפסים</p>
+                  <p className="mt-2 text-sm text-muted-foreground">{COLLAGE_IDEAS.length} רעיונות מקוריים בהשראת קולאז׳ים מודפסים ופינטרסט</p>
                 </div>
+                <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="חיפוש רעיון (למשל: חנוכה, פולארויד, ניו בורן)" aria-label="חיפוש רעיון" className="mx-auto mb-4 max-w-md" />
                 <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
+
                   {COLLAGE_IDEA_CATEGORIES.map((item) => (
                     <Button key={item.id} type="button" variant={category === item.id ? "default" : "outline"} size="sm" onClick={() => setCategory(item.id)} className="shrink-0 rounded-full">{item.label}</Button>
                   ))}
