@@ -350,7 +350,7 @@ export function CollageWizard() {
                 <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
 
                   {COLLAGE_IDEA_CATEGORIES.map((item) => (
-                    <Button key={item.id} type="button" variant={category === item.id ? "default" : "outline"} size="sm" onClick={() => setCategory(item.id)} className="shrink-0 rounded-full">{item.label}</Button>
+                    <Button key={item.id} type="button" variant={category === item.id ? "default" : "outline"} size="sm" onClick={() => { setCategory(item.id); setSearch(""); }} className="shrink-0 rounded-full">{item.label}</Button>
                   ))}
                 </div>
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
