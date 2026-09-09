@@ -62,6 +62,71 @@ export type Database = {
         }
         Relationships: []
       }
+      analytics_events: {
+        Row: {
+          created_at: string
+          id: string
+          path: string
+          session_id: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          path: string
+          session_id: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          path?: string
+          session_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_events_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "analytics_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analytics_sessions: {
+        Row: {
+          created_at: string
+          entry_path: string | null
+          first_seen: string
+          id: string
+          last_seen: string
+          referrer: string | null
+          source: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          entry_path?: string | null
+          first_seen?: string
+          id: string
+          last_seen?: string
+          referrer?: string | null
+          source?: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          entry_path?: string | null
+          first_seen?: string
+          id?: string
+          last_seen?: string
+          referrer?: string | null
+          source?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           balance_amount: number | null
@@ -238,6 +303,45 @@ export type Database = {
           name?: string
           slug?: string
           sort_order?: number
+        }
+        Relationships: []
+      }
+      collage_creations: {
+        Row: {
+          caption: string | null
+          created_at: string
+          format_id: string | null
+          id: string
+          photo_count: number | null
+          session_id: string | null
+          size_id: string | null
+          storage_path: string
+          style_id: string | null
+          subtitle: string | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          format_id?: string | null
+          id?: string
+          photo_count?: number | null
+          session_id?: string | null
+          size_id?: string | null
+          storage_path: string
+          style_id?: string | null
+          subtitle?: string | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          format_id?: string | null
+          id?: string
+          photo_count?: number | null
+          session_id?: string | null
+          size_id?: string | null
+          storage_path?: string
+          style_id?: string | null
+          subtitle?: string | null
         }
         Relationships: []
       }
@@ -1480,6 +1584,7 @@ export type Database = {
         Args: { _from: string; _item_id: string; _to: string }
         Returns: number
       }
+      reload_pgrst_schema: { Args: never; Returns: undefined }
       run_readonly_query: { Args: { q: string }; Returns: Json }
       spend_loyalty_credit: {
         Args: { p_amount: number; p_user_id: string }
