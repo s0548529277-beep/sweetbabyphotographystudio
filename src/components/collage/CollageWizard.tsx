@@ -112,7 +112,16 @@ async function downloadCollage(svgEl: SVGSVGElement, type: "png" | "jpeg"): Prom
   }
 }
 
+function StickerPreview({ kind }: { kind: StickerKind }) {
+  return (
+    <svg viewBox="-56 -56 112 112" className="h-7 w-7" aria-hidden="true">
+      <StickerShape kind={kind} />
+    </svg>
+  );
+}
+
 function SizeIcon({ format }: { format: CardFormatId }) {
+
   const size = format === "portrait" ? "h-24 w-16" : format === "landscape" ? "h-16 w-24" : format === "square" ? "h-20 w-20" : "h-12 w-28";
   return <span className={`${size} block rounded-md border-2 border-secondary bg-card shadow-sm`}><span className="m-1 block h-[calc(100%-0.5rem)] rounded-sm border border-dashed border-secondary" /></span>;
 }
