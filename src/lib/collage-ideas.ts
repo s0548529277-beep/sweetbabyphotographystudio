@@ -116,3 +116,130 @@ export const COLLAGE_IDEAS: CollageIdea[] = [
   idea("arches", "קשתות סטודיו", "editorial", "קשתות מחמיאות לצילומי סטודיו", 4, "grid", "circle", { shape: "arch", styleId: "minimal" }),
   idea("classic-postcard", "גלויה קלאסית", "editorial", "תמונה וכיתוב שנראים כמו מזכרת", 1, "featured", "story", { styleId: "minimal", borderStyle: "polaroid", caption: "נשלח באהבה" }),
 ];
+/**
+ * The large library. Every entry below is generated from a themed concept
+ * (occasion + wording) crossed with a composition recipe (layout, shape,
+ * effect, finish) — the same knobs the wizard exposes, so each preset is a
+ * real, distinct starting point rather than decoration. Combined with the
+ * hand-written presets above this puts the catalogue at ~300 ideas.
+ */
+type Theme = {
+  key: string;
+  name: string;
+  caption: string;
+  subtitle: string;
+  category: CollageIdeaCategory;
+  styleId?: CollageStyleId;
+  decorId?: DecorThemeId;
+};
+
+const THEMES: Theme[] = [
+  { key: "moments", name: "רגעים שלנו", caption: "הרגעים שלנו", subtitle: "אוסף קטן של אושר", category: "popular" },
+  { key: "smiles", name: "אוסף חיוכים", caption: "החיוכים שלנו", subtitle: "כל יום מחדש", category: "popular" },
+  { key: "album", name: "אלבום זיכרונות", caption: "אלבום הזיכרונות", subtitle: "לשמור לתמיד", category: "popular" },
+  { key: "love", name: "מלא אהבה", caption: "ממני באהבה", subtitle: "בכל הלב", category: "popular" },
+  { key: "summer", name: "קיץ שלנו", caption: "הקיץ שלנו", subtitle: "שמש, ים ואור", category: "popular" },
+  { key: "everyday", name: "יומיום מתוק", caption: "היומיום המתוק", subtitle: "רגעים קטנים וגדולים", category: "popular" },
+
+  { key: "welcome", name: "ברוך הבא", caption: "ברוכים הבאים לעולם", subtitle: "קטן כל כך, אהוב כל כך", category: "newborn", decorId: "newborn" },
+  { key: "tiny", name: "פרטים זעירים", caption: "אהבה בפרטים הקטנים", subtitle: "ידיים, רגליים, נשימה", category: "newborn", decorId: "newborn" },
+  { key: "sleepy", name: "חלומות רכים", caption: "חלומות מתוקים", subtitle: "שקט של תינוק", category: "newborn", decorId: "newborn" },
+  { key: "firstdays", name: "הימים הראשונים", caption: "הימים הראשונים שלי", subtitle: "התחלה חדשה", category: "newborn", decorId: "newborn" },
+  { key: "namecard", name: "כרטיס שם", caption: "נעים להכיר", subtitle: "שם · תאריך · משקל", category: "newborn", styleId: "minimal", decorId: "newborn" },
+  { key: "wrapped", name: "עטוף באהבה", caption: "עטוף באהבה", subtitle: "רך, חמים ובטוח", category: "newborn", decorId: "newborn" },
+
+  { key: "months", name: "חודש אחרי חודש", caption: "השנה הראשונה שלי", subtitle: "12 חודשים של אהבה", category: "first-year", decorId: "birthday1" },
+  { key: "growing", name: "כמה גדלתי", caption: "כמה גדלתי", subtitle: "מיום ליום", category: "first-year", decorId: "birthday1" },
+  { key: "firsttime", name: "פעם ראשונה", caption: "כל הפעמים הראשונות", subtitle: "צעד, חיוך, מילה", category: "first-year", decorId: "birthday1" },
+  { key: "cake", name: "עוגה ראשונה", caption: "יום הולדת ראשון", subtitle: "מתוק כמו שאני", category: "first-year", decorId: "birthday1" },
+  { key: "oneyear", name: "בן שנה", caption: "אני בן שנה", subtitle: "שנה של אושר", category: "first-year", decorId: "birthday1" },
+  { key: "milestones", name: "אבני דרך", caption: "אבני הדרך שלי", subtitle: "כל רגע נחשב", category: "first-year", decorId: "birthday1" },
+
+  { key: "ourfamily", name: "המשפחה שלנו", caption: "המשפחה שלנו", subtitle: "הבית שלנו", category: "family", styleId: "minimal" },
+  { key: "siblings", name: "אחים ואחיות", caption: "אחים ואחיות", subtitle: "ביחד תמיד", category: "family" },
+  { key: "generations", name: "מדור לדור", caption: "מדור לדור", subtitle: "הסיפור המשפחתי", category: "family", styleId: "luxury" },
+  { key: "grandma", name: "לסבתא וסבא", caption: "לסבתא וסבא האהובים", subtitle: "באהבה גדולה", category: "family" },
+  { key: "hometime", name: "זמן בבית", caption: "הזמן שלנו בבית", subtitle: "רגעים פשוטים", category: "family" },
+  { key: "trip", name: "טיול משפחתי", caption: "הטיול שלנו", subtitle: "יוצאים להרפתקה", category: "family" },
+
+  { key: "chalaka", name: "החלאקה שלי", caption: "החלאקה שלי", subtitle: "בן שלוש", category: "chalaka", decorId: "chalaka" },
+  { key: "threeyears", name: "בן שלוש", caption: "בן שלוש למצוות", subtitle: "יום גדול", category: "chalaka", decorId: "chalaka", styleId: "luxury" },
+  { key: "beforeafter", name: "לפני ואחרי", caption: "לפני ואחרי", subtitle: "רגע השינוי", category: "chalaka", decorId: "chalaka" },
+  { key: "honey", name: "אותיות ודבש", caption: "תורה ציווה לנו", subtitle: "מתוק כמו דבש", category: "chalaka", decorId: "chalaka" },
+  { key: "ceremony", name: "רגעי הטקס", caption: "רגעי הטקס", subtitle: "משפחה וברכות", category: "chalaka", decorId: "chalaka" },
+  { key: "curls", name: "התלתלים שלי", caption: "התלתלים שלי", subtitle: "מזכרת קטנה", category: "chalaka", decorId: "chalaka" },
+
+  { key: "birthday", name: "יום הולדת", caption: "יום הולדת שמח", subtitle: "חוגגים אותך", category: "celebrations", decorId: "birthday1" },
+  { key: "batmitzva", name: "בת מצווה", caption: "בת מצווה שמחה", subtitle: "היום המיוחד שלי", category: "celebrations", styleId: "luxury" },
+  { key: "barmitzva", name: "בר מצווה", caption: "בר מצווה שמח", subtitle: "מזל טוב", category: "celebrations", styleId: "luxury" },
+  { key: "party", name: "מסיבה", caption: "מסיבה שלא נשכח", subtitle: "צחוק, ריקוד, אושר", category: "celebrations" },
+  { key: "friends", name: "לחברות", caption: "לחברה הכי טובה", subtitle: "תודה שאת שלי", category: "celebrations" },
+  { key: "thanks", name: "תודה", caption: "תודה מכל הלב", subtitle: "מזכרת קטנה", category: "celebrations" },
+
+  { key: "shanatova", name: "שנה טובה", caption: "שנה טובה ומתוקה", subtitle: "שתהיה שנה של אור", category: "holidays", styleId: "luxury" },
+  { key: "hanukkah", name: "חנוכה", caption: "חנוכה שמח", subtitle: "שמונה נרות של אור", category: "holidays", styleId: "luxury" },
+  { key: "purim", name: "פורים", caption: "פורים שמח", subtitle: "תחפושות וצחוק", category: "holidays" },
+  { key: "pesach", name: "פסח", caption: "חג פסח שמח", subtitle: "חג של חירות", category: "holidays" },
+  { key: "shabbat", name: "שבת שלום", caption: "שבת שלום", subtitle: "שולחן, אור ומשפחה", category: "holidays", styleId: "luxury" },
+  { key: "sukkot", name: "סוכות", caption: "חג סוכות שמח", subtitle: "בסוכה שלנו", category: "holidays" },
+
+  { key: "editorial", name: "גלריה נקייה", caption: "הרגעים שלנו", subtitle: "פשוט יפה", category: "editorial", styleId: "minimal" },
+  { key: "monochrome", name: "מונוכרום", caption: "שחור לבן", subtitle: "אור וצל", category: "editorial", styleId: "minimal" },
+  { key: "poster", name: "פוסטר קיר", caption: "אמנות של רגע", subtitle: "להדפסה ולתלייה", category: "editorial", styleId: "minimal" },
+  { key: "magazine", name: "שער מגזין", caption: "היום כולו שלי", subtitle: "כותרת גדולה", category: "editorial", styleId: "minimal" },
+  { key: "studio", name: "סטודיו", caption: "צילומי סטודיו", subtitle: "אור רך ונקי", category: "editorial", styleId: "minimal" },
+  { key: "artcut", name: "חיתוכים אמנותיים", caption: "צורות ואור", subtitle: "קומפוזיציה חופשית", category: "editorial" },
+];
+
+type Recipe = {
+  key: string;
+  suffix: string;
+  description: string;
+  photoCount: number;
+  layoutId: string;
+  motif: CollageIdea["motif"];
+  shape: PhotoShapeId;
+  effect: PhotoEffectId;
+  borderStyle: "none" | "polaroid";
+};
+
+const RECIPES: Recipe[] = [
+  { key: "hero", suffix: "תמונה מובילה", description: "תמונה גדולה ורגעים קטנים סביבה", photoCount: 5, layoutId: "featured", motif: "hero", shape: "rounded", effect: "none", borderStyle: "none" },
+  { key: "grid6", suffix: "רשת קלאסית", description: "שש תמונות מסודרות בקצב אחיד", photoCount: 6, layoutId: "grid", motif: "grid", shape: "rounded", effect: "none", borderStyle: "none" },
+  { key: "grid9", suffix: "רשת גדולה", description: "תשע תמונות למזכרת מלאה", photoCount: 9, layoutId: "grid", motif: "grid", shape: "rect", effect: "none", borderStyle: "none" },
+  { key: "polaroid", suffix: "פולארויד", description: "ערימת תמונות מודפסות ושובבה", photoCount: 6, layoutId: "scatter", motif: "scatter", shape: "rect", effect: "warm", borderStyle: "polaroid" },
+  { key: "strip", suffix: "סרט צילום", description: "רצף קולנועי נקי", photoCount: 4, layoutId: "strip", motif: "strip", shape: "rect", effect: "none", borderStyle: "none" },
+  { key: "mosaic", suffix: "מוזאיקה", description: "קומפוזיציה לא סימטרית ומדויקת", photoCount: 7, layoutId: "mosaic", motif: "grid", shape: "rounded", effect: "none", borderStyle: "none" },
+  { key: "circles", suffix: "עיגולים", description: "חיתוכים עגולים ורכים", photoCount: 6, layoutId: "grid", motif: "circle", shape: "circle", effect: "soft", borderStyle: "none" },
+  { key: "arch", suffix: "קשתות", description: "קשתות מחמיאות לצילומי סטודיו", photoCount: 4, layoutId: "grid", motif: "circle", shape: "arch", effect: "none", borderStyle: "none" },
+  { key: "single", suffix: "תמונה אחת", description: "תמונה אחת גדולה עם כיתוב", photoCount: 1, layoutId: "featured", motif: "story", shape: "rounded", effect: "none", borderStyle: "none" },
+  { key: "bw", suffix: "שחור לבן", description: "מראה קלאסי ודרמטי", photoCount: 4, layoutId: "mosaic", motif: "grid", shape: "rect", effect: "bw", borderStyle: "none" },
+  { key: "vintage", suffix: "וינטג׳", description: "גוונים חמים כמו תמונות ישנות", photoCount: 5, layoutId: "scatter", motif: "scatter", shape: "rect", effect: "warm", borderStyle: "polaroid" },
+  { key: "hearts", suffix: "לבבות", description: "חיתוכי לב לרגעים מתוקים", photoCount: 3, layoutId: "strip", motif: "strip", shape: "heart", effect: "soft", borderStyle: "none" },
+];
+
+const usedIds = new Set(COLLAGE_IDEAS.map((item) => item.id));
+
+for (const theme of THEMES) {
+  for (const recipe of RECIPES) {
+    const id = `${theme.key}-${recipe.key}`;
+    if (usedIds.has(id)) continue;
+    usedIds.add(id);
+    COLLAGE_IDEAS.push({
+      id,
+      name: `${theme.name} · ${recipe.suffix}`,
+      category: theme.category,
+      description: recipe.description,
+      photoCount: recipe.photoCount,
+      layoutId: recipe.layoutId,
+      motif: recipe.motif,
+      styleId: theme.styleId ?? "floral",
+      shape: recipe.shape,
+      effect: recipe.effect,
+      borderStyle: recipe.borderStyle,
+      decorId: theme.decorId ?? "none",
+      caption: theme.caption,
+      subtitle: theme.subtitle,
+    });
+  }
+}
