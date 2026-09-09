@@ -347,9 +347,26 @@ export function CollageCard({
             </clipPath>
           );
         })}
+        {bgPattern !== "none" && (
+          <pattern id="collage-bg-pattern" patternUnits="userSpaceOnUse" width={48} height={48} patternTransform={bgPattern === "diagonal" ? "rotate(45)" : undefined}>
+            {(bgPattern === "stripes" || bgPattern === "diagonal") && <rect x={0} y={0} width={24} height={48} fill={accent} opacity={0.16} />}
+            {bgPattern === "grid" && <path d="M0,0 H48 M0,0 V48" stroke={accent} strokeWidth={2} opacity={0.2} fill="none" />}
+            {bgPattern === "dots" && <circle cx={12} cy={12} r={4} fill={accent} opacity={0.25} />}
+            {bgPattern === "dots-pink" && <circle cx={12} cy={12} r={5} fill="#f28ab2" opacity={0.3} />}
+            {bgPattern === "confetti" && (
+              <g opacity={0.35}>
+                <rect x={6} y={8} width={10} height={4} rx={2} fill={accent} transform="rotate(20 6 8)" />
+                <rect x={30} y={28} width={10} height={4} rx={2} fill="#f28ab2" transform="rotate(-25 30 28)" />
+                <circle cx={38} cy={9} r={3} fill="#f4c534" />
+              </g>
+            )}
+          </pattern>
+        )}
       </defs>
 
       <rect x={0} y={0} width={cardW} height={cardH} fill={bg} />
+      {bgPattern !== "none" && <rect x={0} y={0} width={cardW} height={cardH} fill="url(#collage-bg-pattern)" />}
+
 
       {style.decorative && (
         <rect
