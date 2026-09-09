@@ -355,6 +355,13 @@ export const ELEMENT_LIBRARY: LibraryElement[] = [
   { id: "moon-stars", category: "illustrations", label: "ירח וכוכבים", svg: (c) => svgWrap(`<path d="M55,15 A25,25 0 1 0 55,65 A19,19 0 1 1 55,15 Z" fill="CURRENT"/><circle cx="82" cy="30" r="3" fill="CURRENT"/><circle cx="90" cy="50" r="4" fill="CURRENT"/>`, c) },
   { id: "cloud", category: "illustrations", label: "ענן", svg: (c) => svgWrap(`<ellipse cx="35" cy="55" rx="22" ry="16" fill="CURRENT"/><ellipse cx="60" cy="48" rx="26" ry="20" fill="CURRENT"/><ellipse cx="80" cy="58" rx="16" ry="12" fill="CURRENT"/>`, c) },
   { id: "rainbow", category: "illustrations", label: "קשת", svg: (c) => svgWrap(`<path d="M5,80 A45,45 0 0 1 95,80" fill="none" stroke="CURRENT" stroke-width="8"/><path d="M18,80 A32,32 0 0 1 82,80" fill="none" stroke="CURRENT" stroke-width="6" opacity="0.6"/>`, c) },
+  // Added for the richly-decorated template pass below — cute hand-drawn-
+  // style doodles (bee, honey jar, bow, apple) matching the "already
+  // decorated, just add photos" reference the owner asked to match.
+  { id: "bee", category: "illustrations", label: "דבורה", svg: (c) => svgWrap(`<ellipse cx="38" cy="38" rx="15" ry="11" fill="#ffffff" opacity="0.55" transform="rotate(-15 38 38)"/><ellipse cx="62" cy="38" rx="15" ry="11" fill="#ffffff" opacity="0.55" transform="rotate(15 62 38)"/><ellipse cx="50" cy="58" rx="24" ry="17" fill="CURRENT"/><rect x="30" y="50" width="6" height="16" fill="#ffffff" opacity="0.9"/><rect x="47" y="50" width="6" height="16" fill="#ffffff" opacity="0.9"/><rect x="64" y="50" width="6" height="16" fill="#ffffff" opacity="0.9"/><circle cx="50" cy="35" r="9" fill="CURRENT"/>`, c) },
+  { id: "honey-jar", category: "illustrations", label: "צנצנת דבש", svg: (c) => svgWrap(`<rect x="26" y="20" width="48" height="13" rx="4" fill="CURRENT"/><path d="M30,33 h40 v48 a10,10 0 0 1 -10,10 h-20 a10,10 0 0 1 -10,-10 z" fill="CURRENT" opacity="0.85"/><path d="M50,42 q9,11 0,22 q-9,-11 0,-22" fill="#ffffff" opacity="0.45"/>`, c) },
+  { id: "bow", category: "illustrations", label: "פמוט/סרט", svg: (c) => svgWrap(`<path d="M50,50 L10,20 L14,50 L10,80 Z" fill="CURRENT"/><path d="M50,50 L90,20 L86,50 L90,80 Z" fill="CURRENT"/><circle cx="50" cy="50" r="10" fill="CURRENT"/>`, c) },
+  { id: "apple", category: "illustrations", label: "תפוח", svg: (c) => svgWrap(`<path d="M50,30 C30,30 15,48 15,68 C15,85 30,95 50,95 C70,95 85,85 85,68 C85,48 70,30 50,30 Z" fill="CURRENT"/><path d="M50,30 C48,20 52,12 60,8" fill="none" stroke="CURRENT" stroke-width="4"/><path d="M55,15 C65,10 75,15 72,25 C62,28 55,22 55,15 Z" fill="CURRENT" opacity="0.7"/>`, c) },
 ];
 
 export function findElement(id: string): LibraryElement | undefined {
