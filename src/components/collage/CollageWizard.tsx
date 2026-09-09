@@ -12,12 +12,13 @@ import {
   LockKeyhole,
   Palette,
   Sparkles,
+  Sticker,
   Trash2,
   Type,
   WandSparkles,
 } from "lucide-react";
 import { toast } from "sonner";
-import { CollageCard } from "@/components/CollageCard";
+import { CollageCard, StickerShape } from "@/components/CollageCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -37,7 +38,17 @@ import {
   type PhotoShapeId,
 } from "@/lib/collage-data";
 import { COLLAGE_IDEAS, COLLAGE_IDEA_CATEGORIES, type CollageIdeaCategory } from "@/lib/collage-ideas";
+import {
+  BACKGROUND_PATTERNS,
+  BACKGROUND_SWATCHES,
+  CAPTION_STICKERS,
+  STICKERS,
+  type BackgroundPatternId,
+  type PlacedSticker,
+  type StickerKind,
+} from "@/lib/collage-decor";
 import { getSiteSessionId } from "@/lib/site-tracking";
+
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -101,7 +112,16 @@ async function downloadCollage(svgEl: SVGSVGElement, type: "png" | "jpeg"): Prom
   }
 }
 
+function StickerPreview({ kind }: { kind: StickerKind }) {
+  return (
+    <svg viewBox="-56 -56 112 112" className="h-7 w-7" aria-hidden="true">
+      <StickerShape kind={kind} />
+    </svg>
+  );
+}
+
 function SizeIcon({ format }: { format: CardFormatId }) {
+
   const size = format === "portrait" ? "h-24 w-16" : format === "landscape" ? "h-16 w-24" : format === "square" ? "h-20 w-20" : "h-12 w-28";
   return <span className={`${size} block rounded-md border-2 border-secondary bg-card shadow-sm`}><span className="m-1 block h-[calc(100%-0.5rem)] rounded-sm border border-dashed border-secondary" /></span>;
 }
@@ -134,15 +154,38 @@ export function CollageWizard() {
   const [caption, setCaption] = useState("הרגעים שלנו");
   const [subtitle, setSubtitle] = useState("רגעים שנשארים לתמיד");
   const [palette, setPalette] = useState<{ bg: string; accent: string; captionColor: string } | null>(null);
+  const [bgPattern, setBgPattern] = useState<BackgroundPatternId>("none");
+  const [stickers, setStickers] = useState<PlacedSticker[]>([]);
+  const [search, setSearch] = useState("");
   const [downloading, setDownloading] = useState(false);
+
   const svgRef = useRef<SVGSVGElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingSlotRef = useRef<number | null>(null);
 
   const dimensions = useMemo(() => getCardDimensions(formatId, sizeId), [formatId, sizeId]);
   const layouts = useMemo(() => getLayoutVariants(photoCount), [photoCount]);
-  const ideas = useMemo(() => COLLAGE_IDEAS.filter((item) => item.category === category), [category]);
+  const ideas = useMemo(() => {
+    const term = search.trim();
+    return COLLAGE_IDEAS.filter((item) => (term ? `${item.name} ${item.description} ${item.caption}`.includes(term) : item.category === category));
+  }, [category, search]);
   const uploadedCount = photos.filter(Boolean).length;
+
+  const addSticker = (sticker: Pick<PlacedSticker, "kind" | "text" | "tone">) => {
+    setStickers((current) => [
+      ...current,
+      {
+        uid: `${Date.now()}-${current.length}`,
+        ...sticker,
+        // Placed along a soft spiral so consecutive stickers never land on
+        // top of each other; the user removes one by clicking it.
+        x: 0.5 + Math.cos(current.length * 1.9) * (0.16 + current.length * 0.015),
+        y: 0.5 + Math.sin(current.length * 1.9) * (0.2 + current.length * 0.012),
+        scale: sticker.text ? 1 : 0.9,
+      },
+    ]);
+  };
+
 
   const changeFormat = (format: CardFormatId) => {
     setFormatId(format);
@@ -271,14 +314,38 @@ export function CollageWizard() {
                     </Button>
                   ))}
                 </div>
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
-                  {CARD_SIZES[formatId].map((size) => (
-                    <Button key={size.id} type="button" variant="outline" onClick={() => setSizeId(size.id)} className={`h-auto min-h-20 flex-col rounded-xl px-3 py-4 ${sizeId === size.id ? "border-secondary bg-secondary/20" : "bg-background"}`}>
-                      <span className="text-sm font-semibold text-primary">{size.label}</span>
-                      <span className="text-xs text-muted-foreground">{size.use ?? `${size.wCm}×${size.hCm} ס״מ`}</span>
-                    </Button>
-                  ))}
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  {CARD_SIZES[formatId].map((size) => {
+                    const ratio = size.wCm / size.hCm;
+                    const boxW = ratio >= 1 ? 112 : Math.round(112 * ratio);
+                    const boxH = ratio >= 1 ? Math.round(112 / ratio) : 112;
+                    const active = sizeId === size.id;
+                    return (
+                      <button
+                        key={size.id}
+                        type="button"
+                        onClick={() => setSizeId(size.id)}
+                        className={`flex flex-col items-center gap-3 rounded-2xl border-2 p-4 transition-colors ${active ? "border-secondary bg-secondary/15" : "border-border bg-background hover:border-secondary/60"}`}
+                      >
+                        <span className="flex h-32 items-center justify-center">
+                          <span className="block overflow-hidden rounded-md border border-border bg-card p-1 shadow-sm" style={{ width: boxW, height: boxH }}>
+                            <span className="grid h-full w-full grid-cols-3 grid-rows-3 gap-[2px]">
+                              <i className="col-span-2 row-span-2 rounded-sm bg-secondary/70" />
+                              <i className="rounded-sm bg-accent/50" />
+                              <i className="rounded-sm bg-muted" />
+                              <i className="col-span-3 rounded-sm bg-primary/15" />
+                            </span>
+                          </span>
+                        </span>
+                        <span className="text-center">
+                          <span className="block text-sm font-semibold text-primary">{size.label}</span>
+                          <span className="block text-xs text-muted-foreground">{size.use ?? `${size.wCm}×${size.hCm} ס״מ`}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
+
               </div>
             )}
 
@@ -287,11 +354,13 @@ export function CollageWizard() {
                 <div className="mb-6 text-center">
                   <span className="text-sm font-semibold text-secondary-foreground">שלב שני</span>
                   <h2 className="mt-1 font-display text-3xl text-primary">איזה סיפור תרצי ליצור?</h2>
-                  <p className="mt-2 text-sm text-muted-foreground">יותר מ־30 רעיונות מקוריים בהשראת טרנדים של קולאז׳ים מודפסים</p>
+                  <p className="mt-2 text-sm text-muted-foreground">{COLLAGE_IDEAS.length} רעיונות מקוריים בהשראת קולאז׳ים מודפסים ופינטרסט</p>
                 </div>
+                <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="חיפוש רעיון (למשל: חנוכה, פולארויד, ניו בורן)" aria-label="חיפוש רעיון" className="mx-auto mb-4 max-w-md" />
                 <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
+
                   {COLLAGE_IDEA_CATEGORIES.map((item) => (
-                    <Button key={item.id} type="button" variant={category === item.id ? "default" : "outline"} size="sm" onClick={() => setCategory(item.id)} className="shrink-0 rounded-full">{item.label}</Button>
+                    <Button key={item.id} type="button" variant={category === item.id ? "default" : "outline"} size="sm" onClick={() => { setCategory(item.id); setSearch(""); }} className="shrink-0 rounded-full">{item.label}</Button>
                   ))}
                 </div>
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
@@ -337,7 +406,9 @@ export function CollageWizard() {
                     <div><span className="text-xs font-semibold text-secondary-foreground">תצוגה חיה</span><h2 className="font-display text-2xl text-primary">הקולאז׳ שלך</h2></div>
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><LockKeyhole className="h-3.5 w-3.5" /> התמונות לא נשלחות לשום מקום</span>
                   </div>
-                  <div className="mx-auto max-w-lg"><CollageCard svgRef={svgRef} cardW={dimensions.w} cardH={dimensions.h} styleId={styleId} photos={photos} layoutId={layoutId} shape={shape} effect={effect} frame={frame} borderStyle={borderStyle} captionPlacement={captionPlacement} paletteOverride={palette} decorId={decorId} caption={caption} subtitle={subtitle} onSlotClick={openPicker} /></div>
+                  <div className="mx-auto max-w-lg"><CollageCard svgRef={svgRef} cardW={dimensions.w} cardH={dimensions.h} styleId={styleId} photos={photos} layoutId={layoutId} shape={shape} effect={effect} frame={frame} borderStyle={borderStyle} captionPlacement={captionPlacement} paletteOverride={palette} decorId={decorId} bgPattern={bgPattern} stickers={stickers} onStickerClick={(uid) => setStickers((current) => current.filter((item) => item.uid !== uid))} caption={caption} subtitle={subtitle} onSlotClick={openPicker} /></div>
+                  {stickers.length > 0 && <p className="mt-2 text-center text-xs text-muted-foreground">לחיצה על מדבקה בקולאז׳ מסירה אותה</p>}
+
                 </div>
                 <div className="space-y-5">
                   <div className="rounded-2xl border border-border bg-background p-4">
@@ -354,6 +425,37 @@ export function CollageWizard() {
                     <div className="mb-3 grid grid-cols-6 gap-2">{COLOR_PALETTES.map((item) => <Button key={item.id} type="button" variant="outline" size="icon" title={item.label} aria-label={item.label} onClick={() => setPalette({ bg: item.bg, accent: item.accent, captionColor: item.captionColor })} className="overflow-hidden rounded-full border-2 p-0"><span className="h-full w-1/2" style={{ backgroundColor: item.bg }} /><span className="h-full w-1/2" style={{ backgroundColor: item.accent }} /></Button>)}</div>
                     <div className="flex flex-wrap gap-2">{PHOTO_EFFECTS.map((item) => <Button key={item.id} type="button" size="sm" variant={effect === item.id ? "default" : "outline"} onClick={() => setEffect(item.id)} className="rounded-full">{item.label}</Button>)}</div>
                   </div>
+                  <div className="rounded-2xl border border-border bg-background p-4">
+                    <h3 className="mb-3 flex items-center gap-2 font-semibold text-primary"><Palette className="h-4 w-4" /> רקע</h3>
+                    <div className="mb-3 grid grid-cols-8 gap-1.5">
+                      {BACKGROUND_SWATCHES.map((color) => (
+                        <button key={color} type="button" aria-label={`רקע ${color}`} onClick={() => setPalette((current) => ({ bg: color, accent: current?.accent ?? "#2d3d2b", captionColor: current?.captionColor ?? "#2d3d2b" }))} className={`h-7 w-full rounded-md border transition-transform hover:scale-110 ${palette?.bg === color ? "border-primary ring-2 ring-secondary" : "border-border"}`} style={{ backgroundColor: color }} />
+                      ))}
+                    </div>
+                    <div className="mb-3 flex items-center gap-2">
+                      <label className="text-xs text-muted-foreground" htmlFor="collage-bg-custom">צבע חופשי</label>
+                      <input id="collage-bg-custom" type="color" value={palette?.bg ?? "#fdf6ee"} onChange={(event) => setPalette((current) => ({ bg: event.target.value, accent: current?.accent ?? "#2d3d2b", captionColor: current?.captionColor ?? "#2d3d2b" }))} className="h-8 w-12 cursor-pointer rounded border border-border bg-card p-0.5" />
+                    </div>
+                    <div className="flex flex-wrap gap-2">{BACKGROUND_PATTERNS.map((item) => <Button key={item.id} type="button" size="sm" variant={bgPattern === item.id ? "default" : "outline"} onClick={() => setBgPattern(item.id)} className="rounded-full">{item.label}</Button>)}</div>
+                  </div>
+                  <div className="rounded-2xl border border-border bg-background p-4">
+                    <h3 className="mb-3 flex items-center gap-2 font-semibold text-primary"><Sticker className="h-4 w-4" /> מדבקות</h3>
+                    <p className="mb-3 text-xs text-muted-foreground">לוחצים על מדבקה כדי להוסיף אותה לקולאז׳</p>
+                    <div className="mb-4 grid grid-cols-6 gap-2">
+                      {STICKERS.map((item) => (
+                        <button key={item.id} type="button" title={item.label} aria-label={item.label} onClick={() => addSticker({ kind: item.id as StickerKind })} className="flex aspect-square items-center justify-center rounded-lg border border-border bg-card p-1 transition-transform hover:scale-105">
+                          <StickerPreview kind={item.id} />
+                        </button>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {CAPTION_STICKERS.map((item) => (
+                        <Button key={item.id} type="button" size="sm" variant="outline" onClick={() => addSticker({ text: item.text, tone: item.tone })} className="h-auto whitespace-normal rounded-xl py-2 text-xs">{item.text}</Button>
+                      ))}
+                    </div>
+                    {stickers.length > 0 && <Button type="button" size="sm" variant="ghost" onClick={() => setStickers([])} className="mt-3 w-full rounded-full">ניקוי כל המדבקות</Button>}
+                  </div>
+
                   <div className="rounded-2xl border border-border bg-background p-4">
                     <h3 className="mb-3 flex items-center gap-2 font-semibold text-primary"><Type className="h-4 w-4" /> כיתוב</h3>
                     <Input value={caption} onChange={(event) => setCaption(event.target.value)} maxLength={40} aria-label="כותרת הקולאז׳" className="mb-2" />
