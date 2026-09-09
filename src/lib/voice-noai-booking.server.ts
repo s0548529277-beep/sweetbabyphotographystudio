@@ -304,7 +304,13 @@ function questionForTime(draft: DraftBooking, prefix = ""): Question {
   return { stage: "nb_time", say: `${prefix}${dateNote}באיזו שעה תרצי להגיע? אפשר להגיד למשל 'תשע בבוקר' או 'שמונה בערב'.` };
 }
 
-const DURATION_TAP: YemotTapOptions = { mode: "Digits", digitsAllowed: [1, 2, 3, 4, 5, 6], minDigits: 1, maxDigits: 1 };
+// No `mode` here on purpose — see MENU_DTMF_TAP's doc comment in
+// api.yemot.ivr.ts (fixed the same day) for why: "Digits" mode plays
+// Yemot's own native post-entry confirmation (its system message M1353,
+// "לאישור הקישו 1, להקלטה מחודשת 2") on top of whatever this app's own
+// phrasing already says, which is always redundant for a single digit
+// pick that already has its own spoken instructions.
+const DURATION_TAP: YemotTapOptions = { digitsAllowed: [1, 2, 3, 4, 5, 6], minDigits: 1, maxDigits: 1 };
 
 function questionForDuration(draft: DraftBooking): Question {
   if (draft.inputMode === "dtmf") {
@@ -317,7 +323,8 @@ function questionForEmail(): Question {
   return { stage: "nb_email", say: "רוצה שאשלח גם אישור במייל? אם כן אפשר להגיד את כתובת המייל בקול, ואם לא צריך תגידי 'לא צריך'." };
 }
 
-const CONFIRM_TAP: YemotTapOptions = { mode: "Digits", digitsAllowed: [1, 2], minDigits: 1, maxDigits: 1 };
+// No `mode` here either — same reasoning as DURATION_TAP just above.
+const CONFIRM_TAP: YemotTapOptions = { digitsAllowed: [1, 2], minDigits: 1, maxDigits: 1 };
 
 function questionForConfirm(draft: DraftBooking): Question {
   const summary = buildConfirmSummary(draft);
