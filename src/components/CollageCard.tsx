@@ -482,6 +482,34 @@ export function CollageCard({
           {subtitle}
         </text>
       )}
+
+      {stickers.map((sticker) => {
+        const base = Math.min(cardW, cardH) * 0.16 * sticker.scale;
+        const x = sticker.x * cardW;
+        const y = sticker.y * cardH;
+        if (sticker.text) {
+          const tone = STICKER_TONES[sticker.tone ?? "pink"];
+          const fontSize = Math.max(14, base * 0.34);
+          const w = sticker.text.length * fontSize * 0.56 + fontSize * 1.4;
+          const h = fontSize * 2.1;
+          return (
+            <g key={sticker.uid} transform={`translate(${x - w / 2}, ${y - h / 2})`} onClick={onStickerClick ? () => onStickerClick(sticker.uid) : undefined} className={onStickerClick ? "cursor-pointer" : undefined}>
+              <rect x={0} y={0} width={w} height={h} rx={h / 2} fill={tone.bg} stroke={tone.border} strokeWidth={3} style={{ filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.18))" }} />
+              <text x={w / 2} y={h / 2 + fontSize * 0.36} textAnchor="middle" fontSize={fontSize} fontFamily={style.fontFamily} fill={tone.text}>
+                {sticker.text}
+              </text>
+            </g>
+          );
+        }
+        if (!sticker.kind) return null;
+        return (
+          <g key={sticker.uid} transform={`translate(${x}, ${y}) scale(${base / 100})`} onClick={onStickerClick ? () => onStickerClick(sticker.uid) : undefined} className={onStickerClick ? "cursor-pointer" : undefined} style={{ filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.2))" }}>
+            <StickerShape kind={sticker.kind} />
+            <circle cx={0} cy={0} r={52} fill="transparent" />
+          </g>
+        );
+      })}
     </svg>
+
   );
 }
