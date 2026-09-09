@@ -419,15 +419,15 @@ function Home() {
         </div>
       </section>
 
-      {/* COLLAGE STUDIO — new "קולאזים" category. Links to the FREE tool
-          (/collage-maker), not the pro Studio directly — the Studio is
-          reached from inside that page's own promo banner, per explicit
-          request that it live under this one "קולאז'ים" entry point rather
-          than being a separate parallel destination. */}
+      {/* COLLAGE STUDIO — new "קולאזים" category. Links straight to the full
+          Studio gallery (/collage-studio), not the older/simpler
+          /collage-maker — per explicit follow-up request: the powerful
+          editor should be the direct destination, no "want more control?"
+          detour needed first. */}
       <section className="container-page pb-16 md:pb-24" dir="rtl">
         <motion.div initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={0} variants={fadeUp}>
           <Link
-            to="/collage-maker"
+            to="/collage-studio"
             className="group block rounded-[2rem] overflow-hidden border border-[#2d3d2b]/5 bg-white hover:shadow-2xl transition-all hover:-translate-y-1"
           >
             <div className="grid md:grid-cols-[1.1fr_1fr] items-center">
@@ -437,7 +437,7 @@ function Home() {
                   קולאז'ים
                 </h2>
                 <p className="text-sm text-[#2d3d2b]/70 leading-relaxed max-w-md mb-6">
-                  עיצוב קולאז' חינם בכמה קליקים, ובשביל מי שרוצה עוד יותר שליטה — סטודיו קולאז'ים מקצועי עם תבניות, עריכת טקסטים וצבעים, והורדה מוכנה להדפסה.
+                  סטודיו קולאז'ים חינמי ומקצועי — תבניות מעוצבות ומוכנות, גרירה חופשית של כמה תמונות ביחד, מדבקות וצבעים, והורדה מוכנה להדפסה. בלי הרשמה.
                 </p>
                 <span className="inline-flex items-center gap-2 bg-[#2d3d2b] text-[#f8ede4] px-6 py-3 rounded-full text-sm font-semibold group-hover:bg-[#2d3d2b]/90 transition-colors">
                   לעיצוב קולאז' <ArrowLeft className="h-3.5 w-3.5" />
