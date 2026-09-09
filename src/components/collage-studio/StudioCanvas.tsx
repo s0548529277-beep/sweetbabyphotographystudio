@@ -6,7 +6,7 @@
 // scope, which keeps TanStack Start's SSR pass safe.
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { shapeClipPath } from "@/lib/collage-data";
-import { findElement, type DesignPreset } from "@/lib/collage-studio-library";
+import { findElement, type DesignPreset, type StyledCaptionPreset } from "@/lib/collage-studio-library";
 import type { CollageTemplate, StudioElement, StudioImageShape, StudioFrameStyle } from "@/lib/collage-studio-data";
 
 // fabric's own object types aren't imported at module scope (see above) —
@@ -61,6 +61,8 @@ export type StudioCanvasHandle = {
   addTextPreset: (text: string, subtitle?: string) => void;
   addCustomText: () => void;
   addElement: (elementId: string) => void;
+  /** Inserts one ready-made caption sticker (colored pill + its own text, grouped as one object) — distinct from addTextPreset's bare text. */
+  addStyledCaption: (preset: StyledCaptionPreset) => void;
   /** Adds a brand-new empty photo frame to the canvas (default centered,
    * rounded) — the real answer to "let me add/remove photos freely,
    * regardless of how many the template started with". Removing one is
@@ -178,7 +180,11 @@ export const StudioCanvas = forwardRef<
           offsetY: obj.studioOffsetY ?? 0,
         });
       } else if (kind === "shape") {
-        onSelectionChange({ kind: "shape", id: obj.studioId, color: obj.fill ?? "#000000" });
+        // A caption sticker (or any decorative element) has no fill of its
+        // own on the outer group — studioColor (kept in sync by
+        // addElement/addStyledCaption/updateSelectedColor) is the real
+        // source of truth, not obj.fill.
+        onSelectionChange({ kind: "shape", id: obj.studioId, color: obj.studioColor ?? obj.fill ?? "#000000" });
       } else {
         onSelectionChange({ kind: "none" });
       }
@@ -432,6 +438,11 @@ export const StudioCanvas = forwardRef<
       scaleX: scale,
       scaleY: scale,
     });
+    // Stashed so the drag-to-pan hand control (below) can clamp live drags
+    // without re-deriving imgW/imgH/baseScale from scratch on every mouse
+    // move.
+    (img as FabricObj).studioCropAvailX = availX;
+    (img as FabricObj).studioCropAvailY = availY;
     const d = unitClipPathD(style.shape, w, h);
     if (d) {
       const clip = new fabric.Path(d, { originX: "center", originY: "center" });
@@ -494,7 +505,100 @@ export const StudioCanvas = forwardRef<
     (group as FabricObj).studioZoom = zoom;
     (group as FabricObj).studioOffsetX = ox;
     (group as FabricObj).studioOffsetY = oy;
+    attachPanControl(fabric, group);
     return group;
+  }
+
+  /**
+   * Adds the "hand" drag control the owner asked to match — a dedicated
+   * handle (bottom-center, alongside fabric's own resize/rotate handles)
+   * that pans the photo's content INSIDE its own fixed frame, as opposed
+   * to the object's normal body-drag which moves the whole framed element.
+   * Only meaningful (and only attached) on a photo that actually has an
+   * image — an empty placeholder has nothing to pan.
+   *
+   * Mechanics: while this control is being dragged, we mutate the inner
+   * image's own cropX/cropY directly (same fields buildPhotoElement uses
+   * for the initial centered crop) and re-render — cheap enough to do on
+   * every mousemove, unlike buildPhotoElement's full rebuild — then only
+   * sync the result back into React state (and push undo history) once,
+   * on mouse-up. x/y handed to a custom control's actionHandler are plain
+   * canvas viewport pixels, so the delta is converted through the
+   * canvas's own preview zoom and the image's current render scale to get
+   * back to real source-image pixels — correct for the common case of an
+   * unrotated photo; a manually-rotated one pans slightly off-axis, a
+   * known, acceptable trade-off given how rare a rotated photo is here.
+   */
+  function attachPanControl(fabric: FabricNS, group: FabricObj) {
+    const control = new fabric.Control({
+      x: 0,
+      y: 0.5,
+      offsetY: 22,
+      cursorStyleHandler: () => "grab",
+      render: (ctx: CanvasRenderingContext2D, left: number, top: number) => {
+        ctx.save();
+        ctx.translate(left, top);
+        ctx.beginPath();
+        ctx.arc(0, 0, 13, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255,255,255,0.95)";
+        ctx.fill();
+        ctx.strokeStyle = "#d98a4a";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.font = "14px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("✋", 0, 1);
+        ctx.restore();
+      },
+      actionHandler: (_eventData: any, transform: any, x: number, y: number) => {
+        const target = transform.target as FabricObj;
+        const inner = innerImageOf(target);
+        if (!inner) return false;
+        const lastX = transform.lastX ?? x;
+        const lastY = transform.lastY ?? y;
+        const dx = x - lastX;
+        const dy = y - lastY;
+        if (!dx && !dy) return false;
+        const canvas = target.canvas as FabricCanvas | undefined;
+        const zoom = canvas?.getZoom?.() ?? 1;
+        const scale = inner.scaleX || 1;
+        const sdx = dx / zoom / scale;
+        const sdy = dy / zoom / scale;
+        const availX = inner.studioCropAvailX ?? 0;
+        const availY = inner.studioCropAvailY ?? 0;
+        const newCropX = Math.max(0, Math.min(availX, (inner.cropX ?? 0) - sdx));
+        const newCropY = Math.max(0, Math.min(availY, (inner.cropY ?? 0) - sdy));
+        inner.set({ cropX: newCropX, cropY: newCropY });
+        return true;
+      },
+      mouseUpHandler: (_eventData: any, transform: any) => {
+        const target = transform.target as FabricObj;
+        const inner = innerImageOf(target);
+        const canvas = canvasRef.current;
+        if (!inner || !canvas) return false;
+        const availX = inner.studioCropAvailX ?? 0;
+        const availY = inner.studioCropAvailY ?? 0;
+        const ox = availX > 0 ? ((inner.cropX ?? 0) - availX / 2) / (availX / 2) : 0;
+        const oy = availY > 0 ? ((inner.cropY ?? 0) - availY / 2) / (availY / 2) : 0;
+        target.studioOffsetX = ox;
+        target.studioOffsetY = oy;
+        onSelectionChange({
+          kind: "image",
+          id: target.studioId,
+          hasPhoto: true,
+          shape: target.studioShape ?? "rect",
+          frame: target.studioFrame ?? "none",
+          frameColor: target.studioFrameColor ?? "#ffffff",
+          zoom: target.studioZoom ?? 1,
+          offsetX: ox,
+          offsetY: oy,
+        });
+        pushHistory();
+        return false;
+      },
+    });
+    group.controls = { ...group.controls, panner: control };
   }
 
   function pushHistory() {
@@ -677,6 +781,47 @@ export const StudioCanvas = forwardRef<
         canvas.renderAll();
         pushHistory();
       });
+    },
+    addStyledCaption(preset) {
+      const canvas = canvasRef.current;
+      const fabric = fabricRef.current;
+      if (!canvas || !fabric) return;
+      const text = new fabric.FabricText(preset.text, {
+        fontFamily: preset.font,
+        fontSize: 32,
+        fill: preset.color,
+        fontWeight: "bold",
+        originX: "center",
+        originY: "center",
+        left: 0,
+        top: 0,
+        direction: "rtl" as any,
+      });
+      const tw = text.width ?? 120;
+      const th = text.height ?? 36;
+      const pillW = tw + 64;
+      const pillH = th + 30;
+      const pill = new fabric.Rect({
+        width: pillW,
+        height: pillH,
+        rx: pillH / 2,
+        ry: pillH / 2,
+        left: 0,
+        top: 0,
+        originX: "center",
+        originY: "center",
+        fill: preset.bg,
+      });
+      const group = new fabric.Group([pill, text], { left: canvas.getWidth() / 2, top: canvas.getHeight() / 2, originX: "center", originY: "center" });
+      (group as FabricObj).studioId = `caption-${Date.now()}`;
+      (group as FabricObj).studioType = "shape";
+      (group as FabricObj).studioLabel = preset.text;
+      (group as FabricObj).studioColor = preset.bg;
+      (group as FabricObj).studioIsCaption = true;
+      canvas.add(group);
+      canvas.setActiveObject(group);
+      canvas.renderAll();
+      pushHistory();
     },
     addPhotoFrame(shape = "rounded") {
       const canvas = canvasRef.current;
@@ -962,7 +1107,16 @@ export const StudioCanvas = forwardRef<
       const active = canvas?.getActiveObject() as FabricObj;
       if (!canvas || !active) return;
       if (active.studioType === "shape") {
-        active.set({ fill: color });
+        if (active.studioIsCaption) {
+          // Caption sticker: recolor the pill background, not the group
+          // itself (a Group has no fill of its own) — leave the text color
+          // alone so it stays readable against the new background.
+          const kids = typeof active.getObjects === "function" ? active.getObjects() : (active._objects ?? []);
+          const pill = (kids as FabricObj[]).find((o) => o.type === "rect");
+          pill?.set({ fill: color });
+        } else {
+          active.set({ fill: color });
+        }
         active.studioColor = color;
       } else if (active.studioType === "image" && !active.studioHasPhoto) {
         // empty frame group: recolor its stroke, not fill, so it stays legible

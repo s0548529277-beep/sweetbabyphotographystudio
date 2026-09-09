@@ -29,6 +29,7 @@ import {
   ELEMENT_CATEGORIES,
   ELEMENT_LIBRARY,
   DESIGN_PRESETS,
+  STYLED_CAPTIONS,
   type ElementCategoryId,
   type StudioFontLang,
   type StudioFontCategory,
@@ -337,7 +338,25 @@ export function StudioEditor({ template }: { template: CollageTemplate }) {
             )}
 
             {tab === "elements" && (
-              <div className="space-y-3">
+              <div className="space-y-4">
+                <div>
+                  <div className="text-xs font-semibold text-primary mb-2">כיתובים מעוצבים</div>
+                  <p className="text-[11px] text-muted-foreground mb-2">כיתוב מוכן עם רקע צבעוני, מוכן להנחה על התמונה — לוחצים כדי להוסיף, גוררים כדי למקם.</p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {STYLED_CAPTIONS.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => canvasHandleRef.current?.addStyledCaption(p)}
+                        style={{ background: p.bg, color: p.color, fontFamily: p.font }}
+                        className="rounded-full px-3 py-2 text-xs font-bold text-center hover:opacity-85 transition-opacity truncate"
+                      >
+                        {p.text}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="text-xs font-semibold text-primary">אלמנטים דקורטיביים</div>
                 <div className="flex flex-wrap gap-1.5">
                   {ELEMENT_CATEGORIES.map((c) => (
                     <button

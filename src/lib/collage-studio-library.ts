@@ -362,6 +362,46 @@ export const ELEMENT_LIBRARY: LibraryElement[] = [
   { id: "honey-jar", category: "illustrations", label: "צנצנת דבש", svg: (c) => svgWrap(`<rect x="26" y="20" width="48" height="13" rx="4" fill="CURRENT"/><path d="M30,33 h40 v48 a10,10 0 0 1 -10,10 h-20 a10,10 0 0 1 -10,-10 z" fill="CURRENT" opacity="0.85"/><path d="M50,42 q9,11 0,22 q-9,-11 0,-22" fill="#ffffff" opacity="0.45"/>`, c) },
   { id: "bow", category: "illustrations", label: "פמוט/סרט", svg: (c) => svgWrap(`<path d="M50,50 L10,20 L14,50 L10,80 Z" fill="CURRENT"/><path d="M50,50 L90,20 L86,50 L90,80 Z" fill="CURRENT"/><circle cx="50" cy="50" r="10" fill="CURRENT"/>`, c) },
   { id: "apple", category: "illustrations", label: "תפוח", svg: (c) => svgWrap(`<path d="M50,30 C30,30 15,48 15,68 C15,85 30,95 50,95 C70,95 85,85 85,68 C85,48 70,30 50,30 Z" fill="CURRENT"/><path d="M50,30 C48,20 52,12 60,8" fill="none" stroke="CURRENT" stroke-width="4"/><path d="M55,15 C65,10 75,15 72,25 C62,28 55,22 55,15 Z" fill="CURRENT" opacity="0.7"/>`, c) },
+  // Second growth pass — matching the owner's own reference screenshots
+  // (a cute hand-drawn "doodle" sticker set): tomato, a honey dipper
+  // (distinct from the honey jar above), an outline daisy, a smiley, a
+  // hand-drawn spiral, a playful arrow, a multi-point sparkle burst, a
+  // dotted heart outline, and a small two-leaf sprig. All original vector
+  // art (see the note in this file's own history) — not traced from any
+  // external site.
+  { id: "tomato", category: "illustrations", label: "עגבנייה", svg: (c) => svgWrap(`<ellipse cx="50" cy="60" rx="32" ry="29" fill="CURRENT"/>${[-30, -10, 10, 30].map((a) => `<path d="M50,30 L${50 + Math.sin((a * Math.PI) / 180) * 14},${30 - Math.cos((a * Math.PI) / 180) * 10} L50,28 Z" fill="#6b8a4a" transform="rotate(${a} 50 30)"/>`).join("")}`, c) },
+  { id: "honey-dripper", category: "illustrations", label: "מקל דבש", svg: (c) => svgWrap(`<path d="M28,15 Q50,3 72,15 Q64,35 50,48 Q36,35 28,15 Z" fill="CURRENT"/><path d="M50,48 L50,80" stroke="CURRENT" stroke-width="5" stroke-linecap="round"/><circle cx="50" cy="88" r="6" fill="CURRENT"/>`, c) },
+  { id: "daisy-outline", category: "flowers", label: "חיננית מתאר", svg: (c) => svgWrap(`${[0, 45, 90, 135, 180, 225, 270, 315].map((a) => `<ellipse cx="50" cy="24" rx="7" ry="15" fill="none" stroke="CURRENT" stroke-width="3" transform="rotate(${a} 50 50)"/>`).join("")}<circle cx="50" cy="50" r="8" fill="CURRENT"/>`, c) },
+  { id: "smiley", category: "illustrations", label: "חייכן", svg: (c) => svgWrap(`<circle cx="50" cy="50" r="38" fill="CURRENT"/><circle cx="38" cy="43" r="4.5" fill="#5a3d1c"/><circle cx="62" cy="43" r="4.5" fill="#5a3d1c"/><path d="M34,58 Q50,73 66,58" fill="none" stroke="#5a3d1c" stroke-width="4" stroke-linecap="round"/><circle cx="26" cy="55" r="6" fill="#ffffff" opacity="0.35"/><circle cx="74" cy="55" r="6" fill="#ffffff" opacity="0.35"/>`, c) },
+  { id: "spiral-doodle", category: "lines", label: "קשקוש ספירלה", svg: (c) => svgWrap(`<path d="M50,50 C50,35 65,35 65,50 C65,65 35,65 35,45 C35,20 70,20 70,50 C70,75 25,75 25,40" fill="none" stroke="CURRENT" stroke-width="3.5" stroke-linecap="round"/>`, c) },
+  { id: "arrow-squiggle", category: "lines", label: "חץ מתפתל", svg: (c) => svgWrap(`<path d="M15,70 Q40,20 75,45" fill="none" stroke="CURRENT" stroke-width="3.5" stroke-linecap="round"/><path d="M60,34 L78,46 L63,60" fill="none" stroke="CURRENT" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>`, c) },
+  { id: "sparkle-burst", category: "stars", label: "נצנוצים", svg: (c) => svgWrap(`<path d="M50,10 Q54,42 88,50 Q54,58 50,90 Q46,58 12,50 Q46,42 50,10 Z" fill="CURRENT"/>${[[18, 22], [82, 24], [80, 78], [20, 76]].map(([x, y]) => `<path d="M${x},${y - 6} L${x + 2},${y - 1} L${x + 6},${y} L${x + 2},${y + 1} L${x},${y + 6} L${x - 2},${y + 1} L${x - 6},${y} L${x - 2},${y - 1} Z" fill="CURRENT" opacity="0.8"/>`).join("")}`, c) },
+  { id: "heart-dotted", category: "hearts", label: "לב מנוקד", svg: (c) => svgWrap(`<path d="M50,88 C10,60 -8,28 22,14 C38,6 50,22 50,22 C50,22 62,6 78,14 C108,28 90,60 50,88 Z" fill="none" stroke="CURRENT" stroke-width="4" stroke-dasharray="1,9" stroke-linecap="round"/>`, c) },
+  { id: "sprig", category: "leaves", label: "ענף קטן", svg: (c) => svgWrap(`<path d="M50,92 Q45,50 55,8" fill="none" stroke="CURRENT" stroke-width="2.5"/><ellipse cx="44" cy="33" rx="11" ry="5.5" fill="CURRENT" transform="rotate(-30 44 33)"/><ellipse cx="59" cy="60" rx="11" ry="5.5" fill="CURRENT" transform="rotate(30 59 60)"/>`, c) },
+];
+
+// ---------------------------------------------------------------------
+// Styled caption stickers — a ready-made pill/bubble background PAIRED
+// with a specific caption (per the owner's reference: colorful rounded
+// badges like "שנה טובה ומתוקה"), inserted as one grouped sticker in a
+// single click — distinct from the plain STUDIO_TEXT_PRESETS above,
+// which insert bare, unstyled text. StudioCanvas.addStyledCaption reads
+// this data; the pill's own width/height is derived from the actual
+// measured text, not a guess, so longer captions still fit.
+// ---------------------------------------------------------------------
+export type StyledCaptionPreset = { id: string; text: string; bg: string; color: string; font: string };
+
+export const STYLED_CAPTIONS: StyledCaptionPreset[] = [
+  { id: "good-year", text: "שנה טובה", bg: "#f6d977", color: "#5a4a20", font: "'Secular One', sans-serif" },
+  { id: "all-heart", text: "מכל הלב", bg: "#f5c9d6", color: "#7a2f45", font: "'Secular One', sans-serif" },
+  { id: "mazal-tov", text: "מזל טוב", bg: "#cfd6f0", color: "#2c3566", font: "'Secular One', sans-serif" },
+  { id: "welcome-world", text: "ברוכים הבאים לעולם", bg: "#cfe4ee", color: "#1e4a5c", font: "Rubik, sans-serif" },
+  { id: "so-tiny", text: "קטן כל כך, אהוב כל כך", bg: "#f6d6d6", color: "#7a2f2f", font: "Rubik, sans-serif" },
+  { id: "our-smile", text: "החיוך שלנו", bg: "#fbe79a", color: "#5a4a1a", font: "'Secular One', sans-serif" },
+  { id: "our-family", text: "המשפחה שלנו", bg: "#d6ead0", color: "#2f4a26", font: "Rubik, sans-serif" },
+  { id: "special-day", text: "היום המיוחד שלי", bg: "#e3d6f0", color: "#4a2f66", font: "Rubik, sans-serif" },
+  { id: "grew-up", text: "איזה כיף שגדלת", bg: "#f6dcc0", color: "#7a4a1a", font: "'Secular One', sans-serif" },
+  { id: "home", text: "יחד זה הבית", bg: "#dcead6", color: "#2f4a26", font: "Rubik, sans-serif" },
 ];
 
 export function findElement(id: string): LibraryElement | undefined {
