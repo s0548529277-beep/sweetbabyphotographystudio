@@ -144,7 +144,11 @@ export function CollageWizard() {
   const [caption, setCaption] = useState("הרגעים שלנו");
   const [subtitle, setSubtitle] = useState("רגעים שנשארים לתמיד");
   const [palette, setPalette] = useState<{ bg: string; accent: string; captionColor: string } | null>(null);
+  const [bgPattern, setBgPattern] = useState<BackgroundPatternId>("none");
+  const [stickers, setStickers] = useState<PlacedSticker[]>([]);
+  const [search, setSearch] = useState("");
   const [downloading, setDownloading] = useState(false);
+
   const svgRef = useRef<SVGSVGElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingSlotRef = useRef<number | null>(null);
