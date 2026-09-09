@@ -252,6 +252,9 @@ export function CollageCard({
   captionPlacement = "below",
   paletteOverride,
   decorId = "none",
+  bgPattern = "none",
+  stickers = [],
+  onStickerClick,
   onSlotClick,
   caption,
   subtitle,
@@ -273,9 +276,15 @@ export function CollageCard({
   /** Overrides the style's own bg/accent/captionColor — from a color-palette preset, the eyedropper, or auto photo-match. Missing keys fall back to the style's default. */
   paletteOverride?: { bg?: string; accent?: string; captionColor?: string } | null;
   decorId?: DecorThemeId;
+  /** Repeating background texture drawn over the flat bg color (see BACKGROUND_PATTERNS). */
+  bgPattern?: BackgroundPatternId;
+  /** Shape/caption stickers the user added, positioned as card fractions. */
+  stickers?: PlacedSticker[];
+  onStickerClick?: (uid: string) => void;
   onSlotClick?: (index: number) => void;
   caption: string;
   subtitle: string;
+
 }) {
   const style = findCollageStyle(styleId);
   const bg = paletteOverride?.bg ?? style.bg;
