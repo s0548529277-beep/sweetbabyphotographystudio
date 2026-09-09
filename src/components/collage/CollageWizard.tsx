@@ -396,7 +396,9 @@ export function CollageWizard() {
                     <div><span className="text-xs font-semibold text-secondary-foreground">תצוגה חיה</span><h2 className="font-display text-2xl text-primary">הקולאז׳ שלך</h2></div>
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><LockKeyhole className="h-3.5 w-3.5" /> התמונות לא נשלחות לשום מקום</span>
                   </div>
-                  <div className="mx-auto max-w-lg"><CollageCard svgRef={svgRef} cardW={dimensions.w} cardH={dimensions.h} styleId={styleId} photos={photos} layoutId={layoutId} shape={shape} effect={effect} frame={frame} borderStyle={borderStyle} captionPlacement={captionPlacement} paletteOverride={palette} decorId={decorId} caption={caption} subtitle={subtitle} onSlotClick={openPicker} /></div>
+                  <div className="mx-auto max-w-lg"><CollageCard svgRef={svgRef} cardW={dimensions.w} cardH={dimensions.h} styleId={styleId} photos={photos} layoutId={layoutId} shape={shape} effect={effect} frame={frame} borderStyle={borderStyle} captionPlacement={captionPlacement} paletteOverride={palette} decorId={decorId} bgPattern={bgPattern} stickers={stickers} onStickerClick={(uid) => setStickers((current) => current.filter((item) => item.uid !== uid))} caption={caption} subtitle={subtitle} onSlotClick={openPicker} /></div>
+                  {stickers.length > 0 && <p className="mt-2 text-center text-xs text-muted-foreground">לחיצה על מדבקה בקולאז׳ מסירה אותה</p>}
+
                 </div>
                 <div className="space-y-5">
                   <div className="rounded-2xl border border-border bg-background p-4">
