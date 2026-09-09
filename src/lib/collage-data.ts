@@ -436,7 +436,7 @@ export function getLayoutVariants(count: number): LayoutVariant[] {
   return variants;
 }
 
-export type PhotoShapeId = "rect" | "rounded" | "circle" | "arch" | "heart" | "blob";
+export type PhotoShapeId = "rect" | "rounded" | "circle" | "arch" | "heart" | "blob" | "capsule" | "rhombus";
 
 export const PHOTO_SHAPES: { id: PhotoShapeId; label: string }[] = [
   { id: "rect", label: "מלבן" },
@@ -445,6 +445,8 @@ export const PHOTO_SHAPES: { id: PhotoShapeId; label: string }[] = [
   { id: "arch", label: "קשת" },
   { id: "heart", label: "לב" },
   { id: "blob", label: "אורגני" },
+  { id: "capsule", label: "קפסולה" },
+  { id: "rhombus", label: "מעוין" },
 ];
 
 export type PhotoEffectId = "none" | "bw" | "warm" | "vivid" | "soft" | "dramatic" | "fade";
@@ -545,6 +547,17 @@ export function shapeClipPath(shape: PhotoShapeId, rect: SlotRect): string | nul
     case "arch": {
       const r = Math.min(w / 2, h);
       return `M ${x},${y + h} L ${x},${y + r} A ${r},${r} 0 0 1 ${x + w},${y + r} L ${x + w},${y + h} Z`;
+    }
+    case "capsule": {
+      // Same rounded-rect path as "rounded", just with the radius pushed to
+      // its maximum (half the short side) — a stadium/pill outline.
+      const r = Math.min(w, h) / 2;
+      return `M ${x + r},${y} H ${x + w - r} A ${r},${r} 0 0 1 ${x + w},${y + r} V ${y + h - r} A ${r},${r} 0 0 1 ${x + w - r},${y + h} H ${x + r} A ${r},${r} 0 0 1 ${x},${y + h - r} V ${y + r} A ${r},${r} 0 0 1 ${x + r},${y} Z`;
+    }
+    case "rhombus": {
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      return `M ${cx},${y} L ${x + w},${cy} L ${cx},${y + h} L ${x},${cy} Z`;
     }
     case "rect":
     default:

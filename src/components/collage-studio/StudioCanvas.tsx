@@ -7,7 +7,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { shapeClipPath } from "@/lib/collage-data";
 import { findElement, type DesignPreset } from "@/lib/collage-studio-library";
-import type { CollageTemplate, StudioElement, StudioImageShape } from "@/lib/collage-studio-data";
+import type { CollageTemplate, StudioElement, StudioImageShape, StudioFrameStyle } from "@/lib/collage-studio-data";
 
 // fabric's own object types aren't imported at module scope (see above) —
 // these are kept loose (`any`) rather than duplicating fabric's types by
@@ -28,14 +28,44 @@ export type LayerInfo = {
 
 export type SelectionInfo =
   | { kind: "none" }
-  | { kind: "image"; id: string; hasPhoto: boolean }
+  | {
+      kind: "image";
+      id: string;
+      hasPhoto: boolean;
+      shape: StudioImageShape;
+      frame: StudioFrameStyle;
+      frameColor: string;
+      zoom: number;
+      offsetX: number;
+      offsetY: number;
+    }
   | { kind: "text"; id: string; text: string; fontFamily: string; fontSize: number; color: string; bold: boolean }
   | { kind: "shape"; id: string; color: string };
+
+/** Everything that controls how one photo renders inside its own fixed
+ * frame — shape (clip), border/mat treatment, and crop (zoom + pan). Kept
+ * as one bundle since changing any of them means fully rebuilding the
+ * photo's fabric object (see buildPhotoElement) rather than patching it in
+ * place. */
+export type PhotoStyle = {
+  shape: StudioImageShape;
+  frame: StudioFrameStyle;
+  frameColor: string;
+  zoom: number;
+  offsetX: number;
+  offsetY: number;
+};
+const DEFAULT_PHOTO_STYLE: PhotoStyle = { shape: "rect", frame: "none", frameColor: "#ffffff", zoom: 1, offsetX: 0, offsetY: 0 };
 
 export type StudioCanvasHandle = {
   addTextPreset: (text: string, subtitle?: string) => void;
   addCustomText: () => void;
   addElement: (elementId: string) => void;
+  /** Adds a brand-new empty photo frame to the canvas (default centered,
+   * rounded) — the real answer to "let me add/remove photos freely,
+   * regardless of how many the template started with". Removing one is
+   * just selecting it and using the existing delete button. */
+  addPhotoFrame: (shape?: StudioImageShape) => void;
   setBackgroundColor: (color: string) => void;
   applyDesignPreset: (preset: DesignPreset) => void;
   replaceSelectedImage: (dataUrl: string) => Promise<void>;
@@ -44,6 +74,12 @@ export type StudioCanvasHandle = {
   assignToSelectedOrNextEmptyFrame: (dataUrl: string) => Promise<boolean>;
   /** Drag-and-drop flow: fills whichever frame (empty or already filled) is under the given canvas-space point. */
   assignImageAtPoint: (dataUrl: string, x: number, y: number) => Promise<boolean>;
+  /** Rebuilds the selected photo (or empty frame) with a new clip shape, keeping its position/size/photo/frame/crop. */
+  updateSelectedShape: (shape: StudioImageShape) => Promise<void>;
+  /** Rebuilds the selected (photo-holding) frame with a patch over its current border style and/or crop (zoom/pan). No-op on an empty frame — nothing to crop yet. */
+  updateSelectedImageStyle: (patch: Partial<Pick<PhotoStyle, "frame" | "frameColor" | "zoom" | "offsetX" | "offsetY">>) => Promise<void>;
+  /** Resets the selected photo's zoom/pan back to a plain centered cover-fit. */
+  resetSelectedImageCrop: () => Promise<void>;
   deleteSelected: () => void;
   duplicateSelected: () => void;
   bringForward: () => void;
@@ -130,7 +166,17 @@ export const StudioCanvas = forwardRef<
       if (kind === "text") {
         onSelectionChange({ kind: "text", id: obj.studioId, text: obj.text ?? "", fontFamily: obj.fontFamily ?? "Assistant", fontSize: Math.round(obj.fontSize ?? 24), color: obj.fill ?? "#000000", bold: obj.fontWeight === "bold" });
       } else if (kind === "image") {
-        onSelectionChange({ kind: "image", id: obj.studioId, hasPhoto: Boolean(obj.studioHasPhoto) });
+        onSelectionChange({
+          kind: "image",
+          id: obj.studioId,
+          hasPhoto: Boolean(obj.studioHasPhoto),
+          shape: obj.studioShape ?? "rect",
+          frame: obj.studioFrame ?? "none",
+          frameColor: obj.studioFrameColor ?? "#ffffff",
+          zoom: obj.studioZoom ?? 1,
+          offsetX: obj.studioOffsetX ?? 0,
+          offsetY: obj.studioOffsetY ?? 0,
+        });
       } else if (kind === "shape") {
         onSelectionChange({ kind: "shape", id: obj.studioId, color: obj.fill ?? "#000000" });
       } else {
@@ -320,22 +366,73 @@ export const StudioCanvas = forwardRef<
     (group as FabricObj).studioShape = shape;
     (group as FabricObj).studioFrameW = el.width;
     (group as FabricObj).studioFrameH = el.height;
+    (group as FabricObj).studioFrame = el.frame ?? "none";
+    (group as FabricObj).studioFrameColor = el.frameColor ?? "#ffffff";
     return group;
   }
 
-  async function makePhotoObject(fabric: FabricNS, dataUrl: string, frameId: string, shape: StudioImageShape, x: number, y: number, w: number, h: number, angle: number): Promise<FabricObj> {
+  /** Border/mat padding (in the frame's own px) for one frame style — "none"
+   * and the pure stroke styles (thin/thick/dashed/double) get no mat at
+   * all, only "polaroid" (classic deep-bottom print) and "passepartout"
+   * (equal picture-frame mat) push the photo inward. */
+  function matPadding(frame: StudioFrameStyle, w: number, h: number): { side: number; top: number; bottom: number } {
+    if (frame === "polaroid") return { side: w * 0.055, top: w * 0.055, bottom: h * 0.22 };
+    if (frame === "passepartout") {
+      const p = Math.max(w, h) * 0.07;
+      return { side: p, top: p, bottom: p };
+    }
+    return { side: 0, top: 0, bottom: 0 };
+  }
+
+  /**
+   * Builds one placed photo as a small fixed group: [mat?, image, outline?]
+   * — always the same shape of object (a Group), so swapping/rebuilding it
+   * on a shape/frame/crop change is uniform whether or not it currently has
+   * a mat or outline. The group's own left/top/angle/width/height is
+   * exactly the frame's own fixed geometry — moving/resizing/rotating the
+   * WHOLE element (drag, corner handles) works exactly as before,
+   * completely independent of the photo's own zoom/pan.
+   *
+   * Zoom/pan is implemented via the image's own cropX/cropY/width/height
+   * (a real fabric.Image feature, not a hack) instead of translating the
+   * image object — that keeps the image's own bounding box (and therefore
+   * the frame's position/size) untouched no matter how the photo is
+   * zoomed or panned inside it, so "drag moves the whole element" and
+   * "zoom/pan reveals different content in a fixed window" never fight
+   * each other.
+   */
+  async function buildPhotoElement(
+    fabric: FabricNS,
+    opts: { dataUrl: string; frameId: string; x: number; y: number; w: number; h: number; angle: number; style: PhotoStyle },
+  ): Promise<FabricObj> {
+    const { dataUrl, frameId, x, y, w, h, angle, style } = opts;
     const img = await fabric.FabricImage.fromURL(dataUrl);
-    const scale = Math.max(w / (img.width || 1), h / (img.height || 1));
+    const imgW = img.width || 1;
+    const imgH = img.height || 1;
+    const baseScale = Math.max(w / imgW, h / imgH);
+    const zoom = Math.max(1, style.zoom || 1);
+    const scale = baseScale * zoom;
+    const cropW = Math.min(imgW, w / scale);
+    const cropH = Math.min(imgH, h / scale);
+    const availX = Math.max(0, imgW - cropW);
+    const availY = Math.max(0, imgH - cropH);
+    const ox = Math.max(-1, Math.min(1, style.offsetX || 0));
+    const oy = Math.max(-1, Math.min(1, style.offsetY || 0));
+    const cropX = Math.max(0, Math.min(availX, availX / 2 + (ox * availX) / 2));
+    const cropY = Math.max(0, Math.min(availY, availY / 2 + (oy * availY) / 2));
     img.set({
-      left: x + w / 2,
-      top: y + h / 2,
+      cropX,
+      cropY,
+      width: cropW,
+      height: cropH,
+      left: 0,
+      top: 0,
       originX: "center",
       originY: "center",
-      angle,
       scaleX: scale,
       scaleY: scale,
     });
-    const d = unitClipPathD(shape, w, h);
+    const d = unitClipPathD(style.shape, w, h);
     if (d) {
       const clip = new fabric.Path(d, { originX: "center", originY: "center" });
       // clipPath coordinates are in the target object's own (unscaled)
@@ -343,14 +440,61 @@ export const StudioCanvas = forwardRef<
       clip.set({ scaleX: 1 / scale, scaleY: 1 / scale });
       img.clipPath = clip;
     }
-    (img as FabricObj).studioId = frameId;
-    (img as FabricObj).studioType = "image";
-    (img as FabricObj).studioLabel = "תמונה";
-    (img as FabricObj).studioHasPhoto = true;
-    (img as FabricObj).studioShape = shape;
-    (img as FabricObj).studioFrameW = w;
-    (img as FabricObj).studioFrameH = h;
-    return img;
+
+    const children: FabricObj[] = [];
+    const pad = matPadding(style.frame, w, h);
+    if (pad.side || pad.top || pad.bottom) {
+      const mat = new fabric.Rect({
+        left: 0,
+        top: (pad.bottom - pad.top) / 2,
+        width: w + pad.side * 2,
+        height: h + pad.top + pad.bottom,
+        originX: "center",
+        originY: "center",
+        fill: style.frameColor,
+        stroke: "#00000014",
+        strokeWidth: 1,
+        rx: Math.min(10, pad.side * 0.4 || 6),
+        ry: Math.min(10, pad.side * 0.4 || 6),
+      });
+      children.push(mat);
+    }
+    children.push(img as FabricObj);
+    if (style.frame === "thin" || style.frame === "thick" || style.frame === "dashed" || style.frame === "double") {
+      const outlineD = d ?? `M ${-w / 2},${-h / 2} H ${w / 2} V ${h / 2} H ${-w / 2} Z`;
+      const strokeWidth = style.frame === "thick" ? 14 : 4;
+      children.push(
+        new fabric.Path(outlineD, {
+          left: 0,
+          top: 0,
+          originX: "center",
+          originY: "center",
+          fill: "",
+          stroke: style.frameColor,
+          strokeWidth,
+          strokeDashArray: style.frame === "dashed" ? [12, 9] : undefined,
+        }),
+      );
+      if (style.frame === "double") {
+        const innerD = unitClipPathD(style.shape, Math.max(1, w - 16), Math.max(1, h - 16)) ?? `M ${-(w - 16) / 2},${-(h - 16) / 2} H ${(w - 16) / 2} V ${(h - 16) / 2} H ${-(w - 16) / 2} Z`;
+        children.push(new fabric.Path(innerD, { left: 0, top: 0, originX: "center", originY: "center", fill: "", stroke: style.frameColor, strokeWidth: 3 }));
+      }
+    }
+
+    const group = new fabric.Group(children, { left: x + w / 2, top: y + h / 2, originX: "center", originY: "center", angle });
+    (group as FabricObj).studioId = frameId;
+    (group as FabricObj).studioType = "image";
+    (group as FabricObj).studioLabel = "תמונה";
+    (group as FabricObj).studioHasPhoto = true;
+    (group as FabricObj).studioShape = style.shape;
+    (group as FabricObj).studioFrameW = w;
+    (group as FabricObj).studioFrameH = h;
+    (group as FabricObj).studioFrame = style.frame;
+    (group as FabricObj).studioFrameColor = style.frameColor;
+    (group as FabricObj).studioZoom = zoom;
+    (group as FabricObj).studioOffsetX = ox;
+    (group as FabricObj).studioOffsetY = oy;
+    return group;
   }
 
   function pushHistory() {
@@ -360,7 +504,25 @@ export const StudioCanvas = forwardRef<
     // extra-properties argument) lets us keep the custom studio* props
     // through a save/restore round trip, which loadFromJSON still accepts
     // as a plain object just fine.
-    const json = JSON.stringify(canvas.toObject(["studioId", "studioType", "studioLabel", "studioHasPhoto", "studioShape", "studioFrameW", "studioFrameH", "studioElementId", "studioColor", "studioIsGuide"]));
+    const json = JSON.stringify(
+      canvas.toObject([
+        "studioId",
+        "studioType",
+        "studioLabel",
+        "studioHasPhoto",
+        "studioShape",
+        "studioFrameW",
+        "studioFrameH",
+        "studioFrame",
+        "studioFrameColor",
+        "studioZoom",
+        "studioOffsetX",
+        "studioOffsetY",
+        "studioElementId",
+        "studioColor",
+        "studioIsGuide",
+      ]),
+    );
     const h = historyRef.current;
     // Drop any redo tail once a new change happens.
     h.stack = h.stack.slice(0, h.index + 1);
@@ -388,10 +550,22 @@ export const StudioCanvas = forwardRef<
     return canvasRef.current?.getObjects().find((o: FabricObj) => o.studioId === id);
   }
 
-  /** Shared by every "put this photo in that frame" flow (replace-selected, sequential fill, click-to-add, drag-drop): swaps whatever object currently occupies the frame's z-order slot for a fresh photo object with the same id/shape/bounds/angle. */
-  async function swapFrameForPhoto(fabric: FabricNS, canvas: FabricCanvas, frame: FabricObj, dataUrl: string) {
+  /** Reads the current style (shape/frame/crop) off any frame or photo group — used both to carry a template/placeholder's intended look into its first photo, and to preserve a photo's existing style whenever it's rebuilt (replace image, shape change, frame change, crop change). */
+  function styleOf(obj: FabricObj): PhotoStyle {
+    return {
+      shape: obj.studioShape ?? DEFAULT_PHOTO_STYLE.shape,
+      frame: obj.studioFrame ?? DEFAULT_PHOTO_STYLE.frame,
+      frameColor: obj.studioFrameColor ?? DEFAULT_PHOTO_STYLE.frameColor,
+      zoom: obj.studioZoom ?? DEFAULT_PHOTO_STYLE.zoom,
+      offsetX: obj.studioOffsetX ?? DEFAULT_PHOTO_STYLE.offsetX,
+      offsetY: obj.studioOffsetY ?? DEFAULT_PHOTO_STYLE.offsetY,
+    };
+  }
+
+  /** Shared by every "put this photo in that frame" flow (replace-selected, sequential fill, click-to-add, drag-drop): swaps whatever object currently occupies the frame's z-order slot for a fresh photo object with the same id/bounds/angle, carrying over the frame's own shape/border/crop style (a template's chosen shape, or a re-placed photo's own frame/zoom/pan). */
+  async function swapFrameForPhoto(fabric: FabricNS, canvas: FabricCanvas, frame: FabricObj, dataUrl: string, styleOverride?: Partial<PhotoStyle>) {
     const id = frame.studioId;
-    const shape: StudioImageShape = frame.studioShape ?? "rect";
+    const style: PhotoStyle = { ...styleOf(frame), ...styleOverride };
     const w = frame.studioFrameW ?? frame.getScaledWidth();
     const h = frame.studioFrameH ?? frame.getScaledHeight();
     const center = frame.getCenterPoint();
@@ -399,11 +573,18 @@ export const StudioCanvas = forwardRef<
     const wasActive = canvas.getActiveObject() === frame;
     const idx = canvas.getObjects().indexOf(frame);
     canvas.remove(frame);
-    const img = await makePhotoObject(fabric, dataUrl, id, shape, center.x - w / 2, center.y - h / 2, w, h, angle);
+    const img = await buildPhotoElement(fabric, { dataUrl, frameId: id, x: center.x - w / 2, y: center.y - h / 2, w, h, angle, style });
     canvas.insertAt(idx, img);
     if (wasActive) canvas.setActiveObject(img);
     canvas.renderAll();
     return img;
+  }
+
+  /** Finds the actual fabric.Image child inside a placed photo's group (or, for legacy pre-group photos loaded from an old saved JSON, the object itself) — the only place a photo's original data URL is still available (fabric.Image keeps its own source via getSrc()), so restyling never needs the source data URL tracked separately in React state. */
+  function innerImageOf(obj: FabricObj): FabricObj | null {
+    if (obj.type === "image") return obj;
+    const kids = typeof obj.getObjects === "function" ? obj.getObjects() : (obj._objects ?? []);
+    return (kids as FabricObj[]).find((o) => o.type === "image") ?? null;
   }
 
   // ---- imperative API --------------------------------------------------
@@ -497,6 +678,25 @@ export const StudioCanvas = forwardRef<
         pushHistory();
       });
     },
+    addPhotoFrame(shape = "rounded") {
+      const canvas = canvasRef.current;
+      const fabric = fabricRef.current;
+      if (!canvas || !fabric) return;
+      const w = Math.round(canvas.getWidth() * 0.32);
+      const h = Math.round(canvas.getHeight() * 0.28);
+      // Stagger repeated clicks a little so adding several frames in a row
+      // doesn't stack them exactly on top of each other.
+      const n = (canvas.getObjects() as FabricObj[]).filter((o) => o.studioType === "image").length;
+      const jitter = (n % 5) * 18;
+      const x = Math.round((canvas.getWidth() - w) / 2 + jitter);
+      const y = Math.round((canvas.getHeight() - h) / 2 + jitter);
+      const el: Extract<StudioElement, { type: "image" }> = { type: "image", id: `photo-${Date.now()}`, x, y, width: w, height: h, shape };
+      const group = buildEmptyFrame(fabric, el);
+      canvas.add(group);
+      canvas.setActiveObject(group);
+      canvas.renderAll();
+      pushHistory();
+    },
     setBackgroundColor(color) {
       const canvas = canvasRef.current;
       if (!canvas) return;
@@ -560,6 +760,70 @@ export const StudioCanvas = forwardRef<
       pushHistory();
       return true;
     },
+    async updateSelectedShape(shape) {
+      const canvas = canvasRef.current;
+      const fabric = fabricRef.current;
+      const active = canvas?.getActiveObject() as FabricObj;
+      if (!canvas || !fabric || !active || active.studioType !== "image") return;
+      const w = active.studioFrameW ?? active.getScaledWidth();
+      const h = active.studioFrameH ?? active.getScaledHeight();
+      const center = active.getCenterPoint();
+      const angle = active.angle ?? 0;
+      const idx = canvas.getObjects().indexOf(active);
+      const inner = innerImageOf(active);
+      canvas.remove(active);
+      let next: FabricObj;
+      if (active.studioHasPhoto && inner) {
+        const style: PhotoStyle = { ...styleOf(active), shape };
+        next = await buildPhotoElement(fabric, { dataUrl: inner.getSrc(), frameId: active.studioId, x: center.x - w / 2, y: center.y - h / 2, w, h, angle, style });
+      } else {
+        next = buildEmptyFrame(fabric, { type: "image", id: active.studioId, x: center.x - w / 2, y: center.y - h / 2, width: w, height: h, shape, rotation: angle, frame: active.studioFrame, frameColor: active.studioFrameColor });
+      }
+      canvas.insertAt(idx, next);
+      canvas.setActiveObject(next);
+      canvas.renderAll();
+      pushHistory();
+    },
+    async updateSelectedImageStyle(patch) {
+      const canvas = canvasRef.current;
+      const fabric = fabricRef.current;
+      const active = canvas?.getActiveObject() as FabricObj;
+      if (!canvas || !fabric || !active || active.studioType !== "image" || !active.studioHasPhoto) return;
+      const inner = innerImageOf(active);
+      if (!inner) return;
+      const w = active.studioFrameW ?? active.getScaledWidth();
+      const h = active.studioFrameH ?? active.getScaledHeight();
+      const center = active.getCenterPoint();
+      const angle = active.angle ?? 0;
+      const idx = canvas.getObjects().indexOf(active);
+      const style: PhotoStyle = { ...styleOf(active), ...patch };
+      canvas.remove(active);
+      const next = await buildPhotoElement(fabric, { dataUrl: inner.getSrc(), frameId: active.studioId, x: center.x - w / 2, y: center.y - h / 2, w, h, angle, style });
+      canvas.insertAt(idx, next);
+      canvas.setActiveObject(next);
+      canvas.renderAll();
+      pushHistory();
+    },
+    async resetSelectedImageCrop() {
+      const canvas = canvasRef.current;
+      const fabric = fabricRef.current;
+      const active = canvas?.getActiveObject() as FabricObj;
+      if (!canvas || !fabric || !active || active.studioType !== "image" || !active.studioHasPhoto) return;
+      const inner = innerImageOf(active);
+      if (!inner) return;
+      const w = active.studioFrameW ?? active.getScaledWidth();
+      const h = active.studioFrameH ?? active.getScaledHeight();
+      const center = active.getCenterPoint();
+      const angle = active.angle ?? 0;
+      const idx = canvas.getObjects().indexOf(active);
+      const style: PhotoStyle = { ...styleOf(active), zoom: 1, offsetX: 0, offsetY: 0 };
+      canvas.remove(active);
+      const next = await buildPhotoElement(fabric, { dataUrl: inner.getSrc(), frameId: active.studioId, x: center.x - w / 2, y: center.y - h / 2, w, h, angle, style });
+      canvas.insertAt(idx, next);
+      canvas.setActiveObject(next);
+      canvas.renderAll();
+      pushHistory();
+    },
     deleteSelected() {
       const canvas = canvasRef.current;
       const active = canvas?.getActiveObject();
@@ -582,6 +846,11 @@ export const StudioCanvas = forwardRef<
         clone.studioShape = active.studioShape;
         clone.studioFrameW = active.studioFrameW;
         clone.studioFrameH = active.studioFrameH;
+        clone.studioFrame = active.studioFrame;
+        clone.studioFrameColor = active.studioFrameColor;
+        clone.studioZoom = active.studioZoom;
+        clone.studioOffsetX = active.studioOffsetX;
+        clone.studioOffsetY = active.studioOffsetY;
         clone.studioElementId = active.studioElementId;
         canvas.add(clone);
         canvas.setActiveObject(clone);
