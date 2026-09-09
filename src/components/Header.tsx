@@ -16,11 +16,14 @@ const nav: { to: string; label: string; hash?: string; soon?: boolean }[] = [
   { to: "/studio-photography", label: "צילומים בסטודיו" },
   { to: "/studio-rental", label: "השכרת סטודיו" },
   { to: "/rental-catalog", label: "קטלוג אביזרים להשכרה" },
-  // "/collage-studio" (the pro editor) is deliberately NOT its own top-level
-  // nav item — per explicit request it lives UNDER "עיצוב קולאז׳ חינם",
-  // reached only via the promo banner inside /collage-maker, not as a peer
-  // entry point of its own.
-  { to: "/collage-maker", label: "עיצוב קולאז׳ חינם" },
+  // Points straight at the full Studio gallery (/collage-studio), not the
+  // older, simpler /collage-maker — per explicit follow-up request: the
+  // powerful editor (free drag, multiple photos, stickers, backgrounds)
+  // should be the direct destination, not something reached through an
+  // extra "want more control?" detour. /collage-maker still exists and
+  // still works on its own URL, just isn't the promoted entry point
+  // anymore.
+  { to: "/collage-studio", label: "עיצוב קולאז׳ חינם" },
   { to: "/about", label: "אודות ויצירת קשר" },
 ];
 
