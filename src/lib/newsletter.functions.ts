@@ -84,13 +84,18 @@ async function sendWelcomeEmail(email: string, coupon: IssuedCoupon | null) {
 export const isNewsletterSubscribed = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({ email: z.string().min(3).max(200).email() }).parse(data))
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: row } = await supabaseAdmin
-      .from("newsletter_signups")
-      .select("email")
-      .eq("email", data.email.trim().toLowerCase())
-      .maybeSingle();
-    return { subscribed: !!row };
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: row } = await supabaseAdmin
+        .from("newsletter_signups")
+        .select("email")
+        .eq("email", data.email.trim().toLowerCase())
+        .maybeSingle();
+      return { subscribed: !!row };
+    } catch (e) {
+      console.error("[SWEETBABY] newsletter subscription check failed", e);
+      return { subscribed: false };
+    }
   });
 
 // Public lead-capture endpoint (no auth) — backs the "get 15% off" email
