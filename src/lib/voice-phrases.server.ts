@@ -15,6 +15,9 @@
 export type PhraseKey =
   | "greeting"
   | "menu_prompt"
+  | "menu_prompt_dtmf"
+  | "dtmf_leave_message_confirm"
+  | "dtmf_leave_message_redo"
   | "studio_blurb"
   | "props_blurb"
   | "guide_choice_prompt"
@@ -31,7 +34,10 @@ export type PhraseKey =
 
 export const PHRASE_LABELS: Record<PhraseKey, string> = {
   greeting: "ברכת פתיחה (השורה הראשונה שהמתקשרת שומעת)",
-  menu_prompt: "תפריט האפשרויות (אחרי הברכה)",
+  menu_prompt: "תפריט האפשרויות (אחרי הברכה) — מצב שיחה/מילות מפתח",
+  menu_prompt_dtmf: "תפריט האפשרויות בהקשה — מצב תפריט הקשות (ראו 'מצב תפריט' למטה)",
+  dtmf_leave_message_confirm: "תפריט הקשות: לאישור ושליחת ההודעה שהוקלטה",
+  dtmf_leave_message_redo: "תפריט הקשות: לפני הקלטה חוזרת של ההודעה",
   studio_blurb: "תשובה קצרה — השכרת סטודיו",
   props_blurb: "תשובה קצרה — השכרת אביזרים",
   guide_choice_prompt: "שאלה לפני ההדרכה — הכול או שאלה ספציפית",
@@ -52,6 +58,14 @@ export const DEFAULT_PHRASES: Record<PhraseKey, string> = {
     "שָׁלוֹם, הִגַּעְתֶּם לסטודיו סוויט בייבי. לֹא הָיָה מַעֲנֶה כְּרֶגַע, הֲכִי מָהִיר בְּדֶרֶךְ כְּלָל לְחַפֵּשׂ בגוגל סטודיו סוויט בייבי וְלִמְצוֹא הַכֹּל בָּאֲתָר. אֲנִי כָּאן לַעֲזוֹר.",
   menu_prompt:
     "אֶפְשָׁר לוֹמַר בַּמֶּה לַעֲזוֹר: הַשְׂכָּרַת סטודיו, הַשְׂכָּרַת אֲבִיזָרִים, דַּרְכֵי הַגָּעָה, הַדְרָכָה לְשִׁמּוּשׁ בסטודיו, אוֹ לְהַשְׁאִיר הוֹדָעָה. אוֹ פָּשׁוּט לִשְׁאוֹל אוֹתִי כָּל שְׁאֵלָה אַחֶרֶת.",
+  // Spoken menu numbers spelled out as words for clean TTS pronunciation —
+  // the caller still presses the actual DIGIT key (1-5), this text is only
+  // what she hears, matching how every other spoken-number phrase in this
+  // file (durations, prices) is already written out as words, not digits.
+  menu_prompt_dtmf:
+    "אֶפְשָׁר לְהַקִּישׁ עַכְשָׁיו: אֶחָד לַהֲזָמָנַת סטודיו וְשִׁרְיוּן, שְׁתַּיִם לְהַשְׂכָּרַת אֲבִיזָרִים, שָׁלוֹשׁ לְדַרְכֵי הַגָּעָה, אַרְבַּע לְהַדְרָכָה לְשִׁמּוּשׁ בסטודיו, חָמֵשׁ לְהַשְׁאָרַת הוֹדָעָה.",
+  dtmf_leave_message_confirm: "לְאִשּׁוּר וּשְׁלִיחַת הַהוֹדָעָה הַקִּישִׁי אֶחָד. לְהַקְלִיט אוֹתָהּ מֵחָדָשׁ הַקִּישִׁי שְׁתַּיִם.",
+  dtmf_leave_message_redo: "בְּסֵדֶר, אֶפְשָׁר לְהַגִּיד אֶת הַהוֹדָעָה שׁוּב.",
   studio_blurb:
     "הַשְׂכָּרַת סטודיו: שָׁעָה רִאשׁוֹנָה 120 שֶׁקֶל, כָּל שָׁעָה נוֹסֶפֶת 90 שֶׁקֶל. שִׁרְיוּן דּוֹרֵשׁ מִקְדָּמָה שֶׁל 90 שֶׁקֶל. אֶפְשָׁר גַּם חֲבִילַת ניו-בורן בֹּקֶר, 3 שָׁעוֹת ב-240 שֶׁקֶל.",
   props_blurb:
@@ -138,9 +152,23 @@ function applyMaleGenderToPhrase(text: string): string {
 //           arrival/guidance/leave-message/studio-blurb/props-blurb keep
 //           their own free, zero-AI-cost canned-phrase fast path, and only
 //           an unmatched utterance falls through to the AI.
+//   "dtmf"  (added 2026-09-09, per direct report that speech recognition
+//           kept failing live — "לא מזהה דיבור" recurring even after the
+//           quiet_max fix): the ENTIRE menu is keypad-only, no speech
+//           listened for at all at this stage — a caller who keeps having
+//           speech-recognition trouble has a fully reliable alternative
+//           that never depends on Yemot's STT engine. See "menu_dtmf" in
+//           api.yemot.ivr.ts for the exact 1-5 mapping and sub-flows —
+//           option 1 (studio booking) hands off into the SAME proven DTMF
+//           booking flow this file's "dtmf" NoAiBookingMode already uses
+//           (date/time/duration/confirm by keypad), options 2-4 are canned
+//           info read-backs, option 5 (leave a message) still records the
+//           message itself by speech (an open-ended message has no keypad
+//           equivalent) but confirms/sends it via a keypad step rather than
+//           relying on end-of-speech silence detection.
 // Admin-switchable live at /admin/voice-bot-text, no redeploy — see
 // admin-voice-phrases.functions.ts's getVoiceMenuMode/setVoiceMenuMode.
-export type VoiceMenuMode = "ai" | "fixed";
+export type VoiceMenuMode = "ai" | "fixed" | "dtmf";
 export const MENU_MODE_KEY = "menu_mode";
 
 // Same "extra row in the same table" trick as MENU_MODE_KEY — controls the
@@ -246,7 +274,7 @@ export async function getVoiceBotConfig(): Promise<{
     for (const row of data ?? []) {
       const key = (row as { key: string }).key;
       if (key === MENU_MODE_KEY) {
-        if (row.value === "fixed") menuMode = "fixed";
+        if (row.value === "fixed" || row.value === "dtmf") menuMode = row.value;
       } else if (key === NOAI_BOOKING_ENABLED_KEY) {
         if (row.value === "off" || row.value === "dtmf") noAiBookingMode = row.value;
       } else if (key === BOT_VOICE_GENDER_KEY) {

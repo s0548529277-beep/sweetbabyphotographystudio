@@ -456,3 +456,33 @@ survivors?"
   revisiting with real source access the moment a live report points at it
   — don't leave "if this turns out wrong" comments unresolved once there's
   a concrete report to check them against.
+- **2026-09-09**: The quiet_max fix (previous entry) didn't fully resolve
+  "לא מזהה דיבור" reports — still recurring live. Rather than keep tuning
+  the SAME speech-recognition parameter with no way to test it from this
+  sandbox (no real phone line here), added a genuinely different lever:
+  a third `VoiceMenuMode` ("dtmf", voice-phrases.server.ts) where the WHOLE
+  main menu (1-5) is keypad-only, no speech listened for at that stage at
+  all — a caller stuck with unreliable STT gets a fully reliable
+  alternative instead of a repeatedly-nudged parameter. Reuses proven
+  pieces rather than inventing new protocol behavior: option 1 (studio
+  booking) hands off into the ALREADY-WORKING "dtmf" no-AI booking flow
+  (voice-noai-booking.server.ts, unchanged); the new tap constants
+  (MENU_DTMF_TAP, LEAVE_MSG_DTMF_CONFIRM_TAP in api.yemot.ivr.ts) copy the
+  exact `{mode:"Digits", digitsAllowed:[...], minDigits:1, maxDigits:1}`
+  shape already proven live elsewhere in this file, specifically to avoid
+  repeating the OLD numbered-menu failure documented in voice-menu.server.ts
+  ("לא הקשת כמות מספרים נכונה") — that failure was from a hand-picked
+  min/max, not from numbered menus being inherently unreliable. Also
+  applied the same "own silence-retry branch" fix `isNbStage` already
+  needed (a tap-mode stage going silent must re-issue the SAME tap prompt,
+  never fall through to the generic speech-mode didnt_hear) to the two new
+  dtmf-menu stages — this exact class of bug already bit isNbStage once,
+  worth checking for again in any future tap-mode addition. One real bug
+  caught and fixed during review of my own first draft: two of the
+  loop-back responses saved a combined "info + menu prompt" string to the
+  session but only SPOKE the trailing menu-prompt half — the caller would
+  never have heard the actual answer. Admin visibility per explicit
+  request: /admin/voice-bot-text's menu-mode card now lists the full 1-5
+  flow (DTMF_MENU_STEPS) as static documentation, kept in sync with
+  api.yemot.ivr.ts by hand — not read from the code, so it can drift if
+  the flow changes there without updating this list too.

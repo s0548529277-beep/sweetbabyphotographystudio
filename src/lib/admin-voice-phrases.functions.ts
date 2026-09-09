@@ -81,12 +81,13 @@ export const getVoiceMenuMode = createServerFn({ method: "POST" })
     await assertAdmin(context.supabase, context.userId);
     const { data, error } = await context.supabase.from("voice_bot_phrases").select("value").eq("key", MENU_MODE_KEY).maybeSingle();
     if (error) throw new Error(error.message);
-    return data?.value === "fixed" ? "fixed" : "ai";
+    if (data?.value === "fixed" || data?.value === "dtmf") return data.value;
+    return "ai";
   });
 
 export const setVoiceMenuMode = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ mode: z.enum(["ai", "fixed"]) }).parse(d))
+  .inputValidator((d: unknown) => z.object({ mode: z.enum(["ai", "fixed", "dtmf"]) }).parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { error } = await context.supabase
