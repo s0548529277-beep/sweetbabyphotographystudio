@@ -17,7 +17,8 @@ import {
   type SelectionInfo,
   type LayerInfo,
 } from "./StudioCanvas";
-import type { CollageTemplate } from "@/lib/collage-studio-data";
+import type { CollageTemplate, StudioImageShape, StudioFrameStyle } from "@/lib/collage-studio-data";
+import { PHOTO_SHAPES } from "@/lib/collage-data";
 import {
   STUDIO_TEXT_PRESETS,
   STUDIO_TEXT_PRESETS_EN,
@@ -59,6 +60,16 @@ import {
 } from "lucide-react";
 
 type TabId = "images" | "text" | "elements" | "colors" | "presets" | "layers";
+
+const FRAME_STYLES: { id: StudioFrameStyle; label: string }[] = [
+  { id: "none", label: "בלי מסגרת" },
+  { id: "thin", label: "קו דק" },
+  { id: "thick", label: "קו עבה" },
+  { id: "dashed", label: "מקווקוות" },
+  { id: "double", label: "כפולה" },
+  { id: "polaroid", label: "פולארויד" },
+  { id: "passepartout", label: "פספרטו" },
+];
 
 const TABS: { id: TabId; label: string; icon: typeof ImageIcon }[] = [
   { id: "images", label: "תמונות", icon: ImageIcon },
@@ -258,6 +269,12 @@ export function StudioEditor({ template }: { template: CollageTemplate }) {
                 <Button variant="outline" className="w-full rounded-full gap-2" onClick={() => uploadInputRef.current?.click()}>
                   <Upload className="h-4 w-4" /> העלאת תמונות
                 </Button>
+                <Button variant="outline" className="w-full rounded-full gap-2" onClick={() => canvasHandleRef.current?.addPhotoFrame()}>
+                  <ImageIcon className="h-4 w-4" /> הוספת משבצת תמונה +
+                </Button>
+                <p className="text-[11px] text-muted-foreground">
+                  לא חייבים להישאר עם כמות התמונות המקורית של התבנית — אפשר להוסיף כמה משבצות שרוצים, ולמחוק משבצת מיותרת בבחירתה ולחיצה על מחיקה בסרגל הכלים למעלה.
+                </p>
                 {photos.length > 1 && (
                   <Button variant="outline" size="sm" className="w-full rounded-full" onClick={onReplaceAll}>
                     החלפת כל התמונות בבת אחת
@@ -455,7 +472,7 @@ export function StudioEditor({ template }: { template: CollageTemplate }) {
             </div>
           )}
           {selection.kind === "image" && (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="font-display text-lg text-primary">תמונה</div>
               <Button variant="outline" className="w-full rounded-full" onClick={onReplaceSelected}>
                 {selection.hasPhoto ? "החלפת תמונה" : "העלאת תמונה למשבצת"}
@@ -463,6 +480,100 @@ export function StudioEditor({ template }: { template: CollageTemplate }) {
               <p className="text-[11px] text-muted-foreground">
                 גררי בקנבס כדי להזיז, גררי מהפינה כדי לשנות גודל, וגררי את ידית הסיבוב למעלה כדי לסובב — המסגרת נשארת בדיוק כפי שהיא.
               </p>
+
+              <div>
+                <div className="text-xs font-semibold text-primary mb-2">צורה לתמונה</div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {PHOTO_SHAPES.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => canvasHandleRef.current?.updateSelectedShape(s.id as StudioImageShape)}
+                      className={`rounded-lg border px-2 py-1.5 text-[11px] transition-colors ${
+                        selection.shape === s.id ? "bg-primary text-primary-foreground border-primary" : "border-primary/15 text-primary hover:border-primary"
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {selection.hasPhoto && (
+                <>
+                  <div>
+                    <div className="text-xs font-semibold text-primary mb-2">מסגרת</div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {FRAME_STYLES.map((f) => (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => canvasHandleRef.current?.updateSelectedImageStyle({ frame: f.id })}
+                          className={`rounded-lg border px-2 py-1.5 text-[11px] transition-colors ${
+                            selection.frame === f.id ? "bg-primary text-primary-foreground border-primary" : "border-primary/15 text-primary hover:border-primary"
+                          }`}
+                        >
+                          {f.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {selection.frame !== "none" && (
+                    <div>
+                      <label className="text-xs text-muted-foreground">צבע המסגרת</label>
+                      <input
+                        type="color"
+                        value={selection.frameColor}
+                        onChange={(e) => canvasHandleRef.current?.updateSelectedImageStyle({ frameColor: e.target.value })}
+                        className="w-full h-9 rounded-lg border border-black/10 mt-1"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-xs text-muted-foreground">זום בתוך המסגרת — {Math.round(selection.zoom * 100)}%</label>
+                    <Slider
+                      min={100}
+                      max={300}
+                      step={5}
+                      value={[Math.round(selection.zoom * 100)]}
+                      onValueChange={([v]) => canvasHandleRef.current?.updateSelectedImageStyle({ zoom: v / 100 })}
+                      className="mt-2"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-muted-foreground">מיקום אופקי</label>
+                      <Slider
+                        min={-100}
+                        max={100}
+                        step={5}
+                        value={[Math.round(selection.offsetX * 100)]}
+                        onValueChange={([v]) => canvasHandleRef.current?.updateSelectedImageStyle({ offsetX: v / 100 })}
+                        className="mt-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">מיקום אנכי</label>
+                      <Slider
+                        min={-100}
+                        max={100}
+                        step={5}
+                        value={[Math.round(selection.offsetY * 100)]}
+                        onValueChange={([v]) => canvasHandleRef.current?.updateSelectedImageStyle({ offsetY: v / 100 })}
+                        className="mt-2"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    זום ומיקום קובעים איזה חלק מהתמונה נראה בתוך המסגרת הקבועה — בלי להזיז או לשנות את גודל המסגרת עצמה.
+                  </p>
+                  <Button variant="outline" size="sm" className="w-full rounded-full" onClick={() => canvasHandleRef.current?.resetSelectedImageCrop()}>
+                    איפוס זום ומיקום
+                  </Button>
+                </>
+              )}
             </div>
           )}
           {selection.kind === "text" && (

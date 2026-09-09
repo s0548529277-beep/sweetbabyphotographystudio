@@ -10,7 +10,21 @@
  * coordinate is in the template's own canvas pixel space (see `canvas`).
  */
 
-export type StudioImageShape = "rect" | "rounded" | "circle" | "heart" | "arch";
+export type StudioImageShape = "rect" | "rounded" | "circle" | "heart" | "arch" | "blob" | "capsule" | "rhombus";
+
+/** Per-photo border/mat treatment — "none" draws nothing extra beyond the
+ * shape's own clip. "thin"/"thick"/"dashed"/"double" stroke the shape's own
+ * outline; "polaroid" and "passepartout" add a solid mat behind the photo
+ * (polaroid: extra-deep bottom margin like a real Polaroid print;
+ * passepartout: equal margin on all sides like a picture-frame mat). */
+export type StudioFrameStyle = "none" | "thin" | "thick" | "dashed" | "double" | "polaroid" | "passepartout";
+
+/** Per-photo crop/zoom state — how the source image is scaled and panned
+ * within its own fixed frame, independent of the frame's own position/size
+ * on the canvas. zoom is a multiplier on top of the default cover-fit scale
+ * (1 = exactly filling the frame with no extra zoom); offsetX/offsetY are
+ * fractions of the frame's own width/height (0 = centered). */
+export type StudioImageCrop = { zoom: number; offsetX: number; offsetY: number };
 
 export type StudioImageElement = {
   type: "image";
@@ -21,6 +35,8 @@ export type StudioImageElement = {
   height: number;
   rotation?: number;
   shape?: StudioImageShape;
+  frame?: StudioFrameStyle;
+  frameColor?: string;
 };
 
 export type StudioTextElement = {
