@@ -21,6 +21,7 @@ import { Route as RentalCatalogRouteImport } from './routes/rental-catalog'
 import { Route as PhotoRetouchRouteImport } from './routes/photo-retouch'
 import { Route as PaymentFailedRouteImport } from './routes/payment-failed'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as CollageTextRouteImport } from './routes/collage-text'
 import { Route as CollageMakerRouteImport } from './routes/collage-maker'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CartRouteImport } from './routes/cart'
@@ -131,6 +132,11 @@ const PaymentFailedRoute = PaymentFailedRouteImport.update({
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CollageTextRoute = CollageTextRouteImport.update({
+  id: '/collage-text',
+  path: '/collage-text',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CollageMakerRoute = CollageMakerRouteImport.update({
@@ -423,6 +429,7 @@ export interface FileRoutesByFullPath {
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
   '/collage-maker': typeof CollageMakerRoute
+  '/collage-text': typeof CollageTextRoute
   '/contact': typeof ContactRoute
   '/payment-failed': typeof PaymentFailedRoute
   '/photo-retouch': typeof PhotoRetouchRoute
@@ -487,6 +494,7 @@ export interface FileRoutesByTo {
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
   '/collage-maker': typeof CollageMakerRoute
+  '/collage-text': typeof CollageTextRoute
   '/contact': typeof ContactRoute
   '/payment-failed': typeof PaymentFailedRoute
   '/photo-retouch': typeof PhotoRetouchRoute
@@ -552,6 +560,7 @@ export interface FileRoutesById {
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
   '/collage-maker': typeof CollageMakerRoute
+  '/collage-text': typeof CollageTextRoute
   '/contact': typeof ContactRoute
   '/payment-failed': typeof PaymentFailedRoute
   '/photo-retouch': typeof PhotoRetouchRoute
@@ -618,6 +627,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/checkout'
     | '/collage-maker'
+    | '/collage-text'
     | '/contact'
     | '/payment-failed'
     | '/photo-retouch'
@@ -682,6 +692,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/checkout'
     | '/collage-maker'
+    | '/collage-text'
     | '/contact'
     | '/payment-failed'
     | '/photo-retouch'
@@ -746,6 +757,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/checkout'
     | '/collage-maker'
+    | '/collage-text'
     | '/contact'
     | '/payment-failed'
     | '/photo-retouch'
@@ -812,6 +824,7 @@ export interface RootRouteChildren {
   CartRoute: typeof CartRoute
   CheckoutRoute: typeof CheckoutRoute
   CollageMakerRoute: typeof CollageMakerRoute
+  CollageTextRoute: typeof CollageTextRoute
   ContactRoute: typeof ContactRoute
   PaymentFailedRoute: typeof PaymentFailedRoute
   PhotoRetouchRoute: typeof PhotoRetouchRoute
@@ -923,6 +936,13 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/collage-text': {
+      id: '/collage-text'
+      path: '/collage-text'
+      fullPath: '/collage-text'
+      preLoaderRoute: typeof CollageTextRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/collage-maker': {
@@ -1387,6 +1407,7 @@ const rootRouteChildren: RootRouteChildren = {
   CartRoute: CartRoute,
   CheckoutRoute: CheckoutRoute,
   CollageMakerRoute: CollageMakerRoute,
+  CollageTextRoute: CollageTextRoute,
   ContactRoute: ContactRoute,
   PaymentFailedRoute: PaymentFailedRoute,
   PhotoRetouchRoute: PhotoRetouchRoute,
