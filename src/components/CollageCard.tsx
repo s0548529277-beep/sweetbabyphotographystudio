@@ -26,7 +26,7 @@ import {
 import type { BackgroundPatternId, PlacedSticker, StickerKind } from "@/lib/collage-decor";
 
 /** One sticker shape, drawn inside a 100×100 box centered on (0,0). */
-function StickerShape({ kind }: { kind: StickerKind }) {
+export function StickerShape({ kind }: { kind: StickerKind }) {
   const heart = (fill: string, stroke?: string) => (
     <path
       d="M0,34 C-30,10 -44,-12 -28,-28 C-15,-41 2,-32 0,-18 C-2,-32 15,-41 28,-28 C44,-12 30,10 0,34 Z"

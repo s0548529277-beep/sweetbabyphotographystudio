@@ -12,12 +12,13 @@ import {
   LockKeyhole,
   Palette,
   Sparkles,
+  Sticker,
   Trash2,
   Type,
   WandSparkles,
 } from "lucide-react";
 import { toast } from "sonner";
-import { CollageCard } from "@/components/CollageCard";
+import { CollageCard, StickerShape } from "@/components/CollageCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
