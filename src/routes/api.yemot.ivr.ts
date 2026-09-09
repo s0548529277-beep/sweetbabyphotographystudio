@@ -12,15 +12,26 @@ import { startNoAiBooking, continueNoAiBooking, currentNbQuestion, isNbStage, NB
 // Keypad-only main menu ("dtmf" menu mode, MENU_MODE_KEY in
 // voice-phrases.server.ts) — added per a direct report that speech
 // recognition kept failing live even after the quiet_max fix in
-// yemot.server.ts. Same proven tap-option shape already used successfully
-// elsewhere in this file (voice-noai-booking.server.ts's CONFIRM_TAP/
-// DURATION_TAP) — mode:"Digits" + an explicit digitsAllowed list, which
-// Yemot itself enforces (rejects anything else before it ever reaches us),
-// not a hand-picked min/max that could repeat the OLD numbered-menu
-// failure ("לא הקשת כמות מספרים נכונה") documented in voice-menu.server.ts's
-// own file comment.
-const MENU_DTMF_TAP: YemotTapOptions = { mode: "Digits", digitsAllowed: [1, 2, 3, 4, 5], minDigits: 1, maxDigits: 1 };
-const LEAVE_MSG_DTMF_CONFIRM_TAP: YemotTapOptions = { mode: "Digits", digitsAllowed: [1, 2], minDigits: 1, maxDigits: 1 };
+// yemot.server.ts.
+//
+// 2026-09-09, confirmed live the same day: NOT using mode:"Digits" here —
+// a direct report showed every keypress on this menu got Yemot's own
+// NATIVE post-entry confirmation on top of it ("שלוש... לאישור הקישו
+// אחד", matching Yemot's own system message M1353, "לאישור הקישו 1,
+// להקלטה מחודשת 2" — confirmed via Yemot's own forum this same day) —
+// redundant and confusing stacked on top of this app's own menu handling,
+// which already treats a single digit as final with no confirmation step
+// of its own. Per YemotTapOptions' own doc comment on `mode`, this was
+// always the documented behavior of the "Digits" preset ("reads the typed
+// digits back for confirmation") — it was copied from voice-noai-
+// booking.server.ts's CONFIRM_TAP/DURATION_TAP without registering that
+// those two have the exact same latent issue (see that file's own note,
+// fixed the same day). Omitting `mode` entirely still gets digit
+// validation for free — Yemot itself rejects anything outside
+// digitsAllowed before it ever reaches us — just without the native
+// readback+confirm layered on top.
+const MENU_DTMF_TAP: YemotTapOptions = { digitsAllowed: [1, 2, 3, 4, 5], minDigits: 1, maxDigits: 1 };
+const LEAVE_MSG_DTMF_CONFIRM_TAP: YemotTapOptions = { digitsAllowed: [1, 2], minDigits: 1, maxDigits: 1 };
 const DTMF_MENU_STAGES = new Set(["menu_dtmf", "leaving_message_dtmf_confirm"]);
 
 // Played instead of phrases.leave_message_thanks when sendMessageToStudio's
@@ -317,7 +328,7 @@ async function handle(request: Request): Promise<Response> {
     // "book now" phrasing in fixed-menu mode, and the automatic escalation
     // when the AI keeps failing but she's clearly trying to book (see the
     // catch block below).
-    const respondNbStart = async (userText: string, forceMode?: NbInputMode): Promise<Response> => {
+    const respondNbStart = async (userText: string, forceMode?: NbInputMode, sayPrefix?: string): Promise<Response> => {
       // forceMode: the keypad-only main menu ("dtmf" menu mode, option 1)
       // always wants the booking sub-flow itself in "dtmf" input mode too,
       // regardless of the separate NOAI_BOOKING_ENABLED_KEY admin setting
@@ -326,9 +337,15 @@ async function handle(request: Request): Promise<Response> {
       // those two toggles are independent, so option 1 must not silently
       // fall back to speech-mode booking just because the OTHER setting
       // happens to be "speech".
+      // sayPrefix: spoken once before the flow's own first question — used
+      // by menu option 1 (per direct request) to state studio pricing
+      // (phrases.studio_blurb, already admin-editable) before asking
+      // anything, so a caller who came straight to booking without hearing
+      // the price elsewhere still hears it.
       const start = await startNoAiBooking(phone, forceMode ?? nbInputMode);
-      await save([...priorMessages, { role: "user", content: userText }, { role: "assistant", content: start.say }], start.stage, start.draft);
-      return start.tap ? yemotSayAndListenTap(start.say, start.tap) : yemotSayAndListen(start.say);
+      const say = sayPrefix ? `${sayPrefix} ${start.say}` : start.say;
+      await save([...priorMessages, { role: "user", content: userText }, { role: "assistant", content: say }], start.stage, start.draft);
+      return start.tap ? yemotSayAndListenTap(say, start.tap) : yemotSayAndListen(say);
     };
     const respondNb = async (result: Awaited<ReturnType<typeof continueNoAiBooking>>, userText: string): Promise<Response> => {
       if (result.done) {
@@ -405,7 +422,7 @@ async function handle(request: Request): Promise<Response> {
     };
 
     if (stage === "menu_dtmf") {
-      if (rawDigits === "1") return await respondNbStart(rawDigits, "dtmf");
+      if (rawDigits === "1") return await respondNbStart(rawDigits, "dtmf", phrases.studio_blurb);
       if (rawDigits === "2") return await respondMenuDtmfWithInfo(rawDigits, phrases.props_blurb);
       if (rawDigits === "3") return await respondMenuDtmfWithInfo(rawDigits, phrases.arrival_spoken);
       if (rawDigits === "4") return await respondMenuDtmfWithInfo(rawDigits, phrases.full_guide_spoken);

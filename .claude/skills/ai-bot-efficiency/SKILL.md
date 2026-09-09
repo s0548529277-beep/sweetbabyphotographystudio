@@ -486,3 +486,28 @@ survivors?"
   flow (DTMF_MENU_STEPS) as static documentation, kept in sync with
   api.yemot.ivr.ts by hand — not read from the code, so it can drift if
   the flow changes there without updating this list too.
+- **2026-09-09 (same day, hours later)**: Real live-call reports on the
+  DTMF menu just shipped confirmed a concrete bug, not a vague "still
+  glitchy": pressing ANY digit at the menu played it back and asked to
+  confirm it ("שלוש... לאישור הקישו אחד") — redundant on top of this app's
+  own menu handling, which already treats one digit as final. Root cause,
+  confirmed via Yemot's own forum (not guessed): `typing_playback_mode:
+  "Digits"` — used in MENU_DTMF_TAP/LEAVE_MSG_DTMF_CONFIRM_TAP AND, it
+  turns out, the PRE-EXISTING CONFIRM_TAP/DURATION_TAP in voice-noai-
+  booking.server.ts too — plays Yemot's own native system message M1353
+  ("לאישור הקישו 1, להקלטה מחודשת 2") after every entry. This was actually
+  already documented in this exact codebase's own YemotTapOptions comment
+  ("'Digits' just reads the typed digits back for confirmation") — written
+  when CONFIRM_TAP/DURATION_TAP were first built, then copied into the new
+  menu constants without registering that a native confirm layered on top
+  of this app's OWN confirm phrasing is never wanted, for either one.
+  Fixed by dropping `mode` entirely from all four constants — digit
+  validation (digitsAllowed) still happens Yemot-side either way, just
+  without the native readback+confirm. **Pattern for this codebase**: a
+  characteristic already written down in one function's own doc comment
+  is still easy to reproduce in a sibling function that copies its shape
+  without re-reading why each option was set — grep for a preset's own
+  documented behavior before reusing it in a new context, not just its
+  syntax. Also added, per direct request: menu option 1 now speaks
+  studio_blurb (already admin-editable) before the booking questions
+  start, so a caller who goes straight to option 1 still hears pricing.
