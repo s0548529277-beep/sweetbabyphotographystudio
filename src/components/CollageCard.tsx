@@ -23,6 +23,155 @@ import {
   type SlotRect,
   type DecorThemeId,
 } from "@/lib/collage-data";
+import type { BackgroundPatternId, PlacedSticker, StickerKind } from "@/lib/collage-decor";
+
+/** One sticker shape, drawn inside a 100×100 box centered on (0,0). */
+export function StickerShape({ kind }: { kind: StickerKind }) {
+  const heart = (fill: string, stroke?: string) => (
+    <path
+      d="M0,34 C-30,10 -44,-12 -28,-28 C-15,-41 2,-32 0,-18 C-2,-32 15,-41 28,-28 C44,-12 30,10 0,34 Z"
+      fill={fill}
+      stroke={stroke}
+      strokeWidth={stroke ? 6 : 0}
+    />
+  );
+  const flower = (petal: string, center: string) => (
+    <g>
+      {[0, 72, 144, 216, 288].map((a) => (
+        <ellipse key={a} cx={0} cy={-26} rx={16} ry={22} fill={petal} transform={`rotate(${a})`} />
+      ))}
+      <circle cx={0} cy={0} r={13} fill={center} />
+    </g>
+  );
+  switch (kind) {
+    case "heart-pink":
+      return heart("#f28ab2");
+    case "heart-red":
+      return heart("#ef5f52");
+    case "heart-outline":
+      return heart("none", "#d94f7b");
+    case "hearts-trio":
+      return (
+        <g>
+          <g transform="translate(-18,6) scale(0.55)">{heart("#f9b7cd")}</g>
+          <g transform="translate(14,10) scale(0.5)">{heart("#ef5f52")}</g>
+          <g transform="translate(0,-16) scale(0.6)">{heart("#f28ab2")}</g>
+        </g>
+      );
+    case "flower-yellow":
+      return flower("#f6d24b", "#8a5a1e");
+    case "flower-purple":
+      return flower("#b1a2e0", "#f6d24b");
+    case "flower-pink":
+      return flower("#f6b3c6", "#f4c534");
+    case "bouquet":
+      return (
+        <g>
+          <path d="M0,42 C-4,16 -10,4 -20,-6" stroke="#6b9a5a" strokeWidth={5} fill="none" strokeLinecap="round" />
+          <path d="M0,42 C2,16 8,2 18,-8" stroke="#6b9a5a" strokeWidth={5} fill="none" strokeLinecap="round" />
+          <g transform="translate(-22,-14) scale(0.5)">{flower("#f6b3c6", "#f4c534")}</g>
+          <g transform="translate(20,-16) scale(0.5)">{flower("#b1a2e0", "#f6d24b")}</g>
+          <g transform="translate(-1,-32) scale(0.5)">{flower("#f6d24b", "#e08a4a")}</g>
+        </g>
+      );
+    case "sparkle":
+      return <path d="M0,-44 C6,-14 14,-6 44,0 C14,6 6,14 0,44 C-6,14 -14,6 -44,0 C-14,-6 -6,-14 0,-44 Z" fill="#f4c534" />;
+    case "star":
+      return <path d="M0,-42 L11,-13 L42,-13 L17,6 L26,36 L0,18 L-26,36 L-17,6 L-42,-13 L-11,-13 Z" fill="#f6c94b" />;
+    case "bee":
+      return (
+        <g>
+          <ellipse cx={-16} cy={-16} rx={16} ry={11} fill="#fdf4dd" opacity={0.9} transform="rotate(-25 -16 -16)" />
+          <ellipse cx={16} cy={-16} rx={16} ry={11} fill="#fdf4dd" opacity={0.9} transform="rotate(25 16 -16)" />
+          <ellipse cx={0} cy={6} rx={24} ry={26} fill="#f4c534" />
+          <path d="M-22,-2 h44 M-24,12 h48 M-18,26 h36" stroke="#2f2a22" strokeWidth={6} strokeLinecap="round" />
+          <circle cx={-9} cy={-10} r={3} fill="#2f2a22" />
+          <circle cx={9} cy={-10} r={3} fill="#2f2a22" />
+        </g>
+      );
+    case "honey":
+      return (
+        <g>
+          <rect x={-26} y={-16} width={52} height={50} rx={10} fill="#e8a33c" />
+          <rect x={-30} y={-28} width={60} height={16} rx={7} fill="#c9832a" />
+          <path d="M-16,4 q16,12 32,0" stroke="#8a5a1e" strokeWidth={5} fill="none" strokeLinecap="round" />
+        </g>
+      );
+    case "apple":
+      return (
+        <g>
+          <circle cx={0} cy={6} r={30} fill="#e2624a" />
+          <path d="M0,-22 q4,-16 16,-20" stroke="#6b9a5a" strokeWidth={6} fill="none" strokeLinecap="round" />
+          <ellipse cx={14} cy={-30} rx={12} ry={7} fill="#6b9a5a" transform="rotate(-20 14 -30)" />
+        </g>
+      );
+    case "pomegranate":
+      return (
+        <g>
+          <circle cx={0} cy={8} r={28} fill="#c9436b" />
+          <path d="M-8,-22 l8,-16 l8,16 l10,-8 l-6,14 z" fill="#a83457" />
+        </g>
+      );
+    case "leaf":
+      return <path d="M-28,28 C-28,-14 0,-36 30,-32 C34,-2 12,28 -28,28 Z" fill="#6b9a5a" />;
+    case "balloon":
+      return (
+        <g>
+          <ellipse cx={0} cy={-8} rx={22} ry={27} fill="#f28ab2" />
+          <path d="M0,20 l-5,8 h10 z" fill="#f28ab2" />
+          <path d="M0,28 q10,18 -4,32" stroke="#c9436b" strokeWidth={3} fill="none" />
+        </g>
+      );
+    case "cloud":
+      return (
+        <g fill="#dbe9f7">
+          <circle cx={-18} cy={6} r={16} />
+          <circle cx={2} cy={-4} r={21} />
+          <circle cx={22} cy={8} r={15} />
+          <rect x={-18} y={8} width={40} height={14} rx={7} />
+        </g>
+      );
+    case "moon":
+      return <path d="M14,-34 A34,34 0 1 0 22,30 A27,27 0 1 1 14,-34 Z" fill="#f6d24b" />;
+    case "crown":
+      return <path d="M-32,22 L-32,-18 L-12,0 L0,-26 L12,0 L32,-18 L32,22 Z" fill="#f4c534" stroke="#d8a51f" strokeWidth={3} />;
+    case "bow":
+      return (
+        <g fill="#f28ab2">
+          <path d="M-6,0 L-34,-18 L-34,18 Z" />
+          <path d="M6,0 L34,-18 L34,18 Z" />
+          <circle cx={0} cy={0} r={9} fill="#e2708f" />
+        </g>
+      );
+    case "pacifier":
+      return (
+        <g>
+          <circle cx={0} cy={0} r={22} fill="none" stroke="#f28ab2" strokeWidth={9} />
+          <circle cx={0} cy={0} r={11} fill="#fdf6ee" />
+          <rect x={-9} y={20} width={18} height={16} rx={8} fill="#f9c9d8" />
+        </g>
+      );
+    case "footprint":
+      return (
+        <g fill="#f6b3c6">
+          <ellipse cx={0} cy={12} rx={17} ry={21} />
+          <circle cx={-13} cy={-14} r={6} />
+          <circle cx={-3} cy={-20} r={6} />
+          <circle cx={8} cy={-19} r={5.5} />
+          <circle cx={16} cy={-11} r={5} />
+        </g>
+      );
+    default:
+      return null;
+  }
+}
+
+const STICKER_TONES = {
+  pink: { bg: "#fbe3ec", text: "#c9436b", border: "#f2a8c1" },
+  cream: { bg: "#fdf3e2", text: "#8a5a1e", border: "#eccf9c" },
+  green: { bg: "#e6f0e2", text: "#2d3d2b", border: "#a8c69c" },
+} as const;
+
 
 function scaleRect(r: SlotRect, areaX: number, areaY: number, areaW: number, areaH: number, gap: number) {
   return {
@@ -103,6 +252,9 @@ export function CollageCard({
   captionPlacement = "below",
   paletteOverride,
   decorId = "none",
+  bgPattern = "none",
+  stickers = [],
+  onStickerClick,
   onSlotClick,
   caption,
   subtitle,
@@ -124,9 +276,15 @@ export function CollageCard({
   /** Overrides the style's own bg/accent/captionColor — from a color-palette preset, the eyedropper, or auto photo-match. Missing keys fall back to the style's default. */
   paletteOverride?: { bg?: string; accent?: string; captionColor?: string } | null;
   decorId?: DecorThemeId;
+  /** Repeating background texture drawn over the flat bg color (see BACKGROUND_PATTERNS). */
+  bgPattern?: BackgroundPatternId;
+  /** Shape/caption stickers the user added, positioned as card fractions. */
+  stickers?: PlacedSticker[];
+  onStickerClick?: (uid: string) => void;
   onSlotClick?: (index: number) => void;
   caption: string;
   subtitle: string;
+
 }) {
   const style = findCollageStyle(styleId);
   const bg = paletteOverride?.bg ?? style.bg;
@@ -189,9 +347,26 @@ export function CollageCard({
             </clipPath>
           );
         })}
+        {bgPattern !== "none" && (
+          <pattern id="collage-bg-pattern" patternUnits="userSpaceOnUse" width={48} height={48} patternTransform={bgPattern === "diagonal" ? "rotate(45)" : undefined}>
+            {(bgPattern === "stripes" || bgPattern === "diagonal") && <rect x={0} y={0} width={24} height={48} fill={accent} opacity={0.16} />}
+            {bgPattern === "grid" && <path d="M0,0 H48 M0,0 V48" stroke={accent} strokeWidth={2} opacity={0.2} fill="none" />}
+            {bgPattern === "dots" && <circle cx={12} cy={12} r={4} fill={accent} opacity={0.25} />}
+            {bgPattern === "dots-pink" && <circle cx={12} cy={12} r={5} fill="#f28ab2" opacity={0.3} />}
+            {bgPattern === "confetti" && (
+              <g opacity={0.35}>
+                <rect x={6} y={8} width={10} height={4} rx={2} fill={accent} transform="rotate(20 6 8)" />
+                <rect x={30} y={28} width={10} height={4} rx={2} fill="#f28ab2" transform="rotate(-25 30 28)" />
+                <circle cx={38} cy={9} r={3} fill="#f4c534" />
+              </g>
+            )}
+          </pattern>
+        )}
       </defs>
 
       <rect x={0} y={0} width={cardW} height={cardH} fill={bg} />
+      {bgPattern !== "none" && <rect x={0} y={0} width={cardW} height={cardH} fill="url(#collage-bg-pattern)" />}
+
 
       {style.decorative && (
         <rect
@@ -307,6 +482,34 @@ export function CollageCard({
           {subtitle}
         </text>
       )}
+
+      {stickers.map((sticker) => {
+        const base = Math.min(cardW, cardH) * 0.16 * sticker.scale;
+        const x = sticker.x * cardW;
+        const y = sticker.y * cardH;
+        if (sticker.text) {
+          const tone = STICKER_TONES[sticker.tone ?? "pink"];
+          const fontSize = Math.max(14, base * 0.34);
+          const w = sticker.text.length * fontSize * 0.56 + fontSize * 1.4;
+          const h = fontSize * 2.1;
+          return (
+            <g key={sticker.uid} transform={`translate(${x - w / 2}, ${y - h / 2})`} onClick={onStickerClick ? () => onStickerClick(sticker.uid) : undefined} className={onStickerClick ? "cursor-pointer" : undefined}>
+              <rect x={0} y={0} width={w} height={h} rx={h / 2} fill={tone.bg} stroke={tone.border} strokeWidth={3} style={{ filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.18))" }} />
+              <text x={w / 2} y={h / 2 + fontSize * 0.36} textAnchor="middle" fontSize={fontSize} fontFamily={style.fontFamily} fill={tone.text}>
+                {sticker.text}
+              </text>
+            </g>
+          );
+        }
+        if (!sticker.kind) return null;
+        return (
+          <g key={sticker.uid} transform={`translate(${x}, ${y}) scale(${base / 100})`} onClick={onStickerClick ? () => onStickerClick(sticker.uid) : undefined} className={onStickerClick ? "cursor-pointer" : undefined} style={{ filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.2))" }}>
+            <StickerShape kind={sticker.kind} />
+            <circle cx={0} cy={0} r={52} fill="transparent" />
+          </g>
+        );
+      })}
     </svg>
+
   );
 }
