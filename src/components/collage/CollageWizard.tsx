@@ -155,8 +155,27 @@ export function CollageWizard() {
 
   const dimensions = useMemo(() => getCardDimensions(formatId, sizeId), [formatId, sizeId]);
   const layouts = useMemo(() => getLayoutVariants(photoCount), [photoCount]);
-  const ideas = useMemo(() => COLLAGE_IDEAS.filter((item) => item.category === category), [category]);
+  const ideas = useMemo(() => {
+    const term = search.trim();
+    return COLLAGE_IDEAS.filter((item) => (term ? `${item.name} ${item.description} ${item.caption}`.includes(term) : item.category === category));
+  }, [category, search]);
   const uploadedCount = photos.filter(Boolean).length;
+
+  const addSticker = (sticker: Pick<PlacedSticker, "kind" | "text" | "tone">) => {
+    setStickers((current) => [
+      ...current,
+      {
+        uid: `${Date.now()}-${current.length}`,
+        ...sticker,
+        // Placed along a soft spiral so consecutive stickers never land on
+        // top of each other; the user removes one by clicking it.
+        x: 0.5 + Math.cos(current.length * 1.9) * (0.16 + current.length * 0.015),
+        y: 0.5 + Math.sin(current.length * 1.9) * (0.2 + current.length * 0.012),
+        scale: sticker.text ? 1 : 0.9,
+      },
+    ]);
+  };
+
 
   const changeFormat = (format: CardFormatId) => {
     setFormatId(format);
