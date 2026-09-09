@@ -416,6 +416,37 @@ export function CollageWizard() {
                     <div className="flex flex-wrap gap-2">{PHOTO_EFFECTS.map((item) => <Button key={item.id} type="button" size="sm" variant={effect === item.id ? "default" : "outline"} onClick={() => setEffect(item.id)} className="rounded-full">{item.label}</Button>)}</div>
                   </div>
                   <div className="rounded-2xl border border-border bg-background p-4">
+                    <h3 className="mb-3 flex items-center gap-2 font-semibold text-primary"><Palette className="h-4 w-4" /> רקע</h3>
+                    <div className="mb-3 grid grid-cols-8 gap-1.5">
+                      {BACKGROUND_SWATCHES.map((color) => (
+                        <button key={color} type="button" aria-label={`רקע ${color}`} onClick={() => setPalette((current) => ({ bg: color, accent: current?.accent ?? "#2d3d2b", captionColor: current?.captionColor ?? "#2d3d2b" }))} className={`h-7 w-full rounded-md border transition-transform hover:scale-110 ${palette?.bg === color ? "border-primary ring-2 ring-secondary" : "border-border"}`} style={{ backgroundColor: color }} />
+                      ))}
+                    </div>
+                    <div className="mb-3 flex items-center gap-2">
+                      <label className="text-xs text-muted-foreground" htmlFor="collage-bg-custom">צבע חופשי</label>
+                      <input id="collage-bg-custom" type="color" value={palette?.bg ?? "#fdf6ee"} onChange={(event) => setPalette((current) => ({ bg: event.target.value, accent: current?.accent ?? "#2d3d2b", captionColor: current?.captionColor ?? "#2d3d2b" }))} className="h-8 w-12 cursor-pointer rounded border border-border bg-card p-0.5" />
+                    </div>
+                    <div className="flex flex-wrap gap-2">{BACKGROUND_PATTERNS.map((item) => <Button key={item.id} type="button" size="sm" variant={bgPattern === item.id ? "default" : "outline"} onClick={() => setBgPattern(item.id)} className="rounded-full">{item.label}</Button>)}</div>
+                  </div>
+                  <div className="rounded-2xl border border-border bg-background p-4">
+                    <h3 className="mb-3 flex items-center gap-2 font-semibold text-primary"><Sticker className="h-4 w-4" /> מדבקות</h3>
+                    <p className="mb-3 text-xs text-muted-foreground">לוחצים על מדבקה כדי להוסיף אותה לקולאז׳</p>
+                    <div className="mb-4 grid grid-cols-6 gap-2">
+                      {STICKERS.map((item) => (
+                        <button key={item.id} type="button" title={item.label} aria-label={item.label} onClick={() => addSticker({ kind: item.id as StickerKind })} className="flex aspect-square items-center justify-center rounded-lg border border-border bg-card p-1 transition-transform hover:scale-105">
+                          <StickerPreview kind={item.id} />
+                        </button>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {CAPTION_STICKERS.map((item) => (
+                        <Button key={item.id} type="button" size="sm" variant="outline" onClick={() => addSticker({ text: item.text, tone: item.tone })} className="h-auto whitespace-normal rounded-xl py-2 text-xs">{item.text}</Button>
+                      ))}
+                    </div>
+                    {stickers.length > 0 && <Button type="button" size="sm" variant="ghost" onClick={() => setStickers([])} className="mt-3 w-full rounded-full">ניקוי כל המדבקות</Button>}
+                  </div>
+
+                  <div className="rounded-2xl border border-border bg-background p-4">
                     <h3 className="mb-3 flex items-center gap-2 font-semibold text-primary"><Type className="h-4 w-4" /> כיתוב</h3>
                     <Input value={caption} onChange={(event) => setCaption(event.target.value)} maxLength={40} aria-label="כותרת הקולאז׳" className="mb-2" />
                     <Input value={subtitle} onChange={(event) => setSubtitle(event.target.value)} maxLength={60} aria-label="כיתוב משנה" />
