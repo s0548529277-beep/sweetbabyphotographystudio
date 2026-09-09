@@ -1,3 +1,6 @@
+/* Free guided collage maker. The full interactive experience lives in a
+ * shared component so both public collage entry URLs show the same tool. */
+/*
 // Free, public collage/greeting-card maker — no account needed. Photos are
 // read locally as data: URLs and the finished card is rasterized client-side
 // (see downloadCollagePng below); the separate source photos never leave
@@ -194,7 +197,7 @@ async function downloadCollagePng(svgEl: SVGSVGElement): Promise<string> {
   });
 }
 
-function CollageMaker() {
+function LegacyCollageMaker() {
   const [formatId, setFormatId] = useState<CardFormatId>("portrait");
   const [sizeId, setSizeId] = useState("13x18");
   const [styleId, setStyleId] = useState<CollageStyleId>("floral");
@@ -740,4 +743,28 @@ function CollageMaker() {
       <Footer />
     </div>
   );
+}
+*/
+
+import { createFileRoute } from "@tanstack/react-router";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
+import { CollageWizard } from "@/components/collage/CollageWizard";
+
+export const Route = createFileRoute("/collage-maker")({
+  component: CollageMaker,
+  head: () => ({
+    meta: [
+      { title: "יוצר קולאז׳ים חינם | Sweetbaby" },
+      { name: "description", content: "יוצרים קולאז׳ תמונות מקצועי בחינם, עם עשרות רעיונות, גדלים להדפסה ולרשתות, עיצוב אישי והורדה באיכות גבוהה." },
+      { property: "og:title", content: "יוצר קולאז׳ים חינם | Sweetbaby" },
+      { property: "og:description", content: "עשרות רעיונות לקולאז׳ים, העלאת תמונות ועיצוב אישי — בחינם וללא הרשמה." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+});
+
+function CollageMaker() {
+  return <div className="min-h-screen bg-background"><Header /><CollageWizard /><Footer /></div>;
 }

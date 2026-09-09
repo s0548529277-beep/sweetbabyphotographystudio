@@ -13,15 +13,16 @@
  * every choice via a fixed target pixel area, real cm are just for a
  * label people recognize ("13×18").
  */
-export type CardFormatId = "portrait" | "landscape" | "panoramic";
+export type CardFormatId = "portrait" | "landscape" | "square" | "panoramic";
 
 export const CARD_FORMATS: { id: CardFormatId; label: string }[] = [
   { id: "portrait", label: "לאורך" },
   { id: "landscape", label: "לרוחב" },
+  { id: "square", label: "ריבוע" },
   { id: "panoramic", label: "פנורמי" },
 ];
 
-export type CardSize = { id: string; label: string; wCm: number; hCm: number };
+export type CardSize = { id: string; label: string; wCm: number; hCm: number; use?: string };
 
 // Real, universally-recognized print sizes (the standard "4R/5R/6R/8×12/A4"
 // ladder sold at every photo lab, plus the standard 1:3 panorama print
@@ -29,18 +30,27 @@ export type CardSize = { id: string; label: string; wCm: number; hCm: number };
 // can actually go print.
 export const CARD_SIZES: Record<CardFormatId, CardSize[]> = {
   portrait: [
-    { id: "10x15", label: "10×15", wCm: 10, hCm: 15 },
+    { id: "phone", label: "גודל פלאפון", wCm: 9, hCm: 16, use: "9:16 · מסך מלא" },
+    { id: "story", label: "סטורי", wCm: 9, hCm: 16, use: "Instagram Story" },
+    { id: "10x15", label: "תמונה קלאסית", wCm: 10, hCm: 15, use: "10×15 ס״מ" },
     { id: "13x18", label: "13×18", wCm: 13, hCm: 18 },
-    { id: "15x20", label: "15×20", wCm: 15, hCm: 20 },
+    { id: "a5", label: "A5", wCm: 14.8, hCm: 21, use: "14.8×21 ס״מ" },
     { id: "20x30", label: "20×30", wCm: 20, hCm: 30 },
-    { id: "21x30", label: "21×30 (A4)", wCm: 21, hCm: 30 },
+    { id: "21x30", label: "A4", wCm: 21, hCm: 29.7, use: "21×29.7 ס״מ" },
   ],
   landscape: [
-    { id: "15x10", label: "15×10", wCm: 15, hCm: 10 },
+    { id: "postcard", label: "גלויה", wCm: 15, hCm: 10, use: "15×10 ס״מ" },
+    { id: "15x10", label: "תמונה קלאסית", wCm: 15, hCm: 10, use: "15×10 ס״מ" },
     { id: "18x13", label: "18×13", wCm: 18, hCm: 13 },
-    { id: "20x15", label: "20×15", wCm: 20, hCm: 15 },
+    { id: "widescreen", label: "מסך רחב", wCm: 16, hCm: 9, use: "16:9 · מצגת ומסך" },
     { id: "30x20", label: "30×20", wCm: 30, hCm: 20 },
-    { id: "30x21", label: "30×21 (A4)", wCm: 30, hCm: 21 },
+    { id: "30x21", label: "A4 לרוחב", wCm: 29.7, hCm: 21, use: "29.7×21 ס״מ" },
+  ],
+  square: [
+    { id: "instagram", label: "פוסט אינסטגרם", wCm: 1, hCm: 1, use: "1:1 · רשתות חברתיות" },
+    { id: "15x15", label: "ריבוע קטן", wCm: 15, hCm: 15, use: "15×15 ס״מ" },
+    { id: "20x20", label: "ריבוע בינוני", wCm: 20, hCm: 20, use: "20×20 ס״מ" },
+    { id: "30x30", label: "ריבוע גדול", wCm: 30, hCm: 30, use: "30×30 ס״מ" },
   ],
   panoramic: [
     // Commercial panorama prints are commonly labeled "short×long" (a
