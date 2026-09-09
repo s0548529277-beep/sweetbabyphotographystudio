@@ -30,22 +30,29 @@ export const Route = createFileRoute("/_authenticated/admin/voice-bot-text")({
   component: VoiceBotTextAdmin,
 });
 
-// The only phrases whose live routing is skipped in "ai" menu mode — the
-// keyword-menu branches that used to read them straight out (see
-// MENU_MODE_KEY's doc comment in voice-phrases.server.ts). Every other
-// phrase (greeting, menu_prompt, leave_message_*, didnt_hear,
+// Which phrases each menu mode actually speaks — the rest render a "לא
+// בשימוש כרגע" badge so it's clear at a glance why editing one might not
+// change anything heard on a call right now. Every phrase not listed under
+// a mode here (greeting, menu_prompt, leave_message_thanks, didnt_hear,
 // no_human_transfer, temporary_error, final_error_hangup) is spoken
-// regardless of mode, so it isn't listed here.
-const FIXED_MODE_ONLY_KEYS = new Set(["studio_blurb", "props_blurb", "arrival_spoken", "guide_choice_prompt", "full_guide_spoken"]);
+// regardless of mode, so those three sets don't need to repeat them.
+const INACTIVE_IN_MODE: Record<"ai" | "fixed" | "dtmf", Set<string>> = {
+  ai: new Set(["studio_blurb", "props_blurb", "arrival_spoken", "guide_choice_prompt", "full_guide_spoken", "menu_prompt_dtmf", "dtmf_leave_message_confirm", "dtmf_leave_message_redo"]),
+  fixed: new Set(["menu_prompt_dtmf", "dtmf_leave_message_confirm", "dtmf_leave_message_redo"]),
+  // "dtmf" mode skips studio_blurb (option 1 goes straight to booking) and
+  // guide_choice_prompt (option 4 plays the full guide directly, no
+  // sub-question) — see DTMF_MENU_STEPS above for the exact flow.
+  dtmf: new Set(["studio_blurb", "guide_choice_prompt", "menu_prompt"]),
+};
 
-function PhraseCard({ row, menuMode }: { row: VoiceBotPhraseRow; menuMode: "ai" | "fixed" }) {
+function PhraseCard({ row, menuMode }: { row: VoiceBotPhraseRow; menuMode: "ai" | "fixed" | "dtmf" }) {
   const qc = useQueryClient();
   const [draft, setDraft] = useState(row.value);
   const [saving, setSaving] = useState(false);
   const doUpdate = useServerFn(updateVoiceBotPhrase);
   const doReset = useServerFn(resetVoiceBotPhrase);
   const changed = draft !== row.value;
-  const inactive = menuMode === "ai" && FIXED_MODE_ONLY_KEYS.has(row.key);
+  const inactive = INACTIVE_IN_MODE[menuMode].has(row.key);
 
   const save = async () => {
     setSaving(true);
@@ -80,7 +87,7 @@ function PhraseCard({ row, menuMode }: { row: VoiceBotPhraseRow; menuMode: "ai" 
         <div className="font-medium text-primary text-sm">{row.label}</div>
         <div className="flex gap-1.5 shrink-0">
           {inactive && (
-            <span className="text-[11px] bg-muted text-muted-foreground rounded-full px-2 py-0.5" title='לא נשמע כרגע — מצב "תשובות חכמות מהבינה" פעיל, הבינה עונה על זה בעצמה'>
+            <span className="text-[11px] bg-muted text-muted-foreground rounded-full px-2 py-0.5" title="לא נשמע כרגע בהתאם למצב התפריט הנוכחי (למעלה) — עריכה כאן עדיין נשמרת, לשימוש כשתחליפי מצב">
               לא בשימוש כרגע
             </span>
           )}
@@ -111,6 +118,29 @@ function PhraseCard({ row, menuMode }: { row: VoiceBotPhraseRow; menuMode: "ai" 
   );
 }
 
+// The exact 1-5 keypad structure for "dtmf" menu mode — shown as
+// documentation in the admin page (per explicit request: "שאני יוכל
+// בניהול לבחור את זה ולראות את כל התהליך בניהול שיהיה ברור וטוב") so the
+// whole flow is visible and reviewable without reading the code. Kept as
+// one source of truth here; if the actual flow in api.yemot.ivr.ts ever
+// changes, update this list to match.
+const DTMF_MENU_STEPS: { key: string; title: string; detail: string }[] = [
+  {
+    key: "1",
+    title: "1 — הזמנת סטודיו ושריון",
+    detail:
+      'עובר לתהליך השריון הקבוע (אותו תהליך כמו "תהליך הזמנה קבוע — בהקלדה" למטה): שם (בקול) → תאריך (הקשה, יום+חודש) → שעה (הקשה, 24 שעות) → משך (הקשה, 1-6) → מייל (בקול, אפשר לדלג) → סיכום ואישור בהקשה. אם השעה תפוסה, הבוט מבקש שעה אחרת באותו תאריך במקום סתם להיכשל.',
+  },
+  { key: "2", title: "2 — השכרת אביזרים", detail: "משמיע את פרטי השכרת האביזרים (הטקסט למטה), וחוזר לתפריט הראשי." },
+  { key: "3", title: "3 — דרכי הגעה", detail: "משמיע את דרכי ההגעה (הטקסט למטה), וחוזר לתפריט הראשי." },
+  { key: "4", title: "4 — הדרכה לשימוש בסטודיו", detail: "משמיע את ההדרכה המלאה (הטקסט למטה), וחוזר לתפריט הראשי." },
+  {
+    key: "5",
+    title: "5 — השארת הודעה",
+    detail: 'מבקש להגיד את ההודעה (בקול), ואז — במקום להסתמך על זיהוי שקט — מבקש אישור בהקשה: 1 לאישור ושליחה (ואז נשמע "המייל נשלח בהצלחה"), 2 להקליט מחדש.',
+  },
+];
+
 function MenuModeCard() {
   const qc = useQueryClient();
   const fetchMode = useServerFn(getVoiceMenuMode);
@@ -119,12 +149,13 @@ function MenuModeCard() {
   const [saving, setSaving] = useState(false);
   const mode = q.data ?? "ai";
 
-  const choose = async (next: "ai" | "fixed") => {
+  const choose = async (next: "ai" | "fixed" | "dtmf") => {
     if (next === mode || saving) return;
     setSaving(true);
     try {
       await doSetMode({ data: { mode: next } });
-      toast.success(next === "ai" ? "עבר למצב תשובות חכמות מהבינה" : "חזר למצב תפריט קבוע");
+      const label = next === "ai" ? "תשובות חכמות מהבינה" : next === "fixed" ? "תפריט קבוע" : "תפריט הקשות (בלי זיהוי דיבור בכלל)";
+      toast.success(`עבר למצב: ${label}`);
       qc.invalidateQueries({ queryKey: ["admin-voice-menu-mode"] });
     } catch (e: any) {
       toast.error(e?.message ?? "השמירה נכשלה");
@@ -136,7 +167,7 @@ function MenuModeCard() {
   return (
     <div className="bg-card rounded-2xl border border-primary/5 p-4 space-y-3">
       <div className="font-medium text-primary text-sm">איך הבוט עונה אחרי הברכה הפותחת</div>
-      <div className="grid sm:grid-cols-2 gap-3">
+      <div className="grid sm:grid-cols-3 gap-3">
         <button
           type="button"
           disabled={saving}
@@ -161,14 +192,41 @@ function MenuModeCard() {
           }`}
         >
           <div className="flex items-center gap-2 text-sm font-medium text-primary mb-1">
-            <ListChecks className="h-4 w-4 text-blush-deep" /> תפריט קבוע (המצב הקודם)
+            <ListChecks className="h-4 w-4 text-blush-deep" /> תפריט קבוע (מילות מפתח בקול)
           </div>
           <p className="text-xs text-muted-foreground">
-            שאלות נפוצות (הגעה, הדרכה, מחירון, השארת הודעה) נענות מיידית מהטקסטים למטה — בלי הבינה בכלל. מהיר וחינמי, אבל פחות גמיש.
+            שאלות נפוצות (הגעה, הדרכה, מחירון, השארת הודעה) נענות מיידית מהטקסטים למטה — בלי הבינה בכלל, אבל עדיין דורש שהבוט יזהה מה נאמר.
+          </p>
+        </button>
+        <button
+          type="button"
+          disabled={saving}
+          onClick={() => choose("dtmf")}
+          className={`text-right rounded-xl border p-3 transition-colors ${
+            mode === "dtmf" ? "border-primary bg-primary/5" : "border-primary/10 hover:bg-cream"
+          }`}
+        >
+          <div className="flex items-center gap-2 text-sm font-medium text-primary mb-1">
+            <Keyboard className="h-4 w-4 text-blush-deep" /> תפריט הקשות בלבד
+          </div>
+          <p className="text-xs text-muted-foreground">
+            כל התפריט הראשי (1-5) מוקש במקלדת הטלפון — בלי זיהוי דיבור בכלל בשלב הזה. הכי אמין למי שסובלת מ"לא מזהה דיבור" חוזר.
           </p>
         </button>
       </div>
       {q.isLoading && <p className="text-xs text-muted-foreground">טוען מצב נוכחי…</p>}
+
+      {mode === "dtmf" && (
+        <div className="mt-2 rounded-xl bg-cream/60 border border-primary/10 p-4 space-y-3">
+          <div className="text-sm font-medium text-primary">מבנה תפריט ההקשות — כל השלבים</div>
+          {DTMF_MENU_STEPS.map((s) => (
+            <div key={s.key} className="text-xs">
+              <div className="font-medium text-foreground">{s.title}</div>
+              <div className="text-muted-foreground mt-0.5">{s.detail}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

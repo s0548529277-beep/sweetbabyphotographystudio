@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
-import { parseYemotParams, yemotAck, yemotSayAndHangup, yemotSayAndListen, yemotSayAndListenTap, yemotSayThenResume } from "@/lib/yemot.server";
+import { parseYemotParams, yemotAck, yemotSayAndHangup, yemotSayAndListen, yemotSayAndListenTap, yemotSayThenResume, type YemotTapOptions } from "@/lib/yemot.server";
 import { runVoiceTurn, type VoiceMessage, type VoiceTurnResult } from "@/lib/voice-chat.server";
 import { sendMessageToStudio } from "@/lib/voice-message.server";
 import { detectMenuIntent, wantsFullGuide, wantsToBookNow } from "@/lib/voice-menu.server";
@@ -8,6 +8,20 @@ import { getVoiceBotConfig } from "@/lib/voice-phrases.server";
 import { personalizedGreeting } from "@/lib/voice-caller.server";
 import { consumePendingVoiceNotification } from "@/lib/voice-pending-notification.server";
 import { startNoAiBooking, continueNoAiBooking, currentNbQuestion, isNbStage, NB_TAP_STAGES, type DraftBooking, type NbInputMode } from "@/lib/voice-noai-booking.server";
+
+// Keypad-only main menu ("dtmf" menu mode, MENU_MODE_KEY in
+// voice-phrases.server.ts) — added per a direct report that speech
+// recognition kept failing live even after the quiet_max fix in
+// yemot.server.ts. Same proven tap-option shape already used successfully
+// elsewhere in this file (voice-noai-booking.server.ts's CONFIRM_TAP/
+// DURATION_TAP) — mode:"Digits" + an explicit digitsAllowed list, which
+// Yemot itself enforces (rejects anything else before it ever reaches us),
+// not a hand-picked min/max that could repeat the OLD numbered-menu
+// failure ("לא הקשת כמות מספרים נכונה") documented in voice-menu.server.ts's
+// own file comment.
+const MENU_DTMF_TAP: YemotTapOptions = { mode: "Digits", digitsAllowed: [1, 2, 3, 4, 5], minDigits: 1, maxDigits: 1 };
+const LEAVE_MSG_DTMF_CONFIRM_TAP: YemotTapOptions = { mode: "Digits", digitsAllowed: [1, 2], minDigits: 1, maxDigits: 1 };
+const DTMF_MENU_STAGES = new Set(["menu_dtmf", "leaving_message_dtmf_confirm"]);
 
 // Played instead of phrases.leave_message_thanks when sendMessageToStudio's
 // email genuinely didn't go out — per explicit request, the "thanks" phrase
@@ -192,13 +206,15 @@ async function handle(request: Request): Promise<Response> {
         const pending = await consumePendingVoiceNotification(callerPhone);
         // If the caller's number matches a real site account, personalize
         // with her name — best-effort, falls back to the plain greeting.
-        const greetingWithMenu = await personalizedGreeting(`${phrases.greeting} ${phrases.menu_prompt}`, callerPhone);
+        const menuText = menuMode === "dtmf" ? phrases.menu_prompt_dtmf : phrases.menu_prompt;
+        const greetingWithMenu = await personalizedGreeting(`${phrases.greeting} ${menuText}`, callerPhone);
         const fullGreeting = pending ? `${pending} ${greetingWithMenu}` : greetingWithMenu;
+        const stage = menuMode === "dtmf" ? "menu_dtmf" : "menu";
         await supabaseAdmin.from("voice_call_sessions").upsert(
-          { call_sid: callSid, from_number: callerPhone, messages: [{ role: "assistant", content: fullGreeting }], stage: "menu", updated_at: new Date().toISOString() },
+          { call_sid: callSid, from_number: callerPhone, messages: [{ role: "assistant", content: fullGreeting }], stage, updated_at: new Date().toISOString() },
           { onConflict: "call_sid" },
         );
-        return yemotSayAndListen(fullGreeting);
+        return menuMode === "dtmf" ? yemotSayAndListenTap(fullGreeting, MENU_DTMF_TAP) : yemotSayAndListen(fullGreeting);
       }
 
       // Mid-call with no speech heard (silence, or Yemot's speech-to-text
@@ -228,6 +244,18 @@ async function handle(request: Request): Promise<Response> {
         const q = currentNbQuestion(existingStage, draft);
         await upsertVoiceSession(supabaseAdmin, { call_sid: callSid, from_number: phone, messages: priorMessages, stage: existingStage, draft_booking: draft });
         return q.tap ? yemotSayAndListenTap(q.say, q.tap) : yemotSayAndListen(q.say);
+      }
+
+      // Same reasoning as isNbStage right above — the keypad-only main menu
+      // ("dtmf" menu mode) and its leave-a-message confirm step are read
+      // with yemotSayAndListenTap too; re-issue the same tap prompt on
+      // silence instead of falling through to the generic speech-mode
+      // didnt_hear below, which would silently bump her out of keypad mode.
+      if (DTMF_MENU_STAGES.has(existingStage)) {
+        const lastAssistant = [...priorMessages].reverse().find((m) => m.role === "assistant")?.content ?? phrases.menu_prompt_dtmf;
+        const tap = existingStage === "menu_dtmf" ? MENU_DTMF_TAP : LEAVE_MSG_DTMF_CONFIRM_TAP;
+        await upsertVoiceSession(supabaseAdmin, { call_sid: callSid, from_number: phone, messages: priorMessages, stage: existingStage });
+        return yemotSayAndListenTap(lastAssistant, tap);
       }
 
       const lastWasDidntHear = priorMessages[priorMessages.length - 1]?.content === phrases.didnt_hear;
@@ -289,8 +317,16 @@ async function handle(request: Request): Promise<Response> {
     // "book now" phrasing in fixed-menu mode, and the automatic escalation
     // when the AI keeps failing but she's clearly trying to book (see the
     // catch block below).
-    const respondNbStart = async (userText: string): Promise<Response> => {
-      const start = await startNoAiBooking(phone, nbInputMode);
+    const respondNbStart = async (userText: string, forceMode?: NbInputMode): Promise<Response> => {
+      // forceMode: the keypad-only main menu ("dtmf" menu mode, option 1)
+      // always wants the booking sub-flow itself in "dtmf" input mode too,
+      // regardless of the separate NOAI_BOOKING_ENABLED_KEY admin setting
+      // (that one controls a DIFFERENT entry point — a spoken "רוצה לשריין"
+      // in fixed/AI menu mode, or the AI-keeps-failing escalation below) —
+      // those two toggles are independent, so option 1 must not silently
+      // fall back to speech-mode booking just because the OTHER setting
+      // happens to be "speech".
+      const start = await startNoAiBooking(phone, forceMode ?? nbInputMode);
       await save([...priorMessages, { role: "user", content: userText }, { role: "assistant", content: start.say }], start.stage, start.draft);
       return start.tap ? yemotSayAndListenTap(start.say, start.tap) : yemotSayAndListen(start.say);
     };
@@ -349,6 +385,63 @@ async function handle(request: Request): Promise<Response> {
       const answer = usesTap ? rawDigits : speech;
       const result = await continueNoAiBooking(stage, answer, draft, phone);
       return await respondNb(result, answer);
+    }
+
+    // ---- Stage 0b: the keypad-only main menu ("dtmf" menu mode) ----
+    // See MENU_MODE_KEY's own doc comment in voice-phrases.server.ts and
+    // DTMF_MENU_STEPS in admin.voice-bot-text.tsx (kept in sync manually)
+    // for the full 1-5 breakdown. Re-presents the same tap menu after any
+    // info option instead of ever falling into speech/AI territory — the
+    // whole point of this mode is staying keypad-only end to end.
+    // Speaks `infoText` followed immediately by the keypad menu again (one
+    // combined utterance, one tap-listen) and saves that exact combined
+    // text as the single assistant turn — so the silence-retry branch's
+    // "re-speak the last assistant message" always includes the info she
+    // may not have heard yet, not just the trailing menu prompt.
+    const respondMenuDtmfWithInfo = async (userDigit: string, infoText: string): Promise<Response> => {
+      const text = `${infoText} ${phrases.menu_prompt_dtmf}`;
+      await save([...priorMessages, { role: "user", content: userDigit }, { role: "assistant", content: text }], "menu_dtmf");
+      return yemotSayAndListenTap(text, MENU_DTMF_TAP);
+    };
+
+    if (stage === "menu_dtmf") {
+      if (rawDigits === "1") return await respondNbStart(rawDigits, "dtmf");
+      if (rawDigits === "2") return await respondMenuDtmfWithInfo(rawDigits, phrases.props_blurb);
+      if (rawDigits === "3") return await respondMenuDtmfWithInfo(rawDigits, phrases.arrival_spoken);
+      if (rawDigits === "4") return await respondMenuDtmfWithInfo(rawDigits, phrases.full_guide_spoken);
+      // "5" (the only other digit Yemot's own digitsAllowed lets through) —
+      // leave a message. The message text itself still needs real speech
+      // (an open-ended message has no keypad equivalent); only the
+      // confirm/send step is keypad-driven, see "leaving_message_dtmf" below.
+      await save([...priorMessages, { role: "user", content: rawDigits }, { role: "assistant", content: phrases.leave_message_prompt }], "leaving_message_dtmf");
+      return yemotSayAndListen(phrases.leave_message_prompt);
+    }
+
+    // ---- Stage 0c: recording the message text for option 5 above ----
+    if (stage === "leaving_message_dtmf") {
+      await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: phrases.dtmf_leave_message_confirm }], "leaving_message_dtmf_confirm");
+      return yemotSayAndListenTap(phrases.dtmf_leave_message_confirm, LEAVE_MSG_DTMF_CONFIRM_TAP);
+    }
+
+    // ---- Stage 0d: keypad confirm/send for the message just recorded ----
+    if (stage === "leaving_message_dtmf_confirm") {
+      if (rawDigits === "2") {
+        const text = `${phrases.dtmf_leave_message_redo} ${phrases.leave_message_prompt}`;
+        await save([...priorMessages, { role: "user", content: rawDigits }, { role: "assistant", content: text }], "leaving_message_dtmf");
+        return yemotSayAndListen(text);
+      }
+      // rawDigits === "1" (the only other option digitsAllowed permits) —
+      // the message text is the last user-role turn saved by the
+      // leaving_message_dtmf stage right above.
+      const messageText = [...priorMessages].reverse().find((m) => m.role === "user")?.content ?? "";
+      const result = await sendMessageToStudio({ message: messageText, callerPhone: phone, context: "התקבל דרך הבוט הטלפוני (ימות המשיח, תפריט הקשות)" });
+      // leave_message_thanks itself already says the email went out — see
+      // its own doc comment further down — so this only ever plays it when
+      // that's actually true, exactly like the speech-mode leaving_message
+      // stage below.
+      const combined = `${result.emailed ? phrases.leave_message_thanks : LEAVE_MESSAGE_EMAIL_FAILED_TEXT} ${phrases.menu_prompt_dtmf}`;
+      await save([...priorMessages, { role: "user", content: rawDigits }, { role: "assistant", content: combined }], "menu_dtmf");
+      return yemotSayAndListenTap(combined, MENU_DTMF_TAP);
     }
 
     // ---- Stage 1: the spoken-keyword menu ----
