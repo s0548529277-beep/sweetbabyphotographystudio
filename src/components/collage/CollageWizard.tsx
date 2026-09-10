@@ -44,6 +44,7 @@ import {
 } from "@/lib/collage-data";
 import { COLLAGE_IDEAS, COLLAGE_IDEA_CATEGORIES, type CollageIdeaCategory } from "@/lib/collage-ideas";
 import { translateHe } from "@/lib/collage-translations";
+import { STUDIO_FONTS, STUDIO_FONT_CATEGORY_LABELS, type StudioFontCategory } from "@/lib/collage-studio-library";
 import {
   BACKGROUND_PATTERNS,
   BACKGROUND_SWATCHES,
@@ -173,6 +174,12 @@ export function CollageWizard() {
   // site-wide language switch. Hand-translated once and looked up locally
   // (see collage-translations.ts), so toggling is instant with no API call.
   const [lang, setLang] = useState<"he" | "en">("he");
+  // Caption/subtitle font — null keeps the style preset's own default font
+  // (unchanged behavior). Reuses Studio's 35-font library instead of a
+  // separate, smaller list, per explicit request to add more fonts.
+  const [captionFontId, setCaptionFontId] = useState<string | null>(null);
+  const [fontLangFilter, setFontLangFilter] = useState<"he" | "en">("he");
+  const captionFontFamily = captionFontId ? STUDIO_FONTS.find((f) => f.id === captionFontId)?.family : undefined;
   // Per-photo zoom/pan — see CollageCard's PhotoTransform doc comment.
   // Keyed by slot index; a slot with no entry renders centered at 1×,
   // identical to the old fixed behavior.
@@ -552,7 +559,7 @@ export function CollageWizard() {
                     <div><span className="text-xs font-semibold text-secondary-foreground">תצוגה חיה</span><h2 className="font-display text-2xl text-primary">הקולאז׳ שלך</h2></div>
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><LockKeyhole className="h-3.5 w-3.5" /> התמונות לא נשלחות לשום מקום</span>
                   </div>
-                  <div className="mx-auto max-w-lg"><CollageCard svgRef={svgRef} cardW={dimensions.w} cardH={dimensions.h} styleId={styleId} photos={photos} layoutId={layoutId} shape={shape} effect={effect} frame={frame} borderStyle={borderStyle} captionPlacement={captionPlacement} paletteOverride={palette} decorId={decorId} bgPattern={bgPattern} stickers={stickers} onStickerClick={(uid) => setStickers((current) => current.filter((item) => item.uid !== uid))} caption={caption} subtitle={subtitle} onSlotClick={openPicker} photoTransforms={photoTransforms} onPhotoTransform={updatePhotoTransform} onPhotoSelect={setSelectedPhotoSlot} /></div>
+                  <div className="mx-auto max-w-lg"><CollageCard svgRef={svgRef} cardW={dimensions.w} cardH={dimensions.h} styleId={styleId} photos={photos} layoutId={layoutId} shape={shape} effect={effect} frame={frame} borderStyle={borderStyle} captionPlacement={captionPlacement} paletteOverride={palette} decorId={decorId} bgPattern={bgPattern} stickers={stickers} onStickerClick={(uid) => setStickers((current) => current.filter((item) => item.uid !== uid))} caption={caption} subtitle={subtitle} captionFontFamily={captionFontFamily} onSlotClick={openPicker} photoTransforms={photoTransforms} onPhotoTransform={updatePhotoTransform} onPhotoSelect={setSelectedPhotoSlot} /></div>
                   {stickers.length > 0 && <p className="mt-2 text-center text-xs text-muted-foreground">לחיצה על מדבקה בקולאז׳ מסירה אותה</p>}
                   <p className="mt-2 text-center text-xs text-muted-foreground">גררי תמונה כדי להזיז אותה בתוך המשבצת, וגלגלי עליה עם העכבר כדי לזום</p>
 
@@ -664,8 +671,45 @@ export function CollageWizard() {
                     <AccordionItem value="caption" className="border-border">
                       <AccordionTrigger><span className="flex items-center gap-2 font-semibold text-primary"><Type className="h-4 w-4" /> כיתוב</span></AccordionTrigger>
                       <AccordionContent>
-                        <Input value={caption} onChange={(event) => setCaption(event.target.value)} maxLength={40} aria-label="כותרת הקולאז׳" className="mb-2" />
-                        <Input value={subtitle} onChange={(event) => setSubtitle(event.target.value)} maxLength={60} aria-label="כיתוב משנה" />
+                        <Input value={caption} onChange={(event) => setCaption(event.target.value)} maxLength={40} aria-label="כותרת הקולאז׳" className="mb-2" style={captionFontFamily ? { fontFamily: captionFontFamily } : undefined} />
+                        <Input value={subtitle} onChange={(event) => setSubtitle(event.target.value)} maxLength={60} aria-label="כיתוב משנה" style={captionFontFamily ? { fontFamily: captionFontFamily } : undefined} />
+                        {/* Font picker for the caption/subtitle — same 35-font
+                            library (Hebrew + English, sans/serif/script) as
+                            the free-canvas Studio editor, reused directly. */}
+                        <div className="mt-3">
+                          <div className="mb-2 flex items-center justify-between">
+                            <span className="text-xs font-semibold text-muted-foreground">גופן</span>
+                            {captionFontId && <button type="button" onClick={() => setCaptionFontId(null)} className="text-xs text-muted-foreground underline underline-offset-2">חזרה לגופן ברירת המחדל</button>}
+                          </div>
+                          <div className="mb-2 flex gap-1.5">
+                            <Button type="button" size="sm" variant={fontLangFilter === "he" ? "secondary" : "outline"} onClick={() => setFontLangFilter("he")} className="h-7 rounded-full px-3 text-xs">עברית</Button>
+                            <Button type="button" size="sm" variant={fontLangFilter === "en" ? "secondary" : "outline"} onClick={() => setFontLangFilter("en")} className="h-7 rounded-full px-3 text-xs">English</Button>
+                          </div>
+                          <div className="max-h-52 space-y-3 overflow-y-auto pr-1">
+                            {(["sans", "serif", "script"] as StudioFontCategory[]).map((cat) => {
+                              const items = STUDIO_FONTS.filter((f) => f.lang === fontLangFilter && f.category === cat);
+                              if (!items.length) return null;
+                              return (
+                                <div key={cat}>
+                                  <div className="mb-1 text-[11px] text-muted-foreground">{STUDIO_FONT_CATEGORY_LABELS[cat]}</div>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {items.map((f) => (
+                                      <button
+                                        key={f.id}
+                                        type="button"
+                                        onClick={() => setCaptionFontId(f.id)}
+                                        style={{ fontFamily: f.family }}
+                                        className={`rounded-lg border px-3 py-1.5 text-sm transition-colors ${captionFontId === f.id ? "border-secondary bg-secondary/15 text-primary" : "border-border text-muted-foreground hover:border-secondary/60"}`}
+                                      >
+                                        {f.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
                       </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="finishes" className="border-border">

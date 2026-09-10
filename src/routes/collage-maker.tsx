@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CollageWizard } from "@/components/collage/CollageWizard";
+import { STUDIO_FONTS_GOOGLE_HREF } from "@/lib/collage-studio-library";
 
 export const Route = createFileRoute("/collage-maker")({
   component: CollageMaker,
@@ -14,6 +15,10 @@ export const Route = createFileRoute("/collage-maker")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    // Same extended font set the free-canvas Studio offers (35 fonts,
+    // Hebrew + English, sans/serif/script) — reused here for step 4's
+    // caption font picker, per explicit request for more fonts.
+    links: [{ rel: "stylesheet", href: STUDIO_FONTS_GOOGLE_HREF }],
   }),
 });
 
