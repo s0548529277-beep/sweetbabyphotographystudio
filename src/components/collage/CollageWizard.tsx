@@ -10,6 +10,7 @@ import {
   LayoutGrid,
   Loader2,
   LockKeyhole,
+  Move,
   Palette,
   Sparkles,
   Sticker,
@@ -18,9 +19,11 @@ import {
   WandSparkles,
 } from "lucide-react";
 import { toast } from "sonner";
-import { CollageCard, StickerShape } from "@/components/CollageCard";
+import { CollageCard, StickerShape, type PhotoTransform } from "@/components/CollageCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import {
   CARD_FORMATS,
   CARD_SIZES,
@@ -77,6 +80,10 @@ async function downloadCollage(svgEl: SVGSVGElement, type: "png" | "jpeg"): Prom
   clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
   clone.setAttribute("width", String(width));
   clone.setAttribute("height", String(height));
+  // The photo "hand" pan control is an editor-only affordance (see
+  // CollageCard's own doc comment on it) — strip it before rasterizing so
+  // it never ends up baked into the downloaded file.
+  clone.querySelectorAll(".collage-card-editor-ui").forEach((el) => el.remove());
   const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)], { type: "image/svg+xml;charset=utf-8" }));
   try {
     const image = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -158,6 +165,25 @@ export function CollageWizard() {
   const [stickers, setStickers] = useState<PlacedSticker[]>([]);
   const [search, setSearch] = useState("");
   const [downloading, setDownloading] = useState(false);
+  // Per-photo zoom/pan — see CollageCard's PhotoTransform doc comment.
+  // Keyed by slot index; a slot with no entry renders centered at 1×,
+  // identical to the old fixed behavior.
+  const [photoTransforms, setPhotoTransforms] = useState<Record<number, PhotoTransform>>({});
+  const [selectedPhotoSlot, setSelectedPhotoSlot] = useState<number | null>(null);
+
+  const updatePhotoTransform = (index: number, next: PhotoTransform) => {
+    setPhotoTransforms((current) => ({ ...current, [index]: next }));
+  };
+  const selectedTransform = selectedPhotoSlot !== null ? (photoTransforms[selectedPhotoSlot] ?? { offsetX: 0, offsetY: 0, zoom: 1 }) : null;
+  const setSelectedZoom = (zoom: number) => {
+    if (selectedPhotoSlot === null) return;
+    const current = photoTransforms[selectedPhotoSlot] ?? { offsetX: 0, offsetY: 0, zoom: 1 };
+    updatePhotoTransform(selectedPhotoSlot, { ...current, zoom });
+  };
+  const resetSelectedTransform = () => {
+    if (selectedPhotoSlot === null) return;
+    updatePhotoTransform(selectedPhotoSlot, { offsetX: 0, offsetY: 0, zoom: 1 });
+  };
 
   const svgRef = useRef<SVGSVGElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -226,23 +252,41 @@ export function CollageWizard() {
     if (!imageFiles.length) return;
     try {
       const urls = await Promise.all(imageFiles.map(readFileAsDataUrl));
+      const touchedIndexes: number[] = [];
       setPhotos((current) => {
         const next = [...current];
         const pending = pendingSlotRef.current;
         if (pending !== null && urls[0]) {
           next[pending] = urls[0];
+          touchedIndexes.push(pending);
           urls.slice(1).forEach((url) => {
             const empty = next.findIndex((item) => !item);
-            if (empty >= 0) next[empty] = url;
+            if (empty >= 0) {
+              next[empty] = url;
+              touchedIndexes.push(empty);
+            }
           });
         } else {
           urls.forEach((url) => {
             const empty = next.findIndex((item) => !item);
-            if (empty >= 0) next[empty] = url;
+            if (empty >= 0) {
+              next[empty] = url;
+              touchedIndexes.push(empty);
+            }
           });
         }
         return next;
       });
+      // A slot getting a brand-new photo starts fresh (centered, no zoom)
+      // — carrying over a previous photo's pan/zoom onto an unrelated new
+      // photo would show an arbitrary, likely-wrong crop of it.
+      if (touchedIndexes.length) {
+        setPhotoTransforms((current) => {
+          const next = { ...current };
+          for (const i of touchedIndexes) delete next[i];
+          return next;
+        });
+      }
     } catch {
       toast.error("טעינת התמונות נכשלה, נסי שוב");
     } finally {
@@ -391,7 +435,7 @@ export function CollageWizard() {
                   {photos.map((photo, index) => (
                     <div key={index} className="group relative aspect-square overflow-hidden rounded-xl border border-border bg-background">
                       {photo ? <img src={photo} alt={`תמונה ${index + 1} לקולאז׳`} className="h-full w-full object-cover" /> : <button type="button" onClick={() => openPicker(index)} className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground"><ImagePlus className="h-6 w-6" /><span className="text-xs">תמונה {index + 1}</span></button>}
-                      {photo && <div className="absolute inset-x-2 bottom-2 flex justify-center gap-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"><Button type="button" size="icon" variant="secondary" aria-label={`החלפת תמונה ${index + 1}`} onClick={() => openPicker(index)}><Images /></Button><Button type="button" size="icon" variant="destructive" aria-label={`מחיקת תמונה ${index + 1}`} onClick={() => setPhotos((current) => current.map((item, itemIndex) => itemIndex === index ? null : item))}><Trash2 /></Button></div>}
+                      {photo && <div className="absolute inset-x-2 bottom-2 flex justify-center gap-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"><Button type="button" size="icon" variant="secondary" aria-label={`החלפת תמונה ${index + 1}`} onClick={() => openPicker(index)}><Images /></Button><Button type="button" size="icon" variant="destructive" aria-label={`מחיקת תמונה ${index + 1}`} onClick={() => { setPhotos((current) => current.map((item, itemIndex) => itemIndex === index ? null : item)); setPhotoTransforms((current) => { const next = { ...current }; delete next[index]; return next; }); }}><Trash2 /></Button></div>}
                     </div>
                   ))}
                 </div>
@@ -406,71 +450,105 @@ export function CollageWizard() {
                     <div><span className="text-xs font-semibold text-secondary-foreground">תצוגה חיה</span><h2 className="font-display text-2xl text-primary">הקולאז׳ שלך</h2></div>
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><LockKeyhole className="h-3.5 w-3.5" /> התמונות לא נשלחות לשום מקום</span>
                   </div>
-                  <div className="mx-auto max-w-lg"><CollageCard svgRef={svgRef} cardW={dimensions.w} cardH={dimensions.h} styleId={styleId} photos={photos} layoutId={layoutId} shape={shape} effect={effect} frame={frame} borderStyle={borderStyle} captionPlacement={captionPlacement} paletteOverride={palette} decorId={decorId} bgPattern={bgPattern} stickers={stickers} onStickerClick={(uid) => setStickers((current) => current.filter((item) => item.uid !== uid))} caption={caption} subtitle={subtitle} onSlotClick={openPicker} /></div>
+                  <div className="mx-auto max-w-lg"><CollageCard svgRef={svgRef} cardW={dimensions.w} cardH={dimensions.h} styleId={styleId} photos={photos} layoutId={layoutId} shape={shape} effect={effect} frame={frame} borderStyle={borderStyle} captionPlacement={captionPlacement} paletteOverride={palette} decorId={decorId} bgPattern={bgPattern} stickers={stickers} onStickerClick={(uid) => setStickers((current) => current.filter((item) => item.uid !== uid))} caption={caption} subtitle={subtitle} onSlotClick={openPicker} photoTransforms={photoTransforms} onPhotoTransform={updatePhotoTransform} onPhotoSelect={setSelectedPhotoSlot} /></div>
                   {stickers.length > 0 && <p className="mt-2 text-center text-xs text-muted-foreground">לחיצה על מדבקה בקולאז׳ מסירה אותה</p>}
+                  <p className="mt-2 text-center text-xs text-muted-foreground">גררי את סמל היד ✋ שמופיע בתחתית כל תמונה כדי להזיז אותה בתוך המשבצת</p>
 
+                  {selectedPhotoSlot !== null && photos[selectedPhotoSlot] && selectedTransform && (
+                    <div className="mx-auto mt-4 max-w-lg rounded-2xl border border-border bg-background p-4">
+                      <h3 className="mb-3 flex items-center gap-2 font-semibold text-primary"><Move className="h-4 w-4" /> מיקום התמונה הנבחרת (משבצת {selectedPhotoSlot + 1})</h3>
+                      <label className="mb-1 block text-xs text-muted-foreground">זום בתוך המשבצת — {Math.round(selectedTransform.zoom * 100)}%</label>
+                      <Slider min={100} max={300} step={5} value={[Math.round(selectedTransform.zoom * 100)]} onValueChange={([v]) => setSelectedZoom(v / 100)} />
+                      <p className="mt-2 text-[11px] text-muted-foreground">אחרי הגדלה, גררי את היד ✋ על התמונה כדי לבחור איזה חלק ממנה יוצג — המשבצת עצמה לא זזה ולא משנה גודל.</p>
+                      <Button type="button" size="sm" variant="outline" onClick={resetSelectedTransform} className="mt-3 w-full rounded-full">איפוס זום ומיקום</Button>
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-5">
-                  <div className="rounded-2xl border border-border bg-background p-4">
-                    <h3 className="mb-3 flex items-center gap-2 font-semibold text-primary"><LayoutGrid className="h-4 w-4" /> פריסה</h3>
-                    <div className="flex flex-wrap gap-2">{layouts.map((item) => <Button key={item.id} type="button" size="sm" variant={layoutId === item.id ? "default" : "outline"} onClick={() => setLayoutId(item.id)} className="rounded-full">{item.label}</Button>)}</div>
-                  </div>
-                  <div className="rounded-2xl border border-border bg-background p-4">
-                    <h3 className="mb-3 flex items-center gap-2 font-semibold text-primary"><WandSparkles className="h-4 w-4" /> סגנון וצורה</h3>
-                    <div className="mb-3 grid grid-cols-3 gap-2">{COLLAGE_STYLES.map((item) => <Button key={item.id} type="button" size="sm" variant={styleId === item.id ? "default" : "outline"} onClick={() => setStyleId(item.id)}>{item.label}</Button>)}</div>
-                    <div className="flex flex-wrap gap-2">{PHOTO_SHAPES.map((item) => <Button key={item.id} type="button" size="sm" variant={shape === item.id ? "secondary" : "outline"} onClick={() => setShape(item.id)} className="rounded-full">{item.label}</Button>)}</div>
-                  </div>
-                  <div className="rounded-2xl border border-border bg-background p-4">
-                    <h3 className="mb-3 flex items-center gap-2 font-semibold text-primary"><Palette className="h-4 w-4" /> צבעים ואפקטים</h3>
-                    <div className="mb-3 grid grid-cols-6 gap-2">{COLOR_PALETTES.map((item) => <Button key={item.id} type="button" variant="outline" size="icon" title={item.label} aria-label={item.label} onClick={() => setPalette({ bg: item.bg, accent: item.accent, captionColor: item.captionColor })} className="overflow-hidden rounded-full border-2 p-0"><span className="h-full w-1/2" style={{ backgroundColor: item.bg }} /><span className="h-full w-1/2" style={{ backgroundColor: item.accent }} /></Button>)}</div>
-                    <div className="flex flex-wrap gap-2">{PHOTO_EFFECTS.map((item) => <Button key={item.id} type="button" size="sm" variant={effect === item.id ? "default" : "outline"} onClick={() => setEffect(item.id)} className="rounded-full">{item.label}</Button>)}</div>
-                  </div>
-                  <div className="rounded-2xl border border-border bg-background p-4">
-                    <h3 className="mb-3 flex items-center gap-2 font-semibold text-primary"><Palette className="h-4 w-4" /> רקע</h3>
-                    <div className="mb-3 grid grid-cols-8 gap-1.5">
-                      {BACKGROUND_SWATCHES.map((color) => (
-                        <button key={color} type="button" aria-label={`רקע ${color}`} onClick={() => setPalette((current) => ({ bg: color, accent: current?.accent ?? "#2d3d2b", captionColor: current?.captionColor ?? "#2d3d2b" }))} className={`h-7 w-full rounded-md border transition-transform hover:scale-110 ${palette?.bg === color ? "border-primary ring-2 ring-secondary" : "border-border"}`} style={{ backgroundColor: color }} />
-                      ))}
-                    </div>
-                    <div className="mb-3 flex items-center gap-2">
-                      <label className="text-xs text-muted-foreground" htmlFor="collage-bg-custom">צבע חופשי</label>
-                      <input id="collage-bg-custom" type="color" value={palette?.bg ?? "#fdf6ee"} onChange={(event) => setPalette((current) => ({ bg: event.target.value, accent: current?.accent ?? "#2d3d2b", captionColor: current?.captionColor ?? "#2d3d2b" }))} className="h-8 w-12 cursor-pointer rounded border border-border bg-card p-0.5" />
-                    </div>
-                    <div className="flex flex-wrap gap-2">{BACKGROUND_PATTERNS.map((item) => <Button key={item.id} type="button" size="sm" variant={bgPattern === item.id ? "default" : "outline"} onClick={() => setBgPattern(item.id)} className="rounded-full">{item.label}</Button>)}</div>
-                  </div>
-                  <div className="rounded-2xl border border-border bg-background p-4">
-                    <h3 className="mb-3 flex items-center gap-2 font-semibold text-primary"><Sticker className="h-4 w-4" /> מדבקות</h3>
-                    <p className="mb-3 text-xs text-muted-foreground">לוחצים על מדבקה כדי להוסיף אותה לקולאז׳</p>
-                    <div className="mb-4 grid grid-cols-6 gap-2">
-                      {STICKERS.map((item) => (
-                        <button key={item.id} type="button" title={item.label} aria-label={item.label} onClick={() => addSticker({ kind: item.id as StickerKind })} className="flex aspect-square items-center justify-center rounded-lg border border-border bg-card p-1 transition-transform hover:scale-105">
-                          <StickerPreview kind={item.id} />
-                        </button>
-                      ))}
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {CAPTION_STICKERS.map((item) => (
-                        <Button key={item.id} type="button" size="sm" variant="outline" onClick={() => addSticker({ text: item.text, tone: item.tone })} className="h-auto whitespace-normal rounded-xl py-2 text-xs">{item.text}</Button>
-                      ))}
-                    </div>
-                    {stickers.length > 0 && <Button type="button" size="sm" variant="ghost" onClick={() => setStickers([])} className="mt-3 w-full rounded-full">ניקוי כל המדבקות</Button>}
-                  </div>
-
-                  <div className="rounded-2xl border border-border bg-background p-4">
-                    <h3 className="mb-3 flex items-center gap-2 font-semibold text-primary"><Type className="h-4 w-4" /> כיתוב</h3>
-                    <Input value={caption} onChange={(event) => setCaption(event.target.value)} maxLength={40} aria-label="כותרת הקולאז׳" className="mb-2" />
-                    <Input value={subtitle} onChange={(event) => setSubtitle(event.target.value)} maxLength={60} aria-label="כיתוב משנה" />
-                  </div>
-                  <div className="rounded-2xl border border-border bg-background p-4">
-                    <h3 className="mb-3 font-semibold text-primary">גימורים</h3>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button type="button" size="sm" variant={borderStyle === "polaroid" ? "secondary" : "outline"} onClick={() => setBorderStyle(borderStyle === "polaroid" ? "none" : "polaroid")}>מסגרת פולארויד</Button>
-                      <Button type="button" size="sm" variant={frame ? "secondary" : "outline"} onClick={() => setFrame(!frame)}>קו מסגרת</Button>
-                      <Button type="button" size="sm" variant={captionPlacement === "overlay" ? "secondary" : "outline"} onClick={() => setCaptionPlacement(captionPlacement === "overlay" ? "below" : "overlay")}>כיתוב על התמונה</Button>
-                      <Button type="button" size="sm" variant="outline" onClick={() => setDecorId(decorId === "none" ? "newborn" : "none")}>קישוטים</Button>
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-2">{DECOR_THEMES.map((item) => <Button key={item.id} type="button" size="sm" variant={decorId === item.id ? "default" : "ghost"} onClick={() => setDecorId(item.id)}>{item.label}</Button>)}</div>
-                  </div>
+                  {/* Every design section is its own collapsible accordion
+                      item instead of a permanently-expanded stack — per
+                      explicit request, so picking one thing to tweak
+                      (colors, say) doesn't force scrolling past six other
+                      open panels to see the live preview change. Only one
+                      section is open at a time (type="single"); opening a
+                      new one closes whichever was open, keeping the whole
+                      panel short. "פריסה" starts open since it's the most
+                      common first move after picking an idea. */}
+                  <Accordion type="single" collapsible defaultValue="layout" className="rounded-2xl border border-border bg-background px-4">
+                    <AccordionItem value="layout" className="border-border">
+                      <AccordionTrigger><span className="flex items-center gap-2 font-semibold text-primary"><LayoutGrid className="h-4 w-4" /> פריסה</span></AccordionTrigger>
+                      <AccordionContent>
+                        <div className="flex flex-wrap gap-2">{layouts.map((item) => <Button key={item.id} type="button" size="sm" variant={layoutId === item.id ? "default" : "outline"} onClick={() => setLayoutId(item.id)} className="rounded-full">{item.label}</Button>)}</div>
+                      </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="style" className="border-border">
+                      <AccordionTrigger><span className="flex items-center gap-2 font-semibold text-primary"><WandSparkles className="h-4 w-4" /> סגנון וצורה</span></AccordionTrigger>
+                      <AccordionContent>
+                        <div className="mb-3 grid grid-cols-3 gap-2">{COLLAGE_STYLES.map((item) => <Button key={item.id} type="button" size="sm" variant={styleId === item.id ? "default" : "outline"} onClick={() => setStyleId(item.id)}>{item.label}</Button>)}</div>
+                        <div className="flex flex-wrap gap-2">{PHOTO_SHAPES.map((item) => <Button key={item.id} type="button" size="sm" variant={shape === item.id ? "secondary" : "outline"} onClick={() => setShape(item.id)} className="rounded-full">{item.label}</Button>)}</div>
+                      </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="colors" className="border-border">
+                      <AccordionTrigger><span className="flex items-center gap-2 font-semibold text-primary"><Palette className="h-4 w-4" /> צבעים ואפקטים</span></AccordionTrigger>
+                      <AccordionContent>
+                        <div className="mb-3 grid grid-cols-6 gap-2">{COLOR_PALETTES.map((item) => <Button key={item.id} type="button" variant="outline" size="icon" title={item.label} aria-label={item.label} onClick={() => setPalette({ bg: item.bg, accent: item.accent, captionColor: item.captionColor })} className="overflow-hidden rounded-full border-2 p-0"><span className="h-full w-1/2" style={{ backgroundColor: item.bg }} /><span className="h-full w-1/2" style={{ backgroundColor: item.accent }} /></Button>)}</div>
+                        <div className="flex flex-wrap gap-2">{PHOTO_EFFECTS.map((item) => <Button key={item.id} type="button" size="sm" variant={effect === item.id ? "default" : "outline"} onClick={() => setEffect(item.id)} className="rounded-full">{item.label}</Button>)}</div>
+                      </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="background" className="border-border">
+                      <AccordionTrigger><span className="flex items-center gap-2 font-semibold text-primary"><Palette className="h-4 w-4" /> רקע</span></AccordionTrigger>
+                      <AccordionContent>
+                        <div className="mb-3 grid grid-cols-8 gap-1.5">
+                          {BACKGROUND_SWATCHES.map((color) => (
+                            <button key={color} type="button" aria-label={`רקע ${color}`} onClick={() => setPalette((current) => ({ bg: color, accent: current?.accent ?? "#2d3d2b", captionColor: current?.captionColor ?? "#2d3d2b" }))} className={`h-7 w-full rounded-md border transition-transform hover:scale-110 ${palette?.bg === color ? "border-primary ring-2 ring-secondary" : "border-border"}`} style={{ backgroundColor: color }} />
+                          ))}
+                        </div>
+                        <div className="mb-3 flex items-center gap-2">
+                          <label className="text-xs text-muted-foreground" htmlFor="collage-bg-custom">צבע חופשי</label>
+                          <input id="collage-bg-custom" type="color" value={palette?.bg ?? "#fdf6ee"} onChange={(event) => setPalette((current) => ({ bg: event.target.value, accent: current?.accent ?? "#2d3d2b", captionColor: current?.captionColor ?? "#2d3d2b" }))} className="h-8 w-12 cursor-pointer rounded border border-border bg-card p-0.5" />
+                        </div>
+                        <div className="flex flex-wrap gap-2">{BACKGROUND_PATTERNS.map((item) => <Button key={item.id} type="button" size="sm" variant={bgPattern === item.id ? "default" : "outline"} onClick={() => setBgPattern(item.id)} className="rounded-full">{item.label}</Button>)}</div>
+                      </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="stickers" className="border-border">
+                      <AccordionTrigger><span className="flex items-center gap-2 font-semibold text-primary"><Sticker className="h-4 w-4" /> מדבקות</span></AccordionTrigger>
+                      <AccordionContent>
+                        <p className="mb-3 text-xs text-muted-foreground">לוחצים על מדבקה כדי להוסיף אותה לקולאז׳</p>
+                        <div className="mb-4 grid grid-cols-6 gap-2">
+                          {STICKERS.map((item) => (
+                            <button key={item.id} type="button" title={item.label} aria-label={item.label} onClick={() => addSticker({ kind: item.id as StickerKind })} className="flex aspect-square items-center justify-center rounded-lg border border-border bg-card p-1 transition-transform hover:scale-105">
+                              <StickerPreview kind={item.id} />
+                            </button>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {CAPTION_STICKERS.map((item) => (
+                            <Button key={item.id} type="button" size="sm" variant="outline" onClick={() => addSticker({ text: item.text, tone: item.tone })} className="h-auto whitespace-normal rounded-xl py-2 text-xs">{item.text}</Button>
+                          ))}
+                        </div>
+                        {stickers.length > 0 && <Button type="button" size="sm" variant="ghost" onClick={() => setStickers([])} className="mt-3 w-full rounded-full">ניקוי כל המדבקות</Button>}
+                      </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="caption" className="border-border">
+                      <AccordionTrigger><span className="flex items-center gap-2 font-semibold text-primary"><Type className="h-4 w-4" /> כיתוב</span></AccordionTrigger>
+                      <AccordionContent>
+                        <Input value={caption} onChange={(event) => setCaption(event.target.value)} maxLength={40} aria-label="כותרת הקולאז׳" className="mb-2" />
+                        <Input value={subtitle} onChange={(event) => setSubtitle(event.target.value)} maxLength={60} aria-label="כיתוב משנה" />
+                      </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="finishes" className="border-border">
+                      <AccordionTrigger><span className="font-semibold text-primary">גימורים</span></AccordionTrigger>
+                      <AccordionContent>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button type="button" size="sm" variant={borderStyle === "polaroid" ? "secondary" : "outline"} onClick={() => setBorderStyle(borderStyle === "polaroid" ? "none" : "polaroid")}>מסגרת פולארויד</Button>
+                          <Button type="button" size="sm" variant={frame ? "secondary" : "outline"} onClick={() => setFrame(!frame)}>קו מסגרת</Button>
+                          <Button type="button" size="sm" variant={captionPlacement === "overlay" ? "secondary" : "outline"} onClick={() => setCaptionPlacement(captionPlacement === "overlay" ? "below" : "overlay")}>כיתוב על התמונה</Button>
+                          <Button type="button" size="sm" variant="outline" onClick={() => setDecorId(decorId === "none" ? "newborn" : "none")}>קישוטים</Button>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2">{DECOR_THEMES.map((item) => <Button key={item.id} type="button" size="sm" variant={decorId === item.id ? "default" : "ghost"} onClick={() => setDecorId(item.id)}>{item.label}</Button>)}</div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
                   <div className="grid grid-cols-2 gap-3">
                     <Button type="button" onClick={() => download("jpeg")} disabled={downloading} className="h-12 rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/85">{downloading ? <Loader2 className="animate-spin" /> : <Download />} הורדת JPG</Button>
                     <Button type="button" onClick={() => download("png")} disabled={downloading} className="h-12 rounded-xl"><Download /> הורדת PNG</Button>

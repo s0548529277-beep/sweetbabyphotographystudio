@@ -69,13 +69,18 @@ export function findCardSize(formatId: CardFormatId, sizeId: string): CardSize {
 
 const BASE_CARD_AREA = 1_250_000; // ~ the old fixed 1000×1250 default — keeps consistent resolution/detail across every ratio
 
-/** Real pixel size for the card SVG, from a format+size choice — only the size's cm RATIO matters, scaled to a consistent target area. */
-export function getCardDimensions(formatId: CardFormatId, sizeId: string): { w: number; h: number } {
-  const size = findCardSize(formatId, sizeId);
-  const ratio = size.wCm / size.hCm;
+/** Real pixel size for any wCm/hCm ratio, scaled to the same consistent target area every preset size uses — the shared math behind getCardDimensions below, exported so a custom (user-typed) size can produce the identical kind of pixel size without a fake CardSize entry. */
+export function dimensionsFromRatio(wCm: number, hCm: number): { w: number; h: number } {
+  const ratio = (wCm > 0 && hCm > 0 ? wCm / hCm : 1) || 1;
   const h = Math.round(Math.sqrt(BASE_CARD_AREA / ratio));
   const w = Math.round(h * ratio);
   return { w, h };
+}
+
+/** Real pixel size for the card SVG, from a format+size choice — only the size's cm RATIO matters, scaled to a consistent target area. */
+export function getCardDimensions(formatId: CardFormatId, sizeId: string): { w: number; h: number } {
+  const size = findCardSize(formatId, sizeId);
+  return dimensionsFromRatio(size.wCm, size.hCm);
 }
 
 export type CollageStyleId = "minimal" | "luxury" | "floral";

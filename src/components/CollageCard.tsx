@@ -12,6 +12,7 @@
 // gap, photo-area height, caption placement/size) is derived as a fraction
 // of cardW/cardH rather than hardcoded, so every format renders correctly
 // proportioned instead of just stretching a portrait layout.
+import { useRef } from "react";
 import {
   findCollageStyle,
   getLayoutVariants,
@@ -24,6 +25,13 @@ import {
   type DecorThemeId,
 } from "@/lib/collage-data";
 import type { BackgroundPatternId, PlacedSticker, StickerKind } from "@/lib/collage-decor";
+
+/** Per-photo zoom/pan state — how much bigger than its own slot the photo
+ * renders (zoom) and how far its box is shifted from centered (offsetX/Y,
+ * in card px) — see the "hand" drag control below for how offsetX/Y is
+ * produced. Keyed by photo slot index; a slot with no entry renders at the
+ * plain default (zoom 1, centered), identical to the old behavior. */
+export type PhotoTransform = { offsetX: number; offsetY: number; zoom: number };
 
 /** One sticker shape, drawn inside a 100×100 box centered on (0,0). */
 export function StickerShape({ kind }: { kind: StickerKind }) {
@@ -256,6 +264,9 @@ export function CollageCard({
   stickers = [],
   onStickerClick,
   onSlotClick,
+  photoTransforms,
+  onPhotoTransform,
+  onPhotoSelect,
   caption,
   subtitle,
 }: {
@@ -282,6 +293,12 @@ export function CollageCard({
   stickers?: PlacedSticker[];
   onStickerClick?: (uid: string) => void;
   onSlotClick?: (index: number) => void;
+  /** Current zoom/pan per photo slot index — see PhotoTransform. */
+  photoTransforms?: Record<number, PhotoTransform>;
+  /** Fired continuously while dragging a photo's "hand" control, with the new (already-clamped) offset for that slot. */
+  onPhotoTransform?: (index: number, next: PhotoTransform) => void;
+  /** Fired when a filled photo's hand control is grabbed — lets the caller show that slot's zoom control (e.g. a slider in a side panel). Passing this prop (together with onPhotoTransform) is what makes the hand control appear at all — omit both to keep the old fixed/centered photo behavior. */
+  onPhotoSelect?: (index: number) => void;
   caption: string;
   subtitle: string;
 
@@ -327,6 +344,59 @@ export function CollageCard({
     if (!polaroid) return rect;
     const m = Math.max(6, Math.round(Math.min(rect.w, rect.h) * 0.06));
     return { x: rect.x + m, y: rect.y + m, w: rect.w - m * 2, h: rect.h - m * 2 };
+  };
+
+  // ---- photo pan/zoom (the "hand" drag control) --------------------------
+  // Converts a pointer-move delta in browser/screen px into card/SVG user
+  // units via the SVG's own screen CTM — correct regardless of the card's
+  // responsive on-screen scale (width="100%"), no manual bounding-rect math
+  // needed. Only the matrix's linear part (a,b,c,d) applies to a delta
+  // vector — its translation (e,f) is for absolute points, not deltas.
+  const panDragRef = useRef<{ index: number; startClientX: number; startClientY: number; startOffsetX: number; startOffsetY: number } | null>(null);
+  const canPan = Boolean(onPhotoTransform);
+
+  function clampedTransformFor(index: number, rect: { w: number; h: number }): PhotoTransform {
+    const t = photoTransforms?.[index] ?? { offsetX: 0, offsetY: 0, zoom: 1 };
+    const boxW = rect.w * t.zoom;
+    const boxH = rect.h * t.zoom;
+    const maxX = Math.max(0, (boxW - rect.w) / 2);
+    const maxY = Math.max(0, (boxH - rect.h) / 2);
+    return { zoom: t.zoom, offsetX: Math.max(-maxX, Math.min(maxX, t.offsetX)), offsetY: Math.max(-maxY, Math.min(maxY, t.offsetY)) };
+  }
+
+  function screenDeltaToSvg(dxClient: number, dyClient: number): { dx: number; dy: number } {
+    const svg = svgRef?.current;
+    const ctm = svg?.getScreenCTM();
+    if (!ctm) return { dx: dxClient, dy: dyClient };
+    const inv = ctm.inverse();
+    return { dx: dxClient * inv.a + dyClient * inv.c, dy: dxClient * inv.b + dyClient * inv.d };
+  }
+
+  const onHandPointerDown = (index: number) => (e: React.PointerEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    const t = photoTransforms?.[index] ?? { offsetX: 0, offsetY: 0, zoom: 1 };
+    panDragRef.current = { index, startClientX: e.clientX, startClientY: e.clientY, startOffsetX: t.offsetX, startOffsetY: t.offsetY };
+    onPhotoSelect?.(index);
+  };
+  const onHandPointerMove = (e: React.PointerEvent) => {
+    const d = panDragRef.current;
+    if (!d || !onPhotoTransform) return;
+    const { dx, dy } = screenDeltaToSvg(e.clientX - d.startClientX, e.clientY - d.startClientY);
+    const rect = photoRectFor(slots[d.index]);
+    const t = photoTransforms?.[d.index] ?? { offsetX: 0, offsetY: 0, zoom: 1 };
+    // Direct-manipulation feel: the content moves WITH the pointer, so the
+    // box's own offset moves the same direction as the drag.
+    const raw: PhotoTransform = { zoom: t.zoom, offsetX: d.startOffsetX + dx, offsetY: d.startOffsetY + dy };
+    const boxW = rect.w * raw.zoom;
+    const boxH = rect.h * raw.zoom;
+    const maxX = Math.max(0, (boxW - rect.w) / 2);
+    const maxY = Math.max(0, (boxH - rect.h) / 2);
+    onPhotoTransform(d.index, { zoom: raw.zoom, offsetX: Math.max(-maxX, Math.min(maxX, raw.offsetX)), offsetY: Math.max(-maxY, Math.min(maxY, raw.offsetY)) });
+  };
+  const onHandPointerUp = () => {
+    panDragRef.current = null;
   };
 
   return (
@@ -399,15 +469,24 @@ export function CollageCard({
               (outerD ? <path d={outerD} fill="#ffffff" /> : <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} fill="#ffffff" />)}
             <g clipPath={clipId ? `url(#${clipId})` : undefined}>
               {photo ? (
-                <image
-                  href={photo}
-                  x={photoRect.x}
-                  y={photoRect.y}
-                  width={photoRect.w}
-                  height={photoRect.h}
-                  preserveAspectRatio="xMidYMid slice"
-                  style={cssFilter ? { filter: cssFilter } : undefined}
-                />
+                (() => {
+                  const t = clampedTransformFor(i, photoRect);
+                  const boxW = photoRect.w * t.zoom;
+                  const boxH = photoRect.h * t.zoom;
+                  const boxX = photoRect.x - (boxW - photoRect.w) / 2 + t.offsetX;
+                  const boxY = photoRect.y - (boxH - photoRect.h) / 2 + t.offsetY;
+                  return (
+                    <image
+                      href={photo}
+                      x={boxX}
+                      y={boxY}
+                      width={boxW}
+                      height={boxH}
+                      preserveAspectRatio="xMidYMid slice"
+                      style={cssFilter ? { filter: cssFilter } : undefined}
+                    />
+                  );
+                })()
               ) : (
                 <rect x={photoRect.x} y={photoRect.y} width={photoRect.w} height={photoRect.h} fill={style.id === "minimal" && !paletteOverride?.accent ? "#f2f2f2" : `${accent}22`} />
               )}
@@ -451,6 +530,42 @@ export function CollageCard({
             {onSlotClick && (
               <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} fill="transparent" className="cursor-pointer" onClick={() => onSlotClick(i)} />
             )}
+          </g>
+        );
+      })}
+
+      {/* The "hand" pan controls get their OWN final pass, after every
+          slot's frame/click-overlay above — in a scattered/tilted layout,
+          neighboring cards overlap on screen, and SVG paint order is
+          strictly document order, so a LATER slot's full-size transparent
+          click rect (added in the pass above) would sit on top of an
+          EARLIER slot's hand icon and swallow its pointer events even
+          when the icon is nested "after" its own slot's rect — the only
+          reliable fix is one shared last pass so every hand icon beats
+          every click rect, regardless of which slot either belongs to. */}
+      {slots.map((rect, i) => {
+        const photo = photos[i];
+        if (!photo || !canPan) return null;
+        const cx = rect.x + rect.w / 2;
+        const cy = rect.y + rect.h / 2;
+        const rotate = rect.rotation ? `rotate(${rect.rotation} ${cx} ${cy})` : undefined;
+        const photoRect = photoRectFor(rect);
+        return (
+          <g key={`pan-${i}`} transform={rotate}>
+            <g
+              className="collage-card-editor-ui"
+              transform={`translate(${photoRect.x + photoRect.w / 2}, ${photoRect.y + photoRect.h - 16})`}
+              style={{ cursor: "grab" }}
+              onPointerDown={onHandPointerDown(i)}
+              onPointerMove={onHandPointerMove}
+              onPointerUp={onHandPointerUp}
+              onPointerCancel={onHandPointerUp}
+            >
+              <circle r={13} fill="#ffffff" fillOpacity={0.95} stroke="#d98a4a" strokeWidth={1.5} style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.25))" }} />
+              <text textAnchor="middle" dominantBaseline="central" fontSize={13}>
+                ✋
+              </text>
+            </g>
           </g>
         );
       })}
