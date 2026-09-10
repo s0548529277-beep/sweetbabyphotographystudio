@@ -43,6 +43,7 @@ import {
   type PhotoShapeId,
 } from "@/lib/collage-data";
 import { COLLAGE_IDEAS, COLLAGE_IDEA_CATEGORIES, type CollageIdeaCategory } from "@/lib/collage-ideas";
+import { translateHe } from "@/lib/collage-translations";
 import {
   BACKGROUND_PATTERNS,
   BACKGROUND_SWATCHES,
@@ -167,6 +168,11 @@ export function CollageWizard() {
   const [stickers, setStickers] = useState<PlacedSticker[]>([]);
   const [search, setSearch] = useState("");
   const [downloading, setDownloading] = useState(false);
+  // English toggle for this tool only (idea names/descriptions + the
+  // caption/subtitle applied to the collage) — per explicit request, not a
+  // site-wide language switch. Hand-translated once and looked up locally
+  // (see collage-translations.ts), so toggling is instant with no API call.
+  const [lang, setLang] = useState<"he" | "en">("he");
   // Per-photo zoom/pan — see CollageCard's PhotoTransform doc comment.
   // Keyed by slot index; a slot with no entry renders centered at 1×,
   // identical to the old fixed behavior.
@@ -227,9 +233,16 @@ export function CollageWizard() {
   );
   const layouts = useMemo(() => getLayoutVariants(photoCount), [photoCount]);
   const ideas = useMemo(() => {
-    const term = search.trim();
-    return COLLAGE_IDEAS.filter((item) => (term ? `${item.name} ${item.description} ${item.caption}`.includes(term) : item.category === category));
-  }, [category, search]);
+    const term = search.trim().toLowerCase();
+    return COLLAGE_IDEAS.filter((item) => {
+      if (!term) return item.category === category;
+      const haystack =
+        lang === "en"
+          ? `${translateHe(item.name, "en")} ${translateHe(item.description, "en")} ${translateHe(item.caption, "en")}`
+          : `${item.name} ${item.description} ${item.caption}`;
+      return haystack.toLowerCase().includes(term);
+    });
+  }, [category, search, lang]);
   const uploadedCount = photos.filter(Boolean).length;
 
   const addSticker = (sticker: Pick<PlacedSticker, "kind" | "text" | "tone">) => {
@@ -275,8 +288,8 @@ export function CollageWizard() {
     setEffect(selected.effect);
     setBorderStyle(selected.borderStyle);
     setDecorId(selected.decorId);
-    setCaption(selected.caption);
-    setSubtitle(selected.subtitle);
+    setCaption(translateHe(selected.caption, lang));
+    setSubtitle(translateHe(selected.subtitle, lang));
     setPalette(null);
     setStep(3);
   };
@@ -481,6 +494,14 @@ export function CollageWizard() {
                   <h2 className="mt-1 font-display text-3xl text-primary">בחרי את הקולאז׳ שלך</h2>
                   <p className="mt-2 text-sm text-muted-foreground">{COLLAGE_IDEAS.length} קולאז׳ים מוכנים בהשראת עיצובים מודפסים ופינטרסט</p>
                 </div>
+                {/* English toggle for this tool's idea names/descriptions and
+                    the caption/subtitle a picked idea applies — scoped to
+                    the collage tool only, per explicit request, not a
+                    site-wide language switch. */}
+                <div className="mx-auto mb-4 flex w-fit items-center gap-1 rounded-full border border-border bg-background p-1">
+                  <button type="button" onClick={() => setLang("he")} className={`rounded-full px-4 py-1 text-xs font-semibold transition-colors ${lang === "he" ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:text-primary"}`}>עברית</button>
+                  <button type="button" onClick={() => setLang("en")} className={`rounded-full px-4 py-1 text-xs font-semibold transition-colors ${lang === "en" ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:text-primary"}`}>English</button>
+                </div>
                 <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="חיפוש קולאז׳ (למשל: חנוכה, פולארויד, ניו בורן)" aria-label="חיפוש קולאז׳" className="mx-auto mb-4 max-w-md" />
                 <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
 
@@ -490,11 +511,11 @@ export function CollageWizard() {
                 </div>
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
                   {ideas.map((item) => (
-                    <Button key={item.id} type="button" variant="outline" onClick={() => selectIdea(item.id)} className={`h-auto min-h-56 flex-col items-stretch justify-start gap-0 overflow-hidden rounded-2xl p-0 text-right whitespace-normal ${ideaId === item.id ? "border-secondary ring-2 ring-secondary/40" : "border-border"}`}>
+                    <Button key={item.id} type="button" variant="outline" onClick={() => selectIdea(item.id)} className={`h-auto min-h-56 flex-col items-stretch justify-start gap-0 overflow-hidden rounded-2xl p-0 ${lang === "en" ? "text-left" : "text-right"} whitespace-normal ${ideaId === item.id ? "border-secondary ring-2 ring-secondary/40" : "border-border"}`}>
                       <div className="w-full bg-background p-3"><IdeaPreview motif={item.motif} /></div>
-                      <span className="flex w-full flex-col p-3">
-                        <span className="flex items-center justify-between gap-2 font-semibold text-primary"><span>{item.name}</span><span className="text-xs text-muted-foreground">{item.photoCount} תמונות</span></span>
-                        <span className="mt-1 text-xs font-normal text-muted-foreground">{item.description}</span>
+                      <span className="flex w-full flex-col p-3" dir={lang === "en" ? "ltr" : "rtl"}>
+                        <span className="flex items-center justify-between gap-2 font-semibold text-primary"><span>{translateHe(item.name, lang)}</span><span className="text-xs text-muted-foreground">{item.photoCount} {lang === "en" ? "photos" : "תמונות"}</span></span>
+                        <span className="mt-1 text-xs font-normal text-muted-foreground">{translateHe(item.description, lang)}</span>
                       </span>
                     </Button>
                   ))}
