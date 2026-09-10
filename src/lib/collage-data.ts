@@ -259,13 +259,15 @@ export const COLOR_PALETTES: ColorPalette[] = [
 ];
 
 /** Themed decorative-element overlays, keyed to match the occasion ids they're most relevant for ("an option to add elements by theme") — but offered as an independent toggle, not tied to picking that occasion preset. Actual SVG rendering lives in CollageCard (it's JSX, not data). */
-export type DecorThemeId = "none" | "birthday1" | "newborn" | "chalaka";
+export type DecorThemeId = "none" | "birthday1" | "newborn" | "chalaka" | "sweet" | "wedding";
 
 export const DECOR_THEMES: { id: DecorThemeId; label: string }[] = [
   { id: "none", label: "ללא" },
   { id: "birthday1", label: "גיל שנה" },
   { id: "newborn", label: "ניו-בורן" },
   { id: "chalaka", label: "חלאקה" },
+  { id: "sweet", label: "מתוק (דבש)" },
+  { id: "wedding", label: "חתונה" },
 ];
 
 /**

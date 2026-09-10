@@ -12,6 +12,7 @@ import {
   LockKeyhole,
   Move,
   Palette,
+  Ruler,
   Sparkles,
   Sticker,
   Trash2,
@@ -33,6 +34,7 @@ import {
   PHOTO_EFFECTS,
   PHOTO_SHAPES,
   getCardDimensions,
+  dimensionsFromRatio,
   getLayoutVariants,
   type CardFormatId,
   type CollageStyleId,
@@ -57,7 +59,7 @@ type Step = 1 | 2 | 3 | 4;
 
 const STEPS = [
   { id: 1, label: "גודל" },
-  { id: 2, label: "רעיון" },
+  { id: 2, label: "קולאז׳" },
   { id: 3, label: "תמונות" },
   { id: 4, label: "עיצוב" },
 ] as const;
@@ -184,12 +186,45 @@ export function CollageWizard() {
     if (selectedPhotoSlot === null) return;
     updatePhotoTransform(selectedPhotoSlot, { offsetX: 0, offsetY: 0, zoom: 1 });
   };
+  const removeSelectedPhoto = () => {
+    if (selectedPhotoSlot === null) return;
+    const index = selectedPhotoSlot;
+    setPhotos((current) => current.map((item, i) => (i === index ? null : item)));
+    setPhotoTransforms((current) => {
+      const next = { ...current };
+      delete next[index];
+      return next;
+    });
+    setSelectedPhotoSlot(null);
+  };
+  /** Puts an already-uploaded photo into the selected slot directly —
+   * per explicit request, an easy way to swap which of several uploaded
+   * photos sits in which slot, beyond the original upload order. */
+  const swapPhotoIntoSelected = (url: string) => {
+    if (selectedPhotoSlot === null) return;
+    const index = selectedPhotoSlot;
+    setPhotos((current) => current.map((item, i) => (i === index ? url : item)));
+    setPhotoTransforms((current) => {
+      const next = { ...current };
+      delete next[index];
+      return next;
+    });
+  };
 
   const svgRef = useRef<SVGSVGElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingSlotRef = useRef<number | null>(null);
 
-  const dimensions = useMemo(() => getCardDimensions(formatId, sizeId), [formatId, sizeId]);
+  // A free-typed size (cm) alongside the preset ladder — the preset list
+  // can't cover every real-world need (a specific frame someone already
+  // owns, an odd print size), so "custom" lets them type exact cm and get
+  // the same consistent-detail pixel size (dimensionsFromRatio) every
+  // preset already uses, instead of being limited to the fixed presets.
+  const [customSize, setCustomSize] = useState({ wCm: 20, hCm: 20 });
+  const dimensions = useMemo(
+    () => (sizeId === "custom" ? dimensionsFromRatio(customSize.wCm, customSize.hCm) : getCardDimensions(formatId, sizeId)),
+    [formatId, sizeId, customSize],
+  );
   const layouts = useMemo(() => getLayoutVariants(photoCount), [photoCount]);
   const ideas = useMemo(() => {
     const term = search.trim();
@@ -243,6 +278,7 @@ export function CollageWizard() {
     setCaption(selected.caption);
     setSubtitle(selected.subtitle);
     setPalette(null);
+    setStep(3);
   };
 
   const onFilesSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -328,7 +364,7 @@ export function CollageWizard() {
             <Sparkles className="h-4 w-4 text-secondary-foreground" /> חינם · בלי הרשמה · התמונות נשארות במכשיר שלך
           </div>
           <h1 className="font-display text-4xl text-primary md:text-6xl">יוצר הקולאז׳ים של Sweetbaby</h1>
-          <p className="mx-auto mt-3 max-w-xl text-muted-foreground">בוחרים גודל ורעיון, מעלים תמונות ומעצבים מזכרת ברמה מקצועית.</p>
+          <p className="mx-auto mt-3 max-w-xl text-muted-foreground">בוחרים גודל וקולאז׳, מעלים תמונות ומעצבים מזכרת ברמה מקצועית.</p>
         </header>
 
         <nav aria-label="שלבי יצירת הקולאז׳" className="mx-auto mb-7 flex max-w-2xl items-center justify-center gap-2 md:gap-3">
@@ -388,6 +424,51 @@ export function CollageWizard() {
                       </button>
                     );
                   })}
+                  <button
+                    type="button"
+                    onClick={() => setSizeId("custom")}
+                    className={`flex flex-col items-center gap-3 rounded-2xl border-2 p-4 transition-colors ${sizeId === "custom" ? "border-secondary bg-secondary/15" : "border-border bg-background hover:border-secondary/60"}`}
+                  >
+                    <span className="flex h-32 items-center justify-center">
+                      <span
+                        className="flex items-center justify-center overflow-hidden rounded-md border border-dashed border-border bg-card p-1 shadow-sm text-muted-foreground"
+                        style={{
+                          width: customSize.wCm >= customSize.hCm ? 112 : Math.max(24, Math.round(112 * (customSize.wCm / customSize.hCm || 1))),
+                          height: customSize.wCm >= customSize.hCm ? Math.max(24, Math.round(112 * (customSize.hCm / customSize.wCm || 1))) : 112,
+                        }}
+                      >
+                        <Ruler className="h-5 w-5" />
+                      </span>
+                    </span>
+                    <span className="text-center">
+                      <span className="block text-sm font-semibold text-primary">מידה לבחירה</span>
+                      <span className="block text-xs text-muted-foreground">{sizeId === "custom" ? `${customSize.wCm}×${customSize.hCm} ס״מ` : "הקלידו מידה משלכם"}</span>
+                    </span>
+                    {sizeId === "custom" && (
+                      <span className="flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
+                        <input
+                          type="number"
+                          min={1}
+                          max={200}
+                          value={customSize.wCm}
+                          onChange={(event) => setCustomSize((current) => ({ ...current, wCm: Math.max(1, Math.min(200, Number(event.target.value) || 1)) }))}
+                          aria-label="רוחב בס״מ"
+                          className="h-8 w-16 rounded-lg border border-border bg-card px-2 text-center text-sm"
+                        />
+                        <span className="text-xs text-muted-foreground">×</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={200}
+                          value={customSize.hCm}
+                          onChange={(event) => setCustomSize((current) => ({ ...current, hCm: Math.max(1, Math.min(200, Number(event.target.value) || 1)) }))}
+                          aria-label="גובה בס״מ"
+                          className="h-8 w-16 rounded-lg border border-border bg-card px-2 text-center text-sm"
+                        />
+                        <span className="text-xs text-muted-foreground">ס״מ</span>
+                      </span>
+                    )}
+                  </button>
                 </div>
 
               </div>
@@ -397,10 +478,10 @@ export function CollageWizard() {
               <div>
                 <div className="mb-6 text-center">
                   <span className="text-sm font-semibold text-secondary-foreground">שלב שני</span>
-                  <h2 className="mt-1 font-display text-3xl text-primary">איזה סיפור תרצי ליצור?</h2>
-                  <p className="mt-2 text-sm text-muted-foreground">{COLLAGE_IDEAS.length} רעיונות מקוריים בהשראת קולאז׳ים מודפסים ופינטרסט</p>
+                  <h2 className="mt-1 font-display text-3xl text-primary">בחרי את הקולאז׳ שלך</h2>
+                  <p className="mt-2 text-sm text-muted-foreground">{COLLAGE_IDEAS.length} קולאז׳ים מוכנים בהשראת עיצובים מודפסים ופינטרסט</p>
                 </div>
-                <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="חיפוש רעיון (למשל: חנוכה, פולארויד, ניו בורן)" aria-label="חיפוש רעיון" className="mx-auto mb-4 max-w-md" />
+                <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="חיפוש קולאז׳ (למשל: חנוכה, פולארויד, ניו בורן)" aria-label="חיפוש קולאז׳" className="mx-auto mb-4 max-w-md" />
                 <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
 
                   {COLLAGE_IDEA_CATEGORIES.map((item) => (
@@ -452,19 +533,49 @@ export function CollageWizard() {
                   </div>
                   <div className="mx-auto max-w-lg"><CollageCard svgRef={svgRef} cardW={dimensions.w} cardH={dimensions.h} styleId={styleId} photos={photos} layoutId={layoutId} shape={shape} effect={effect} frame={frame} borderStyle={borderStyle} captionPlacement={captionPlacement} paletteOverride={palette} decorId={decorId} bgPattern={bgPattern} stickers={stickers} onStickerClick={(uid) => setStickers((current) => current.filter((item) => item.uid !== uid))} caption={caption} subtitle={subtitle} onSlotClick={openPicker} photoTransforms={photoTransforms} onPhotoTransform={updatePhotoTransform} onPhotoSelect={setSelectedPhotoSlot} /></div>
                   {stickers.length > 0 && <p className="mt-2 text-center text-xs text-muted-foreground">לחיצה על מדבקה בקולאז׳ מסירה אותה</p>}
-                  <p className="mt-2 text-center text-xs text-muted-foreground">גררי את סמל היד ✋ שמופיע בתחתית כל תמונה כדי להזיז אותה בתוך המשבצת</p>
+                  <p className="mt-2 text-center text-xs text-muted-foreground">גררי תמונה כדי להזיז אותה בתוך המשבצת, וגלגלי עליה עם העכבר כדי לזום</p>
 
                   {selectedPhotoSlot !== null && photos[selectedPhotoSlot] && selectedTransform && (
                     <div className="mx-auto mt-4 max-w-lg rounded-2xl border border-border bg-background p-4">
-                      <h3 className="mb-3 flex items-center gap-2 font-semibold text-primary"><Move className="h-4 w-4" /> מיקום התמונה הנבחרת (משבצת {selectedPhotoSlot + 1})</h3>
+                      <h3 className="mb-3 flex items-center gap-2 font-semibold text-primary"><Move className="h-4 w-4" /> התמונה הנבחרת (משבצת {selectedPhotoSlot + 1})</h3>
                       <label className="mb-1 block text-xs text-muted-foreground">זום בתוך המשבצת — {Math.round(selectedTransform.zoom * 100)}%</label>
                       <Slider min={100} max={300} step={5} value={[Math.round(selectedTransform.zoom * 100)]} onValueChange={([v]) => setSelectedZoom(v / 100)} />
-                      <p className="mt-2 text-[11px] text-muted-foreground">אחרי הגדלה, גררי את היד ✋ על התמונה כדי לבחור איזה חלק ממנה יוצג — המשבצת עצמה לא זזה ולא משנה גודל.</p>
-                      <Button type="button" size="sm" variant="outline" onClick={resetSelectedTransform} className="mt-3 w-full rounded-full">איפוס זום ומיקום</Button>
+                      <p className="mt-2 text-[11px] text-muted-foreground">גררי את התמונה עצמה (או את סמל היד ✋) כדי להזיז אותה בתוך המשבצת, וגלגלי העכבר עליה כדי לזום — המשבצת עצמה לא זזה ולא משנה גודל.</p>
+                      <div className="mt-3 grid grid-cols-3 gap-2">
+                        <Button type="button" size="sm" variant="outline" onClick={resetSelectedTransform} className="rounded-full">איפוס זום</Button>
+                        <Button type="button" size="sm" variant="outline" onClick={() => openPicker(selectedPhotoSlot)} className="rounded-full">החלפת תמונה</Button>
+                        <Button type="button" size="sm" variant="outline" onClick={removeSelectedPhoto} className="rounded-full text-destructive">הסרת תמונה</Button>
+                      </div>
+                      {photos.filter(Boolean).length > 1 && (
+                        <div className="mt-3">
+                          <p className="mb-1.5 text-[11px] text-muted-foreground">או לחצי על תמונה שהעלית כדי לשים אותה כאן במקום:</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {photos.map((url, i) =>
+                              url && i !== selectedPhotoSlot ? (
+                                <button key={i} type="button" onClick={() => swapPhotoIntoSelected(url)} className="h-12 w-12 overflow-hidden rounded-lg border border-border hover:border-secondary transition-colors">
+                                  <img src={url} alt="" className="h-full w-full object-cover" />
+                                </button>
+                              ) : null,
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
                 <div className="space-y-5">
+                  <Link
+                    to="/collage-canvas"
+                    className="group flex items-center justify-between gap-3 rounded-2xl bg-[#2d3d2b] text-[#f8ede4] px-4 py-3 hover:bg-[#2d3d2b]/90 transition-colors"
+                  >
+                    <div>
+                      <div className="text-sm font-semibold">רוצה שליטה מלאה על כל תמונה?</div>
+                      <div className="text-xs text-[#f8ede4]/70">עורך קנבס חופשי עם צורה/מסגרת/זום נפרדים לכל תמונה, ועיטורים מצוירים ומדויקים</div>
+                    </div>
+                    <span className="inline-flex items-center gap-1 bg-[#f5d5cf] text-[#2d3d2b] px-3 py-1.5 rounded-full text-xs font-semibold shrink-0">
+                      כניסה <ArrowLeft className="h-3 w-3" />
+                    </span>
+                  </Link>
                   {/* Every design section is its own collapsible accordion
                       item instead of a permanently-expanded stack — per
                       explicit request, so picking one thing to tweak
@@ -560,7 +671,7 @@ export function CollageWizard() {
 
           <footer className="flex flex-col-reverse items-center justify-between gap-3 border-t border-border bg-background px-5 py-4 sm:flex-row md:px-9">
             {step > 1 ? <Button type="button" variant="ghost" onClick={previousStep} className="w-full rounded-full sm:w-auto"><ArrowRight /> חזרה</Button> : <Link to="/" className="inline-flex min-h-10 items-center px-4 text-sm text-muted-foreground">חזרה לאתר</Link>}
-            {step < 4 ? <Button type="button" onClick={nextStep} className="h-12 w-full rounded-full bg-secondary px-8 text-secondary-foreground hover:bg-secondary/85 sm:w-auto">{step === 1 ? "המשך לבחירת רעיון" : step === 2 ? "המשך להעלאת תמונות" : "המשך לעיצוב"}<ArrowLeft /></Button> : <Button type="button" variant="outline" onClick={() => setStep(1)} className="w-full rounded-full sm:w-auto">יצירת קולאז׳ חדש</Button>}
+            {step < 4 ? <Button type="button" onClick={nextStep} className="h-12 w-full rounded-full bg-secondary px-8 text-secondary-foreground hover:bg-secondary/85 sm:w-auto">{step === 1 ? "המשך לבחירת קולאז׳" : step === 2 ? "המשך להעלאת תמונות" : "המשך לעיצוב"}<ArrowLeft /></Button> : <Button type="button" variant="outline" onClick={() => setStep(1)} className="w-full rounded-full sm:w-auto">יצירת קולאז׳ חדש</Button>}
           </footer>
         </section>
 
