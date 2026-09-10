@@ -96,21 +96,34 @@ export const COLLAGE_IDEAS: CollageIdea[] = [
   idea("generations", "מדור לדור", "family", "דורות ורגעים שמחברים ביניהם", 7, "mosaic", "grid", { styleId: "luxury", caption: "מדור לדור", subtitle: "הסיפור המשפחתי שלנו" }),
   idea("garden-scrapbook", "אלבום גינה", "family", "תמונות טבעיות כמו דפי סקראפבוק", 9, "scatter", "scatter", { borderStyle: "polaroid", effect: "warm" }),
   idea("family-panorama", "פנורמה משפחתית", "family", "רצף רחב של רגעים משותפים", 6, "strip", "strip", { caption: "ביחד זה הכי טוב" }),
+  // The next 4 mirror templates that used to live only in "סטודיו קולאז'ים"
+  // (the fabric.js free-canvas editor) — ported here as preset "ideas" for
+  // this simpler tool too, per explicit request, so every layout that
+  // existed before is reachable from this step, not only from /collage-canvas.
+  idea("our-moments", "הרגעים שלנו", "family", "תמונה גדולה למעלה וכמה רגעים קטנים מתחת", 4, "featured", "hero", { styleId: "minimal", shape: "rect", caption: "הרגעים שלנו", subtitle: "המשפחה שלנו" }),
+  idea("our-album", "האלבום שלנו", "family", "שש תמונות בפריסת אלבום א-סימטרית", 6, "mosaic", "grid", { styleId: "minimal", shape: "rect", caption: "האלבום שלנו" }),
+  idea("our-smile", "החיוך שלנו", "family", "שתי תמונות נקיות עם כיתוב לצד", 2, "featured", "hero", { styleId: "minimal", caption: "החיוך שלנו", subtitle: "הרגעים הקטנים" }),
+  idea("our-family-portrait", "המשפחה שלנו", "family", "תמונה יחידה עם מסגרת דקה קלאסית", 1, "featured", "story", { styleId: "minimal", shape: "rect", caption: "המשפחה שלנו", subtitle: "יחד זה הבית" }),
 
   idea("chalaka-before-after", "לפני ואחרי", "chalaka", "שני רגעים משני צדי התספורת", 2, "grid", "story", { styleId: "luxury", decorId: "chalaka", caption: "החלאקה שלי" }),
   idea("chalaka-story", "סיפור החלאקה", "chalaka", "רצף הטקס מההתחלה ועד החיוך", 8, "featured", "hero", { decorId: "chalaka", caption: "בן שלוש למצוות" }),
   idea("honey-letters", "אותיות ודבש", "chalaka", "רגעים מתוקים מהטקס", 4, "grid", "grid", { styleId: "luxury", decorId: "chalaka", caption: "תורה ציווה לנו" }),
+  idea("my-chalaka", "החלאקה שלי", "chalaka", "חמש תמונות עם פרחי זהב בפינות", 5, "mosaic", "grid", { shape: "rect", decorId: "chalaka", caption: "החלאקה שלי", subtitle: "היום המיוחד שלי" }),
 
   idea("birthday-confetti", "קונפטי יום הולדת", "celebrations", "תמונות שמחות בקצב חופשי", 8, "scatter", "scatter", { borderStyle: "polaroid", decorId: "birthday1", effect: "vivid", caption: "יום הולדת שמח" }),
   idea("bat-mitzvah", "בת מצווה אלגנטית", "celebrations", "פריסה חגיגית עם תמונה מובילה", 6, "featured", "hero", { styleId: "luxury", caption: "בת מצווה שמחה", subtitle: "היום המיוחד שלי" }),
   idea("candle-story", "סיפור של אורות", "celebrations", "רצף תמונות חגיגי ורחב", 12, "strip", "strip", { styleId: "luxury", caption: "אור ואהבה" }),
   idea("celebration-magazine", "שער מגזין", "celebrations", "צילום נועז וכותרת גדולה", 4, "featured", "story", { styleId: "minimal", caption: "היום כולו שלי" }),
+  idea("from-the-heart", "ברכה מכל הלב", "celebrations", "תמונה יחידה בקשת על רקע כהה ויוקרתי", 1, "featured", "story", { styleId: "luxury", shape: "arch", caption: "מכל הלב", subtitle: "מתנה שנשארת לתמיד" }),
+  idea("bat-mitzvah-portrait", "בת המצווה שלי", "celebrations", "תמונה מרכזית ושני רגעים לצידה על רקע כהה", 4, "featured", "hero", { styleId: "luxury", caption: "בת מצווה שמחה" }),
+  idea("birthday-trio", "יום הולדת שמח", "celebrations", "תמונה גבוהה ושני רגעים לצידה", 3, "featured", "hero", { decorId: "birthday1", effect: "vivid", caption: "יום הולדת שמח" }),
 
   idea("wedding-couple", "מזל טוב", "wedding", "תמונה מרכזית וזוג רגעים מהחתונה", 3, "featured", "hero", { styleId: "luxury", decorId: "wedding", caption: "מזל טוב", subtitle: "לחיים ולאושר" }),
   idea("wedding-story", "סיפור החתונה", "wedding", "רצף רגעים מהיום הגדול", 8, "strip", "strip", { styleId: "luxury", decorId: "wedding", caption: "לחיים ולאושר" }),
   idea("wedding-grid", "רגעים מתחת לחופה", "wedding", "רשת מסודרת של הטקס והחגיגה", 6, "grid", "grid", { styleId: "luxury", decorId: "wedding", caption: "מזל טוב", subtitle: "יום שלם באהבה" }),
 
   idea("rosh-hashana", "שנה מתוקה", "holidays", "תמונות חג עם מסגרת עדינה", 6, "mosaic", "grid", { styleId: "luxury", decorId: "sweet", caption: "שנה טובה ומתוקה" }),
+  idea("good-year", "שנה טובה", "holidays", "שתי תמונות עם דבש ותפוח בפינות", 2, "featured", "hero", { decorId: "sweet", caption: "שנה טובה", subtitle: "שנה של שקט, שמחה והרבה נחת" }),
   idea("hanukkah-lights", "שמונה אורות", "holidays", "שמונה תמונות כמו נרות", 8, "strip", "strip", { styleId: "luxury", caption: "חנוכה שמח" }),
   idea("purim-grid", "תחפושות לאורך השנים", "holidays", "רשת צבעונית של זיכרונות", 9, "grid", "grid", { effect: "vivid", caption: "פורים שמח" }),
   idea("shabbat-table", "שולחן שבת", "holidays", "תמונה רחבה ופרטי אווירה", 4, "featured", "hero", { styleId: "luxury", caption: "שבת שלום" }),
@@ -121,6 +134,7 @@ export const COLLAGE_IDEAS: CollageIdea[] = [
   idea("organic-shapes", "צורות אורגניות", "editorial", "חיתוכים רכים בסגנון אמנותי", 6, "mosaic", "circle", { shape: "blob", caption: "אמנות של רגע" }),
   idea("arches", "קשתות סטודיו", "editorial", "קשתות מחמיאות לצילומי סטודיו", 4, "grid", "circle", { shape: "arch", styleId: "minimal" }),
   idea("classic-postcard", "גלויה קלאסית", "editorial", "תמונה וכיתוב שנראים כמו מזכרת", 1, "featured", "story", { styleId: "minimal", borderStyle: "polaroid", caption: "נשלח באהבה" }),
+  idea("spring-season", "עונת האביב", "editorial", "ארבע תמונות ברשת עדינה בהשראת האביב", 4, "grid", "grid", { styleId: "minimal", caption: "רגעים שנשארים" }),
 ];
 /**
  * The large library. Every entry below is generated from a themed concept
