@@ -299,6 +299,7 @@ export function CollageCard({
   onPhotoSelect,
   caption,
   subtitle,
+  captionFontFamily,
 }: {
   svgRef?: React.RefObject<SVGSVGElement | null>;
   /** Card pixel size — from the format/size picker (see getCardDimensions in collage-data.ts). */
@@ -331,6 +332,11 @@ export function CollageCard({
   onPhotoSelect?: (index: number) => void;
   caption: string;
   subtitle: string;
+  /** Overrides the style preset's own font for the caption + subtitle only
+   * (from the font picker in step 4's כיתוב panel) — reuses Studio's font
+   * list (STUDIO_FONTS) rather than duplicating it. Falls back to the
+   * style's default font when not set, same as before this existed. */
+  captionFontFamily?: string;
 
 }) {
   const style = findCollageStyle(styleId);
@@ -648,7 +654,7 @@ export function CollageCard({
         y={captionY}
         textAnchor="middle"
         fontSize={captionFontSize}
-        fontFamily={style.fontFamily}
+        fontFamily={captionFontFamily ?? style.fontFamily}
         fill={overlayCaption ? "#ffffff" : captionColor}
         style={overlayCaption ? { filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.65))" } : undefined}
       >
@@ -660,7 +666,7 @@ export function CollageCard({
           y={subtitleY}
           textAnchor="middle"
           fontSize={subtitleFontSize}
-          fontFamily={style.fontFamily}
+          fontFamily={captionFontFamily ?? style.fontFamily}
           fill={overlayCaption ? "#ffffff" : captionColor}
           opacity={overlayCaption ? 0.95 : 0.85}
           style={overlayCaption ? { filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.65))" } : undefined}

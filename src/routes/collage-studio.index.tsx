@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CollageWizard } from "@/components/collage/CollageWizard";
+import { STUDIO_FONTS_GOOGLE_HREF } from "@/lib/collage-studio-library";
 
 export const Route = createFileRoute("/collage-studio/")({
   component: CollageStudio,
@@ -14,6 +15,7 @@ export const Route = createFileRoute("/collage-studio/")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [{ rel: "stylesheet", href: STUDIO_FONTS_GOOGLE_HREF }],
   }),
 });
 
