@@ -12,6 +12,7 @@ import {
   LockKeyhole,
   Move,
   Palette,
+  Ruler,
   Sparkles,
   Sticker,
   Trash2,
@@ -33,6 +34,7 @@ import {
   PHOTO_EFFECTS,
   PHOTO_SHAPES,
   getCardDimensions,
+  dimensionsFromRatio,
   getLayoutVariants,
   type CardFormatId,
   type CollageStyleId,
@@ -57,7 +59,7 @@ type Step = 1 | 2 | 3 | 4;
 
 const STEPS = [
   { id: 1, label: "גודל" },
-  { id: 2, label: "רעיון" },
+  { id: 2, label: "קולאז׳" },
   { id: 3, label: "תמונות" },
   { id: 4, label: "עיצוב" },
 ] as const;
@@ -189,7 +191,16 @@ export function CollageWizard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingSlotRef = useRef<number | null>(null);
 
-  const dimensions = useMemo(() => getCardDimensions(formatId, sizeId), [formatId, sizeId]);
+  // A free-typed size (cm) alongside the preset ladder — the preset list
+  // can't cover every real-world need (a specific frame someone already
+  // owns, an odd print size), so "custom" lets them type exact cm and get
+  // the same consistent-detail pixel size (dimensionsFromRatio) every
+  // preset already uses, instead of being limited to the fixed presets.
+  const [customSize, setCustomSize] = useState({ wCm: 20, hCm: 20 });
+  const dimensions = useMemo(
+    () => (sizeId === "custom" ? dimensionsFromRatio(customSize.wCm, customSize.hCm) : getCardDimensions(formatId, sizeId)),
+    [formatId, sizeId, customSize],
+  );
   const layouts = useMemo(() => getLayoutVariants(photoCount), [photoCount]);
   const ideas = useMemo(() => {
     const term = search.trim();
@@ -328,7 +339,7 @@ export function CollageWizard() {
             <Sparkles className="h-4 w-4 text-secondary-foreground" /> חינם · בלי הרשמה · התמונות נשארות במכשיר שלך
           </div>
           <h1 className="font-display text-4xl text-primary md:text-6xl">יוצר הקולאז׳ים של Sweetbaby</h1>
-          <p className="mx-auto mt-3 max-w-xl text-muted-foreground">בוחרים גודל ורעיון, מעלים תמונות ומעצבים מזכרת ברמה מקצועית.</p>
+          <p className="mx-auto mt-3 max-w-xl text-muted-foreground">בוחרים גודל וקולאז׳, מעלים תמונות ומעצבים מזכרת ברמה מקצועית.</p>
         </header>
 
         <nav aria-label="שלבי יצירת הקולאז׳" className="mx-auto mb-7 flex max-w-2xl items-center justify-center gap-2 md:gap-3">
@@ -388,6 +399,51 @@ export function CollageWizard() {
                       </button>
                     );
                   })}
+                  <button
+                    type="button"
+                    onClick={() => setSizeId("custom")}
+                    className={`flex flex-col items-center gap-3 rounded-2xl border-2 p-4 transition-colors ${sizeId === "custom" ? "border-secondary bg-secondary/15" : "border-border bg-background hover:border-secondary/60"}`}
+                  >
+                    <span className="flex h-32 items-center justify-center">
+                      <span
+                        className="flex items-center justify-center overflow-hidden rounded-md border border-dashed border-border bg-card p-1 shadow-sm text-muted-foreground"
+                        style={{
+                          width: customSize.wCm >= customSize.hCm ? 112 : Math.max(24, Math.round(112 * (customSize.wCm / customSize.hCm || 1))),
+                          height: customSize.wCm >= customSize.hCm ? Math.max(24, Math.round(112 * (customSize.hCm / customSize.wCm || 1))) : 112,
+                        }}
+                      >
+                        <Ruler className="h-5 w-5" />
+                      </span>
+                    </span>
+                    <span className="text-center">
+                      <span className="block text-sm font-semibold text-primary">מידה לבחירה</span>
+                      <span className="block text-xs text-muted-foreground">{sizeId === "custom" ? `${customSize.wCm}×${customSize.hCm} ס״מ` : "הקלידו מידה משלכם"}</span>
+                    </span>
+                    {sizeId === "custom" && (
+                      <span className="flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
+                        <input
+                          type="number"
+                          min={1}
+                          max={200}
+                          value={customSize.wCm}
+                          onChange={(event) => setCustomSize((current) => ({ ...current, wCm: Math.max(1, Math.min(200, Number(event.target.value) || 1)) }))}
+                          aria-label="רוחב בס״מ"
+                          className="h-8 w-16 rounded-lg border border-border bg-card px-2 text-center text-sm"
+                        />
+                        <span className="text-xs text-muted-foreground">×</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={200}
+                          value={customSize.hCm}
+                          onChange={(event) => setCustomSize((current) => ({ ...current, hCm: Math.max(1, Math.min(200, Number(event.target.value) || 1)) }))}
+                          aria-label="גובה בס״מ"
+                          className="h-8 w-16 rounded-lg border border-border bg-card px-2 text-center text-sm"
+                        />
+                        <span className="text-xs text-muted-foreground">ס״מ</span>
+                      </span>
+                    )}
+                  </button>
                 </div>
 
               </div>
@@ -397,10 +453,10 @@ export function CollageWizard() {
               <div>
                 <div className="mb-6 text-center">
                   <span className="text-sm font-semibold text-secondary-foreground">שלב שני</span>
-                  <h2 className="mt-1 font-display text-3xl text-primary">איזה סיפור תרצי ליצור?</h2>
-                  <p className="mt-2 text-sm text-muted-foreground">{COLLAGE_IDEAS.length} רעיונות מקוריים בהשראת קולאז׳ים מודפסים ופינטרסט</p>
+                  <h2 className="mt-1 font-display text-3xl text-primary">בחרי את הקולאז׳ שלך</h2>
+                  <p className="mt-2 text-sm text-muted-foreground">{COLLAGE_IDEAS.length} קולאז׳ים מוכנים בהשראת עיצובים מודפסים ופינטרסט</p>
                 </div>
-                <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="חיפוש רעיון (למשל: חנוכה, פולארויד, ניו בורן)" aria-label="חיפוש רעיון" className="mx-auto mb-4 max-w-md" />
+                <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="חיפוש קולאז׳ (למשל: חנוכה, פולארויד, ניו בורן)" aria-label="חיפוש קולאז׳" className="mx-auto mb-4 max-w-md" />
                 <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
 
                   {COLLAGE_IDEA_CATEGORIES.map((item) => (
@@ -560,7 +616,7 @@ export function CollageWizard() {
 
           <footer className="flex flex-col-reverse items-center justify-between gap-3 border-t border-border bg-background px-5 py-4 sm:flex-row md:px-9">
             {step > 1 ? <Button type="button" variant="ghost" onClick={previousStep} className="w-full rounded-full sm:w-auto"><ArrowRight /> חזרה</Button> : <Link to="/" className="inline-flex min-h-10 items-center px-4 text-sm text-muted-foreground">חזרה לאתר</Link>}
-            {step < 4 ? <Button type="button" onClick={nextStep} className="h-12 w-full rounded-full bg-secondary px-8 text-secondary-foreground hover:bg-secondary/85 sm:w-auto">{step === 1 ? "המשך לבחירת רעיון" : step === 2 ? "המשך להעלאת תמונות" : "המשך לעיצוב"}<ArrowLeft /></Button> : <Button type="button" variant="outline" onClick={() => setStep(1)} className="w-full rounded-full sm:w-auto">יצירת קולאז׳ חדש</Button>}
+            {step < 4 ? <Button type="button" onClick={nextStep} className="h-12 w-full rounded-full bg-secondary px-8 text-secondary-foreground hover:bg-secondary/85 sm:w-auto">{step === 1 ? "המשך לבחירת קולאז׳" : step === 2 ? "המשך להעלאת תמונות" : "המשך לעיצוב"}<ArrowLeft /></Button> : <Button type="button" variant="outline" onClick={() => setStep(1)} className="w-full rounded-full sm:w-auto">יצירת קולאז׳ חדש</Button>}
           </footer>
         </section>
 

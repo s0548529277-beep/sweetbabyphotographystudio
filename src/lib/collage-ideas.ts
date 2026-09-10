@@ -12,6 +12,7 @@ export type CollageIdeaCategory =
   | "family"
   | "chalaka"
   | "celebrations"
+  | "wedding"
   | "holidays"
   | "editorial";
 
@@ -39,6 +40,7 @@ export const COLLAGE_IDEA_CATEGORIES: { id: CollageIdeaCategory; label: string }
   { id: "family", label: "משפחה" },
   { id: "chalaka", label: "חלאקה" },
   { id: "celebrations", label: "חגיגות" },
+  { id: "wedding", label: "חתונה" },
   { id: "holidays", label: "חגים" },
   { id: "editorial", label: "מודרני" },
 ];
@@ -104,7 +106,11 @@ export const COLLAGE_IDEAS: CollageIdea[] = [
   idea("candle-story", "סיפור של אורות", "celebrations", "רצף תמונות חגיגי ורחב", 12, "strip", "strip", { styleId: "luxury", caption: "אור ואהבה" }),
   idea("celebration-magazine", "שער מגזין", "celebrations", "צילום נועז וכותרת גדולה", 4, "featured", "story", { styleId: "minimal", caption: "היום כולו שלי" }),
 
-  idea("rosh-hashana", "שנה מתוקה", "holidays", "תמונות חג עם מסגרת עדינה", 6, "mosaic", "grid", { styleId: "luxury", caption: "שנה טובה ומתוקה" }),
+  idea("wedding-couple", "מזל טוב", "wedding", "תמונה מרכזית וזוג רגעים מהחתונה", 3, "featured", "hero", { styleId: "luxury", decorId: "wedding", caption: "מזל טוב", subtitle: "לחיים ולאושר" }),
+  idea("wedding-story", "סיפור החתונה", "wedding", "רצף רגעים מהיום הגדול", 8, "strip", "strip", { styleId: "luxury", decorId: "wedding", caption: "לחיים ולאושר" }),
+  idea("wedding-grid", "רגעים מתחת לחופה", "wedding", "רשת מסודרת של הטקס והחגיגה", 6, "grid", "grid", { styleId: "luxury", decorId: "wedding", caption: "מזל טוב", subtitle: "יום שלם באהבה" }),
+
+  idea("rosh-hashana", "שנה מתוקה", "holidays", "תמונות חג עם מסגרת עדינה", 6, "mosaic", "grid", { styleId: "luxury", decorId: "sweet", caption: "שנה טובה ומתוקה" }),
   idea("hanukkah-lights", "שמונה אורות", "holidays", "שמונה תמונות כמו נרות", 8, "strip", "strip", { styleId: "luxury", caption: "חנוכה שמח" }),
   idea("purim-grid", "תחפושות לאורך השנים", "holidays", "רשת צבעונית של זיכרונות", 9, "grid", "grid", { effect: "vivid", caption: "פורים שמח" }),
   idea("shabbat-table", "שולחן שבת", "holidays", "תמונה רחבה ופרטי אווירה", 4, "featured", "hero", { styleId: "luxury", caption: "שבת שלום" }),
@@ -176,7 +182,12 @@ const THEMES: Theme[] = [
   { key: "friends", name: "לחברות", caption: "לחברה הכי טובה", subtitle: "תודה שאת שלי", category: "celebrations" },
   { key: "thanks", name: "תודה", caption: "תודה מכל הלב", subtitle: "מזכרת קטנה", category: "celebrations" },
 
-  { key: "shanatova", name: "שנה טובה", caption: "שנה טובה ומתוקה", subtitle: "שתהיה שנה של אור", category: "holidays", styleId: "luxury" },
+  { key: "wedding", name: "החתונה שלנו", caption: "מזל טוב", subtitle: "לחיים ולאושר", category: "wedding", styleId: "luxury", decorId: "wedding" },
+  { key: "chuppah", name: "מתחת לחופה", caption: "מתחת לחופה", subtitle: "יום שלם באהבה", category: "wedding", styleId: "luxury", decorId: "wedding" },
+  { key: "bride", name: "הכלה", caption: "יפה כל כך", subtitle: "היום הגדול שלי", category: "wedding", decorId: "wedding" },
+  { key: "toast", name: "לחיים", caption: "לחיים ולאושר", subtitle: "מזל טוב לזוג", category: "wedding", decorId: "wedding" },
+
+  { key: "shanatova", name: "שנה טובה", caption: "שנה טובה ומתוקה", subtitle: "שתהיה שנה של אור", category: "holidays", styleId: "luxury", decorId: "sweet" },
   { key: "hanukkah", name: "חנוכה", caption: "חנוכה שמח", subtitle: "שמונה נרות של אור", category: "holidays", styleId: "luxury" },
   { key: "purim", name: "פורים", caption: "פורים שמח", subtitle: "תחפושות וצחוק", category: "holidays" },
   { key: "pesach", name: "פסח", caption: "חג פסח שמח", subtitle: "חג של חירות", category: "holidays" },

@@ -243,6 +243,36 @@ function OccasionDecor({ theme, accent, cardW }: { theme: DecorThemeId; accent: 
       </g>
     );
   }
+  if (theme === "sweet") {
+    // Honey jar + a small bee — the Rosh Hashana / "sweet year" motif from
+    // the owner's own reference stickers, as a corner flourish for this
+    // simpler renderer (the full bee/honey-jar/apple element library lives
+    // in the fuller /collage-studio editor — see collage-studio-library.ts).
+    return (
+      <g opacity={0.85} transform={`translate(${cardW - 76}, 18)`}>
+        <rect x={-20} y={-2} width={40} height={38} rx={8} fill={accent} opacity={0.9} />
+        <rect x={-23} y={-14} width={46} height={12} rx={5} fill={accent} />
+        <path d="M-10,10 q10,9 20,0" stroke="#fff" strokeWidth={3} fill="none" strokeLinecap="round" opacity={0.7} />
+        <g transform="translate(38, 44) scale(0.5)">
+          <ellipse cx={-13} cy={-13} rx={13} ry={9} fill="#fff" opacity={0.7} transform="rotate(-25 -13 -13)" />
+          <ellipse cx={13} cy={-13} rx={13} ry={9} fill="#fff" opacity={0.7} transform="rotate(25 13 -13)" />
+          <ellipse cx={0} cy={5} rx={19} ry={21} fill={accent} />
+          <path d="M-18,-2 h36 M-19,10 h38 M-14,21 h28" stroke="#2f2a22" strokeWidth={5} strokeLinecap="round" />
+        </g>
+      </g>
+    );
+  }
+  if (theme === "wedding") {
+    // Two interlocking rings — a light, universal wedding motif.
+    return (
+      <g opacity={0.85} stroke={accent} strokeWidth={3} fill="none">
+        <g transform={`translate(${cardW - 84}, 30)`}>
+          <circle cx={0} cy={0} r={17} />
+          <circle cx={20} cy={0} r={17} />
+        </g>
+      </g>
+    );
+  }
   return null;
 }
 
