@@ -278,6 +278,7 @@ export function CollageWizard() {
     setCaption(selected.caption);
     setSubtitle(selected.subtitle);
     setPalette(null);
+    setStep(3);
   };
 
   const onFilesSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
