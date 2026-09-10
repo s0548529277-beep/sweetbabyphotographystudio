@@ -101,4 +101,8 @@ export type PlacedSticker = {
   x: number;
   y: number;
   scale: number;
+  /** Degrees — full manual control over a placed sticker (drag to move,
+   * wheel to scale, this to rotate), per explicit request. Defaults to 0
+   * for any sticker placed before this existed. */
+  rotation?: number;
 };

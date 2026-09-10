@@ -293,6 +293,7 @@ export function CollageCard({
   bgPattern = "none",
   stickers = [],
   onStickerClick,
+  onStickerTransform,
   onSlotClick,
   photoTransforms,
   onPhotoTransform,
@@ -300,6 +301,9 @@ export function CollageCard({
   caption,
   subtitle,
   captionFontFamily,
+  captionOffset,
+  captionScale = 1,
+  onCaptionTransform,
 }: {
   svgRef?: React.RefObject<SVGSVGElement | null>;
   /** Card pixel size — from the format/size picker (see getCardDimensions in collage-data.ts). */
@@ -322,7 +326,14 @@ export function CollageCard({
   bgPattern?: BackgroundPatternId;
   /** Shape/caption stickers the user added, positioned as card fractions. */
   stickers?: PlacedSticker[];
+  /** Fired on a genuine tap (no meaningful drag) — removes that sticker. */
   onStickerClick?: (uid: string) => void;
+  /** Fired continuously while dragging/scaling/rotating a placed sticker —
+   * full manual control (move/scale/rotate), per explicit request. Passing
+   * this (together with onStickerClick) is what makes a placed sticker
+   * interactive at all; omit it to keep the old static/click-to-remove-only
+   * behavior. */
+  onStickerTransform?: (uid: string, patch: Partial<Pick<PlacedSticker, "x" | "y" | "scale" | "rotation">>) => void;
   onSlotClick?: (index: number) => void;
   /** Current zoom/pan per photo slot index — see PhotoTransform. */
   photoTransforms?: Record<number, PhotoTransform>;
@@ -337,6 +348,17 @@ export function CollageCard({
    * list (STUDIO_FONTS) rather than duplicating it. Falls back to the
    * style's default font when not set, same as before this existed. */
   captionFontFamily?: string;
+  /** Position offset (SVG/card px, from the default centered spot) and a
+   * size multiplier — full manual control over the caption/subtitle block,
+   * per explicit request. Undefined offset renders at the original default
+   * position, matching behavior from before this existed. */
+  captionOffset?: { x: number; y: number };
+  captionScale?: number;
+  /** Fired while dragging or scrolling on the caption/subtitle — same
+   * shape as the stored offset/scale so the caller can just setState with
+   * it directly. Passing this makes the caption block draggable/scalable
+   * at all; omit it to keep the old fixed caption behavior. */
+  onCaptionTransform?: (next: { x: number; y: number; scale: number }) => void;
 
 }) {
   const style = findCollageStyle(styleId);
@@ -449,6 +471,108 @@ export function CollageCard({
     const maxY = Math.max(0, (boxH - rect.h) / 2);
     onPhotoTransform(index, { zoom: nextZoom, offsetX: Math.max(-maxX, Math.min(maxX, t.offsetX)), offsetY: Math.max(-maxY, Math.min(maxY, t.offsetY)) });
     onPhotoSelect?.(index);
+  };
+
+  /** Forward SVG-user-unit -> screen-px point, via the SVG's own CTM — the
+   * inverse of screenDeltaToSvg above. Used for the rotate handle, which
+   * needs the sticker's actual on-screen center to measure the drag angle
+   * around, regardless of the card's responsive on-screen scale. */
+  function svgPointToScreen(x: number, y: number): { x: number; y: number } {
+    const svg = svgRef?.current;
+    const ctm = svg?.getScreenCTM();
+    if (!ctm) return { x, y };
+    return { x: x * ctm.a + y * ctm.c + ctm.e, y: x * ctm.b + y * ctm.d + ctm.f };
+  }
+
+  // ---- sticker full control (drag to move, wheel to scale, handle to
+  // rotate, tap-without-drag to delete) — per explicit request. A small
+  // movement threshold on pointerup tells a genuine drag apart from a tap,
+  // since both start the same way (pointerdown on the sticker body). -----
+  const DRAG_CLICK_THRESHOLD = 4; // svg px
+  const stickerDragRef = useRef<{ uid: string; startClientX: number; startClientY: number; startX: number; startY: number; moved: boolean } | null>(null);
+  const stickerRotateRef = useRef<{ uid: string; centerX: number; centerY: number; startPointerAngle: number; startRotation: number } | null>(null);
+  const canTransformStickers = Boolean(onStickerTransform);
+
+  const onStickerPointerDown = (sticker: PlacedSticker) => (e: React.PointerEvent) => {
+    if (!canTransformStickers) return;
+    e.stopPropagation();
+    e.preventDefault();
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    stickerDragRef.current = { uid: sticker.uid, startClientX: e.clientX, startClientY: e.clientY, startX: sticker.x, startY: sticker.y, moved: false };
+  };
+  const onStickerPointerMove = (e: React.PointerEvent) => {
+    const d = stickerDragRef.current;
+    if (!d || !onStickerTransform) return;
+    const { dx, dy } = screenDeltaToSvg(e.clientX - d.startClientX, e.clientY - d.startClientY);
+    if (Math.abs(e.clientX - d.startClientX) + Math.abs(e.clientY - d.startClientY) > DRAG_CLICK_THRESHOLD) d.moved = true;
+    const nextX = Math.max(0.03, Math.min(0.97, d.startX + dx / cardW));
+    const nextY = Math.max(0.03, Math.min(0.97, d.startY + dy / cardH));
+    onStickerTransform(d.uid, { x: nextX, y: nextY });
+  };
+  const onStickerPointerUp = () => {
+    const d = stickerDragRef.current;
+    stickerDragRef.current = null;
+    // A tap (no meaningful drag) removes the sticker — same gesture as
+    // before full control existed, so nothing gets harder for a quick
+    // "oops, remove that" click.
+    if (d && !d.moved) onStickerClick?.(d.uid);
+  };
+  const onStickerWheel = (sticker: PlacedSticker) => (e: React.WheelEvent) => {
+    if (!onStickerTransform) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const nextScale = Math.max(0.4, Math.min(3, sticker.scale + (e.deltaY < 0 ? 0.08 : -0.08)));
+    onStickerTransform(sticker.uid, { scale: nextScale });
+  };
+  const onRotatePointerDown = (sticker: PlacedSticker) => (e: React.PointerEvent) => {
+    if (!onStickerTransform) return;
+    e.stopPropagation();
+    e.preventDefault();
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    const center = svgPointToScreen(sticker.x * cardW, sticker.y * cardH);
+    const startPointerAngle = Math.atan2(e.clientY - center.y, e.clientX - center.x);
+    stickerRotateRef.current = { uid: sticker.uid, centerX: center.x, centerY: center.y, startPointerAngle, startRotation: sticker.rotation ?? 0 };
+  };
+  const onRotatePointerMove = (e: React.PointerEvent) => {
+    const r = stickerRotateRef.current;
+    if (!r || !onStickerTransform) return;
+    const currentAngle = Math.atan2(e.clientY - r.centerY, e.clientX - r.centerX);
+    const deltaDeg = ((currentAngle - r.startPointerAngle) * 180) / Math.PI;
+    onStickerTransform(r.uid, { rotation: r.startRotation + deltaDeg });
+  };
+  const onRotatePointerUp = () => {
+    stickerRotateRef.current = null;
+  };
+
+  // ---- caption full control (drag to move, wheel to scale) -------------
+  const captionDragRef = useRef<{ startClientX: number; startClientY: number; startX: number; startY: number } | null>(null);
+  const canTransformCaption = Boolean(onCaptionTransform);
+  const captionOffsetX = captionOffset?.x ?? 0;
+  const captionOffsetY = captionOffset?.y ?? 0;
+  const onCaptionPointerDown = (e: React.PointerEvent) => {
+    if (!canTransformCaption) return;
+    e.stopPropagation();
+    e.preventDefault();
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    captionDragRef.current = { startClientX: e.clientX, startClientY: e.clientY, startX: captionOffsetX, startY: captionOffsetY };
+  };
+  const onCaptionPointerMove = (e: React.PointerEvent) => {
+    const d = captionDragRef.current;
+    if (!d || !onCaptionTransform) return;
+    const { dx, dy } = screenDeltaToSvg(e.clientX - d.startClientX, e.clientY - d.startClientY);
+    const nextX = Math.max(-cardW * 0.45, Math.min(cardW * 0.45, d.startX + dx));
+    const nextY = Math.max(-cardH * 0.45, Math.min(cardH * 0.45, d.startY + dy));
+    onCaptionTransform({ x: nextX, y: nextY, scale: captionScale });
+  };
+  const onCaptionPointerUp = () => {
+    captionDragRef.current = null;
+  };
+  const onCaptionWheel = (e: React.WheelEvent) => {
+    if (!onCaptionTransform) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const nextScale = Math.max(0.5, Math.min(2.5, captionScale + (e.deltaY < 0 ? 0.06 : -0.06)));
+    onCaptionTransform({ x: captionOffsetX, y: captionOffsetY, scale: nextScale });
   };
 
   return (
@@ -649,55 +773,133 @@ export function CollageCard({
 
       <OccasionDecor theme={decorId} accent={accent} cardW={cardW} />
 
-      <text
-        x={cardW / 2}
-        y={captionY}
-        textAnchor="middle"
-        fontSize={captionFontSize}
-        fontFamily={captionFontFamily ?? style.fontFamily}
-        fill={overlayCaption ? "#ffffff" : captionColor}
-        style={overlayCaption ? { filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.65))" } : undefined}
-      >
-        {caption || " "}
-      </text>
-      {subtitle && (
+      {/* Caption + subtitle — draggable/scalable as one block when
+          onCaptionTransform is passed (full manual control, per explicit
+          request). The drag-catcher rect renders AFTER the text (not
+          before) so it always wins pointer hit-testing over the glyphs —
+          an earlier version had it first and clicks landed on the letters
+          instead, the same paint-order lesson as the photo hand control.
+          The rect is generously sized around the text rather than hugging
+          its exact glyph width, since SVG text has no cheap way to
+          measure its own rendered width up front. */}
+      <g transform={`translate(${captionOffsetX}, ${captionOffsetY})`}>
         <text
           x={cardW / 2}
-          y={subtitleY}
+          y={captionY}
           textAnchor="middle"
-          fontSize={subtitleFontSize}
+          fontSize={captionFontSize * captionScale}
           fontFamily={captionFontFamily ?? style.fontFamily}
           fill={overlayCaption ? "#ffffff" : captionColor}
-          opacity={overlayCaption ? 0.95 : 0.85}
-          style={overlayCaption ? { filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.65))" } : undefined}
+          style={{ pointerEvents: canTransformCaption ? "none" : undefined, ...(overlayCaption ? { filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.65))" } : undefined) }}
         >
-          {subtitle}
+          {caption || " "}
         </text>
-      )}
+        {subtitle && (
+          <text
+            x={cardW / 2}
+            y={subtitleY}
+            textAnchor="middle"
+            fontSize={subtitleFontSize * captionScale}
+            fontFamily={captionFontFamily ?? style.fontFamily}
+            fill={overlayCaption ? "#ffffff" : captionColor}
+            opacity={overlayCaption ? 0.95 : 0.85}
+            style={{ pointerEvents: canTransformCaption ? "none" : undefined, ...(overlayCaption ? { filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.65))" } : undefined) }}
+          >
+            {subtitle}
+          </text>
+        )}
+        {canTransformCaption && (
+          <rect
+            className="collage-card-editor-ui"
+            x={MARGIN}
+            y={captionY - captionFontSize * captionScale * 1.3}
+            width={cardW - MARGIN * 2}
+            height={(subtitle ? subtitleY : captionY) - (captionY - captionFontSize * captionScale * 1.3) + subtitleFontSize * captionScale * 1.4}
+            fill="transparent"
+            style={{ cursor: "grab" }}
+            onPointerDown={onCaptionPointerDown}
+            onPointerMove={onCaptionPointerMove}
+            onPointerUp={onCaptionPointerUp}
+            onPointerCancel={onCaptionPointerUp}
+            onWheel={onCaptionWheel}
+          />
+        )}
+      </g>
 
+      {/* Placed stickers — full manual control when onStickerTransform is
+          passed: drag the body to move, scroll to scale, drag the small
+          handle above to rotate; a tap with no real movement removes it
+          (see onStickerPointerUp) — same gesture stickers always had. */}
       {stickers.map((sticker) => {
         const base = Math.min(cardW, cardH) * 0.16 * sticker.scale;
         const x = sticker.x * cardW;
         const y = sticker.y * cardH;
+        const rotation = sticker.rotation ?? 0;
+        // The rotate handle sits just outside the sticker's own visual
+        // half-height — text pills and shape stickers size themselves
+        // differently, so each branch picks its own halfExtent below.
+        const makeRotateHandle = (halfExtent: number) =>
+          canTransformStickers && (
+            <g className="collage-card-editor-ui">
+              <line x1={0} y1={-halfExtent} x2={0} y2={-(halfExtent + 22)} stroke="#00000055" strokeWidth={1.5} />
+              <circle
+                cx={0}
+                cy={-(halfExtent + 22)}
+                r={9}
+                fill="#ffffff"
+                stroke="#00000055"
+                strokeWidth={1.5}
+                style={{ cursor: "grab" }}
+                onPointerDown={onRotatePointerDown(sticker)}
+                onPointerMove={onRotatePointerMove}
+                onPointerUp={onRotatePointerUp}
+                onPointerCancel={onRotatePointerUp}
+              />
+            </g>
+          );
         if (sticker.text) {
           const tone = STICKER_TONES[sticker.tone ?? "pink"];
           const fontSize = Math.max(14, base * 0.34);
           const w = sticker.text.length * fontSize * 0.56 + fontSize * 1.4;
           const h = fontSize * 2.1;
           return (
-            <g key={sticker.uid} transform={`translate(${x - w / 2}, ${y - h / 2})`} onClick={onStickerClick ? () => onStickerClick(sticker.uid) : undefined} className={onStickerClick ? "cursor-pointer" : undefined}>
-              <rect x={0} y={0} width={w} height={h} rx={h / 2} fill={tone.bg} stroke={tone.border} strokeWidth={3} style={{ filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.18))" }} />
-              <text x={w / 2} y={h / 2 + fontSize * 0.36} textAnchor="middle" fontSize={fontSize} fontFamily={style.fontFamily} fill={tone.text}>
-                {sticker.text}
-              </text>
+            <g key={sticker.uid} transform={`translate(${x}, ${y}) rotate(${rotation})`}>
+              <g
+                onPointerDown={onStickerPointerDown(sticker)}
+                onPointerMove={onStickerPointerMove}
+                onPointerUp={onStickerPointerUp}
+                onPointerCancel={onStickerPointerUp}
+                onWheel={onStickerWheel(sticker)}
+                className={canTransformStickers ? "cursor-grab" : onStickerClick ? "cursor-pointer" : undefined}
+                onClick={!canTransformStickers && onStickerClick ? () => onStickerClick(sticker.uid) : undefined}
+              >
+                <rect x={-w / 2} y={-h / 2} width={w} height={h} rx={h / 2} fill={tone.bg} stroke={tone.border} strokeWidth={3} style={{ filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.18))" }} />
+                <text x={0} y={fontSize * 0.36} textAnchor="middle" fontSize={fontSize} fontFamily={style.fontFamily} fill={tone.text}>
+                  {sticker.text}
+                </text>
+              </g>
+              {makeRotateHandle(h / 2)}
             </g>
           );
         }
         if (!sticker.kind) return null;
         return (
-          <g key={sticker.uid} transform={`translate(${x}, ${y}) scale(${base / 100})`} onClick={onStickerClick ? () => onStickerClick(sticker.uid) : undefined} className={onStickerClick ? "cursor-pointer" : undefined} style={{ filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.2))" }}>
-            <StickerShape kind={sticker.kind} />
-            <circle cx={0} cy={0} r={52} fill="transparent" />
+          <g key={sticker.uid} transform={`translate(${x}, ${y}) rotate(${rotation})`}>
+            <g
+              transform={`scale(${base / 100})`}
+              onPointerDown={onStickerPointerDown(sticker)}
+              onPointerMove={onStickerPointerMove}
+              onPointerUp={onStickerPointerUp}
+              onPointerCancel={onStickerPointerUp}
+              onWheel={onStickerWheel(sticker)}
+              className={canTransformStickers ? "cursor-grab" : onStickerClick ? "cursor-pointer" : undefined}
+              onClick={!canTransformStickers && onStickerClick ? () => onStickerClick(sticker.uid) : undefined}
+              style={{ filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.2))" }}
+            >
+              <StickerShape kind={sticker.kind} />
+              <circle cx={0} cy={0} r={52} fill="transparent" />
+            </g>
+            {makeRotateHandle(base / 2)}
           </g>
         );
       })}

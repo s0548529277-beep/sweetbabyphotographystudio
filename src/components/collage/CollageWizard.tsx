@@ -180,6 +180,14 @@ export function CollageWizard() {
   const [captionFontId, setCaptionFontId] = useState<string | null>(null);
   const [fontLangFilter, setFontLangFilter] = useState<"he" | "en">("he");
   const captionFontFamily = captionFontId ? STUDIO_FONTS.find((f) => f.id === captionFontId)?.family : undefined;
+  // Full manual control over the caption/subtitle block's position + size
+  // (drag/wheel in CollageCard) — per explicit request.
+  const [captionOffset, setCaptionOffset] = useState({ x: 0, y: 0 });
+  const [captionScale, setCaptionScale] = useState(1);
+  const resetCaptionTransform = () => {
+    setCaptionOffset({ x: 0, y: 0 });
+    setCaptionScale(1);
+  };
   // Per-photo zoom/pan — see CollageCard's PhotoTransform doc comment.
   // Keyed by slot index; a slot with no entry renders centered at 1×,
   // identical to the old fixed behavior.
@@ -259,12 +267,19 @@ export function CollageWizard() {
         uid: `${Date.now()}-${current.length}`,
         ...sticker,
         // Placed along a soft spiral so consecutive stickers never land on
-        // top of each other; the user removes one by clicking it.
+        // top of each other — just a starting point now that full manual
+        // control (drag/scale/rotate, see updateStickerTransform) exists.
         x: 0.5 + Math.cos(current.length * 1.9) * (0.16 + current.length * 0.015),
         y: 0.5 + Math.sin(current.length * 1.9) * (0.2 + current.length * 0.012),
         scale: sticker.text ? 1 : 0.9,
+        rotation: 0,
       },
     ]);
+  };
+  /** Full manual control over a placed sticker — drag/wheel/rotate-handle
+   * in CollageCard all funnel through this, per explicit request. */
+  const updateStickerTransform = (uid: string, patch: Partial<Pick<PlacedSticker, "x" | "y" | "scale" | "rotation">>) => {
+    setStickers((current) => current.map((item) => (item.uid === uid ? { ...item, ...patch } : item)));
   };
 
 
@@ -559,8 +574,8 @@ export function CollageWizard() {
                     <div><span className="text-xs font-semibold text-secondary-foreground">תצוגה חיה</span><h2 className="font-display text-2xl text-primary">הקולאז׳ שלך</h2></div>
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><LockKeyhole className="h-3.5 w-3.5" /> התמונות לא נשלחות לשום מקום</span>
                   </div>
-                  <div className="mx-auto max-w-lg"><CollageCard svgRef={svgRef} cardW={dimensions.w} cardH={dimensions.h} styleId={styleId} photos={photos} layoutId={layoutId} shape={shape} effect={effect} frame={frame} borderStyle={borderStyle} captionPlacement={captionPlacement} paletteOverride={palette} decorId={decorId} bgPattern={bgPattern} stickers={stickers} onStickerClick={(uid) => setStickers((current) => current.filter((item) => item.uid !== uid))} caption={caption} subtitle={subtitle} captionFontFamily={captionFontFamily} onSlotClick={openPicker} photoTransforms={photoTransforms} onPhotoTransform={updatePhotoTransform} onPhotoSelect={setSelectedPhotoSlot} /></div>
-                  {stickers.length > 0 && <p className="mt-2 text-center text-xs text-muted-foreground">לחיצה על מדבקה בקולאז׳ מסירה אותה</p>}
+                  <div className="mx-auto max-w-lg"><CollageCard svgRef={svgRef} cardW={dimensions.w} cardH={dimensions.h} styleId={styleId} photos={photos} layoutId={layoutId} shape={shape} effect={effect} frame={frame} borderStyle={borderStyle} captionPlacement={captionPlacement} paletteOverride={palette} decorId={decorId} bgPattern={bgPattern} stickers={stickers} onStickerClick={(uid) => setStickers((current) => current.filter((item) => item.uid !== uid))} onStickerTransform={updateStickerTransform} caption={caption} subtitle={subtitle} captionFontFamily={captionFontFamily} captionOffset={captionOffset} captionScale={captionScale} onCaptionTransform={(next) => { setCaptionOffset({ x: next.x, y: next.y }); setCaptionScale(next.scale); }} onSlotClick={openPicker} photoTransforms={photoTransforms} onPhotoTransform={updatePhotoTransform} onPhotoSelect={setSelectedPhotoSlot} /></div>
+                  {stickers.length > 0 && <p className="mt-2 text-center text-xs text-muted-foreground">גררי מדבקה כדי להזיז, גלגלי עליה לשינוי גודל, סובבי מהידית שמעליה — ולחיצה קצרה (בלי גרירה) מסירה אותה</p>}
                   <p className="mt-2 text-center text-xs text-muted-foreground">גררי תמונה כדי להזיז אותה בתוך המשבצת, וגלגלי עליה עם העכבר כדי לזום</p>
 
                   {selectedPhotoSlot !== null && photos[selectedPhotoSlot] && selectedTransform && (
@@ -673,6 +688,15 @@ export function CollageWizard() {
                       <AccordionContent>
                         <Input value={caption} onChange={(event) => setCaption(event.target.value)} maxLength={40} aria-label="כותרת הקולאז׳" className="mb-2" style={captionFontFamily ? { fontFamily: captionFontFamily } : undefined} />
                         <Input value={subtitle} onChange={(event) => setSubtitle(event.target.value)} maxLength={60} aria-label="כיתוב משנה" style={captionFontFamily ? { fontFamily: captionFontFamily } : undefined} />
+                        {/* Full manual control over the caption/subtitle's
+                            position + size — drag directly on the card,
+                            or scroll to scale — per explicit request. */}
+                        <div className="mt-2 flex items-center justify-between">
+                          <p className="text-[11px] text-muted-foreground">גררי את הכיתוב על הקולאז׳ כדי למקם אותו, וגלגלי עליו לשינוי גודל</p>
+                          {(captionOffset.x !== 0 || captionOffset.y !== 0 || captionScale !== 1) && (
+                            <button type="button" onClick={resetCaptionTransform} className="shrink-0 text-[11px] text-muted-foreground underline underline-offset-2">איפוס מיקום/גודל</button>
+                          )}
+                        </div>
                         {/* Font picker for the caption/subtitle — same 35-font
                             library (Hebrew + English, sans/serif/script) as
                             the free-canvas Studio editor, reused directly. */}
