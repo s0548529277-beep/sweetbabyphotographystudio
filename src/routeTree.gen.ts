@@ -23,6 +23,7 @@ import { Route as PaymentFailedRouteImport } from './routes/payment-failed'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CollageTextRouteImport } from './routes/collage-text'
 import { Route as CollageMakerRouteImport } from './routes/collage-maker'
+import { Route as CollageCanvasRouteImport } from './routes/collage-canvas'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as BookingRouteImport } from './routes/booking'
@@ -142,6 +143,11 @@ const CollageTextRoute = CollageTextRouteImport.update({
 const CollageMakerRoute = CollageMakerRouteImport.update({
   id: '/collage-maker',
   path: '/collage-maker',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CollageCanvasRoute = CollageCanvasRouteImport.update({
+  id: '/collage-canvas',
+  path: '/collage-canvas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckoutRoute = CheckoutRouteImport.update({
@@ -428,6 +434,7 @@ export interface FileRoutesByFullPath {
   '/booking': typeof BookingRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
+  '/collage-canvas': typeof CollageCanvasRoute
   '/collage-maker': typeof CollageMakerRoute
   '/collage-text': typeof CollageTextRoute
   '/contact': typeof ContactRoute
@@ -493,6 +500,7 @@ export interface FileRoutesByTo {
   '/booking': typeof BookingRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
+  '/collage-canvas': typeof CollageCanvasRoute
   '/collage-maker': typeof CollageMakerRoute
   '/collage-text': typeof CollageTextRoute
   '/contact': typeof ContactRoute
@@ -559,6 +567,7 @@ export interface FileRoutesById {
   '/booking': typeof BookingRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
+  '/collage-canvas': typeof CollageCanvasRoute
   '/collage-maker': typeof CollageMakerRoute
   '/collage-text': typeof CollageTextRoute
   '/contact': typeof ContactRoute
@@ -626,6 +635,7 @@ export interface FileRouteTypes {
     | '/booking'
     | '/cart'
     | '/checkout'
+    | '/collage-canvas'
     | '/collage-maker'
     | '/collage-text'
     | '/contact'
@@ -691,6 +701,7 @@ export interface FileRouteTypes {
     | '/booking'
     | '/cart'
     | '/checkout'
+    | '/collage-canvas'
     | '/collage-maker'
     | '/collage-text'
     | '/contact'
@@ -756,6 +767,7 @@ export interface FileRouteTypes {
     | '/booking'
     | '/cart'
     | '/checkout'
+    | '/collage-canvas'
     | '/collage-maker'
     | '/collage-text'
     | '/contact'
@@ -823,6 +835,7 @@ export interface RootRouteChildren {
   BookingRoute: typeof BookingRoute
   CartRoute: typeof CartRoute
   CheckoutRoute: typeof CheckoutRoute
+  CollageCanvasRoute: typeof CollageCanvasRoute
   CollageMakerRoute: typeof CollageMakerRoute
   CollageTextRoute: typeof CollageTextRoute
   ContactRoute: typeof ContactRoute
@@ -950,6 +963,13 @@ declare module '@tanstack/react-router' {
       path: '/collage-maker'
       fullPath: '/collage-maker'
       preLoaderRoute: typeof CollageMakerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/collage-canvas': {
+      id: '/collage-canvas'
+      path: '/collage-canvas'
+      fullPath: '/collage-canvas'
+      preLoaderRoute: typeof CollageCanvasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checkout': {
@@ -1406,6 +1426,7 @@ const rootRouteChildren: RootRouteChildren = {
   BookingRoute: BookingRoute,
   CartRoute: CartRoute,
   CheckoutRoute: CheckoutRoute,
+  CollageCanvasRoute: CollageCanvasRoute,
   CollageMakerRoute: CollageMakerRoute,
   CollageTextRoute: CollageTextRoute,
   ContactRoute: ContactRoute,

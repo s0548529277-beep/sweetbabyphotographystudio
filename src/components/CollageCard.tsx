@@ -429,6 +429,22 @@ export function CollageCard({
     panDragRef.current = null;
   };
 
+  /** Mouse-wheel zoom directly on a photo — the same clamped zoom the side-panel slider drives, just via scroll instead of dragging a slider. preventDefault keeps the scroll from also moving the page. */
+  const onPhotoWheel = (index: number) => (e: React.WheelEvent) => {
+    if (!onPhotoTransform) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const t = photoTransforms?.[index] ?? { offsetX: 0, offsetY: 0, zoom: 1 };
+    const nextZoom = Math.max(1, Math.min(3, t.zoom + (e.deltaY < 0 ? 0.08 : -0.08)));
+    const rect = photoRectFor(slots[index]);
+    const boxW = rect.w * nextZoom;
+    const boxH = rect.h * nextZoom;
+    const maxX = Math.max(0, (boxW - rect.w) / 2);
+    const maxY = Math.max(0, (boxH - rect.h) / 2);
+    onPhotoTransform(index, { zoom: nextZoom, offsetX: Math.max(-maxX, Math.min(maxX, t.offsetX)), offsetY: Math.max(-maxY, Math.min(maxY, t.offsetY)) });
+    onPhotoSelect?.(index);
+  };
+
   return (
     <svg
       ref={svgRef}
@@ -543,12 +559,22 @@ export function CollageCard({
         );
       })}
 
-      {/* Frame outlines + click overlays live OUTSIDE the clipped <g> above — an outline needs to trace the shape's own edge, not be clipped by it, and a click target must stay full-size even inside a circle/arch slot. Same rotation as the photo's own group above, so both stay aligned on scattered/tilted slots. */}
+      {/* Frame outlines + click overlays live OUTSIDE the clipped <g> above — an outline needs to trace the shape's own edge, not be clipped by it, and a click target must stay full-size even inside a circle/arch slot. Same rotation as the photo's own group above, so both stay aligned on scattered/tilted slots.
+
+          A FILLED slot's overlay is pan/zoom-draggable directly (drag to
+          move, wheel to zoom) instead of opening the replace picker on
+          click — per explicit request, so grabbing the photo itself gives
+          an immediate move/zoom, the same as the dedicated hand icon
+          below. Replacing or removing that photo now happens through the
+          side panel (onPhotoSelect surfaces which slot is selected) —
+          only an EMPTY slot still opens the picker on a plain click. */}
       {slots.map((rect, i) => {
+        const photo = photos[i];
         const clipD = shapeClipPath(shape, rect);
         const cx = rect.x + rect.w / 2;
         const cy = rect.y + rect.h / 2;
         const rotate = rect.rotation ? `rotate(${rect.rotation} ${cx} ${cy})` : undefined;
+        const draggable = Boolean(photo && canPan);
         return (
           <g key={`overlay-${i}`} transform={rotate}>
             {frame &&
@@ -557,8 +583,23 @@ export function CollageCard({
               ) : (
                 <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} fill="none" stroke={accent} strokeWidth={3} />
               ))}
-            {onSlotClick && (
+            {onSlotClick && !draggable && (
               <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} fill="transparent" className="cursor-pointer" onClick={() => onSlotClick(i)} />
+            )}
+            {draggable && (
+              <rect
+                x={rect.x}
+                y={rect.y}
+                width={rect.w}
+                height={rect.h}
+                fill="transparent"
+                style={{ cursor: "grab" }}
+                onPointerDown={onHandPointerDown(i)}
+                onPointerMove={onHandPointerMove}
+                onPointerUp={onHandPointerUp}
+                onPointerCancel={onHandPointerUp}
+                onWheel={onPhotoWheel(i)}
+              />
             )}
           </g>
         );
