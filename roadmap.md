@@ -8,4 +8,4 @@
 - [x] Preserve the Sweetbaby baby-pink, cream, sage, forest-green design.
 - [x] Verify the complete flow on desktop and mobile.
 
-- [ ] דף הבית: כיווני לייפסטייל 2027 פחות קלאסיים, עם תמונה ראשית רחבה
+- [ ] דף הבית: כיווני לייפסטייל 2027 פחות קלאסיים, עם תמונה ראשית רחבה ובצבעי האתר הקיימים בלבד
