@@ -1,14 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 90" fill="none">
   <defs>
-    <linearGradient id="heartGradientFill" x1="8" y1="8" x2="92" y2="82" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#f3b6cf" />
-      <stop offset="45%" stop-color="#f6e3d6" />
-      <stop offset="72%" stop-color="#d9e8c8" />
-      <stop offset="100%" stop-color="#a8c4a2" />
+    <linearGradient id="heartGradientFill" x1="6" y1="6" x2="94" y2="84" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ff4f8b" />
+      <stop offset="30%" stop-color="#ff8a7a" />
+      <stop offset="62%" stop-color="#bcd96a" />
+      <stop offset="100%" stop-color="#3f9552" />
     </linearGradient>
     <radialGradient id="heartGradientSheen" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.6" />
-      <stop offset="70%" stop-color="#ffffff" stop-opacity="0.12" />
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.45" />
+      <stop offset="70%" stop-color="#ffffff" stop-opacity="0.08" />
       <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
     </radialGradient>
     <clipPath id="heartClip">
