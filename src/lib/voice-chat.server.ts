@@ -470,7 +470,8 @@ export async function runVoiceTurn(messages: VoiceMessage[], callerPhone: string
   const extraKnowledge = await getBotKnowledgeText();
   const botVoiceGender = await getBotVoiceGender();
 
-  const toolRules = `\n\nהיום ${now.date}, השעה בישראל ${now.time}. יש לך גישה אמיתית ליומן הסטודיו ולמלאי האביזרים — בדוק תמיד עם הכלים (check_studio_availability / check_prop_availability / find_next_available_days / quote_studio_price / list_active_coupons / hebrew_date_to_gregorian), בכל פעם מחדש, אף פעם אל תניח או תסתמך על תשובה קודמת באותה שיחה.
+  const toolRules = `\n\nהיום ${now.date}, השעה בישראל ${now.time}. יש לך גישה אמיתית ליומן הסטודיו ולמלאי האביזרים — בדוק תמיד עם הכלים (check_studio_availability / check_prop_availability / find_next_available_days / quote_studio_price / hebrew_date_to_gregorian), בכל פעם מחדש, אף פעם אל תניח או תסתמך על תשובה קודמת באותה שיחה.
+אם עולה נושא הנחה/קוד קופון — אסור לך לתת או להמציא קוד בשום מקרה, גם כשנשאלת במפורש. תגידי בחמימות שהנחות ניתנות רק דרך הרשמה לניוזלטר באתר (טופס בתחתית כל עמוד), שם נשלח קוד אישי חד-פעמי למייל.
 כשהלקוחה שואלת משהו שקל יותר לראות בעיניים (תמונות מהסטודיו, קטלוג האביזרים המלא, גלריה) — הצע לה קודם, בקצרה, שאפשר גם לחפש בגוגל "סטודיו סוויט בייבי" ולראות הכול באתר. אם היא אומרת שזה לא נוח לה כרגע (בלי גישה נוחה לאינטרנט, מעדיפה לסגור עכשיו בטלפון וכו׳) — המשך ותעזור לה לשריין ישירות בשיחה, בלי לחזור ולהפנות אותה לאתר.${
     caller?.name
       ? `\n\nזיהינו את המתקשרת: יש לה כבר אזור אישי באתר בשם "${caller.name}"${caller.email ? `, אימייל ${caller.email}` : ""}. פני אליה בשמה (לא "גברת" או "לקוחה יקרה"). ${caller.upcomingText ?? ""} אם משריינים תור: את כבר יודעת את השם והאימייל שלה — אל תשאלי אותם מחדש כאילו זו פעם ראשונה. במקום זה, ממש לפני קריאה ל-create_phone_booking, רק תאשרי בקצרה בעל-פה ("לשלוח את זה ל${caller.email ?? "המייל שיש לנו"}, כרגיל?") — ואם היא אומרת שזה השתנה, תשתמשי בכתובת החדשה שהיא נותנת.`
