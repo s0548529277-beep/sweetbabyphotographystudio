@@ -14,16 +14,19 @@ import {
   HERO_VARIANTS,
   PAGE_IMAGE_KEYS,
   resetChatbotAvatar,
+  resetSiteIcon,
   resolveAspect,
-  resolveChatbotAvatarUrl,
   resolveHeroVariant,
   rowUrl,
   saveAspect,
   saveChatbotAvatar,
   saveHeroVariant,
+  saveSiteIcon,
+  SITE_ICON_PAGE,
   type PageImage,
 } from "@/lib/page-images";
 import noaAvatar from "@/assets/noa-chat-avatar.png";
+import heartIcon from "@/assets/heart-gradient.png";
 
 export const Route = createFileRoute("/_authenticated/admin/gallery")({
   component: AdminGalleryPage,
@@ -38,7 +41,109 @@ const TABS = [
   { key: PAGE_IMAGE_KEYS.rentalInspiration, label: "השכרת אביזרים – תמונות מתחלפות" },
   { key: PAGE_IMAGE_KEYS.about, label: "עלינו – תמונות" },
   { key: CHATBOT_AVATAR_PAGE, label: "בוט הצ'אט – תמונת פרופיל" },
+  { key: SITE_ICON_PAGE, label: "סמל האתר (הלב)" },
 ] as const;
+
+/** Single "config row" image setting (chat bot avatar / site icon) —
+ * upload replaces it, reset deletes the row so the bundled default takes
+ * over again. Shared by both single-image tabs below to avoid duplicating
+ * the same upload/reset plumbing per setting. */
+function useSingleImageConfig(pageKey: string, save: (url: string, path: string) => Promise<void>, reset: () => Promise<void>) {
+  const qc = useQueryClient();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const query = useQuery({ queryKey: ["page-images", pageKey], queryFn: () => fetchPageImages(pageKey) });
+  const url = (query.data ?? []).find((r) => r.source === "config")?.url || null;
+  const refresh = () => qc.invalidateQueries({ queryKey: ["page-images", pageKey] });
+
+  const handleFile = async (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file) return;
+    setBusy(true);
+    try {
+      const compressed = await compressImage(file);
+      const { url: newUrl, path } = await uploadToStorage(compressed);
+      await save(newUrl, path);
+      refresh();
+      toast.success("התמונה עודכנה");
+    } catch (e) {
+      toast.error(heError(e, "שגיאה בהעלאת התמונה"));
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  const handleReset = async () => {
+    setBusy(true);
+    try {
+      await reset();
+      refresh();
+      toast.success("חזרה לברירת המחדל");
+    } catch (e) {
+      toast.error(heError(e, "שגיאה באיפוס"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return { url, busy, inputRef, handleFile, handleReset };
+}
+
+function SingleImageConfigCard({
+  hint,
+  url,
+  defaultUrl,
+  busy,
+  inputRef,
+  onFile,
+  onReset,
+  square,
+}: {
+  hint: string;
+  url: string | null;
+  defaultUrl: string;
+  busy: boolean;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  onFile: (files: FileList | null) => void;
+  onReset: () => void;
+  square?: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-6 rounded-2xl border border-primary/10 bg-card p-6">
+      <img
+        src={url ?? defaultUrl}
+        alt="התמונה הנוכחית"
+        className={`h-24 w-24 object-cover border border-primary/10 bg-cream ${square ? "rounded-2xl" : "rounded-full"}`}
+      />
+      <div className="space-y-2">
+        <p className="text-sm text-muted-foreground">{hint}</p>
+        <div className="flex flex-wrap gap-2">
+          <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => onFile(e.target.files)} />
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => inputRef.current?.click()}
+            className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-5 h-10 text-sm disabled:opacity-60"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            העלאת תמונה חדשה
+          </button>
+          {url && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={onReset}
+              className="inline-flex items-center gap-2 rounded-full border border-primary/15 px-5 h-10 text-sm hover:bg-cream disabled:opacity-60"
+            >
+              <RotateCcw className="h-4 w-4" /> חזרה לברירת המחדל
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 async function uploadToStorage(file: File) {
   const ext = file.name.split(".").pop() ?? "jpg";
@@ -79,47 +184,11 @@ function AdminGalleryPage() {
   });
   const heroVariant = resolveHeroVariant(heroVariantQuery.data);
 
-  // Chat bot avatar — same synthetic-page pattern as the hero variant above,
-  // per explicit request to make it replaceable without a developer.
-  const avatarInputRef = useRef<HTMLInputElement>(null);
-  const [avatarBusy, setAvatarBusy] = useState(false);
-  const chatbotAvatarQuery = useQuery({
-    queryKey: ["page-images", CHATBOT_AVATAR_PAGE],
-    queryFn: () => fetchPageImages(CHATBOT_AVATAR_PAGE),
-  });
-  const chatbotAvatarUrl = resolveChatbotAvatarUrl(chatbotAvatarQuery.data);
-  const refreshAvatar = () => qc.invalidateQueries({ queryKey: ["page-images", CHATBOT_AVATAR_PAGE] });
-
-  const handleAvatarFile = async (files: FileList | null) => {
-    const file = files?.[0];
-    if (!file) return;
-    setAvatarBusy(true);
-    try {
-      const compressed = await compressImage(file);
-      const { url, path } = await uploadToStorage(compressed);
-      await saveChatbotAvatar(url, path);
-      refreshAvatar();
-      toast.success("תמונת הבוט עודכנה");
-    } catch (e) {
-      toast.error(heError(e, "שגיאה בהעלאת התמונה"));
-    } finally {
-      setAvatarBusy(false);
-      if (avatarInputRef.current) avatarInputRef.current.value = "";
-    }
-  };
-
-  const handleAvatarReset = async () => {
-    setAvatarBusy(true);
-    try {
-      await resetChatbotAvatar();
-      refreshAvatar();
-      toast.success("חזרה לתמונת ברירת המחדל");
-    } catch (e) {
-      toast.error(heError(e, "שגיאה באיפוס"));
-    } finally {
-      setAvatarBusy(false);
-    }
-  };
+  // Chat bot avatar + site icon ("the heart") — same synthetic-page config
+  // pattern as the hero variant above, per explicit request to make both
+  // replaceable without a developer.
+  const chatbotAvatar = useSingleImageConfig(CHATBOT_AVATAR_PAGE, saveChatbotAvatar, resetChatbotAvatar);
+  const siteIcon = useSingleImageConfig(SITE_ICON_PAGE, saveSiteIcon, resetSiteIcon);
 
   // Bundled site photos are adopted into the gallery automatically, so every
   // image on every page can be deleted / reordered from here.
@@ -237,7 +306,7 @@ function AdminGalleryPage() {
             כל התמונות בעמודים – כולל אלה שהיו מוטמעות באתר – ניתנות למחיקה ולשינוי סדר מכאן: אפשר לגרור תמונה למקום חדש או להקליד מספר מיקום על התמונה. אפשר להעלות כמה תמונות בבת אחת.
           </p>
         </div>
-        {page !== CHATBOT_AVATAR_PAGE && (
+        {page !== CHATBOT_AVATAR_PAGE && page !== SITE_ICON_PAGE && (
           <div>
             <input
               ref={inputRef}
@@ -333,49 +402,31 @@ function AdminGalleryPage() {
       )}
 
       {page === CHATBOT_AVATAR_PAGE && (
-        <div className="flex flex-wrap items-center gap-6 rounded-2xl border border-primary/10 bg-card p-6">
-          <img
-            src={chatbotAvatarUrl ?? noaAvatar}
-            alt="תמונת הבוט הנוכחית"
-            className="h-24 w-24 rounded-full object-cover border border-primary/10 bg-cream"
-          />
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">
-              התמונה שמופיעה בכל מקום שבו בוט הצ'אט (נועה) מדברת עם לקוחות באתר.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <input
-                ref={avatarInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => handleAvatarFile(e.target.files)}
-              />
-              <button
-                type="button"
-                disabled={avatarBusy}
-                onClick={() => avatarInputRef.current?.click()}
-                className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-5 h-10 text-sm disabled:opacity-60"
-              >
-                {avatarBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                העלאת תמונה חדשה
-              </button>
-              {chatbotAvatarUrl && (
-                <button
-                  type="button"
-                  disabled={avatarBusy}
-                  onClick={handleAvatarReset}
-                  className="inline-flex items-center gap-2 rounded-full border border-primary/15 px-5 h-10 text-sm hover:bg-cream disabled:opacity-60"
-                >
-                  <RotateCcw className="h-4 w-4" /> חזרה לברירת המחדל
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+        <SingleImageConfigCard
+          hint="התמונה שמופיעה בכל מקום שבו בוט הצ'אט (נועה) מדברת עם לקוחות באתר."
+          url={chatbotAvatar.url}
+          defaultUrl={noaAvatar}
+          busy={chatbotAvatar.busy}
+          inputRef={chatbotAvatar.inputRef}
+          onFile={chatbotAvatar.handleFile}
+          onReset={chatbotAvatar.handleReset}
+        />
       )}
 
-      {page !== CHATBOT_AVATAR_PAGE && (images.isLoading ? (
+      {page === SITE_ICON_PAGE && (
+        <SingleImageConfigCard
+          hint='הלב שמופיע בלשונית הדפדפן (favicon) ובפס הסטטיסטיקות בדף הבית. שינוי כאן חל תוך כמה שניות בדפדפנים שכבר פתוחים באתר — בלשונית סגורה שנפתחת מחדש זה מיידי.'
+          url={siteIcon.url}
+          defaultUrl={heartIcon}
+          busy={siteIcon.busy}
+          inputRef={siteIcon.inputRef}
+          onFile={siteIcon.handleFile}
+          onReset={siteIcon.handleReset}
+          square
+        />
+      )}
+
+      {page !== CHATBOT_AVATAR_PAGE && page !== SITE_ICON_PAGE && (images.isLoading ? (
         <div className="text-sm text-muted-foreground">טוען...</div>
       ) : rows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-primary/20 p-10 text-center text-sm text-muted-foreground">

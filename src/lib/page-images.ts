@@ -269,3 +269,54 @@ export function useChatbotAvatar() {
   });
   return { ...query, url: resolveChatbotAvatarUrl(query.data) };
 }
+
+/**
+ * Site icon ("the heart symbol") — replaceable from /admin/gallery without a
+ * developer, per explicit request (this used to mean editing/rebuilding
+ * favicon.ico by hand every time the owner wanted a different heart image).
+ * Same config-row pattern as the chat bot avatar above. Swapped in on the
+ * client after load (see DynamicFavicon in __root.tsx) rather than in the
+ * server-rendered <head>, so the static /favicon.ico link always stays as
+ * the safe fallback for the very first paint, crawlers, and browser tabs
+ * that never run the swap.
+ */
+export const SITE_ICON_PAGE = "site-icon";
+
+export function resolveSiteIconUrl(rows: PageImage[] | undefined): string | null {
+  const row = (rows ?? []).find((r) => r.source === "config");
+  return row?.url || null;
+}
+
+export async function saveSiteIcon(url: string, storagePath: string) {
+  const rows = await fetchPageImages(SITE_ICON_PAGE);
+  const existing = rows.find((r) => r.source === "config");
+  if (existing) {
+    const { error } = await supabase.from("page_images").update({ url, storage_path: storagePath }).eq("id", existing.id);
+    if (error) throw error;
+    return;
+  }
+  const { error } = await supabase
+    .from("page_images")
+    .insert({ page: SITE_ICON_PAGE, url, storage_path: storagePath, source: "config", caption: null, hidden: true, sort_order: 9999 });
+  if (error) throw error;
+}
+
+/** Deletes the config row (and its storage file) so the bundled favicon.ico takes over again. */
+export async function resetSiteIcon() {
+  const rows = await fetchPageImages(SITE_ICON_PAGE);
+  const existing = rows.find((r) => r.source === "config");
+  if (!existing) return;
+  const { error } = await supabase.from("page_images").delete().eq("id", existing.id);
+  if (error) throw error;
+  if (existing.storage_path) await supabase.storage.from("items").remove([existing.storage_path]);
+}
+
+/** Client-side hook: the site's current custom icon URL, or null for the bundled favicon.ico. */
+export function useSiteIcon() {
+  const query = useQuery({
+    queryKey: ["page-images", SITE_ICON_PAGE],
+    queryFn: () => fetchPageImages(SITE_ICON_PAGE),
+    staleTime: 60_000,
+  });
+  return { ...query, url: resolveSiteIconUrl(query.data) };
+}
