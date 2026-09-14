@@ -171,3 +171,48 @@ export function usePageGalleryWithAspect(page: string) {
     aspect: resolveAspect(query.data),
   };
 }
+
+/**
+ * One-click homepage hero design switcher — per explicit request, so
+ * choosing between the site's past hero designs doesn't need a developer.
+ * Reuses the same "config" row trick as saveAspect/resolveAspect above,
+ * under its own synthetic page key so it never mixes with real gallery
+ * rows (no schema change needed — page_images already has an admin-write
+ * policy and a free-form `page` string).
+ */
+export const HERO_VARIANT_PAGE = "home-hero-variant";
+
+export type HeroVariant = "full-bleed" | "light-arch";
+export const HERO_VARIANTS: { id: HeroVariant; label: string; description: string }[] = [
+  { id: "full-bleed", label: "תמונה מלאה עם כיתוב עליה", description: "עיצוב נוכחי — תמונה ברקע כל הרוחב, כיתוב וכפתורים מעליה" },
+  { id: "light-arch", label: "רקע בהיר עם קשת בצד", description: "עיצוב קודם — רקע ורוד-קרם בהיר, תמונה בקשת בצד" },
+];
+
+export function resolveHeroVariant(rows: PageImage[] | undefined): HeroVariant {
+  const row = (rows ?? []).find((r) => r.source === "config");
+  return row?.caption === "light-arch" ? "light-arch" : "full-bleed";
+}
+
+export async function saveHeroVariant(variant: HeroVariant) {
+  const rows = await fetchPageImages(HERO_VARIANT_PAGE);
+  const existing = rows.find((r) => r.source === "config");
+  if (existing) {
+    const { error } = await supabase.from("page_images").update({ caption: variant }).eq("id", existing.id);
+    if (error) throw error;
+    return;
+  }
+  const { error } = await supabase
+    .from("page_images")
+    .insert({ page: HERO_VARIANT_PAGE, url: "", source: "config", caption: variant, hidden: true, sort_order: 9999 });
+  if (error) throw error;
+}
+
+/** Client-side hook: which hero design the homepage should render. */
+export function useHeroVariant() {
+  const query = useQuery({
+    queryKey: ["page-images", HERO_VARIANT_PAGE],
+    queryFn: () => fetchPageImages(HERO_VARIANT_PAGE),
+    staleTime: 60_000,
+  });
+  return { ...query, variant: resolveHeroVariant(query.data) };
+}

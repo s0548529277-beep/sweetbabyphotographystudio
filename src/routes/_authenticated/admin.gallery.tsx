@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Images, Loader2, Trash2, Upload, ChevronLeft, ChevronRight, Eye, GripVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/lib/image-compress";
-import { builtinEntries, fetchPageImages, PAGE_IMAGE_KEYS, resolveAspect, rowUrl, saveAspect, type PageImage } from "@/lib/page-images";
+import { builtinEntries, fetchPageImages, HERO_VARIANT_PAGE, HERO_VARIANTS, PAGE_IMAGE_KEYS, resolveAspect, resolveHeroVariant, rowUrl, saveAspect, saveHeroVariant, type PageImage } from "@/lib/page-images";
 
 export const Route = createFileRoute("/_authenticated/admin/gallery")({
   component: AdminGalleryPage,
@@ -49,6 +49,16 @@ function AdminGalleryPage() {
   const rows = (images.data ?? []).filter((r) => r.source !== "config");
   const aspect = resolveAspect(images.data);
   const refresh = () => qc.invalidateQueries({ queryKey: ["page-images", page] });
+
+  // Homepage hero design — a separate one-click switcher (see
+  // HeroFullBleed/HeroLightArch), per explicit request. Kept as its own
+  // query since it lives under its own synthetic page key, independent of
+  // whichever gallery tab is currently selected above.
+  const heroVariantQuery = useQuery({
+    queryKey: ["page-images", HERO_VARIANT_PAGE],
+    queryFn: () => fetchPageImages(HERO_VARIANT_PAGE),
+  });
+  const heroVariant = resolveHeroVariant(heroVariantQuery.data);
 
   // Bundled site photos are adopted into the gallery automatically, so every
   // image on every page can be deleted / reordered from here.
@@ -202,6 +212,33 @@ function AdminGalleryPage() {
           </button>
         ))}
       </div>
+
+      {page === PAGE_IMAGE_KEYS.homeHero && (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-primary/10 bg-card p-3">
+          <span className="text-sm text-muted-foreground shrink-0">עיצוב האזור העליון בדף הבית:</span>
+          {HERO_VARIANTS.map((v) => (
+            <button
+              key={v.id}
+              type="button"
+              title={v.description}
+              onClick={async () => {
+                try {
+                  await saveHeroVariant(v.id);
+                  qc.invalidateQueries({ queryKey: ["page-images", HERO_VARIANT_PAGE] });
+                  toast.success("העיצוב עודכן");
+                } catch (e) {
+                  toast.error(heError(e, "שגיאה בעדכון"));
+                }
+              }}
+              className={`px-4 h-9 rounded-full text-sm border ${
+                heroVariant === v.id ? "bg-primary text-primary-foreground border-primary" : "border-primary/15 hover:bg-cream"
+              }`}
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {(page === PAGE_IMAGE_KEYS.homeHero || page === PAGE_IMAGE_KEYS.rentalInspiration) && (
         <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-primary/10 bg-card p-3">
