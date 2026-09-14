@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/lib/image-compress";
+import { applyWatermark } from "@/lib/watermark";
 import {
   addPhotoClientImage,
   adminToggleProofSelection,
@@ -75,8 +76,12 @@ function UploadSection({
     try {
       for (const file of Array.from(files)) {
         if (!file.type.startsWith("image/")) continue;
-        const compressed = await compressImage(file);
-        const { url, path } = await uploadImage(workflowId, compressed);
+        // Proofs upload at full resolution with the studio logo watermarked
+        // in (per explicit request) — no compressImage downscale, since the
+        // whole point is the client sees full quality while shopping. Only
+        // "edited" (final delivery) images keep the normal compressed path.
+        const prepared = kind === "proof" ? await applyWatermark(file) : await compressImage(file);
+        const { url, path } = await uploadImage(workflowId, prepared);
         await addImage({ data: { workflowId, kind, storagePath: path, imageUrl: url } });
       }
       toast.success("התמונות הועלו");
@@ -438,7 +443,7 @@ function PhotoClientDetail() {
 
           <UploadSection
             title="תמונות גלם (Proofs)"
-            hint='הלקוחה תראה את אלה ותוכל לסמן מועדפות (או שמסמנים כאן בשמה, ב-✓) ברגע שהשלב יעודכן ל"המתנה לבחירת לקוחה".'
+            hint='מועלות באיכות מלאה עם לוגו בסימן מים (אוטומטי). הלקוחה תראה את אלה ותוכל לסמן מועדפות (או שמסמנים כאן בשמה, ב-✓) ברגע שהשלב יעודכן ל"המתנה לבחירת לקוחה".'
             kind="proof"
             workflowId={workflowId}
             images={proofImages}

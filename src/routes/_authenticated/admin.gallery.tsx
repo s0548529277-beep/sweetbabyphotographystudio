@@ -17,6 +17,7 @@ const TABS = [
   { key: PAGE_IMAGE_KEYS.photographyStudio, label: "צילומים – בסטודיו" },
   { key: PAGE_IMAGE_KEYS.photographyOutdoor, label: "צילומים – בטבע" },
   { key: PAGE_IMAGE_KEYS.homeHero, label: "דף הבית – תמונות מתחלפות" },
+  { key: PAGE_IMAGE_KEYS.newborn, label: "ניו-בורן – דף נחיתה" },
   { key: PAGE_IMAGE_KEYS.rentalInspiration, label: "השכרת אביזרים – תמונות מתחלפות" },
   { key: PAGE_IMAGE_KEYS.about, label: "עלינו – תמונות" },
 ] as const;

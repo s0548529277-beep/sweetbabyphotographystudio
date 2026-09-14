@@ -489,20 +489,111 @@ export const sendPaymentReminderEmails = createServerFn({ method: "POST" })
 
 const advanceSchema = z.object({ workflowId: z.string().uuid(), stage: z.enum(WORKFLOW_STAGES) });
 
-/** Admin manually moves a client's workflow to a given stage (confirm date, publish album, etc.). */
+/**
+ * Admin manually moves a client's workflow to a given stage (confirm date,
+ * publish album, etc.). Moving to `album_published` also emails the client
+ * that her edited photos are ready — per explicit request, best-effort
+ * (a failed email never blocks the stage update itself, same as every
+ * other notification send in this file).
+ */
 export const advancePhotoClientStage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => advanceSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: before } = await supabaseAdmin.from("photo_client_workflows").select("user_id, stage").eq("id", data.workflowId).maybeSingle();
     const { error } = await supabaseAdmin
       .from("photo_client_workflows")
       .update({ stage: data.stage, updated_at: new Date().toISOString() })
       .eq("id", data.workflowId);
     if (error) throw new Error(error.message);
+
+    if (data.stage === "album_published" && before && before.stage !== "album_published") {
+      try {
+        const {
+          data: { user },
+        } = await supabaseAdmin.auth.admin.getUserById(before.user_id);
+        const { data: profile } = await supabaseAdmin.from("profiles").select("full_name").eq("id", before.user_id).maybeSingle();
+        const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+        await sendStudioAndCustomer({
+          customerEmail: user?.email,
+          subject: "התמונות המעובדות שלך מוכנות! 💗 · Sweetbaby",
+          html: `<div dir="rtl" style="font-family:sans-serif">
+            <p>שלום${profile?.full_name ? " " + profile.full_name : ""},</p>
+            <p>התמונות המעובדות שלך מוכנות ומחכות לך! אפשר לצפות ולהוריד אותן כאן:</p>
+            <p><a href="https://sweetbabyphoto.shop/my-photos">https://sweetbabyphoto.shop/my-photos</a></p>
+            <p>מקווה שתאהבי 💕</p>
+          </div>`,
+        });
+      } catch (e) {
+        console.error("[SWEETBABY] album-published notification email failed", e);
+      }
+    }
     return { ok: true };
   });
+
+/**
+ * 7 days after the shoot date, if the client still hasn't finished picking
+ * her proof photos (workflow still sitting at proofs_ready), send her one
+ * reminder email — per explicit request. Dedup via proof_reminder_sent_at
+ * (same idiom as bookings.reminder_sent_at) so it only ever goes out once.
+ * Called from api.send-booking-reminders.ts alongside the other periodic
+ * reminder jobs.
+ */
+export async function runDueProofSelectionReminders(): Promise<{ checked: number; sent: number }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  // Bounded window: shoots from 7 to 60 days ago — old enough to be due,
+  // not so old we're re-scanning the whole table forever. A workflow with
+  // no session_date can't be dated, so it's never a candidate here.
+  const today = new Date();
+  const dueBy = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const windowStart = new Date(today.getTime() - 60 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  const { data: candidates, error } = await supabaseAdmin
+    .from("photo_client_workflows")
+    .select("id, user_id, session_date")
+    .eq("stage", "proofs_ready")
+    .is("proof_reminder_sent_at", null)
+    .not("session_date", "is", null)
+    .lte("session_date", dueBy)
+    .gte("session_date", windowStart);
+
+  if (error) {
+    console.error("[SWEETBABY] proof-reminder scan failed", error);
+    return { checked: 0, sent: 0 };
+  }
+
+  let sent = 0;
+  for (const w of candidates ?? []) {
+    try {
+      const {
+        data: { user },
+      } = await supabaseAdmin.auth.admin.getUserById(w.user_id);
+      const { data: profile } = await supabaseAdmin.from("profiles").select("full_name").eq("id", w.user_id).maybeSingle();
+      const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+      await sendStudioAndCustomer({
+        customerEmail: user?.email,
+        subject: "תזכורת: בחירת התמונות שלך מחכה 📸 · Sweetbaby",
+        html: `<div dir="rtl" style="font-family:sans-serif">
+          <p>שלום${profile?.full_name ? " " + profile.full_name : ""},</p>
+          <p>רק תזכורת חמה — התמונות מהצילומים שלך כבר מחכות לבחירה, ועוד לא סימנת את המועדפות עלייך.</p>
+          <p>אפשר לבחור כאן: <a href="https://sweetbabyphoto.shop/my-photos">https://sweetbabyphoto.shop/my-photos</a></p>
+          <p>כדי שנוכל להתקדם לעיבוד ולשלוח לך את האלבום הסופי בקרוב, נשמח שתזדרזי קצת 💛</p>
+        </div>`,
+      });
+      // proof_reminder_sent_at is a brand-new column — cast until
+      // types.ts is regenerated against it (same idiom already used for
+      // retroach_presets/retouch_allowed_clients in admin.retouch-presets.tsx).
+      await (supabaseAdmin as any).from("photo_client_workflows").update({ proof_reminder_sent_at: new Date().toISOString() }).eq("id", w.id);
+      sent += 1;
+    } catch (e) {
+      console.error("[SWEETBABY] proof-selection reminder failed for workflow", w.id, e);
+    }
+  }
+  return { checked: (candidates ?? []).length, sent };
+}
 
 const addImageSchema = z.object({
   workflowId: z.string().uuid(),
