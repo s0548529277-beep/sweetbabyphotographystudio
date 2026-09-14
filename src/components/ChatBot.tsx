@@ -19,10 +19,26 @@ import {
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input";
 import { Shimmer } from "@/components/ai-elements/shimmer";
-import { useChatbotAvatar } from "@/lib/page-images";
+import { useChatbotAvatar, useSiteIcon } from "@/lib/page-images";
 import noaAvatar from "@/assets/noa-chat-avatar.png";
+import heartIcon from "@/assets/heart-gradient.png";
 
 type Msg = { role: "user" | "assistant"; content: string };
+
+/** Small inline heart, sized to sit in a line of text — used to render the
+ * 💗 in bot messages as the studio's own heart image instead of a plain
+ * emoji character (which can render as a flat red/black glyph on some
+ * platforms/fonts). */
+function InlineHeartImg(props: { src?: string }) {
+  return <img src={props.src} alt="💗" className="inline-block h-4 w-4 align-text-bottom mx-0.5" />;
+}
+
+/** Replaces every 💗 in bot text with a markdown image pointing at `heartSrc`
+ * — MessageResponse (Streamdown) renders that as a real <img>, styled small
+ * via the `img` component override passed alongside it. */
+function withHeartImage(text: string, heartSrc: string): string {
+  return text.split("💗").join(`![](${heartSrc})`);
+}
 
 const QUICK_QUESTIONS = [
   { label: "מתי הסטודיו פנוי?", icon: CalendarDays },
@@ -37,6 +53,10 @@ export function ChatBot() {
   // until an admin uploads a custom one.
   const { url: customAvatar } = useChatbotAvatar();
   const avatarSrc = customAvatar ?? noaAvatar;
+  // Same admin-replaceable heart used for the favicon/hero — see
+  // /admin/gallery ← "סמל האתר (הלב)".
+  const { url: customHeart } = useSiteIcon();
+  const heartSrc = customHeart ?? heartIcon;
   const userName =
     (user?.user_metadata as { full_name?: string; name?: string } | null)?.full_name ||
     (user?.user_metadata as { full_name?: string; name?: string } | null)?.name ||
@@ -302,8 +322,11 @@ export function ChatBot() {
                         : "leading-6"
                     }
                   >
-                    <MessageResponse className="text-sm leading-6">
-                      {message.content}
+                    <MessageResponse
+                      className="text-sm leading-6"
+                      components={{ img: () => <InlineHeartImg src={heartSrc} /> }}
+                    >
+                      {withHeartImage(message.content, heartSrc)}
                     </MessageResponse>
                   </MessageContent>
                 </Message>
