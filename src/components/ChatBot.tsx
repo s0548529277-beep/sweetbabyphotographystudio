@@ -195,31 +195,40 @@ export function ChatBot() {
       )}
 
       {!open && (
-        <Button
+        <button
+          type="button"
           onClick={() => {
             setOpen(true);
             setShowNudge(false);
           }}
           aria-label="פתיחת הצ׳אט עם נועה"
-          className="group h-auto rounded-full border border-secondary bg-card py-2 pr-2 pl-4 text-foreground shadow-[0_18px_50px_-20px_color-mix(in_oklab,var(--color-primary)_45%,transparent)] transition-transform hover:scale-[1.02] hover:bg-card"
+          className="group relative flex items-center gap-3 rounded-full border border-bone/60 bg-gradient-to-br from-bone via-bone to-sand/40 py-2.5 pr-2.5 pl-5 text-foreground shadow-[0_22px_55px_-18px_color-mix(in_oklab,var(--color-ink)_42%,transparent)] ring-1 ring-white/40 transition-transform duration-300 hover:scale-[1.04] active:scale-95"
         >
-          <span className="relative flex size-14 items-center justify-center overflow-hidden rounded-full bg-secondary/60">
+          <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-full">
+            <span className="absolute -right-6 -top-8 size-24 rounded-full bg-white/30 blur-2xl transition-opacity duration-500 group-hover:opacity-80" />
+          </span>
+          <span className="relative flex size-16 items-center justify-center overflow-hidden rounded-full border-2 border-white/70 bg-white/85 shadow-inner">
             <img
               src={avatarSrc}
               alt=""
               width={768}
               height={768}
-              className="size-13 object-contain p-1"
+              className="size-14 object-contain p-1"
             />
-            <span className="absolute bottom-1 right-1 size-3 rounded-full border-2 border-card bg-accent" />
+            <span className="absolute bottom-1 right-1 size-3.5 rounded-full border-2 border-white bg-accent shadow-sm" />
           </span>
-          <span className="text-right">
-            <span className="block text-[11px] font-medium text-muted-foreground">
+          <span className="relative text-right">
+            <span className="block text-[11px] font-semibold leading-none text-ink-soft">
               נועה · זמינה עכשיו
             </span>
-            <span className="block text-sm font-semibold">איך אפשר לעזור?</span>
+            <span className="mt-1 block text-base font-bold leading-tight text-ink">
+              איך אפשר לעזור?
+            </span>
           </span>
-        </Button>
+          <span className="absolute -left-1 top-1/2 hidden -translate-y-1/2 animate-ping-soft rounded-full sm:block">
+            <span className="flex size-2.5 items-center justify-center rounded-full bg-accent" />
+          </span>
+        </button>
       )}
 
       {open && (
