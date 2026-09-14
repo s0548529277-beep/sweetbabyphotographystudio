@@ -81,7 +81,7 @@ function Home() {
   // and portrait vs landscape); the bundled list is the fallback.
   const heroGallery = usePageGalleryWithAspect(PAGE_IMAGE_KEYS.homeHero);
   const slides = heroGallery.images.length > 0 ? heroGallery.images : HERO_SLIDES;
-  const heroAspect = heroGallery.aspect === "landscape" ? "aspect-[16/9]" : "aspect-[4/5]";
+  // heroAspect removed — the new hero uses a fixed-height wide crop.
   useEffect(() => {
     const id = setInterval(() => setSlide((s) => (s + 1) % slides.length), 3800);
     return () => clearInterval(id);
