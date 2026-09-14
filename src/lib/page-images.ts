@@ -221,3 +221,51 @@ export function useHeroVariant() {
   });
   return { ...query, variant: resolveHeroVariant(query.data) };
 }
+
+/**
+ * Chat bot avatar — replaceable from /admin/gallery without a developer, per
+ * explicit request. Same "config" row trick as saveAspect/saveHeroVariant
+ * above, but the row's own `url`/`storage_path` hold the uploaded image
+ * (not `caption`, since this is an actual picture, not a short setting
+ * value). No row (or a deleted one) means "use the bundled default avatar".
+ */
+export const CHATBOT_AVATAR_PAGE = "chatbot-avatar";
+
+export function resolveChatbotAvatarUrl(rows: PageImage[] | undefined): string | null {
+  const row = (rows ?? []).find((r) => r.source === "config");
+  return row?.url || null;
+}
+
+export async function saveChatbotAvatar(url: string, storagePath: string) {
+  const rows = await fetchPageImages(CHATBOT_AVATAR_PAGE);
+  const existing = rows.find((r) => r.source === "config");
+  if (existing) {
+    const { error } = await supabase.from("page_images").update({ url, storage_path: storagePath }).eq("id", existing.id);
+    if (error) throw error;
+    return;
+  }
+  const { error } = await supabase
+    .from("page_images")
+    .insert({ page: CHATBOT_AVATAR_PAGE, url, storage_path: storagePath, source: "config", caption: null, hidden: true, sort_order: 9999 });
+  if (error) throw error;
+}
+
+/** Deletes the config row (and its storage file) so the bundled default avatar takes over again. */
+export async function resetChatbotAvatar() {
+  const rows = await fetchPageImages(CHATBOT_AVATAR_PAGE);
+  const existing = rows.find((r) => r.source === "config");
+  if (!existing) return;
+  const { error } = await supabase.from("page_images").delete().eq("id", existing.id);
+  if (error) throw error;
+  if (existing.storage_path) await supabase.storage.from("items").remove([existing.storage_path]);
+}
+
+/** Client-side hook: the chat bot's current avatar URL, or null for the bundled default. */
+export function useChatbotAvatar() {
+  const query = useQuery({
+    queryKey: ["page-images", CHATBOT_AVATAR_PAGE],
+    queryFn: () => fetchPageImages(CHATBOT_AVATAR_PAGE),
+    staleTime: 60_000,
+  });
+  return { ...query, url: resolveChatbotAvatarUrl(query.data) };
+}

@@ -220,7 +220,7 @@ export function buildAssistantTools(opts?: { isAuthenticated?: boolean }) {
 
     list_active_coupons: tool({
       description:
-        "מחזירה את קודי הקופון הכלליים הפעילים כרגע במסד הנתונים (לא קודים אישיים חד-פעמיים שנשלחו למישהי ספציפית). תמיד השתמשי בזה לפני שאת מזכירה קוד קופון ללקוחה — אסור להמציא או להיזכר בקוד ישן, קודי הקופון משתנים.",
+        "מחזירה את קודי הקופון הכלליים הפעילים כרגע במסד הנתונים (לא קודים אישיים חד-פעמיים שנשלחו למישהי ספציפית, ולא קוד ברוכה הבאה של הניוזלטר — זה מגיע רק דרך הרשמה בפועל לניוזלטר). תמיד השתמשי בזה לפני שאת מזכירה קוד קופון ללקוחה — אסור להמציא או להיזכר בקוד ישן, קודי הקופון משתנים. אל תזכירי קוד קופון מיוזמתך — רק כשהלקוחה שואלת במפורש על הנחה/מחיר יותר זול.",
       inputSchema: z.object({}),
       execute: async () => {
         const { supabase } = await import("@/integrations/supabase/client");
@@ -228,7 +228,13 @@ export function buildAssistantTools(opts?: { isAuthenticated?: boolean }) {
           .from("coupons")
           .select("code, discount_percent, discount_amount, expires_at")
           .eq("active", true)
-          .eq("single_use", false);
+          .eq("single_use", false)
+          // The newsletter's own welcome coupon is earned by actually
+          // subscribing (a personal one-time code is minted and emailed on
+          // signup, see newsletter.functions.ts) — the chat bot must never
+          // hand the shared template code straight to anyone who asks,
+          // that defeats the whole point of the signup incentive.
+          .eq("newsletter_default", false);
         if (error || !data?.length) return { coupons: [] };
         const now = Date.now();
         const live = data.filter((c) => !c.expires_at || new Date(c.expires_at).getTime() > now);
