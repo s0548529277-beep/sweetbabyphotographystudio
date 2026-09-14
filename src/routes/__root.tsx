@@ -20,6 +20,30 @@ import { Analytics } from "@/components/Analytics";
 import { SiteTracking } from "@/lib/site-tracking";
 import { NewsletterPopup } from "@/components/NewsletterPopup";
 import { supabase } from "@/integrations/supabase/client";
+import { useSiteIcon } from "@/lib/page-images";
+
+/**
+ * Swaps the browser-tab icon to the admin-uploaded one (see useSiteIcon /
+ * /admin/gallery), if any — on the client, after hydration. The static
+ * /favicon.ico link in head() (below) is left untouched as the fallback for
+ * the very first paint and for anything that reads the icon without running
+ * this component's JS (crawlers, link-preview bots).
+ */
+function DynamicFavicon() {
+  const { url } = useSiteIcon();
+  useEffect(() => {
+    if (!url) return;
+    let link = document.querySelector<HTMLLinkElement>("link[rel='icon']");
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "icon";
+      document.head.appendChild(link);
+    }
+    link.type = "image/png";
+    link.href = url;
+  }, [url]);
+  return null;
+}
 
 function NotFoundComponent() {
   return (
@@ -161,6 +185,7 @@ function RootComponent() {
           <Analytics />
           <SiteTracking />
           <NewsletterPopup />
+          <DynamicFavicon />
         </CartProvider>
       </AuthProvider>
     </QueryClientProvider>
