@@ -218,29 +218,15 @@ export function buildAssistantTools(opts?: { isAuthenticated?: boolean }) {
       },
     }),
 
-    list_active_coupons: tool({
-      description:
-        "מחזירה את קודי הקופון הכלליים הפעילים כרגע במסד הנתונים (לא קודים אישיים חד-פעמיים שנשלחו למישהי ספציפית, ולא קוד ברוכה הבאה של הניוזלטר — זה מגיע רק דרך הרשמה בפועל לניוזלטר). תמיד השתמשי בזה לפני שאת מזכירה קוד קופון ללקוחה — אסור להמציא או להיזכר בקוד ישן, קודי הקופון משתנים. אל תזכירי קוד קופון מיוזמתך — רק כשהלקוחה שואלת במפורש על הנחה/מחיר יותר זול.",
-      inputSchema: z.object({}),
-      execute: async () => {
-        const { supabase } = await import("@/integrations/supabase/client");
-        const { data, error } = await supabase
-          .from("coupons")
-          .select("code, discount_percent, discount_amount, expires_at")
-          .eq("active", true)
-          .eq("single_use", false)
-          // The newsletter's own welcome coupon is earned by actually
-          // subscribing (a personal one-time code is minted and emailed on
-          // signup, see newsletter.functions.ts) — the chat bot must never
-          // hand the shared template code straight to anyone who asks,
-          // that defeats the whole point of the signup incentive.
-          .eq("newsletter_default", false);
-        if (error || !data?.length) return { coupons: [] };
-        const now = Date.now();
-        const live = data.filter((c) => !c.expires_at || new Date(c.expires_at).getTime() > now);
-        return { coupons: live.map((c) => ({ code: c.code, discountPercent: c.discount_percent, discountAmount: c.discount_amount })) };
-      },
-    }),
+    // There used to be a list_active_coupons tool here that let the bot
+    // recite a real coupon code straight in chat/voice to anyone who asked.
+    // Removed per explicit request — discount codes are only ever meant to
+    // reach a customer as a personal one-time code by email, minted on an
+    // actual newsletter signup (see issuePersonalCoupon in
+    // newsletter.functions.ts). No general "give the code away in
+    // conversation" path should exist at all, even when asked directly —
+    // the bot now always points a discount question at the newsletter
+    // signup form instead (see the SYSTEM/toolRules prompts).
 
     create_studio_booking: tool({
       description: `יוצרת שריון סטודיו אמיתי (לא רק בדיקה!) עבור לקוחה עם חשבון אישי אמיתי שמתקשה להשלים את התהליך לבד באתר. זה כלי רציני — לפני שמשתמשים בו חובה:
