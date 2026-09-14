@@ -12,34 +12,27 @@ import { PAYMENT_LABELS } from "@/lib/photography-options";
 import { NEWBORN_PACKAGES, NEWBORN_ADDONS, NEWBORN_TIMELINE_STEPS } from "@/lib/newborn-packages";
 import { usePageGallery, PAGE_IMAGE_KEYS, useSiteIcon } from "@/lib/page-images";
 import { Heart, Phone, Mail, CalendarDays, Check, ShieldCheck } from "lucide-react";
-import heartIcon from "@/assets/heart-gradient.png";
+import michalLogoWordmark from "@/assets/michal-logo-wordmark.png";
+import michalLogoFull from "@/assets/michal-logo.png";
 
 // Standalone header/footer for this page — deliberately NOT the site-wide
 // <Header>/<Footer> (Sweetbaby studio-rental branding + nav). Per explicit
-// request: this is her own personal newborn-photography brand, a separate
-// business from the studio-rental site, so it gets its own minimal
-// identity here instead of the shared site chrome. A real logo image can
-// replace the wordmark below once she uploads one — see MichalWordmark.
-function MichalWordmark({ size = "text-3xl" }: { size?: string }) {
-  // Same admin-replaceable heart as the rest of the site (/admin/gallery ←
-  // "סמל האתר (הלב)") — falls back to the bundled artwork until set.
-  const { url: customHeart } = useSiteIcon();
-  return (
-    <span className={`${size} text-[#2d3d2b] inline-flex items-center gap-1.5`} style={{ fontFamily: "'DM Serif Display', serif", fontStyle: "italic" }}>
-      michal
-      <img src={customHeart ?? heartIcon} alt="" className="h-4 w-4 inline-block" />
-    </span>
-  );
-}
+// request: this is her own personal newborn-photography brand ("michal"),
+// a separate business from the studio-rental site (Sweetbaby), so it gets
+// its own identity here — her real logo — instead of the shared site
+// chrome. The phone number below (0534181051) is hers as it appears on
+// the logo itself, distinct from the Sweetbaby studio number used
+// elsewhere in the app.
+const MICHAL_PHONE = "0534181051";
 
 function MichalHeader() {
   return (
     <header dir="rtl" className="border-b border-[#2d3d2b]/10 bg-[#f8ede4]/90 backdrop-blur sticky top-0 z-30">
       <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
-        <MichalWordmark />
+        <img src={michalLogoWordmark} alt="michal" className="h-12 w-auto" />
         <div className="hidden sm:flex items-center gap-5 text-sm text-[#2d3d2b]/80">
-          <a href="tel:0548529277" className="flex items-center gap-1.5 hover:text-[#2d3d2b]">
-            <Phone size={14} /> 054-8529277
+          <a href={`tel:${MICHAL_PHONE}`} className="flex items-center gap-1.5 hover:text-[#2d3d2b]" dir="ltr">
+            <Phone size={14} /> {MICHAL_PHONE}
           </a>
           <a href="mailto:s0548529277@gmail.com" className="flex items-center gap-1.5 hover:text-[#2d3d2b]">
             <Mail size={14} /> מייל
@@ -54,11 +47,11 @@ function MichalFooter() {
   return (
     <footer dir="rtl" className="border-t border-[#2d3d2b]/10 bg-[#f8ede4]">
       <div className="max-w-6xl mx-auto px-6 py-10 flex flex-col items-center gap-3 text-center">
-        <MichalWordmark size="text-2xl" />
-        <p className="text-sm text-[#2d3d2b]/70">צילומי ניו-בורן ומשפחה · מיכל סיבוני</p>
+        <img src={michalLogoFull} alt="מיכל סיבוני" className="h-16 w-auto" />
+        <p className="text-sm text-[#2d3d2b]/70">צילומי ניו-בורן ומשפחה</p>
         <div className="flex items-center gap-4 text-sm text-[#2d3d2b]/70">
-          <a href="tel:0548529277" className="flex items-center gap-1.5 hover:text-[#2d3d2b]">
-            <Phone size={14} /> 054-8529277
+          <a href={`tel:${MICHAL_PHONE}`} className="flex items-center gap-1.5 hover:text-[#2d3d2b]" dir="ltr">
+            <Phone size={14} /> {MICHAL_PHONE}
           </a>
           <a href="mailto:s0548529277@gmail.com" className="flex items-center gap-1.5 hover:text-[#2d3d2b]">
             <Mail size={14} /> s0548529277@gmail.com
@@ -80,12 +73,12 @@ function MichalFooter() {
 export const Route = createFileRoute("/newborn")({
   head: () => ({
     meta: [
-      { title: "צילומי ניו-בורן | Sweetbaby — מיכל סיבוני" },
+      { title: "צילומי ניו-בורן | מיכל סיבוני" },
       {
         name: "description",
-        content: "צילומי ניו-בורן בסטודיו בוטיק בבית שמש עם הצלמת מיכל סיבוני — חבילות מלאות, כולל עיבוד, קולאז' ואלבום. גם מימוש סל לידה.",
+        content: "צילומי ניו-בורן עם הצלמת מיכל סיבוני — חבילות מלאות, כולל עיבוד, קולאז' ואלבום. גם מימוש סל לידה.",
       },
-      { property: "og:title", content: "צילומי ניו-בורן | Sweetbaby" },
+      { property: "og:title", content: "צילומי ניו-בורן | מיכל סיבוני" },
       { property: "og:description", content: "חבילות ניו-בורן מלאות — סטודיו בוטיק, עיבוד מקצועי, קולאז' ואלבום." },
       { property: "og:image", content: "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04166_optimized-1-scaled.jpg" },
       { property: "og:url", content: "https://sweetbabyphoto.shop/newborn" },
@@ -95,7 +88,7 @@ export const Route = createFileRoute("/newborn")({
   component: NewbornLandingPage,
 });
 
-const PHONE = "0548529277";
+const PHONE = MICHAL_PHONE;
 const EMAIL = "s0548529277@gmail.com";
 const REGULAR_PACKAGES = NEWBORN_PACKAGES.filter((p) => p.categories.includes("regular"));
 
@@ -193,7 +186,7 @@ function NewbornLandingPage() {
         >
           <div className="relative">
             <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur px-5 py-2 rounded-full text-sm text-[#2d3d2b] mb-7 border border-[#2d3d2b]/10 shadow-sm">
-              <Heart size={14} className="fill-[#f5d5cf] text-[#f5d5cf]" /> צילומי ניו-בורן · מיכל סיבוני · Sweetbaby
+              <Heart size={14} className="fill-[#f5d5cf] text-[#f5d5cf]" /> צילומי ניו-בורן · מיכל סיבוני
             </div>
             <h1 className="text-5xl md:text-7xl mb-5 leading-[1.15] text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
               הרגעים הראשונים שלו.
@@ -465,8 +458,8 @@ function NewbornLandingPage() {
             >
               <CalendarDays size={18} /> קביעת מועד ביומן
             </button>
-            <a href={telLink} className="inline-flex items-center gap-2 border border-[#2d3d2b]/15 text-[#2d3d2b] px-7 py-3.5 rounded-full hover:bg-[#f8ede4] transition">
-              <Phone size={18} /> חיוג 054-8529277
+            <a href={telLink} dir="ltr" className="inline-flex items-center gap-2 border border-[#2d3d2b]/15 text-[#2d3d2b] px-7 py-3.5 rounded-full hover:bg-[#f8ede4] transition">
+              <Phone size={18} /> חיוג {PHONE}
             </a>
             <a href={gmailLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 border border-[#2d3d2b]/15 text-[#2d3d2b] px-7 py-3.5 rounded-full hover:bg-[#f8ede4] transition">
               <Mail size={18} /> מייל
