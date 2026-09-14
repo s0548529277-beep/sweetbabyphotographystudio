@@ -43,7 +43,6 @@ async function getRealAuthState(): Promise<{ userId: string | null; isRealAccoun
   }
 }
 
-
 // Exported so the voice-call assistant (voice-chat.server.ts) can reuse the
 // exact same studio facts instead of a second, driftable copy.
 //
@@ -94,7 +93,6 @@ export const SYSTEM = `אתה "בוט Sweetbaby", העוזר האישי של ס�
 - ניקיון: יש להחזיר את הסטודיו מסודר. בלגן משמעותי — 150₪ דמי ניקיון.
 
 צילומים עם הצלמת מיכל סיבוני (השירות שלה עצמה, לא רק השכרת הסטודיו) — 300₪ לשעה, 150₪ לחצי שעה, בניית סטים בתוספת 100₪ · פרטים נוספים (חבילת ניו-בורן+אלבום, סל לידה, צילומי חוץ) — קרא/י ל-get_photography_service_info · עמוד מלא: /studio-photography`;
-
 
 const ChatInput = z.object({
   messages: z
@@ -174,13 +172,15 @@ export const chatWithBot = createServerFn({ method: "POST" })
     return { reply: text };
   });
 
-
 const SearchInput = z.object({ query: z.string().min(1).max(200) });
 
 export const smartSearchItems = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => SearchInput.parse(data))
   .handler(async ({ data }) => {
-    type Cat = { title: string; items: { sku: string; name: string; alt: string; price: number }[] };
+    type Cat = {
+      title: string;
+      items: { sku: string; name: string; alt: string; price: number }[];
+    };
     const cats = catalogData as Cat[];
 
     // The full catalog is ~9,400 characters (394 items) — sending it on
@@ -205,7 +205,12 @@ export const smartSearchItems = createServerFn({ method: "POST" })
           .map((c) =>
             matchesAnyToken(c.title)
               ? c // whole category matched (e.g. query "רקעים" hits a category titled "רקעים")
-              : { title: c.title, items: c.items.filter((i) => matchesAnyToken(i.sku) || matchesAnyToken(i.name || i.alt)) },
+              : {
+                  title: c.title,
+                  items: c.items.filter(
+                    (i) => matchesAnyToken(i.sku) || matchesAnyToken(i.name || i.alt),
+                  ),
+                },
           )
           .filter((c) => c.items.length > 0)
       : [];
@@ -218,11 +223,7 @@ export const smartSearchItems = createServerFn({ method: "POST" })
     if (candidateCount === 0 || candidateCount > 150) candidateCats = cats;
 
     const summary = candidateCats
-      .map(
-        (c) =>
-          `[${c.title}] ` +
-          c.items.map((i) => `#${i.sku}:${i.name || i.alt}`).join(", "),
-      )
+      .map((c) => `[${c.title}] ` + c.items.map((i) => `#${i.sku}:${i.name || i.alt}`).join(", "))
       .join("\n");
 
     const { text } = await generateTextResilient({
