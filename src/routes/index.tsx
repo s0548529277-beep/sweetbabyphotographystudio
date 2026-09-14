@@ -23,6 +23,15 @@ import hero7 from "@/assets/home-hero-7.png.asset.json";
 import studioInterior from "@/assets/studio-interior.jpg";
 import studioPropsCorner from "@/assets/studio-props-corner.jpg";
 import heroScene from "@/assets/hero-scene.jpg";
+import heartGradient from "@/assets/heart-gradient.svg";
+
+/** Drop-in replacement for lucide's <Heart> in the hero stats row — same
+ * {className} prop shape, so it slots into the stats array below exactly
+ * like a lucide icon component. Per explicit request, using the owner's
+ * own pink-to-green gradient heart artwork instead of a flat icon. */
+function GradientHeartIcon({ className }: { className?: string }) {
+  return <img src={heartGradient} alt="" className={className} />;
+}
 
 const GALLERY_IMAGES: { src: string; caption: string }[] = [
   { src: hero0.url,             caption: "פינת ניו-בורן ורודה" },
@@ -81,7 +90,6 @@ function Home() {
   // and portrait vs landscape); the bundled list is the fallback.
   const heroGallery = usePageGalleryWithAspect(PAGE_IMAGE_KEYS.homeHero);
   const slides = heroGallery.images.length > 0 ? heroGallery.images : HERO_SLIDES;
-  // heroAspect removed — the new hero uses a fixed-height wide crop.
   useEffect(() => {
     const id = setInterval(() => setSlide((s) => (s + 1) % slides.length), 3800);
     return () => clearInterval(id);
@@ -102,10 +110,23 @@ function Home() {
     <div className="min-h-screen flex flex-col bg-[#f8ede4] text-[#2d3d2b] overflow-hidden" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
       <Header />
 
-      {/* HERO — Lifestyle 2027: wide panoramic image with overlaid content */}
+      {/* HERO — full-bleed rotating photo with overlaid content, per
+          explicit request restoring this look (the site briefly had a
+          different, lighter/side-image variant merged in automatically —
+          this is the one actually in use, with the requested fixes:
+          content pulled further right, bigger heading/paragraph/buttons,
+          a less-aggressive photo crop, and the gradient heart artwork in
+          place of the plain heart icon). */}
       <section className="relative overflow-hidden" dir="rtl">
-        {/* Full-bleed rotating wide image */}
-        <div className="relative w-full h-[68vh] min-h-[460px] max-h-[760px] overflow-hidden">
+        {/* Full-bleed rotating wide image — a bit taller than before and
+            object-top instead of centered, so a portrait-ish source photo
+            keeps its subject's face/top in frame instead of being cropped
+            out by the wide, short frame. */}
+        {/* Generous min-height (not just a vh-based height) — the bigger
+            heading/paragraph/buttons/pills requested above need more room
+            than the previous size did; a plain fixed height here let that
+            content overflow upward past the header on some viewports. */}
+        <div className="relative w-full h-[78vh] min-h-[820px] max-h-[920px] overflow-hidden">
           <AnimatePresence mode="wait">
             <motion.img
               key={slide}
@@ -118,7 +139,7 @@ function Home() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.02 }}
               transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-cover object-top"
             />
           </AnimatePresence>
 
@@ -144,11 +165,13 @@ function Home() {
             <span className="text-xs text-[#f8ede4]/90 font-medium">בית שמש · מאז 2023</span>
           </div>
 
-          {/* Content overlay */}
+          {/* Content overlay — narrower max-width than before (max-w-xl,
+              was max-w-2xl) so the block sits further right instead of
+              stretching in toward the photo's center, per explicit request. */}
           <div className="absolute inset-0 flex flex-col justify-end">
             <div className="container-page pb-10 md:pb-14">
-              <motion.div initial="hidden" animate="show" variants={fadeUp} className="max-w-2xl">
-                {/* Service tags */}
+              <motion.div initial="hidden" animate="show" variants={fadeUp} className="max-w-xl mr-0">
+                {/* Service tags — a bit larger than before, per request. */}
                 <div className="flex flex-wrap gap-2 mb-5">
                   {[
                     { label: "צילומים", to: "/studio-photography" },
@@ -158,7 +181,7 @@ function Home() {
                     <Link
                       key={tag.label}
                       to={tag.to}
-                      className={`px-4 py-1.5 rounded-full text-xs font-medium backdrop-blur-md border transition-colors ${
+                      className={`px-5 py-2 rounded-full text-sm font-medium backdrop-blur-md border transition-colors ${
                         i === 0
                           ? "bg-[#f5d5cf]/25 text-[#f8ede4] border-[#f5d5cf]/40 hover:bg-[#f5d5cf]/40"
                           : i === 1
@@ -174,9 +197,9 @@ function Home() {
                 {/* Logo */}
                 <img src={logo} alt="Sweetbaby" className="h-14 md:h-20 w-auto mb-3" />
 
-                {/* Headline */}
+                {/* Headline — a size step up from before, per request. */}
                 <h1
-                  className="text-4xl md:text-6xl lg:text-7xl leading-[1.05] text-[#f8ede4]"
+                  className="text-5xl md:text-7xl lg:text-8xl leading-[1.05] text-[#f8ede4]"
                   style={{ fontFamily: "'DM Serif Display', serif" }}
                 >
                   כאן נולדת התמונה
@@ -184,25 +207,25 @@ function Home() {
                   <span className="text-[#f5d5cf]">שתשאר איתך תמיד.</span>
                 </h1>
 
-                {/* Paragraph */}
-                <p className="mt-5 text-base md:text-lg max-w-xl leading-relaxed text-[#f8ede4]/85">
+                {/* Paragraph — a size step up from before, per request. */}
+                <p className="mt-5 text-lg md:text-xl max-w-xl leading-relaxed text-[#f8ede4]/85">
                   סטודיו לצילום עצמי להשכרה והשכרת אביזרים לצילום — בוטיק בבית שמש המשלב אמנות, רגש ועיצוב מוקפד.
                 </p>
 
-                {/* CTAs */}
+                {/* CTAs — a size step up from before, per request. */}
                 <div className="mt-7 flex flex-wrap items-center gap-4">
                   <Link
                     to="/studio-rental"
-                    className="group inline-flex items-center gap-3 rounded-full bg-[#f5d5cf] text-[#2d3d2b] px-7 py-4 text-base font-medium hover:bg-[#f8ede4] transition-all hover:gap-4"
+                    className="group inline-flex items-center gap-3 rounded-full bg-[#f5d5cf] text-[#2d3d2b] px-8 py-5 text-lg font-medium hover:bg-[#f8ede4] transition-all hover:gap-4"
                   >
                     <span>השכרת הסטודיו</span>
-                    <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+                    <ArrowLeft className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
                   </Link>
                   <Link
                     to="/rental-catalog"
-                    className="inline-flex items-center gap-2 rounded-full border-2 border-[#f8ede4]/40 text-[#f8ede4] px-7 py-4 text-base font-medium backdrop-blur-md hover:bg-[#f8ede4]/10 transition-all"
+                    className="inline-flex items-center gap-2 rounded-full border-2 border-[#f8ede4]/40 text-[#f8ede4] px-8 py-5 text-lg font-medium backdrop-blur-md hover:bg-[#f8ede4]/10 transition-all"
                   >
-                    <Sparkles className="h-4 w-4" /> לקטלוג האביזרים
+                    <Sparkles className="h-5 w-5" /> לקטלוג האביזרים
                   </Link>
                 </div>
               </motion.div>
@@ -217,7 +240,7 @@ function Home() {
               {[
                 { end: 400, suffix: "+", label: "אביזרים", icon: Sparkles },
                 { end: 3, suffix: "+ שנים", label: "מ-2023", icon: Clock },
-                { end: 1200, suffix: "+", label: "משפחות", icon: Heart },
+                { end: 1200, suffix: "+", label: "משפחות", icon: GradientHeartIcon },
               ].map((s, i) => (
                 <motion.div
                   key={s.label} custom={i} initial="hidden" animate="show" variants={fadeUp}
