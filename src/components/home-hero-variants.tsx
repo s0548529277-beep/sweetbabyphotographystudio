@@ -8,7 +8,9 @@ import { Link } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, ArrowLeft, MapPin, Star, Clock } from "lucide-react";
 import { CountUp } from "@/components/CountUp";
-import heartGradient from "@/assets/heart-gradient.svg";
+// The owner's own gradient-heart artwork (created directly in Drive), not a
+// hand-built recreation — swap this file in @/assets to change it.
+import heartGradient from "@/assets/heart-gradient.png";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -16,10 +18,8 @@ const fadeUp = {
 };
 
 /** Drop-in replacement for lucide's <Heart> in the hero stats row — same
- * {className} prop shape as a lucide icon component. Per explicit request,
- * the owner's own pink-to-green gradient heart artwork instead of a flat
- * icon (the original file wasn't available to reuse directly, so this is a
- * hand-built SVG matching its colors/diagonal sheen). */
+ * {className} prop shape as a lucide icon component. The owner's own
+ * pink-to-green gradient heart artwork (from Drive), not a recreation. */
 function GradientHeartIcon({ className }: { className?: string }) {
   return <img src={heartGradient} alt="" className={className} />;
 }
