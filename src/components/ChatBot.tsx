@@ -19,6 +19,7 @@ import {
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input";
 import { Shimmer } from "@/components/ai-elements/shimmer";
+import { useChatbotAvatar } from "@/lib/page-images";
 import noaAvatar from "@/assets/noa-chat-avatar.png";
 
 type Msg = { role: "user" | "assistant"; content: string };
@@ -32,6 +33,10 @@ const QUICK_QUESTIONS = [
 export function ChatBot() {
   const { user } = useAuth();
   const isAuth = !!user;
+  // Replaceable from /admin/gallery — falls back to the bundled artwork
+  // until an admin uploads a custom one.
+  const { url: customAvatar } = useChatbotAvatar();
+  const avatarSrc = customAvatar ?? noaAvatar;
   const userName =
     (user?.user_metadata as { full_name?: string; name?: string } | null)?.full_name ||
     (user?.user_metadata as { full_name?: string; name?: string } | null)?.name ||
@@ -162,7 +167,7 @@ export function ChatBot() {
             </Button>
             <div className="flex items-center gap-3 pl-7">
               <img
-                src={noaAvatar}
+                src={avatarSrc}
                 alt="נועה, העוזרת של Sweetbaby"
                 width={768}
                 height={768}
@@ -200,7 +205,7 @@ export function ChatBot() {
         >
           <span className="relative flex size-14 items-center justify-center overflow-hidden rounded-full bg-secondary/60">
             <img
-              src={noaAvatar}
+              src={avatarSrc}
               alt=""
               width={768}
               height={768}
@@ -228,7 +233,7 @@ export function ChatBot() {
               <div className="flex min-w-0 items-center gap-3">
                 <div className="relative flex size-12 shrink-0 items-center justify-center rounded-full border border-card bg-card/80 shadow-sm">
                   <img
-                    src={noaAvatar}
+                    src={avatarSrc}
                     alt="נועה, העוזרת של Sweetbaby"
                     width={768}
                     height={768}
@@ -271,7 +276,7 @@ export function ChatBot() {
                   {message.role === "assistant" && (
                     <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
                       <img
-                        src={noaAvatar}
+                        src={avatarSrc}
                         alt=""
                         width={768}
                         height={768}
@@ -298,7 +303,7 @@ export function ChatBot() {
                 <Message from="assistant">
                   <MessageContent className="flex-row items-center gap-2 text-muted-foreground">
                     <img
-                      src={noaAvatar}
+                      src={avatarSrc}
                       alt=""
                       width={768}
                       height={768}

@@ -3,10 +3,27 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Images, Loader2, Trash2, Upload, ChevronLeft, ChevronRight, Eye, GripVertical } from "lucide-react";
+import { Images, Loader2, Trash2, Upload, ChevronLeft, ChevronRight, Eye, GripVertical, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/lib/image-compress";
-import { builtinEntries, fetchPageImages, HERO_VARIANT_PAGE, HERO_VARIANTS, PAGE_IMAGE_KEYS, resolveAspect, resolveHeroVariant, rowUrl, saveAspect, saveHeroVariant, type PageImage } from "@/lib/page-images";
+import {
+  builtinEntries,
+  CHATBOT_AVATAR_PAGE,
+  fetchPageImages,
+  HERO_VARIANT_PAGE,
+  HERO_VARIANTS,
+  PAGE_IMAGE_KEYS,
+  resetChatbotAvatar,
+  resolveAspect,
+  resolveChatbotAvatarUrl,
+  resolveHeroVariant,
+  rowUrl,
+  saveAspect,
+  saveChatbotAvatar,
+  saveHeroVariant,
+  type PageImage,
+} from "@/lib/page-images";
+import noaAvatar from "@/assets/noa-chat-avatar.png";
 
 export const Route = createFileRoute("/_authenticated/admin/gallery")({
   component: AdminGalleryPage,
@@ -20,6 +37,7 @@ const TABS = [
   { key: PAGE_IMAGE_KEYS.newborn, label: "ניו-בורן – דף נחיתה" },
   { key: PAGE_IMAGE_KEYS.rentalInspiration, label: "השכרת אביזרים – תמונות מתחלפות" },
   { key: PAGE_IMAGE_KEYS.about, label: "עלינו – תמונות" },
+  { key: CHATBOT_AVATAR_PAGE, label: "בוט הצ'אט – תמונת פרופיל" },
 ] as const;
 
 async function uploadToStorage(file: File) {
@@ -60,6 +78,48 @@ function AdminGalleryPage() {
     queryFn: () => fetchPageImages(HERO_VARIANT_PAGE),
   });
   const heroVariant = resolveHeroVariant(heroVariantQuery.data);
+
+  // Chat bot avatar — same synthetic-page pattern as the hero variant above,
+  // per explicit request to make it replaceable without a developer.
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const chatbotAvatarQuery = useQuery({
+    queryKey: ["page-images", CHATBOT_AVATAR_PAGE],
+    queryFn: () => fetchPageImages(CHATBOT_AVATAR_PAGE),
+  });
+  const chatbotAvatarUrl = resolveChatbotAvatarUrl(chatbotAvatarQuery.data);
+  const refreshAvatar = () => qc.invalidateQueries({ queryKey: ["page-images", CHATBOT_AVATAR_PAGE] });
+
+  const handleAvatarFile = async (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file) return;
+    setAvatarBusy(true);
+    try {
+      const compressed = await compressImage(file);
+      const { url, path } = await uploadToStorage(compressed);
+      await saveChatbotAvatar(url, path);
+      refreshAvatar();
+      toast.success("תמונת הבוט עודכנה");
+    } catch (e) {
+      toast.error(heError(e, "שגיאה בהעלאת התמונה"));
+    } finally {
+      setAvatarBusy(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+    }
+  };
+
+  const handleAvatarReset = async () => {
+    setAvatarBusy(true);
+    try {
+      await resetChatbotAvatar();
+      refreshAvatar();
+      toast.success("חזרה לתמונת ברירת המחדל");
+    } catch (e) {
+      toast.error(heError(e, "שגיאה באיפוס"));
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
 
   // Bundled site photos are adopted into the gallery automatically, so every
   // image on every page can be deleted / reordered from here.
@@ -177,25 +237,27 @@ function AdminGalleryPage() {
             כל התמונות בעמודים – כולל אלה שהיו מוטמעות באתר – ניתנות למחיקה ולשינוי סדר מכאן: אפשר לגרור תמונה למקום חדש או להקליד מספר מיקום על התמונה. אפשר להעלות כמה תמונות בבת אחת.
           </p>
         </div>
-        <div>
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={(e) => handleFiles(e.target.files)}
-          />
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => inputRef.current?.click()}
-            className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-5 h-11 text-sm disabled:opacity-60"
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            {busy ? `מעלה ${progress.done}/${progress.total}...` : "העלאת תמונות"}
-          </button>
-        </div>
+        {page !== CHATBOT_AVATAR_PAGE && (
+          <div>
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => handleFiles(e.target.files)}
+            />
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => inputRef.current?.click()}
+              className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-5 h-11 text-sm disabled:opacity-60"
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              {busy ? `מעלה ${progress.done}/${progress.total}...` : "העלאת תמונות"}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -270,7 +332,50 @@ function AdminGalleryPage() {
         </div>
       )}
 
-      {images.isLoading ? (
+      {page === CHATBOT_AVATAR_PAGE && (
+        <div className="flex flex-wrap items-center gap-6 rounded-2xl border border-primary/10 bg-card p-6">
+          <img
+            src={chatbotAvatarUrl ?? noaAvatar}
+            alt="תמונת הבוט הנוכחית"
+            className="h-24 w-24 rounded-full object-cover border border-primary/10 bg-cream"
+          />
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">
+              התמונה שמופיעה בכל מקום שבו בוט הצ'אט (נועה) מדברת עם לקוחות באתר.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleAvatarFile(e.target.files)}
+              />
+              <button
+                type="button"
+                disabled={avatarBusy}
+                onClick={() => avatarInputRef.current?.click()}
+                className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-5 h-10 text-sm disabled:opacity-60"
+              >
+                {avatarBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                העלאת תמונה חדשה
+              </button>
+              {chatbotAvatarUrl && (
+                <button
+                  type="button"
+                  disabled={avatarBusy}
+                  onClick={handleAvatarReset}
+                  className="inline-flex items-center gap-2 rounded-full border border-primary/15 px-5 h-10 text-sm hover:bg-cream disabled:opacity-60"
+                >
+                  <RotateCcw className="h-4 w-4" /> חזרה לברירת המחדל
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {page !== CHATBOT_AVATAR_PAGE && (images.isLoading ? (
         <div className="text-sm text-muted-foreground">טוען...</div>
       ) : rows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-primary/20 p-10 text-center text-sm text-muted-foreground">
@@ -359,7 +464,7 @@ function AdminGalleryPage() {
             </div>
           ))}
         </div>
-      )}
+      ))}
     </div>
   );
 }
