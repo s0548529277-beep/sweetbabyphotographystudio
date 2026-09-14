@@ -2,8 +2,6 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { heError } from "@/lib/he-errors";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
@@ -12,8 +10,65 @@ import { EmailDatalist } from "@/components/EmailDatalist";
 import { requestPhotographySession } from "@/lib/photography.functions";
 import { PAYMENT_LABELS } from "@/lib/photography-options";
 import { NEWBORN_PACKAGES, NEWBORN_ADDONS, NEWBORN_TIMELINE_STEPS } from "@/lib/newborn-packages";
-import { usePageGallery, PAGE_IMAGE_KEYS } from "@/lib/page-images";
-import { Heart, Sparkles, Clock, Phone, Mail, CalendarDays, Check, ShieldCheck } from "lucide-react";
+import { usePageGallery, PAGE_IMAGE_KEYS, useSiteIcon } from "@/lib/page-images";
+import { Heart, Phone, Mail, CalendarDays, Check, ShieldCheck } from "lucide-react";
+import heartIcon from "@/assets/heart-gradient.png";
+
+// Standalone header/footer for this page — deliberately NOT the site-wide
+// <Header>/<Footer> (Sweetbaby studio-rental branding + nav). Per explicit
+// request: this is her own personal newborn-photography brand, a separate
+// business from the studio-rental site, so it gets its own minimal
+// identity here instead of the shared site chrome. A real logo image can
+// replace the wordmark below once she uploads one — see MichalWordmark.
+function MichalWordmark({ size = "text-3xl" }: { size?: string }) {
+  // Same admin-replaceable heart as the rest of the site (/admin/gallery ←
+  // "סמל האתר (הלב)") — falls back to the bundled artwork until set.
+  const { url: customHeart } = useSiteIcon();
+  return (
+    <span className={`${size} text-[#2d3d2b] inline-flex items-center gap-1.5`} style={{ fontFamily: "'DM Serif Display', serif", fontStyle: "italic" }}>
+      michal
+      <img src={customHeart ?? heartIcon} alt="" className="h-4 w-4 inline-block" />
+    </span>
+  );
+}
+
+function MichalHeader() {
+  return (
+    <header dir="rtl" className="border-b border-[#2d3d2b]/10 bg-[#f8ede4]/90 backdrop-blur sticky top-0 z-30">
+      <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
+        <MichalWordmark />
+        <div className="hidden sm:flex items-center gap-5 text-sm text-[#2d3d2b]/80">
+          <a href="tel:0548529277" className="flex items-center gap-1.5 hover:text-[#2d3d2b]">
+            <Phone size={14} /> 054-8529277
+          </a>
+          <a href="mailto:s0548529277@gmail.com" className="flex items-center gap-1.5 hover:text-[#2d3d2b]">
+            <Mail size={14} /> מייל
+          </a>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function MichalFooter() {
+  return (
+    <footer dir="rtl" className="border-t border-[#2d3d2b]/10 bg-[#f8ede4]">
+      <div className="max-w-6xl mx-auto px-6 py-10 flex flex-col items-center gap-3 text-center">
+        <MichalWordmark size="text-2xl" />
+        <p className="text-sm text-[#2d3d2b]/70">צילומי ניו-בורן ומשפחה · מיכל סיבוני</p>
+        <div className="flex items-center gap-4 text-sm text-[#2d3d2b]/70">
+          <a href="tel:0548529277" className="flex items-center gap-1.5 hover:text-[#2d3d2b]">
+            <Phone size={14} /> 054-8529277
+          </a>
+          <a href="mailto:s0548529277@gmail.com" className="flex items-center gap-1.5 hover:text-[#2d3d2b]">
+            <Mail size={14} /> s0548529277@gmail.com
+          </a>
+        </div>
+        <p className="text-xs text-[#2d3d2b]/50 mt-2">© מיכל סיבוני — כל הזכויות שמורות</p>
+      </div>
+    </footer>
+  );
+}
 
 // A dedicated, self-contained landing page for newborn clients — her own
 // branding + newborn photos, every newborn-specific thing already built
@@ -125,7 +180,7 @@ function NewbornLandingPage() {
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f8ede4] text-[#2d3d2b]" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
-      <Header />
+      <MichalHeader />
 
       {/* Hero */}
       <section className="max-w-6xl mx-auto px-6 pt-14 pb-10">
@@ -438,7 +493,7 @@ function NewbornLandingPage() {
         )}
       </AnimatePresence>
 
-      <Footer />
+      <MichalFooter />
     </div>
   );
 }
