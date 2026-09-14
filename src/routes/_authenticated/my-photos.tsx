@@ -115,7 +115,17 @@ function MyPhotosPage() {
               )}
             </div>
             <p className="text-sm text-muted-foreground">{STAGE_MESSAGE[g.stage]}</p>
-            {g.stage === "proofs_ready" && g.images.length > 0 && <ProofGrid gallery={g} />}
+            {g.stage === "proofs_ready" && g.images.length > 0 && (
+              <>
+                <ProofGrid gallery={g} />
+                {/* Per explicit request — shown under the watermarked proof
+                    photos, above/below doesn't matter as much as it being
+                    clearly attached to this set specifically. */}
+                <p className="text-center text-sm font-medium text-primary bg-primary/5 border border-primary/15 rounded-xl py-3 px-4">
+                  קבלת כל התמונות מותנת בתוספת 150 ש"ח
+                </p>
+              </>
+            )}
             {g.stage === "album_published" && g.images.length > 0 && <AlbumGrid gallery={g} />}
           </div>
         ))}

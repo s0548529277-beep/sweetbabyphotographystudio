@@ -13,6 +13,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const nav: { to: string; label: string; hash?: string; soon?: boolean }[] = [
   { to: "/", label: "בית" },
+  { to: "/newborn", label: "צילומי ניו-בורן" },
   { to: "/studio-photography", label: "צילומים בסטודיו" },
   { to: "/studio-rental", label: "השכרת סטודיו" },
   { to: "/rental-catalog", label: "קטלוג אביזרים להשכרה" },

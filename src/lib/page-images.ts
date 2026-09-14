@@ -10,6 +10,7 @@ export const PAGE_IMAGE_KEYS = {
   homeHero: "home-hero",
   rentalInspiration: "rental-inspiration",
   about: "about",
+  newborn: "newborn",
 } as const;
 
 export type PageImageKey = (typeof PAGE_IMAGE_KEYS)[keyof typeof PAGE_IMAGE_KEYS];
@@ -76,6 +77,10 @@ export function builtinEntries(page: string): { key: string; url: string }[] {
   if (page === PAGE_IMAGE_KEYS.photographyStudio) return BUILTIN_PHOTOGRAPHY_STUDIO.map((u) => ({ key: u, url: u }));
   if (page === PAGE_IMAGE_KEYS.photographyOutdoor) return BUILTIN_PHOTOGRAPHY_OUTDOOR.map((u) => ({ key: u, url: u }));
   if (page === PAGE_IMAGE_KEYS.homeHero) return builtinHomeHero();
+  // No dedicated newborn shoot photos bundled yet — the existing studio
+  // gallery already includes newborn work, so it's a reasonable starting
+  // gallery until the admin uploads real newborn-specific photos here.
+  if (page === PAGE_IMAGE_KEYS.newborn) return BUILTIN_PHOTOGRAPHY_STUDIO.map((u) => ({ key: u, url: u }));
   if (page === PAGE_IMAGE_KEYS.rentalInspiration) {
     return STATIC_CATALOG.flatMap((c) => c.items)
       .filter((i) => i.hasHand && i.img)
