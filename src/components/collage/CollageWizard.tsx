@@ -321,15 +321,25 @@ export function CollageWizard() {
     event.target.value = "";
     const imageFiles = files.filter((file) => file.type.startsWith("image/"));
     if (!imageFiles.length) return;
+    // Captured NOW, before any await — reading pendingSlotRef.current lazily
+    // inside the setPhotos updater below was a real bug: the updater only
+    // actually RUNS when React gets around to processing the queued state
+    // update (after this function's own microtask), by which point the old
+    // `finally` block below had already reset the ref to null — so a
+    // "replace photo in slot N" click would silently fall through to the
+    // "fill the next empty slot" branch instead, leaving the old photo in
+    // place and appending the new one elsewhere. Resetting the ref right
+    // here (synchronously, right after capturing it) closes that race.
+    const pendingSlot = pendingSlotRef.current;
+    pendingSlotRef.current = null;
     try {
       const urls = await Promise.all(imageFiles.map(readFileAsDataUrl));
       const touchedIndexes: number[] = [];
       setPhotos((current) => {
         const next = [...current];
-        const pending = pendingSlotRef.current;
-        if (pending !== null && urls[0]) {
-          next[pending] = urls[0];
-          touchedIndexes.push(pending);
+        if (pendingSlot !== null && urls[0]) {
+          next[pendingSlot] = urls[0];
+          touchedIndexes.push(pendingSlot);
           urls.slice(1).forEach((url) => {
             const empty = next.findIndex((item) => !item);
             if (empty >= 0) {
@@ -360,8 +370,6 @@ export function CollageWizard() {
       }
     } catch {
       toast.error("טעינת התמונות נכשלה, נסי שוב");
-    } finally {
-      pendingSlotRef.current = null;
     }
   };
 
