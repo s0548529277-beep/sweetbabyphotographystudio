@@ -1,10 +1,24 @@
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { CalendarDays, Check, ChevronDown, Clock3, PackageSearch, Send, X } from "lucide-react";
 import { chatWithBot } from "@/lib/ai.functions";
 import { checkItemsAvailability } from "@/lib/orders.functions";
 import { useAuth } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
+import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
+import { PromptInput, PromptInputFooter, PromptInputSubmit, PromptInputTextarea } from "@/components/ai-elements/prompt-input";
+import { Shimmer } from "@/components/ai-elements/shimmer";
+import noaAvatar from "@/assets/noa-chat-avatar.png";
 
 type Msg = { role: "user" | "assistant"; content: string };
+
+const QUICK_QUESTIONS = [
+  { label: "מתי הסטודיו פנוי?", icon: CalendarDays },
+  { label: "מצאי לי אביזרים", icon: PackageSearch },
+  { label: "כמה עולה השכרה?", icon: Clock3 },
+];
 
 export function ChatBot() {
   const { user } = useAuth();
@@ -14,44 +28,22 @@ export function ChatBot() {
     (user?.user_metadata as { full_name?: string; name?: string } | null)?.name ||
     user?.email?.split("@")[0] ||
     undefined;
+  const greeting = isAuth
+    ? `היי ${userName || ""}, אני נועה 💗\nאני כאן כדי לבדוק זמינות אמיתית, למצוא אביזרים, לחשב מחיר וגם לעזור לך לסגור הזמנה.`
+    : "היי, אני נועה 💗\nהעוזרת של Sweetbaby. אפשר לבדוק איתי זמינות אמיתית, למצוא אביזרים, לחשב מחיר ולקבל עזרה בהזמנה.";
 
   const [open, setOpen] = useState(false);
-  // Proactive "seems stuck" nudge: a friendly callout above the closed chat
-  // button, inviting her to ask/book through the chat instead of struggling
-  // with the regular form alone — added per direct request that the bot
-  // reach out to visitors who look stuck, not just wait to be clicked.
-  // "Stuck" has no real behavioral signal available here (no form-field
-  // tracking, no click-repeat detection) — the honest, simple proxy is
-  // "spent a while on the page without ever opening the chat", which is what
-  // this actually measures. Once per browser tab (sessionStorage) so it
-  // doesn't nag on every page navigation within the same visit.
   const [showNudge, setShowNudge] = useState(false);
-  useEffect(() => {
-    if (open) return;
-    try {
-      if (sessionStorage.getItem("sweetbaby-chat-nudge-shown")) return;
-    } catch {
-      /* ignore storage errors, show it anyway */
-    }
-    const t = setTimeout(() => {
-      setShowNudge(true);
-      try {
-        sessionStorage.setItem("sweetbaby-chat-nudge-shown", "1");
-      } catch {
-        /* ignore */
-      }
-    }, 35_000);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  const greeting = isAuth
-    ? `שלום ${userName || ""} 💬 אני בוט Sweetbaby. אפשר לשאול אותי ישירות "האם הסטודיו פנוי ב-12.8 בשעה 9:00?" או "האם מק״ט 461 פנוי בשבוע הבא?" — אני בודק ביומן ובמלאי בזמן אמת.`
-    : `שלום! אני בוט Sweetbaby 💬 אפשר לשאול אותי ישירות "האם הסטודיו פנוי ב-12.8 בשעה 9:00?" או "האם מק״ט 461 פנוי מחר?" — אני בודק ביומן ובמלאי בזמן אמת.`;
-
   const [messages, setMessages] = useState<Msg[]>([{ role: "assistant", content: greeting }]);
-  // One id per browser tab's chat session (kept in sessionStorage so it
-  // survives a page reload within the same visit) — lets the admin see the
-  // whole conversation as one log entry instead of scattered messages.
+  const [loading, setLoading] = useState(false);
+  const [availOpen, setAvailOpen] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [skuInput, setSkuInput] = useState("");
+  const [availLoading, setAvailLoading] = useState(false);
+  const chat = useServerFn(chatWithBot);
+  const checkAvail = useServerFn(checkItemsAvailability);
+
   const [sessionId] = useState(() => {
     try {
       const key = "sweetbaby-chat-session-id";
@@ -64,46 +56,39 @@ export function ChatBot() {
       return crypto.randomUUID();
     }
   });
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [availOpen, setAvailOpen] = useState(false);
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [skuInput, setSkuInput] = useState("");
-  const [availLoading, setAvailLoading] = useState(false);
-  const chat = useServerFn(chatWithBot);
-  const checkAvail = useServerFn(checkItemsAvailability);
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, open, availOpen]);
+    if (open) return;
+    try {
+      if (sessionStorage.getItem("sweetbaby-chat-nudge-shown")) return;
+    } catch {
+      // Storage may be unavailable in privacy mode; the invitation can still appear.
+    }
+    const timer = setTimeout(() => {
+      setShowNudge(true);
+      try {
+        sessionStorage.setItem("sweetbaby-chat-nudge-shown", "1");
+      } catch {
+        // No persistence is needed for the chat to work.
+      }
+    }, 25_000);
+    return () => clearTimeout(timer);
+  }, [open]);
 
-  const send = async () => {
-    const text = input.trim();
+  const send = async (rawText: string) => {
+    const text = rawText.trim();
     if (!text || loading) return;
     const next: Msg[] = [...messages, { role: "user", content: text }];
     setMessages(next);
-    setInput("");
     setLoading(true);
     try {
       const { reply } = await chat({ data: { messages: next, userName, isAuthenticated: isAuth, sessionId } });
       setMessages([...next, { role: "assistant", content: reply }]);
-    } catch (e) {
-      // The generic message below is what the customer sees, but it was
-      // swallowing the real error entirely — impossible to tell from the
-      // console whether this was a Gemini/Lovable key problem, a network
-      // failure, or something else. Now it's at least visible to whoever
-      // opens devtools (admin debugging this exact "why doesn't the bot
-      // work" question), without changing what the customer sees.
-      console.error("[SWEETBABY] chat bot request failed", e);
+    } catch (error) {
+      console.error("[SWEETBABY] chat bot request failed", error);
       setMessages([
         ...next,
-        {
-          role: "assistant",
-          content:
-            "מצטער, אני קצת עמוס כרגע 💗 אפשר לנסות שוב בעוד כמה דקות, ואם זה דחוף — אפשר גם ליצור קשר ישיר: 054-8529277 או s0548529277@gmail.com",
-        },
+        { role: "assistant", content: "יש לי רגע קטן של עומס 💗 נסי שוב בעוד דקה. אם דחוף, מיכל זמינה ב־054-8529277 או במייל s0548529277@gmail.com." },
       ]);
     } finally {
       setLoading(false);
@@ -112,164 +97,161 @@ export function ChatBot() {
 
   const runAvailability = async () => {
     if (!dateFrom || !dateTo) return;
-    const skus = skuInput
-      .split(/[,\s]+/)
-      .map((s) => s.trim())
-      .filter(Boolean);
+    const skus = skuInput.split(/[,\s]+/).map((sku) => sku.trim()).filter(Boolean);
     if (skus.length === 0) {
-      setMessages((m) => [...m, { role: "assistant", content: "רשמי מק״טים (מספרים) מופרדים בפסיק — לדוגמה: 461, 483, 510" }]);
+      setMessages((current) => [...current, { role: "assistant", content: "כתבי מק״טים מופרדים בפסיק, לדוגמה: 461, 483, 510." }]);
       return;
     }
     setAvailLoading(true);
     try {
-      const res = await checkAvail({ data: { skus, from: dateFrom, to: dateTo } });
-      const lines: string[] = [`בדיקת זמינות ${dateFrom} → ${dateTo}:`];
+      const result = await checkAvail({ data: { skus, from: dateFrom, to: dateTo } });
+      const lines = [`בדקתי זמינות לתאריכים ${dateFrom}–${dateTo}:`];
       for (const sku of skus) {
-        const r = res[sku];
-        if (!r) lines.push(`• מק״ט ${sku}: לא נמצא בקטלוג`);
-        else if (r.available > 0) lines.push(`• מק״ט ${sku}: פנוי ✓`);
-        else lines.push(`• מק״ט ${sku}: תפוס ✗`);
+        const item = result[sku];
+        if (!item) lines.push(`• מק״ט ${sku}: לא נמצא בקטלוג`);
+        else lines.push(`• מק״ט ${sku}: ${item.available > 0 ? "פנוי ✓" : "תפוס בתאריכים האלה"}`);
       }
-      lines.push("להזמנה: פתחי /rental-catalog, בחרי תאריכים והוסיפי אביזרים לעגלה.");
-      setMessages((m) => [...m, { role: "assistant", content: lines.join("\n") }]);
+      lines.push("אפשר להמשיך לבחירה בקטלוג האביזרים: /rental-catalog");
+      setMessages((current) => [...current, { role: "assistant", content: lines.join("\n") }]);
       setAvailOpen(false);
-    } catch (e) {
-      setMessages((m) => [...m, { role: "assistant", content: "לא הצלחתי לבדוק זמינות כרגע. נסי שוב בעוד רגע." }]);
+    } catch {
+      setMessages((current) => [...current, { role: "assistant", content: "לא הצלחתי לבדוק את המלאי כרגע. נסי שוב בעוד רגע 💗" }]);
     } finally {
       setAvailLoading(false);
     }
   };
 
   return (
-    <div dir="rtl" style={{ position: "fixed", bottom: 20, left: 20, zIndex: 100 }}>
+    <div dir="rtl" className="fixed bottom-4 left-4 z-[100] font-body sm:bottom-6 sm:left-6">
       {!open && showNudge && (
-        <div>
-        <style>{`@keyframes sweetbaby-nudge-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }`}</style>
-        <div
-          style={{
-            position: "absolute", bottom: "calc(100% + 12px)", left: 0,
-            width: 260, background: "#fff", color: "#163126", borderRadius: 16,
-            padding: "12px 14px", boxShadow: "0 12px 32px rgba(22,49,38,0.25)",
-            fontFamily: "'Assistant',sans-serif", fontSize: "0.88rem", lineHeight: 1.5,
-            animation: "sweetbaby-nudge-in 0.35s ease-out",
-          }}
-        >
-          <button
-            onClick={() => setShowNudge(false)}
-            aria-label="סגירת הודעה"
-            style={{ position: "absolute", top: 6, left: 8, background: "none", border: "none", color: "#163126", opacity: 0.5, fontSize: 16, cursor: "pointer" }}
-          >
-            ×
-          </button>
-          <div style={{ fontWeight: 700, marginBottom: 4 }}>נתקעת? 😊</div>
-          <div>אפשר לשאול אותי כל שאלה, ואפשר גם פשוט להזמין דרכי ישר כאן בצ׳אט — הרבה פעמים זה יותר מהיר מהטופס.</div>
-          <button
-            onClick={() => { setShowNudge(false); setOpen(true); }}
-            style={{ marginTop: 8, width: "100%", background: "#163126", color: "#f5c5b3", border: "none", padding: "7px 10px", borderRadius: 9, fontWeight: 700, cursor: "pointer", fontSize: "0.85rem" }}
-          >
-            בואי נדבר 💬
-          </button>
-        </div>
+        <div className="absolute bottom-[calc(100%+12px)] left-0 w-[min(310px,calc(100vw-32px))] animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="relative overflow-hidden rounded-2xl border border-secondary bg-card p-4 shadow-[0_20px_55px_-22px_color-mix(in_oklab,var(--color-primary)_30%,transparent)]">
+            <div className="absolute inset-x-0 top-0 h-1 bg-secondary" />
+            <Button onClick={() => setShowNudge(false)} aria-label="סגירת ההודעה" variant="ghost" size="icon-sm" className="absolute left-2 top-2 rounded-full text-muted-foreground">
+              <X />
+            </Button>
+            <div className="flex items-center gap-3 pl-7">
+              <img src={noaAvatar} alt="נועה, העוזרת של Sweetbaby" width={768} height={768} className="size-12 shrink-0 rounded-full bg-secondary/50 object-contain p-1" />
+              <div>
+                <p className="font-semibold text-foreground">צריכה יד קטנה?</p>
+                <p className="mt-0.5 text-sm leading-6 text-muted-foreground">אני יכולה לבדוק מועד, למצוא אביזר או לחשב מחיר — ממש כאן.</p>
+              </div>
+            </div>
+            <Button onClick={() => { setShowNudge(false); setOpen(true); }} className="mt-3 w-full rounded-xl bg-secondary text-secondary-foreground shadow-none hover:bg-secondary/80">
+              דברי עם נועה
+              <Send />
+            </Button>
+          </div>
         </div>
       )}
+
       {!open && (
-        <button
+        <Button
           onClick={() => { setOpen(true); setShowNudge(false); }}
-          aria-label="פתח צ'אט"
-          style={{
-            display: "flex", alignItems: "center", gap: 12,
-            padding: "12px 20px 12px 14px", borderRadius: 999, border: "none",
-            background: "#163126", color: "#f5c5b3", cursor: "pointer",
-            boxShadow: "0 12px 32px rgba(22,49,38,0.4)",
-            fontFamily: "'Assistant',sans-serif",
-          }}
+          aria-label="פתיחת הצ׳אט עם נועה"
+          className="group h-auto rounded-full border border-secondary bg-card py-2 pr-2 pl-4 text-foreground shadow-[0_18px_50px_-20px_color-mix(in_oklab,var(--color-primary)_45%,transparent)] transition-transform hover:scale-[1.02] hover:bg-card"
         >
-          <span style={{
-            width: 56, height: 56, borderRadius: "50%", background: "#f5c5b3",
-            color: "#163126", fontSize: 30, display: "flex", alignItems: "center", justifyContent: "center",
-          }}>💬</span>
-          <span style={{ fontSize: "1rem", fontWeight: 700, paddingLeft: 6 }}>
-            שאלי אותי כל דבר ✨
+          <span className="relative flex size-14 items-center justify-center overflow-hidden rounded-full bg-secondary/60">
+            <img src={noaAvatar} alt="" width={768} height={768} className="size-13 object-contain p-1" />
+            <span className="absolute bottom-1 right-1 size-3 rounded-full border-2 border-card bg-accent" />
           </span>
-        </button>
+          <span className="text-right">
+            <span className="block text-[11px] font-medium text-muted-foreground">נועה · זמינה עכשיו</span>
+            <span className="block text-sm font-semibold">איך אפשר לעזור?</span>
+          </span>
+        </Button>
       )}
 
       {open && (
-        <div style={{
-          width: 360, height: 540, background: "#fff", borderRadius: 20,
-          boxShadow: "0 20px 60px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column",
-          overflow: "hidden", fontFamily: "'Assistant',sans-serif",
-        }}>
-          <div style={{ background: "#163126", color: "#f5c5b3", padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ fontWeight: 700 }}>Sweetbaby · בוט</div>
-            <button onClick={() => setOpen(false)} aria-label="סגור" style={{ background: "none", border: "none", color: "#f5c5b3", fontSize: 22, cursor: "pointer" }}>×</button>
-          </div>
-          <div ref={scrollRef} style={{ flex: 1, padding: 14, overflowY: "auto", background: "#faf7f4" }}>
-            {messages.map((m, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-start" : "flex-end", marginBottom: 8 }}>
-                <div style={{
-                  maxWidth: "82%", padding: "8px 12px", borderRadius: 14,
-                  background: m.role === "user" ? "#163126" : "#f5c5b3",
-                  color: m.role === "user" ? "#f5c5b3" : "#163126",
-                  fontSize: "0.92rem", whiteSpace: "pre-wrap", lineHeight: 1.45,
-                }}>{m.content}</div>
+        <section aria-label="צ׳אט עם נועה" className="flex h-[min(680px,calc(100dvh-32px))] w-[min(410px,calc(100vw-32px))] origin-bottom-left animate-in flex-col overflow-hidden rounded-2xl border border-secondary bg-card shadow-[0_30px_80px_-28px_color-mix(in_oklab,var(--color-primary)_45%,transparent)] zoom-in-95 duration-300">
+          <header className="relative overflow-hidden border-b border-secondary bg-secondary/70 px-4 py-3.5">
+            <div className="absolute inset-y-0 left-0 w-24 bg-accent/20 blur-2xl" />
+            <div className="relative flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="relative flex size-12 shrink-0 items-center justify-center rounded-full border border-card bg-card/80 shadow-sm">
+                  <img src={noaAvatar} alt="נועה, העוזרת של Sweetbaby" width={768} height={768} className="size-11 object-contain p-0.5" />
+                  <span className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-full border-2 border-card bg-accent" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-display text-xl leading-none text-foreground">נועה</h2>
+                    <span className="rounded-full bg-card/70 px-2 py-0.5 text-[10px] font-semibold text-primary">העוזרת של Sweetbaby</span>
+                  </div>
+                  <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><Check className="size-3 text-accent" /> בודקת יומן ומלאי בזמן אמת</p>
+                </div>
               </div>
-            ))}
-            {loading && <div style={{ opacity: 0.6, fontSize: "0.85rem", textAlign: "center" }}>מקלידה…</div>}
-          </div>
+              <Button onClick={() => setOpen(false)} aria-label="סגירת הצ׳אט" variant="ghost" size="icon" className="shrink-0 rounded-full hover:bg-card/60"><ChevronDown /></Button>
+            </div>
+          </header>
 
-          {(
-            <div style={{ borderTop: "1px solid #eee", background: "#fff", padding: 10 }}>
-              {!availOpen ? (
-                <button
-                  onClick={() => setAvailOpen(true)}
-                  style={{
-                    width: "100%", background: "#f5c5b3", color: "#163126", border: "none",
-                    padding: "8px 12px", borderRadius: 10, fontWeight: 700, cursor: "pointer", fontSize: "0.9rem",
-                  }}
-                >
-                  🔍 בדיקת זמינות מהירה
-                </button>
-              ) : (
-                <div style={{ display: "grid", gap: 6 }}>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-                      style={{ flex: 1, padding: "6px 8px", border: "1px solid #ddd", borderRadius: 8, fontSize: "0.85rem" }} />
-                    <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-                      style={{ flex: 1, padding: "6px 8px", border: "1px solid #ddd", borderRadius: 8, fontSize: "0.85rem" }} />
+          <Conversation className="bg-background/65">
+            <ConversationContent className="gap-4 px-4 py-5">
+              {messages.map((message, index) => (
+                <Message key={`${message.role}-${index}`} from={message.role} className="max-w-[90%]">
+                  {message.role === "assistant" && (
+                    <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
+                      <img src={noaAvatar} alt="" width={768} height={768} loading="lazy" className="size-6 rounded-full bg-secondary/60 object-contain p-0.5" />
+                      נועה
+                    </div>
+                  )}
+                  <MessageContent className={message.role === "user" ? "rounded-2xl rounded-bl-sm bg-primary px-4 py-3 text-primary-foreground" : "leading-6"}>
+                    <MessageResponse className="text-sm leading-6">{message.content}</MessageResponse>
+                  </MessageContent>
+                </Message>
+              ))}
+              {loading && (
+                <Message from="assistant">
+                  <MessageContent className="flex-row items-center gap-2 text-muted-foreground">
+                    <img src={noaAvatar} alt="" width={768} height={768} loading="lazy" className="size-7 rounded-full bg-secondary/60 object-contain p-0.5" />
+                    <Shimmer className="text-sm">נועה בודקת בשבילך...</Shimmer>
+                  </MessageContent>
+                </Message>
+              )}
+            </ConversationContent>
+            <ConversationScrollButton className="bottom-3" aria-label="גלילה להודעה האחרונה" />
+          </Conversation>
+
+          <div className="border-t border-secondary/70 bg-card px-3 pt-3">
+            {messages.length <= 1 && !loading && (
+              <div className="mb-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+                {QUICK_QUESTIONS.map(({ label, icon: Icon }) => (
+                  <Button key={label} onClick={() => send(label)} variant="outline" size="sm" className="shrink-0 rounded-full border-secondary bg-secondary/25 text-foreground shadow-none hover:bg-secondary/55">
+                    <Icon />{label}
+                  </Button>
+                ))}
+              </div>
+            )}
+
+            <div className="mb-3 overflow-hidden rounded-xl border border-secondary/80 bg-secondary/20">
+              <Button onClick={() => setAvailOpen((value) => !value)} variant="ghost" className="h-10 w-full justify-between rounded-none px-3 text-sm hover:bg-secondary/30">
+                <span className="flex items-center gap-2"><PackageSearch />בדיקת אביזרים לפי מק״ט</span>
+                <ChevronDown className={`transition-transform ${availOpen ? "rotate-180" : ""}`} />
+              </Button>
+              {availOpen && (
+                <div className="grid gap-2 border-t border-secondary/70 p-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="text-xs text-muted-foreground">מתאריך<Input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} className="mt-1 bg-card" /></label>
+                    <label className="text-xs text-muted-foreground">עד תאריך<Input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} className="mt-1 bg-card" /></label>
                   </div>
-                  <input
-                    value={skuInput}
-                    onChange={(e) => setSkuInput(e.target.value)}
-                    placeholder="מק״טים לדוגמה: 461, 483"
-                    style={{ padding: "6px 8px", border: "1px solid #ddd", borderRadius: 8, fontSize: "0.85rem" }}
-                  />
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={runAvailability} disabled={availLoading}
-                      style={{ flex: 1, background: "#163126", color: "#f5c5b3", border: "none", padding: "8px", borderRadius: 8, cursor: "pointer", fontSize: "0.85rem", fontWeight: 700 }}>
-                      {availLoading ? "בודקת…" : "בדקי"}
-                    </button>
-                    <button onClick={() => setAvailOpen(false)}
-                      style={{ background: "#eee", border: "none", padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: "0.85rem" }}>
-                      ביטול
-                    </button>
-                  </div>
+                  <Input value={skuInput} onChange={(event) => setSkuInput(event.target.value)} placeholder="מק״טים, לדוגמה: 461, 483" className="bg-card" />
+                  <Button onClick={runAvailability} disabled={availLoading || !dateFrom || !dateTo} size="sm" className="rounded-lg">
+                    {availLoading ? "בודקת מלאי..." : "בדיקת זמינות"}
+                  </Button>
                 </div>
               )}
             </div>
-          )}
 
-          <div style={{ padding: 10, borderTop: "1px solid #eee", display: "flex", gap: 6 }}>
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") send(); }}
-              placeholder="שאלי אותי..."
-              style={{ flex: 1, padding: "10px 12px", border: "1px solid #ddd", borderRadius: 10, outline: "none", fontFamily: "inherit", fontSize: "0.95rem" }}
-            />
-            <button onClick={send} disabled={loading} style={{ background: "#163126", color: "#f5c5b3", border: "none", padding: "0 16px", borderRadius: 10, fontWeight: 700, cursor: "pointer" }}>שלחי</button>
+            <PromptInput onSubmit={({ text }) => send(text)} className="pb-3">
+              <PromptInputTextarea aria-label="כתיבת הודעה לנועה" placeholder="כתבי לי מה תרצי לדעת..." className="min-h-14 max-h-28 px-3 pt-3 text-sm" />
+              <PromptInputFooter className="justify-between border-t border-secondary/50 px-2 py-2">
+                <span className="pr-1 text-[10px] text-muted-foreground">אפשר לשאול גם במילים פשוטות</span>
+                <PromptInputSubmit status={loading ? "submitted" : "ready"} disabled={loading} aria-label="שליחת הודעה" className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90">
+                  <Send className="size-4" />
+                </PromptInputSubmit>
+              </PromptInputFooter>
+            </PromptInput>
           </div>
-        </div>
+        </section>
       )}
     </div>
   );
