@@ -37,8 +37,27 @@ export const Route = createFileRoute("/_authenticated/admin/voice-bot-text")({
 // no_human_transfer, temporary_error, final_error_hangup) is spoken
 // regardless of mode, so those three sets don't need to repeat them.
 const INACTIVE_IN_MODE: Record<"ai" | "fixed" | "dtmf", Set<string>> = {
-  ai: new Set(["studio_blurb", "props_blurb", "arrival_spoken", "guide_choice_prompt", "full_guide_spoken", "menu_prompt_dtmf", "dtmf_leave_message_confirm", "dtmf_leave_message_redo"]),
-  fixed: new Set(["menu_prompt_dtmf", "dtmf_leave_message_confirm", "dtmf_leave_message_redo"]),
+  ai: new Set([
+    "studio_blurb",
+    "props_blurb",
+    "arrival_spoken",
+    "guide_choice_prompt",
+    "full_guide_spoken",
+    "menu_prompt_dtmf",
+    "dtmf_leave_message_confirm",
+    "dtmf_leave_message_redo",
+    "personal_message_intro",
+    "personal_messages_none",
+    "transfer_to_ai_intro",
+  ]),
+  fixed: new Set([
+    "menu_prompt_dtmf",
+    "dtmf_leave_message_confirm",
+    "dtmf_leave_message_redo",
+    "personal_message_intro",
+    "personal_messages_none",
+    "transfer_to_ai_intro",
+  ]),
   // "dtmf" mode skips studio_blurb (option 1 goes straight to booking) and
   // guide_choice_prompt (option 4 plays the full guide directly, no
   // sub-question) — see DTMF_MENU_STEPS above for the exact flow.
@@ -138,6 +157,17 @@ const DTMF_MENU_STEPS: { key: string; title: string; detail: string }[] = [
     key: "5",
     title: "5 — השארת הודעה",
     detail: 'מבקש להגיד את ההודעה (בקול), ואז — במקום להסתמך על זיהוי שקט — מבקש אישור בהקשה: 1 לאישור ושליחה (ואז נשמע "המייל נשלח בהצלחה"), 2 להקליט מחדש.',
+  },
+  {
+    key: "6",
+    title: "6 — שמיעת הודעות אישיות",
+    detail:
+      "משמיע הודעה אישית שממתינה למספר שממנו מתקשרים (אותה תיבת הודעה שדף התבנית האוטומטי כותב אליה — למשל תזכורת/אישור הזמנה — ושכבר מושמעת פעם אחת אוטומטית בתחילת השיחה אם יש כזו). אם אין הודעה ממתינה, אומר את זה בפירוש. במקרה אחד או שני, חוזר לתפריט הראשי.",
+  },
+  {
+    key: "9",
+    title: "9 — מעבר לבוט בבינה מלאכותית",
+    detail: "יוצא מתפריט ההקשות ועובר לשיחה חופשית עם הבוט (בדיוק כמו מצב תפריט \"בינה מלאכותית\") — אפשר לשאול כל שאלה או לבקש לשריין תור, וממשיך כך עד סוף השיחה.",
   },
 ];
 
