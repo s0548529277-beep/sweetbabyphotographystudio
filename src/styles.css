@@ -35,6 +35,11 @@
   --color-sand-deep: var(--sand-deep);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
+  --color-newborn-canvas: var(--newborn-canvas);
+  --color-newborn-blush: var(--newborn-blush);
+  --color-newborn-rose: var(--newborn-rose);
+  --color-newborn-gold: var(--newborn-gold);
+  --color-newborn-ink: var(--newborn-ink);
   /* legacy alias tokens retained so existing pages keep rendering */
   --color-blush: var(--bone);
   --color-blush-deep: var(--sand);
@@ -82,6 +87,13 @@
 
   --font-display: "DM Serif Display", "Cormorant Garamond", ui-serif, Georgia, serif;
   --font-body: "Fira Sans", "Assistant", ui-sans-serif, system-ui, sans-serif;
+
+  /* Michal newborn boutique — selected rose-gold direction */
+  --newborn-canvas: oklch(0.982 0.008 30);
+  --newborn-blush: oklch(0.925 0.035 350);
+  --newborn-rose: oklch(0.62 0.17 8);
+  --newborn-gold: oklch(0.63 0.08 70);
+  --newborn-ink: oklch(0.31 0.025 45);
 
   /* Softened — the old values read as heavy "designed" shadows; flatter
      hairline-bordered cards fit the clean/quiet direction better. */
