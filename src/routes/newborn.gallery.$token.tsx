@@ -41,20 +41,20 @@ function NewbornGalleryPage() {
 
   if (query.isLoading) {
     return (
-      <div dir="rtl" className="min-h-screen bg-[#f8ede4] flex items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-[#6b8a63]" />
+      <div dir="rtl" className="min-h-screen bg-[#fdf3ec] flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-[#8a6338]" />
       </div>
     );
   }
 
   if (query.isError || !query.data) {
     return (
-      <div dir="rtl" className="min-h-screen bg-[#f8ede4] flex items-center justify-center px-6 text-center">
+      <div dir="rtl" className="min-h-screen bg-[#fdf3ec] flex items-center justify-center px-6 text-center">
         <div>
           <Link to="/">
             <img src={michalLogoWordmark} alt="michal" className="h-10 mx-auto mb-4" />
           </Link>
-          <p className="text-[#2d3d2b]">הקישור לא תקין או שפג תוקפו. אפשר לפנות אליי ישירות ואשלח קישור חדש.</p>
+          <p className="text-[#4a3221]">הקישור לא תקין או שפג תוקפו. אפשר לפנות אליי ישירות ואשלח קישור חדש.</p>
         </div>
       </div>
     );
@@ -97,13 +97,13 @@ function NewbornGalleryPage() {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen bg-[#f8ede4] text-[#2d3d2b]" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
-      <header className="border-b border-[#2d3d2b]/10 bg-[#f8ede4]/90 backdrop-blur sticky top-0 z-30">
+    <div dir="rtl" className="min-h-screen bg-[#fdf3ec] text-[#4a3221]" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
+      <header className="border-b border-[#4a3221]/10 bg-[#fdf3ec]/90 backdrop-blur sticky top-0 z-30">
         <div className="max-w-5xl mx-auto px-6 h-20 flex items-center justify-between">
           <Link to="/">
             <img src={michalLogoWordmark} alt="michal" className="h-10 w-auto" />
           </Link>
-          <div className="text-sm text-[#2d3d2b]/70">{contactName}</div>
+          <div className="text-sm text-[#4a3221]/70">{contactName}</div>
         </div>
       </header>
 
@@ -112,13 +112,13 @@ function NewbornGalleryPage() {
           <h1 className="text-3xl md:text-4xl mb-2" style={{ fontFamily: "'DM Serif Display', serif" }}>
             {showEdited ? "התמונות המוכנות שלך 💗" : "בואי נבחר תמונות"}
           </h1>
-          <p className="text-sm text-[#2d3d2b]/70">
+          <p className="text-sm text-[#4a3221]/70">
             {showEdited ? packageName : proofsSelectedAt ? "כבר שלחת לי את הבחירה שלך — תודה!" : `לוחצים על הלב לבחור — ${packageName}`}
           </p>
         </div>
 
         {showing.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-[#2d3d2b]/20 p-12 text-center text-sm text-[#2d3d2b]/70">
+          <div className="rounded-2xl border border-dashed border-[#4a3221]/20 p-12 text-center text-sm text-[#4a3221]/70">
             עדיין לא הועלו תמונות — אעדכן אותך במייל ברגע שהן יהיו מוכנות 💗
           </div>
         ) : (
@@ -138,7 +138,7 @@ function NewbornGalleryPage() {
                     onClick={() => toggle(img.id, !img.selected)}
                     disabled={!!proofsSelectedAt}
                     className={`absolute top-2 left-2 h-10 w-10 rounded-full flex items-center justify-center transition disabled:opacity-60 ${
-                      img.selected ? "bg-[#2d3d2b] text-white" : "bg-white/80 text-[#2d3d2b] hover:bg-white"
+                      img.selected ? "bg-[#4a3221] text-white" : "bg-white/80 text-[#4a3221] hover:bg-white"
                     }`}
                   >
                     <Heart className={`h-4 w-4 ${img.selected ? "fill-current" : ""}`} />
@@ -151,7 +151,7 @@ function NewbornGalleryPage() {
 
         {!showEdited && showing.length > 0 && (
           <>
-            <p className="text-center text-sm font-medium text-[#2d3d2b] bg-[#a8c4a2]/15 border border-[#a8c4a2]/30 rounded-xl py-3 px-4 mt-6">
+            <p className="text-center text-sm font-medium text-[#4a3221] bg-[#d9b98a]/15 border border-[#d9b98a]/30 rounded-xl py-3 px-4 mt-6">
               קבלת כל התמונות מותנת בתוספת 150 ש"ח
             </p>
             {!proofsSelectedAt && (
@@ -160,7 +160,7 @@ function NewbornGalleryPage() {
                   type="button"
                   onClick={finish}
                   disabled={finishing}
-                  className="inline-flex items-center gap-2 bg-[#2d3d2b] text-white px-8 py-3.5 rounded-full font-semibold disabled:opacity-60"
+                  className="inline-flex items-center gap-2 bg-[#4a3221] text-white px-8 py-3.5 rounded-full font-semibold disabled:opacity-60"
                 >
                   {finishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                   סיימתי לבחור ({selectedCount})
