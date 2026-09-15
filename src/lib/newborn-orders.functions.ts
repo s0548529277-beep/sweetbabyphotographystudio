@@ -12,6 +12,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { NEWBORN_ADDONS, NEWBORN_TIMELINE_STEP_KEYS, findNewbornPackage, type NewbornPackage } from "@/lib/newborn-packages";
+import { emailHeartImgTag } from "@/lib/page-images";
 
 const STUDIO_EMAIL = "s0548529277@gmail.com";
 const STUDIO_PHONE = "0534181051";
@@ -37,19 +38,20 @@ function formatHebrewDate(dateStr: string | null): string {
  * and the client, mirroring sendStudioAndCustomer's existing pattern used
  * for every other studio email in this app.
  */
-function buildNewbornContractHtml(order: {
+async function buildNewbornContractHtml(order: {
   contact_name: string;
   session_date: string | null;
   session_time: string | null;
   package_id: string;
   total_price: number;
-}): string {
+}): Promise<string> {
+  const heart = await emailHeartImgTag();
   const pkg: NewbornPackage | null = findNewbornPackage(order.package_id);
   const pkgLine = pkg ? `${pkg.name} — ${pkg.features.join(", ")}` : order.package_id;
   const row = (label: string, value: string) =>
     `<tr><td style="padding:4px 0;color:#6b5b53;font-size:13px;white-space:nowrap">${label}</td><td style="padding:4px 0 4px 12px;font-weight:600">${value}</td></tr>`;
   return `<div dir="rtl" style="font-family:sans-serif;color:#2d3d2b;max-width:560px;margin:0 auto;line-height:1.7">
-    <h2 style="margin-bottom:4px">היי ${order.contact_name} היקרה 💗</h2>
+    <h2 style="margin-bottom:4px">היי ${order.contact_name} היקרה ${heart}</h2>
     <p>שמחה ומתרגשת שבחרת בי לקחת חלק ולתעד את המשפחה שלכם ברגעים מרגשים אלו.</p>
 
     <div style="background:#faf2ee;border-radius:14px;padding:16px 20px;margin:18px 0">
@@ -89,7 +91,7 @@ function buildNewbornContractHtml(order: {
     <h3>אישור</h3>
     <p>יש להשיב למייל זה (<a href="mailto:${STUDIO_EMAIL}">${STUDIO_EMAIL}</a>) בכתוב: "קראתי את הכתוב בהסכם זה ואני מאשרת את הדברים" — זה משמש כחתימה הדיגיטלית שלך.</p>
 
-    <p style="margin-top:24px">מחכה בקוצר רוח להיפגש איתכם ולצלם לכם תמונות חלומיות 💗<br/>מיכל · ${STUDIO_PHONE}</p>
+    <p style="margin-top:24px">מחכה בקוצר רוח להיפגש איתכם ולצלם לכם תמונות חלומיות ${heart}<br/>מיכל · ${STUDIO_PHONE}</p>
   </div>`;
 }
 
@@ -108,7 +110,7 @@ async function sendNewbornContractEmail(order: {
     await sendStudioAndCustomer({
       customerEmail: order.contact_email || undefined,
       subject: `החוזה שלך לצילומי ניו-בורן · מיכל סיבוני 💗`,
-      html: buildNewbornContractHtml(order),
+      html: await buildNewbornContractHtml(order),
     });
     return true;
   } catch (e) {
@@ -771,12 +773,13 @@ export const finishNewbornProofSelectionByToken = createServerFn({ method: "POST
       );
       try {
         const { sendGmail } = await import("@/integrations/google/gmail.server");
+        const heart = await emailHeartImgTag(40);
         await sendGmail({
           to: STUDIO_EMAIL,
           subject: `${order.contact_name} סיימה לבחור תמונות! 💗`,
           html: `<div dir="rtl" style="font-family:sans-serif;color:#2d3d2b;max-width:480px;margin:0 auto;text-align:center">
             <div style="background:linear-gradient(135deg,#f5d5cf,#a8c4a2);border-radius:20px;padding:28px 20px">
-              <div style="font-size:40px;margin-bottom:8px">📸💗</div>
+              <div style="font-size:40px;margin-bottom:8px">📸 ${heart}</div>
               <h2 style="margin:0 0 6px">${order.contact_name} סיימה לבחור!</h2>
               <p style="margin:0;color:#2d3d2b/80">${selected?.length ?? 0} תמונות נבחרו</p>
             </div>
@@ -803,6 +806,7 @@ export const requestBirthBasketInterest = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     try {
       const { sendGmail } = await import("@/integrations/google/gmail.server");
+      const heart = await emailHeartImgTag(36);
       const contactLines = [
         data.name?.trim() ? `שם: ${data.name.trim()}` : null,
         data.phone?.trim() ? `טלפון: ${data.phone.trim()}` : null,
@@ -813,7 +817,7 @@ export const requestBirthBasketInterest = createServerFn({ method: "POST" })
         subject: "מעוניינת במימוש סל לידה",
         html: `<div dir="rtl" style="font-family:sans-serif;color:#4a3221;max-width:480px;margin:0 auto;text-align:center">
           <div style="background:linear-gradient(135deg,#f3d3dd,#ecd3ac);border-radius:20px;padding:28px 20px">
-            <div style="font-size:36px;margin-bottom:8px">🧺💗</div>
+            <div style="font-size:36px;margin-bottom:8px">🧺 ${heart}</div>
             <h2 style="margin:0">מעוניינת במימוש סל לידה</h2>
           </div>
           ${contactLines.length ? `<p style="margin-top:18px;font-size:15px">${contactLines.join("<br/>")}</p>` : `<p style="margin-top:18px;font-size:13px;color:#8a6338">לא צוינו פרטי קשר — התקבל מעמוד הניו-בורן</p>`}
