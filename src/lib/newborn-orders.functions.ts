@@ -1,10 +1,121 @@
-// Admin-only CRUD for the newborn-package order tracker (see
+// Admin CRUD for the newborn-package order tracker (see
 // newborn-packages.ts for the package/addon/timeline-step definitions and
-// /admin/newborn-packages for the UI). Never customer-facing.
+// /admin/newborn-packages for the UI), PLUS — further down this file — a
+// small token-gated public surface for her own newborn-photography clients
+// (contract email, proof gallery, selection) that deliberately does NOT
+// touch the general photo_client_workflows/photo_client_images system used
+// elsewhere on the site: this is a separate business, per explicit
+// request, so it gets its own table (newborn_order_images) and its own
+// customer-facing routes (/newborn/gallery/$token), reachable without a
+// site account — just a private link mailed to her.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { NEWBORN_ADDONS, NEWBORN_TIMELINE_STEP_KEYS, findNewbornPackage } from "@/lib/newborn-packages";
+import { NEWBORN_ADDONS, NEWBORN_TIMELINE_STEP_KEYS, findNewbornPackage, type NewbornPackage } from "@/lib/newborn-packages";
+
+const STUDIO_EMAIL = "s0548529277@gmail.com";
+const STUDIO_PHONE = "0534181051";
+const BANK_DETAILS = { bank: "12", branch: "533", account: "648912", name: "מיכל סיבוני" };
+const DEPOSIT_AMOUNT = 300;
+
+function formatHebrewDate(dateStr: string | null): string {
+  if (!dateStr) return "טרם נקבע";
+  try {
+    const d = new Date(`${dateStr}T00:00:00`);
+    return new Intl.DateTimeFormat("he-IL", { weekday: "long", day: "numeric", month: "numeric", year: "numeric" }).format(d);
+  } catch {
+    return dateStr;
+  }
+}
+
+/**
+ * The personal-contract email — transcribed from the studio owner's own
+ * PDF template, with the per-order specifics (name/date/time/package/
+ * price) filled in; the deposit amount and bank details are fixed (her own
+ * account, same on every contract). Sent automatically the moment an order
+ * is created (createNewbornOrder below) — "closing the deal" — to both her
+ * and the client, mirroring sendStudioAndCustomer's existing pattern used
+ * for every other studio email in this app.
+ */
+function buildNewbornContractHtml(order: {
+  contact_name: string;
+  session_date: string | null;
+  session_time: string | null;
+  package_id: string;
+  total_price: number;
+}): string {
+  const pkg: NewbornPackage | null = findNewbornPackage(order.package_id);
+  const pkgLine = pkg ? `${pkg.name} — ${pkg.features.join(", ")}` : order.package_id;
+  const row = (label: string, value: string) =>
+    `<tr><td style="padding:4px 0;color:#6b5b53;font-size:13px;white-space:nowrap">${label}</td><td style="padding:4px 0 4px 12px;font-weight:600">${value}</td></tr>`;
+  return `<div dir="rtl" style="font-family:sans-serif;color:#2d3d2b;max-width:560px;margin:0 auto;line-height:1.7">
+    <h2 style="margin-bottom:4px">היי ${order.contact_name} היקרה 💗</h2>
+    <p>שמחה ומתרגשת שבחרת בי לקחת חלק ולתעד את המשפחה שלכם ברגעים מרגשים אלו.</p>
+
+    <div style="background:#faf2ee;border-radius:14px;padding:16px 20px;margin:18px 0">
+      <table style="width:100%;border-collapse:collapse">
+        ${row("חבילה:", pkgLine)}
+        ${row("מחיר כולל:", `₪${order.total_price}`)}
+        ${row("מועד הצילומים:", formatHebrewDate(order.session_date))}
+        ${row("שעה:", order.session_time ?? "תיקבע בתיאום")}
+      </table>
+    </div>
+
+    <h3>סטיילינג</h3>
+    <p>כדי שהתמונות יהיו מדויקות ויפות, חשוב לי לקחת חלק בבחירת הבגדים — אפשר לשלוח תמונה ולהתייעץ איתי לפני בחירה/קנייה. הביגוד והעיטופים עליי :)</p>
+
+    <h3>הכנות ליום הצילום</h3>
+    <ul>
+      <li>נא לקלח את הבייבי בבוקר לפני היציאה לסטודיו</li>
+      <li>נא להאכיל את הבייבי בסמוך להגעה</li>
+      <li>2 בקבוקים של תמ"ל/חלב שאוב, מוצץ, שמיכה חמה, טיטולים ומגבונים</li>
+    </ul>
+
+    <h3>מקדמה</h3>
+    <p>לשריון התאריך יש להעביר מקדמה על סך ₪${DEPOSIT_AMOUNT}. פרטי חשבון להעברה: בנק ${BANK_DETAILS.bank}, סניף ${BANK_DETAILS.branch}, חשבון ${BANK_DETAILS.account}, על שם ${BANK_DETAILS.name}. במקרה של ביטול הצילומים על ידי הלקוחה, המקדמה אינה מוחזרת.</p>
+
+    <h3>אופן התשלום</h3>
+    <p>שאר התשלום ישולם במלואו (מזומן/העברה) ביום הצילומים. תמונות לבחירה יישלחו רק לאחר תשלום מלא על החבילה.</p>
+
+    <h3>דיוק בזמנים ואיחורים</h3>
+    <p>נא לדייק ולהגיע כ-10 דקות לפני הזמן שנקבע. איחור עשוי לקצר את משך הצילומים; איחור משמעותי שיגרום לחוסר הספקה — אציע יום צילומים נוסף בעלות ₪600.</p>
+
+    <h3>אחרי הצילומים</h3>
+    <p>תמונות לבחירה יישלחו ביום שלאחר הצילומים (סימן מים, איכות מלאה). זמן בחירת התמונות הוא שבוע מיום קבלתן. האלבום יהיה מוכן תוך 60 ימי עסקים שלאחר הבחירה, בכפוף לבחירה בזמן.</p>
+
+    <h3>בטיחות ואחריות</h3>
+    <p>יש לציין שאחריות ובטיחות הילדים מוטלת על ההורים בלבד.</p>
+
+    <h3>אישור</h3>
+    <p>יש להשיב למייל זה (<a href="mailto:${STUDIO_EMAIL}">${STUDIO_EMAIL}</a>) בכתוב: "קראתי את הכתוב בהסכם זה ואני מאשרת את הדברים" — זה משמש כחתימה הדיגיטלית שלך.</p>
+
+    <p style="margin-top:24px">מחכה בקוצר רוח להיפגש איתכם ולצלם לכם תמונות חלומיות 💗<br/>מיכל · ${STUDIO_PHONE}</p>
+  </div>`;
+}
+
+/** Best-effort contract email on order creation — never blocks the order itself, matching every other post-create sync in this file. */
+async function sendNewbornContractEmail(order: {
+  id: string;
+  contact_name: string;
+  contact_email: string | null;
+  session_date: string | null;
+  session_time: string | null;
+  package_id: string;
+  total_price: number;
+}) {
+  try {
+    const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+    await sendStudioAndCustomer({
+      customerEmail: order.contact_email || undefined,
+      subject: `החוזה שלך לצילומי ניו-בורן · מיכל סיבוני 💗`,
+      html: buildNewbornContractHtml(order),
+    });
+    return true;
+  } catch (e) {
+    console.error("[SWEETBABY] newborn contract email failed", e);
+    return false;
+  }
+}
 
 async function assertAdmin(supabase: any, userId: string) {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
@@ -256,10 +367,21 @@ export const createNewbornOrder = createServerFn({ method: "POST" })
     // bookingBlock is the one that actually stops a double-booking
     // (syncNewbornBookingBlock's own comment) — calendarError is the
     // secondary, visual-only Google Calendar mirror.
-    const [calendarError, bookingBlock] = await Promise.all([
+    const [calendarError, bookingBlock, contractSent] = await Promise.all([
       syncNewbornCalendarEvent(context.supabase, row),
       syncNewbornBookingBlock(context.supabase, context.userId, row),
+      sendNewbornContractEmail(row),
     ]);
+    if (contractSent) {
+      // Best-effort — a stamp failure here only means the admin UI can't
+      // show "נשלח" for this order, the email itself already went out.
+      (context.supabase as any)
+        .from("newborn_package_orders")
+        .update({ contract_sent_at: new Date().toISOString() })
+        .eq("id", row.id)
+        .then(() => {})
+        .catch(() => {});
+    }
     // `schemaFallback` tells the caller the order WAS created but the
     // shooting-time/birth-basket fields could NOT be saved (the columns
     // aren't live on this database yet) — surfaced as an honest warning in
@@ -276,6 +398,7 @@ export const createNewbornOrder = createServerFn({ method: "POST" })
       _calendarError: calendarError,
       _bookingBlockError: bookingBlock.error,
       _bookingBlockConfirmed: bookingBlock.confirmed ?? null,
+      _contractSent: contractSent,
     };
   });
 
@@ -461,5 +584,175 @@ export const markNewbornGalleryOpened = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .is("gallery_opened_at", null);
     if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ---------------------------------------------------------------------
+// Admin-side image management for an order's own gallery
+// (newborn_order_images) — completely separate table from the general
+// photo_client_images used elsewhere on the site. The admin uploads the
+// file to storage herself (client-side, same uploadToStorage/applyWatermark
+// pattern as everywhere else in this app); these functions just record the
+// row, so no server-side file handling is needed here.
+// ---------------------------------------------------------------------
+
+export const listNewbornOrderImages = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ orderId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data: rows, error } = await (context.supabase as any)
+      .from("newborn_order_images")
+      .select("*")
+      .eq("order_id", data.orderId)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+const addImageSchema = z.object({
+  orderId: z.string().uuid(),
+  kind: z.enum(["proof", "edited"]),
+  url: z.string().min(1),
+  storagePath: z.string().nullable().optional(),
+});
+
+export const addNewbornOrderImage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => addImageSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await (context.supabase as any).from("newborn_order_images").insert({
+      order_id: data.orderId,
+      kind: data.kind,
+      image_url: data.url,
+      storage_path: data.storagePath ?? null,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deleteNewbornOrderImage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data: row } = await (context.supabase as any).from("newborn_order_images").select("storage_path").eq("id", data.id).maybeSingle();
+    const { error } = await (context.supabase as any).from("newborn_order_images").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    if (row?.storage_path) {
+      (context.supabase as any).storage.from("items").remove([row.storage_path]).catch(() => {});
+    }
+    return { ok: true };
+  });
+
+/** Best-effort resend, e.g. if the automatic send-on-create failed or she wants to remind the client to reply/confirm. */
+export const resendNewbornContract = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data: order, error } = await (context.supabase as any).from("newborn_package_orders").select("*").eq("id", data.id).maybeSingle();
+    if (error || !order) throw new Error(error?.message ?? "ההזמנה לא נמצאה");
+    const sent = await sendNewbornContractEmail(order);
+    if (sent) {
+      await (context.supabase as any).from("newborn_package_orders").update({ contract_sent_at: new Date().toISOString() }).eq("id", data.id);
+    }
+    return { ok: sent };
+  });
+
+// ---------------------------------------------------------------------
+// Token-gated PUBLIC surface — the only part of this file reachable
+// without a site login. The token itself (newborn_package_orders.
+// access_token) is the only credential: nothing here uses Supabase Auth,
+// so every handler below reaches the database with the service-role
+// client (supabaseAdmin) and validates the token itself before doing
+// anything. Used by /newborn/gallery/$token (a standalone, unbranded-as-
+// Sweetbaby page — see that route).
+// ---------------------------------------------------------------------
+
+async function orderByToken(token: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await (supabaseAdmin as any).from("newborn_package_orders").select("*").eq("access_token", token).maybeSingle();
+  if (error || !data) return null;
+  return data as any;
+}
+
+export const getNewbornGalleryByToken = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ token: z.string().min(10) }).parse(d))
+  .handler(async ({ data }) => {
+    const order = await orderByToken(data.token);
+    if (!order) throw new Error("קישור לא תקין");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: images } = await (supabaseAdmin as any)
+      .from("newborn_order_images")
+      .select("id, kind, image_url, selected, sort_order")
+      .eq("order_id", order.id)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+    const pkg = findNewbornPackage(order.package_id);
+    return {
+      contactName: order.contact_name as string,
+      sessionDate: order.session_date as string | null,
+      packageName: pkg?.name ?? order.package_id,
+      proofsSelectedAt: order.proofs_selected_at as string | null,
+      images: (images ?? []) as { id: string; kind: "proof" | "edited"; image_url: string; selected: boolean }[],
+    };
+  });
+
+export const toggleNewbornProofByToken = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ token: z.string().min(10), imageId: z.string().uuid(), selected: z.boolean() }).parse(d))
+  .handler(async ({ data }) => {
+    const order = await orderByToken(data.token);
+    if (!order) throw new Error("קישור לא תקין");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Scope the update to this order's own images so one token can never touch another order's rows.
+    const { error } = await (supabaseAdmin as any)
+      .from("newborn_order_images")
+      .update({ selected: data.selected })
+      .eq("id", data.imageId)
+      .eq("order_id", order.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Marks the client's selection done and notifies Michal (styled email) — per explicit request. Idempotent: a second click just re-sends nothing new, the stamp only happens once. */
+export const finishNewbornProofSelectionByToken = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ token: z.string().min(10) }).parse(d))
+  .handler(async ({ data }) => {
+    const order = await orderByToken(data.token);
+    if (!order) throw new Error("קישור לא תקין");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const alreadyDone = !!order.proofs_selected_at;
+    if (!alreadyDone) {
+      await (supabaseAdmin as any)
+        .from("newborn_package_orders")
+        .update({ proofs_selected_at: new Date().toISOString() })
+        .eq("id", order.id);
+      const { data: selected } = await (supabaseAdmin as any)
+        .from("newborn_order_images")
+        .select("id")
+        .eq("order_id", order.id)
+        .eq("kind", "proof")
+        .eq("selected", true);
+      try {
+        const { sendGmail } = await import("@/integrations/google/gmail.server");
+        await sendGmail({
+          to: STUDIO_EMAIL,
+          subject: `${order.contact_name} סיימה לבחור תמונות! 💗`,
+          html: `<div dir="rtl" style="font-family:sans-serif;color:#2d3d2b;max-width:480px;margin:0 auto;text-align:center">
+            <div style="background:linear-gradient(135deg,#f5d5cf,#a8c4a2);border-radius:20px;padding:28px 20px">
+              <div style="font-size:40px;margin-bottom:8px">📸💗</div>
+              <h2 style="margin:0 0 6px">${order.contact_name} סיימה לבחור!</h2>
+              <p style="margin:0;color:#2d3d2b/80">${selected?.length ?? 0} תמונות נבחרו</p>
+            </div>
+            <p style="margin-top:20px"><a href="https://sweetbabyphoto.shop/admin/newborn-packages" style="color:#2d3d2b;font-weight:600">לצפייה בניהול</a></p>
+          </div>`,
+        });
+      } catch (e) {
+        console.error("[SWEETBABY] newborn proof-selection-done notify failed", e);
+      }
+    }
     return { ok: true };
   });

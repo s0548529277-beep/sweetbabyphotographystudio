@@ -45,6 +45,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as SummaryTypeIdRouteImport } from './routes/summary.$type.$id'
+import { Route as NewbornGalleryTokenRouteImport } from './routes/newborn.gallery.$token'
 import { Route as DepositTypeIdRouteImport } from './routes/deposit.$type.$id'
 import { Route as ApiYemotIvrRouteImport } from './routes/api.yemot.ivr'
 import { Route as ApiVoiceRespondRouteImport } from './routes/api.voice.respond'
@@ -75,6 +76,7 @@ import { Route as AuthenticatedAdminBotKnowledgeRouteImport } from './routes/_au
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin.analytics'
 import { Route as AuthenticatedOrdersIdReceiptRouteImport } from './routes/_authenticated/orders.$id.receipt'
 import { Route as AuthenticatedAdminPhotoClientsBookingIdRouteImport } from './routes/_authenticated/admin.photo-clients.$bookingId'
+import { Route as AuthenticatedAdminNewbornPackagesOrderIdRouteImport } from './routes/_authenticated/admin.newborn-packages.$orderId'
 
 const TrackRoute = TrackRouteImport.update({
   id: '/track',
@@ -257,6 +259,11 @@ const SummaryTypeIdRoute = SummaryTypeIdRouteImport.update({
   path: '/summary/$type/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NewbornGalleryTokenRoute = NewbornGalleryTokenRouteImport.update({
+  id: '/gallery/$token',
+  path: '/gallery/$token',
+  getParentRoute: () => NewbornRoute,
+} as any)
 const DepositTypeIdRoute = DepositTypeIdRouteImport.update({
   id: '/deposit/$type/$id',
   path: '/deposit/$type/$id',
@@ -432,6 +439,12 @@ const AuthenticatedAdminPhotoClientsBookingIdRoute =
     path: '/$bookingId',
     getParentRoute: () => AuthenticatedAdminPhotoClientsRoute,
   } as any)
+const AuthenticatedAdminNewbornPackagesOrderIdRoute =
+  AuthenticatedAdminNewbornPackagesOrderIdRouteImport.update({
+    id: '/$orderId',
+    path: '/$orderId',
+    getParentRoute: () => AuthenticatedAdminNewbornPackagesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -444,7 +457,7 @@ export interface FileRoutesByFullPath {
   '/collage-maker': typeof CollageMakerRoute
   '/collage-text': typeof CollageTextRoute
   '/contact': typeof ContactRoute
-  '/newborn': typeof NewbornRoute
+  '/newborn': typeof NewbornRouteWithChildren
   '/payment-failed': typeof PaymentFailedRoute
   '/photo-retouch': typeof PhotoRetouchRoute
   '/rental-catalog': typeof RentalCatalogRoute
@@ -478,7 +491,7 @@ export interface FileRoutesByFullPath {
   '/admin/gallery': typeof AuthenticatedAdminGalleryRoute
   '/admin/inspiration': typeof AuthenticatedAdminInspirationRoute
   '/admin/items': typeof AuthenticatedAdminItemsRoute
-  '/admin/newborn-packages': typeof AuthenticatedAdminNewbornPackagesRoute
+  '/admin/newborn-packages': typeof AuthenticatedAdminNewbornPackagesRouteWithChildren
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
@@ -495,8 +508,10 @@ export interface FileRoutesByFullPath {
   '/api/voice/respond': typeof ApiVoiceRespondRoute
   '/api/yemot/ivr': typeof ApiYemotIvrRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
+  '/newborn/gallery/$token': typeof NewbornGalleryTokenRoute
   '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/newborn-packages/$orderId': typeof AuthenticatedAdminNewbornPackagesOrderIdRoute
   '/admin/photo-clients/$bookingId': typeof AuthenticatedAdminPhotoClientsBookingIdRoute
   '/orders/$id/receipt': typeof AuthenticatedOrdersIdReceiptRoute
 }
@@ -511,7 +526,7 @@ export interface FileRoutesByTo {
   '/collage-maker': typeof CollageMakerRoute
   '/collage-text': typeof CollageTextRoute
   '/contact': typeof ContactRoute
-  '/newborn': typeof NewbornRoute
+  '/newborn': typeof NewbornRouteWithChildren
   '/payment-failed': typeof PaymentFailedRoute
   '/photo-retouch': typeof PhotoRetouchRoute
   '/rental-catalog': typeof RentalCatalogRoute
@@ -544,7 +559,7 @@ export interface FileRoutesByTo {
   '/admin/gallery': typeof AuthenticatedAdminGalleryRoute
   '/admin/inspiration': typeof AuthenticatedAdminInspirationRoute
   '/admin/items': typeof AuthenticatedAdminItemsRoute
-  '/admin/newborn-packages': typeof AuthenticatedAdminNewbornPackagesRoute
+  '/admin/newborn-packages': typeof AuthenticatedAdminNewbornPackagesRouteWithChildren
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
@@ -561,8 +576,10 @@ export interface FileRoutesByTo {
   '/api/voice/respond': typeof ApiVoiceRespondRoute
   '/api/yemot/ivr': typeof ApiYemotIvrRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
+  '/newborn/gallery/$token': typeof NewbornGalleryTokenRoute
   '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/admin/newborn-packages/$orderId': typeof AuthenticatedAdminNewbornPackagesOrderIdRoute
   '/admin/photo-clients/$bookingId': typeof AuthenticatedAdminPhotoClientsBookingIdRoute
   '/orders/$id/receipt': typeof AuthenticatedOrdersIdReceiptRoute
 }
@@ -579,7 +596,7 @@ export interface FileRoutesById {
   '/collage-maker': typeof CollageMakerRoute
   '/collage-text': typeof CollageTextRoute
   '/contact': typeof ContactRoute
-  '/newborn': typeof NewbornRoute
+  '/newborn': typeof NewbornRouteWithChildren
   '/payment-failed': typeof PaymentFailedRoute
   '/photo-retouch': typeof PhotoRetouchRoute
   '/rental-catalog': typeof RentalCatalogRoute
@@ -613,7 +630,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/gallery': typeof AuthenticatedAdminGalleryRoute
   '/_authenticated/admin/inspiration': typeof AuthenticatedAdminInspirationRoute
   '/_authenticated/admin/items': typeof AuthenticatedAdminItemsRoute
-  '/_authenticated/admin/newborn-packages': typeof AuthenticatedAdminNewbornPackagesRoute
+  '/_authenticated/admin/newborn-packages': typeof AuthenticatedAdminNewbornPackagesRouteWithChildren
   '/_authenticated/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/_authenticated/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/_authenticated/admin/orders': typeof AuthenticatedAdminOrdersRoute
@@ -630,8 +647,10 @@ export interface FileRoutesById {
   '/api/voice/respond': typeof ApiVoiceRespondRoute
   '/api/yemot/ivr': typeof ApiYemotIvrRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
+  '/newborn/gallery/$token': typeof NewbornGalleryTokenRoute
   '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/admin/newborn-packages/$orderId': typeof AuthenticatedAdminNewbornPackagesOrderIdRoute
   '/_authenticated/admin/photo-clients/$bookingId': typeof AuthenticatedAdminPhotoClientsBookingIdRoute
   '/_authenticated/orders/$id/receipt': typeof AuthenticatedOrdersIdReceiptRoute
 }
@@ -699,8 +718,10 @@ export interface FileRouteTypes {
     | '/api/voice/respond'
     | '/api/yemot/ivr'
     | '/deposit/$type/$id'
+    | '/newborn/gallery/$token'
     | '/summary/$type/$id'
     | '/admin/'
+    | '/admin/newborn-packages/$orderId'
     | '/admin/photo-clients/$bookingId'
     | '/orders/$id/receipt'
   fileRoutesByTo: FileRoutesByTo
@@ -765,8 +786,10 @@ export interface FileRouteTypes {
     | '/api/voice/respond'
     | '/api/yemot/ivr'
     | '/deposit/$type/$id'
+    | '/newborn/gallery/$token'
     | '/summary/$type/$id'
     | '/admin'
+    | '/admin/newborn-packages/$orderId'
     | '/admin/photo-clients/$bookingId'
     | '/orders/$id/receipt'
   id:
@@ -833,8 +856,10 @@ export interface FileRouteTypes {
     | '/api/voice/respond'
     | '/api/yemot/ivr'
     | '/deposit/$type/$id'
+    | '/newborn/gallery/$token'
     | '/summary/$type/$id'
     | '/_authenticated/admin/'
+    | '/_authenticated/admin/newborn-packages/$orderId'
     | '/_authenticated/admin/photo-clients/$bookingId'
     | '/_authenticated/orders/$id/receipt'
   fileRoutesById: FileRoutesById
@@ -851,7 +876,7 @@ export interface RootRouteChildren {
   CollageMakerRoute: typeof CollageMakerRoute
   CollageTextRoute: typeof CollageTextRoute
   ContactRoute: typeof ContactRoute
-  NewbornRoute: typeof NewbornRoute
+  NewbornRoute: typeof NewbornRouteWithChildren
   PaymentFailedRoute: typeof PaymentFailedRoute
   PhotoRetouchRoute: typeof PhotoRetouchRoute
   RentalCatalogRoute: typeof RentalCatalogRoute
@@ -1132,6 +1157,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SummaryTypeIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/newborn/gallery/$token': {
+      id: '/newborn/gallery/$token'
+      path: '/gallery/$token'
+      fullPath: '/newborn/gallery/$token'
+      preLoaderRoute: typeof NewbornGalleryTokenRouteImport
+      parentRoute: typeof NewbornRoute
+    }
     '/deposit/$type/$id': {
       id: '/deposit/$type/$id'
       path: '/deposit/$type/$id'
@@ -1342,8 +1374,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPhotoClientsBookingIdRouteImport
       parentRoute: typeof AuthenticatedAdminPhotoClientsRoute
     }
+    '/_authenticated/admin/newborn-packages/$orderId': {
+      id: '/_authenticated/admin/newborn-packages/$orderId'
+      path: '/$orderId'
+      fullPath: '/admin/newborn-packages/$orderId'
+      preLoaderRoute: typeof AuthenticatedAdminNewbornPackagesOrderIdRouteImport
+      parentRoute: typeof AuthenticatedAdminNewbornPackagesRoute
+    }
   }
 }
+
+interface AuthenticatedAdminNewbornPackagesRouteChildren {
+  AuthenticatedAdminNewbornPackagesOrderIdRoute: typeof AuthenticatedAdminNewbornPackagesOrderIdRoute
+}
+
+const AuthenticatedAdminNewbornPackagesRouteChildren: AuthenticatedAdminNewbornPackagesRouteChildren =
+  {
+    AuthenticatedAdminNewbornPackagesOrderIdRoute:
+      AuthenticatedAdminNewbornPackagesOrderIdRoute,
+  }
+
+const AuthenticatedAdminNewbornPackagesRouteWithChildren =
+  AuthenticatedAdminNewbornPackagesRoute._addFileChildren(
+    AuthenticatedAdminNewbornPackagesRouteChildren,
+  )
 
 interface AuthenticatedAdminPhotoClientsRouteChildren {
   AuthenticatedAdminPhotoClientsBookingIdRoute: typeof AuthenticatedAdminPhotoClientsBookingIdRoute
@@ -1372,7 +1426,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminGalleryRoute: typeof AuthenticatedAdminGalleryRoute
   AuthenticatedAdminInspirationRoute: typeof AuthenticatedAdminInspirationRoute
   AuthenticatedAdminItemsRoute: typeof AuthenticatedAdminItemsRoute
-  AuthenticatedAdminNewbornPackagesRoute: typeof AuthenticatedAdminNewbornPackagesRoute
+  AuthenticatedAdminNewbornPackagesRoute: typeof AuthenticatedAdminNewbornPackagesRouteWithChildren
   AuthenticatedAdminNewsletterRoute: typeof AuthenticatedAdminNewsletterRoute
   AuthenticatedAdminNotificationsRoute: typeof AuthenticatedAdminNotificationsRoute
   AuthenticatedAdminOrdersRoute: typeof AuthenticatedAdminOrdersRoute
@@ -1401,7 +1455,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminInspirationRoute: AuthenticatedAdminInspirationRoute,
   AuthenticatedAdminItemsRoute: AuthenticatedAdminItemsRoute,
   AuthenticatedAdminNewbornPackagesRoute:
-    AuthenticatedAdminNewbornPackagesRoute,
+    AuthenticatedAdminNewbornPackagesRouteWithChildren,
   AuthenticatedAdminNewsletterRoute: AuthenticatedAdminNewsletterRoute,
   AuthenticatedAdminNotificationsRoute: AuthenticatedAdminNotificationsRoute,
   AuthenticatedAdminOrdersRoute: AuthenticatedAdminOrdersRoute,
@@ -1438,6 +1492,17 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface NewbornRouteChildren {
+  NewbornGalleryTokenRoute: typeof NewbornGalleryTokenRoute
+}
+
+const NewbornRouteChildren: NewbornRouteChildren = {
+  NewbornGalleryTokenRoute: NewbornGalleryTokenRoute,
+}
+
+const NewbornRouteWithChildren =
+  NewbornRoute._addFileChildren(NewbornRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
@@ -1450,7 +1515,7 @@ const rootRouteChildren: RootRouteChildren = {
   CollageMakerRoute: CollageMakerRoute,
   CollageTextRoute: CollageTextRoute,
   ContactRoute: ContactRoute,
-  NewbornRoute: NewbornRoute,
+  NewbornRoute: NewbornRouteWithChildren,
   PaymentFailedRoute: PaymentFailedRoute,
   PhotoRetouchRoute: PhotoRetouchRoute,
   RentalCatalogRoute: RentalCatalogRoute,

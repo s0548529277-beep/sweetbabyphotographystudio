@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -21,7 +21,6 @@ import {
   markNewbornGalleryOpened,
   deleteNewbornOrder,
 } from "@/lib/newborn-orders.functions";
-import { createPhotoClient } from "@/lib/photo-clients.functions";
 import { NEWBORN_PACKAGES, NEWBORN_PACKAGE_CATEGORIES, NEWBORN_ADDONS, NEWBORN_TIMELINE_STEPS, findNewbornPackage } from "@/lib/newborn-packages";
 import { heError } from "@/lib/he-errors";
 import {
@@ -108,6 +107,15 @@ function toEditForm(o: OrderRow): EditForm {
 }
 
 function NewbornPackagesAdmin() {
+  // /admin/newborn-packages/$orderId (its own gallery-management page) is a
+  // *child* route of this list page in the router tree — TanStack Router
+  // only mounts a child route's component into an <Outlet/> placed by its
+  // parent, so without this guard the list kept rendering itself no matter
+  // the URL (same fix already applied to /admin/photo-clients, see its own
+  // matching comment).
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isDetail = pathname !== "/admin/newborn-packages";
+
   const qc = useQueryClient();
   const nav = useNavigate();
   const fetchOrders = useServerFn(listNewbornOrders);
@@ -115,11 +123,10 @@ function NewbornPackagesAdmin() {
   const runToggle = useServerFn(toggleNewbornOrderStep);
   const runUpdateContact = useServerFn(updateNewbornOrderContact);
   const runDelete = useServerFn(deleteNewbornOrder);
-  const runCreatePhotoClient = useServerFn(createPhotoClient);
   const runUpdatePayment = useServerFn(updateNewbornOrderPayment);
   const runMarkGalleryOpened = useServerFn(markNewbornGalleryOpened);
 
-  const orders = useQuery({ queryKey: ["newborn-orders"], queryFn: () => fetchOrders({}) });
+  const orders = useQuery({ queryKey: ["newborn-orders"], queryFn: () => fetchOrders({}), enabled: !isDetail });
   const rows = (orders.data ?? []) as OrderRow[];
 
   const [view, setView] = useState<"dashboard" | "list" | "table" | "calendar" | "payments">("dashboard");
@@ -132,6 +139,10 @@ function NewbornPackagesAdmin() {
   const [editTarget, setEditTarget] = useState<OrderRow | null>(null);
   const [editForm, setEditForm] = useState<EditForm | null>(null);
   const [editSaving, setEditSaving] = useState(false);
+
+  if (isDetail) {
+    return <Outlet />;
+  }
 
   const selectedPackage = findNewbornPackage(createForm.package_id);
   const addonsTotal = NEWBORN_ADDONS.filter((a) => createForm.addon_ids.includes(a.id)).reduce((s, a) => s + a.price, 0);
@@ -267,46 +278,20 @@ function NewbornPackagesAdmin() {
     }
   };
 
-  // Opens (or reuses, if one already exists for her email) a real client
-  // gallery in the existing photo-delivery system (/admin/photo-clients) —
-  // upload, client photo selection, editing/album stages all already live
-  // there, so this reuses it rather than rebuilding a second gallery
-  // system inside this page.
-  const openGallery = async (order: OrderRow) => {
-    if (!order.contact_email) {
-      toast.error("צריך קודם להוסיף מייל ללקוחה — פותחת עריכה");
-      openEdit(order);
-      return;
+  // Opens this order's OWN gallery — a completely separate system from
+  // the general photo-delivery one (/admin/photo-clients), per explicit
+  // request: her newborn-photography clients get their own table
+  // (newborn_order_images) and their own token-gated page
+  // (/newborn/gallery/$token), never touching the general system.
+  const openGallery = (order: OrderRow) => {
+    if (!order.gallery_opened_at) {
+      runMarkGalleryOpened({ data: { id: order.id } })
+        .then(() => qc.invalidateQueries({ queryKey: ["newborn-orders"] }))
+        .catch(() => {
+          // best-effort — this only feeds the dashboard's "galleries" stat, never blocks the real navigation below
+        });
     }
-    const pkg = findNewbornPackage(order.package_id);
-    setOpeningGalleryId(order.id);
-    try {
-      const res = await runCreatePhotoClient({
-        data: {
-          email: order.contact_email,
-          name: order.contact_name,
-          phone: order.contact_phone,
-          sessionDate: order.session_date || undefined,
-          packageType: "custom",
-          photosToEdit: pkg?.photosToEdit,
-          albumUpgrades: pkg ? [pkg.name, ...pkg.features, ...order.addons.map((a) => a.label)].join(", ") : undefined,
-          sendEmail: false,
-        },
-      });
-      toast.success(res.isNewAccount ? "נפתחה גלריה + חשבון חדש ללקוחה" : "נפתחה הגלריה שלה");
-      if (!order.gallery_opened_at) {
-        runMarkGalleryOpened({ data: { id: order.id } })
-          .then(() => qc.invalidateQueries({ queryKey: ["newborn-orders"] }))
-          .catch(() => {
-            // best-effort — this only feeds the dashboard's "galleries" stat, never blocks the real navigation below
-          });
-      }
-      nav({ to: "/admin/photo-clients/$bookingId", params: { bookingId: res.workflowId } });
-    } catch (e) {
-      toast.error(heError(e, "פתיחת הגלריה נכשלה"));
-    } finally {
-      setOpeningGalleryId(null);
-    }
+    nav({ to: "/admin/newborn-packages/$orderId", params: { orderId: order.id } });
   };
 
   return (
