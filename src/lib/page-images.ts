@@ -108,10 +108,11 @@ export function builtinEntries(page: string): { key: string; url: string }[] {
   if (page === PAGE_IMAGE_KEYS.photographyStudio) return BUILTIN_PHOTOGRAPHY_STUDIO.map((u) => ({ key: u, url: u }));
   if (page === PAGE_IMAGE_KEYS.photographyOutdoor) return BUILTIN_PHOTOGRAPHY_OUTDOOR.map((u) => ({ key: u, url: u }));
   if (page === PAGE_IMAGE_KEYS.homeHero) return builtinHomeHero();
-  // No dedicated newborn shoot photos bundled yet — the existing studio
-  // gallery already includes newborn work, so it's a reasonable starting
-  // gallery until the admin uploads real newborn-specific photos here.
-  if (page === PAGE_IMAGE_KEYS.newborn) return BUILTIN_PHOTOGRAPHY_STUDIO.map((u) => ({ key: u, url: u }));
+  // Deliberately no bundled fallback for newborn — per explicit request,
+  // this gallery must show only real newborn photos she's uploaded via
+  // /admin/gallery, never the general studio-session stock photos (which
+  // mix in non-newborn shots). Empty until she's uploaded her own.
+  if (page === PAGE_IMAGE_KEYS.newborn) return [];
   if (page === PAGE_IMAGE_KEYS.rentalInspiration) {
     return STATIC_CATALOG.flatMap((c) => c.items)
       .filter((i) => i.hasHand && i.img)
