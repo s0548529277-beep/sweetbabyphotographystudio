@@ -62,8 +62,9 @@ const fadeUp = {
 // coordination agreement so signing the checkbox = agreeing to everything.
 const rulesBlocks: { title: string; items: string[] }[] = [
   { title: "💳 מחירון וחישוב שעות", items: [
-    "120 ₪ לכל שעה",
-    "חצי שעה = חצי מהתעריף",
+    "שעת השכרה ראשונה: 150 ₪",
+    "כל שעה נוספת: 100 ₪",
+    "חצי שעה = חצי מהתעריף המתאים",
     "מינימום הזמנה: שעה (2 חצאי שעות)",
     "עיכוב של 15 דק׳ ומעלה — יחויב כחצי שעה נוספת",
     "עיכוב של 45 דק׳ ומעלה — יחויב כשעה מלאה נוספת",
@@ -109,7 +110,7 @@ const rulesBlocks: { title: string; items: string[] }[] = [
 
 const quickFacts = [
   { icon: Clock, label: "א׳–ה׳ 8:00–23:00" },
-  { icon: CreditCard, label: "120 ₪ לשעה" },
+  { icon: CreditCard, label: "150 ₪ שעה ראשונה" },
   { icon: CalendarDays, label: "מקדמה 90 ₪ לשריון" },
   { icon: Sparkles, label: "Godox AD200 PRO" },
 ];
@@ -278,10 +279,10 @@ function StudioRentalPage() {
               <div className="text-[14px] tracking-[0.16em] uppercase text-[#6b8a63] mb-1">Pricing</div>
               <h3 className="text-lg text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>שעתי</h3>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>₪120</span>
-                <span className="text-xs text-[#2d3d2b]/60">/ שעה</span>
+                <span className="text-2xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>₪150</span>
+                <span className="text-xs text-[#2d3d2b]/60">/ שעה ראשונה</span>
               </div>
-              <p className="mt-2 text-[14px] text-[#2d3d2b]/75">חצאי שעות בחישוב יחסי · מינימום שעה</p>
+              <p className="mt-2 text-[14px] text-[#2d3d2b]/75">כל שעה נוספת 100 ₪ · חצאי שעות בחישוב יחסי · מינימום שעה</p>
               <button type="button" onClick={() => setShowForm(true)} className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#2d3d2b] text-[#f8ede4] px-4 py-2 text-xs font-semibold">
                 לקביעת מועד <ArrowLeft className="h-3.5 w-3.5" />
               </button>
