@@ -7,13 +7,10 @@ import { PROPS_REQUEST_CONTEXT_MARKER } from "@/lib/voice-message.server";
 
 // Studio pricing rules
 // - Minimum 2 half-hour slots (1 hour)
-// - First hour (2 slots): 120₪
-// - Every extra hour (2 slots): 90₪
+// - Flat 120₪ per hour, every hour (no first-hour/extra-hour tiering)
 // - Half-hour = half of that rate
-// - Newborn morning package: 3 hours (6 slots) starting 08:00 / 09:00 / 10:00
-//   and ending by 13:00 → 240₪ flat
-export const MORNING_PACKAGE_STARTS = ["08:00", "09:00", "10:00"] as const;
-export const MORNING_PACKAGE_PRICE = 240;
+// The newborn morning package (fixed 240₪ for a 3-hour 8-13 window) was
+// removed per explicit request — canceled, not just hidden.
 
 /** Paid guidance / mentoring add-ons chosen in the coordination agreement. */
 export const GUIDANCE_FEES = { basic: 0, mini: 50, plus: 100, premium: 300 } as const;
@@ -24,21 +21,10 @@ export const GUIDANCE_LABELS: Record<keyof typeof GUIDANCE_FEES, string> = {
   premium: "PREMIUM · צלמת בסטודיו — 2 סטים יפים בהתאמה אישית עד שעה",
 };
 
-export function isMorningPackage(slots: number, startTime: string): boolean {
-  if (slots !== 6) return false;
-  if (!MORNING_PACKAGE_STARTS.includes(startTime.slice(0, 5) as (typeof MORNING_PACKAGE_STARTS)[number])) return false;
-  const [h, m] = startTime.split(":").map(Number);
-  return h * 60 + m + 180 <= 13 * 60;
-}
-
 export function computeStudioPrice(slots: number, startTime: string): number {
   if (slots < 2) throw new Error("מינימום שעה (2 חצאי שעות)");
-  if (isMorningPackage(slots, startTime)) return MORNING_PACKAGE_PRICE;
-
-  // Standard: 60₪ per first-hour slot (slots 1-2), 45₪ per extra slot
-  const firstHourSlots = Math.min(slots, 2);
-  const extraSlots = slots - firstHourSlots;
-  return firstHourSlots * 60 + extraSlots * 45;
+  // Flat 120₪/hour = 60₪ per half-hour slot, every slot.
+  return slots * 60;
 }
 
 /**
@@ -116,14 +102,6 @@ export const placeBooking = createServerFn({ method: "POST" })
     let price = basePrice + guidanceFee;
     const customRateNote = customHourlyRate ? `תעריף אישי: ₪${customHourlyRate}/שעה` : null;
 
-    // Computed up front (not down by the overlap check, where this used to
-    // live) because the coupon/pass blocks below need to know it: the
-    // morning package is a fixed bundled price, so it doesn't combine with
-    // either — a custom rate replaces the whole standard price list
-    // (including this discount), so don't treat it as "morning" then even
-    // if the time happens to match that window.
-    const isMorning = !customHourlyRate && isMorningPackage(data.slots, data.start_time);
-
     // Optional discount code (e.g. BYBY10 / SWEETBABY10 → 10%).
     let couponNote: string | null = null;
     let couponCodeUsed: string | null = null;
@@ -131,7 +109,6 @@ export const placeBooking = createServerFn({ method: "POST" })
     let couponIdToRedeem: string | null = null;
     const couponCode = (data.coupon ?? "").trim().toUpperCase();
     if (couponCode) {
-      if (isMorning) throw new Error("מבצע ניו-בורן בוקר הוא מחיר קבוע וסופי — לא ניתן לשלב אותו עם קוד קופון");
       const { data: c } = await supabase
         .from("coupons")
         .select("id, code, discount_percent, discount_amount, active, expires_at, single_use, redeemed_at")
@@ -157,7 +134,6 @@ export const placeBooking = createServerFn({ method: "POST" })
     let passIdToRedeem: string | null = null;
     let passNote: string | null = null;
     if (data.use_pass) {
-      if (isMorning) throw new Error("מבצע ניו-בורן בוקר הוא מחיר קבוע וסופי — לא ניתן לשלב אותו עם כרטיסייה");
       const { data: passes } = await supabase
         .from("subscription_passes")
         .select("id, total_entries, entries_used")
@@ -234,7 +210,7 @@ export const placeBooking = createServerFn({ method: "POST" })
         start_time: data.start_time,
         end_time: endTime,
         slots: data.slots,
-        package: isMorning ? "morning" : "regular",
+        package: "regular",
         price,
         deposit_amount: deposit,
         balance_amount: Math.max(0, price - deposit),
@@ -348,7 +324,7 @@ export const placeBooking = createServerFn({ method: "POST" })
           start_time: data.start_time,
           end_time: endTime,
           slots: data.slots,
-          package: isMorning ? "morning" : "regular",
+          package: "regular",
           price,
           deposit,
           contact_name: data.contact_name,
