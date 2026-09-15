@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouterState, Link, Outlet } from "@tanstack/react-router";
 import { heError } from "@/lib/he-errors";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -93,6 +93,14 @@ const EMAIL = "s0548529277@gmail.com";
 const REGULAR_PACKAGES = NEWBORN_PACKAGES.filter((p) => p.categories.includes("regular"));
 
 function NewbornLandingPage() {
+  // /newborn/gallery/$token (the client's own private proof gallery) is a
+  // *child* route of this landing page in the router tree — TanStack
+  // Router only mounts a child route's component into an <Outlet/> placed
+  // by its parent (same fix already applied to /admin/photo-clients and
+  // /admin/newborn-packages, see their matching comments).
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isGalleryChild = pathname !== "/newborn";
+
   const [lightbox, setLightbox] = useState<string | null>(null);
   const gallery = usePageGallery(PAGE_IMAGE_KEYS.newborn);
   const photos = gallery.images;
@@ -118,6 +126,10 @@ function NewbornLandingPage() {
     if (!profile.loaded) return;
     setBook((b) => ({ ...b, name: b.name || profile.fullName, phone: b.phone || profile.phone, email: b.email || profile.email }));
   }, [profile.loaded, profile.fullName, profile.phone, profile.email]);
+
+  if (isGalleryChild) {
+    return <Outlet />;
+  }
 
   const chosenPackage = REGULAR_PACKAGES.find((p) => p.id === book.packageId) ?? REGULAR_PACKAGES[0];
 
