@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { heError } from "@/lib/he-errors";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,7 +17,8 @@ import {
   BUILTIN_PHOTOGRAPHY_OUTDOOR,
 } from "@/lib/page-images";
 
-import { Camera, Sun, Trees, Sparkles, Clock, Phone, Mail, ExternalLink, ArrowLeft, CalendarDays } from "lucide-react";
+import { Camera, Sun, Trees, Sparkles, Clock, Phone, Mail, ExternalLink, ArrowLeft, CalendarDays, Heart } from "lucide-react";
+import michalLogoWordmark from "@/assets/michal-logo-wordmark.png";
 
 export const Route = createFileRoute("/studio-photography")({
   head: () => ({
@@ -78,7 +79,7 @@ function StudioPhotographyPage() {
     date: "",
     time: "10:00",
     hours: "1",
-    sessionType: "ניו-בורן",
+    sessionType: "משפחה",
     email: "",
     payment: "cash",
     notes: "",
@@ -258,6 +259,36 @@ function StudioPhotographyPage() {
         </AnimatePresence>
       </section>
 
+      {/* Newborn hand-off — newborn sessions have their own dedicated
+          packages/pricing/process, on a fully separate page with her own
+          photography branding (not the studio's), per explicit request:
+          this card deliberately looks like nothing else on this page — her
+          own logo, her own colors — so it reads as a handoff to another
+          site rather than just another option in this page's own flow. */}
+      <section className="max-w-4xl mx-auto px-6 pb-10">
+        <Link
+          to="/newborn"
+          className="group flex flex-col sm:flex-row items-center gap-6 rounded-3xl border border-[#d9b98a]/40 p-7 md:p-9 text-center sm:text-right transition hover:shadow-xl"
+          style={{ background: "linear-gradient(135deg, #fdf3ec 0%, #f3d3dd 55%, #ecd3ac 100%)" }}
+        >
+          <img src={michalLogoWordmark} alt="michal" className="h-14 w-auto shrink-0" />
+          <div className="flex-1">
+            <div className="inline-flex items-center gap-1.5 text-[#c23b6d] text-xs font-semibold mb-1.5">
+              <Heart size={12} className="fill-current" /> צילומי ניו-בורן
+            </div>
+            <h3 className="text-xl md:text-2xl text-[#4a3221] mb-1" style={{ fontFamily: "'DM Serif Display', serif" }}>
+              מחפשת דווקא צילומי ניו-בורן?
+            </h3>
+            <p className="text-sm text-[#4a3221]/75">
+              לניו-בורן יש עמוד חבילות משלו — מחירים קבועים, תהליך מלא וגלריית תמונות אישית.
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-2 shrink-0 bg-[#4a3221] text-white px-6 py-3 rounded-full text-sm font-semibold group-hover:bg-[#4a3221]/90 transition">
+            למעבר לעמוד הניו-בורן <ArrowLeft size={16} />
+          </span>
+        </Link>
+      </section>
+
       {/* Book a session into the studio calendar — pink CTA + step-by-step modal */}
       <section id="book-michal" className="max-w-4xl mx-auto px-6 pb-14 scroll-mt-24">
         <div className="bg-[#f5d5cf]/40 rounded-3xl border border-[#2d3d2b]/10 p-6 md:p-8 text-center">
@@ -324,7 +355,7 @@ function StudioPhotographyPage() {
                 <label className="flex flex-col gap-1.5">
                   <span className="text-xs font-semibold text-[#2d3d2b]/80">סוג צילום</span>
                   <select className={bookInputCls} value={book.sessionType} onChange={(e) => setBook({ ...book, sessionType: e.target.value })}>
-                    {["ניו-בורן", "משפחה", "הריון", "ילדים", "סמאש קייק", "אירוע", "אחר"].map((s) => (
+                    {["משפחה", "הריון", "ילדים", "סמאש קייק", "אירוע", "אחר"].map((s) => (
                       <option key={s}>{s}</option>
                     ))}
                   </select>
