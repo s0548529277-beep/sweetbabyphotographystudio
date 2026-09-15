@@ -14,9 +14,7 @@ import { requestBirthBasketInterest } from "@/lib/newborn-orders.functions";
 import { usePageGallery, PAGE_IMAGE_KEYS, useSiteIcon } from "@/lib/page-images";
 import { Heart, Phone, Mail, CalendarDays, Check, ShieldCheck, Gift } from "lucide-react";
 import michalLogoWordmark from "@/assets/michal-logo-wordmark.png";
-import michalLogoFull from "@/assets/michal-logo.png";
-import michalLogoAsset from "@/assets/michal-logo.jpg.asset.json";
-import michalAnimatedLogoAsset from "@/assets/michal-logo-animated.gif.asset.json";
+import michalAnimatedLogoAsset from "@/assets/michal-logo-animated-v2.gif.asset.json";
 
 // Standalone header/footer for this page — deliberately NOT the site-wide
 // <Header>/<Footer> (Sweetbaby studio-rental branding + nav). Per explicit
@@ -28,9 +26,9 @@ import michalAnimatedLogoAsset from "@/assets/michal-logo-animated.gif.asset.jso
 // elsewhere in the app.
 const MICHAL_PHONE = "0534181051";
 
-function MichalLogo({ animated = false, className }: { animated?: boolean; className: string }) {
-  const hostedSource = animated ? michalAnimatedLogoAsset.url : michalLogoAsset.url;
-  const fallbackSource = animated ? michalLogoWordmark : michalLogoFull;
+function MichalLogo({ className }: { className: string }) {
+  const hostedSource = michalAnimatedLogoAsset.url;
+  const fallbackSource = michalLogoWordmark;
   const [source, setSource] = useState(hostedSource);
 
   useEffect(() => {
@@ -50,7 +48,7 @@ function MichalHeader() {
     <header dir="rtl" className="border-b border-[#8e693b]/10 bg-[#fdfbf9]/90 backdrop-blur-xl sticky top-0 z-30">
       <div className="max-w-6xl mx-auto px-5 h-20 flex items-center justify-between">
         <Link to="/" aria-label="חזרה לעמוד הבית" className="shrink-0">
-          <MichalLogo animated className="h-14 w-auto max-w-40 object-contain" />
+          <MichalLogo className="h-14 w-auto max-w-40 object-contain" />
         </Link>
         <div className="flex items-center gap-3 sm:gap-5 text-sm text-[#5a493c]/80">
           <a href="#packages" className="hidden md:block hover:text-[#8e693b] transition-colors">חבילות</a>
