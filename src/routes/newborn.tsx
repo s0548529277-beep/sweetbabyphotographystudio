@@ -29,7 +29,9 @@ function MichalHeader() {
   return (
     <header dir="rtl" className="border-b border-[#2d3d2b]/10 bg-[#f8ede4]/90 backdrop-blur sticky top-0 z-30">
       <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
-        <img src={michalLogoWordmark} alt="michal" className="h-12 w-auto" />
+        <Link to="/">
+          <img src={michalLogoWordmark} alt="michal" className="h-12 w-auto" />
+        </Link>
         <div className="hidden sm:flex items-center gap-5 text-sm text-[#2d3d2b]/80">
           <a href={`tel:${MICHAL_PHONE}`} className="flex items-center gap-1.5 hover:text-[#2d3d2b]" dir="ltr">
             <Phone size={14} /> {MICHAL_PHONE}

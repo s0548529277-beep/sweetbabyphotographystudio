@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -51,7 +51,9 @@ function NewbornGalleryPage() {
     return (
       <div dir="rtl" className="min-h-screen bg-[#f8ede4] flex items-center justify-center px-6 text-center">
         <div>
-          <img src={michalLogoWordmark} alt="michal" className="h-10 mx-auto mb-4" />
+          <Link to="/">
+            <img src={michalLogoWordmark} alt="michal" className="h-10 mx-auto mb-4" />
+          </Link>
           <p className="text-[#2d3d2b]">הקישור לא תקין או שפג תוקפו. אפשר לפנות אליי ישירות ואשלח קישור חדש.</p>
         </div>
       </div>
@@ -98,7 +100,9 @@ function NewbornGalleryPage() {
     <div dir="rtl" className="min-h-screen bg-[#f8ede4] text-[#2d3d2b]" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
       <header className="border-b border-[#2d3d2b]/10 bg-[#f8ede4]/90 backdrop-blur sticky top-0 z-30">
         <div className="max-w-5xl mx-auto px-6 h-20 flex items-center justify-between">
-          <img src={michalLogoWordmark} alt="michal" className="h-10 w-auto" />
+          <Link to="/">
+            <img src={michalLogoWordmark} alt="michal" className="h-10 w-auto" />
+          </Link>
           <div className="text-sm text-[#2d3d2b]/70">{contactName}</div>
         </div>
       </header>
