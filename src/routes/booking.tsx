@@ -22,6 +22,7 @@ import {
   priceForBooking,
   GUIDANCE_FEES,
   GUIDANCE_LABELS,
+  FIRST_HOUR_PRICE,
 } from "@/lib/bookings.functions";
 import { checkItemsAvailability } from "@/lib/orders.functions";
 import { getStudioDayBusy } from "@/lib/studio-availability.functions";
@@ -268,7 +269,7 @@ function Booking() {
   }, [user]);
 
   const afterCoupon = Math.max(0, price - couponOff);
-  const passApplied = usePass && passRemaining ? Math.min(afterCoupon, Math.min(slots, 2) * 60) : 0;
+  const passApplied = usePass && passRemaining ? Math.min(afterCoupon, FIRST_HOUR_PRICE) : 0;
   const afterPass = Math.max(0, afterCoupon - passApplied);
   const creditApplied = useCredit ? Math.min(creditBalance, afterPass) : 0;
   const finalPrice = Math.max(0, afterPass - creditApplied);
