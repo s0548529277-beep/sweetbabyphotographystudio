@@ -30,7 +30,7 @@ import { startNoAiBooking, continueNoAiBooking, currentNbQuestion, isNbStage, NB
 // validation for free — Yemot itself rejects anything outside
 // digitsAllowed before it ever reaches us — just without the native
 // readback+confirm layered on top.
-const MENU_DTMF_TAP: YemotTapOptions = { digitsAllowed: [1, 2, 3, 4, 5], minDigits: 1, maxDigits: 1 };
+const MENU_DTMF_TAP: YemotTapOptions = { digitsAllowed: [1, 2, 3, 4, 5, 6, 9], minDigits: 1, maxDigits: 1 };
 const LEAVE_MSG_DTMF_CONFIRM_TAP: YemotTapOptions = { digitsAllowed: [1, 2], minDigits: 1, maxDigits: 1 };
 const DTMF_MENU_STAGES = new Set(["menu_dtmf", "leaving_message_dtmf_confirm"]);
 
@@ -214,7 +214,12 @@ async function handle(request: Request): Promise<Response> {
         // that was only "flash"-rung, not actually spoken, to avoid Yemot
         // units — see campaign.server.ts), play it now, once, before the
         // normal greeting+menu — this is the real delivery of that message.
-        const pending = await consumePendingVoiceNotification(callerPhone);
+        // Skipped in "dtmf" menu mode: that mode has its own explicit menu
+        // option (6) to check/hear it on demand instead, and consuming it
+        // here (this function deletes-on-read) would leave option 6 with
+        // nothing left to say on every single call, since this always runs
+        // before the caller can ever reach the menu to press 6.
+        const pending = menuMode === "dtmf" ? null : await consumePendingVoiceNotification(callerPhone);
         // If the caller's number matches a real site account, personalize
         // with her name — best-effort, falls back to the plain greeting.
         const menuText = menuMode === "dtmf" ? phrases.menu_prompt_dtmf : phrases.menu_prompt;
@@ -407,7 +412,7 @@ async function handle(request: Request): Promise<Response> {
     // ---- Stage 0b: the keypad-only main menu ("dtmf" menu mode) ----
     // See MENU_MODE_KEY's own doc comment in voice-phrases.server.ts and
     // DTMF_MENU_STEPS in admin.voice-bot-text.tsx (kept in sync manually)
-    // for the full 1-5 breakdown. Re-presents the same tap menu after any
+    // for the full 1-6/9 breakdown. Re-presents the same tap menu after any
     // info option instead of ever falling into speech/AI territory — the
     // whole point of this mode is staying keypad-only end to end.
     // Speaks `infoText` followed immediately by the keypad menu again (one
@@ -426,12 +431,33 @@ async function handle(request: Request): Promise<Response> {
       if (rawDigits === "2") return await respondMenuDtmfWithInfo(rawDigits, phrases.props_blurb);
       if (rawDigits === "3") return await respondMenuDtmfWithInfo(rawDigits, phrases.arrival_spoken);
       if (rawDigits === "4") return await respondMenuDtmfWithInfo(rawDigits, phrases.full_guide_spoken);
-      // "5" (the only other digit Yemot's own digitsAllowed lets through) —
-      // leave a message. The message text itself still needs real speech
-      // (an open-ended message has no keypad equivalent); only the
-      // confirm/send step is keypad-driven, see "leaving_message_dtmf" below.
-      await save([...priorMessages, { role: "user", content: rawDigits }, { role: "assistant", content: phrases.leave_message_prompt }], "leaving_message_dtmf");
-      return yemotSayAndListen(phrases.leave_message_prompt);
+      if (rawDigits === "5") {
+        // Leave a message. The message text itself still needs real speech
+        // (an open-ended message has no keypad equivalent); only the
+        // confirm/send step is keypad-driven, see "leaving_message_dtmf" below.
+        await save([...priorMessages, { role: "user", content: rawDigits }, { role: "assistant", content: phrases.leave_message_prompt }], "leaving_message_dtmf");
+        return yemotSayAndListen(phrases.leave_message_prompt);
+      }
+      if (rawDigits === "6") {
+        // Personal-message mailbox (voice-pending-notification.server.ts).
+        // In every OTHER menu mode this is auto-played once at the greeting
+        // instead (see the `!existing` branch above); dtmf mode skips that
+        // auto-play specifically so this on-demand check is the only way to
+        // hear it, and always has something to say the first time it's
+        // pressed. consumePendingVoiceNotification deletes on read, so a
+        // second press later in the same call (or a later call) correctly
+        // says "none" — there is only ever one message waiting per number.
+        const pending = await consumePendingVoiceNotification(phone);
+        const info = pending ? `${phrases.personal_message_intro} ${pending}` : phrases.personal_messages_none;
+        return await respondMenuDtmfWithInfo(rawDigits, info);
+      }
+      // "9" (the only other digit Yemot's own digitsAllowed lets through) —
+      // hand the rest of the call to the real AI conversation instead of
+      // staying keypad-only. Setting stage to "chat" is enough: every stage
+      // check below falls through to "Stage 3: open conversation" for any
+      // stage it doesn't recognize, which runs runOpenTurn on her next turn.
+      await save([...priorMessages, { role: "user", content: rawDigits }, { role: "assistant", content: phrases.transfer_to_ai_intro }], "chat");
+      return yemotSayAndListen(phrases.transfer_to_ai_intro);
     }
 
     // ---- Stage 0c: recording the message text for option 5 above ----

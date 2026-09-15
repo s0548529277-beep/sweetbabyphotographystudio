@@ -25,6 +25,9 @@ export type PhraseKey =
   | "arrival_spoken"
   | "leave_message_prompt"
   | "leave_message_thanks"
+  | "personal_message_intro"
+  | "personal_messages_none"
+  | "transfer_to_ai_intro"
   | "didnt_hear"
   | "anything_else"
   | "no_human_transfer"
@@ -45,6 +48,9 @@ export const PHRASE_LABELS: Record<PhraseKey, string> = {
   arrival_spoken: "דרכי הגעה (מוקרא במלואו)",
   leave_message_prompt: "בקשה להשאיר הודעה",
   leave_message_thanks: "תודה אחרי השארת הודעה",
+  personal_message_intro: "תפריט הקשות (שש): לפני הקראת הודעה אישית שיש למתקשרת",
+  personal_messages_none: "תפריט הקשות (שש): אין הודעה אישית ממתינה",
+  transfer_to_ai_intro: "תפריט הקשות (תשע): מעבר לשיחה חופשית עם הבוט בבינה מלאכותית",
   didnt_hear: "לא שמעתי / לא הבנתי",
   anything_else: "יש עוד משהו שאפשר לעזור בו",
   no_human_transfer: "אין אפשרות להעביר לנציגה עכשיו",
@@ -63,7 +69,7 @@ export const DEFAULT_PHRASES: Record<PhraseKey, string> = {
   // what she hears, matching how every other spoken-number phrase in this
   // file (durations, prices) is already written out as words, not digits.
   menu_prompt_dtmf:
-    "אֶפְשָׁר לְהַקִּישׁ עַכְשָׁיו: אֶחָד לַהֲזָמָנַת סטודיו וְשִׁרְיוּן, שְׁתַּיִם לְהַשְׂכָּרַת אֲבִיזָרִים, שָׁלוֹשׁ לְדַרְכֵי הַגָּעָה, אַרְבַּע לְהַדְרָכָה לְשִׁמּוּשׁ בסטודיו, חָמֵשׁ לְהַשְׁאָרַת הוֹדָעָה.",
+    "אֶפְשָׁר לְהַקִּישׁ עַכְשָׁיו: אֶחָד לַהֲזָמָנַת סטודיו וְשִׁרְיוּן, שְׁתַּיִם לְהַשְׂכָּרַת אֲבִיזָרִים, שָׁלוֹשׁ לְדַרְכֵי הַגָּעָה, אַרְבַּע לְהַדְרָכָה לְשִׁמּוּשׁ בסטודיו, חָמֵשׁ לְהַשְׁאָרַת הוֹדָעָה, שֵׁשׁ לִשְׁמִיעַת הוֹדָעוֹת אִישִׁיּוֹת, תֵּשַׁע לְמַעֲבָר לְשִׂיחָה עִם הַבּוֹט בְּבִינָה מְלָאכוּתִית.",
   dtmf_leave_message_confirm: "לְאִשּׁוּר וּשְׁלִיחַת הַהוֹדָעָה הַקִּישִׁי אֶחָד. לְהַקְלִיט אוֹתָהּ מֵחָדָשׁ הַקִּישִׁי שְׁתַּיִם.",
   dtmf_leave_message_redo: "בְּסֵדֶר, אֶפְשָׁר לְהַגִּיד אֶת הַהוֹדָעָה שׁוּב.",
   studio_blurb:
@@ -89,6 +95,10 @@ export const DEFAULT_PHRASES: Record<PhraseKey, string> = {
     "בֶּטַח, אֶפְשָׁר לְהַגִּיד אֶת הַהוֹדָעָה עַכְשָׁיו, וַאֲנִי אֶשְׁלַח אוֹתָהּ מִיָּד לְצֶוֶת הסטודיו כּוֹלֵל הַמִּסְפָּר שֶׁמִּמֶּנּוּ הִתְקַשַּׁרְתֶּם.",
   leave_message_thanks:
     "תּוֹדָה, הַהוֹדָעָה נִשְׁלְחָה בְּמַייל לסטודיו בְּהַצְלָחָה, וְיַחְזְרוּ אֲלֵיכֶם בְּהֶקְדֵּם. יֵשׁ עוֹד מַשֶּׁהוּ שֶׁאֶפְשָׁר לַעֲזוֹר בּוֹ?",
+  personal_message_intro: "הִנֵּה הַהוֹדָעָה שֶׁיֵּשׁ לָךְ:",
+  personal_messages_none: "אֵין לָךְ כֶּרֶגַע הוֹדָעוֹת אִישִׁיּוֹת מְמַתִּינוֹת.",
+  transfer_to_ai_intro:
+    "מַעֲבִירָה אוֹתָךְ עַכְשָׁיו לְשִׂיחָה חָפְשִׁית עִם הַבּוֹט בְּבִינָה מְלָאכוּתִית. אֶפְשָׁר לִשְׁאוֹל אוֹתִי כָּל שְׁאֵלָה, אוֹ לְבַקֵּשׁ שֶׁאֲשַׁרְיֵן לָךְ תּוֹר.",
   didnt_hear: "לֹא הֵבַנְתִּי, אֶפְשָׁר לַחֲזֹר עַל זֶה?",
   anything_else: "יֵשׁ עוֹד מַשֶּׁהוּ שֶׁאֶפְשָׁר לַעֲזוֹר בּוֹ?",
   no_human_transfer:
@@ -158,14 +168,23 @@ function applyMaleGenderToPhrase(text: string): string {
 //           listened for at all at this stage — a caller who keeps having
 //           speech-recognition trouble has a fully reliable alternative
 //           that never depends on Yemot's STT engine. See "menu_dtmf" in
-//           api.yemot.ivr.ts for the exact 1-5 mapping and sub-flows —
+//           api.yemot.ivr.ts for the exact 1-6/9 mapping and sub-flows —
 //           option 1 (studio booking) hands off into the SAME proven DTMF
 //           booking flow this file's "dtmf" NoAiBookingMode already uses
 //           (date/time/duration/confirm by keypad), options 2-4 are canned
 //           info read-backs, option 5 (leave a message) still records the
 //           message itself by speech (an open-ended message has no keypad
 //           equivalent) but confirms/sends it via a keypad step rather than
-//           relying on end-of-speech silence detection.
+//           relying on end-of-speech silence detection. Option 6 (added
+//           2026-09-15) plays back any personal message waiting for this
+//           caller's number (the same pending_voice_notifications mailbox
+//           campaign.server.ts already writes to and the greeting already
+//           auto-delivers once — this is an on-demand replay/check, so a
+//           message already consumed by the greeting won't repeat here).
+//           Option 9 (added 2026-09-15) is the escape hatch out of the
+//           rigid keypad flow: it hands the rest of the call over to the
+//           real AI conversation (same as "ai" mode's stage-1 behavior)
+//           for a caller who'd rather just talk.
 // Admin-switchable live at /admin/voice-bot-text, no redeploy — see
 // admin-voice-phrases.functions.ts's getVoiceMenuMode/setVoiceMenuMode.
 export type VoiceMenuMode = "ai" | "fixed" | "dtmf";
