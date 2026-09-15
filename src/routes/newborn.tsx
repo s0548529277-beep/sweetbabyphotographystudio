@@ -14,7 +14,6 @@ import { requestBirthBasketInterest } from "@/lib/newborn-orders.functions";
 import { usePageGallery, PAGE_IMAGE_KEYS, useSiteIcon } from "@/lib/page-images";
 import { Heart, Phone, Mail, CalendarDays, Check, ShieldCheck, Gift } from "lucide-react";
 import michalLogoWordmark from "@/assets/michal-logo-wordmark.png";
-import michalLogoFull from "@/assets/michal-logo.png";
 import michalAnimatedLogoAsset from "@/assets/michal-logo-animated-v2.gif.asset.json";
 
 // Standalone header/footer for this page — deliberately NOT the site-wide
