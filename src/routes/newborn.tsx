@@ -47,15 +47,15 @@ function MichalLogo({ className }: { className: string }) {
 function MichalHeader() {
   return (
     <header dir="rtl" className="sticky top-0 z-30 border-b border-newborn-gold/10 bg-newborn-canvas/90 backdrop-blur-xl">
-      <div className="mx-auto flex h-32 max-w-6xl items-center justify-between px-5">
+      <div className="mx-auto flex h-24 max-w-6xl items-center justify-between gap-3 px-4 md:h-32 md:px-5">
         <Link to="/" aria-label="חזרה לעמוד הבית" className="shrink-0">
-          <MichalLogo className="h-28 w-auto max-w-80 object-contain" />
+          <MichalLogo className="h-20 w-auto max-w-52 object-contain md:h-28 md:max-w-80" />
         </Link>
         <div className="flex items-center gap-3 text-sm text-newborn-ink/70 sm:gap-5">
           <a href="#packages" className="hidden transition-colors hover:text-newborn-rose md:block">חבילות</a>
           <a href="#gallery" className="hidden transition-colors hover:text-newborn-rose md:block">גלריה</a>
-          <a href={`tel:${MICHAL_PHONE}`} className="flex items-center gap-1.5 transition-colors hover:text-newborn-rose" dir="ltr">
-            <Phone size={14} /> {MICHAL_PHONE}
+          <a href={`tel:${MICHAL_PHONE}`} aria-label={`חיוג ${MICHAL_PHONE}`} className="flex items-center gap-1.5 transition-colors hover:text-newborn-rose" dir="ltr">
+            <Phone size={16} /> <span className="hidden sm:inline">{MICHAL_PHONE}</span>
           </a>
           <a href="mailto:s0548529277@gmail.com" className="hidden items-center gap-1.5 transition-colors hover:text-newborn-rose sm:flex">
             <Mail size={14} /> מייל
@@ -228,7 +228,7 @@ function NewbornLandingPage() {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen bg-newborn-canvas text-newborn-ink" style={{ fontFamily: "'Karla', sans-serif" }}>
+    <div dir="rtl" className="min-h-screen overflow-x-clip bg-newborn-canvas text-newborn-ink" style={{ fontFamily: "'Karla', sans-serif" }}>
       <MichalHeader />
 
       <section className="relative overflow-hidden px-5 py-12 md:py-20 lg:min-h-[720px] lg:py-24">
@@ -238,13 +238,13 @@ function NewbornLandingPage() {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
-            className="order-2 text-center lg:order-1 lg:text-right"
+            className="order-1 min-w-0 text-center lg:text-right"
           >
-            <MichalLogo className="mx-auto mb-10 h-44 w-auto max-w-full object-contain mix-blend-multiply lg:mx-0 lg:h-56" />
+            <MichalLogo className="mx-auto mb-8 h-36 w-auto max-w-full object-contain mix-blend-multiply sm:h-44 lg:mx-0 lg:mb-10 lg:h-56" />
             <div className="mb-6 inline-flex items-center gap-2 border-r-2 border-newborn-gold bg-newborn-blush/30 px-4 py-1.5 text-xs font-semibold text-newborn-gold">
               <Heart size={13} className="fill-newborn-rose text-newborn-rose" /> רגעים ראשונים, אהבה אינסופית
             </div>
-            <h1 className="mb-7 text-6xl font-semibold leading-[1.02] text-newborn-rose md:text-8xl" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+            <h1 className="mb-7 text-5xl font-semibold leading-[1.02] text-newborn-rose sm:text-6xl md:text-8xl" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
               צילומי ניו־בורן
               <br />
               <span className="block pt-2 font-light italic text-newborn-gold">בסטודיו בוטיק</span>
@@ -270,7 +270,7 @@ function NewbornLandingPage() {
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.1 }}
-            className="relative order-1 mx-auto w-full max-w-[500px] lg:order-2"
+            className="relative order-2 mx-auto w-[calc(100%-1.5rem)] max-w-[500px]"
           >
             <div className="absolute -inset-6 -translate-x-3 -translate-y-3 rounded-t-full border border-newborn-gold/20" />
             <div className="relative aspect-[4/5] overflow-hidden rounded-t-full bg-newborn-blush ring-[14px] ring-card shadow-2xl shadow-newborn-rose/15">
