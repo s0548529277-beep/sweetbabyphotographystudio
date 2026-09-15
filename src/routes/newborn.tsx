@@ -15,6 +15,8 @@ import { usePageGallery, PAGE_IMAGE_KEYS, useSiteIcon } from "@/lib/page-images"
 import { Heart, Phone, Mail, CalendarDays, Check, ShieldCheck, Gift } from "lucide-react";
 import michalLogoWordmark from "@/assets/michal-logo-wordmark.png";
 import michalLogoFull from "@/assets/michal-logo.png";
+import michalLogoAsset from "@/assets/michal-logo.jpg.asset.json";
+import michalAnimatedLogoAsset from "@/assets/michal-logo-animated.gif.asset.json";
 
 // Standalone header/footer for this page — deliberately NOT the site-wide
 // <Header>/<Footer> (Sweetbaby studio-rental branding + nav). Per explicit
@@ -28,16 +30,18 @@ const MICHAL_PHONE = "0534181051";
 
 function MichalHeader() {
   return (
-    <header dir="rtl" className="border-b border-[#4a3221]/10 bg-[#fdf3ec]/90 backdrop-blur sticky top-0 z-30">
-      <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
-        <Link to="/">
-          <img src={michalLogoWordmark} alt="michal" className="h-12 w-auto" />
+    <header dir="rtl" className="border-b border-[#8e693b]/10 bg-[#fdfbf9]/90 backdrop-blur-xl sticky top-0 z-30">
+      <div className="max-w-6xl mx-auto px-5 h-20 flex items-center justify-between">
+        <Link to="/" aria-label="חזרה לעמוד הבית" className="shrink-0">
+          <img src={michalAnimatedLogoAsset.url} alt="מיכל סיבוני" className="h-14 w-auto max-w-40 object-contain" />
         </Link>
-        <div className="hidden sm:flex items-center gap-5 text-sm text-[#4a3221]/80">
-          <a href={`tel:${MICHAL_PHONE}`} className="flex items-center gap-1.5 hover:text-[#4a3221]" dir="ltr">
+        <div className="flex items-center gap-3 sm:gap-5 text-sm text-[#5a493c]/80">
+          <a href="#packages" className="hidden md:block hover:text-[#8e693b] transition-colors">חבילות</a>
+          <a href="#gallery" className="hidden md:block hover:text-[#8e693b] transition-colors">גלריה</a>
+          <a href={`tel:${MICHAL_PHONE}`} className="flex items-center gap-1.5 hover:text-[#8e693b] transition-colors" dir="ltr">
             <Phone size={14} /> {MICHAL_PHONE}
           </a>
-          <a href="mailto:s0548529277@gmail.com" className="flex items-center gap-1.5 hover:text-[#4a3221]">
+          <a href="mailto:s0548529277@gmail.com" className="hidden sm:flex items-center gap-1.5 hover:text-[#8e693b] transition-colors">
             <Mail size={14} /> מייל
           </a>
         </div>
@@ -48,10 +52,10 @@ function MichalHeader() {
 
 function MichalFooter() {
   return (
-    <footer dir="rtl" className="border-t border-[#4a3221]/10 bg-[#fdf3ec]">
+    <footer dir="rtl" className="border-t border-[#8e693b]/10 bg-[#f8f2ed]">
       <div className="max-w-6xl mx-auto px-6 py-10 flex flex-col items-center gap-3 text-center">
-        <img src={michalLogoFull} alt="מיכל סיבוני" className="h-16 w-auto" />
-        <p className="text-sm text-[#4a3221]/70">צילומי ניו-בורן ומשפחה</p>
+        <img src={michalLogoAsset.url} alt="מיכל סיבוני" className="h-24 w-auto max-w-full object-contain mix-blend-multiply" />
+        <p className="text-sm text-[#5a493c]/70">צילומי ניו-בורן ומשפחה</p>
         <div className="flex items-center gap-4 text-sm text-[#4a3221]/70">
           <a href={`tel:${MICHAL_PHONE}`} className="flex items-center gap-1.5 hover:text-[#4a3221]" dir="ltr">
             <Phone size={14} /> {MICHAL_PHONE}
@@ -205,54 +209,36 @@ function NewbornLandingPage() {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen bg-[#fdf3ec] text-[#4a3221]" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
+    <div dir="rtl" className="min-h-screen bg-[#fdfbf9] text-[#3e352f]" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
       <MichalHeader />
 
-      {/* Hero — one or two photos floating around the main card, borderless
-          so the baby photo itself reads as part of the page rather than a
-          framed prop, per explicit request ("שיראה שהתינוק מרחף באתר").
-          Hidden below lg since there's no room for them without crowding
-          the text. */}
-      <section className="relative max-w-6xl mx-auto px-6 pt-14 pb-10">
-        {photos[0] && (
-          <img
-            src={photos[0]}
-            alt=""
-            className="hidden lg:block absolute -top-8 right-6 w-40 h-52 object-cover rotate-[7deg] rounded-[1.75rem] shadow-2xl z-0"
-          />
-        )}
-        {photos[1] && (
-          <img
-            src={photos[1]}
-            alt=""
-            className="hidden lg:block absolute -bottom-10 left-6 w-36 h-44 object-cover -rotate-6 rounded-[1.75rem] shadow-2xl z-0"
-          />
-        )}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7 }}
-          className="relative z-10 text-center rounded-[2.5rem] px-6 md:px-16 py-14 md:py-20 border border-[#4a3221]/10 overflow-hidden"
-          style={{ background: "linear-gradient(135deg, #fdf3ec 0%, #f3d3dd 55%, #ecd3ac 100%)" }}
-        >
-          <div className="relative">
-            <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur px-5 py-2 rounded-full text-sm text-[#4a3221] mb-7 border border-[#4a3221]/10 shadow-sm">
-              <Heart size={14} className="fill-[#f5d5cf] text-[#f5d5cf]" /> צילומי ניו-בורן · מיכל סיבוני
+      <section className="relative overflow-hidden px-5 py-10 md:py-16 lg:py-20">
+        <div className="pointer-events-none absolute -right-40 top-12 h-96 w-96 rounded-full bg-[#d13d66]/5 blur-3xl" />
+        <div className="pointer-events-none absolute -left-40 bottom-0 h-96 w-96 rounded-full bg-[#8e693b]/5 blur-3xl" />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:gap-20">
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+            className="order-2 text-center lg:order-1 lg:text-right"
+          >
+            <img src={michalLogoAsset.url} alt="מיכל סיבוני" className="mx-auto mb-7 h-28 w-auto max-w-full object-contain mix-blend-multiply lg:mx-0 lg:h-36" />
+            <div className="mb-5 inline-flex items-center gap-2 text-xs font-semibold tracking-[0.22em] text-[#8e693b]">
+              <Heart size={13} className="fill-[#d13d66] text-[#d13d66]" /> צילומי ניו־בורן באווירה רגועה
             </div>
-            <h1 className="text-5xl md:text-7xl mb-5 leading-[1.15] text-[#4a3221]" style={{ fontFamily: "'DM Serif Display', serif" }}>
-              הרגעים הראשונים שלו.
+            <h1 className="mb-6 text-5xl leading-[1.08] text-[#3e352f] md:text-7xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
+              שומרים את הלחישות
               <br />
-              <span className="text-[#8a6338]">מונצחים לתמיד.</span>
+              <span className="italic text-[#8e693b]">של ההתחלה.</span>
             </h1>
-            <p className="text-lg md:text-xl text-[#4a3221]/90 max-w-2xl mx-auto mb-10 leading-relaxed">
-              סשן ניו-בורן רגוע ומקצועי בסטודיו הבוטיק שלנו בבית שמש — כולל עיבוד תמונות, קולאז' מעוצב ואלבום.
-              מתאים גם למימוש סל לידה מקופת החולים.
+            <p className="mx-auto mb-9 max-w-xl text-lg leading-relaxed text-[#5a493c]/80 lg:mx-0">
+              סשן ניו־בורן עדין ומקצועי בסטודיו הבוטיק בבית שמש — עם זמן לנשום, עיבוד מוקפד, קולאז׳ מעוצב ואלבום שנשאר למשפחה.
             </p>
-            <div className="flex flex-wrap items-stretch justify-center gap-3">
+            <div className="flex flex-wrap items-stretch justify-center gap-3 lg:justify-start">
               <button
                 type="button"
                 onClick={() => openWizard()}
-                className="inline-flex items-center gap-2 bg-[#4a3221] text-white px-7 py-3.5 rounded-full hover:bg-[#4a3221]/90 transition font-semibold"
+                className="inline-flex items-center gap-2 rounded-full bg-[#8e693b] px-8 py-4 font-semibold text-white shadow-xl shadow-[#8e693b]/15 transition hover:-translate-y-0.5 hover:bg-[#76552f]"
               >
                 <CalendarDays size={18} /> קביעת מועד ביומן
               </button>
@@ -260,17 +246,41 @@ function NewbornLandingPage() {
                 href={gmailLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-white/90 backdrop-blur border border-[#4a3221]/15 text-[#4a3221] px-7 py-3.5 rounded-full hover:bg-white transition font-semibold"
+                className="inline-flex items-center gap-2 rounded-full border border-[#8e693b]/25 bg-white/70 px-8 py-4 font-semibold text-[#8e693b] transition hover:bg-[#f8f2ed]"
               >
                 <Mail size={18} /> לתאום במייל
               </a>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, delay: 0.1 }}
+            className="relative order-1 mx-auto w-full max-w-[520px] lg:order-2"
+          >
+            <div className="absolute -inset-5 -translate-x-3 -translate-y-3 rounded-t-[15rem] border border-[#8e693b]/15" />
+            <div className="relative aspect-[4/5] overflow-hidden rounded-t-[15rem] rounded-b-[2rem] bg-[#f3d3dd] ring-8 ring-white shadow-2xl shadow-[#8e693b]/10">
+              {photos[0] ? (
+                <img src={photos[0]} alt="תינוק בצילומי ניו־בורן של מיכל סיבוני" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full items-center justify-center bg-[#f8f2ed] p-10">
+                  <img src={michalLogoAsset.url} alt="מיכל סיבוני" className="w-full mix-blend-multiply" />
+                </div>
+              )}
+            </div>
+            {photos[1] && (
+              <button type="button" onClick={() => setLightbox(photos[1])} className="absolute -bottom-5 -right-2 hidden h-40 w-40 overflow-hidden rounded-2xl bg-white ring-8 ring-white shadow-2xl sm:block">
+                <img src={photos[1]} alt="פרט מצילומי ניו־בורן" className="h-full w-full object-cover transition duration-700 hover:scale-105" />
+              </button>
+            )}
+            <div className="absolute -left-12 top-1/2 hidden -rotate-90 text-[10px] font-semibold tracking-[0.5em] text-[#8e693b]/35 xl:block">MICHAL SIBONI · NEWBORN</div>
+          </motion.div>
+        </div>
       </section>
 
       {/* Packages */}
-      <section className="max-w-6xl mx-auto px-6 pb-14">
+      <section id="packages" className="max-w-6xl mx-auto px-6 py-16 md:py-20">
         <div className="text-center mb-8">
           <h2 className="text-3xl md:text-4xl mb-2" style={{ fontFamily: "'DM Serif Display', serif" }}>
             חבילות ניו-בורן
@@ -486,7 +496,7 @@ function NewbornLandingPage() {
           per explicit request), so hide the section entirely until she's
           uploaded some via /admin/gallery rather than show nothing/wrong photos. */}
       {photos.length > 0 && (
-        <section className="max-w-6xl mx-auto px-6 pb-16">
+        <section id="gallery" className="max-w-6xl mx-auto px-6 pb-16">
           <div className="flex items-end justify-between mb-6">
             <div>
               <h2 className="text-3xl md:text-4xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
