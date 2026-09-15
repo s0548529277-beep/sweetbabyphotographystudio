@@ -21,12 +21,14 @@ export const GUIDANCE_LABELS: Record<keyof typeof GUIDANCE_FEES, string> = {
   premium: "PREMIUM · צלמת בסטודיו — 2 סטים יפים בהתאמה אישית עד שעה",
 };
 
+/** Price of the first hour (2 slots) — also what one subscription-pass entry covers. */
+export const FIRST_HOUR_PRICE = 150;
+const EXTRA_HALF_HOUR_PRICE = 50; // half of the 100₪/hour rate for hour 2 onward
+
 export function computeStudioPrice(slots: number, startTime: string): number {
   if (slots < 2) throw new Error("מינימום שעה (2 חצאי שעות)");
-  // First hour (2 slots) = 150₪. Every additional half-hour slot = 50₪
-  // (half of the 100₪/hour rate for hour 2 onward).
   const extraSlots = slots - 2;
-  return 150 + extraSlots * 50;
+  return FIRST_HOUR_PRICE + extraSlots * EXTRA_HALF_HOUR_PRICE;
 }
 
 /**
@@ -145,7 +147,7 @@ export const placeBooking = createServerFn({ method: "POST" })
         .limit(50);
       const usable = (passes ?? []).find((p: any) => Number(p.entries_used) < Number(p.total_entries));
       if (!usable) throw new Error("אין לך כרטיסייה פעילה עם כניסות זמינות");
-      const firstHourValue = Math.min(price, Math.min(data.slots, 2) * 60);
+      const firstHourValue = Math.min(price, FIRST_HOUR_PRICE);
       price = Math.max(0, price - firstHourValue);
       passNote = `כניסה מהכרטיסייה · שעה ראשונה מכוסה (₪${firstHourValue})`;
       passIdToRedeem = usable.id;

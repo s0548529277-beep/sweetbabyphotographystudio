@@ -10,10 +10,8 @@ import {
 import { STUDIO_GUIDE_HE } from "./studio-guide.server";
 import { ARRIVAL_TEXT_HE } from "./arrival";
 import { PHOTOGRAPHY_SERVICE_TEXT_HE } from "./photography-options";
+import { computeStudioPrice } from "./bookings.functions";
 
-const PRICE_FIRST_HOUR = 120;
-const PRICE_EXTRA_HOUR = 90;
-const MORNING_PRICE = 240;
 // Must match GUIDANCE_FEES in bookings.functions.ts exactly — this used to
 // say premium: 150 here while the real charge (and placeBooking) used 300,
 // so the bot quoted customers a wrong price for premium guidance.
@@ -132,26 +130,18 @@ export function buildAssistantTools(opts?: { isAuthenticated?: boolean }) {
     }),
 
     quote_studio_price: tool({
-      description:
-        "מחשב מחיר מדויק להשכרת הסטודיו לפי משך וזמן התחלה, כולל מבצע ניו-בורן בוקר ותוספת הדרכה.",
+      description: "מחשב מחיר מדויק להשכרת הסטודיו לפי משך וזמן התחלה, כולל תוספת הדרכה.",
       inputSchema: z.object({
         hours: z.number().describe("משך בשעות, אפשר 1.5"),
         startTime: z.string().optional().describe("HH:MM"),
         guidance: z.enum(["basic", "mini", "plus", "premium"]).optional(),
-        newborn: z.boolean().optional().describe("האם מדובר בצילומי ניו-בורן"),
       }),
-      execute: async ({ hours, startTime, guidance, newborn }) => {
+      execute: async ({ hours, startTime, guidance }) => {
         const slots = Math.max(2, Math.round(hours * 2));
-        const start = startTime?.slice(0, 5);
-        const morningStarts = ["08:00", "09:00", "10:00"];
-        const isMorning = !!newborn && slots === 6 && !!start && morningStarts.includes(start);
-        const base = isMorning
-          ? MORNING_PRICE
-          : Math.min(slots, 2) * (PRICE_FIRST_HOUR / 2) + Math.max(0, slots - 2) * (PRICE_EXTRA_HOUR / 2);
+        const base = computeStudioPrice(slots, startTime?.slice(0, 5) ?? "");
         const add = GUIDANCE[guidance ?? "basic"];
         return {
           hours: slots / 2,
-          package: isMorning ? "מבצע ניו-בורן בוקר (3 שעות)" : "רגיל",
           basePrice: base,
           guidanceFee: add,
           total: base + add,
