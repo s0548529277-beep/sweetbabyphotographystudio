@@ -3,6 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { studioInspirationMap } from "@/lib/inspiration";
 import { STATIC_CATALOG } from "@/lib/catalog";
+import heartGradientDefault from "@/assets/heart-gradient.png";
+
+/** Absolute URL (email clients can't resolve relative/build-hashed paths) for the bundled default heart, used until she uploads her own via /admin/gallery. */
+const DEFAULT_EMAIL_HEART_URL = `https://sweetbabyphoto.shop${heartGradientDefault}`;
 
 /**
  * These config values (chat avatar, site heart icon, hero design) are fetched
@@ -369,4 +373,74 @@ export function useSiteIcon() {
     if (resolved !== undefined) writeConfigCache(SITE_ICON_PAGE, resolved);
   }, [resolved]);
   return { ...query, url: resolved !== undefined ? resolved : cached };
+}
+
+/**
+ * The heart image used inside order/booking emails (contract, "she
+ * finished choosing", birth-basket interest, photos-ready, etc.) — per
+ * explicit request, replaceable from /admin/gallery without a developer,
+ * same config-row pattern as the chat bot avatar / site icon above. Kept as
+ * its own separate setting (not reusing SITE_ICON_PAGE) since emails are
+ * static HTML built server-side, not React — a plain resolver + <img> tag
+ * builder below, not a hook, for use inside .functions.ts email builders.
+ */
+export const EMAIL_HEART_PAGE = "email-heart";
+
+export function resolveEmailHeartUrl(rows: PageImage[] | undefined): string | null {
+  const row = (rows ?? []).find((r) => r.source === "config");
+  return row?.url || null;
+}
+
+export async function saveEmailHeart(url: string, storagePath: string) {
+  const rows = await fetchPageImages(EMAIL_HEART_PAGE);
+  const existing = rows.find((r) => r.source === "config");
+  if (existing) {
+    const { error } = await supabase.from("page_images").update({ url, storage_path: storagePath }).eq("id", existing.id);
+    if (error) throw error;
+    return;
+  }
+  const { error } = await supabase
+    .from("page_images")
+    .insert({ page: EMAIL_HEART_PAGE, url, storage_path: storagePath, source: "config", caption: null, hidden: true, sort_order: 9999 });
+  if (error) throw error;
+}
+
+/** Deletes the config row (and its storage file) so the bundled default heart takes over again. */
+export async function resetEmailHeart() {
+  const rows = await fetchPageImages(EMAIL_HEART_PAGE);
+  const existing = rows.find((r) => r.source === "config");
+  if (!existing) return;
+  const { error } = await supabase.from("page_images").delete().eq("id", existing.id);
+  if (error) throw error;
+  if (existing.storage_path) await supabase.storage.from("items").remove([existing.storage_path]);
+}
+
+/** Client-side hook: the current admin-set email-heart URL, or null for the bundled default (used by the admin gallery tab). */
+export function useEmailHeart() {
+  const query = useQuery({
+    queryKey: ["page-images", EMAIL_HEART_PAGE],
+    queryFn: () => fetchPageImages(EMAIL_HEART_PAGE),
+    staleTime: 60_000,
+  });
+  return { ...query, url: resolveEmailHeartUrl(query.data) };
+}
+
+/**
+ * Server-side (no React) resolver used inside email HTML builders — always
+ * hits the DB fresh (no request-scoped caching here: emails are sent rarely
+ * enough per user action that a stale heart for one send isn't worth the
+ * complexity). Returns a ready-to-splice <img> tag, sized to sit inline in
+ * a sentence like the 💗 emoji it replaces; falls back to the bundled
+ * default heart asset if she hasn't uploaded one via /admin/gallery yet.
+ */
+export async function emailHeartImgTag(sizePx = 16): Promise<string> {
+  let url: string | null = null;
+  try {
+    const rows = await fetchPageImages(EMAIL_HEART_PAGE);
+    url = resolveEmailHeartUrl(rows);
+  } catch {
+    // best-effort — fall back to the bundled default below
+  }
+  const src = url ?? DEFAULT_EMAIL_HEART_URL;
+  return `<img src="${src}" alt="💗" width="${sizePx}" height="${sizePx}" style="display:inline-block;vertical-align:-${Math.round(sizePx * 0.12)}px;width:${sizePx}px;height:${sizePx}px" />`;
 }

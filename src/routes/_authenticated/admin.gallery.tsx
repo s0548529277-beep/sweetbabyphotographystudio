@@ -9,17 +9,20 @@ import { compressImage } from "@/lib/image-compress";
 import {
   builtinEntries,
   CHATBOT_AVATAR_PAGE,
+  EMAIL_HEART_PAGE,
   fetchPageImages,
   HERO_VARIANT_PAGE,
   HERO_VARIANTS,
   PAGE_IMAGE_KEYS,
   resetChatbotAvatar,
+  resetEmailHeart,
   resetSiteIcon,
   resolveAspect,
   resolveHeroVariant,
   rowUrl,
   saveAspect,
   saveChatbotAvatar,
+  saveEmailHeart,
   saveHeroVariant,
   saveSiteIcon,
   SITE_ICON_PAGE,
@@ -42,6 +45,7 @@ const TABS = [
   { key: PAGE_IMAGE_KEYS.about, label: "עלינו – תמונות" },
   { key: CHATBOT_AVATAR_PAGE, label: "בוט הצ'אט – תמונת פרופיל" },
   { key: SITE_ICON_PAGE, label: "סמל האתר (הלב)" },
+  { key: EMAIL_HEART_PAGE, label: "הלב במיילים" },
 ] as const;
 
 /** Single "config row" image setting (chat bot avatar / site icon) —
@@ -189,6 +193,7 @@ function AdminGalleryPage() {
   // replaceable without a developer.
   const chatbotAvatar = useSingleImageConfig(CHATBOT_AVATAR_PAGE, saveChatbotAvatar, resetChatbotAvatar);
   const siteIcon = useSingleImageConfig(SITE_ICON_PAGE, saveSiteIcon, resetSiteIcon);
+  const emailHeart = useSingleImageConfig(EMAIL_HEART_PAGE, saveEmailHeart, resetEmailHeart);
 
   // Bundled site photos are adopted into the gallery automatically, so every
   // image on every page can be deleted / reordered from here.
@@ -223,9 +228,14 @@ function AdminGalleryPage() {
     setProgress({ done: 0, total: list.length });
     let ok = 0;
     let sort = (rows.length ?? 0) + 1;
+    // Newborn gets a higher-quality pass than the other galleries — per
+    // explicit request that the photos on /newborn look sharper — since
+    // it's a small, curated set rather than a large bulk gallery, the
+    // extra storage per photo is a reasonable tradeoff.
+    const isNewborn = page === PAGE_IMAGE_KEYS.newborn;
     for (const file of list) {
       try {
-        const compressed = await compressImage(file);
+        const compressed = isNewborn ? await compressImage(file, 3200, 0.95) : await compressImage(file);
         const { url, path } = await uploadToStorage(compressed);
         const { error } = await supabase.from("page_images").insert({
           page,
@@ -306,7 +316,7 @@ function AdminGalleryPage() {
             כל התמונות בעמודים – כולל אלה שהיו מוטמעות באתר – ניתנות למחיקה ולשינוי סדר מכאן: אפשר לגרור תמונה למקום חדש או להקליד מספר מיקום על התמונה. אפשר להעלות כמה תמונות בבת אחת.
           </p>
         </div>
-        {page !== CHATBOT_AVATAR_PAGE && page !== SITE_ICON_PAGE && (
+        {page !== CHATBOT_AVATAR_PAGE && page !== SITE_ICON_PAGE && page !== EMAIL_HEART_PAGE && (
           <div>
             <input
               ref={inputRef}
@@ -426,7 +436,20 @@ function AdminGalleryPage() {
         />
       )}
 
-      {page !== CHATBOT_AVATAR_PAGE && page !== SITE_ICON_PAGE && (images.isLoading ? (
+      {page === EMAIL_HEART_PAGE && (
+        <SingleImageConfigCard
+          hint="הלב שמופיע במיילים שנשלחים ללקוחות (חוזה, תזכורות, אישורי הזמנה וכו') במקום אימוג'י הלב. שינוי כאן חל על כל מייל חדש שנשלח מרגע העדכון."
+          url={emailHeart.url}
+          defaultUrl={heartIcon}
+          busy={emailHeart.busy}
+          inputRef={emailHeart.inputRef}
+          onFile={emailHeart.handleFile}
+          onReset={emailHeart.handleReset}
+          square
+        />
+      )}
+
+      {page !== CHATBOT_AVATAR_PAGE && page !== SITE_ICON_PAGE && page !== EMAIL_HEART_PAGE && (images.isLoading ? (
         <div className="text-sm text-muted-foreground">טוען...</div>
       ) : rows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-primary/20 p-10 text-center text-sm text-muted-foreground">

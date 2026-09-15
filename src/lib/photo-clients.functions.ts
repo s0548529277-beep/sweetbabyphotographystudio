@@ -516,6 +516,8 @@ export const advancePhotoClientStage = createServerFn({ method: "POST" })
         } = await supabaseAdmin.auth.admin.getUserById(before.user_id);
         const { data: profile } = await supabaseAdmin.from("profiles").select("full_name").eq("id", before.user_id).maybeSingle();
         const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+        const { emailHeartImgTag } = await import("@/lib/page-images");
+        const heart = await emailHeartImgTag();
         await sendStudioAndCustomer({
           customerEmail: user?.email,
           subject: "התמונות המעובדות שלך מוכנות! 💗 · Sweetbaby",
@@ -523,7 +525,7 @@ export const advancePhotoClientStage = createServerFn({ method: "POST" })
             <p>שלום${profile?.full_name ? " " + profile.full_name : ""},</p>
             <p>התמונות המעובדות שלך מוכנות ומחכות לך! אפשר לצפות ולהוריד אותן כאן:</p>
             <p><a href="https://sweetbabyphoto.shop/my-photos">https://sweetbabyphoto.shop/my-photos</a></p>
-            <p>מקווה שתאהבי 💕</p>
+            <p>מקווה שתאהבי ${heart}</p>
           </div>`,
         });
       } catch (e) {
