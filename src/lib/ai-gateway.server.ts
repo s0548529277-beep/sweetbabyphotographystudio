@@ -81,9 +81,9 @@ const DEFAULT_TIMEOUT_MS = 25_000;
  * can need billing enabled before it serves requests at all, even within
  * the free quota, and a quota can simply run out) — so any failure just
  * moves to the next key instead of failing the whole request. Once every
- * Gemini key has failed, it tries GROQ_API_KEY (a separate provider, so a
- * Google-side outage doesn't take this down too), and only after that falls
- * back to the shared LOVABLE_API_KEY gateway as the last resort. Throws
+ * Gemini key has failed, it falls back directly to the shared
+ * LOVABLE_API_KEY gateway. Groq is skipped while this account's live model
+ * listing exposes no compatible chat/tool model. Throws
  * only if nothing at all is configured, or every configured option failed.
  */
 // Best-effort: records which provider/model actually served the last
@@ -319,54 +319,14 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel,
       await recordProviderUsed("gemini-direct", modelId);
       return result;
     } catch (e) {
-      console.error("[SWEETBABY] every Gemini key failed (raced in parallel, each up to its own full timeout budget), trying Groq", e);
+      console.error("[SWEETBABY] every Gemini key failed (raced in parallel, each up to its own full timeout budget)", e);
     }
   }
 
-  if (groqKey) {
-    // "openai/gpt-oss-120b"/"-20b" were tried here first, on Groq's own
-    // recommendation — but real logs showed both fail on EVERY multi-step
-    // tool-calling turn (which is every turn in this app) with:
-    //   'messages.N': for 'role:assistant' ... 'reasoning_content' is unsupported
-    // This is a known, still-open Vercel AI SDK ↔ Groq compatibility gap
-    // (github.com/vercel/ai issue #8056): gpt-oss is a reasoning model, the
-    // SDK echoes its own reasoning_content back as conversation history on
-    // the next tool-calling step, and Groq's API rejects that echo outright.
-    // "llama-3.3-70b-versatile" was tried next as a plain non-reasoning
-    // model — but real logs then showed THIS is deprecated/inaccessible on
-    // this specific account too. Rather than guess a fourth name, ask
-    // Groq's own /models endpoint what this key can actually use right now,
-    // and only fall back to hardcoded guesses if that lookup itself fails.
-    // llama-3.1-8b-instant, gemma2-9b-it, and llama3-70b-8192 are ALSO now
-    // confirmed live to be decommissioned on Groq's side entirely (not just
-    // unavailable to this account) — kept only as a last-resort tail in case
-    // discovery itself fails, not because they're expected to work.
-    const discoveredModels = await fetchAvailableGroqModels(groqKey);
-    const GROQ_MODEL_CANDIDATES = [
-      ...discoveredModels,
-      "llama-3.1-8b-instant",
-      "gemma2-9b-it",
-      "llama3-70b-8192",
-    ].filter((id, i, arr) => arr.indexOf(id) === i);
-    for (const modelId of GROQ_MODEL_CANDIDATES) {
-      try {
-        const result = await generateText({
-          ...options,
-          model: createGroqProvider(groqKey)(modelId),
-          abortSignal: AbortSignal.timeout(timeoutMs),
-          ...NO_INTERNAL_RETRY,
-        } as GenerateTextOptions);
-        await recordProviderUsed("groq", modelId);
-        return result;
-      } catch (e) {
-        console.error(`[SWEETBABY] Groq model "${modelId}" failed ${e}`);
-      }
-    }
-    console.error("[SWEETBABY] Groq failed on every model candidate, falling back to Lovable AI Gateway");
-  }
+  if (groqKey) console.error("[SWEETBABY] Groq fallback skipped: this account has no compatible chat/tool model");
 
-  if (!lovableKey) throw new Error("All Gemini/Groq attempts failed and no LOVABLE_API_KEY is configured as a fallback");
-  console.error("[SWEETBABY] all Gemini/Groq attempts failed, falling back to Lovable AI Gateway");
+  if (!lovableKey) throw new Error("All Gemini attempts failed and no LOVABLE_API_KEY is configured as a fallback");
+  console.error("[SWEETBABY] all Gemini attempts failed, falling back to Lovable AI Gateway");
   try {
     const lovableResult = await generateText({
       ...options,

@@ -24,11 +24,10 @@
 // weren't reachable from this sandbox), not guessed from scratch.
 //
 // The overnight-exclusion path (excludeOvernightHours, props/accessories
-// only) is NOT yet verified live — it issues several passcodes that all
-// share the same code string but different keyboardPwdId/time windows,
-// which is the one part of this file with real remaining uncertainty:
-// whether TTLock accepts more than one active passcode with an identical
-// digit string on the same lock, or rejects a duplicate. TTLock does
+// only) cannot safely issue several windows with the same code: TTLock's
+// duplicate recovery merges them into one continuous window and reopens
+// quiet hours. Multi-day rentals therefore fail closed and notify the admin
+// for manual handling. TTLock does
 // document a "cyclic" (keyboardPwdType=9, a recurring daily time window)
 // passcode type that would be the more natural fit for "active every day
 // except 01:00-07:00" — but the exact request shape for its cyclic
@@ -347,6 +346,15 @@ export async function issueDoorCodeForBooking(opts: {
         cursor = nextDateStr;
       }
       if (segments.length === 0) throw new Error("No active (non-overnight) segments in this rental window");
+
+      // TTLock rejects two registrations with the same digits. Its generic
+      // duplicate recovery widens the existing window, which would join
+      // separate daily segments and silently reopen the overnight lockout.
+      // Until a verified recurring-window API is available, fail closed for
+      // multi-day rentals so the studio issues a safe manual code instead.
+      if (segments.length > 1) {
+        throw new Error("Automatic TTLock code skipped: a multi-day rental requires separate overnight-safe access windows");
+      }
 
       let firstKeyboardPwdId: number | null = null;
       for (let i = 0; i < segments.length; i++) {

@@ -773,15 +773,9 @@ export function CollageCard({
 
       <OccasionDecor theme={decorId} accent={accent} cardW={cardW} />
 
-      {/* Caption + subtitle — draggable/scalable as one block when
-          onCaptionTransform is passed (full manual control, per explicit
-          request). The drag-catcher rect renders AFTER the text (not
-          before) so it always wins pointer hit-testing over the glyphs —
-          an earlier version had it first and clicks landed on the letters
-          instead, the same paint-order lesson as the photo hand control.
-          The rect is generously sized around the text rather than hugging
-          its exact glyph width, since SVG text has no cheap way to
-          measure its own rendered width up front. */}
+      {/* Caption + subtitle — draggable/scalable directly from their visible
+          glyphs. Avoid a transparent full-width hit area here: in overlay
+          mode it would sit above the photos and swallow their pan controls. */}
       <g transform={`translate(${captionOffsetX}, ${captionOffsetY})`}>
         <text
           x={cardW / 2}
@@ -790,7 +784,13 @@ export function CollageCard({
           fontSize={captionFontSize * captionScale}
           fontFamily={captionFontFamily ?? style.fontFamily}
           fill={overlayCaption ? "#ffffff" : captionColor}
-          style={{ pointerEvents: canTransformCaption ? "none" : undefined, ...(overlayCaption ? { filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.65))" } : undefined) }}
+          className={canTransformCaption ? "collage-card-editor-ui" : undefined}
+          style={{ cursor: canTransformCaption ? "grab" : undefined, ...(overlayCaption ? { filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.65))" } : undefined) }}
+          onPointerDown={canTransformCaption ? onCaptionPointerDown : undefined}
+          onPointerMove={canTransformCaption ? onCaptionPointerMove : undefined}
+          onPointerUp={canTransformCaption ? onCaptionPointerUp : undefined}
+          onPointerCancel={canTransformCaption ? onCaptionPointerUp : undefined}
+          onWheel={canTransformCaption ? onCaptionWheel : undefined}
         >
           {caption || " "}
         </text>
@@ -803,26 +803,16 @@ export function CollageCard({
             fontFamily={captionFontFamily ?? style.fontFamily}
             fill={overlayCaption ? "#ffffff" : captionColor}
             opacity={overlayCaption ? 0.95 : 0.85}
-            style={{ pointerEvents: canTransformCaption ? "none" : undefined, ...(overlayCaption ? { filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.65))" } : undefined) }}
+            className={canTransformCaption ? "collage-card-editor-ui" : undefined}
+            style={{ cursor: canTransformCaption ? "grab" : undefined, ...(overlayCaption ? { filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.65))" } : undefined) }}
+            onPointerDown={canTransformCaption ? onCaptionPointerDown : undefined}
+            onPointerMove={canTransformCaption ? onCaptionPointerMove : undefined}
+            onPointerUp={canTransformCaption ? onCaptionPointerUp : undefined}
+            onPointerCancel={canTransformCaption ? onCaptionPointerUp : undefined}
+            onWheel={canTransformCaption ? onCaptionWheel : undefined}
           >
             {subtitle}
           </text>
-        )}
-        {canTransformCaption && (
-          <rect
-            className="collage-card-editor-ui"
-            x={MARGIN}
-            y={captionY - captionFontSize * captionScale * 1.3}
-            width={cardW - MARGIN * 2}
-            height={(subtitle ? subtitleY : captionY) - (captionY - captionFontSize * captionScale * 1.3) + subtitleFontSize * captionScale * 1.4}
-            fill="transparent"
-            style={{ cursor: "grab" }}
-            onPointerDown={onCaptionPointerDown}
-            onPointerMove={onCaptionPointerMove}
-            onPointerUp={onCaptionPointerUp}
-            onPointerCancel={onCaptionPointerUp}
-            onWheel={onCaptionWheel}
-          />
         )}
       </g>
 
