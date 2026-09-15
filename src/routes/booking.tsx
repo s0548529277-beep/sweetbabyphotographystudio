@@ -46,9 +46,9 @@ export const Route = createFileRoute("/booking")({
   head: () => ({
     meta: [
       { title: "שריון סטודיו | Sweetbaby" },
-      { name: "description", content: "שריינו סטודיו צילום בבית שמש — Sweetbaby מציעה יומן פתוח, חבילות בוקר ומחירון שקוף לצילומי ניוברן ומשפחה." },
+      { name: "description", content: "שריינו סטודיו צילום בבית שמש — Sweetbaby מציעה יומן פתוח ומחירון שקוף לצילומי ניוברן ומשפחה." },
       { property: "og:title", content: "שריון סטודיו | Sweetbaby" },
-      { property: "og:description", content: "שריינו סטודיו צילום בבית שמש — יומן פתוח, חבילת בוקר, ומחירון שקוף." },
+      { property: "og:description", content: "שריינו סטודיו צילום בבית שמש — יומן פתוח ומחירון שקוף." },
       { property: "og:url", content: "https://sweetbabyphoto.shop/booking" },
     ],
     links: [{ rel: "canonical", href: "https://sweetbabyphoto.shop/booking" }],
@@ -433,7 +433,7 @@ function Booking() {
               )}
             </div>
             <p className="text-xs text-[#2d3d2b]/55 mb-4">
-              מינימום שעה (2 חצאי שעות). 120 ₪ לכל שעה.
+              מינימום שעה (2 חצאי שעות). שעה ראשונה 150 ₪, כל שעה נוספת 100 ₪.
             </p>
 
             {!date && (

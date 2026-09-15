@@ -6,10 +6,20 @@
  */
 
 /**
- * Credits `amount * cashback_percent / 100` to the customer's balance, if
- * she's enrolled and (when set) the program hasn't expired. Silent no-op if
- * she isn't enrolled. Never throws — a loyalty hiccup must never block a
- * booking/order confirmation.
+ * Site-wide default cashback rate for every registered customer (booking or
+ * props order), applied automatically with no admin enrollment needed. An
+ * admin can still override this per customer via setCustomerLoyalty — a
+ * saved customer_loyalty row (any value, including 0 to opt a customer out)
+ * always wins over this default.
+ */
+const DEFAULT_CASHBACK_PERCENT = 5;
+
+/**
+ * Credits `amount * cashback_percent / 100` to the customer's balance —
+ * `DEFAULT_CASHBACK_PERCENT` for every registered customer by default, or
+ * her own admin-set `cashback_percent` if she has a customer_loyalty row.
+ * Never throws — a loyalty hiccup must never block a booking/order
+ * confirmation.
  */
 export async function awardCashback(supabaseAdmin: any, userId: string, amount: number): Promise<void> {
   if (!amount || amount <= 0) return;
@@ -19,9 +29,10 @@ export async function awardCashback(supabaseAdmin: any, userId: string, amount: 
       .select("cashback_percent, cashback_expires_at")
       .eq("user_id", userId)
       .maybeSingle();
-    if (!loyalty || !loyalty.cashback_percent) return;
-    if (loyalty.cashback_expires_at && new Date(loyalty.cashback_expires_at) < new Date()) return;
-    const earned = Math.round(amount * loyalty.cashback_percent) / 100;
+    const percent = loyalty ? loyalty.cashback_percent : DEFAULT_CASHBACK_PERCENT;
+    if (!percent) return;
+    if (loyalty?.cashback_expires_at && new Date(loyalty.cashback_expires_at) < new Date()) return;
+    const earned = Math.round(amount * percent) / 100;
     if (earned <= 0) return;
     // Atomic +earned on credit_balance (single UPDATE, row-locked) instead
     // of read-then-write, so a concurrent award/deduction for this same

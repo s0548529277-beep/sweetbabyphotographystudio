@@ -35,11 +35,10 @@ function Track() {
               <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-2">Track A</div>
               <h2 className="font-display text-3xl text-primary mb-3">שריון סטודיו ויומן</h2>
               <p className="text-muted-foreground text-sm mb-8 leading-relaxed">
-                בחירת יום ושעה בלוח הסטודיו. חצאי שעות, מינימום שעה, וחבילת בוקר ייחודית לניוברן.
+                בחירת יום ושעה בלוח הסטודיו. חצאי שעות, מינימום שעה.
               </p>
               <ul className="text-sm text-forest space-y-2 mb-8">
-                <li>· שעה ראשונה 120₪, כל שעה נוספת 90₪</li>
-                <li>· חבילת בוקר 08:00–11:00 · 240₪</li>
+                <li>· שעה ראשונה 150₪, כל שעה נוספת 100₪</li>
                 <li>· מקדמה 90₪ לשריון</li>
               </ul>
               <span className="inline-flex items-center gap-2 text-primary font-medium">

@@ -7,8 +7,8 @@ import { PROPS_REQUEST_CONTEXT_MARKER } from "@/lib/voice-message.server";
 
 // Studio pricing rules
 // - Minimum 2 half-hour slots (1 hour)
-// - Flat 120₪ per hour, every hour (no first-hour/extra-hour tiering)
-// - Half-hour = half of that rate
+// - First hour 150₪, every additional hour 100₪ (half-hour = half of the
+//   rate that applies to that slot)
 // The newborn morning package (fixed 240₪ for a 3-hour 8-13 window) was
 // removed per explicit request — canceled, not just hidden.
 
@@ -23,8 +23,10 @@ export const GUIDANCE_LABELS: Record<keyof typeof GUIDANCE_FEES, string> = {
 
 export function computeStudioPrice(slots: number, startTime: string): number {
   if (slots < 2) throw new Error("מינימום שעה (2 חצאי שעות)");
-  // Flat 120₪/hour = 60₪ per half-hour slot, every slot.
-  return slots * 60;
+  // First hour (2 slots) = 150₪. Every additional half-hour slot = 50₪
+  // (half of the 100₪/hour rate for hour 2 onward).
+  const extraSlots = slots - 2;
+  return 150 + extraSlots * 50;
 }
 
 /**
