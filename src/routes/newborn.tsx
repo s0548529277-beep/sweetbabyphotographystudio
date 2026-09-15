@@ -46,9 +46,9 @@ function MichalLogo({ className }: { className: string }) {
 function MichalHeader() {
   return (
     <header dir="rtl" className="border-b border-[#8e693b]/10 bg-[#fdfbf9]/90 backdrop-blur-xl sticky top-0 z-30">
-      <div className="max-w-6xl mx-auto px-5 h-20 flex items-center justify-between">
+      <div className="max-w-6xl mx-auto px-5 h-28 flex items-center justify-between">
         <Link to="/" aria-label="חזרה לעמוד הבית" className="shrink-0">
-          <MichalLogo className="h-14 w-auto max-w-40 object-contain" />
+          <MichalLogo className="h-24 w-auto max-w-72 object-contain" />
         </Link>
         <div className="flex items-center gap-3 sm:gap-5 text-sm text-[#5a493c]/80">
           <a href="#packages" className="hidden md:block hover:text-[#8e693b] transition-colors">חבילות</a>
@@ -69,7 +69,7 @@ function MichalFooter() {
   return (
     <footer dir="rtl" className="border-t border-[#8e693b]/10 bg-[#f8f2ed]">
       <div className="max-w-6xl mx-auto px-6 py-10 flex flex-col items-center gap-3 text-center">
-        <MichalLogo className="h-24 w-auto max-w-full object-contain mix-blend-multiply" />
+        <MichalLogo className="h-32 w-auto max-w-full object-contain mix-blend-multiply" />
         <p className="text-sm text-[#5a493c]/70">צילומי ניו-בורן ומשפחה</p>
         <div className="flex items-center gap-4 text-sm text-[#4a3221]/70">
           <a href={`tel:${MICHAL_PHONE}`} className="flex items-center gap-1.5 hover:text-[#4a3221]" dir="ltr">
@@ -240,7 +240,7 @@ function NewbornLandingPage() {
             transition={{ duration: 0.7 }}
             className="order-2 text-center lg:order-1 lg:text-right"
           >
-            <MichalLogo className="mx-auto mb-7 h-28 w-auto max-w-full object-contain mix-blend-multiply lg:mx-0 lg:h-36" />
+            <MichalLogo className="mx-auto mb-7 h-36 w-auto max-w-full object-contain mix-blend-multiply lg:mx-0 lg:h-48" />
             <div className="mb-5 inline-flex items-center gap-2 text-xs font-semibold tracking-[0.22em] text-[#8e693b]">
               <Heart size={13} className="fill-[#d13d66] text-[#d13d66]" /> צילומי ניו־בורן באווירה רגועה
             </div>
