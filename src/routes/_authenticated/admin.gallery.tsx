@@ -11,19 +11,15 @@ import {
   CHATBOT_AVATAR_PAGE,
   EMAIL_HEART_PAGE,
   fetchPageImages,
-  HERO_VARIANT_PAGE,
-  HERO_VARIANTS,
   PAGE_IMAGE_KEYS,
   resetChatbotAvatar,
   resetEmailHeart,
   resetSiteIcon,
   resolveAspect,
-  resolveHeroVariant,
   rowUrl,
   saveAspect,
   saveChatbotAvatar,
   saveEmailHeart,
-  saveHeroVariant,
   saveSiteIcon,
   SITE_ICON_PAGE,
   type PageImage,
@@ -177,16 +173,6 @@ function AdminGalleryPage() {
   const rows = (images.data ?? []).filter((r) => r.source !== "config");
   const aspect = resolveAspect(images.data);
   const refresh = () => qc.invalidateQueries({ queryKey: ["page-images", page] });
-
-  // Homepage hero design — a separate one-click switcher (see
-  // HeroFullBleed/HeroLightArch), per explicit request. Kept as its own
-  // query since it lives under its own synthetic page key, independent of
-  // whichever gallery tab is currently selected above.
-  const heroVariantQuery = useQuery({
-    queryKey: ["page-images", HERO_VARIANT_PAGE],
-    queryFn: () => fetchPageImages(HERO_VARIANT_PAGE),
-  });
-  const heroVariant = resolveHeroVariant(heroVariantQuery.data);
 
   // Chat bot avatar + site icon ("the heart") — same synthetic-page config
   // pattern as the hero variant above, per explicit request to make both
@@ -354,33 +340,6 @@ function AdminGalleryPage() {
           </button>
         ))}
       </div>
-
-      {page === PAGE_IMAGE_KEYS.homeHero && (
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-primary/10 bg-card p-3">
-          <span className="text-sm text-muted-foreground shrink-0">עיצוב האזור העליון בדף הבית:</span>
-          {HERO_VARIANTS.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              title={v.description}
-              onClick={async () => {
-                try {
-                  await saveHeroVariant(v.id);
-                  qc.invalidateQueries({ queryKey: ["page-images", HERO_VARIANT_PAGE] });
-                  toast.success("העיצוב עודכן");
-                } catch (e) {
-                  toast.error(heError(e, "שגיאה בעדכון"));
-                }
-              }}
-              className={`px-4 h-9 rounded-full text-sm border ${
-                heroVariant === v.id ? "bg-primary text-primary-foreground border-primary" : "border-primary/15 hover:bg-cream"
-              }`}
-            >
-              {v.label}
-            </button>
-          ))}
-        </div>
-      )}
 
       {(page === PAGE_IMAGE_KEYS.homeHero || page === PAGE_IMAGE_KEYS.rentalInspiration) && (
         <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-primary/10 bg-card p-3">
