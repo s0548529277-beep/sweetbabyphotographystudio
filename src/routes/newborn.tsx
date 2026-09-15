@@ -13,8 +13,6 @@ import { NEWBORN_PACKAGES, NEWBORN_ADDONS, NEWBORN_TIMELINE_STEPS } from "@/lib/
 import { requestBirthBasketInterest } from "@/lib/newborn-orders.functions";
 import { usePageGallery, PAGE_IMAGE_KEYS, useSiteIcon } from "@/lib/page-images";
 import { Heart, Phone, Mail, CalendarDays, Check, ShieldCheck, Gift } from "lucide-react";
-import michalLogoWordmark from "@/assets/michal-logo-wordmark.png";
-import michalLogoFull from "@/assets/michal-logo.png";
 import michalLogoAsset from "@/assets/michal-logo.jpg.asset.json";
 import michalAnimatedLogoAsset from "@/assets/michal-logo-animated.gif.asset.json";
 
@@ -87,8 +85,11 @@ export const Route = createFileRoute("/newborn")({
       },
       { property: "og:title", content: "צילומי ניו-בורן | מיכל סיבוני" },
       { property: "og:description", content: "חבילות ניו-בורן מלאות — סטודיו בוטיק, עיבוד מקצועי, קולאז' ואלבום." },
+      { property: "og:type", content: "website" },
       { property: "og:image", content: "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04166_optimized-1-scaled.jpg" },
       { property: "og:url", content: "https://sweetbabyphoto.shop/newborn" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04166_optimized-1-scaled.jpg" },
     ],
     links: [{ rel: "canonical", href: "https://sweetbabyphoto.shop/newborn" }],
   }),
