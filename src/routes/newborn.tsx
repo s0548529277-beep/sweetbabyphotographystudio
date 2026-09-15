@@ -208,37 +208,24 @@ function NewbornLandingPage() {
     <div dir="rtl" className="min-h-screen bg-[#fdf3ec] text-[#4a3221]" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
       <MichalHeader />
 
-      {/* Hero — scattered polaroid-style photos peeking from behind the
-          main card give it a designed, mood-board atmosphere instead of a
-          flat color block, per explicit request. Hidden below lg since
-          there's no room for them without crowding the text. */}
+      {/* Hero — one or two photos floating around the main card, borderless
+          so the baby photo itself reads as part of the page rather than a
+          framed prop, per explicit request ("שיראה שהתינוק מרחף באתר").
+          Hidden below lg since there's no room for them without crowding
+          the text. */}
       <section className="relative max-w-6xl mx-auto px-6 pt-14 pb-10">
         {photos[0] && (
           <img
             src={photos[0]}
             alt=""
-            className="hidden lg:block absolute -top-5 right-4 w-32 h-40 object-cover rotate-[9deg] rounded-xl border-[6px] border-white shadow-xl z-0"
+            className="hidden lg:block absolute -top-8 right-6 w-40 h-52 object-cover rotate-[7deg] rounded-[1.75rem] shadow-2xl z-0"
           />
         )}
         {photos[1] && (
           <img
             src={photos[1]}
             alt=""
-            className="hidden lg:block absolute top-10 left-2 w-28 h-28 object-cover -rotate-6 rounded-xl border-[6px] border-white shadow-xl z-0"
-          />
-        )}
-        {photos[2] && (
-          <img
-            src={photos[2]}
-            alt=""
-            className="hidden lg:block absolute -bottom-8 left-10 w-32 h-40 object-cover rotate-[6deg] rounded-xl border-[6px] border-white shadow-xl z-0"
-          />
-        )}
-        {photos[3] && (
-          <img
-            src={photos[3]}
-            alt=""
-            className="hidden lg:block absolute -bottom-6 right-12 w-28 h-28 object-cover -rotate-[10deg] rounded-xl border-[6px] border-white shadow-xl z-0"
+            className="hidden lg:block absolute -bottom-10 left-6 w-36 h-44 object-cover -rotate-6 rounded-[1.75rem] shadow-2xl z-0"
           />
         )}
         <motion.div
@@ -327,7 +314,7 @@ function NewbornLandingPage() {
           ))}
         </div>
         <div className="mt-6 rounded-2xl bg-white/70 border border-[#4a3221]/10 p-5 text-center text-sm text-[#4a3221]/80">
-          תוספות אפשריות: {NEWBORN_ADDONS.map((a) => a.label).join(" · ")}.
+          תוספות אפשריות: {NEWBORN_ADDONS.map((a) => a.label.replace(/\s*\(אוכל\)/, "")).join(" · ")}.
         </div>
 
         {/* Birth-basket ("סל לידה") interest — a real one-click button that
@@ -494,36 +481,41 @@ function NewbornLandingPage() {
         </div>
       )}
 
-      {/* Gallery */}
-      <section className="max-w-6xl mx-auto px-6 pb-16">
-        <div className="flex items-end justify-between mb-6">
-          <div>
-            <h2 className="text-3xl md:text-4xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
-              מהסשנים שלנו
-            </h2>
-            <p className="text-sm text-[#4a3221]/70 mt-1">רגעים אמיתיים מצילומי ניו-בורן בסטודיו</p>
+      {/* Gallery — real newborn photos only (see builtinEntries in
+          page-images.ts: no generic studio fallback for this page anymore,
+          per explicit request), so hide the section entirely until she's
+          uploaded some via /admin/gallery rather than show nothing/wrong photos. */}
+      {photos.length > 0 && (
+        <section className="max-w-6xl mx-auto px-6 pb-16">
+          <div className="flex items-end justify-between mb-6">
+            <div>
+              <h2 className="text-3xl md:text-4xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                מהסשנים שלנו
+              </h2>
+              <p className="text-sm text-[#4a3221]/70 mt-1">רגעים אמיתיים מצילומי ניו-בורן בסטודיו</p>
+            </div>
           </div>
-        </div>
 
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }} className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          {photos.map((src, i) => (
-            <motion.button
-              key={src}
-              onClick={() => setLightbox(src)}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
-              whileHover={{ scale: 1.02 }}
-              className={`relative overflow-hidden rounded-2xl bg-[#f5d5cf] group ${
-                i % 5 === 0 ? "md:col-span-2 md:row-span-2 aspect-square" : "aspect-square"
-              }`}
-            >
-              <img src={src} alt={`צילומי ניו-בורן ${i + 1}`} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition duration-700" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition" />
-            </motion.button>
-          ))}
-        </motion.div>
-      </section>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }} className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            {photos.map((src, i) => (
+              <motion.button
+                key={src}
+                onClick={() => setLightbox(src)}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04 }}
+                whileHover={{ scale: 1.02 }}
+                className={`relative overflow-hidden rounded-2xl bg-[#f5d5cf] group ${
+                  i % 5 === 0 ? "md:col-span-2 md:row-span-2 aspect-square" : "aspect-square"
+                }`}
+              >
+                <img src={src} alt={`צילומי ניו-בורן ${i + 1}`} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition duration-700" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition" />
+              </motion.button>
+            ))}
+          </motion.div>
+        </section>
+      )}
 
       {/* CTA */}
       <section className="max-w-4xl mx-auto px-6 pb-20">
