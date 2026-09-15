@@ -2,6 +2,40 @@
 @source "../src";
 @import "tw-animate-css";
 
+/* Tel Aviv Brutalist — her own purchased font, self-hosted (files in
+   public/fonts). Registered directly UNDER THE NAME "DM Serif Display"
+   (not a new family name) — deliberately, so every existing and future
+   place in the codebase that hardcodes fontFamily: "'DM Serif Display',
+   serif" (there are dozens, scattered across page components, and this
+   repo is also being actively edited in parallel via the Lovable platform
+   UI, which regenerates files and doesn't know about a custom var/class
+   convention) picks up the new font automatically with zero per-usage
+   changes, and stays correct even as more such usages get added. The
+   matching Google-Fonts "DM+Serif+Display" family was removed from the
+   stylesheet link in __root.tsx so there's no competing declaration for
+   this name — this local one is the only source for it now. */
+@font-face {
+  font-family: "DM Serif Display";
+  src: url("/fonts/TelAviv-BrutalistLight.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "DM Serif Display";
+  src: url("/fonts/TelAviv-BrutalistRegular.woff2") format("woff2");
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "DM Serif Display";
+  src: url("/fonts/TelAviv-BrutalistBold.woff2") format("woff2");
+  font-weight: 600 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -134,7 +168,7 @@
   }
   h1, h2, h3, h4, .font-display {
     font-family: var(--font-display);
-    font-weight: 500;
+    font-weight: 700;
     letter-spacing: -0.015em;
   }
   ::selection { background: var(--color-ink); color: var(--color-cream); }
