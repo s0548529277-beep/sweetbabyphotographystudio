@@ -10,8 +10,9 @@ import { EmailDatalist } from "@/components/EmailDatalist";
 import { requestPhotographySession } from "@/lib/photography.functions";
 import { PAYMENT_LABELS } from "@/lib/photography-options";
 import { NEWBORN_PACKAGES, NEWBORN_ADDONS, NEWBORN_TIMELINE_STEPS } from "@/lib/newborn-packages";
+import { requestBirthBasketInterest } from "@/lib/newborn-orders.functions";
 import { usePageGallery, PAGE_IMAGE_KEYS, useSiteIcon } from "@/lib/page-images";
-import { Heart, Phone, Mail, CalendarDays, Check, ShieldCheck } from "lucide-react";
+import { Heart, Phone, Mail, CalendarDays, Check, ShieldCheck, Gift } from "lucide-react";
 import michalLogoWordmark from "@/assets/michal-logo-wordmark.png";
 import michalLogoFull from "@/assets/michal-logo.png";
 
@@ -111,6 +112,9 @@ function NewbornLandingPage() {
   const { user } = useAuth();
   const profile = useProfilePrefill();
   const bookSession = useServerFn(requestPhotographySession);
+  const sendBirthBasketInterest = useServerFn(requestBirthBasketInterest);
+  const [basketSending, setBasketSending] = useState(false);
+  const [basketSent, setBasketSent] = useState(false);
   const [sending, setSending] = useState(false);
   const [wizard, setWizard] = useState(false);
   const [step, setStep] = useState(1);
@@ -185,17 +189,63 @@ function NewbornLandingPage() {
     setWizard(true);
   };
 
+  const handleBirthBasketInterest = async () => {
+    setBasketSending(true);
+    try {
+      await sendBirthBasketInterest({
+        data: { name: book.name || profile.fullName, phone: book.phone || profile.phone, email: book.email || profile.email },
+      });
+      setBasketSent(true);
+      toast.success("קיבלתי! אחזור אלייך בהקדם 💗");
+    } catch {
+      toast.error("משהו השתבש, נסי שוב או התקשרי");
+    } finally {
+      setBasketSending(false);
+    }
+  };
+
   return (
     <div dir="rtl" className="min-h-screen bg-[#fdf3ec] text-[#4a3221]" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
       <MichalHeader />
 
-      {/* Hero */}
-      <section className="max-w-6xl mx-auto px-6 pt-14 pb-10">
+      {/* Hero — scattered polaroid-style photos peeking from behind the
+          main card give it a designed, mood-board atmosphere instead of a
+          flat color block, per explicit request. Hidden below lg since
+          there's no room for them without crowding the text. */}
+      <section className="relative max-w-6xl mx-auto px-6 pt-14 pb-10">
+        {photos[0] && (
+          <img
+            src={photos[0]}
+            alt=""
+            className="hidden lg:block absolute -top-5 right-4 w-32 h-40 object-cover rotate-[9deg] rounded-xl border-[6px] border-white shadow-xl z-0"
+          />
+        )}
+        {photos[1] && (
+          <img
+            src={photos[1]}
+            alt=""
+            className="hidden lg:block absolute top-10 left-2 w-28 h-28 object-cover -rotate-6 rounded-xl border-[6px] border-white shadow-xl z-0"
+          />
+        )}
+        {photos[2] && (
+          <img
+            src={photos[2]}
+            alt=""
+            className="hidden lg:block absolute -bottom-8 left-10 w-32 h-40 object-cover rotate-[6deg] rounded-xl border-[6px] border-white shadow-xl z-0"
+          />
+        )}
+        {photos[3] && (
+          <img
+            src={photos[3]}
+            alt=""
+            className="hidden lg:block absolute -bottom-6 right-12 w-28 h-28 object-cover -rotate-[10deg] rounded-xl border-[6px] border-white shadow-xl z-0"
+          />
+        )}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
-          className="relative text-center rounded-[2.5rem] px-6 md:px-16 py-14 md:py-20 border border-[#4a3221]/10 overflow-hidden"
+          className="relative z-10 text-center rounded-[2.5rem] px-6 md:px-16 py-14 md:py-20 border border-[#4a3221]/10 overflow-hidden"
           style={{ background: "linear-gradient(135deg, #fdf3ec 0%, #f3d3dd 55%, #ecd3ac 100%)" }}
         >
           <div className="relative">
@@ -256,11 +306,8 @@ function NewbornLandingPage() {
                   הכי פופולרית
                 </span>
               )}
-              <div className="text-xl mb-1" style={{ fontFamily: "'DM Serif Display', serif" }}>
+              <div className="text-2xl mb-4" style={{ fontFamily: "'DM Serif Display', serif" }}>
                 {pkg.name}
-              </div>
-              <div className="text-3xl mb-4" style={{ fontFamily: "'DM Serif Display', serif" }}>
-                ₪{pkg.price}
               </div>
               <ul className="space-y-2 mb-6 flex-1">
                 {pkg.features.map((f) => (
@@ -280,8 +327,31 @@ function NewbornLandingPage() {
           ))}
         </div>
         <div className="mt-6 rounded-2xl bg-white/70 border border-[#4a3221]/10 p-5 text-center text-sm text-[#4a3221]/80">
-          <strong>מימוש סל לידה מקופת החולים?</strong> יש חבילות ייעודיות — כתבו לנו במייל או בטלפון לפרטים.
-          {" "}תוספות אפשריות: {NEWBORN_ADDONS.map((a) => `${a.label} +₪${a.price}`).join(" · ")}.
+          תוספות אפשריות: {NEWBORN_ADDONS.map((a) => a.label).join(" · ")}.
+        </div>
+
+        {/* Birth-basket ("סל לידה") interest — a real one-click button that
+            emails her directly, instead of a passive "write to us" note. */}
+        <div
+          className="mt-6 rounded-3xl border border-[#d9b98a]/40 p-6 md:p-7 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-right"
+          style={{ background: "linear-gradient(135deg, #fdf3ec 0%, #f3d3dd 60%, #ecd3ac 100%)" }}
+        >
+          <div className="h-12 w-12 rounded-full bg-white/80 flex items-center justify-center shrink-0">
+            <Gift size={22} className="text-[#c23b6d]" />
+          </div>
+          <div className="flex-1">
+            <div className="font-semibold text-[#4a3221] mb-0.5">מימוש סל לידה מקופת החולים?</div>
+            <div className="text-sm text-[#4a3221]/75">יש לי חבילות ייעודיות למימוש סל לידה — לחצי ואחזור אלייך עם כל הפרטים.</div>
+          </div>
+          <button
+            type="button"
+            onClick={handleBirthBasketInterest}
+            disabled={basketSending || basketSent}
+            className="inline-flex items-center gap-2 shrink-0 bg-[#4a3221] text-white px-6 py-3 rounded-full text-sm font-semibold hover:bg-[#4a3221]/90 transition disabled:opacity-60"
+          >
+            {basketSent ? <Check size={16} /> : <Gift size={16} />}
+            {basketSent ? "הבקשה נשלחה ✓" : basketSending ? "שולח…" : "מעוניינת במימוש סל לידה"}
+          </button>
         </div>
       </section>
 
@@ -342,7 +412,7 @@ function NewbornLandingPage() {
                   <select className={bookInputCls} value={book.packageId} onChange={(e) => setBook({ ...book, packageId: e.target.value })}>
                     {REGULAR_PACKAGES.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.name} — ₪{p.price}
+                        {p.name}
                       </option>
                     ))}
                   </select>
@@ -384,7 +454,7 @@ function NewbornLandingPage() {
               <div className="rounded-2xl bg-white border border-[#d9b98a]/30 p-5 text-sm text-[#4a3221] space-y-2">
                 <div className="font-semibold text-[#4a3221] text-base mb-1">סיכום לפני שליחה</div>
                 <div>תאריך: <strong>{book.date || "—"}</strong> · שעה: <strong>{book.time || "—"}</strong></div>
-                <div>חבילה: <strong>{chosenPackage?.name} — ₪{chosenPackage?.price}</strong></div>
+                <div>חבילה: <strong>{chosenPackage?.name}</strong></div>
                 <div>שם: <strong>{book.name || "—"}</strong> · טלפון: <strong>{book.phone || "—"}</strong></div>
                 <div>תשלום: <strong>{PAYMENT_LABELS[book.payment]}</strong></div>
                 <p className="text-xs text-[#4a3221]/80 pt-2">

@@ -789,3 +789,39 @@ export const finishNewbornProofSelectionByToken = createServerFn({ method: "POST
     }
     return { ok: true };
   });
+
+/**
+ * A visitor on /newborn clicking "מימוש סל לידה" — a one-click "I'm
+ * interested" note, not a booking. No auth needed (any site visitor,
+ * logged in or not, should be able to use it); best-effort email to her,
+ * same pattern as the proof-selection-done notify above.
+ */
+export const requestBirthBasketInterest = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z.object({ name: z.string().optional(), phone: z.string().optional(), email: z.string().optional() }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    try {
+      const { sendGmail } = await import("@/integrations/google/gmail.server");
+      const contactLines = [
+        data.name?.trim() ? `שם: ${data.name.trim()}` : null,
+        data.phone?.trim() ? `טלפון: ${data.phone.trim()}` : null,
+        data.email?.trim() ? `מייל: ${data.email.trim()}` : null,
+      ].filter(Boolean);
+      await sendGmail({
+        to: STUDIO_EMAIL,
+        subject: "מעוניינת במימוש סל לידה",
+        html: `<div dir="rtl" style="font-family:sans-serif;color:#4a3221;max-width:480px;margin:0 auto;text-align:center">
+          <div style="background:linear-gradient(135deg,#f3d3dd,#ecd3ac);border-radius:20px;padding:28px 20px">
+            <div style="font-size:36px;margin-bottom:8px">🧺💗</div>
+            <h2 style="margin:0">מעוניינת במימוש סל לידה</h2>
+          </div>
+          ${contactLines.length ? `<p style="margin-top:18px;font-size:15px">${contactLines.join("<br/>")}</p>` : `<p style="margin-top:18px;font-size:13px;color:#8a6338">לא צוינו פרטי קשר — התקבל מעמוד הניו-בורן</p>`}
+        </div>`,
+      });
+      return { ok: true };
+    } catch (e) {
+      console.error("[SWEETBABY] birth-basket interest email failed", e);
+      return { ok: false };
+    }
+  });
