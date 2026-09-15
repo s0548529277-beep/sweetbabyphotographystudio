@@ -208,26 +208,8 @@ function NewbornLandingPage() {
     <div dir="rtl" className="min-h-screen bg-[#fdf3ec] text-[#4a3221]" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
       <MichalHeader />
 
-      {/* Hero — one or two photos floating around the main card, borderless
-          so the baby photo itself reads as part of the page rather than a
-          framed prop, per explicit request ("שיראה שהתינוק מרחף באתר").
-          Hidden below lg since there's no room for them without crowding
-          the text. */}
+      {/* Hero */}
       <section className="relative max-w-6xl mx-auto px-6 pt-14 pb-10">
-        {photos[0] && (
-          <img
-            src={photos[0]}
-            alt=""
-            className="hidden lg:block absolute -top-8 right-6 w-40 h-52 object-cover rotate-[7deg] rounded-[1.75rem] shadow-2xl z-0"
-          />
-        )}
-        {photos[1] && (
-          <img
-            src={photos[1]}
-            alt=""
-            className="hidden lg:block absolute -bottom-10 left-6 w-36 h-44 object-cover -rotate-6 rounded-[1.75rem] shadow-2xl z-0"
-          />
-        )}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -239,7 +221,7 @@ function NewbornLandingPage() {
             <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur px-5 py-2 rounded-full text-sm text-[#4a3221] mb-7 border border-[#4a3221]/10 shadow-sm">
               <Heart size={14} className="fill-[#f5d5cf] text-[#f5d5cf]" /> צילומי ניו-בורן · מיכל סיבוני
             </div>
-            <h1 className="text-5xl md:text-7xl mb-5 leading-[1.15] text-[#4a3221]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+            <h1 className="text-5xl md:text-7xl mb-5 leading-[1.15] text-[#4a3221]" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
               הרגעים הראשונים שלו.
               <br />
               <span className="text-[#8a6338]">מונצחים לתמיד.</span>
@@ -272,7 +254,7 @@ function NewbornLandingPage() {
       {/* Packages */}
       <section className="max-w-6xl mx-auto px-6 pb-14">
         <div className="text-center mb-8">
-          <h2 className="text-3xl md:text-4xl mb-2" style={{ fontFamily: "'DM Serif Display', serif" }}>
+          <h2 className="text-3xl md:text-4xl mb-2" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
             חבילות ניו-בורן
           </h2>
           <p className="text-sm text-[#4a3221]/70">בוחרים חבילה, וממשיכים ישר לקביעת מועד</p>
@@ -293,7 +275,7 @@ function NewbornLandingPage() {
                   הכי פופולרית
                 </span>
               )}
-              <div className="text-2xl mb-4" style={{ fontFamily: "'DM Serif Display', serif" }}>
+              <div className="text-2xl mb-4" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
                 {pkg.name}
               </div>
               <ul className="space-y-2 mb-6 flex-1">
@@ -348,7 +330,7 @@ function NewbornLandingPage() {
           <div className="inline-flex items-center gap-2 text-[#8a6338] text-xs tracking-[0.28em] uppercase mb-2">
             <ShieldCheck size={14} /> איך זה עובד
           </div>
-          <h2 className="text-3xl md:text-4xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
+          <h2 className="text-3xl md:text-4xl" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
             התהליך שלנו, שלב אחר שלב
           </h2>
         </div>
@@ -489,7 +471,7 @@ function NewbornLandingPage() {
         <section className="max-w-6xl mx-auto px-6 pb-16">
           <div className="flex items-end justify-between mb-6">
             <div>
-              <h2 className="text-3xl md:text-4xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
+              <h2 className="text-3xl md:text-4xl" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
                 מהסשנים שלנו
               </h2>
               <p className="text-sm text-[#4a3221]/70 mt-1">רגעים אמיתיים מצילומי ניו-בורן בסטודיו</p>
@@ -520,7 +502,7 @@ function NewbornLandingPage() {
       {/* CTA */}
       <section className="max-w-4xl mx-auto px-6 pb-20">
         <div className="bg-white text-[#4a3221] rounded-3xl border border-[#4a3221]/10 p-10 md:p-14 text-center">
-          <h3 className="text-3xl md:text-4xl mb-3" style={{ fontFamily: "'DM Serif Display', serif" }}>
+          <h3 className="text-3xl md:text-4xl mb-3" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
             מוכנים להנציח את הימים הראשונים?
           </h3>
           <p className="text-[#4a3221]/75 mb-7 max-w-xl mx-auto">

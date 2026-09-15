@@ -109,7 +109,7 @@ function NewbornGalleryPage() {
 
       <div className="max-w-5xl mx-auto px-6 py-10">
         <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl mb-2" style={{ fontFamily: "'DM Serif Display', serif" }}>
+          <h1 className="text-3xl md:text-4xl mb-2" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
             {showEdited ? "התמונות המוכנות שלך 💗" : "בואי נבחר תמונות"}
           </h1>
           <p className="text-sm text-[#4a3221]/70">
