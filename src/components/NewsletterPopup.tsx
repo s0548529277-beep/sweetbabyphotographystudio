@@ -177,7 +177,7 @@ export function NewsletterPopup() {
       >
         <div className="bg-[#2d3d2b] text-[#f8ede4] px-6 py-6">
           <Sparkles className="h-6 w-6 mx-auto mb-2 text-[#f5d5cf]" />
-          <h3 className="font-display text-xl" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
+          <h3 className="font-display text-xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
             {phase === "wheel"
               ? "כיף שהצטרפת! סובבו לפרס 🎁"
               : phase === "done"

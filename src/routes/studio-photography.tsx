@@ -157,7 +157,7 @@ function StudioPhotographyPage() {
             <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur px-5 py-2 rounded-full text-sm text-[#2d3d2b] mb-7 border border-[#2d3d2b]/10 shadow-sm">
               <Camera size={14} /> צילום מקצועי · מיכל סיבוני
             </div>
-            <h1 className="text-5xl md:text-7xl mb-5 leading-[1.15] text-[#2d3d2b]" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
+            <h1 className="text-5xl md:text-7xl mb-5 leading-[1.15] text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
               רגעים שנשארים.
               <br />
               <span className="text-[#6b8a63]">בסטודיו או בטבע.</span>
@@ -249,7 +249,7 @@ function StudioPhotographyPage() {
                 <div className="w-11 h-11 rounded-full bg-[#f5d5cf] flex items-center justify-center mb-3 text-[#2d3d2b]">
                   <Icon size={20} />
                 </div>
-                <div className="text-xl mb-1" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
+                <div className="text-xl mb-1" style={{ fontFamily: "'DM Serif Display', serif" }}>
                   {title}
                 </div>
                 <div className="text-sm text-[#2d3d2b]/80">{desc}</div>
@@ -276,7 +276,7 @@ function StudioPhotographyPage() {
             <div className="inline-flex items-center gap-1.5 text-[#c23b6d] text-xs font-semibold mb-1.5">
               <Heart size={12} className="fill-current" /> צילומי ניו-בורן
             </div>
-            <h3 className="text-xl md:text-2xl text-[#4a3221] mb-1" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
+            <h3 className="text-xl md:text-2xl text-[#4a3221] mb-1" style={{ fontFamily: "'DM Serif Display', serif" }}>
               מחפשת דווקא צילומי ניו-בורן?
             </h3>
             <p className="text-sm text-[#4a3221]/75">
@@ -295,7 +295,7 @@ function StudioPhotographyPage() {
           <div className="flex items-center justify-center gap-2 text-[#6b8a63] text-xs tracking-[0.28em] uppercase mb-2">
             <CalendarDays size={14} /> Booking
           </div>
-          <h2 className="text-2xl md:text-3xl mb-2" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
+          <h2 className="text-2xl md:text-3xl mb-2" style={{ fontFamily: "'DM Serif Display', serif" }}>
             קביעת צילומים עם מיכל ביומן הסטודיו
           </h2>
           <p className="text-sm text-[#2d3d2b]/85 mb-5 leading-relaxed">
@@ -442,7 +442,7 @@ function StudioPhotographyPage() {
       <section className="max-w-6xl mx-auto px-6 pb-16">
         <div className="flex items-end justify-between mb-6">
           <div>
-            <h2 className="text-3xl md:text-4xl" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
+            <h2 className="text-3xl md:text-4xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
               {tab === "studio" ? "מהסטודיו" : "מהטבע"}
             </h2>
             <p className="text-sm text-[#2d3d2b]/70 mt-1">
@@ -497,7 +497,7 @@ function StudioPhotographyPage() {
       <section className="max-w-4xl mx-auto px-6 pb-20">
         <div className="bg-white text-[#2d3d2b] rounded-3xl border border-[#2d3d2b]/10 p-10 md:p-14 text-center">
           <div>
-            <h3 className="text-3xl md:text-4xl mb-3" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
+            <h3 className="text-3xl md:text-4xl mb-3" style={{ fontFamily: "'DM Serif Display', serif" }}>
               מוכנים לרגע שלכם?
             </h3>
             <p className="text-[#2d3d2b]/75 mb-7 max-w-xl mx-auto">

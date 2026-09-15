@@ -245,7 +245,7 @@ function StudioRentalPage() {
               <Star className="h-3.5 w-3.5 fill-[#a8c4a2] text-[#a8c4a2]" />
               <span className="text-[15px] tracking-[0.18em] uppercase text-[#2d3d2b]/70 font-medium">Studio Rental · בית שמש</span>
             </div>
-            <h1 className="mt-4 text-[2.4rem] leading-[1.05] md:text-[3.6rem] md:leading-[1] text-[#2d3d2b]" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
+            <h1 className="mt-4 text-[2.4rem] leading-[1.05] md:text-[3.6rem] md:leading-[1] text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
               השכרת <em className="not-italic text-[#6b8a63]">הסטודיו</em>
             </h1>
             <p className="mt-3 text-base text-[#2d3d2b]/75 max-w-2xl leading-relaxed">
@@ -278,9 +278,9 @@ function StudioRentalPage() {
           >
             <div>
               <div className="text-[14px] tracking-[0.16em] uppercase text-[#6b8a63] mb-1">01 · Flexible</div>
-              <h3 className="text-lg text-[#2d3d2b]" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>שעתי גמיש</h3>
+              <h3 className="text-lg text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>שעתי גמיש</h3>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl text-[#2d3d2b]" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>₪120</span>
+                <span className="text-2xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>₪120</span>
                 <span className="text-xs text-[#2d3d2b]/60">/ שעה ראשונה</span>
               </div>
               <p className="mt-2 text-[14px] text-[#2d3d2b]/75">כל שעה נוספת 90 ₪ · חצאי שעות בחישוב יחסי · מינימום שעה</p>
@@ -299,9 +299,9 @@ function StudioRentalPage() {
                 <div className="text-[14px] tracking-[0.16em] uppercase text-[#6b8a63] mb-1">02 · Morning</div>
                 <span className="text-[9px] tracking-[0.2em] uppercase bg-[#2d3d2b] text-[#f8ede4] px-2 py-0.5 rounded-full font-semibold">ניוברן</span>
               </div>
-              <h3 className="text-lg" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>מבצע בוקר ניו-בורן</h3>
+              <h3 className="text-lg" style={{ fontFamily: "'DM Serif Display', serif" }}>מבצע בוקר ניו-בורן</h3>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>₪240</span>
+                <span className="text-2xl" style={{ fontFamily: "'DM Serif Display', serif" }}>₪240</span>
                 <span className="text-xs text-[#2d3d2b]/70">/ 3 שעות (8:00–13:00)</span>
               </div>
               <p className="mt-2 text-[14px] text-[#2d3d2b]/80">3 שעות רצופות · חיסכון משמעותי מול תעריף שעתי</p>
@@ -329,7 +329,7 @@ function StudioRentalPage() {
           <div className="px-4 py-6 md:px-6 md:py-9">
             <div className="text-center">
               <div className="text-[15px] tracking-[0.18em] uppercase text-[#6b8a63] mb-2">Booking Process</div>
-              <h2 className="text-2xl md:text-3xl text-[#2d3d2b]" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
+              <h2 className="text-2xl md:text-3xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
                 איך קובעים תור? 3 שלבים
               </h2>
               <p className="mt-2 text-sm text-[#2d3d2b]/70 max-w-xl mx-auto leading-relaxed">
@@ -345,7 +345,7 @@ function StudioRentalPage() {
               ].map((s) => (
                 <div key={s.n} className="rounded-2xl border border-[#2d3d2b]/10 bg-white p-5">
                   <div className="text-[14px] tracking-[0.18em] uppercase text-[#6b8a63] mb-1">Step {s.n}</div>
-                  <h3 className="text-lg text-[#2d3d2b]" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>{s.title}</h3>
+                  <h3 className="text-lg text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>{s.title}</h3>
                   <p className="mt-1.5 text-[15px] text-[#2d3d2b]/75 leading-relaxed">{s.desc}</p>
                 </div>
               ))}
@@ -387,7 +387,7 @@ function StudioRentalPage() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex-1 min-w-[240px]">
               <div className="text-[15px] tracking-[0.18em] uppercase text-[#6b8a63] mb-1">Add-on · חינם</div>
-              <h4 className="text-xl" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>צריכה גם אביזרים?</h4>
+              <h4 className="text-xl" style={{ fontFamily: "'DM Serif Display', serif" }}>צריכה גם אביזרים?</h4>
               <p className="text-sm text-[#2d3d2b]/80 mt-1 leading-relaxed">
                 <strong>עד 20 אביזרים שריון חינם</strong> לשעות ההשכרה בסטודיו — ללא תוספת תשלום.
                 אנו מתחייבים שכ-80% מהקטלוג יהיה בהישג יד בזמן הצילום (בכפוף לזמינות).
@@ -455,7 +455,7 @@ function StudioRentalPage() {
             </button>
 
             <div className="text-[15px] tracking-[0.18em] uppercase text-[#6b8a63] mb-2">Coordination</div>
-            <h2 className="text-2xl md:text-3xl text-[#2d3d2b]" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
+            <h2 className="text-2xl md:text-3xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
               הסכם תיאום ציפיות
             </h2>
             <p className="mt-2 text-sm text-[#2d3d2b]/75 leading-relaxed">
@@ -464,7 +464,7 @@ function StudioRentalPage() {
 
             {/* RULES — full agreement text */}
             <div className="mt-5 bg-white rounded-2xl border border-[#2d3d2b]/10 p-4 md:p-5 max-h-72 overflow-y-auto">
-              <h3 className="text-lg text-[#2d3d2b] mb-3" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
+              <h3 className="text-lg text-[#2d3d2b] mb-3" style={{ fontFamily: "'DM Serif Display', serif" }}>
                 כללי הסטודיו — לקריאה לפני האישור
               </h3>
               <div className="grid gap-4">
