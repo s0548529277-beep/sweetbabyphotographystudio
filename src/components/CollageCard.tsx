@@ -790,7 +790,13 @@ export function CollageCard({
           fontSize={captionFontSize * captionScale}
           fontFamily={captionFontFamily ?? style.fontFamily}
           fill={overlayCaption ? "#ffffff" : captionColor}
-          style={{ pointerEvents: canTransformCaption ? "none" : undefined, ...(overlayCaption ? { filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.65))" } : undefined) }}
+          className={canTransformCaption ? "collage-card-editor-ui" : undefined}
+          style={{ cursor: canTransformCaption ? "grab" : undefined, ...(overlayCaption ? { filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.65))" } : undefined) }}
+          onPointerDown={canTransformCaption ? onCaptionPointerDown : undefined}
+          onPointerMove={canTransformCaption ? onCaptionPointerMove : undefined}
+          onPointerUp={canTransformCaption ? onCaptionPointerUp : undefined}
+          onPointerCancel={canTransformCaption ? onCaptionPointerUp : undefined}
+          onWheel={canTransformCaption ? onCaptionWheel : undefined}
         >
           {caption || " "}
         </text>
@@ -803,26 +809,16 @@ export function CollageCard({
             fontFamily={captionFontFamily ?? style.fontFamily}
             fill={overlayCaption ? "#ffffff" : captionColor}
             opacity={overlayCaption ? 0.95 : 0.85}
-            style={{ pointerEvents: canTransformCaption ? "none" : undefined, ...(overlayCaption ? { filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.65))" } : undefined) }}
+            className={canTransformCaption ? "collage-card-editor-ui" : undefined}
+            style={{ cursor: canTransformCaption ? "grab" : undefined, ...(overlayCaption ? { filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.65))" } : undefined) }}
+            onPointerDown={canTransformCaption ? onCaptionPointerDown : undefined}
+            onPointerMove={canTransformCaption ? onCaptionPointerMove : undefined}
+            onPointerUp={canTransformCaption ? onCaptionPointerUp : undefined}
+            onPointerCancel={canTransformCaption ? onCaptionPointerUp : undefined}
+            onWheel={canTransformCaption ? onCaptionWheel : undefined}
           >
             {subtitle}
           </text>
-        )}
-        {canTransformCaption && (
-          <rect
-            className="collage-card-editor-ui"
-            x={MARGIN}
-            y={captionY - captionFontSize * captionScale * 1.3}
-            width={cardW - MARGIN * 2}
-            height={(subtitle ? subtitleY : captionY) - (captionY - captionFontSize * captionScale * 1.3) + subtitleFontSize * captionScale * 1.4}
-            fill="transparent"
-            style={{ cursor: "grab" }}
-            onPointerDown={onCaptionPointerDown}
-            onPointerMove={onCaptionPointerMove}
-            onPointerUp={onCaptionPointerUp}
-            onPointerCancel={onCaptionPointerUp}
-            onWheel={onCaptionWheel}
-          />
         )}
       </g>
 

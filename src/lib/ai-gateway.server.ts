@@ -336,19 +336,11 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel,
     // model — but real logs then showed THIS is deprecated/inaccessible on
     // this specific account too. Rather than guess a fourth name, ask
     // Groq's own /models endpoint what this key can actually use right now,
-    // and only fall back to hardcoded guesses if that lookup itself fails.
-    // llama-3.1-8b-instant, gemma2-9b-it, and llama3-70b-8192 are ALSO now
-    // confirmed live to be decommissioned on Groq's side entirely (not just
-    // unavailable to this account) — kept only as a last-resort tail in case
-    // discovery itself fails, not because they're expected to work.
+    // Groq's live model listing is authoritative. The former hardcoded tail
+    // (llama-3.1-8b-instant, gemma2-9b-it, llama3-70b-8192) is confirmed
+    // decommissioned, so retrying it only delays the working fallback.
     const discoveredModels = await fetchAvailableGroqModels(groqKey);
-    const GROQ_MODEL_CANDIDATES = [
-      ...discoveredModels,
-      "llama-3.1-8b-instant",
-      "gemma2-9b-it",
-      "llama3-70b-8192",
-    ].filter((id, i, arr) => arr.indexOf(id) === i);
-    for (const modelId of GROQ_MODEL_CANDIDATES) {
+    for (const modelId of discoveredModels) {
       try {
         const result = await generateText({
           ...options,
@@ -362,7 +354,7 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel,
         console.error(`[SWEETBABY] Groq model "${modelId}" failed ${e}`);
       }
     }
-    console.error("[SWEETBABY] Groq failed on every model candidate, falling back to Lovable AI Gateway");
+    console.error("[SWEETBABY] Groq has no working discovered model, falling back to Lovable AI Gateway");
   }
 
   if (!lovableKey) throw new Error("All Gemini/Groq attempts failed and no LOVABLE_API_KEY is configured as a fallback");

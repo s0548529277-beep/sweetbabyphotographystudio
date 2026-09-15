@@ -348,6 +348,15 @@ export async function issueDoorCodeForBooking(opts: {
       }
       if (segments.length === 0) throw new Error("No active (non-overnight) segments in this rental window");
 
+      // TTLock rejects two registrations with the same digits. Its generic
+      // duplicate recovery widens the existing window, which would join
+      // separate daily segments and silently reopen the overnight lockout.
+      // Until a verified recurring-window API is available, fail closed for
+      // multi-day rentals so the studio issues a safe manual code instead.
+      if (segments.length > 1) {
+        throw new Error("Automatic TTLock code skipped: a multi-day rental requires separate overnight-safe access windows");
+      }
+
       let firstKeyboardPwdId: number | null = null;
       for (let i = 0; i < segments.length; i++) {
         const seg = segments[i];

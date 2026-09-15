@@ -168,7 +168,9 @@ export const finalizePhotographySession = createServerFn({ method: "POST" })
     // calendar hiccup must never block the confirmation email/response
     // below, which is why this is its own try/catch, separate from the
     // notification/email ones that follow.
-    try {
+    // Transfer/Bit/later remain a 60-minute unpaid hold in the database and
+    // must not leave a permanent external-calendar block if abandoned.
+    if (data.payment_method === "cash") try {
       const { createGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
       const { data: userRes } = await supabase.auth.getUser();
       const calendarEmail = data.email || userRes?.user?.email || undefined;
