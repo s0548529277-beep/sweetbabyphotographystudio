@@ -23,8 +23,7 @@ import hero7 from "@/assets/home-hero-7.png.asset.json";
 import studioInterior from "@/assets/studio-interior.jpg";
 import studioPropsCorner from "@/assets/studio-props-corner.jpg";
 import heroScene from "@/assets/hero-scene.jpg";
-import { HeroFullBleed, HeroLightArch } from "@/components/home-hero-variants";
-import { useHeroVariant } from "@/lib/page-images";
+import { HeroFullBleed } from "@/components/home-hero-variants";
 
 const GALLERY_IMAGES: { src: string; caption: string }[] = [
   { src: hero0.url,             caption: "פינת ניו-בורן ורודה" },
@@ -83,10 +82,6 @@ function Home() {
   // and portrait vs landscape); the bundled list is the fallback.
   const heroGallery = usePageGalleryWithAspect(PAGE_IMAGE_KEYS.homeHero);
   const slides = heroGallery.images.length > 0 ? heroGallery.images : HERO_SLIDES;
-  // Which hero design to render — one-click switchable from /admin/gallery,
-  // per explicit request, so trying an older design back doesn't need a
-  // developer. Defaults to the full-bleed design (the one actually live).
-  const { variant: heroVariant } = useHeroVariant();
   useEffect(() => {
     const id = setInterval(() => setSlide((s) => (s + 1) % slides.length), 3800);
     return () => clearInterval(id);
@@ -107,15 +102,12 @@ function Home() {
     <div className="min-h-screen flex flex-col bg-[#f8ede4] text-[#2d3d2b] overflow-hidden" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
       <Header />
 
-      {/* HERO — one of two switchable designs (see /admin/gallery),
-          per explicit request so switching back to an older design never
-          needs a developer. Both variants render the exact same content;
-          only the layout/background treatment differs. */}
-      {heroVariant === "light-arch" ? (
-        <HeroLightArch slide={slide} setSlide={setSlide} slides={slides} logo={logo} aspect={heroGallery.aspect} />
-      ) : (
-        <HeroFullBleed slide={slide} setSlide={setSlide} slides={slides} logo={logo} />
-      )}
+      {/* HERO — fixed permanently to the full-bleed design (this used to be
+          switchable live via /admin/gallery, but that async lookup could
+          flash a stale cached design on first paint before resolving; see
+          home-hero-variants.tsx for details). HeroLightArch is kept in that
+          file in case this design is ever wanted back. */}
+      <HeroFullBleed slide={slide} setSlide={setSlide} slides={slides} logo={logo} />
 
 
       {/* THREE OFFERINGS */}

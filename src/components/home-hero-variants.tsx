@@ -1,8 +1,11 @@
-// Two selectable homepage hero designs — per explicit request, switchable
-// from /admin/gallery without a developer (see useHeroVariant/saveHeroVariant
-// in @/lib/page-images). Both take the same slide-rotation state as props
-// (owned by the Home route) so switching variants doesn't reset the
-// slideshow, and both render the exact content/copy — only the layout,
+// Two homepage hero designs. The Home route now always renders
+// HeroFullBleed (the permanent, fixed choice) — this used to be a
+// one-click switcher via /admin/gallery (see useHeroVariant/saveHeroVariant
+// in @/lib/page-images, still there but no longer wired to anything), but
+// that live lookup could flash a stale cached design on first paint before
+// resolving. HeroLightArch is kept here in case that design is ever wanted
+// again. Both take the same slide-rotation state as props (owned by the
+// Home route) and render the exact same content — only the layout,
 // background treatment and sizing differ.
 import { Link } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
