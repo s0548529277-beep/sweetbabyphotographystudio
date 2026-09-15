@@ -110,7 +110,7 @@ export function HeroFullBleed({ slide, setSlide, slides, logo }: HeroProps) {
 
               <img src={logo} alt="Sweetbaby" className="h-14 md:h-20 w-auto mb-3" />
 
-              <h1 className="text-5xl md:text-7xl lg:text-8xl leading-[1.05] text-[#f8ede4]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+              <h1 className="text-5xl md:text-7xl lg:text-8xl leading-[1.05] text-[#f8ede4]" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
                 כאן נולדת התמונה
                 <br />
                 <span className="text-[#f5d5cf]">שתשאר איתך תמיד.</span>
@@ -154,7 +154,7 @@ export function HeroFullBleed({ slide, setSlide, slides, logo }: HeroProps) {
               >
                 <s.icon className="h-5 w-5 mb-2 md:mb-0 text-[#a8c4a2]" />
                 <div>
-                  <div className="text-2xl md:text-3xl text-[#f8ede4]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                  <div className="text-2xl md:text-3xl text-[#f8ede4]" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
                     <CountUp end={s.end} suffix={s.suffix} />
                   </div>
                   <div className="text-xs tracking-wider uppercase mt-1 text-[#f8ede4]/60">{s.label}</div>
@@ -166,7 +166,7 @@ export function HeroFullBleed({ slide, setSlide, slides, logo }: HeroProps) {
       </div>
 
       <div className="py-5 bg-[#f5d5cf]/30 text-[#2d3d2b] overflow-hidden border-y border-[#2d3d2b]/10">
-        <div className="marquee-track text-2xl md:text-3xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
+        <div className="marquee-track text-2xl md:text-3xl" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
           {Array.from({ length: 2 }).map((_, k) => (
             <div key={k} className="flex items-center gap-12 pl-12">
               {["ניוברן", "גיל שנה", "חלאקה", "משפחה", "הריון", "סמאש קייק"].flatMap((w, i) => [
@@ -200,7 +200,7 @@ export function HeroLightArch({ slide, setSlide, slides, logo, aspect }: HeroPro
               </span>
             </div>
 
-            <h1 className="mt-6 text-[2.9rem] leading-[1.05] md:text-[4.8rem] md:leading-[1.02] text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+            <h1 className="mt-6 text-[2.9rem] leading-[1.05] md:text-[4.8rem] md:leading-[1.02] text-[#2d3d2b]" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
               <span className="block mb-3 text-right">
                 <img src={logo} alt="Sweetbaby" className="inline-block h-16 md:h-24 w-auto" />
               </span>
@@ -248,7 +248,7 @@ export function HeroLightArch({ slide, setSlide, slides, logo, aspect }: HeroPro
               ].map((s, i) => (
                 <motion.div key={s.label} custom={i} initial="hidden" animate="show" variants={fadeUp} className="flex flex-col">
                   <s.icon className="h-4 w-4 text-[#6b8a63] mb-2" />
-                  <div className="text-3xl md:text-4xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                  <div className="text-3xl md:text-4xl text-[#2d3d2b]" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
                     <CountUp end={s.end} suffix={s.suffix} />
                   </div>
                   <div className="text-xs text-[#2d3d2b]/60 tracking-wider uppercase mt-1">{s.label}</div>
@@ -312,7 +312,7 @@ export function HeroLightArch({ slide, setSlide, slides, logo, aspect }: HeroPro
       </div>
 
       <div className="mt-6 py-5 bg-[#f5d5cf]/30 text-[#2d3d2b] overflow-hidden border-y border-[#2d3d2b]/10">
-        <div className="marquee-track text-2xl md:text-3xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
+        <div className="marquee-track text-2xl md:text-3xl" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
           {Array.from({ length: 2 }).map((_, k) => (
             <div key={k} className="flex items-center gap-12 pl-12">
               {["ניוברן", "גיל שנה", "חלאקה", "משפחה", "הריון", "סמאש קייק"].flatMap((w, i) => [

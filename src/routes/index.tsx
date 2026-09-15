@@ -125,7 +125,7 @@ function Home() {
             <div className="text-xs tracking-[0.3em] uppercase text-[#6b8a63] font-medium mb-3">
               שלוש דרכים לצייר את הזיכרון
             </div>
-            <h2 className="text-4xl md:text-6xl text-[#2d3d2b] max-w-2xl leading-tight" style={{ fontFamily: "'DM Serif Display', serif" }}>
+            <h2 className="text-4xl md:text-6xl text-[#2d3d2b] max-w-2xl leading-tight" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
               איך תרצי לצלם השבוע?
             </h2>
           </div>
@@ -147,7 +147,7 @@ function Home() {
               </div>
               <div className="p-7 flex flex-col flex-grow">
                 <div className="text-[11px] tracking-[0.28em] uppercase text-[#6b8a63] mb-2">01 · Photography</div>
-                <h3 className="text-2xl text-[#2d3d2b] mb-3" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                <h3 className="text-2xl text-[#2d3d2b] mb-3" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
                   צילומים עם מיכל סיבוני
                 </h3>
                 <p className="text-sm text-[#2d3d2b]/70 leading-relaxed flex-grow">
@@ -156,7 +156,7 @@ function Home() {
                 <div className="mt-6 flex items-end justify-between pt-6 border-t border-[#2d3d2b]/10">
                   <div>
                     <div className="text-[10px] uppercase tracking-wider text-[#2d3d2b]/50">החל מ-</div>
-                    <div className="text-2xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>₪300 <span className="text-xs text-[#2d3d2b]/60">/ שעה</span></div>
+                    <div className="text-2xl text-[#2d3d2b]" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>₪300 <span className="text-xs text-[#2d3d2b]/60">/ שעה</span></div>
                   </div>
                   <div className="h-10 w-10 rounded-full border border-[#2d3d2b]/20 flex items-center justify-center group-hover:bg-[#2d3d2b] group-hover:text-[#f8ede4] transition-colors">
                     <ArrowLeft className="h-4 w-4" />
@@ -178,7 +178,7 @@ function Home() {
               </div>
               <div className="p-7 flex flex-col flex-grow">
                 <div className="text-[11px] tracking-[0.28em] uppercase text-[#6b8a63] mb-2">02 · Space</div>
-                <h3 className="text-2xl text-[#2d3d2b] mb-3" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                <h3 className="text-2xl text-[#2d3d2b] mb-3" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
                   השכרת הסטודיו
                 </h3>
                 <p className="text-sm text-[#2d3d2b]/70 leading-relaxed flex-grow">
@@ -187,7 +187,7 @@ function Home() {
                 <div className="mt-6 flex items-end justify-between pt-6 border-t border-[#2d3d2b]/10">
                   <div>
                     <div className="text-[10px] uppercase tracking-wider text-[#2d3d2b]/50">החל מ-</div>
-                    <div className="text-2xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>₪120 <span className="text-xs text-[#2d3d2b]/60">/ שעה</span></div>
+                    <div className="text-2xl text-[#2d3d2b]" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>₪120 <span className="text-xs text-[#2d3d2b]/60">/ שעה</span></div>
                   </div>
                   <div className="h-10 w-10 rounded-full border border-[#2d3d2b]/20 flex items-center justify-center group-hover:bg-[#2d3d2b] group-hover:text-[#f8ede4] transition-colors">
                     <ArrowLeft className="h-4 w-4" />
@@ -211,7 +211,7 @@ function Home() {
               </div>
               <div className="p-7 flex flex-col flex-grow">
                 <div className="text-[11px] tracking-[0.28em] uppercase text-[#6b8a63] mb-2">03 · Collection</div>
-                <h3 className="text-2xl text-[#2d3d2b] mb-3" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                <h3 className="text-2xl text-[#2d3d2b] mb-3" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
                   קטלוג האביזרים
                 </h3>
                 <p className="text-sm text-[#2d3d2b]/70 leading-relaxed flex-grow">
@@ -220,7 +220,7 @@ function Home() {
                 <div className="mt-6 flex items-end justify-between pt-6 border-t border-[#2d3d2b]/10">
                   <div>
                     <div className="text-[10px] uppercase tracking-wider text-[#2d3d2b]/50">החל מ-</div>
-                    <div className="text-2xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>₪50</div>
+                    <div className="text-2xl text-[#2d3d2b]" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>₪50</div>
                   </div>
                   <div className="h-10 w-10 rounded-full border border-[#2d3d2b]/20 flex items-center justify-center group-hover:bg-[#2d3d2b] group-hover:text-[#f8ede4] transition-colors">
                     <ArrowLeft className="h-4 w-4" />
@@ -241,7 +241,7 @@ function Home() {
           <div className="text-xs tracking-[0.3em] uppercase text-[#6b8a63] font-medium mb-3">
             רגעים מהסטודיו
           </div>
-          <h2 className="text-4xl md:text-5xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+          <h2 className="text-4xl md:text-5xl text-[#2d3d2b]" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
             קצת מהאווירה שלנו
           </h2>
         </div>
@@ -282,7 +282,7 @@ function Home() {
             <div className="grid md:grid-cols-[1.1fr_1fr] items-center">
               <div className="p-8 md:p-12">
                 <div className="text-[11px] tracking-[0.28em] uppercase text-[#6b8a63] mb-3">04 · Collages</div>
-                <h2 className="text-3xl md:text-4xl text-[#2d3d2b] mb-3" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                <h2 className="text-3xl md:text-4xl text-[#2d3d2b] mb-3" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
                   קולאז'ים
                 </h2>
                 <p className="text-sm text-[#2d3d2b]/70 leading-relaxed max-w-md mb-6">
@@ -324,7 +324,7 @@ function Home() {
                 <div className="h-12 w-12 rounded-2xl bg-white border border-[#2d3d2b]/10 flex items-center justify-center mb-4">
                   <f.icon className="h-5 w-5" />
                 </div>
-                <div className="text-lg font-semibold" style={{ fontFamily: "'DM Serif Display', serif" }}>{f.title}</div>
+                <div className="text-lg font-semibold" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>{f.title}</div>
                 <div className="text-sm text-[#2d3d2b]/70 mt-1 leading-relaxed">{f.desc}</div>
               </motion.div>
             ))}
@@ -338,7 +338,7 @@ function Home() {
           <div className="text-xs tracking-[0.3em] uppercase text-[#6b8a63] font-medium mb-3">
             מה אומרות המשפחות
           </div>
-          <h2 className="text-4xl md:text-5xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+          <h2 className="text-4xl md:text-5xl text-[#2d3d2b]" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>
             חוויות מהסטודיו
           </h2>
         </div>
@@ -374,7 +374,7 @@ function Home() {
               <div className="mt-6 pt-6 border-t border-[#2d3d2b]/10 flex items-center gap-3">
                 <div
                   className="h-10 w-10 rounded-full bg-[#a8c4a2] text-[#2d3d2b] flex items-center justify-center shrink-0"
-                  style={{ fontFamily: "'DM Serif Display', serif" }}
+                  style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}
                 >
                   {t.initial}
                 </div>
