@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { useProfilePrefill } from "@/hooks/use-profile";
 import { EmailDatalist } from "@/components/EmailDatalist";
+import { Button } from "@/components/ui/button";
 import { requestPhotographySession } from "@/lib/photography.functions";
 import { PAYMENT_LABELS } from "@/lib/photography-options";
 import { NEWBORN_PACKAGES, NEWBORN_ADDONS, NEWBORN_TIMELINE_STEPS } from "@/lib/newborn-packages";
@@ -45,18 +46,18 @@ function MichalLogo({ className }: { className: string }) {
 
 function MichalHeader() {
   return (
-    <header dir="rtl" className="border-b border-[#8e693b]/10 bg-[#fdfbf9]/90 backdrop-blur-xl sticky top-0 z-30">
-      <div className="max-w-6xl mx-auto px-5 h-28 flex items-center justify-between">
+    <header dir="rtl" className="sticky top-0 z-30 border-b border-newborn-gold/10 bg-newborn-canvas/90 backdrop-blur-xl">
+      <div className="mx-auto flex h-24 max-w-6xl items-center justify-between gap-3 px-4 md:h-32 md:px-5">
         <Link to="/" aria-label="חזרה לעמוד הבית" className="shrink-0">
-          <MichalLogo className="h-24 w-auto max-w-72 object-contain" />
+          <MichalLogo className="h-20 w-auto max-w-52 object-contain md:h-28 md:max-w-80" />
         </Link>
-        <div className="flex items-center gap-3 sm:gap-5 text-sm text-[#5a493c]/80">
-          <a href="#packages" className="hidden md:block hover:text-[#8e693b] transition-colors">חבילות</a>
-          <a href="#gallery" className="hidden md:block hover:text-[#8e693b] transition-colors">גלריה</a>
-          <a href={`tel:${MICHAL_PHONE}`} className="flex items-center gap-1.5 hover:text-[#8e693b] transition-colors" dir="ltr">
-            <Phone size={14} /> {MICHAL_PHONE}
+        <div className="flex items-center gap-3 text-sm text-newborn-ink/70 sm:gap-5">
+          <a href="#packages" className="hidden transition-colors hover:text-newborn-rose md:block">חבילות</a>
+          <a href="#gallery" className="hidden transition-colors hover:text-newborn-rose md:block">גלריה</a>
+          <a href={`tel:${MICHAL_PHONE}`} aria-label={`חיוג ${MICHAL_PHONE}`} className="flex items-center gap-1.5 transition-colors hover:text-newborn-rose" dir="ltr">
+            <Phone size={16} /> <span className="hidden sm:inline">{MICHAL_PHONE}</span>
           </a>
-          <a href="mailto:s0548529277@gmail.com" className="hidden sm:flex items-center gap-1.5 hover:text-[#8e693b] transition-colors">
+          <a href="mailto:s0548529277@gmail.com" className="hidden items-center gap-1.5 transition-colors hover:text-newborn-rose sm:flex">
             <Mail size={14} /> מייל
           </a>
         </div>
@@ -227,47 +228,41 @@ function NewbornLandingPage() {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen bg-[#fdfbf9] text-[#3e352f]" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
+    <div dir="rtl" className="min-h-screen overflow-x-clip bg-newborn-canvas text-newborn-ink" style={{ fontFamily: "'Karla', sans-serif" }}>
       <MichalHeader />
 
-      <section className="relative overflow-hidden px-5 py-10 md:py-16 lg:py-20">
-        <div className="pointer-events-none absolute -right-40 top-12 h-96 w-96 rounded-full bg-[#d13d66]/5 blur-3xl" />
-        <div className="pointer-events-none absolute -left-40 bottom-0 h-96 w-96 rounded-full bg-[#8e693b]/5 blur-3xl" />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:gap-20">
+      <section className="relative overflow-hidden px-5 py-12 md:py-20 lg:min-h-[720px] lg:py-24">
+        <div className="pointer-events-none absolute right-[6%] top-[18%] h-72 w-72 rounded-full bg-newborn-blush/55 blur-3xl" />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-16 lg:grid-cols-2 lg:gap-24">
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
-            className="order-2 text-center lg:order-1 lg:text-right"
+            className="order-1 min-w-0 text-center lg:text-right"
           >
-            <MichalLogo className="mx-auto mb-7 h-36 w-auto max-w-full object-contain mix-blend-multiply lg:mx-0 lg:h-48" />
-            <div className="mb-5 inline-flex items-center gap-2 text-xs font-semibold tracking-[0.22em] text-[#8e693b]">
-              <Heart size={13} className="fill-[#d13d66] text-[#d13d66]" /> צילומי ניו־בורן באווירה רגועה
+            <MichalLogo className="mx-auto mb-8 h-36 w-auto max-w-full object-contain mix-blend-multiply sm:h-44 lg:mx-0 lg:mb-10 lg:h-56" />
+            <div className="mb-6 inline-flex items-center gap-2 border-r-2 border-newborn-gold bg-newborn-blush/30 px-4 py-1.5 text-xs font-semibold text-newborn-gold">
+              <Heart size={13} className="fill-newborn-rose text-newborn-rose" /> רגעים ראשונים, אהבה אינסופית
             </div>
-            <h1 className="mb-6 text-5xl leading-[1.08] text-[#3e352f] md:text-7xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
-              שומרים את הלחישות
+            <h1 className="mb-7 text-5xl font-semibold leading-[1.02] text-newborn-rose sm:text-6xl md:text-8xl" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+              צילומי ניו־בורן
               <br />
-              <span className="italic text-[#8e693b]">של ההתחלה.</span>
+              <span className="block pt-2 font-light italic text-newborn-gold">בסטודיו בוטיק</span>
             </h1>
-            <p className="mx-auto mb-9 max-w-xl text-lg leading-relaxed text-[#5a493c]/80 lg:mx-0">
-              סשן ניו־בורן עדין ומקצועי בסטודיו הבוטיק בבית שמש — עם זמן לנשום, עיבוד מוקפד, קולאז׳ מעוצב ואלבום שנשאר למשפחה.
+            <p className="mx-auto mb-10 max-w-lg text-lg font-light leading-relaxed text-newborn-gold lg:mx-0 lg:text-xl">
+              הזיכרונות הראשונים שלכם, עטופים ברכות, אהבה וסבלנות. חוויית צילום רגועה ומקצועית, עם עיבוד מוקפד ואלבום שנשאר למשפחה.
             </p>
-            <div className="flex flex-wrap items-stretch justify-center gap-3 lg:justify-start">
-              <button
+            <div className="flex flex-nowrap items-stretch justify-center gap-3 lg:justify-start">
+              <Button
                 type="button"
                 onClick={() => openWizard()}
-                className="inline-flex items-center gap-2 rounded-full bg-[#8e693b] px-8 py-4 font-semibold text-white shadow-xl shadow-[#8e693b]/15 transition hover:-translate-y-0.5 hover:bg-[#76552f]"
+                className="h-auto min-w-0 rounded-full bg-newborn-rose px-5 py-4 text-sm text-primary-foreground shadow-xl shadow-newborn-rose/20 transition duration-500 hover:-translate-y-1 hover:bg-newborn-gold sm:px-8 sm:text-base"
               >
                 <CalendarDays size={18} /> קביעת מועד ביומן
-              </button>
-              <a
-                href={gmailLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full border border-[#8e693b]/25 bg-white/70 px-8 py-4 font-semibold text-[#8e693b] transition hover:bg-[#f8f2ed]"
-              >
-                <Mail size={18} /> לתאום במייל
-              </a>
+              </Button>
+              <Button asChild variant="outline" className="h-auto min-w-0 rounded-full border-newborn-blush bg-newborn-canvas/70 px-5 py-4 text-sm text-newborn-gold shadow-none transition duration-500 hover:border-newborn-rose hover:bg-newborn-blush/40 hover:text-newborn-rose sm:px-8 sm:text-base">
+                <a href={gmailLink} target="_blank" rel="noopener noreferrer"><Mail size={18} /> לתיאום במייל</a>
+              </Button>
             </div>
           </motion.div>
 
@@ -275,12 +270,12 @@ function NewbornLandingPage() {
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.1 }}
-            className="relative order-1 mx-auto w-full max-w-[520px] lg:order-2"
+            className="relative order-2 mx-auto w-[calc(100%-1.5rem)] max-w-[500px]"
           >
-            <div className="absolute -inset-5 -translate-x-3 -translate-y-3 rounded-t-[15rem] border border-[#8e693b]/15" />
-            <div className="relative aspect-[4/5] overflow-hidden rounded-t-[15rem] rounded-b-[2rem] bg-[#f3d3dd] ring-8 ring-white shadow-2xl shadow-[#8e693b]/10">
+            <div className="absolute -inset-6 -translate-x-3 -translate-y-3 rounded-t-full border border-newborn-gold/20" />
+            <div className="relative aspect-[4/5] overflow-hidden rounded-t-full bg-newborn-blush ring-[14px] ring-card shadow-2xl shadow-newborn-rose/15">
               {photos[0] ? (
-                <img src={photos[0]} alt="תינוק בצילומי ניו־בורן של מיכל סיבוני" className="h-full w-full object-cover" />
+                <img src={photos[0]} alt="תינוק בצילומי ניו־בורן של מיכל סיבוני" className="h-full w-full object-cover transition-transform duration-1000 hover:scale-105" />
               ) : (
                 <div className="flex h-full items-center justify-center bg-[#f8f2ed] p-10">
                   <MichalLogo className="w-full mix-blend-multiply" />
@@ -288,11 +283,11 @@ function NewbornLandingPage() {
               )}
             </div>
             {photos[1] && (
-              <button type="button" onClick={() => setLightbox(photos[1])} className="absolute -bottom-5 -right-2 hidden h-40 w-40 overflow-hidden rounded-2xl bg-white ring-8 ring-white shadow-2xl sm:block">
+              <button type="button" onClick={() => setLightbox(photos[1])} className="absolute -bottom-8 -left-10 hidden h-60 w-44 overflow-hidden rounded-t-full bg-card ring-8 ring-card shadow-2xl transition duration-700 hover:-translate-y-2 sm:block">
                 <img src={photos[1]} alt="פרט מצילומי ניו־בורן" className="h-full w-full object-cover transition duration-700 hover:scale-105" />
               </button>
             )}
-            <div className="absolute -left-12 top-1/2 hidden -rotate-90 text-[10px] font-semibold tracking-[0.5em] text-[#8e693b]/35 xl:block">MICHAL SIBONI · NEWBORN</div>
+            <div className="absolute right-[-2.75rem] top-1/2 hidden -rotate-12 rounded-full border border-newborn-blush bg-card/85 p-5 text-center text-[10px] font-semibold text-newborn-rose shadow-lg backdrop-blur-md xl:block">BOUTIQUE<br />STUDIO</div>
           </motion.div>
         </div>
       </section>
