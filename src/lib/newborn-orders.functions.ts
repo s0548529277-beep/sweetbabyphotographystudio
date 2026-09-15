@@ -596,17 +596,40 @@ export const markNewbornGalleryOpened = createServerFn({ method: "POST" })
 // row, so no server-side file handling is needed here.
 // ---------------------------------------------------------------------
 
+/**
+ * Self-healing for "Could not find the table ... in the schema cache" —
+ * PostgREST's message for a table that's real in Postgres but that its own
+ * cached API schema hasn't picked up yet (same failure class already seen
+ * on this project for the analytics tables — see getAnalyticsSummary in
+ * analytics.functions.ts, and the reload_pgrst_schema /
+ * force_postgrest_reconnect migrations). newborn_order_images is a brand
+ * new table, so it's the most likely one to hit this. One retry, through a
+ * live request connection, after asking Postgres to notify PostgREST
+ * again — never loops, never masks a genuinely different error.
+ */
+async function withSchemaCacheRetry(
+  client: any,
+  run: () => Promise<{ data: any; error: any }>,
+): Promise<{ data: any; error: any }> {
+  const first = await run();
+  if (!/schema cache/i.test(first.error?.message ?? "")) return first;
+  await client.rpc("reload_pgrst_schema").catch(() => {});
+  return run();
+}
+
 export const listNewbornOrderImages = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ orderId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
-    const { data: rows, error } = await (context.supabase as any)
-      .from("newborn_order_images")
-      .select("*")
-      .eq("order_id", data.orderId)
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: true });
+    const { data: rows, error } = await withSchemaCacheRetry(context.supabase, () =>
+      (context.supabase as any)
+        .from("newborn_order_images")
+        .select("*")
+        .eq("order_id", data.orderId)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true }),
+    );
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
@@ -623,12 +646,14 @@ export const addNewbornOrderImage = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => addImageSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
-    const { error } = await (context.supabase as any).from("newborn_order_images").insert({
-      order_id: data.orderId,
-      kind: data.kind,
-      image_url: data.url,
-      storage_path: data.storagePath ?? null,
-    });
+    const { error } = await withSchemaCacheRetry(context.supabase, () =>
+      (context.supabase as any).from("newborn_order_images").insert({
+        order_id: data.orderId,
+        kind: data.kind,
+        image_url: data.url,
+        storage_path: data.storagePath ?? null,
+      }),
+    );
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -639,7 +664,9 @@ export const deleteNewbornOrderImage = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { data: row } = await (context.supabase as any).from("newborn_order_images").select("storage_path").eq("id", data.id).maybeSingle();
-    const { error } = await (context.supabase as any).from("newborn_order_images").delete().eq("id", data.id);
+    const { error } = await withSchemaCacheRetry(context.supabase, () =>
+      (context.supabase as any).from("newborn_order_images").delete().eq("id", data.id),
+    );
     if (error) throw new Error(error.message);
     if (row?.storage_path) {
       (context.supabase as any).storage.from("items").remove([row.storage_path]).catch(() => {});
@@ -685,12 +712,14 @@ export const getNewbornGalleryByToken = createServerFn({ method: "POST" })
     const order = await orderByToken(data.token);
     if (!order) throw new Error("קישור לא תקין");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: images } = await (supabaseAdmin as any)
-      .from("newborn_order_images")
-      .select("id, kind, image_url, selected, sort_order")
-      .eq("order_id", order.id)
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: true });
+    const { data: images } = await withSchemaCacheRetry(supabaseAdmin, () =>
+      (supabaseAdmin as any)
+        .from("newborn_order_images")
+        .select("id, kind, image_url, selected, sort_order")
+        .eq("order_id", order.id)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true }),
+    );
     const pkg = findNewbornPackage(order.package_id);
     return {
       contactName: order.contact_name as string,
@@ -708,11 +737,13 @@ export const toggleNewbornProofByToken = createServerFn({ method: "POST" })
     if (!order) throw new Error("קישור לא תקין");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // Scope the update to this order's own images so one token can never touch another order's rows.
-    const { error } = await (supabaseAdmin as any)
-      .from("newborn_order_images")
-      .update({ selected: data.selected })
-      .eq("id", data.imageId)
-      .eq("order_id", order.id);
+    const { error } = await withSchemaCacheRetry(supabaseAdmin, () =>
+      (supabaseAdmin as any)
+        .from("newborn_order_images")
+        .update({ selected: data.selected })
+        .eq("id", data.imageId)
+        .eq("order_id", order.id),
+    );
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -730,12 +761,14 @@ export const finishNewbornProofSelectionByToken = createServerFn({ method: "POST
         .from("newborn_package_orders")
         .update({ proofs_selected_at: new Date().toISOString() })
         .eq("id", order.id);
-      const { data: selected } = await (supabaseAdmin as any)
-        .from("newborn_order_images")
-        .select("id")
-        .eq("order_id", order.id)
-        .eq("kind", "proof")
-        .eq("selected", true);
+      const { data: selected } = await withSchemaCacheRetry(supabaseAdmin, () =>
+        (supabaseAdmin as any)
+          .from("newborn_order_images")
+          .select("id")
+          .eq("order_id", order.id)
+          .eq("kind", "proof")
+          .eq("selected", true),
+      );
       try {
         const { sendGmail } = await import("@/integrations/google/gmail.server");
         await sendGmail({
