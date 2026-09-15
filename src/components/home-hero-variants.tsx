@@ -43,7 +43,12 @@ export function HeroFullBleed({ slide, setSlide, slides, logo }: HeroProps) {
           fixed/short height here let that content overflow upward past
           the header on some viewports. */}
       <div className="relative w-full h-[78vh] min-h-[820px] max-h-[920px] overflow-hidden">
-        <AnimatePresence mode="wait">
+        {/* initial={false}: only crossfade between LATER slides, never on
+            first paint — otherwise the photo and the overlaid heading both
+            start at opacity 0, so for a moment the visitor sees only the
+            bare gradient overlay with no image and no text, before it
+            "changes" into the actual hero. */}
+        <AnimatePresence mode="wait" initial={false}>
           <motion.img
             key={slide}
             src={slides[slide % slides.length]}
@@ -85,7 +90,11 @@ export function HeroFullBleed({ slide, setSlide, slides, logo }: HeroProps) {
             instead of stretching in toward the photo's center. */}
         <div className="absolute inset-0 flex flex-col justify-end">
           <div className="container-page pb-10 md:pb-14">
-            <motion.div initial="hidden" animate="show" variants={fadeUp} className="max-w-xl mr-0">
+            {/* initial={false} for the same reason as the photo above: skip
+                the opacity/y enter animation on first paint so the heading
+                block is visible immediately instead of flashing in a
+                second later. */}
+            <motion.div initial={false} animate="show" variants={fadeUp} className="max-w-xl mr-0">
               <div className="flex flex-wrap gap-2 mb-5">
                 {[
                   { label: "צילומים", to: "/studio-photography" },
@@ -110,7 +119,7 @@ export function HeroFullBleed({ slide, setSlide, slides, logo }: HeroProps) {
 
               <img src={logo} alt="Sweetbaby" className="h-14 md:h-20 w-auto mb-3" />
 
-              <h1 className="text-5xl md:text-7xl lg:text-8xl leading-[1.05] text-[#f8ede4]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+              <h1 className="text-5xl md:text-7xl lg:text-8xl leading-[1.05] text-[#f8ede4]" style={{ fontFamily: "'DM Serif Display', serif", fontWeight: 500 }}>
                 כאן נולדת התמונה
                 <br />
                 <span className="text-[#f5d5cf]">שתשאר איתך תמיד.</span>
@@ -192,7 +201,7 @@ export function HeroLightArch({ slide, setSlide, slides, logo, aspect }: HeroPro
 
       <div className="relative container-page pt-14 md:pt-20 pb-10" dir="rtl">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-          <motion.div initial="hidden" animate="show" variants={fadeUp} className="lg:col-span-7 relative z-10">
+          <motion.div initial={false} animate="show" variants={fadeUp} className="lg:col-span-7 relative z-10">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/70 backdrop-blur px-4 py-1.5 border border-[#2d3d2b]/10">
               <Star className="h-3.5 w-3.5 fill-[#a8c4a2] text-[#a8c4a2]" />
               <span className="text-[11px] tracking-[0.28em] uppercase text-[#2d3d2b]/70 font-medium">
@@ -200,7 +209,7 @@ export function HeroLightArch({ slide, setSlide, slides, logo, aspect }: HeroPro
               </span>
             </div>
 
-            <h1 className="mt-6 text-[2.9rem] leading-[1.05] md:text-[4.8rem] md:leading-[1.02] text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+            <h1 className="mt-6 text-[2.9rem] leading-[1.05] md:text-[4.8rem] md:leading-[1.02] text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif", fontWeight: 500 }}>
               <span className="block mb-3 text-right">
                 <img src={logo} alt="Sweetbaby" className="inline-block h-16 md:h-24 w-auto" />
               </span>
@@ -258,14 +267,14 @@ export function HeroLightArch({ slide, setSlide, slides, logo, aspect }: HeroPro
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+            initial={false} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
             className="lg:col-span-5 relative"
           >
             <div
               className={`relative ${heroAspect} overflow-hidden border border-[#2d3d2b]/10 bg-[#f5d5cf]`}
               style={{ borderRadius: "999px 999px 1.5rem 1.5rem" }}
             >
-              <AnimatePresence mode="wait">
+              <AnimatePresence mode="wait" initial={false}>
                 <motion.img
                   key={slide}
                   src={slides[slide % slides.length]}
