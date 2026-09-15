@@ -1,7 +1,38 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { studioInspirationMap } from "@/lib/inspiration";
 import { STATIC_CATALOG } from "@/lib/catalog";
+
+/**
+ * These config values (chat avatar, site heart icon, hero design) are fetched
+ * client-side from Supabase after mount, so the very first render always has
+ * to show *something* before that fetch resolves — previously that was the
+ * bundled default, which flashed for ~1s on every load even when the admin
+ * had picked something else, then swapped. Caching the last-resolved value in
+ * localStorage and using it as the initial render (instead of the bundled
+ * default) removes that flash for every visit after the first.
+ */
+const CONFIG_CACHE_PREFIX = "sb-cfg:";
+
+function readConfigCache(key: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(CONFIG_CACHE_PREFIX + key);
+  } catch {
+    return null;
+  }
+}
+
+function writeConfigCache(key: string, value: string | null) {
+  if (typeof window === "undefined") return;
+  try {
+    if (value === null) window.localStorage.removeItem(CONFIG_CACHE_PREFIX + key);
+    else window.localStorage.setItem(CONFIG_CACHE_PREFIX + key, value);
+  } catch {
+    // localStorage can throw (private mode, quota) — the cache is a nice-to-have, never load-bearing
+  }
+}
 
 export const PAGE_IMAGE_KEYS = {
   studioRental: "studio-rental",
@@ -219,7 +250,15 @@ export function useHeroVariant() {
     queryFn: () => fetchPageImages(HERO_VARIANT_PAGE),
     staleTime: 60_000,
   });
-  return { ...query, variant: resolveHeroVariant(query.data) };
+  const resolved = query.data ? resolveHeroVariant(query.data) : undefined;
+  const [cached] = useState<HeroVariant | null>(() => {
+    const v = readConfigCache(HERO_VARIANT_PAGE);
+    return v === "light-arch" || v === "full-bleed" ? v : null;
+  });
+  useEffect(() => {
+    if (resolved) writeConfigCache(HERO_VARIANT_PAGE, resolved);
+  }, [resolved]);
+  return { ...query, variant: resolved ?? cached ?? "full-bleed" };
 }
 
 /**
@@ -267,7 +306,12 @@ export function useChatbotAvatar() {
     queryFn: () => fetchPageImages(CHATBOT_AVATAR_PAGE),
     staleTime: 60_000,
   });
-  return { ...query, url: resolveChatbotAvatarUrl(query.data) };
+  const resolved = query.data ? resolveChatbotAvatarUrl(query.data) : undefined;
+  const [cached] = useState<string | null>(() => readConfigCache(CHATBOT_AVATAR_PAGE));
+  useEffect(() => {
+    if (resolved !== undefined) writeConfigCache(CHATBOT_AVATAR_PAGE, resolved);
+  }, [resolved]);
+  return { ...query, url: resolved !== undefined ? resolved : cached };
 }
 
 /**
@@ -318,5 +362,10 @@ export function useSiteIcon() {
     queryFn: () => fetchPageImages(SITE_ICON_PAGE),
     staleTime: 60_000,
   });
-  return { ...query, url: resolveSiteIconUrl(query.data) };
+  const resolved = query.data ? resolveSiteIconUrl(query.data) : undefined;
+  const [cached] = useState<string | null>(() => readConfigCache(SITE_ICON_PAGE));
+  useEffect(() => {
+    if (resolved !== undefined) writeConfigCache(SITE_ICON_PAGE, resolved);
+  }, [resolved]);
+  return { ...query, url: resolved !== undefined ? resolved : cached };
 }

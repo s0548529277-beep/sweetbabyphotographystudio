@@ -233,7 +233,7 @@ export function ChatBot() {
               alt=""
               width={768}
               height={768}
-              className="size-14 object-contain p-1"
+              className="h-full w-full object-contain"
             />
             <span className="absolute bottom-1 right-1 size-3.5 rounded-full border-2 border-white bg-accent shadow-sm" />
           </span>
@@ -244,9 +244,6 @@ export function ChatBot() {
             <span className="mt-1 block text-base font-bold leading-tight text-ink">
               איך אפשר לעזור?
             </span>
-          </span>
-          <span className="absolute -left-1 top-1/2 hidden -translate-y-1/2 animate-ping-soft rounded-full sm:block">
-            <span className="flex size-2.5 items-center justify-center rounded-full bg-accent" />
           </span>
         </button>
       )}
