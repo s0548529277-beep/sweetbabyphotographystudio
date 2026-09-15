@@ -773,15 +773,9 @@ export function CollageCard({
 
       <OccasionDecor theme={decorId} accent={accent} cardW={cardW} />
 
-      {/* Caption + subtitle — draggable/scalable as one block when
-          onCaptionTransform is passed (full manual control, per explicit
-          request). The drag-catcher rect renders AFTER the text (not
-          before) so it always wins pointer hit-testing over the glyphs —
-          an earlier version had it first and clicks landed on the letters
-          instead, the same paint-order lesson as the photo hand control.
-          The rect is generously sized around the text rather than hugging
-          its exact glyph width, since SVG text has no cheap way to
-          measure its own rendered width up front. */}
+      {/* Caption + subtitle — draggable/scalable directly from their visible
+          glyphs. Avoid a transparent full-width hit area here: in overlay
+          mode it would sit above the photos and swallow their pan controls. */}
       <g transform={`translate(${captionOffsetX}, ${captionOffsetY})`}>
         <text
           x={cardW / 2}

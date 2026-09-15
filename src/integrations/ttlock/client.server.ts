@@ -24,11 +24,10 @@
 // weren't reachable from this sandbox), not guessed from scratch.
 //
 // The overnight-exclusion path (excludeOvernightHours, props/accessories
-// only) is NOT yet verified live — it issues several passcodes that all
-// share the same code string but different keyboardPwdId/time windows,
-// which is the one part of this file with real remaining uncertainty:
-// whether TTLock accepts more than one active passcode with an identical
-// digit string on the same lock, or rejects a duplicate. TTLock does
+// only) cannot safely issue several windows with the same code: TTLock's
+// duplicate recovery merges them into one continuous window and reopens
+// quiet hours. Multi-day rentals therefore fail closed and notify the admin
+// for manual handling. TTLock does
 // document a "cyclic" (keyboardPwdType=9, a recurring daily time window)
 // passcode type that would be the more natural fit for "active every day
 // except 01:00-07:00" — but the exact request shape for its cyclic
