@@ -19,8 +19,8 @@ import {
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input";
 import { Shimmer } from "@/components/ai-elements/shimmer";
-import { useChatbotAvatar, useSiteIcon } from "@/lib/page-images";
-import noaAvatar from "@/assets/noa-chat-avatar.png";
+import { useSiteIcon } from "@/lib/page-images";
+import botAntennaHeart from "@/assets/bot-antenna-heart.png";
 import heartIcon from "@/assets/heart-gradient.png";
 
 type Msg = { role: "user" | "assistant"; content: string };
@@ -49,10 +49,11 @@ const QUICK_QUESTIONS = [
 export function ChatBot() {
   const { user } = useAuth();
   const isAuth = !!user;
-  // Replaceable from /admin/gallery — falls back to the bundled artwork
-  // until an admin uploads a custom one.
-  const { url: customAvatar } = useChatbotAvatar();
-  const avatarSrc = customAvatar ?? noaAvatar;
+  // Fixed permanently to her chosen artwork (bot-antenna-heart.png) — this
+  // used to be admin-replaceable from /admin/gallery, but that async
+  // lookup could flash the old bundled avatar before the custom one
+  // resolved, same class of issue as the home hero's fixed-variant fix.
+  const avatarSrc = botAntennaHeart;
   // Same admin-replaceable heart used for the favicon/hero — see
   // /admin/gallery ← "סמל האתר (הלב)".
   const { url: customHeart } = useSiteIcon();
