@@ -326,7 +326,7 @@ function StudioRentalPage() {
       <section className="container-page pb-14" dir="rtl">
         <motion.div
           initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }} variants={fadeUp}
-          className="max-w-4xl mx-auto bg-white rounded-[2rem] border border-[#2d3d2b]/5 overflow-hidden shadow-[0_20px_60px_-30px_rgba(45,61,43,0.35)]"
+          className="max-w-4xl mx-auto bg-gradient-to-br from-[#f8ede4] to-[#f5d5cf]/30 rounded-[2rem] border border-[#2d3d2b]/5 overflow-hidden shadow-[0_20px_60px_-30px_rgba(45,61,43,0.35)]"
         >
           <div className="px-4 py-6 md:px-6 md:py-9">
             <div className="text-center">
