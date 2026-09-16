@@ -57,7 +57,7 @@ export const Route = createFileRoute("/about")({
               name: "מבצע ניו-בורן בוקר",
               priceCurrency: "ILS",
               price: "300",
-              description: "3 שעות רצופות (8:00–13:00) ב-300 ₪.",
+              description: "3 שעות רצופות (8:00–14:00) ב-300 ₪.",
             },
             {
               "@type": "Offer",

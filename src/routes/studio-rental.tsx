@@ -65,7 +65,7 @@ const rulesBlocks: { title: string; items: string[] }[] = [
     "שעת השכרה ראשונה: 150 ₪",
     "כל שעה נוספת: 100 ₪",
     "חצי שעה = חצי מהתעריף המתאים",
-    "מבצע 8:00–13:00 (ניו-בורן): 3 שעות ב-300 ₪",
+    "מבצע 8:00–14:00 (ניו-בורן): 3 שעות ב-300 ₪",
     "מינימום הזמנה: שעה (2 חצאי שעות)",
     "עיכוב של 15 דק׳ ומעלה — יחויב כחצי שעה נוספת",
     "עיכוב של 45 דק׳ ומעלה — יחויב כשעה מלאה נוספת",
@@ -274,7 +274,7 @@ function StudioRentalPage() {
         <div className="grid md:grid-cols-2 gap-4 md:gap-5 max-w-3xl mx-auto">
           <motion.div
             initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={0} variants={fadeUp}
-            className="bg-white rounded-2xl border border-[#2d3d2b]/10 px-4 py-5"
+            className="bg-gradient-to-br from-[#f8ede4] to-[#f5d5cf] rounded-2xl border border-[#2d3d2b]/10 px-4 py-5"
           >
             <div>
               <div className="text-[14px] tracking-[0.16em] uppercase text-[#6b8a63] mb-1">01 · Flexible</div>
@@ -293,7 +293,7 @@ function StudioRentalPage() {
 
           <motion.div
             initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={1} variants={fadeUp}
-            className="bg-[#f5d5cf]/50 text-[#2d3d2b] rounded-2xl border border-[#2d3d2b]/10 px-4 py-5"
+            className="bg-gradient-to-br from-[#f8c4c0] to-[#f5d5cf] text-[#2d3d2b] rounded-2xl border border-[#2d3d2b]/10 px-4 py-5"
           >
             <div>
               <div className="flex items-center justify-between">
@@ -303,7 +303,7 @@ function StudioRentalPage() {
               <h3 className="text-lg" style={{ fontFamily: "'DM Serif Display', serif" }}>מבצע בוקר ניו-בורן</h3>
               <div className="mt-2 flex items-baseline gap-2">
                 <span className="text-2xl" style={{ fontFamily: "'DM Serif Display', serif" }}>₪300</span>
-                <span className="text-xs text-[#2d3d2b]/70">/ 3 שעות (8:00–13:00)</span>
+                <span className="text-xs text-[#2d3d2b]/70">/ 3 שעות (8:00–14:00)</span>
               </div>
               <p className="mt-2 text-[14px] text-[#2d3d2b]/80">3 שעות רצופות · חיסכון משמעותי מול תעריף שעתי</p>
               <p className="mt-1 text-[13px] text-[#2d3d2b] font-medium">5% צבירה אוטומטית לקוח רשום, לניצול בהזמנה הבאה</p>
@@ -341,11 +341,11 @@ function StudioRentalPage() {
 
             <div className="mt-7 grid md:grid-cols-3 gap-3 md:gap-4">
               {[
-                { n: "01", title: "שאלון והסכם", desc: "ממלאים את הסכם תיאום הציפיות — פרטים, סוג הצילום ואישור כללי הסטודיו." },
-                { n: "02", title: "קביעת יומן", desc: "בוחרים תאריך ושעה פנויים ביומן החי, משך שהות ואביזרים לשריון (עד 20 חינם)." },
-                { n: "03", title: "תשלום מקדמה", desc: "מקדמה 90 ₪ לשריון המועד (ביום ההגעה — תשלום מלא). ואז הכל נסגר." },
+                { n: "01", title: "שאלון והסכם", desc: "ממלאים את הסכם תיאום הציפיות — פרטים, סוג הצילום ואישור כללי הסטודיו.", bg: "from-[#f8ede4] to-[#f5d5cf]/70" },
+                { n: "02", title: "קביעת יומן", desc: "בוחרים תאריך ושעה פנויים ביומן החי, משך שהות ואביזרים לשריון (עד 20 חינם).", bg: "from-[#dce8d5] to-[#eef4ea]" },
+                { n: "03", title: "תשלום מקדמה", desc: "מקדמה 90 ₪ לשריון המועד (ביום ההגעה — תשלום מלא). ואז הכל נסגר.", bg: "from-[#f5d5cf] to-[#f8c4c0]/70" },
               ].map((s) => (
-                <div key={s.n} className="rounded-2xl border border-[#2d3d2b]/10 bg-white p-5">
+                <div key={s.n} className={`rounded-2xl border border-[#2d3d2b]/10 bg-gradient-to-br ${s.bg} p-5`}>
                   <div className="text-[14px] tracking-[0.18em] uppercase text-[#6b8a63] mb-1">Step {s.n}</div>
                   <h3 className="text-lg text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>{s.title}</h3>
                   <p className="mt-1.5 text-[15px] text-[#2d3d2b]/75 leading-relaxed">{s.desc}</p>
@@ -385,7 +385,7 @@ function StudioRentalPage() {
         </motion.div>
 
 
-        <div className="mt-6 max-w-3xl mx-auto bg-white text-[#2d3d2b] rounded-[2rem] border border-[#2d3d2b]/10 px-4 py-5">
+        <div className="mt-6 max-w-3xl mx-auto bg-gradient-to-br from-[#eef4ea] to-[#f8ede4] text-[#2d3d2b] rounded-[2rem] border border-[#2d3d2b]/10 px-4 py-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex-1 min-w-[240px]">
               <div className="text-[15px] tracking-[0.18em] uppercase text-[#6b8a63] mb-1">Add-on · חינם</div>
@@ -419,7 +419,7 @@ function StudioRentalPage() {
 
       </section>
 <section className="container-page pb-4" dir="rtl">
-        <ArrivalDirections className="max-w-4xl mx-auto" />
+        <ArrivalDirections className="max-w-4xl mx-auto" variant="colorful" />
       </section>
       <section id="studio-inspiration" className="container-page pb-12 scroll-mt-24">
         <InspirationStrip
