@@ -302,13 +302,12 @@ function StudioRentalPage() {
               </div>
               <h3 className="text-lg" style={{ fontFamily: "'DM Serif Display', serif" }}>מבצע בוקר ניו-בורן</h3>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl" style={{ fontFamily: "'DM Serif Display', serif" }}>₪300</span>
-                <span className="text-xs text-[#2d3d2b]/70">/ 3 שעות (8:00–14:00)</span>
+                <span className="text-lg" style={{ fontFamily: "'DM Serif Display', serif" }}>מחיר יעודכן בקרוב</span>
               </div>
-              <p className="mt-2 text-[14px] text-[#2d3d2b]/80">3 שעות רצופות · חיסכון משמעותי מול תעריף שעתי</p>
+              <p className="mt-2 text-[14px] text-[#2d3d2b]/80">3 שעות רצופות (8:00–14:00) · חיסכון משמעותי מול תעריף שעתי</p>
               <p className="mt-1 text-[13px] text-[#2d3d2b] font-medium">5% צבירה אוטומטית לקוח רשום, לניצול בהזמנה הבאה</p>
-              <button type="button" onClick={() => { upd("sessionType", "ניו-בורן"); setShowForm(true); }} className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#2d3d2b] text-[#f8ede4] px-4 py-2 text-xs font-semibold">
-                לקביעת מועד <ArrowLeft className="h-3.5 w-3.5" />
+              <button type="button" disabled aria-disabled="true" className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#2d3d2b]/30 text-[#f8ede4] px-4 py-2 text-xs font-semibold cursor-not-allowed">
+                בקרוב
               </button>
             </div>
           </motion.div>
