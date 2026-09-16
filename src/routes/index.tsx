@@ -23,7 +23,7 @@ import hero7 from "@/assets/home-hero-7.png.asset.json";
 import studioInterior from "@/assets/studio-interior.jpg";
 import studioPropsCorner from "@/assets/studio-props-corner.jpg";
 import heroScene from "@/assets/hero-scene.jpg";
-import { HeroFullBleed } from "@/components/home-hero-variants";
+import { HeroLightArch } from "@/components/home-hero-variants";
 
 const GALLERY_IMAGES: { src: string; caption: string }[] = [
   { src: hero0.url,             caption: "פינת ניו-בורן ורודה" },
@@ -102,12 +102,14 @@ function Home() {
     <div className="min-h-screen flex flex-col bg-[#f8ede4] text-[#2d3d2b] overflow-hidden" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
       <Header />
 
-      {/* HERO — fixed permanently to the full-bleed design (this used to be
-          switchable live via /admin/gallery, but that async lookup could
-          flash a stale cached design on first paint before resolving; see
-          home-hero-variants.tsx for details). HeroLightArch is kept in that
-          file in case this design is ever wanted back. */}
-      <HeroFullBleed slide={slide} setSlide={setSlide} slides={slides} logo={logo} />
+      {/* HERO — fixed permanently to the light-arch ("שער") design, her
+          actual preference (confirmed directly after an earlier wrong
+          assumption that full-bleed was "the one actually live" — it
+          wasn't). Not a live-switchable admin setting: that async lookup
+          could flash a stale cached design on first paint before
+          resolving; see home-hero-variants.tsx for details. HeroFullBleed
+          is kept in that file in case this design is ever wanted back. */}
+      <HeroLightArch slide={slide} setSlide={setSlide} slides={slides} logo={logo} aspect={heroGallery.aspect} />
 
 
       {/* THREE OFFERINGS */}
