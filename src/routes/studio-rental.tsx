@@ -65,6 +65,7 @@ const rulesBlocks: { title: string; items: string[] }[] = [
     "שעת השכרה ראשונה: 150 ₪",
     "כל שעה נוספת: 100 ₪",
     "חצי שעה = חצי מהתעריף המתאים",
+    "מבצע 8:00–13:00 (ניו-בורן): 3 שעות ב-300 ₪",
     "מינימום הזמנה: שעה (2 חצאי שעות)",
     "עיכוב של 15 דק׳ ומעלה — יחויב כחצי שעה נוספת",
     "עיכוב של 45 דק׳ ומעלה — יחויב כשעה מלאה נוספת",
@@ -270,20 +271,43 @@ function StudioRentalPage() {
 
       {/* PRICING */}
       <section className="container-page pb-6" dir="rtl">
-        <div className="max-w-md mx-auto">
+        <div className="grid md:grid-cols-2 gap-4 md:gap-5 max-w-3xl mx-auto">
           <motion.div
             initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={0} variants={fadeUp}
             className="bg-white rounded-2xl border border-[#2d3d2b]/10 px-4 py-5"
           >
             <div>
-              <div className="text-[14px] tracking-[0.16em] uppercase text-[#6b8a63] mb-1">Pricing</div>
-              <h3 className="text-lg text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>שעתי</h3>
+              <div className="text-[14px] tracking-[0.16em] uppercase text-[#6b8a63] mb-1">01 · Flexible</div>
+              <h3 className="text-lg text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>שעתי גמיש</h3>
               <div className="mt-2 flex items-baseline gap-2">
                 <span className="text-2xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>₪150</span>
                 <span className="text-xs text-[#2d3d2b]/60">/ שעה ראשונה</span>
               </div>
               <p className="mt-2 text-[14px] text-[#2d3d2b]/75">כל שעה נוספת 100 ₪ · חצאי שעות בחישוב יחסי · מינימום שעה</p>
+              <p className="mt-1 text-[13px] text-[#6b8a63] font-medium">5% צבירה אוטומטית לקוח רשום, לניצול בהזמנה הבאה</p>
               <button type="button" onClick={() => setShowForm(true)} className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#2d3d2b] text-[#f8ede4] px-4 py-2 text-xs font-semibold">
+                לקביעת מועד <ArrowLeft className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={1} variants={fadeUp}
+            className="bg-[#f5d5cf]/50 text-[#2d3d2b] rounded-2xl border border-[#2d3d2b]/10 px-4 py-5"
+          >
+            <div>
+              <div className="flex items-center justify-between">
+                <div className="text-[14px] tracking-[0.16em] uppercase text-[#6b8a63] mb-1">02 · Morning</div>
+                <span className="text-[9px] tracking-[0.2em] uppercase bg-[#2d3d2b] text-[#f8ede4] px-2 py-0.5 rounded-full font-semibold">ניוברן</span>
+              </div>
+              <h3 className="text-lg" style={{ fontFamily: "'DM Serif Display', serif" }}>מבצע בוקר ניו-בורן</h3>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl" style={{ fontFamily: "'DM Serif Display', serif" }}>₪300</span>
+                <span className="text-xs text-[#2d3d2b]/70">/ 3 שעות (8:00–13:00)</span>
+              </div>
+              <p className="mt-2 text-[14px] text-[#2d3d2b]/80">3 שעות רצופות · חיסכון משמעותי מול תעריף שעתי</p>
+              <p className="mt-1 text-[13px] text-[#2d3d2b] font-medium">5% צבירה אוטומטית לקוח רשום, לניצול בהזמנה הבאה</p>
+              <button type="button" onClick={() => { upd("sessionType", "ניו-בורן"); setShowForm(true); }} className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#2d3d2b] text-[#f8ede4] px-4 py-2 text-xs font-semibold">
                 לקביעת מועד <ArrowLeft className="h-3.5 w-3.5" />
               </button>
             </div>

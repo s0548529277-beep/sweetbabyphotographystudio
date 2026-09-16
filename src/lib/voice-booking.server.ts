@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { GUIDANCE_FEES, priceForBooking } from "@/lib/bookings.functions";
+import { GUIDANCE_FEES, isMorningPackage, priceForBooking } from "@/lib/bookings.functions";
 import { bookingBlocksSlot, PENDING_HOLD_MINUTES } from "@/lib/availability.server";
 import { buildBookingSummaryHtml } from "@/lib/orderSummary";
 import { toAuthPassword } from "@/lib/password";
@@ -47,6 +47,7 @@ export async function createPhoneBooking(input: PhoneBookingInput) {
   const endMin = startMin + input.slots * 30;
   const endTime = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
 
+  const isMorning = isMorningPackage(input.slots, input.start_time);
   const guidanceKey = input.guidance ?? "basic";
   const guidanceFee = GUIDANCE_FEES[guidanceKey] ?? 0;
   const price = priceForBooking(input.slots, input.start_time, null) + guidanceFee;
@@ -204,7 +205,7 @@ export async function createPhoneBooking(input: PhoneBookingInput) {
       start_time: input.start_time,
       end_time: endTime,
       slots: input.slots,
-      package: "regular",
+      package: isMorning ? "morning" : "regular",
       price,
       deposit_amount: deposit,
       balance_amount: Math.max(0, price - deposit),
