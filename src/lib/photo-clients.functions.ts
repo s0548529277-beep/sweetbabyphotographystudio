@@ -553,7 +553,17 @@ export async function runDueProofSelectionReminders(): Promise<{ checked: number
   const dueBy = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const windowStart = new Date(today.getTime() - 60 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-  const { data: candidates, error } = await supabaseAdmin
+  // proof_reminder_sent_at can lag a schema deploy (same class of issue
+  // documented in api.yemot.ivr.ts's selectVoiceSession/upsertVoiceSession)
+  // — confirmed live: this column was missing on the production database,
+  // which made the WHOLE select fail on every single cron run (96 times/day
+  // at a 15-min interval) and silently stopped every proof-selection
+  // reminder from ever going out, with nothing surfacing the failure. Retry
+  // without the dedup filter if the first attempt errors, so reminders keep
+  // flowing even during a deploy lag — worst case here is a duplicate
+  // reminder email for the same client until the column catches up, which
+  // is far better than the alternative (none ever sent again, forever).
+  const full = await supabaseAdmin
     .from("photo_client_workflows")
     .select("id, user_id, session_date")
     .eq("stage", "proofs_ready")
@@ -562,9 +572,21 @@ export async function runDueProofSelectionReminders(): Promise<{ checked: number
     .lte("session_date", dueBy)
     .gte("session_date", windowStart);
 
-  if (error) {
-    console.error("[SWEETBABY] proof-reminder scan failed", error);
-    return { checked: 0, sent: 0 };
+  let candidates = full.data;
+  if (full.error) {
+    console.error("[SWEETBABY] proof-reminder scan failed (proof_reminder_sent_at column may be missing), retrying without the dedup filter", full.error);
+    const fallback = await supabaseAdmin
+      .from("photo_client_workflows")
+      .select("id, user_id, session_date")
+      .eq("stage", "proofs_ready")
+      .not("session_date", "is", null)
+      .lte("session_date", dueBy)
+      .gte("session_date", windowStart);
+    if (fallback.error) {
+      console.error("[SWEETBABY] proof-reminder scan fallback ALSO failed", fallback.error);
+      return { checked: 0, sent: 0 };
+    }
+    candidates = fallback.data;
   }
 
   let sent = 0;
@@ -585,11 +607,28 @@ export async function runDueProofSelectionReminders(): Promise<{ checked: number
           <p>כדי שנוכל להתקדם לעיבוד ולשלוח לך את האלבום הסופי בקרוב, נשמח שתזדרזי קצת 💛</p>
         </div>`,
       });
-      // proof_reminder_sent_at is a brand-new column — cast until
-      // types.ts is regenerated against it (same idiom already used for
-      // retroach_presets/retouch_allowed_clients in admin.retouch-presets.tsx).
-      await (supabaseAdmin as any).from("photo_client_workflows").update({ proof_reminder_sent_at: new Date().toISOString() }).eq("id", w.id);
+      // Counted as sent the moment the email itself succeeds — the dedup
+      // marker below is a separate, best-effort write. If IT fails (e.g.
+      // the same missing-column deploy lag), that must never look like the
+      // email send itself failed and must never undo the count above; it
+      // only means this client risks one more duplicate reminder on the
+      // next run, not that this run's reminder didn't actually go out.
       sent += 1;
+      // proof_reminder_sent_at is a brand-new column — cast until types.ts
+      // is regenerated against it (same idiom already used for
+      // retouch_presets/retouch_allowed_clients in admin.retouch-presets.tsx).
+      // supabase-js returns {error} instead of throwing on a query failure
+      // (confirmed elsewhere in this codebase, e.g. selectVoiceSession in
+      // api.yemot.ivr.ts), so this must check markError explicitly — a
+      // try/catch around the call alone would never see a missing-column
+      // failure here.
+      const { error: markError } = await (supabaseAdmin as any)
+        .from("photo_client_workflows")
+        .update({ proof_reminder_sent_at: new Date().toISOString() })
+        .eq("id", w.id);
+      if (markError) {
+        console.error("[SWEETBABY] proof-reminder dedup marker write failed for workflow (email was still sent)", w.id, markError);
+      }
     } catch (e) {
       console.error("[SWEETBABY] proof-selection reminder failed for workflow", w.id, e);
     }
