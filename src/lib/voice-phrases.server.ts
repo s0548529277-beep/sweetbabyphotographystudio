@@ -73,7 +73,13 @@ export const DEFAULT_PHRASES: Record<PhraseKey, string> = {
   dtmf_leave_message_confirm: "לְאִשּׁוּר וּשְׁלִיחַת הַהוֹדָעָה הַקִּישִׁי אֶחָד. לְהַקְלִיט אוֹתָהּ מֵחָדָשׁ הַקִּישִׁי שְׁתַּיִם.",
   dtmf_leave_message_redo: "בְּסֵדֶר, אֶפְשָׁר לְהַגִּיד אֶת הַהוֹדָעָה שׁוּב.",
   studio_blurb:
-    "הַשְׂכָּרַת סטודיו: שָׁעָה רִאשׁוֹנָה 150 שֶׁקֶל, כָּל שָׁעָה נוֹסֶפֶת 100 שֶׁקֶל. שִׁרְיוּן דּוֹרֵשׁ מִקְדָּמָה שֶׁל 90 שֶׁקֶל.",
+    // The morning-package clause and "300" reuse the exact niqqud already
+    // verified in production before this package was briefly canceled (see
+    // git history) — safe to reuse as-is. The cashback sentence is left
+    // unvocalized rather than guessing new niqqud with no way to verify it
+    // against real Yemot TTS audio from this environment (see the
+    // ai-bot-efficiency skill's niqqud changelog entry).
+    "הַשְׂכָּרַת סטודיו: שָׁעָה רִאשׁוֹנָה 150 שֶׁקֶל, כָּל שָׁעָה נוֹסֶפֶת 100 שֶׁקֶל. שִׁרְיוּן דּוֹרֵשׁ מִקְדָּמָה שֶׁל 90 שֶׁקֶל. אֶפְשָׁר גַּם חֲבִילַת ניו-בורן בֹּקֶר, 3 שָׁעוֹת ב-300 שֶׁקֶל. לקוחות רשומות צוברות אוטומטית 5 אחוז קרדיט לניצול בהזמנה הבאה.",
   props_blurb:
     "הַשְׂכָּרַת אֲבִיזָרִים: יֵשׁ קָטָלוֹג שֶׁל יוֹתֵר מ-400 אֲבִיזָרִים בָּאֲתָר, מִינִימוּם הַזְמָנָה 50 שֶׁקֶל, לְפִי 24 שָׁעוֹת הַשְׂכָּרָה.",
   guide_choice_prompt:
