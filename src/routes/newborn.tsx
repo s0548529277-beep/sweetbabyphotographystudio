@@ -506,19 +506,25 @@ function NewbornLandingPage() {
 
       {/* Gallery — real newborn photos only (see builtinEntries in
           page-images.ts: no generic studio fallback for this page anymore,
-          per explicit request), so hide the section entirely until she's
-          uploaded some via /admin/gallery rather than show nothing/wrong photos. */}
-      {photos.length > 0 && (
-        <section id="gallery" className="max-w-6xl mx-auto px-6 pb-16">
-          <div className="flex items-end justify-between mb-6">
-            <div>
-              <h2 className="text-3xl md:text-4xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
-                מהסשנים שלנו
-              </h2>
-              <p className="text-sm text-[#4a3221]/70 mt-1">רגעים אמיתיים מצילומי ניו-בורן בסטודיו</p>
-            </div>
+          per explicit request — never the general studio-session stock
+          photos, which mix in non-newborn shots). This section itself must
+          always render, though, even with zero photos: the header's own
+          "גלריה" link (#gallery anchor) points here, and hiding the whole
+          section whenever nothing's been uploaded yet turned that link (and
+          any other in-page "view gallery" link) into a dead click that
+          silently does nothing — confirmed as a real reported bug, not just
+          a cosmetic gap. Empty state below instead. */}
+      <section id="gallery" className="max-w-6xl mx-auto px-6 pb-16">
+        <div className="flex items-end justify-between mb-6">
+          <div>
+            <h2 className="text-3xl md:text-4xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
+              מהסשנים שלנו
+            </h2>
+            <p className="text-sm text-[#4a3221]/70 mt-1">רגעים אמיתיים מצילומי ניו-בורן בסטודיו</p>
           </div>
+        </div>
 
+        {photos.length > 0 ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }} className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             {photos.map((src, i) => (
               <motion.button
@@ -537,8 +543,12 @@ function NewbornLandingPage() {
               </motion.button>
             ))}
           </motion.div>
-        </section>
-      )}
+        ) : (
+          <div className="rounded-3xl border border-dashed border-[#d9b98a]/50 bg-white/60 p-10 text-center text-sm text-[#4a3221]/70">
+            תמונות מהסשנים בקרוב — בינתיים אפשר לקבוע מועד ולהיות מהראשונות בגלריה 💗
+          </div>
+        )}
+      </section>
 
       {/* CTA */}
       <section className="max-w-4xl mx-auto px-6 pb-20">
