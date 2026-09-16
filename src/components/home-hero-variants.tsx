@@ -158,7 +158,7 @@ export function HeroFullBleed({ slide, setSlide, slides, logo }: HeroProps) {
             {[
               { end: 400, suffix: "+", label: "אביזרים", icon: Sparkles },
               { end: 3, suffix: "+ שנים", label: "מ-2023", icon: Clock },
-              { end: 1200, suffix: "+", label: "משפחות", icon: GradientHeartIcon },
+              { end: 1200, suffix: "+", label: "לקוחות", icon: GradientHeartIcon },
             ].map((s, i) => (
               <motion.div
                 key={s.label} custom={i} initial="hidden" animate="show" variants={fadeUp}
@@ -256,7 +256,7 @@ export function HeroLightArch({ slide, setSlide, slides, logo, aspect }: HeroPro
               {[
                 { end: 400, suffix: "+", label: "אביזרים", icon: Sparkles },
                 { end: 3, suffix: "+ שנים", label: "מ-2023", icon: Clock },
-                { end: 1200, suffix: "+", label: "משפחות", icon: GradientHeartIcon },
+                { end: 1200, suffix: "+", label: "לקוחות", icon: GradientHeartIcon },
               ].map((s, i) => (
                 <motion.div key={s.label} custom={i} initial="hidden" animate="show" variants={fadeUp} className="flex flex-col">
                   <s.icon className="h-4 w-4 text-[#6b8a63] mb-2" />
@@ -311,7 +311,7 @@ export function HeroLightArch({ slide, setSlide, slides, logo, aspect }: HeroPro
               <div className="flex items-center gap-2">
                 <Star className="h-4 w-4 fill-[#a8c4a2] text-[#a8c4a2]" />
                 <span className="text-sm text-[#2d3d2b]">
-                  <strong className="font-medium">5.0</strong> · משפחות מרוצות
+                  <strong className="font-medium">5.0</strong> · לקוחות מרוצים
                 </span>
               </div>
               <div className="flex items-center gap-2 text-sm text-[#2d3d2b]/70">
