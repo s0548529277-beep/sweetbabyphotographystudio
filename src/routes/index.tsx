@@ -328,7 +328,7 @@ function Home() {
       <section id="testimonials" className="container-page pb-16 md:pb-24 scroll-mt-28" dir="rtl">
         <div className="text-center mb-12">
           <div className="text-xs tracking-[0.3em] uppercase text-[#6b8a63] font-medium mb-3">
-            מה אומרות המשפחות
+            מה אומרות הלקוחות
           </div>
           <h2 className="text-4xl md:text-5xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
             חוויות מהסטודיו
