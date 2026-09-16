@@ -1,12 +1,13 @@
 // Two homepage hero designs. The Home route now always renders
-// HeroFullBleed (the permanent, fixed choice) — this used to be a
-// one-click switcher via /admin/gallery (see useHeroVariant/saveHeroVariant
-// in @/lib/page-images, still there but no longer wired to anything), but
-// that live lookup could flash a stale cached design on first paint before
-// resolving. HeroLightArch is kept here in case that design is ever wanted
-// again. Both take the same slide-rotation state as props (owned by the
-// Home route) and render the exact same content — only the layout,
-// background treatment and sizing differ.
+// HeroLightArch ("שער") — her actual preference — as the permanent, fixed
+// choice. This used to be a one-click switcher via /admin/gallery (see
+// useHeroVariant/saveHeroVariant in @/lib/page-images, still there but no
+// longer wired to anything), but that live lookup could flash a stale
+// cached design on first paint before resolving. HeroFullBleed is kept
+// here in case that design is ever wanted again. Both take the same
+// slide-rotation state as props (owned by the Home route) and render the
+// exact same content — only the layout, background treatment and sizing
+// differ.
 import { Link } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, ArrowLeft, MapPin, Star, Clock } from "lucide-react";
@@ -34,8 +35,9 @@ type HeroProps = {
   logo: string;
 };
 
-/** "Full-bleed" — the design actually live on the site: a wide rotating
- * photo fills the whole hero, gradient-darkened for readability, with the
+/** "Full-bleed" — an alternate design, not currently live (see
+ * HeroLightArch below, the one actually in use): a wide rotating photo
+ * fills the whole hero, gradient-darkened for readability, with the
  * logo/heading/CTAs overlaid near the bottom-right and a full-width dark
  * stats bar below the photo. */
 export function HeroFullBleed({ slide, setSlide, slides, logo }: HeroProps) {
@@ -193,9 +195,9 @@ export function HeroFullBleed({ slide, setSlide, slides, logo }: HeroProps) {
   );
 }
 
-/** "Light-arch" — the site's previous design: a light pink-cream background,
- * heading/copy/CTAs/stats in a right-hand column, and the rotating photo in
- * an arch-shaped frame on the left. */
+/** "Light-arch" ("שער") — the design actually live on the site: a light
+ * pink-cream background, heading/copy/CTAs/stats in a right-hand column,
+ * and the rotating photo in an arch-shaped frame on the left. */
 export function HeroLightArch({ slide, setSlide, slides, logo, aspect }: HeroProps & { aspect: "portrait" | "landscape" }) {
   const heroAspect = aspect === "landscape" ? "aspect-[16/9]" : "aspect-[4/5]";
   return (

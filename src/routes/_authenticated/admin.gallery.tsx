@@ -8,23 +8,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/lib/image-compress";
 import {
   builtinEntries,
-  CHATBOT_AVATAR_PAGE,
   EMAIL_HEART_PAGE,
   fetchPageImages,
   PAGE_IMAGE_KEYS,
-  resetChatbotAvatar,
   resetEmailHeart,
   resetSiteIcon,
   resolveAspect,
   rowUrl,
   saveAspect,
-  saveChatbotAvatar,
   saveEmailHeart,
   saveSiteIcon,
   SITE_ICON_PAGE,
   type PageImage,
 } from "@/lib/page-images";
-import noaAvatar from "@/assets/noa-chat-avatar.png";
 import heartIcon from "@/assets/heart-gradient.png";
 
 export const Route = createFileRoute("/_authenticated/admin/gallery")({
@@ -39,7 +35,6 @@ const TABS = [
   { key: PAGE_IMAGE_KEYS.newborn, label: "ניו-בורן – דף נחיתה" },
   { key: PAGE_IMAGE_KEYS.rentalInspiration, label: "השכרת אביזרים – תמונות מתחלפות" },
   { key: PAGE_IMAGE_KEYS.about, label: "עלינו – תמונות" },
-  { key: CHATBOT_AVATAR_PAGE, label: "בוט הצ'אט – תמונת פרופיל" },
   { key: SITE_ICON_PAGE, label: "סמל האתר (הלב)" },
   { key: EMAIL_HEART_PAGE, label: "הלב במיילים" },
 ] as const;
@@ -174,10 +169,10 @@ function AdminGalleryPage() {
   const aspect = resolveAspect(images.data);
   const refresh = () => qc.invalidateQueries({ queryKey: ["page-images", page] });
 
-  // Chat bot avatar + site icon ("the heart") — same synthetic-page config
-  // pattern as the hero variant above, per explicit request to make both
-  // replaceable without a developer.
-  const chatbotAvatar = useSingleImageConfig(CHATBOT_AVATAR_PAGE, saveChatbotAvatar, resetChatbotAvatar);
+  // Site icon ("the heart") — same synthetic-page config pattern as the
+  // hero variant used to be, per explicit request to make it replaceable
+  // without a developer. The chat bot avatar used to work the same way but
+  // is now fixed permanently (see ChatBot.tsx) — no admin control here.
   const siteIcon = useSingleImageConfig(SITE_ICON_PAGE, saveSiteIcon, resetSiteIcon);
   const emailHeart = useSingleImageConfig(EMAIL_HEART_PAGE, saveEmailHeart, resetEmailHeart);
 
@@ -302,7 +297,7 @@ function AdminGalleryPage() {
             כל התמונות בעמודים – כולל אלה שהיו מוטמעות באתר – ניתנות למחיקה ולשינוי סדר מכאן: אפשר לגרור תמונה למקום חדש או להקליד מספר מיקום על התמונה. אפשר להעלות כמה תמונות בבת אחת.
           </p>
         </div>
-        {page !== CHATBOT_AVATAR_PAGE && page !== SITE_ICON_PAGE && page !== EMAIL_HEART_PAGE && (
+        {page !== SITE_ICON_PAGE && page !== EMAIL_HEART_PAGE && (
           <div>
             <input
               ref={inputRef}
@@ -370,18 +365,6 @@ function AdminGalleryPage() {
         </div>
       )}
 
-      {page === CHATBOT_AVATAR_PAGE && (
-        <SingleImageConfigCard
-          hint="התמונה שמופיעה בכל מקום שבו בוט הצ'אט (נועה) מדברת עם לקוחות באתר."
-          url={chatbotAvatar.url}
-          defaultUrl={noaAvatar}
-          busy={chatbotAvatar.busy}
-          inputRef={chatbotAvatar.inputRef}
-          onFile={chatbotAvatar.handleFile}
-          onReset={chatbotAvatar.handleReset}
-        />
-      )}
-
       {page === SITE_ICON_PAGE && (
         <SingleImageConfigCard
           hint='הלב שמופיע בלשונית הדפדפן (favicon) ובפס הסטטיסטיקות בדף הבית. שינוי כאן חל תוך כמה שניות בדפדפנים שכבר פתוחים באתר — בלשונית סגורה שנפתחת מחדש זה מיידי.'
@@ -408,7 +391,7 @@ function AdminGalleryPage() {
         />
       )}
 
-      {page !== CHATBOT_AVATAR_PAGE && page !== SITE_ICON_PAGE && page !== EMAIL_HEART_PAGE && (images.isLoading ? (
+      {page !== SITE_ICON_PAGE && page !== EMAIL_HEART_PAGE && (images.isLoading ? (
         <div className="text-sm text-muted-foreground">טוען...</div>
       ) : rows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-primary/20 p-10 text-center text-sm text-muted-foreground">
