@@ -421,6 +421,71 @@ export const getPhotoClientDetail = createServerFn({ method: "POST" })
     };
   });
 
+/**
+ * Sends the studio's real photo-session contract to one client — the fixed
+ * terms (see photoContract.ts) filled in with THIS client's saved date/
+ * time/package details (PackageDetails on admin.photo-clients.$bookingId.tsx
+ * must be saved first, or the send is refused with a clear reason instead
+ * of going out with blank/guessed fields). Triggered by a "שליחת חוזה"
+ * button, not automatically on deposit confirmation — package specifics
+ * vary per client and aren't known until the admin has actually entered
+ * them for this workflow.
+ */
+export const sendPhotoClientContract = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => workflowIdSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: workflow, error: wErr } = await supabaseAdmin
+      .from("photo_client_workflows")
+      .select("id, user_id, booking_id, session_date, session_time, photos_to_edit, album_upgrades, total_price")
+      .eq("id", data.workflowId)
+      .single();
+    if (wErr || !workflow) throw new Error(wErr?.message ?? "לקוחה לא נמצאה");
+
+    const sessionDate = (workflow.session_date as string | null) ?? null;
+    if (!sessionDate) throw new Error("יש לשמור קודם מועד צילומים בפרטי החבילה לפני שליחת החוזה.");
+
+    let contactName = "";
+    if (workflow.booking_id) {
+      const { data: booking } = await supabaseAdmin
+        .from("bookings")
+        .select("contact_name")
+        .eq("id", workflow.booking_id)
+        .maybeSingle();
+      contactName = booking?.contact_name || "";
+    }
+    if (!contactName) {
+      const { data: profile } = await supabaseAdmin.from("profiles").select("full_name").eq("id", workflow.user_id).maybeSingle();
+      contactName = profile?.full_name || "";
+    }
+
+    const { data: userRes, error: userErr } = await supabaseAdmin.auth.admin.getUserById(workflow.user_id);
+    const contactEmail = userErr ? null : userRes?.user?.email ?? null;
+    if (!contactEmail) throw new Error("לא נמצאה כתובת מייל ללקוחה הזו — אי אפשר לשלוח חוזה.");
+
+    const { buildPhotoContractHtml } = await import("@/lib/photoContract");
+    const html = buildPhotoContractHtml({
+      contactName,
+      sessionDate,
+      sessionTime: (workflow.session_time as string | null)?.slice(0, 5) ?? null,
+      photosToEdit: workflow.photos_to_edit as number | null,
+      totalPrice: workflow.total_price as number | null,
+      albumUpgrades: workflow.album_upgrades as string | null,
+    });
+
+    const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+    await sendStudioAndCustomer({
+      customerEmail: contactEmail,
+      subject: `חוזה והסכם צילומים · Sweetbaby${contactName ? ` — ${contactName}` : ""}`,
+      html,
+    });
+
+    return { ok: true, sentTo: contactEmail };
+  });
+
 const paymentReminderSchema = z.object({ workflowIds: z.array(z.string().uuid()).min(1).max(200) });
 
 /**

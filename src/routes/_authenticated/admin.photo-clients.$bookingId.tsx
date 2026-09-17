@@ -12,6 +12,7 @@ import {
   deletePhotoClientImage,
   getPhotoClientDetail,
   updatePhotoClientDetails,
+  sendPhotoClientContract,
   STAGE_LABELS,
   WORKFLOW_STAGES,
   PHOTO_PACKAGES,
@@ -23,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowRight, Check, ImagePlus, Loader2, Trash2 } from "lucide-react";
+import { ArrowRight, Check, ImagePlus, Loader2, Send, Trash2 } from "lucide-react";
 
 // Route param is still named "bookingId" (unchanged, so routeTree.gen.ts
 // doesn't need regenerating) but it now carries a photo_client_workflows.id
@@ -205,7 +206,9 @@ function toPackageForm(workflow: any): PackageForm {
 function PackageDetails({ workflow, workflowId, onSaved }: { workflow: any; workflowId: string; onSaved: () => void }) {
   const [form, setForm] = useState<PackageForm>(() => toPackageForm(workflow));
   const [busy, setBusy] = useState(false);
+  const [sendingContract, setSendingContract] = useState(false);
   const updateDetails = useServerFn(updatePhotoClientDetails);
+  const sendContractFn = useServerFn(sendPhotoClientContract);
 
   // Keep the form in sync if the workflow data refetches with different values.
   useEffect(() => setForm(toPackageForm(workflow)), [workflow]);
@@ -244,6 +247,18 @@ function PackageDetails({ workflow, workflowId, onSaved }: { workflow: any; work
       toast.error(e?.message ?? "השמירה נכשלה");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const sendContract = async () => {
+    setSendingContract(true);
+    try {
+      const res = await sendContractFn({ data: { workflowId } });
+      toast.success(`החוזה נשלח ל-${res.sentTo}`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "שליחת החוזה נכשלה");
+    } finally {
+      setSendingContract(false);
     }
   };
 
@@ -310,9 +325,17 @@ function PackageDetails({ workflow, workflowId, onSaved }: { workflow: any; work
         </div>
       </div>
 
-      <Button type="button" size="sm" onClick={save} disabled={busy} className="rounded-full">
-        {busy ? "שומר..." : "שמירת פרטים"}
-      </Button>
+      <div className="flex items-center gap-2 flex-wrap">
+        <Button type="button" size="sm" onClick={save} disabled={busy} className="rounded-full">
+          {busy ? "שומר..." : "שמירת פרטים"}
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={sendContract} disabled={sendingContract} className="rounded-full gap-1.5">
+          <Send className="h-3.5 w-3.5" /> {sendingContract ? "שולח..." : "שליחת חוזה ללקוחה"}
+        </Button>
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        שולח את חוזה הצילומים המלא למייל הלקוחה (ולעותק אצלך), עם מועד הצילומים ופרטי החבילה שנשמרו למעלה. יש לשמור פרטים מעודכנים לפני השליחה.
+      </p>
     </div>
   );
 }
