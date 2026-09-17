@@ -62,7 +62,7 @@ const fadeUp = {
 // coordination agreement so signing the checkbox = agreeing to everything.
 const rulesBlocks: { title: string; items: string[] }[] = [
   { title: "💳 מחירון וחישוב שעות", items: [
-    "שעת השכרה ראשונה: 150 ₪",
+    "שעת השכרה ראשונה: 180 ₪",
     "כל שעה נוספת: 100 ₪",
     "חצי שעה = חצי מהתעריף המתאים",
     "מבצע 8:00–14:00 (ניו-בורן): 3 שעות ב-300 ₪",
@@ -111,7 +111,7 @@ const rulesBlocks: { title: string; items: string[] }[] = [
 
 const quickFacts = [
   { icon: Clock, label: "א׳–ה׳ 8:00–23:00" },
-  { icon: CreditCard, label: "150 ₪ שעה ראשונה" },
+  { icon: CreditCard, label: "180 ₪ שעה ראשונה" },
   { icon: CalendarDays, label: "מקדמה 90 ₪ לשריון" },
   { icon: Sparkles, label: "Godox AD200 PRO" },
 ];
@@ -280,7 +280,7 @@ function StudioRentalPage() {
               <div className="text-[14px] tracking-[0.16em] uppercase text-[#6b8a63] mb-1">01 · Flexible</div>
               <h3 className="text-lg text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>שעתי גמיש</h3>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>₪150</span>
+                <span className="text-2xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>₪180</span>
                 <span className="text-xs text-[#2d3d2b]/60">/ שעה ראשונה</span>
               </div>
               <p className="mt-2 text-[14px] text-[#2d3d2b]/75">כל שעה נוספת 100 ₪ · חצאי שעות בחישוב יחסי · מינימום שעה</p>

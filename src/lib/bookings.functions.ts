@@ -7,7 +7,7 @@ import { PROPS_REQUEST_CONTEXT_MARKER } from "@/lib/voice-message.server";
 
 // Studio pricing rules
 // - Minimum 2 half-hour slots (1 hour)
-// - First hour 150₪, every additional hour 100₪ (half-hour = half of the
+// - First hour 180₪, every additional hour 100₪ (half-hour = half of the
 //   rate that applies to that slot)
 // - Newborn morning package: 3 hours (6 slots) starting 08:00 / 09:00 / 10:00 / 11:00
 //   and ending by 14:00 → 300₪ flat
@@ -24,7 +24,7 @@ export const GUIDANCE_LABELS: Record<keyof typeof GUIDANCE_FEES, string> = {
 };
 
 /** Price of the first hour (2 slots) — also what one subscription-pass entry covers. */
-export const FIRST_HOUR_PRICE = 150;
+export const FIRST_HOUR_PRICE = 180;
 const EXTRA_HALF_HOUR_PRICE = 50; // half of the 100₪/hour rate for hour 2 onward
 
 export function isMorningPackage(slots: number, startTime: string): boolean {

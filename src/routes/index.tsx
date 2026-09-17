@@ -181,7 +181,7 @@ function Home() {
                 <div className="mt-6 flex items-end justify-between pt-6 border-t border-[#2d3d2b]/10">
                   <div>
                     <div className="text-[10px] uppercase tracking-wider text-[#2d3d2b]/50">החל מ-</div>
-                    <div className="text-2xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>₪150 <span className="text-xs text-[#2d3d2b]/60">/ שעה ראשונה</span></div>
+                    <div className="text-2xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>₪180 <span className="text-xs text-[#2d3d2b]/60">/ שעה ראשונה</span></div>
                   </div>
                   <div className="h-10 w-10 rounded-full border border-[#2d3d2b]/20 flex items-center justify-center group-hover:bg-[#2d3d2b] group-hover:text-[#f8ede4] transition-colors">
                     <ArrowLeft className="h-4 w-4" />

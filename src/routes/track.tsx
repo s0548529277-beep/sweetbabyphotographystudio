@@ -38,7 +38,7 @@ function Track() {
                 בחירת יום ושעה בלוח הסטודיו. חצאי שעות, מינימום שעה.
               </p>
               <ul className="text-sm text-forest space-y-2 mb-8">
-                <li>· שעה ראשונה 150₪, כל שעה נוספת 100₪</li>
+                <li>· שעה ראשונה 180₪, כל שעה נוספת 100₪</li>
                 <li>· מקדמה 90₪ לשריון</li>
               </ul>
               <span className="inline-flex items-center gap-2 text-primary font-medium">
