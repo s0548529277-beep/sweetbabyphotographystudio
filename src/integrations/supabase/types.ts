@@ -699,8 +699,50 @@ export type Database = {
         }
         Relationships: []
       }
+      newborn_order_images: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string
+          kind: string
+          order_id: string
+          selected: boolean
+          sort_order: number
+          storage_path: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url: string
+          kind: string
+          order_id: string
+          selected?: boolean
+          sort_order?: number
+          storage_path?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string
+          kind?: string
+          order_id?: string
+          selected?: boolean
+          sort_order?: number
+          storage_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newborn_order_images_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "newborn_package_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       newborn_package_orders: {
         Row: {
+          access_token: string | null
           addons: Json
           addons_price: number
           album_design_done_at: string | null
@@ -710,6 +752,7 @@ export type Database = {
           contact_email: string | null
           contact_name: string
           contact_phone: string
+          contract_sent_at: string | null
           created_at: string
           date_deposit_at: string | null
           delivered_at: string | null
@@ -723,12 +766,14 @@ export type Database = {
           payment_done_at: string | null
           photos_sent_at: string | null
           printing_done_at: string | null
+          proofs_selected_at: string | null
           session_date: string | null
           session_time: string | null
           shoot_done_at: string | null
           total_price: number
         }
         Insert: {
+          access_token?: string | null
           addons?: Json
           addons_price?: number
           album_design_done_at?: string | null
@@ -738,6 +783,7 @@ export type Database = {
           contact_email?: string | null
           contact_name: string
           contact_phone: string
+          contract_sent_at?: string | null
           created_at?: string
           date_deposit_at?: string | null
           delivered_at?: string | null
@@ -751,12 +797,14 @@ export type Database = {
           payment_done_at?: string | null
           photos_sent_at?: string | null
           printing_done_at?: string | null
+          proofs_selected_at?: string | null
           session_date?: string | null
           session_time?: string | null
           shoot_done_at?: string | null
           total_price?: number
         }
         Update: {
+          access_token?: string | null
           addons?: Json
           addons_price?: number
           album_design_done_at?: string | null
@@ -766,6 +814,7 @@ export type Database = {
           contact_email?: string | null
           contact_name?: string
           contact_phone?: string
+          contract_sent_at?: string | null
           created_at?: string
           date_deposit_at?: string | null
           delivered_at?: string | null
@@ -779,6 +828,7 @@ export type Database = {
           payment_done_at?: string | null
           photos_sent_at?: string | null
           printing_done_at?: string | null
+          proofs_selected_at?: string | null
           session_date?: string | null
           session_time?: string | null
           shoot_done_at?: string | null
@@ -1094,6 +1144,7 @@ export type Database = {
           location: string | null
           package_type: string | null
           photos_to_edit: number | null
+          proof_reminder_sent_at: string | null
           session_date: string | null
           session_time: string | null
           stage: string
@@ -1113,6 +1164,7 @@ export type Database = {
           location?: string | null
           package_type?: string | null
           photos_to_edit?: number | null
+          proof_reminder_sent_at?: string | null
           session_date?: string | null
           session_time?: string | null
           stage?: string
@@ -1132,6 +1184,7 @@ export type Database = {
           location?: string | null
           package_type?: string | null
           photos_to_edit?: number | null
+          proof_reminder_sent_at?: string | null
           session_date?: string | null
           session_time?: string | null
           stage?: string
