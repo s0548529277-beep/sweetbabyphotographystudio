@@ -9,10 +9,12 @@ import { PROPS_REQUEST_CONTEXT_MARKER } from "@/lib/voice-message.server";
 // - Minimum 2 half-hour slots (1 hour)
 // - First hour 180₪, every additional hour 100₪ (half-hour = half of the
 //   rate that applies to that slot)
-// - Newborn morning package: 3 hours (6 slots) starting 08:00 / 09:00 / 10:00 / 11:00
-//   and ending by 14:00 → 300₪ flat
+// - Newborn 3-hour package: 6 slots starting 08:00 / 09:00 / 10:00 / 11:00
+//   (morning, ending by 14:00) OR 19:00 / 19:30 / 20:00 (evening, after
+//   19:00, ending by 23:00 — the studio's normal closing time) → 320₪ flat
 export const MORNING_PACKAGE_STARTS = ["08:00", "09:00", "10:00", "11:00"] as const;
-export const MORNING_PACKAGE_PRICE = 300;
+export const EVENING_PACKAGE_STARTS = ["19:00", "19:30", "20:00"] as const;
+export const MORNING_PACKAGE_PRICE = 320;
 
 /** Paid guidance / mentoring add-ons chosen in the coordination agreement. */
 export const GUIDANCE_FEES = { basic: 0, mini: 50, plus: 100, premium: 300 } as const;
@@ -29,9 +31,12 @@ const EXTRA_HALF_HOUR_PRICE = 50; // half of the 100₪/hour rate for hour 2 onw
 
 export function isMorningPackage(slots: number, startTime: string): boolean {
   if (slots !== 6) return false;
-  if (!MORNING_PACKAGE_STARTS.includes(startTime.slice(0, 5) as (typeof MORNING_PACKAGE_STARTS)[number])) return false;
+  const start = startTime.slice(0, 5);
   const [h, m] = startTime.split(":").map(Number);
-  return h * 60 + m + 180 <= 14 * 60;
+  const endMin = h * 60 + m + 180;
+  if ((MORNING_PACKAGE_STARTS as readonly string[]).includes(start)) return endMin <= 14 * 60;
+  if ((EVENING_PACKAGE_STARTS as readonly string[]).includes(start)) return endMin <= 23 * 60;
+  return false;
 }
 
 export function computeStudioPrice(slots: number, startTime: string): number {

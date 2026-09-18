@@ -249,7 +249,7 @@ function Account() {
                           {new Date(b.session_date).toLocaleDateString("he-IL")} · {String(b.start_time).slice(0,5)}–{String(b.end_time).slice(0,5)}
                         </div>
                         <div className="text-xs text-muted-foreground mt-1">
-                          {b.package === "morning" ? "מבצע בוקר ניו-בורן" : `${b.slots} חצאי שעות`} · סטטוס: {STATUS_HE[b.status] ?? b.status}
+                          {b.package === "morning" ? `מבצע ניו-בורן 3 שעות (${Number(String(b.start_time).slice(0, 2)) < 15 ? "בוקר" : "ערב"})` : `${b.slots} חצאי שעות`} · סטטוס: {STATUS_HE[b.status] ?? b.status}
                         </div>
                       </div>
                       <div className="flex items-center gap-3">

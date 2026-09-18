@@ -65,7 +65,7 @@ const rulesBlocks: { title: string; items: string[] }[] = [
     "שעת השכרה ראשונה: 180 ₪",
     "כל שעה נוספת: 100 ₪",
     "חצי שעה = חצי מהתעריף המתאים",
-    "מבצע 8:00–14:00 (ניו-בורן): 3 שעות ב-300 ₪",
+    "מבצע ניו-בורן 3 שעות ב-320 ₪: בוקר 8:00–14:00 או ערב אחרי 19:00 (עד 23:00)",
     "מינימום הזמנה: שעה (2 חצאי שעות)",
     "עיכוב של 15 דק׳ ומעלה — יחויב כחצי שעה נוספת",
     "עיכוב של 45 דק׳ ומעלה — יחויב כשעה מלאה נוספת",
@@ -297,17 +297,18 @@ function StudioRentalPage() {
           >
             <div>
               <div className="flex items-center justify-between">
-                <div className="text-[14px] tracking-[0.16em] uppercase text-[#6b8a63] mb-1">02 · Morning</div>
+                <div className="text-[14px] tracking-[0.16em] uppercase text-[#6b8a63] mb-1">02 · Newborn</div>
                 <span className="text-[9px] tracking-[0.2em] uppercase bg-[#2d3d2b] text-[#f8ede4] px-2 py-0.5 rounded-full font-semibold">ניוברן</span>
               </div>
-              <h3 className="text-lg" style={{ fontFamily: "'DM Serif Display', serif" }}>מבצע בוקר ניו-בורן</h3>
+              <h3 className="text-lg" style={{ fontFamily: "'DM Serif Display', serif" }}>מבצע ניו-בורן 3 שעות</h3>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-lg" style={{ fontFamily: "'DM Serif Display', serif" }}>מחיר יעודכן בקרוב</span>
+                <span className="text-2xl" style={{ fontFamily: "'DM Serif Display', serif" }}>₪320</span>
+                <span className="text-xs text-[#2d3d2b]/60">/ 3 שעות</span>
               </div>
-              <p className="mt-2 text-[14px] text-[#2d3d2b]/80">3 שעות רצופות (8:00–14:00) · חיסכון משמעותי מול תעריף שעתי</p>
+              <p className="mt-2 text-[14px] text-[#2d3d2b]/80">בוקר 8:00–14:00 או ערב אחרי 19:00 (עד 23:00) · חיסכון משמעותי מול תעריף שעתי</p>
               <p className="mt-1 text-[13px] text-[#2d3d2b] font-medium">5% צבירה אוטומטית לקוח רשום, לניצול בהזמנה הבאה</p>
-              <button type="button" disabled aria-disabled="true" className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#2d3d2b]/30 text-[#f8ede4] px-4 py-2 text-xs font-semibold cursor-not-allowed">
-                בקרוב
+              <button type="button" onClick={() => setShowForm(true)} className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#2d3d2b] text-[#f8ede4] px-4 py-2 text-xs font-semibold">
+                לקביעת מועד <ArrowLeft className="h-3.5 w-3.5" />
               </button>
             </div>
           </motion.div>
