@@ -25,6 +25,7 @@ const nav: { to: string; label: string; hash?: string; soon?: boolean }[] = [
   // still works on its own URL, just isn't the promoted entry point
   // anymore.
   { to: "/collage-studio", label: "עיצוב קולאז׳ חינם" },
+  { to: "/blog", label: "בלוג" },
   { to: "/about", label: "אודות ויצירת קשר" },
 ];
 
