@@ -56,6 +56,7 @@ import { Route as AuthenticatedAdminSubscriptionsRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminSiteBotAskRouteImport } from './routes/_authenticated/admin.site-bot-ask'
 import { Route as AuthenticatedAdminSiteBotRouteImport } from './routes/_authenticated/admin.site-bot'
 import { Route as AuthenticatedAdminRetouchPresetsRouteImport } from './routes/_authenticated/admin.retouch-presets'
+import { Route as AuthenticatedAdminPhotoResizeRouteImport } from './routes/_authenticated/admin.photo-resize'
 import { Route as AuthenticatedAdminPhotoEditorRouteImport } from './routes/_authenticated/admin.photo-editor'
 import { Route as AuthenticatedAdminPhotoClientsRouteImport } from './routes/_authenticated/admin.photo-clients'
 import { Route as AuthenticatedAdminPhotoBatchRouteImport } from './routes/_authenticated/admin.photo-batch'
@@ -320,6 +321,12 @@ const AuthenticatedAdminRetouchPresetsRoute =
     path: '/retouch-presets',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminPhotoResizeRoute =
+  AuthenticatedAdminPhotoResizeRouteImport.update({
+    id: '/photo-resize',
+    path: '/photo-resize',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminPhotoEditorRoute =
   AuthenticatedAdminPhotoEditorRouteImport.update({
     id: '/photo-editor',
@@ -498,6 +505,7 @@ export interface FileRoutesByFullPath {
   '/admin/photo-batch': typeof AuthenticatedAdminPhotoBatchRoute
   '/admin/photo-clients': typeof AuthenticatedAdminPhotoClientsRouteWithChildren
   '/admin/photo-editor': typeof AuthenticatedAdminPhotoEditorRoute
+  '/admin/photo-resize': typeof AuthenticatedAdminPhotoResizeRoute
   '/admin/retouch-presets': typeof AuthenticatedAdminRetouchPresetsRoute
   '/admin/site-bot': typeof AuthenticatedAdminSiteBotRoute
   '/admin/site-bot-ask': typeof AuthenticatedAdminSiteBotAskRoute
@@ -566,6 +574,7 @@ export interface FileRoutesByTo {
   '/admin/photo-batch': typeof AuthenticatedAdminPhotoBatchRoute
   '/admin/photo-clients': typeof AuthenticatedAdminPhotoClientsRouteWithChildren
   '/admin/photo-editor': typeof AuthenticatedAdminPhotoEditorRoute
+  '/admin/photo-resize': typeof AuthenticatedAdminPhotoResizeRoute
   '/admin/retouch-presets': typeof AuthenticatedAdminRetouchPresetsRoute
   '/admin/site-bot': typeof AuthenticatedAdminSiteBotRoute
   '/admin/site-bot-ask': typeof AuthenticatedAdminSiteBotAskRoute
@@ -637,6 +646,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/photo-batch': typeof AuthenticatedAdminPhotoBatchRoute
   '/_authenticated/admin/photo-clients': typeof AuthenticatedAdminPhotoClientsRouteWithChildren
   '/_authenticated/admin/photo-editor': typeof AuthenticatedAdminPhotoEditorRoute
+  '/_authenticated/admin/photo-resize': typeof AuthenticatedAdminPhotoResizeRoute
   '/_authenticated/admin/retouch-presets': typeof AuthenticatedAdminRetouchPresetsRoute
   '/_authenticated/admin/site-bot': typeof AuthenticatedAdminSiteBotRoute
   '/_authenticated/admin/site-bot-ask': typeof AuthenticatedAdminSiteBotAskRoute
@@ -708,6 +718,7 @@ export interface FileRouteTypes {
     | '/admin/photo-batch'
     | '/admin/photo-clients'
     | '/admin/photo-editor'
+    | '/admin/photo-resize'
     | '/admin/retouch-presets'
     | '/admin/site-bot'
     | '/admin/site-bot-ask'
@@ -776,6 +787,7 @@ export interface FileRouteTypes {
     | '/admin/photo-batch'
     | '/admin/photo-clients'
     | '/admin/photo-editor'
+    | '/admin/photo-resize'
     | '/admin/retouch-presets'
     | '/admin/site-bot'
     | '/admin/site-bot-ask'
@@ -846,6 +858,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/photo-batch'
     | '/_authenticated/admin/photo-clients'
     | '/_authenticated/admin/photo-editor'
+    | '/_authenticated/admin/photo-resize'
     | '/_authenticated/admin/retouch-presets'
     | '/_authenticated/admin/site-bot'
     | '/_authenticated/admin/site-bot-ask'
@@ -1234,6 +1247,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRetouchPresetsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/photo-resize': {
+      id: '/_authenticated/admin/photo-resize'
+      path: '/photo-resize'
+      fullPath: '/admin/photo-resize'
+      preLoaderRoute: typeof AuthenticatedAdminPhotoResizeRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/photo-editor': {
       id: '/_authenticated/admin/photo-editor'
       path: '/photo-editor'
@@ -1433,6 +1453,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminPhotoBatchRoute: typeof AuthenticatedAdminPhotoBatchRoute
   AuthenticatedAdminPhotoClientsRoute: typeof AuthenticatedAdminPhotoClientsRouteWithChildren
   AuthenticatedAdminPhotoEditorRoute: typeof AuthenticatedAdminPhotoEditorRoute
+  AuthenticatedAdminPhotoResizeRoute: typeof AuthenticatedAdminPhotoResizeRoute
   AuthenticatedAdminRetouchPresetsRoute: typeof AuthenticatedAdminRetouchPresetsRoute
   AuthenticatedAdminSiteBotRoute: typeof AuthenticatedAdminSiteBotRoute
   AuthenticatedAdminSiteBotAskRoute: typeof AuthenticatedAdminSiteBotAskRoute
@@ -1463,6 +1484,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminPhotoClientsRoute:
     AuthenticatedAdminPhotoClientsRouteWithChildren,
   AuthenticatedAdminPhotoEditorRoute: AuthenticatedAdminPhotoEditorRoute,
+  AuthenticatedAdminPhotoResizeRoute: AuthenticatedAdminPhotoResizeRoute,
   AuthenticatedAdminRetouchPresetsRoute: AuthenticatedAdminRetouchPresetsRoute,
   AuthenticatedAdminSiteBotRoute: AuthenticatedAdminSiteBotRoute,
   AuthenticatedAdminSiteBotAskRoute: AuthenticatedAdminSiteBotAskRoute,
