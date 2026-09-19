@@ -183,12 +183,12 @@ function RentalCatalogPage() {
           </div>
 
           {inspirationImages.length > 0 && (
-            <div className={`relative w-full md:w-[320px] ${inspirationGallery.aspect === "landscape" ? "aspect-[16/9]" : "aspect-square"} rounded-3xl overflow-hidden shadow-xl bg-cream mx-auto`}>
+            <div className={`relative w-full md:w-[380px] ${inspirationGallery.aspect === "landscape" ? "aspect-[16/9]" : "aspect-[4/5]"} rounded-[2rem] overflow-hidden shadow-xl ring-4 ring-white bg-cream mx-auto`}>
               <AnimatePresence mode="wait">
                 <motion.img
                   key={inspoIdx}
                   src={inspirationImages[inspoIdx]}
-                  alt="השראה מהסטודיו"
+                  alt="אביזר מהקטלוג בשימוש עם ילד בסטודיו"
                   initial={{ opacity: 0, scale: 1.05 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 1.02 }}
@@ -196,6 +196,22 @@ function RentalCatalogPage() {
                   className="absolute inset-0 w-full h-full object-cover"
                 />
               </AnimatePresence>
+
+              <div className="absolute top-3 right-3 bg-white/90 backdrop-blur text-primary text-[11px] font-medium px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5">
+                <Sparkles className="h-3 w-3" />
+                השראה מהסטודיו שלנו
+              </div>
+
+              {inspirationImages.length > 1 && (
+                <div className="absolute bottom-3 inset-x-0 flex items-center justify-center gap-1.5">
+                  {inspirationImages.map((_, i) => (
+                    <span
+                      key={i}
+                      className={`h-1.5 rounded-full transition-all duration-500 ${i === inspoIdx ? "w-5 bg-white" : "w-1.5 bg-white/50"}`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
