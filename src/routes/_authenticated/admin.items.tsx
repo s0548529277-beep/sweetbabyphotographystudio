@@ -89,17 +89,22 @@ function ItemsAdmin() {
 
   const categories = useQuery({
     queryKey: ["categories"],
-    queryFn: async () => (await supabase.from("categories").select("*").order("sort_order")).data ?? [],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("categories").select("*").order("sort_order");
+      if (error) throw error;
+      return data ?? [];
+    },
   });
 
   const items = useQuery({
     queryKey: ["admin-items"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("items")
         .select("*, categories(name, slug)")
         .order("sort_order", { ascending: true })
         .order("sku", { ascending: true });
+      if (error) throw error;
       return data ?? [];
     },
   });

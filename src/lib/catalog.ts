@@ -31,6 +31,21 @@ type DbItem = {
  * Live catalog: the bundled catalog merged with whatever the studio edits in
  * /admin/items. Anything changed there (name, price, category, image, active,
  * drag-and-drop order) immediately changes every page that renders the catalog.
+ *
+ * Two bugs used to live here together, and between them explain a real
+ * report ("admin shows items the site doesn't, and items I deleted in admin
+ * still show on the site"): (1) queryFn destructured only `data` from the
+ * Supabase response and silently dropped `error` — ANY transient query
+ * failure (a blip, a cold start) resolved as a *successful* empty array
+ * instead of a query error, and (2) the merge below treated "zero DB rows"
+ * (whether from that swallowed error, from still being mid-fetch, or from a
+ * genuinely empty table) as "nothing customized yet" and fell back to the
+ * raw bundled STATIC_CATALOG — resurrecting every item ever deleted or
+ * deactivated in /admin/items, with no admin edit involved at all. Fixed by
+ * actually throwing on a real Supabase error, and by only ever falling back
+ * to the bundled catalog once we've *confirmed* (via a successful query)
+ * that there's truly nothing in the DB — never merely because this
+ * particular fetch hasn't resolved yet or just failed.
  */
 export function useCatalogCategories(): CatalogCategory[] {
   const db = useQuery({
@@ -38,18 +53,21 @@ export function useCatalogCategories(): CatalogCategory[] {
     staleTime: 5_000,
     refetchOnWindowFocus: true,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("items")
         .select("id, sku, name, description, price, image_url, active, sort_order, categories(name)")
         .order("sort_order", { ascending: true });
+      if (error) throw error;
       return (data ?? []) as unknown as DbItem[];
     },
   });
 
-
   return useMemo(() => {
+    // Not yet confirmed successful (still loading, or the last attempt
+    // errored) — show nothing rather than risk showing stale/deleted items
+    // as if they were current.
+    if (!db.isSuccess) return [];
     const rows = db.data ?? [];
-    if (rows.length === 0) return STATIC_CATALOG;
 
     const bySku = new Map<string, DbItem>();
     for (const r of rows) bySku.set(String(r.sku), r);
@@ -120,7 +138,7 @@ export function useCatalogCategories(): CatalogCategory[] {
       }))
       .filter((c) => c.items.length > 0);
 
-  }, [db.data]);
+  }, [db.isSuccess, db.data]);
 }
 
 export function useCatalogItems(): CatalogItem[] {
