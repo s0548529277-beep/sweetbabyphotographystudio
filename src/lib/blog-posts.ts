@@ -1,5 +1,6 @@
 import newbornOg from "@/assets/blog-newborn-props-og.jpg";
 import chalakahOg from "@/assets/home-hero-4.jpg.asset.json";
+import oneYearOg from "@/assets/home-hero-1.png.asset.json";
 
 export interface BlogPost {
   slug: string;
@@ -34,5 +35,16 @@ export const BLOG_POSTS: BlogPost[] = [
     date: "2026-08-23",
     readMinutes: 5,
     image: chalakahOg.url,
+  },
+  {
+    slug: "one-year-photoshoot-guide",
+    to: "/blog/one-year-photoshoot-guide",
+    title: "מדריך: איך להתכונן לצילומי גיל שנה בסטודיו",
+    excerpt:
+      "תזמון מול יום ההולדת, מה להביא, קייק סמאש ואיך לשמור על תינוק בן שנה רגוע ומשתף פעולה מול המצלמה.",
+    category: "מדריכים",
+    date: "2026-09-19",
+    readMinutes: 5,
+    image: oneYearOg.url,
   },
 ];
