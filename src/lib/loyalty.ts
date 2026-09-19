@@ -12,17 +12,24 @@
  * saved customer_loyalty row (any value, including 0 to opt a customer out)
  * always wins over this default.
  */
-const DEFAULT_CASHBACK_PERCENT = 5;
+const DEFAULT_CASHBACK_PERCENT = 10;
+
+/**
+ * Minimum order/booking total to earn cashback at all — applies to every
+ * customer, including one with a personal admin-set rate. Below this,
+ * awardCashback is a no-op regardless of percent.
+ */
+const CASHBACK_MIN_AMOUNT = 150;
 
 /**
  * Credits `amount * cashback_percent / 100` to the customer's balance —
  * `DEFAULT_CASHBACK_PERCENT` for every registered customer by default, or
- * her own admin-set `cashback_percent` if she has a customer_loyalty row.
- * Never throws — a loyalty hiccup must never block a booking/order
- * confirmation.
+ * her own admin-set `cashback_percent` if she has a customer_loyalty row —
+ * but only when `amount` is at least CASHBACK_MIN_AMOUNT. Never throws — a
+ * loyalty hiccup must never block a booking/order confirmation.
  */
 export async function awardCashback(supabaseAdmin: any, userId: string, amount: number): Promise<void> {
-  if (!amount || amount <= 0) return;
+  if (!amount || amount < CASHBACK_MIN_AMOUNT) return;
   try {
     const { data: loyalty } = await supabaseAdmin
       .from("customer_loyalty")

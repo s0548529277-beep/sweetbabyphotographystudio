@@ -73,14 +73,13 @@ export const DEFAULT_PHRASES: Record<PhraseKey, string> = {
   dtmf_leave_message_confirm: "לְאִשּׁוּר וּשְׁלִיחַת הַהוֹדָעָה הַקִּישִׁי אֶחָד. לְהַקְלִיט אוֹתָהּ מֵחָדָשׁ הַקִּישִׁי שְׁתַּיִם.",
   dtmf_leave_message_redo: "בְּסֵדֶר, אֶפְשָׁר לְהַגִּיד אֶת הַהוֹדָעָה שׁוּב.",
   studio_blurb:
-    // The morning-package clause was dropped again — its price isn't
-    // finalized (matches the same removal from the on-site pricing tile,
-    // see studio-rental.tsx) and a phone caller can't book it anyway, so
-    // stating an unconfirmed price here would be actively misleading. The
-    // cashback sentence is left unvocalized rather than guessing new niqqud
-    // with no way to verify it against real Yemot TTS audio from this
-    // environment (see the ai-bot-efficiency skill's niqqud changelog entry).
-    "הַשְׂכָּרַת סטודיו: שָׁעָה רִאשׁוֹנָה 180 שֶׁקֶל, כָּל שָׁעָה נוֹסֶפֶת 100 שֶׁקֶל. שִׁרְיוּן דּוֹרֵשׁ מִקְדָּמָה שֶׁל 90 שֶׁקֶל. לקוחות רשומות צוברות אוטומטית 5 אחוז קרדיט לניצול בהזמנה הבאה.",
+    // Morning/evening newborn-package price is now finalized (320₪, see
+    // studio-rental.tsx and bookings.functions.ts's MORNING_PACKAGE_PRICE)
+    // so it's stated here too. The cashback clause (rate/threshold) is left
+    // unvocalized rather than guessing new niqqud with no way to verify it
+    // against real Yemot TTS audio from this environment (see the
+    // ai-bot-efficiency skill's niqqud changelog entry).
+    "הַשְׂכָּרַת סטודיו: שָׁעָה רִאשׁוֹנָה 180 שֶׁקֶל, כָּל שָׁעָה נוֹסֶפֶת 100 שֶׁקֶל. שִׁרְיוּן דּוֹרֵשׁ מִקְדָּמָה שֶׁל 90 שֶׁקֶל. יש גם מבצע ניו-בורן: 3 שעות ב-320 שקל, בבוקר או בערב אחרי 19:00. לקוחות רשומות צוברות אוטומטית 10 אחוז קרדיט בהזמנה מ-150 שקל ומעלה, לניצול בהזמנה הבאה.",
   props_blurb:
     "הַשְׂכָּרַת אֲבִיזָרִים: יֵשׁ קָטָלוֹג שֶׁל יוֹתֵר מ-400 אֲבִיזָרִים בָּאֲתָר, מִינִימוּם הַזְמָנָה 50 שֶׁקֶל, לְפִי 24 שָׁעוֹת הַשְׂכָּרָה.",
   guide_choice_prompt:

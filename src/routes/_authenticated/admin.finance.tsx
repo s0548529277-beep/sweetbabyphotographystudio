@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,12 +44,22 @@ function FinanceAdmin() {
   const [form, setForm] = useState({ title: "", amount: "", category: "אחר", spent_on: new Date().toISOString().slice(0, 10) });
   const [income, setIncome] = useState({ title: "", amount: "", client: "", category: TYPE_PHOTO, received_on: new Date().toISOString().slice(0, 10) });
 
-  // Filters
-  const [from, setFrom] = useState("");
+  // Filters — defaults to the current calendar month (not all history), per
+  // explicit request; still fully editable/clearable like any other filter.
+  const [from, setFrom] = useState(() => new Date().toISOString().slice(0, 8) + "01");
   const [to, setTo] = useState("");
   const [client, setClient] = useState("");
   const [type, setType] = useState("all");
   const [paymentFilter, setPaymentFilter] = useState<"all" | "pending" | "paid">("all");
+  // Set by clicking the "סה״כ הכנסות"/"סה״כ הוצאות" summary card — filters
+  // the transactions list below to just that kind and scrolls to it, so the
+  // total shown on the card is immediately explained by the rows under it.
+  const [kindFilter, setKindFilter] = useState<"all" | "income" | "expense">("all");
+  const txnsListRef = useRef<HTMLDivElement>(null);
+  const focusKind = (k: "income" | "expense") => {
+    setKindFilter((prev) => (prev === k ? "all" : k));
+    txnsListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const data = useQuery({
     queryKey: ["admin-finance"],
@@ -129,6 +139,15 @@ function FinanceAdmin() {
       return true;
     });
   }, [allTxns, from, to, client, type, paymentFilter]);
+
+  // Further filtered by the income/expense card click — only for the
+  // itemized list below, never for the totals/months/category stats above
+  // (those always reflect everything the other filters allow, regardless of
+  // which card is currently "focused").
+  const visibleTxns = useMemo(
+    () => (kindFilter === "all" ? txns : txns.filter((t) => t.kind === kindFilter)),
+    [txns, kindFilter],
+  );
 
   const months = useMemo(() => {
     const map = new Map<string, { key: string; props: number; studio: number; photo: number; manual: number; expenses: number }>();
@@ -286,18 +305,25 @@ function FinanceAdmin() {
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "סה״כ הכנסות", value: totals.income, icon: TrendingUp, cls: "text-forest", sub: null as string | null },
-          { label: "סה״כ הוצאות", value: totals.expenses, icon: TrendingDown, cls: "text-destructive", sub: null },
-          { label: "רווח נקי", value: totals.income - totals.expenses, icon: Wallet, cls: "text-primary", sub: null },
+          { label: "סה״כ הכנסות", value: totals.income, icon: TrendingUp, cls: "text-forest", sub: null as string | null, kind: "income" as const },
+          { label: "סה״כ הוצאות", value: totals.expenses, icon: TrendingDown, cls: "text-destructive", sub: null, kind: "expense" as const },
+          { label: "רווח נקי", value: totals.income - totals.expenses, icon: Wallet, cls: "text-primary", sub: null, kind: null },
           {
             label: "ממתין לתשלום",
             value: pending.total,
             icon: Clock3,
             cls: "text-amber-600",
             sub: pending.count > 0 ? `${pending.count} הזמנות ללא מקדמה ששולמה` : "הכל שולם 🎉",
+            kind: null,
           },
         ].map((c) => (
-          <div key={c.label} className="bg-card rounded-2xl border border-primary/5 p-5">
+          <div
+            key={c.label}
+            onClick={c.kind ? () => focusKind(c.kind) : undefined}
+            className={`bg-card rounded-2xl border p-5 transition-colors ${
+              c.kind ? "cursor-pointer hover:border-primary/30" : ""
+            } ${c.kind && kindFilter === c.kind ? "border-primary/40 ring-1 ring-primary/20" : "border-primary/5"}`}
+          >
             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
               <c.icon className="h-4 w-4" /> {c.label}
             </div>
@@ -371,10 +397,19 @@ function FinanceAdmin() {
       </div>
 
       {/* Transactions */}
-      <div className="bg-card rounded-2xl border border-primary/5 p-5">
-        <h3 className="font-display text-lg mb-4">תנועות ({txns.length})</h3>
+      <div ref={txnsListRef} className="bg-card rounded-2xl border border-primary/5 p-5 scroll-mt-4">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h3 className="font-display text-lg">
+            {kindFilter === "income" ? "פירוט הכנסות" : kindFilter === "expense" ? "פירוט הוצאות" : "תנועות"} ({visibleTxns.length})
+          </h3>
+          {kindFilter !== "all" && (
+            <Button variant="ghost" size="sm" onClick={() => setKindFilter("all")}>
+              הצג הכל
+            </Button>
+          )}
+        </div>
         <div className="divide-y divide-primary/5 max-h-[520px] overflow-auto">
-          {txns.map((t) => (
+          {visibleTxns.map((t) => (
             <div key={t.id} className="flex items-center justify-between py-2.5 text-sm gap-3">
               <div className="min-w-0">
                 <div className="font-medium truncate flex items-center gap-2">
@@ -401,7 +436,7 @@ function FinanceAdmin() {
               </div>
             </div>
           ))}
-          {txns.length === 0 && <p className="text-sm text-muted-foreground py-4">לא נמצאו תנועות.</p>}
+          {visibleTxns.length === 0 && <p className="text-sm text-muted-foreground py-4">לא נמצאו תנועות.</p>}
         </div>
       </div>
 
