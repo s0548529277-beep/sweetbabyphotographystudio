@@ -55,29 +55,10 @@ export function useCatalogCategories(): CatalogCategory[] {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("items")
-        .select(
-          "id, sku, name, description, price, image_url, active, sort_order, categories(name)",
-        )
+        .select("id, sku, name, description, price, image_url, active, sort_order, categories(name)")
         .order("sort_order", { ascending: true });
       if (error) throw error;
       return (data ?? []) as unknown as DbItem[];
-    },
-  });
-
-  // Live category names, so a category deleted in /admin/items (the
-  // `categories` table row removed via deleteCategory) actually stops its
-  // old bundled-JSON title from grouping items again below — without this,
-  // any STATIC_CATALOG item that was never individually given its own DB
-  // row keeps rendering under the bundled seed's original category text
-  // forever, since deleting a *category* only touches the `categories`
-  // table and items.category_id, never studio-catalog.json itself.
-  const liveCategories = useQuery({
-    queryKey: ["categories"],
-    staleTime: 5_000,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("categories").select("name");
-      if (error) throw error;
-      return (data ?? []) as { name: string }[];
     },
   });
 
@@ -90,14 +71,6 @@ export function useCatalogCategories(): CatalogCategory[] {
 
     const bySku = new Map<string, DbItem>();
     for (const r of rows) bySku.set(String(r.sku), r);
-
-    // Only known once liveCategories has actually loaded — while it's still
-    // pending, fall back to trusting the bundled title rather than hiding
-    // every not-yet-customized category (same "don't assume from absence"
-    // rule as db.isSuccess above).
-    const liveCategoryNames = liveCategories.isSuccess
-      ? new Set(liveCategories.data.map((c) => c.name))
-      : null;
 
     const order: string[] = [];
     const buckets = new Map<string, CatalogItem[]>();
@@ -112,21 +85,15 @@ export function useCatalogCategories(): CatalogCategory[] {
     const used = new Set<string>();
 
     for (const cat of STATIC_CATALOG) {
-      // A deleted category (its name no longer in the live `categories`
-      // table) falls back to "אביזרים נוספים" for any item still using the
-      // bundled seed's original grouping — same catch-all bucket already
-      // used below for DB items whose own category was deleted.
-      const title =
-        liveCategoryNames && !liveCategoryNames.has(cat.title) ? "אביזרים נוספים" : cat.title;
       // keep original category order even if every item moved away
-      if (!buckets.has(title)) {
-        buckets.set(title, []);
-        order.push(title);
+      if (!buckets.has(cat.title)) {
+        buckets.set(cat.title, []);
+        order.push(cat.title);
       }
       for (const item of cat.items) {
         const row = bySku.get(item.sku);
         if (!row) {
-          push(title, item);
+          push(cat.title, item);
           continue;
         }
         used.add(item.sku);
@@ -170,7 +137,8 @@ export function useCatalogCategories(): CatalogCategory[] {
         items: [...(buckets.get(title) ?? [])].sort((a, b) => rank(a.sku) - rank(b.sku)),
       }))
       .filter((c) => c.items.length > 0);
-  }, [db.isSuccess, db.data, liveCategories.isSuccess, liveCategories.data]);
+
+  }, [db.isSuccess, db.data]);
 }
 
 export function useCatalogItems(): CatalogItem[] {

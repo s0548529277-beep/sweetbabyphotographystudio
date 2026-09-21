@@ -34,8 +34,7 @@ export function buildDoorCodeHtml(code: string, extraNote?: string): string {
 }
 
 /** The extra caveat shown only on props/accessories orders — the code doesn't just cover a fixed window, it goes dead overnight. */
-const PROPS_DOOR_CODE_NOTE =
-  "הקוד לא פעיל בין 00:00 ל-07:00. אין לקחת או להחזיר אביזרים בלי לתאם טלפונית מראש · 054-8529277.";
+const PROPS_DOOR_CODE_NOTE = "הקוד לא פעיל בין 00:00 ל-07:00. אין לקחת או להחזיר אביזרים בלי לתאם טלפונית מראש · 054-8529277.";
 
 /**
  * Maps the raw studio-intake questionnaire payload (studio_intake_forms.payload)
@@ -128,17 +127,7 @@ export function buildBookingSummaryHtml(opts: {
   /** TTLock door passcode, once issued — see integrations/ttlock/client.server.ts. */
   doorCode?: string | null;
 }): string {
-  const {
-    heading,
-    intro,
-    booking,
-    intakePayload,
-    includeArrival = true,
-    includeIntake = true,
-    footerNote,
-    paymentAmount,
-    doorCode,
-  } = opts;
+  const { heading, intro, booking, intakePayload, includeArrival = true, includeIntake = true, footerNote, paymentAmount, doorCode } = opts;
   const b = booking;
   const balance = b.balance_amount ?? Math.max(0, (b.price ?? 0) - (b.deposit_amount ?? 0));
 
@@ -211,20 +200,9 @@ export function buildPropsOrderSummaryHtml(opts: {
   footerNote?: string;
   /** TTLock door passcode, once issued — see integrations/ttlock/client.server.ts. */
   doorCode?: string | null;
-  /** Amount to show on an embedded "pay now" button — used for admin-triggered payment-request emails. */
-  paymentAmount?: number;
 }): string {
-  const {
-    heading,
-    intro,
-    order: o,
-    includeArrival = true,
-    footerNote,
-    doorCode,
-    paymentAmount,
-  } = opts;
+  const { heading, intro, order: o, includeArrival = true, footerNote, doorCode } = opts;
   const doorCodeHtml = doorCode ? buildDoorCodeHtml(doorCode, PROPS_DOOR_CODE_NOTE) : "";
-  const paymentHtml = paymentAmount != null ? buildPaymentButtonHtml(paymentAmount) : "";
 
   const itemsRows = o.lines
     .map(
@@ -248,7 +226,6 @@ export function buildPropsOrderSummaryHtml(opts: {
     <h3 style="color:#2d3d2b;margin-top:24px">פריטים</h3>
     <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">${itemsRows}</table>
     <p style="margin-top:12px"><strong>סה״כ לתשלום:</strong> ₪${o.total}</p>
-    ${paymentHtml}
     ${doorCodeHtml}
     ${includeArrival ? buildArrivalHtml() : ""}
     ${footerNote ? `<p style="color:#6b8a63;font-size:13px;margin-top:16px">${footerNote}</p>` : ""}
