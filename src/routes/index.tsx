@@ -20,8 +20,23 @@ import hero3 from "@/assets/home-hero-3.jpg.asset.json";
 import hero4 from "@/assets/home-hero-4.jpg.asset.json";
 import hero5 from "@/assets/home-hero-5.jpg.asset.json";
 import hero7 from "@/assets/home-hero-7.png.asset.json";
+import studioInterior from "@/assets/studio-interior.jpg";
 import studioPropsCorner from "@/assets/studio-props-corner.jpg";
+import heroScene from "@/assets/hero-scene.jpg";
 import { HeroLightArch } from "@/components/home-hero-variants";
+
+const GALLERY_IMAGES: { src: string; caption: string }[] = [
+  { src: hero0.url,             caption: "פינת ניו-בורן ורודה" },
+  { src: studioInterior,        caption: "הסטודיו — אור טבעי" },
+  { src: hero3.url,             caption: "סט וינטג׳ בבז׳" },
+  { src: studioPropsCorner,     caption: "פינת אביזרים סרוגים" },
+  { src: hero1.url,             caption: "רכות ופסטל" },
+  { src: heroScene,             caption: "סצנת צילום מוכנה" },
+  { src: hero4.url,             caption: "משפחה בסטודיו" },
+  { src: hero2.url,             caption: "טקסטורות ומקרמה" },
+  { src: hero5.url,             caption: "דרמה בשחור" },
+  { src: hero7.url,             caption: "פרחים ואור בוקר" },
+];
 
 const HERO_SLIDES: string[] = [
   hero0.url,
@@ -208,6 +223,42 @@ function Home() {
               </div>
             </Link>
           </motion.div>
+        </div>
+      </section>
+
+      {/* GALLERY — a real, asymmetric photo grid (the editorial-portfolio
+          side of the two references), using the studio's own bundled
+          photos. Real captions, real photos, no icon badges or filled
+          color blocks — just the pictures themselves. */}
+      <section className="container-page pb-16 md:pb-24" dir="rtl">
+        <div className="mb-10">
+          <div className="text-xs tracking-[0.3em] uppercase text-[#6b8a63] font-medium mb-3">
+            רגעים מהסטודיו
+          </div>
+          <h2 className="text-4xl md:text-5xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+            קצת מהאווירה שלנו
+          </h2>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 auto-rows-[9rem] md:auto-rows-[11rem]">
+          {GALLERY_IMAGES.map((g, i) => (
+            <motion.div
+              key={g.src}
+              initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }} custom={i % 5} variants={fadeUp}
+              className={`group relative overflow-hidden rounded-2xl border border-[#2d3d2b]/10 ${
+                i === 0 ? "col-span-2 row-span-2" : i === 5 ? "md:col-span-2" : ""
+              }`}
+            >
+              <img
+                src={g.src}
+                alt={g.caption}
+                loading="lazy"
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+              />
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/45 to-transparent px-3 py-2.5">
+                <span className="text-[12px] text-white/90">{g.caption}</span>
+              </div>
+            </motion.div>
+          ))}
         </div>
       </section>
 
