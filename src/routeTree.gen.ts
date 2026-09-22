@@ -15,6 +15,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as StudioRentalRouteImport } from './routes/studio-rental'
 import { Route as StudioPhotographyRouteImport } from './routes/studio-photography'
 import { Route as StartRouteImport } from './routes/start'
+import { Route as SleepConsultantRouteImport } from './routes/sleep-consultant'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RentalCatalogRouteImport } from './routes/rental-catalog'
@@ -107,6 +108,11 @@ const StudioPhotographyRoute = StudioPhotographyRouteImport.update({
 const StartRoute = StartRouteImport.update({
   id: '/start',
   path: '/start',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SleepConsultantRoute = SleepConsultantRouteImport.update({
+  id: '/sleep-consultant',
+  path: '/sleep-consultant',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -470,6 +476,7 @@ export interface FileRoutesByFullPath {
   '/rental-catalog': typeof RentalCatalogRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/sleep-consultant': typeof SleepConsultantRoute
   '/start': typeof StartRoute
   '/studio-photography': typeof StudioPhotographyRoute
   '/studio-rental': typeof StudioRentalRoute
@@ -540,6 +547,7 @@ export interface FileRoutesByTo {
   '/rental-catalog': typeof RentalCatalogRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/sleep-consultant': typeof SleepConsultantRoute
   '/start': typeof StartRoute
   '/studio-photography': typeof StudioPhotographyRoute
   '/studio-rental': typeof StudioRentalRoute
@@ -611,6 +619,7 @@ export interface FileRoutesById {
   '/rental-catalog': typeof RentalCatalogRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/sleep-consultant': typeof SleepConsultantRoute
   '/start': typeof StartRoute
   '/studio-photography': typeof StudioPhotographyRoute
   '/studio-rental': typeof StudioRentalRoute
@@ -683,6 +692,7 @@ export interface FileRouteTypes {
     | '/rental-catalog'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/sleep-consultant'
     | '/start'
     | '/studio-photography'
     | '/studio-rental'
@@ -753,6 +763,7 @@ export interface FileRouteTypes {
     | '/rental-catalog'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/sleep-consultant'
     | '/start'
     | '/studio-photography'
     | '/studio-rental'
@@ -823,6 +834,7 @@ export interface FileRouteTypes {
     | '/rental-catalog'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/sleep-consultant'
     | '/start'
     | '/studio-photography'
     | '/studio-rental'
@@ -895,6 +907,7 @@ export interface RootRouteChildren {
   RentalCatalogRoute: typeof RentalCatalogRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  SleepConsultantRoute: typeof SleepConsultantRoute
   StartRoute: typeof StartRoute
   StudioPhotographyRoute: typeof StudioPhotographyRoute
   StudioRentalRoute: typeof StudioRentalRoute
@@ -958,6 +971,13 @@ declare module '@tanstack/react-router' {
       path: '/start'
       fullPath: '/start'
       preLoaderRoute: typeof StartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sleep-consultant': {
+      id: '/sleep-consultant'
+      path: '/sleep-consultant'
+      fullPath: '/sleep-consultant'
+      preLoaderRoute: typeof SleepConsultantRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -1543,6 +1563,7 @@ const rootRouteChildren: RootRouteChildren = {
   RentalCatalogRoute: RentalCatalogRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  SleepConsultantRoute: SleepConsultantRoute,
   StartRoute: StartRoute,
   StudioPhotographyRoute: StudioPhotographyRoute,
   StudioRentalRoute: StudioRentalRoute,
