@@ -7,12 +7,37 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, ImageIcon, Upload, Download, FolderPlus, GripVertical, Sparkles, Crop } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  ImageIcon,
+  Upload,
+  Download,
+  FolderPlus,
+  GripVertical,
+  Sparkles,
+  Crop,
+} from "lucide-react";
 import { toCSV, downloadCSV, parseCSVRecords } from "@/lib/csv";
 import { fetchItemInspiration, type ItemInspirationImage } from "@/lib/item-inspiration";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
@@ -35,14 +60,24 @@ type ItemForm = {
 };
 
 const empty: ItemForm = {
-  sku: "", name: "", description: "", price: 0, image_url: null, image_hash: null, category_id: null, active: true, stock_quantity: 1,
+  sku: "",
+  name: "",
+  description: "",
+  price: 0,
+  image_url: null,
+  image_hash: null,
+  category_id: null,
+  active: true,
+  stock_quantity: 1,
 };
 
 /** SHA-256 of the file's bytes, hex-encoded — used only for exact-duplicate detection (see uploadToStorage). */
 async function hashFile(file: Blob): Promise<string> {
   const buf = await file.arrayBuffer();
   const digest = await crypto.subtle.digest("SHA-256", buf);
-  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 function pad(n: number, width = 3) {
@@ -51,7 +86,11 @@ function pad(n: number, width = 3) {
 
 function categoryPrefix(cat: { slug?: string | null; name: string } | undefined) {
   if (!cat) return "SKU";
-  const base = (cat.slug || cat.name || "SKU").toString().toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const base = (cat.slug || cat.name || "SKU")
+    .toString()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
   return base || "SKU";
 }
 
@@ -87,6 +126,13 @@ function ItemsAdmin() {
   const [newCatName, setNewCatName] = useState("");
   const [newCatSlug, setNewCatSlug] = useState("");
 
+  // Merge multiple existing categories into one (checkboxes below + a
+  // target name) — per explicit request to consolidate a long list of
+  // small/leftover categories into a single one, e.g. "הכל".
+  const [mergeSelected, setMergeSelected] = useState<Set<string>>(new Set());
+  const [mergeTargetName, setMergeTargetName] = useState("הכל");
+  const [merging, setMerging] = useState(false);
+
   const categories = useQuery({
     queryKey: ["categories"],
     queryFn: async () => {
@@ -112,7 +158,10 @@ function ItemsAdmin() {
   // First inspiration photo per SKU, for the quick inline thumbnail — the
   // full gallery (multiple photos per SKU) is still managed on
   // /admin/inspiration, this is just a fast add/replace shortcut.
-  const inspirationRows = useQuery({ queryKey: ["item-inspiration"], queryFn: fetchItemInspiration });
+  const inspirationRows = useQuery({
+    queryKey: ["item-inspiration"],
+    queryFn: fetchItemInspiration,
+  });
   const inspirationBySku = useMemo(() => {
     const map: Record<string, ItemInspirationImage> = {};
     for (const r of inspirationRows.data ?? []) if (!map[r.sku]) map[r.sku] = r;
@@ -128,7 +177,10 @@ function ItemsAdmin() {
     try {
       await Promise.all(
         ordered.map((row, idx) =>
-          supabase.from("items").update({ sort_order: (idx + 1) * 10 }).eq("id", row.id),
+          supabase
+            .from("items")
+            .update({ sort_order: (idx + 1) * 10 })
+            .eq("id", row.id),
         ),
       );
       await qc.invalidateQueries({ queryKey: ["admin-items"] });
@@ -153,7 +205,6 @@ function ItemsAdmin() {
     await persistOrder(all);
   };
 
-
   const skusByCategory = useMemo(() => {
     const map = new Map<string, string[]>();
     for (const i of items.data ?? []) {
@@ -177,13 +228,20 @@ function ItemsAdmin() {
     if (!form.sku || new RegExp(`^${prefix}-\\d+$`, "i").test(form.sku)) {
       setForm((f) => ({ ...f, sku: nextSkuFor(prefix, existing) }));
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.category_id, categories.data, skusByCategory]);
 
   const editItem = (i: any) => {
     setForm({
-      id: i.id, sku: i.sku, name: i.name, description: i.description ?? "",
-      price: Number(i.price), image_url: i.image_url, image_hash: i.image_hash ?? null, category_id: i.category_id, active: i.active,
+      id: i.id,
+      sku: i.sku,
+      name: i.name,
+      description: i.description ?? "",
+      price: Number(i.price),
+      image_url: i.image_url,
+      image_hash: i.image_hash ?? null,
+      category_id: i.category_id,
+      active: i.active,
       stock_quantity: Number(i.stock_quantity ?? 1),
     });
     setOpen(true);
@@ -192,17 +250,27 @@ function ItemsAdmin() {
   const save = async () => {
     if (!form.name || !form.sku) return toast.error("שם ומק״ט חובה");
     const payload = {
-      sku: form.sku, name: form.name, description: form.description || null,
-      price: form.price, image_url: form.image_url, image_hash: form.image_hash, category_id: form.category_id, active: form.active,
+      sku: form.sku,
+      name: form.name,
+      description: form.description || null,
+      price: form.price,
+      image_url: form.image_url,
+      image_hash: form.image_hash,
+      category_id: form.category_id,
+      active: form.active,
       stock_quantity: Math.max(1, Math.floor(form.stock_quantity || 1)),
     };
     // image_hash cast past the generated types for the same reason as above.
     const { error } = form.id
-      ? await supabase.from("items").update(payload as never).eq("id", form.id)
+      ? await supabase
+          .from("items")
+          .update(payload as never)
+          .eq("id", form.id)
       : await supabase.from("items").insert(payload as never);
     if (error) return toast.error(error.message);
     toast.success("נשמר");
-    setOpen(false); setForm(empty);
+    setOpen(false);
+    setForm(empty);
     qc.invalidateQueries({ queryKey: ["admin-items"] });
     qc.invalidateQueries({ queryKey: ["items"] });
   };
@@ -210,8 +278,14 @@ function ItemsAdmin() {
   // Inline, spreadsheet-style edits straight from the table cells — no
   // dialog needed for the fields people change most often.
   const updateItemField = async (id: string, patch: Record<string, unknown>) => {
-    const { error } = await supabase.from("items").update(patch as never).eq("id", id);
-    if (error) { toast.error(error.message); return; }
+    const { error } = await supabase
+      .from("items")
+      .update(patch as never)
+      .eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     qc.invalidateQueries({ queryKey: ["admin-items"] });
     qc.invalidateQueries({ queryKey: ["items"] });
   };
@@ -220,7 +294,10 @@ function ItemsAdmin() {
     if (!confirm("למחוק?")) return;
     const { error } = await supabase.from("items").delete().eq("id", id);
     if (error) toast.error(error.message);
-    else { qc.invalidateQueries({ queryKey: ["admin-items"] }); qc.invalidateQueries({ queryKey: ["items"] }); }
+    else {
+      qc.invalidateQueries({ queryKey: ["admin-items"] });
+      qc.invalidateQueries({ queryKey: ["items"] });
+    }
   };
 
   // Warns before uploading an image that's byte-identical to one already on
@@ -231,7 +308,11 @@ function ItemsAdmin() {
     // image_hash is a very recent column — cast past the generated types
     // until they're regenerated against the live schema (same pattern as
     // updateItemField's `as never` below).
-    let query = supabase.from("items").select("name").eq("image_hash" as never, hash).limit(1);
+    let query = supabase
+      .from("items")
+      .select("name")
+      .eq("image_hash" as never, hash)
+      .limit(1);
     if (excludeItemId) query = query.neq("id", excludeItemId);
     const { data } = await query.maybeSingle();
     if (!data) return true;
@@ -247,13 +328,19 @@ function ItemsAdmin() {
   // legitimately reuse similar photos). excludeItemId skips the check
   // against the item you're already editing (its own current photo
   // obviously matches itself).
-  const uploadToStorage = async (file: File, prefix = "", opts?: { excludeItemId?: string; checkDuplicate?: boolean }) => {
+  const uploadToStorage = async (
+    file: File,
+    prefix = "",
+    opts?: { excludeItemId?: string; checkDuplicate?: boolean },
+  ) => {
     const compressed = await compressImage(file);
     const hash = await hashFile(compressed);
     if (opts?.checkDuplicate && !(await confirmNotDuplicate(hash, opts.excludeItemId))) return null;
     const ext = compressed.name.split(".").pop();
     const path = `${prefix}${crypto.randomUUID()}.${ext}`;
-    const { error } = await supabase.storage.from("items").upload(path, compressed, { upsert: false });
+    const { error } = await supabase.storage
+      .from("items")
+      .upload(path, compressed, { upsert: false });
     if (error) throw error;
     const { data, error: signErr } = await supabase.storage
       .from("items")
@@ -288,7 +375,10 @@ function ItemsAdmin() {
     try {
       const res = await uploadToStorage(file, "", { excludeItemId: itemId, checkDuplicate: true });
       if (res) {
-        const { error } = await supabase.from("items").update({ image_url: res.url, image_hash: res.hash } as never).eq("id", itemId);
+        const { error } = await supabase
+          .from("items")
+          .update({ image_url: res.url, image_hash: res.hash } as never)
+          .eq("id", itemId);
         if (error) throw error;
         toast.success("התמונה עודכנה");
         qc.invalidateQueries({ queryKey: ["admin-items"] });
@@ -334,15 +424,22 @@ function ItemsAdmin() {
     setRowUploadingInspiration(null);
   };
 
-
   const createCategory = async () => {
     const name = newCatName.trim();
     if (!name) return toast.error("שם קטגוריה חובה");
-    const slug = (newCatSlug.trim() || name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    const { data, error } = await supabase.from("categories").insert({ name, slug, sort_order: (categories.data?.length ?? 0) + 1 }).select().single();
+    const slug = (newCatSlug.trim() || name)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+    const { data, error } = await supabase
+      .from("categories")
+      .insert({ name, slug, sort_order: (categories.data?.length ?? 0) + 1 })
+      .select()
+      .single();
     if (error) return toast.error(error.message);
     toast.success("קטגוריה נוצרה");
-    setNewCatName(""); setNewCatSlug("");
+    setNewCatName("");
+    setNewCatSlug("");
     await qc.invalidateQueries({ queryKey: ["categories"] });
     setForm((f) => ({ ...f, category_id: data.id }));
     setBulkCat(data.id);
@@ -353,9 +450,10 @@ function ItemsAdmin() {
   // instead of being deleted or blocked.
   const deleteCategory = async (cat: { id: string; name: string }) => {
     const affected = (items.data ?? []).filter((i: any) => i.category_id === cat.id).length;
-    const msg = affected > 0
-      ? `למחוק את הקטגוריה "${cat.name}"? ${affected} פריטים ישויכו ל"ללא קטגוריה".`
-      : `למחוק את הקטגוריה "${cat.name}"?`;
+    const msg =
+      affected > 0
+        ? `למחוק את הקטגוריה "${cat.name}"? ${affected} פריטים ישויכו ל"ללא קטגוריה".`
+        : `למחוק את הקטגוריה "${cat.name}"?`;
     if (!confirm(msg)) return;
     const { error } = await supabase.from("categories").delete().eq("id", cat.id);
     if (error) return toast.error(error.message);
@@ -363,6 +461,74 @@ function ItemsAdmin() {
     qc.invalidateQueries({ queryKey: ["categories"] });
     qc.invalidateQueries({ queryKey: ["admin-items"] });
     qc.invalidateQueries({ queryKey: ["items"] });
+  };
+
+  /**
+   * Merges every checked category into one target category (created if it
+   * doesn't already exist by that name) — moves all their items over first,
+   * then deletes the now-empty source categories. Runs off the live
+   * `categories` list (checkboxes below), not a hardcoded name list, so it
+   * always matches the real category names/spelling exactly, whatever they
+   * currently are.
+   */
+  const mergeCategories = async () => {
+    const targetName = mergeTargetName.trim();
+    if (!targetName) return toast.error("שם קטגוריית היעד חובה");
+    if (mergeSelected.size === 0) return toast.error("בחרי לפחות קטגוריה אחת למיזוג");
+
+    const selectedCats = (categories.data ?? []).filter((c: any) => mergeSelected.has(c.id));
+    const affected = (items.data ?? []).filter((i: any) => mergeSelected.has(i.category_id)).length;
+    if (
+      !confirm(
+        `למזג ${selectedCats.length} קטגוריות (${selectedCats.map((c: any) => c.name).join(", ")}) לתוך "${targetName}"? ${affected} פריטים יעברו לקטגוריה הזו, והקטגוריות המקוריות יימחקו.`,
+      )
+    )
+      return;
+
+    setMerging(true);
+    try {
+      // Reuse an existing category with this exact name if one exists
+      // (including the target itself, if she selected it as one of the
+      // sources — merging "X" into "X" among others is harmless).
+      let targetId = (categories.data ?? []).find((c: any) => c.name === targetName)?.id as
+        string | undefined;
+      if (!targetId) {
+        const slug =
+          targetName
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-|-$/g, "") || "category";
+        const { data, error } = await supabase
+          .from("categories")
+          .insert({ name: targetName, slug, sort_order: (categories.data?.length ?? 0) + 1 })
+          .select()
+          .single();
+        if (error) throw error;
+        targetId = data.id;
+      }
+
+      const sourceIds = selectedCats.map((c: any) => c.id).filter((id: string) => id !== targetId);
+      if (sourceIds.length > 0) {
+        const { error: moveErr } = await supabase
+          .from("items")
+          .update({ category_id: targetId })
+          .in("category_id", sourceIds);
+        if (moveErr) throw moveErr;
+
+        const { error: delErr } = await supabase.from("categories").delete().in("id", sourceIds);
+        if (delErr) throw delErr;
+      }
+
+      toast.success(`מוזג ל"${targetName}"`);
+      setMergeSelected(new Set());
+      qc.invalidateQueries({ queryKey: ["categories"] });
+      qc.invalidateQueries({ queryKey: ["admin-items"] });
+      qc.invalidateQueries({ queryKey: ["items"] });
+    } catch (e: any) {
+      toast.error(e.message ?? "המיזוג נכשל");
+    } finally {
+      setMerging(false);
+    }
   };
 
   const runBulkUpload = async () => {
@@ -380,9 +546,18 @@ function ItemsAdmin() {
         const { url } = res;
         const sku = nextSkuFor(prefix, existing);
         existing.push(sku);
-        const name = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim() || sku;
+        const name =
+          file.name
+            .replace(/\.[^.]+$/, "")
+            .replace(/[-_]+/g, " ")
+            .trim() || sku;
         const { error } = await supabase.from("items").insert({
-          sku, name, price: bulkPrice, image_url: url, category_id: bulkCat, active: true,
+          sku,
+          name,
+          price: bulkPrice,
+          image_url: url,
+          category_id: bulkCat,
+          active: true,
         });
         if (error) throw error;
         ok++;
@@ -392,7 +567,8 @@ function ItemsAdmin() {
     }
     setBulkBusy(false);
     toast.success(`הועלו ${ok} פריטים`);
-    setBulkFiles([]); setBulkOpen(false);
+    setBulkFiles([]);
+    setBulkOpen(false);
     qc.invalidateQueries({ queryKey: ["admin-items"] });
     qc.invalidateQueries({ queryKey: ["items"] });
   };
@@ -439,7 +615,10 @@ function ItemsAdmin() {
       const catByName = new Map<string, string>();
       for (const c of categories.data ?? []) catByName.set(c.name, c.id);
 
-      let created = 0, updated = 0, catsCreated = 0, failed = 0;
+      let created = 0,
+        updated = 0,
+        catsCreated = 0,
+        failed = 0;
       for (const r of records) {
         const sku = (r["מק״ט"] || r["מקט"] || "").trim();
         const catName = (r["קטגוריה"] || "").trim();
@@ -448,7 +627,10 @@ function ItemsAdmin() {
         const image_url = (r["קישור לתמונה"] || "").trim() || null;
         const stockRaw = (r["כמות במלאי"] || "").trim();
         const sortRaw = (r["סדר תצוגה"] || "").trim();
-        if (!sku || !name) { failed++; continue; }
+        if (!sku || !name) {
+          failed++;
+          continue;
+        }
 
         let category_id: string | null = null;
         if (catName) {
@@ -474,20 +656,32 @@ function ItemsAdmin() {
           .maybeSingle();
 
         const stock_quantity =
-          stockRaw !== "" ? Math.max(1, Math.floor(Number(stockRaw)) || 1) : Number(existing?.stock_quantity ?? 1);
-        const sort_order = sortRaw !== "" ? Math.floor(Number(sortRaw)) || 0 : Number(existing?.sort_order ?? 0);
+          stockRaw !== ""
+            ? Math.max(1, Math.floor(Number(stockRaw)) || 1)
+            : Number(existing?.stock_quantity ?? 1);
+        const sort_order =
+          sortRaw !== "" ? Math.floor(Number(sortRaw)) || 0 : Number(existing?.sort_order ?? 0);
 
         if (existing) {
           const { error } = await supabase
             .from("items")
             .update({ name, price, image_url, category_id, stock_quantity, sort_order })
             .eq("id", existing.id);
-          if (error) failed++; else updated++;
+          if (error) failed++;
+          else updated++;
         } else {
-          const { error } = await supabase
-            .from("items")
-            .insert({ sku, name, price, image_url, category_id, active: true, stock_quantity, sort_order });
-          if (error) failed++; else created++;
+          const { error } = await supabase.from("items").insert({
+            sku,
+            name,
+            price,
+            image_url,
+            category_id,
+            active: true,
+            stock_quantity,
+            sort_order,
+          });
+          if (error) failed++;
+          else created++;
         }
       }
 
@@ -506,14 +700,22 @@ function ItemsAdmin() {
     }
   };
 
-  const filtered = (items.data ?? []).filter((i: any) =>
-    !q || i.name.toLowerCase().includes(q.toLowerCase()) || i.sku.toLowerCase().includes(q.toLowerCase()),
+  const filtered = (items.data ?? []).filter(
+    (i: any) =>
+      !q ||
+      i.name.toLowerCase().includes(q.toLowerCase()) ||
+      i.sku.toLowerCase().includes(q.toLowerCase()),
   );
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Input placeholder="חיפוש שם או מק״ט…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm rounded-full" />
+        <Input
+          placeholder="חיפוש שם או מק״ט…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          className="max-w-sm rounded-full"
+        />
         <div className="flex gap-2 flex-wrap">
           <Button variant="outline" className="rounded-full gap-2" onClick={exportCsv}>
             <Download className="h-4 w-4" /> ייצוא CSV
@@ -531,66 +733,149 @@ function ItemsAdmin() {
               }}
             />
           </label>
-          <Button variant="outline" className="rounded-full gap-2" onClick={() => setBulkOpen(true)}>
+          <Button
+            variant="outline"
+            className="rounded-full gap-2"
+            onClick={() => setBulkOpen(true)}
+          >
             <Upload className="h-4 w-4" /> העלאה מרובה
           </Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => { setForm(empty); setOpen(true); }} className="rounded-full gap-2"><Plus className="h-4 w-4" /> אביזר חדש</Button>
+              <Button
+                onClick={() => {
+                  setForm(empty);
+                  setOpen(true);
+                }}
+                className="rounded-full gap-2"
+              >
+                <Plus className="h-4 w-4" /> אביזר חדש
+              </Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg" dir="rtl">
-              <DialogHeader><DialogTitle className="font-display text-2xl">{form.id ? "עריכת אביזר" : "אביזר חדש"}</DialogTitle></DialogHeader>
+              <DialogHeader>
+                <DialogTitle className="font-display text-2xl">
+                  {form.id ? "עריכת אביזר" : "אביזר חדש"}
+                </DialogTitle>
+              </DialogHeader>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
-                  <div><Label>מק״ט</Label><Input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} className="mt-1" /></div>
-                  <div><Label>מחיר (₪)</Label><Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} className="mt-1" /></div>
+                  <div>
+                    <Label>מק״ט</Label>
+                    <Input
+                      value={form.sku}
+                      onChange={(e) => setForm({ ...form, sku: e.target.value })}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label>מחיר (₪)</Label>
+                    <Input
+                      type="number"
+                      value={form.price}
+                      onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
+                      className="mt-1"
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><Label>שם</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1" /></div>
+                  <div>
+                    <Label>שם</Label>
+                    <Input
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      className="mt-1"
+                    />
+                  </div>
                   <div>
                     <Label>כמות במלאי</Label>
                     <Input
-                      type="number" min={1}
+                      type="number"
+                      min={1}
                       value={form.stock_quantity}
-                      onChange={(e) => setForm({ ...form, stock_quantity: Math.max(1, Number(e.target.value) || 1) })}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          stock_quantity: Math.max(1, Number(e.target.value) || 1),
+                        })
+                      }
                       className="mt-1"
                     />
-                    <p className="text-[11px] text-muted-foreground mt-1">מספר יחידות זמינות. לרוב 1. לכובעים/פריטים כפולים — 2 ומעלה.</p>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      מספר יחידות זמינות. לרוב 1. לכובעים/פריטים כפולים — 2 ומעלה.
+                    </p>
                   </div>
                 </div>
                 <div>
                   <div className="flex items-center justify-between">
                     <Label>קטגוריה</Label>
-                    <button type="button" onClick={() => setCatOpen(true)} className="text-xs text-forest hover:underline inline-flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setCatOpen(true)}
+                      className="text-xs text-forest hover:underline inline-flex items-center gap-1"
+                    >
                       <FolderPlus className="h-3 w-3" /> קטגוריה חדשה
                     </button>
                   </div>
-                  <Select value={form.category_id ?? "none"} onValueChange={(v) => setForm({ ...form, category_id: v === "none" ? null : v })}>
-                    <SelectTrigger className="mt-1"><SelectValue placeholder="בחר קטגוריה" /></SelectTrigger>
+                  <Select
+                    value={form.category_id ?? "none"}
+                    onValueChange={(v) =>
+                      setForm({ ...form, category_id: v === "none" ? null : v })
+                    }
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="בחר קטגוריה" />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">— ללא —</SelectItem>
-                      {categories.data?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                      {categories.data?.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <div><Label>תיאור</Label><Textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="mt-1" /></div>
+                <div>
+                  <Label>תיאור</Label>
+                  <Textarea
+                    rows={3}
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
                 <div>
                   <Label>תמונה</Label>
                   <div className="mt-1 flex gap-3 items-center">
                     <div className="h-20 w-20 rounded-xl bg-cream overflow-hidden flex items-center justify-center">
-                      {form.image_url ? <img src={form.image_url} alt="" className="w-full h-full object-cover" /> : <ImageIcon className="h-6 w-6 text-primary/30" />}
+                      {form.image_url ? (
+                        <img src={form.image_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <ImageIcon className="h-6 w-6 text-primary/30" />
+                      )}
                     </div>
                     <label className="cursor-pointer inline-flex items-center gap-2 px-4 h-10 rounded-full border border-primary/20 hover:bg-cream text-sm">
                       <Upload className="h-3 w-3" />
                       {uploading ? "מעלה…" : "העלה תמונה"}
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadImage(e.target.files[0])} />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => e.target.files?.[0] && uploadImage(e.target.files[0])}
+                      />
                     </label>
                     {form.image_url && (
                       <ImageCropDialog
                         imageUrl={form.image_url}
                         onSave={saveCroppedImage}
                         trigger={
-                          <Button type="button" variant="outline" size="sm" className="rounded-full">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="rounded-full"
+                          >
                             <Crop className="h-3 w-3 ml-1.5" /> הגדלה / חיתוך
                           </Button>
                         }
@@ -599,12 +884,17 @@ function ItemsAdmin() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Switch checked={form.active} onCheckedChange={(v) => setForm({ ...form, active: v })} />
+                  <Switch
+                    checked={form.active}
+                    onCheckedChange={(v) => setForm({ ...form, active: v })}
+                  />
                   <Label>מוצג בקטלוג</Label>
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="ghost" onClick={() => setOpen(false)}>ביטול</Button>
+                <Button variant="ghost" onClick={() => setOpen(false)}>
+                  ביטול
+                </Button>
                 <Button onClick={save}>שמור</Button>
               </DialogFooter>
             </DialogContent>
@@ -615,30 +905,51 @@ function ItemsAdmin() {
       {/* Bulk upload dialog */}
       <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
         <DialogContent className="max-w-lg" dir="rtl">
-          <DialogHeader><DialogTitle className="font-display text-2xl">העלאה מרובה</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">העלאה מרובה</DialogTitle>
+          </DialogHeader>
           <div className="space-y-4">
             <div>
               <div className="flex items-center justify-between">
                 <Label>קטגוריה</Label>
-                <button type="button" onClick={() => setCatOpen(true)} className="text-xs text-forest hover:underline inline-flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setCatOpen(true)}
+                  className="text-xs text-forest hover:underline inline-flex items-center gap-1"
+                >
                   <FolderPlus className="h-3 w-3" /> קטגוריה חדשה
                 </button>
               </div>
               <Select value={bulkCat ?? ""} onValueChange={(v) => setBulkCat(v || null)}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="בחרי קטגוריה" /></SelectTrigger>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="בחרי קטגוריה" />
+                </SelectTrigger>
                 <SelectContent>
-                  {categories.data?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  {categories.data?.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               {bulkCat && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  המק״טים ימשיכו מ־{nextSkuFor(categoryPrefix(categories.data?.find((c) => c.id === bulkCat)), skusByCategory.get(bulkCat) ?? [])}
+                  המק״טים ימשיכו מ־
+                  {nextSkuFor(
+                    categoryPrefix(categories.data?.find((c) => c.id === bulkCat)),
+                    skusByCategory.get(bulkCat) ?? [],
+                  )}
                 </p>
               )}
             </div>
             <div>
               <Label>מחיר בסיס לכל פריט (₪)</Label>
-              <Input type="number" value={bulkPrice} onChange={(e) => setBulkPrice(Number(e.target.value))} className="mt-1" />
+              <Input
+                type="number"
+                value={bulkPrice}
+                onChange={(e) => setBulkPrice(Number(e.target.value))}
+                className="mt-1"
+              />
             </div>
             <div>
               <Label>תמונות</Label>
@@ -655,22 +966,44 @@ function ItemsAdmin() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setBulkOpen(false)}>ביטול</Button>
-            <Button onClick={runBulkUpload} disabled={bulkBusy}>{bulkBusy ? "מעלה…" : "העלה"}</Button>
+            <Button variant="ghost" onClick={() => setBulkOpen(false)}>
+              ביטול
+            </Button>
+            <Button onClick={runBulkUpload} disabled={bulkBusy}>
+              {bulkBusy ? "מעלה…" : "העלה"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Manage categories dialog: existing list (with delete) + add new */}
+      {/* Manage categories dialog: existing list (with delete + merge checkboxes) + add new */}
       <Dialog open={catOpen} onOpenChange={setCatOpen}>
         <DialogContent className="max-w-md" dir="rtl">
-          <DialogHeader><DialogTitle className="font-display text-2xl">ניהול קטגוריות</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">ניהול קטגוריות</DialogTitle>
+          </DialogHeader>
           <div className="space-y-4">
             {(categories.data?.length ?? 0) > 0 && (
               <div className="space-y-1 max-h-48 overflow-y-auto">
                 {categories.data?.map((c) => (
-                  <div key={c.id} className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-cream">
-                    <span className="text-sm">{c.name}</span>
+                  <div
+                    key={c.id}
+                    className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-cream"
+                  >
+                    <label className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer">
+                      <Checkbox
+                        checked={mergeSelected.has(c.id)}
+                        onCheckedChange={(checked) => {
+                          setMergeSelected((prev) => {
+                            const next = new Set(prev);
+                            if (checked) next.add(c.id);
+                            else next.delete(c.id);
+                            return next;
+                          });
+                        }}
+                      />
+                      <span className="text-sm truncate">{c.name}</span>
+                    </label>
                     <Button
                       size="icon"
                       variant="ghost"
@@ -684,13 +1017,52 @@ function ItemsAdmin() {
                 ))}
               </div>
             )}
+
+            {mergeSelected.size > 0 && (
+              <div className="space-y-2 rounded-lg bg-cream p-3 border border-primary/10">
+                <Label>מיזוג {mergeSelected.size} הקטגוריות שסומנו לתוך:</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={mergeTargetName}
+                    onChange={(e) => setMergeTargetName(e.target.value)}
+                    placeholder="הכל"
+                  />
+                  <Button onClick={mergeCategories} disabled={merging} className="shrink-0">
+                    {merging ? "ממזג…" : "מזג"}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  כל הפריטים בקטגוריות שסומנו יעברו לקטגוריה הזו (תיווצר אם לא קיימת), והקטגוריות
+                  המקוריות יימחקו.
+                </p>
+              </div>
+            )}
+
             <div className="space-y-3 border-t border-primary/10 pt-4">
-              <div><Label>שם קטגוריה חדשה</Label><Input value={newCatName} onChange={(e) => setNewCatName(e.target.value)} className="mt-1" placeholder="לדוגמה: Vintage" /></div>
-              <div><Label>קוד (slug)</Label><Input value={newCatSlug} onChange={(e) => setNewCatSlug(e.target.value)} className="mt-1" placeholder="vintage" /></div>
+              <div>
+                <Label>שם קטגוריה חדשה</Label>
+                <Input
+                  value={newCatName}
+                  onChange={(e) => setNewCatName(e.target.value)}
+                  className="mt-1"
+                  placeholder="לדוגמה: Vintage"
+                />
+              </div>
+              <div>
+                <Label>קוד (slug)</Label>
+                <Input
+                  value={newCatSlug}
+                  onChange={(e) => setNewCatSlug(e.target.value)}
+                  className="mt-1"
+                  placeholder="vintage"
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setCatOpen(false)}>סגירה</Button>
+            <Button variant="ghost" onClick={() => setCatOpen(false)}>
+              סגירה
+            </Button>
             <Button onClick={createCategory}>הוסף קטגוריה</Button>
           </DialogFooter>
         </DialogContent>
@@ -698,7 +1070,8 @@ function ItemsAdmin() {
 
       <div className="bg-card rounded-2xl border border-primary/5 overflow-hidden">
         <div className="px-4 py-2 text-xs text-muted-foreground border-b border-border">
-          לחצו על שם, קטגוריה, מחיר, כמות או מצב בטבלה כדי לערוך ישירות — נשמר אוטומטית. גררו שורות כדי לשנות את הסדר — הסדר מתעדכן אוטומטית בקטלוג ובכל דפי האביזרים.
+          לחצו על שם, קטגוריה, מחיר, כמות או מצב בטבלה כדי לערוך ישירות — נשמר אוטומטית. גררו שורות
+          כדי לשנות את הסדר — הסדר מתעדכן אוטומטית בקטלוג ובכל דפי האביזרים.
           {savingOrder ? " · שומר…" : ""}
         </div>
         <table className="w-full text-sm">
@@ -733,9 +1106,15 @@ function ItemsAdmin() {
                 <td className="p-3">
                   <div className="flex flex-col items-center gap-1 w-16">
                     <div className="h-12 w-12 rounded-lg bg-cream overflow-hidden flex items-center justify-center">
-                      {i.image_url
-                        ? <img src={i.image_url} alt={i.name} className="w-full h-full object-cover" />
-                        : <ImageIcon className="h-4 w-4 text-primary/30" />}
+                      {i.image_url ? (
+                        <img
+                          src={i.image_url}
+                          alt={i.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <ImageIcon className="h-4 w-4 text-primary/30" />
+                      )}
                     </div>
                     <label className="cursor-pointer text-[10px] text-forest hover:underline inline-flex items-center gap-1">
                       <Upload className="h-3 w-3" />
@@ -744,7 +1123,9 @@ function ItemsAdmin() {
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={(e) => e.target.files?.[0] && uploadRowImage(i.id, e.target.files[0])}
+                        onChange={(e) =>
+                          e.target.files?.[0] && uploadRowImage(i.id, e.target.files[0])
+                        }
                       />
                     </label>
                   </div>
@@ -753,18 +1134,30 @@ function ItemsAdmin() {
                 <td className="p-3">
                   <div className="flex flex-col items-center gap-1 w-16">
                     <div className="h-12 w-12 rounded-lg bg-cream overflow-hidden flex items-center justify-center">
-                      {inspirationBySku[i.sku]
-                        ? <img src={inspirationBySku[i.sku].url} alt="" className="w-full h-full object-cover" />
-                        : <Sparkles className="h-4 w-4 text-primary/30" />}
+                      {inspirationBySku[i.sku] ? (
+                        <img
+                          src={inspirationBySku[i.sku].url}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Sparkles className="h-4 w-4 text-primary/30" />
+                      )}
                     </div>
                     <label className="cursor-pointer text-[10px] text-forest hover:underline inline-flex items-center gap-1">
                       <Upload className="h-3 w-3" />
-                      {rowUploadingInspiration === i.sku ? "מעלה…" : inspirationBySku[i.sku] ? "החלפה" : "הוספה"}
+                      {rowUploadingInspiration === i.sku
+                        ? "מעלה…"
+                        : inspirationBySku[i.sku]
+                          ? "החלפה"
+                          : "הוספה"}
                       <input
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={(e) => e.target.files?.[0] && uploadRowInspiration(i.sku, e.target.files[0])}
+                        onChange={(e) =>
+                          e.target.files?.[0] && uploadRowInspiration(i.sku, e.target.files[0])
+                        }
                       />
                     </label>
                   </div>
@@ -787,14 +1180,20 @@ function ItemsAdmin() {
                 <td className="p-3">
                   <Select
                     value={i.category_id ?? "none"}
-                    onValueChange={(v) => updateItemField(i.id, { category_id: v === "none" ? null : v })}
+                    onValueChange={(v) =>
+                      updateItemField(i.id, { category_id: v === "none" ? null : v })
+                    }
                   >
                     <SelectTrigger className="h-8 w-36 border-transparent bg-transparent hover:border-input">
                       <SelectValue placeholder="בחר קטגוריה" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">— ללא —</SelectItem>
-                      {categories.data?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                      {categories.data?.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </td>
@@ -808,7 +1207,8 @@ function ItemsAdmin() {
                       defaultValue={Number(i.price)}
                       onBlur={(e) => {
                         const v = Number(e.target.value);
-                        if (!Number.isNaN(v) && v !== Number(i.price)) updateItemField(i.id, { price: v });
+                        if (!Number.isNaN(v) && v !== Number(i.price))
+                          updateItemField(i.id, { price: v });
                       }}
                       className="h-8 w-20 border-transparent bg-transparent hover:border-input focus:border-input"
                     />
@@ -823,7 +1223,8 @@ function ItemsAdmin() {
                     defaultValue={Number(i.stock_quantity ?? 1)}
                     onBlur={(e) => {
                       const v = Math.max(1, Math.floor(Number(e.target.value)) || 1);
-                      if (v !== Number(i.stock_quantity ?? 1)) updateItemField(i.id, { stock_quantity: v });
+                      if (v !== Number(i.stock_quantity ?? 1))
+                        updateItemField(i.id, { stock_quantity: v });
                     }}
                     className="h-8 w-16 border-transparent bg-transparent hover:border-input focus:border-input"
                   />
@@ -839,14 +1240,27 @@ function ItemsAdmin() {
 
                 <td className="p-3 text-left">
                   <div className="inline-flex gap-1">
-                    <Button size="icon" variant="ghost" onClick={() => editItem(i)}><Pencil className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" className="text-destructive" onClick={() => del(i.id)}><Trash2 className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="ghost" onClick={() => editItem(i)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="text-destructive"
+                      onClick={() => del(i.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </td>
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={10} className="p-16 text-center text-muted-foreground">אין אביזרים עדיין. לחצו על "אביזר חדש".</td></tr>
+              <tr>
+                <td colSpan={10} className="p-16 text-center text-muted-foreground">
+                  אין אביזרים עדיין. לחצו על "אביזר חדש".
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
