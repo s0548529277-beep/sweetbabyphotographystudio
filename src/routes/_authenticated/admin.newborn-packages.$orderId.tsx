@@ -28,12 +28,17 @@ export const Route = createFileRoute("/_authenticated/admin/newborn-packages/$or
 
 type ImageRow = { id: string; kind: "proof" | "edited"; image_url: string; selected: boolean };
 
-async function uploadToStorage(orderId: string, file: File): Promise<{ url: string; path: string }> {
+async function uploadToStorage(
+  orderId: string,
+  file: File,
+): Promise<{ url: string; path: string }> {
   const ext = file.name.split(".").pop() ?? "jpg";
   const path = `newborn-orders/${orderId}/${crypto.randomUUID()}.${ext}`;
   const { error } = await supabase.storage.from("items").upload(path, file, { upsert: false });
   if (error) throw error;
-  const { data, error: signErr } = await supabase.storage.from("items").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+  const { data, error: signErr } = await supabase.storage
+    .from("items")
+    .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
   if (signErr || !data?.signedUrl) throw signErr ?? new Error("שגיאה בהעלאה");
   return { url: data.signedUrl, path };
 }
@@ -99,7 +104,9 @@ function UploadSection({
           <h3 className="font-display text-lg text-primary">{title}</h3>
           <p className="text-xs text-muted-foreground">{hint}</p>
         </div>
-        {images.length > 0 && <span className="text-xs text-muted-foreground shrink-0">תמונות ({images.length})</span>}
+        {images.length > 0 && (
+          <span className="text-xs text-muted-foreground shrink-0">תמונות ({images.length})</span>
+        )}
       </div>
 
       <button
@@ -120,19 +127,36 @@ function UploadSection({
           dragOver ? "border-primary bg-primary/5" : "border-primary/20 hover:border-primary/40"
         }`}
       >
-        {uploading ? <Loader2 className="h-5 w-5 shrink-0 text-primary animate-spin" /> : <ImagePlus className="h-5 w-5 shrink-0 text-primary" />}
+        {uploading ? (
+          <Loader2 className="h-5 w-5 shrink-0 text-primary animate-spin" />
+        ) : (
+          <ImagePlus className="h-5 w-5 shrink-0 text-primary" />
+        )}
         <div className="min-w-0">
-          <p className="text-sm font-medium">{uploading ? "מעלה..." : "לחצי או גררי תמונות לכאן"}</p>
+          <p className="text-sm font-medium">
+            {uploading ? "מעלה..." : "לחצי או גררי תמונות לכאן"}
+          </p>
           <p className="text-xs text-muted-foreground">JPG, PNG, HEIC</p>
         </div>
       </button>
-      <input ref={inputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => onFiles(e.target.files)} />
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => onFiles(e.target.files)}
+      />
 
       {images.length > 0 && (
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-2">
           {images.map((img, i) => (
             <div key={img.id} className="relative group aspect-square">
-              <img src={img.image_url} alt="" className="w-full h-full object-cover rounded-lg border border-primary/10" />
+              <img
+                src={img.image_url}
+                alt=""
+                className="w-full h-full object-cover rounded-lg border border-primary/10"
+              />
               <span className="absolute bottom-1 right-1 bg-background/85 text-foreground text-[10px] font-mono px-1.5 py-0.5 rounded">
                 {String(i + 1).padStart(3, "0")}
               </span>
@@ -177,7 +201,9 @@ function NewbornOrderGallery() {
   const images = (imagesQuery.data ?? []) as ImageRow[];
   const refresh = () => qc.invalidateQueries({ queryKey: ["newborn-order-images", orderId] });
 
-  const shareUrl = order?.access_token ? `https://sweetbabyphoto.shop/newborn/gallery/${order.access_token}` : null;
+  const shareUrl = order?.access_token
+    ? `https://sweetbabyphoto.shop/newborn/gallery/${order.access_token}`
+    : null;
 
   const copyLink = () => {
     if (!shareUrl) return;
@@ -212,24 +238,39 @@ function NewbornOrderGallery() {
   return (
     <div dir="rtl" className="space-y-6 max-w-4xl">
       <div className="flex items-center gap-3">
-        <Link to="/admin/newborn-packages" className="h-9 w-9 rounded-full hover:bg-primary/10 flex items-center justify-center text-primary">
+        <Link
+          to="/admin/newborn-packages"
+          className="h-9 w-9 rounded-full hover:bg-primary/10 flex items-center justify-center text-primary"
+        >
           <ArrowRight className="h-4 w-4" />
         </Link>
         <div>
           <h2 className="font-display text-2xl text-primary">{order.contact_name}</h2>
-          <p className="text-sm text-muted-foreground">{pkg?.name ?? order.package_id} · ₪{order.total_price}</p>
+          <p className="text-sm text-muted-foreground">
+            {pkg?.name ?? order.package_id} · ₪{order.total_price}
+          </p>
         </div>
       </div>
 
       <div className="bg-card rounded-2xl border border-primary/10 p-5 space-y-3">
         <h3 className="font-display text-lg text-primary">קישור אישי ללקוחה</h3>
         <p className="text-xs text-muted-foreground">
-          הקישור הזה — ולא כניסה לאתר — הוא מה שהלקוחה משתמשת בו כדי לראות ולבחור תמונות. אין צורך שיהיה לה חשבון.
+          הקישור הזה — ולא כניסה לאתר — הוא מה שהלקוחה משתמשת בו כדי לראות ולבחור תמונות. אין צורך
+          שיהיה לה חשבון.
         </p>
         {shareUrl && (
           <div className="flex flex-wrap items-center gap-2">
-            <code dir="ltr" className="text-xs bg-muted rounded-lg px-3 py-2 flex-1 min-w-0 truncate">{shareUrl}</code>
-            <button type="button" onClick={copyLink} className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 px-4 h-9 text-sm hover:bg-cream">
+            <code
+              dir="ltr"
+              className="text-xs bg-muted rounded-lg px-3 py-2 flex-1 min-w-0 truncate"
+            >
+              {shareUrl}
+            </code>
+            <button
+              type="button"
+              onClick={copyLink}
+              className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 px-4 h-9 text-sm hover:bg-cream"
+            >
               <Copy className="h-3.5 w-3.5" /> העתקה
             </button>
           </div>
@@ -242,9 +283,21 @@ function NewbornOrderGallery() {
             disabled={resending}
             className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 px-3 h-7 hover:bg-cream disabled:opacity-60"
           >
-            {resending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />} שליחה מחדש
+            {resending ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Mail className="h-3 w-3" />
+            )}{" "}
+            שליחה מחדש
           </button>
         </div>
+        <p className="text-xs">
+          {order.contract_confirmed_at ? (
+            <span className="text-primary font-medium">היא קראה ואישרה את החוזה ✓</span>
+          ) : (
+            <span className="text-muted-foreground">עדיין לא אישרה שקראה את החוזה</span>
+          )}
+        </p>
         {order.proofs_selected_at && (
           <p className="text-xs text-primary font-medium">היא כבר סיימה לבחור תמונות ✓</p>
         )}

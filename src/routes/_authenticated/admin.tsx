@@ -32,6 +32,7 @@ import {
   Phone,
   BarChart3,
   Droplets,
+  FileText,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -39,7 +40,10 @@ export const Route = createFileRoute("/_authenticated/admin")({
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/auth" });
-    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id);
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", data.user.id);
     if (!roles?.some((r) => r.role === "admin")) throw redirect({ to: "/account" });
   },
   component: AdminLayout,
@@ -64,6 +68,7 @@ const links: NavEntry[] = [
   { to: "/admin/calendar", label: "יומן", icon: CalendarDays },
   { to: "/admin/clients", label: "לקוחות", icon: Users },
   { to: "/admin/newborn-packages", label: "חבילות ניו-בורן", icon: Baby },
+  { to: "/admin/newborn-contract-text", label: "מלל הכנה+חוזה ניו-בורן", icon: FileText },
   { to: "/admin/finance", label: "הכנסות והוצאות", icon: Wallet },
   {
     key: "club",
@@ -128,7 +133,8 @@ function AdminLayout() {
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
     for (const entry of links) {
-      if (isGroup(entry) && entry.items.some((l) => isLinkActive(path, l))) initial[entry.key] = true;
+      if (isGroup(entry) && entry.items.some((l) => isLinkActive(path, l)))
+        initial[entry.key] = true;
     }
     return initial;
   });
@@ -153,14 +159,20 @@ function AdminLayout() {
                   <div key={entry.key}>
                     <button
                       type="button"
-                      onClick={() => setOpenGroups((prev) => ({ ...prev, [entry.key]: !prev[entry.key] }))}
+                      onClick={() =>
+                        setOpenGroups((prev) => ({ ...prev, [entry.key]: !prev[entry.key] }))
+                      }
                       className={`w-full flex items-center gap-3 px-4 h-11 rounded-xl text-sm transition-colors ${
-                        hasActiveChild && !isOpen ? "bg-primary/10 text-primary" : "hover:bg-cream text-foreground"
+                        hasActiveChild && !isOpen
+                          ? "bg-primary/10 text-primary"
+                          : "hover:bg-cream text-foreground"
                       }`}
                     >
                       <entry.icon className="h-4 w-4" />
                       <span className="flex-1 text-right">{entry.label}</span>
-                      <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                      />
                     </button>
                     {isOpen && (
                       <div className="flex flex-col gap-1 mt-1">
