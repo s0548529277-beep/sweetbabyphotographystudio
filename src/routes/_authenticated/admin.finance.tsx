@@ -4,8 +4,28 @@ import { useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Trash2, TrendingUp, TrendingDown, Wallet, Search, Clock3, PieChart } from "lucide-react";
+import {
+  Trash2,
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  Search,
+  Clock3,
+  PieChart,
+  HandCoins,
+  AlertCircle,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/finance")({
   component: FinanceAdmin,
@@ -21,7 +41,10 @@ const monthKey = (d: string) => d.slice(0, 7);
 const ils = (n: number) => `₪${Math.round(n).toLocaleString("he-IL")}`;
 const monthLabel = (k: string) => {
   const [y, m] = k.split("-");
-  return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString("he-IL", { month: "long", year: "numeric" });
+  return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString("he-IL", {
+    month: "long",
+    year: "numeric",
+  });
 };
 
 type Txn = {
@@ -37,12 +60,50 @@ type Txn = {
   // income and expenses have no deposit to track, so this stays null for
   // them (treated as "not pending" everywhere it's checked).
   depositStatus: string | null;
+  // Only set for expense rows recorded as an unpaid debt (see the detailed
+  // "הוספת הוצאה/חוב" dialog) — null for income rows and for simple
+  // already-paid expenses.
+  debt: null | {
+    vendorName: string | null;
+    vendorEmail: string | null;
+    vendorPhone: string | null;
+    dueDate: string | null;
+  };
 };
 
 function FinanceAdmin() {
   const qc = useQueryClient();
-  const [form, setForm] = useState({ title: "", amount: "", category: "אחר", spent_on: new Date().toISOString().slice(0, 10) });
-  const [income, setIncome] = useState({ title: "", amount: "", client: "", category: TYPE_PHOTO, received_on: new Date().toISOString().slice(0, 10) });
+  const [form, setForm] = useState({
+    title: "",
+    amount: "",
+    category: "אחר",
+    spent_on: new Date().toISOString().slice(0, 10),
+  });
+  const [income, setIncome] = useState({
+    title: "",
+    amount: "",
+    client: "",
+    category: TYPE_PHOTO,
+    received_on: new Date().toISOString().slice(0, 10),
+  });
+
+  // Detailed "add expense / debt" dialog — separate from the quick inline
+  // form above, for when the expense is an unpaid debt owed to a supplier
+  // and needs contact details to follow up on.
+  const [debtOpen, setDebtOpen] = useState(false);
+  const emptyDebtForm = {
+    title: "",
+    amount: "",
+    category: "אחר",
+    spent_on: new Date().toISOString().slice(0, 10),
+    vendor_name: "",
+    vendor_email: "",
+    vendor_phone: "",
+    due_date: "",
+    notes: "",
+    is_paid: false,
+  };
+  const [debtForm, setDebtForm] = useState(emptyDebtForm);
 
   // Filters — defaults to the current calendar month (not all history), per
   // explicit request; still fully editable/clearable like any other filter.
@@ -65,8 +126,12 @@ function FinanceAdmin() {
     queryKey: ["admin-finance"],
     queryFn: async () => {
       const [ordersRes, bookingsRes, expensesRes, manualRes] = await Promise.all([
-        supabase.from("orders").select("id,total,status,created_at,scheduled_date,contact_name,deposit_status"),
-        supabase.from("bookings").select("id,price,status,created_at,session_date,contact_name,package,deposit_status"),
+        supabase
+          .from("orders")
+          .select("id,total,status,created_at,scheduled_date,contact_name,deposit_status"),
+        supabase
+          .from("bookings")
+          .select("id,price,status,created_at,session_date,contact_name,package,deposit_status"),
         supabase.from("expenses").select("*").order("spent_on", { ascending: false }),
         supabase.from("manual_income").select("*").order("received_on", { ascending: false }),
       ]);
@@ -86,42 +151,75 @@ function FinanceAdmin() {
     for (const o of data.data?.orders ?? []) {
       if (o.status === "cancelled") continue;
       out.push({
-        id: `o-${o.id}`, kind: "income", type: TYPE_PROPS,
+        id: `o-${o.id}`,
+        kind: "income",
+        type: TYPE_PROPS,
         title: `הזמנת אביזרים #${String(o.id).slice(0, 8)}`,
         client: o.contact_name ?? "",
         date: String(o.scheduled_date ?? o.created_at).slice(0, 10),
-        amount: Number(o.total ?? 0), removable: null,
+        amount: Number(o.total ?? 0),
+        removable: null,
         depositStatus: (o as { deposit_status?: string | null }).deposit_status ?? null,
+        debt: null,
       });
     }
     for (const b of data.data?.bookings ?? []) {
       if (b.status === "cancelled") continue;
       const isPhoto = b.package === "photography";
       out.push({
-        id: `b-${b.id}`, kind: "income", type: isPhoto ? TYPE_PHOTO : TYPE_STUDIO,
+        id: `b-${b.id}`,
+        kind: "income",
+        type: isPhoto ? TYPE_PHOTO : TYPE_STUDIO,
         title: isPhoto ? "סשן צילומים עם מיכל" : "שריון סטודיו",
         client: b.contact_name ?? "",
         date: String(b.session_date ?? b.created_at).slice(0, 10),
-        amount: Number(b.price ?? 0), removable: null,
+        amount: Number(b.price ?? 0),
+        removable: null,
         depositStatus: (b as { deposit_status?: string | null }).deposit_status ?? null,
+        debt: null,
       });
     }
     for (const mi of data.data?.manual ?? []) {
       out.push({
-        id: `m-${mi.id}`, kind: "income", type: mi.category ?? "אחר",
-        title: mi.title, client: (mi.notes as string) ?? "",
+        id: `m-${mi.id}`,
+        kind: "income",
+        type: mi.category ?? "אחר",
+        title: mi.title,
+        client: (mi.notes as string) ?? "",
         date: String(mi.received_on).slice(0, 10),
-        amount: Number(mi.amount ?? 0), removable: "manual_income",
+        amount: Number(mi.amount ?? 0),
+        removable: "manual_income",
         depositStatus: null,
+        debt: null,
       });
     }
     for (const e of data.data?.expenses ?? []) {
+      const ex = e as typeof e & {
+        is_paid?: boolean | null;
+        vendor_name?: string | null;
+        vendor_email?: string | null;
+        vendor_phone?: string | null;
+        due_date?: string | null;
+      };
       out.push({
-        id: `e-${e.id}`, kind: "expense", type: e.category ?? "אחר",
-        title: e.title, client: (e.notes as string) ?? "",
+        id: `e-${e.id}`,
+        kind: "expense",
+        type: e.category ?? "אחר",
+        title: e.title,
+        client: (e.notes as string) ?? "",
         date: String(e.spent_on).slice(0, 10),
-        amount: Number(e.amount ?? 0), removable: "expenses",
+        amount: Number(e.amount ?? 0),
+        removable: "expenses",
         depositStatus: null,
+        debt:
+          ex.is_paid === false
+            ? {
+                vendorName: ex.vendor_name ?? null,
+                vendorEmail: ex.vendor_email ?? null,
+                vendorPhone: ex.vendor_phone ?? null,
+                dueDate: ex.due_date ?? null,
+              }
+            : null,
       });
     }
     return out.sort((a, b) => b.date.localeCompare(a.date));
@@ -133,7 +231,7 @@ function FinanceAdmin() {
       if (from && t.date < from) return false;
       if (to && t.date > to) return false;
       if (type !== "all" && t.type !== type) return false;
-      if (c && !(`${t.client} ${t.title}`.toLowerCase().includes(c))) return false;
+      if (c && !`${t.client} ${t.title}`.toLowerCase().includes(c)) return false;
       if (paymentFilter === "pending" && t.depositStatus !== "pending") return false;
       if (paymentFilter === "paid" && t.depositStatus === "pending") return false;
       return true;
@@ -150,9 +248,20 @@ function FinanceAdmin() {
   );
 
   const months = useMemo(() => {
-    const map = new Map<string, { key: string; props: number; studio: number; photo: number; manual: number; expenses: number }>();
+    const map = new Map<
+      string,
+      {
+        key: string;
+        props: number;
+        studio: number;
+        photo: number;
+        manual: number;
+        expenses: number;
+      }
+    >();
     const get = (k: string) => {
-      if (!map.has(k)) map.set(k, { key: k, props: 0, studio: 0, photo: 0, manual: 0, expenses: 0 });
+      if (!map.has(k))
+        map.set(k, { key: k, props: 0, studio: 0, photo: 0, manual: 0, expenses: 0 });
       return map.get(k)!;
     };
     for (const t of txns) {
@@ -188,15 +297,27 @@ function FinanceAdmin() {
     return { count: rows.length, total: rows.reduce((s, t) => s + t.amount, 0) };
   }, [txns]);
 
+  // Expenses recorded as unpaid debts (via the detailed "הוספת הוצאה/חוב"
+  // dialog) — money owed to suppliers, separate from the deposit-pending
+  // income figure above.
+  const debts = useMemo(() => {
+    const rows = txns.filter((t) => t.kind === "expense" && t.debt);
+    return { count: rows.length, total: rows.reduce((s, t) => s + t.amount, 0) };
+  }, [txns]);
+
   const expenseByCategory = useMemo(() => {
     const map = new Map<string, number>();
-    for (const t of txns) if (t.kind === "expense") map.set(t.type, (map.get(t.type) ?? 0) + t.amount);
+    for (const t of txns)
+      if (t.kind === "expense") map.set(t.type, (map.get(t.type) ?? 0) + t.amount);
     return Array.from(map.entries())
       .map(([category, amount]) => ({ category, amount }))
       .sort((a, b) => b.amount - a.amount);
   }, [txns]);
 
-  const maxBar = Math.max(1, ...months.map((m) => Math.max(m.props + m.studio + m.photo + m.manual, m.expenses)));
+  const maxBar = Math.max(
+    1,
+    ...months.map((m) => Math.max(m.props + m.studio + m.photo + m.manual, m.expenses)),
+  );
   const maxExpenseCategory = Math.max(1, ...expenseByCategory.map((e) => e.amount));
 
   const addExpense = async () => {
@@ -211,6 +332,28 @@ function FinanceAdmin() {
     if (error) return toast.error(error.message);
     toast.success("ההוצאה נוספה");
     setForm({ ...form, title: "", amount: "" });
+    qc.invalidateQueries({ queryKey: ["admin-finance"] });
+  };
+
+  const addDebtExpense = async () => {
+    const amount = Number(debtForm.amount);
+    if (!debtForm.title.trim() || !amount) return toast.error("נא למלא תיאור וסכום");
+    const { error } = await supabase.from("expenses").insert({
+      title: debtForm.title.trim(),
+      amount,
+      category: debtForm.category,
+      spent_on: debtForm.spent_on,
+      notes: debtForm.notes.trim() || null,
+      vendor_name: debtForm.vendor_name.trim() || null,
+      vendor_email: debtForm.vendor_email.trim() || null,
+      vendor_phone: debtForm.vendor_phone.trim() || null,
+      due_date: debtForm.due_date || null,
+      is_paid: debtForm.is_paid,
+    });
+    if (error) return toast.error(error.message);
+    toast.success(debtForm.is_paid ? "ההוצאה נוספה" : "החוב נוסף");
+    setDebtForm(emptyDebtForm);
+    setDebtOpen(false);
     qc.invalidateQueries({ queryKey: ["admin-finance"] });
   };
 
@@ -238,12 +381,22 @@ function FinanceAdmin() {
     qc.invalidateQueries({ queryKey: ["admin-finance"] });
   };
 
+  const markDebtPaid = async (t: Txn) => {
+    if (!t.debt) return;
+    const realId = t.id.slice(2);
+    const { error } = await supabase.from("expenses").update({ is_paid: true }).eq("id", realId);
+    if (error) return toast.error(error.message);
+    toast.success("סומן כשולם");
+    qc.invalidateQueries({ queryKey: ["admin-finance"] });
+  };
+
   return (
     <div className="space-y-8" dir="rtl">
       <div>
         <h2 className="font-display text-2xl text-primary mb-1">הכנסות והוצאות</h2>
         <p className="text-sm text-muted-foreground">
-          כל התנועות במקום אחד — השכרת אביזרים, השכרת סטודיו, צילומים בסטודיו, הכנסות ידניות והוצאות.
+          כל התנועות במקום אחד — השכרת אביזרים, השכרת סטודיו, צילומים בסטודיו, הכנסות ידניות
+          והוצאות.
         </p>
       </div>
 
@@ -263,7 +416,11 @@ function FinanceAdmin() {
           </div>
           <div className="sm:col-span-2 lg:col-span-2">
             <label className="text-xs text-muted-foreground">חיפוש לפי לקוח / תיאור</label>
-            <Input placeholder="שם לקוח…" value={client} onChange={(e) => setClient(e.target.value)} />
+            <Input
+              placeholder="שם לקוח…"
+              value={client}
+              onChange={(e) => setClient(e.target.value)}
+            />
           </div>
           <div>
             <label className="text-xs text-muted-foreground">סוג</label>
@@ -273,9 +430,13 @@ function FinanceAdmin() {
               onChange={(e) => setType(e.target.value)}
             >
               <option value="all">הכל</option>
-              {[TYPE_PROPS, TYPE_STUDIO, TYPE_PHOTO, "מכירה", "אחר", ...CATEGORIES].filter((v, i, a) => a.indexOf(v) === i).map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
+              {[TYPE_PROPS, TYPE_STUDIO, TYPE_PHOTO, "מכירה", "אחר", ...CATEGORIES]
+                .filter((v, i, a) => a.indexOf(v) === i)
+                .map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
             </select>
           </div>
           <div>
@@ -296,24 +457,59 @@ function FinanceAdmin() {
             variant="ghost"
             size="sm"
             className="mt-3"
-            onClick={() => { setFrom(""); setTo(""); setClient(""); setType("all"); setPaymentFilter("all"); }}
+            onClick={() => {
+              setFrom("");
+              setTo("");
+              setClient("");
+              setType("all");
+              setPaymentFilter("all");
+            }}
           >
             ניקוי סינון
           </Button>
         )}
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {[
-          { label: "סה״כ הכנסות", value: totals.income, icon: TrendingUp, cls: "text-forest", sub: null as string | null, kind: "income" as const },
-          { label: "סה״כ הוצאות", value: totals.expenses, icon: TrendingDown, cls: "text-destructive", sub: null, kind: "expense" as const },
-          { label: "רווח נקי", value: totals.income - totals.expenses, icon: Wallet, cls: "text-primary", sub: null, kind: null },
+          {
+            label: "סה״כ הכנסות",
+            value: totals.income,
+            icon: TrendingUp,
+            cls: "text-forest",
+            sub: null as string | null,
+            kind: "income" as const,
+          },
+          {
+            label: "סה״כ הוצאות",
+            value: totals.expenses,
+            icon: TrendingDown,
+            cls: "text-destructive",
+            sub: null,
+            kind: "expense" as const,
+          },
+          {
+            label: "רווח נקי",
+            value: totals.income - totals.expenses,
+            icon: Wallet,
+            cls: "text-primary",
+            sub: null,
+            kind: null,
+          },
           {
             label: "ממתין לתשלום",
             value: pending.total,
             icon: Clock3,
             cls: "text-amber-600",
             sub: pending.count > 0 ? `${pending.count} הזמנות ללא מקדמה ששולמה` : "הכל שולם 🎉",
+            kind: null,
+          },
+          {
+            label: "חובות פתוחים",
+            value: debts.total,
+            icon: AlertCircle,
+            cls: "text-amber-600",
+            sub: debts.count > 0 ? `${debts.count} הוצאות שטרם שולמו לספק` : "אין חובות פתוחים 🎉",
             kind: null,
           },
         ].map((c) => (
@@ -351,19 +547,28 @@ function FinanceAdmin() {
                     <div className="text-sm flex gap-4">
                       <span className="text-forest">הכנסות {ils(inc)}</span>
                       <span className="text-destructive">הוצאות {ils(m.expenses)}</span>
-                      <span className={net >= 0 ? "text-primary" : "text-destructive"}>נטו {ils(net)}</span>
+                      <span className={net >= 0 ? "text-primary" : "text-destructive"}>
+                        נטו {ils(net)}
+                      </span>
                     </div>
                   </div>
                   <div className="space-y-1.5">
                     <div className="h-2.5 rounded-full bg-forest/15 overflow-hidden">
-                      <div className="h-full bg-forest rounded-full" style={{ width: `${(inc / maxBar) * 100}%` }} />
+                      <div
+                        className="h-full bg-forest rounded-full"
+                        style={{ width: `${(inc / maxBar) * 100}%` }}
+                      />
                     </div>
                     <div className="h-2.5 rounded-full bg-destructive/10 overflow-hidden">
-                      <div className="h-full bg-destructive rounded-full" style={{ width: `${(m.expenses / maxBar) * 100}%` }} />
+                      <div
+                        className="h-full bg-destructive rounded-full"
+                        style={{ width: `${(m.expenses / maxBar) * 100}%` }}
+                      />
                     </div>
                   </div>
                   <div className="text-xs text-muted-foreground mt-2">
-                    {TYPE_PROPS} {ils(m.props)} · {TYPE_STUDIO} {ils(m.studio)} · {TYPE_PHOTO} {ils(m.photo)} · ידני {ils(m.manual)}
+                    {TYPE_PROPS} {ils(m.props)} · {TYPE_STUDIO} {ils(m.studio)} · {TYPE_PHOTO}{" "}
+                    {ils(m.photo)} · ידני {ils(m.manual)}
                   </div>
                 </div>
               );
@@ -388,7 +593,10 @@ function FinanceAdmin() {
                   <span className="text-muted-foreground tabular-nums">{ils(e.amount)}</span>
                 </div>
                 <div className="h-2.5 rounded-full bg-destructive/10 overflow-hidden">
-                  <div className="h-full bg-destructive rounded-full" style={{ width: `${(e.amount / maxExpenseCategory) * 100}%` }} />
+                  <div
+                    className="h-full bg-destructive rounded-full"
+                    style={{ width: `${(e.amount / maxExpenseCategory) * 100}%` }}
+                  />
                 </div>
               </div>
             ))}
@@ -397,10 +605,18 @@ function FinanceAdmin() {
       </div>
 
       {/* Transactions */}
-      <div ref={txnsListRef} className="bg-card rounded-2xl border border-primary/5 p-5 scroll-mt-4">
+      <div
+        ref={txnsListRef}
+        className="bg-card rounded-2xl border border-primary/5 p-5 scroll-mt-4"
+      >
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <h3 className="font-display text-lg">
-            {kindFilter === "income" ? "פירוט הכנסות" : kindFilter === "expense" ? "פירוט הוצאות" : "תנועות"} ({visibleTxns.length})
+            {kindFilter === "income"
+              ? "פירוט הכנסות"
+              : kindFilter === "expense"
+                ? "פירוט הוצאות"
+                : "תנועות"}{" "}
+            ({visibleTxns.length})
           </h3>
           {kindFilter !== "all" && (
             <Button variant="ghost" size="sm" onClick={() => setKindFilter("all")}>
@@ -414,13 +630,28 @@ function FinanceAdmin() {
               <div className="min-w-0">
                 <div className="font-medium truncate flex items-center gap-2">
                   {t.title}
-                  {t.client ? <span className="text-muted-foreground font-normal"> · {t.client}</span> : null}
+                  {t.client ? (
+                    <span className="text-muted-foreground font-normal"> · {t.client}</span>
+                  ) : null}
                   {t.depositStatus === "pending" && (
-                    <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">ממתין לתשלום</span>
+                    <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                      ממתין לתשלום
+                    </span>
+                  )}
+                  {t.debt && (
+                    <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                      חוב
+                    </span>
                   )}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {new Date(t.date).toLocaleDateString("he-IL")} · {t.type}
+                  {t.debt?.vendorName && <> · {t.debt.vendorName}</>}
+                  {t.debt?.vendorEmail && <> · {t.debt.vendorEmail}</>}
+                  {t.debt?.vendorPhone && <> · {t.debt.vendorPhone}</>}
+                  {t.debt?.dueDate && (
+                    <> · לתשלום עד {new Date(t.debt.dueDate).toLocaleDateString("he-IL")}</>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-3 shrink-0">
@@ -428,6 +659,11 @@ function FinanceAdmin() {
                   {t.kind === "income" ? "+" : "−"}
                   {ils(t.amount)}
                 </span>
+                {t.debt && (
+                  <Button variant="outline" size="sm" onClick={() => markDebtPaid(t)}>
+                    סמן כשולם
+                  </Button>
+                )}
                 {t.removable && (
                   <Button variant="ghost" size="icon" onClick={() => removeTxn(t)}>
                     <Trash2 className="h-4 w-4" />
@@ -436,16 +672,32 @@ function FinanceAdmin() {
               </div>
             </div>
           ))}
-          {visibleTxns.length === 0 && <p className="text-sm text-muted-foreground py-4">לא נמצאו תנועות.</p>}
+          {visibleTxns.length === 0 && (
+            <p className="text-sm text-muted-foreground py-4">לא נמצאו תנועות.</p>
+          )}
         </div>
       </div>
 
       <div className="bg-card rounded-2xl border border-primary/5 p-5">
         <h3 className="font-display text-lg mb-4">רישום הכנסה ידנית</h3>
         <div className="grid sm:grid-cols-5 gap-3">
-          <Input placeholder="תיאור (למשל: סשן צילומים)" value={income.title} onChange={(e) => setIncome({ ...income, title: e.target.value })} className="sm:col-span-2" />
-          <Input placeholder="שם לקוח" value={income.client} onChange={(e) => setIncome({ ...income, client: e.target.value })} />
-          <Input type="number" placeholder="סכום" value={income.amount} onChange={(e) => setIncome({ ...income, amount: e.target.value })} />
+          <Input
+            placeholder="תיאור (למשל: סשן צילומים)"
+            value={income.title}
+            onChange={(e) => setIncome({ ...income, title: e.target.value })}
+            className="sm:col-span-2"
+          />
+          <Input
+            placeholder="שם לקוח"
+            value={income.client}
+            onChange={(e) => setIncome({ ...income, client: e.target.value })}
+          />
+          <Input
+            type="number"
+            placeholder="סכום"
+            value={income.amount}
+            onChange={(e) => setIncome({ ...income, amount: e.target.value })}
+          />
           <select
             className="h-10 rounded-md border border-input bg-background px-3 text-sm"
             value={income.category}
@@ -455,7 +707,12 @@ function FinanceAdmin() {
               <option key={c}>{c}</option>
             ))}
           </select>
-          <Input type="date" value={income.received_on} onChange={(e) => setIncome({ ...income, received_on: e.target.value })} className="sm:col-span-1" />
+          <Input
+            type="date"
+            value={income.received_on}
+            onChange={(e) => setIncome({ ...income, received_on: e.target.value })}
+            className="sm:col-span-1"
+          />
         </div>
         <Button className="mt-3" onClick={addIncome}>
           הוסף הכנסה
@@ -463,10 +720,33 @@ function FinanceAdmin() {
       </div>
 
       <div className="bg-card rounded-2xl border border-primary/5 p-5">
-        <h3 className="font-display text-lg mb-4">רישום הוצאה</h3>
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+          <h3 className="font-display text-lg">רישום הוצאה</h3>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => {
+              setDebtForm(emptyDebtForm);
+              setDebtOpen(true);
+            }}
+          >
+            <HandCoins className="h-4 w-4" /> הוספת הוצאה / חוב מפורט
+          </Button>
+        </div>
         <div className="grid sm:grid-cols-5 gap-3">
-          <Input placeholder="תיאור" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="sm:col-span-2" />
-          <Input type="number" placeholder="סכום" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+          <Input
+            placeholder="תיאור"
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            className="sm:col-span-2"
+          />
+          <Input
+            type="number"
+            placeholder="סכום"
+            value={form.amount}
+            onChange={(e) => setForm({ ...form, amount: e.target.value })}
+          />
           <select
             className="h-10 rounded-md border border-input bg-background px-3 text-sm"
             value={form.category}
@@ -476,12 +756,127 @@ function FinanceAdmin() {
               <option key={c}>{c}</option>
             ))}
           </select>
-          <Input type="date" value={form.spent_on} onChange={(e) => setForm({ ...form, spent_on: e.target.value })} />
+          <Input
+            type="date"
+            value={form.spent_on}
+            onChange={(e) => setForm({ ...form, spent_on: e.target.value })}
+          />
         </div>
         <Button className="mt-3" onClick={addExpense}>
           הוסף הוצאה
         </Button>
       </div>
+
+      <Dialog open={debtOpen} onOpenChange={setDebtOpen}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>הוספת הוצאה / חוב מפורט</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div className="sm:col-span-2">
+                <Label>תיאור</Label>
+                <Input
+                  value={debtForm.title}
+                  onChange={(e) => setDebtForm({ ...debtForm, title: e.target.value })}
+                  placeholder="למשל: רכישת ציוד תאורה"
+                />
+              </div>
+              <div>
+                <Label>סכום</Label>
+                <Input
+                  type="number"
+                  value={debtForm.amount}
+                  onChange={(e) => setDebtForm({ ...debtForm, amount: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>קטגוריה</Label>
+                <select
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={debtForm.category}
+                  onChange={(e) => setDebtForm({ ...debtForm, category: e.target.value })}
+                >
+                  {CATEGORIES.map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label>תאריך ההוצאה</Label>
+                <Input
+                  type="date"
+                  value={debtForm.spent_on}
+                  onChange={(e) => setDebtForm({ ...debtForm, spent_on: e.target.value })}
+                />
+              </div>
+              <div className="flex items-center gap-2 pt-6">
+                <Checkbox
+                  id="debt-is-paid"
+                  checked={!debtForm.is_paid}
+                  onCheckedChange={(v) => setDebtForm({ ...debtForm, is_paid: !v })}
+                />
+                <Label htmlFor="debt-is-paid" className="cursor-pointer">
+                  זו הוצאה שטרם שולמה (חוב)
+                </Label>
+              </div>
+            </div>
+
+            {!debtForm.is_paid && (
+              <div className="rounded-xl bg-cream/50 p-4 space-y-3">
+                <div className="text-sm font-medium">פרטי הספק / נושה</div>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div>
+                    <Label>שם</Label>
+                    <Input
+                      value={debtForm.vendor_name}
+                      onChange={(e) => setDebtForm({ ...debtForm, vendor_name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>טלפון</Label>
+                    <Input
+                      value={debtForm.vendor_phone}
+                      onChange={(e) => setDebtForm({ ...debtForm, vendor_phone: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>אימייל</Label>
+                    <Input
+                      type="email"
+                      value={debtForm.vendor_email}
+                      onChange={(e) => setDebtForm({ ...debtForm, vendor_email: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>לתשלום עד</Label>
+                    <Input
+                      type="date"
+                      value={debtForm.due_date}
+                      onChange={(e) => setDebtForm({ ...debtForm, due_date: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div>
+              <Label>הערות</Label>
+              <Textarea
+                value={debtForm.notes}
+                onChange={(e) => setDebtForm({ ...debtForm, notes: e.target.value })}
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDebtOpen(false)}>
+              ביטול
+            </Button>
+            <Button onClick={addDebtExpense}>{debtForm.is_paid ? "הוסף הוצאה" : "הוסף חוב"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

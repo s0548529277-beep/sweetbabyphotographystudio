@@ -455,31 +455,46 @@ export type Database = {
           amount: number
           category: string
           created_at: string
+          due_date: string | null
           id: string
+          is_paid: boolean
           notes: string | null
           spent_on: string
           title: string
           updated_at: string
+          vendor_email: string | null
+          vendor_name: string | null
+          vendor_phone: string | null
         }
         Insert: {
           amount?: number
           category?: string
           created_at?: string
+          due_date?: string | null
           id?: string
+          is_paid?: boolean
           notes?: string | null
           spent_on?: string
           title: string
           updated_at?: string
+          vendor_email?: string | null
+          vendor_name?: string | null
+          vendor_phone?: string | null
         }
         Update: {
           amount?: number
           category?: string
           created_at?: string
+          due_date?: string | null
           id?: string
+          is_paid?: boolean
           notes?: string | null
           spent_on?: string
           title?: string
           updated_at?: string
+          vendor_email?: string | null
+          vendor_name?: string | null
+          vendor_phone?: string | null
         }
         Relationships: []
       }
