@@ -41,23 +41,45 @@ function MichalLogo({ className }: { className: string }) {
     };
   }, [fallbackSource, hostedSource]);
 
-  return <img src={source} onError={() => setSource(fallbackSource)} alt="מיכל סיבוני" className={className} />;
+  return (
+    <img
+      src={source}
+      onError={() => setSource(fallbackSource)}
+      alt="מיכל סיבוני"
+      className={className}
+    />
+  );
 }
 
 function MichalHeader() {
   return (
-    <header dir="rtl" className="sticky top-0 z-30 border-b border-newborn-gold/10 bg-newborn-canvas/90 backdrop-blur-xl">
+    <header
+      dir="rtl"
+      className="sticky top-0 z-30 border-b border-newborn-gold/10 bg-newborn-canvas/90 backdrop-blur-xl"
+    >
       <div className="mx-auto flex h-24 max-w-6xl items-center justify-between gap-3 px-4 md:h-32 md:px-5">
         <Link to="/" aria-label="חזרה לעמוד הבית" className="shrink-0">
           <MichalLogo className="h-20 w-auto max-w-52 object-contain md:h-28 md:max-w-80" />
         </Link>
         <div className="flex items-center gap-3 text-sm text-newborn-ink/70 sm:gap-5">
-          <a href="#packages" className="hidden transition-colors hover:text-newborn-rose md:block">חבילות</a>
-          <a href="#gallery" className="hidden transition-colors hover:text-newborn-rose md:block">גלריה</a>
-          <a href={`tel:${MICHAL_PHONE}`} aria-label={`חיוג ${MICHAL_PHONE}`} className="flex items-center gap-1.5 transition-colors hover:text-newborn-rose" dir="ltr">
+          <a href="#packages" className="hidden transition-colors hover:text-newborn-rose md:block">
+            חבילות
+          </a>
+          <a href="#gallery" className="hidden transition-colors hover:text-newborn-rose md:block">
+            גלריה
+          </a>
+          <a
+            href={`tel:${MICHAL_PHONE}`}
+            aria-label={`חיוג ${MICHAL_PHONE}`}
+            className="flex items-center gap-1.5 transition-colors hover:text-newborn-rose"
+            dir="ltr"
+          >
             <Phone size={16} /> <span className="hidden sm:inline">{MICHAL_PHONE}</span>
           </a>
-          <a href="mailto:s0548529277@gmail.com" className="hidden items-center gap-1.5 transition-colors hover:text-newborn-rose sm:flex">
+          <a
+            href="mailto:s0548529277@gmail.com"
+            className="hidden items-center gap-1.5 transition-colors hover:text-newborn-rose sm:flex"
+          >
             <Mail size={14} /> מייל
           </a>
         </div>
@@ -73,10 +95,17 @@ function MichalFooter() {
         <MichalLogo className="h-32 w-auto max-w-full object-contain mix-blend-multiply" />
         <p className="text-sm text-[#5a493c]/70">צילומי ניו-בורן ומשפחה</p>
         <div className="flex items-center gap-4 text-sm text-[#4a3221]/70">
-          <a href={`tel:${MICHAL_PHONE}`} className="flex items-center gap-1.5 hover:text-[#4a3221]" dir="ltr">
+          <a
+            href={`tel:${MICHAL_PHONE}`}
+            className="flex items-center gap-1.5 hover:text-[#4a3221]"
+            dir="ltr"
+          >
             <Phone size={14} /> {MICHAL_PHONE}
           </a>
-          <a href="mailto:s0548529277@gmail.com" className="flex items-center gap-1.5 hover:text-[#4a3221]">
+          <a
+            href="mailto:s0548529277@gmail.com"
+            className="flex items-center gap-1.5 hover:text-[#4a3221]"
+          >
             <Mail size={14} /> s0548529277@gmail.com
           </a>
         </div>
@@ -99,15 +128,27 @@ export const Route = createFileRoute("/newborn")({
       { title: "צילומי ניו-בורן | מיכל סיבוני" },
       {
         name: "description",
-        content: "צילומי ניו-בורן עם הצלמת מיכל סיבוני — חבילות מלאות, כולל עיבוד, קולאז' ואלבום. גם מימוש סל לידה.",
+        content:
+          "צילומי ניו-בורן עם הצלמת מיכל סיבוני — חבילות מלאות, כולל עיבוד, קולאז' ואלבום. גם מימוש סל לידה.",
       },
       { property: "og:title", content: "צילומי ניו-בורן | מיכל סיבוני" },
-      { property: "og:description", content: "חבילות ניו-בורן מלאות — סטודיו בוטיק, עיבוד מקצועי, קולאז' ואלבום." },
+      {
+        property: "og:description",
+        content: "חבילות ניו-בורן מלאות — סטודיו בוטיק, עיבוד מקצועי, קולאז' ואלבום.",
+      },
       { property: "og:type", content: "website" },
-      { property: "og:image", content: "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04166_optimized-1-scaled.jpg" },
+      {
+        property: "og:image",
+        content:
+          "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04166_optimized-1-scaled.jpg",
+      },
       { property: "og:url", content: "https://sweetbabyphoto.shop/newborn" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:image", content: "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04166_optimized-1-scaled.jpg" },
+      {
+        name: "twitter:image",
+        content:
+          "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04166_optimized-1-scaled.jpg",
+      },
     ],
     links: [{ rel: "canonical", href: "https://sweetbabyphoto.shop/newborn" }],
   }),
@@ -138,6 +179,18 @@ function NewbornLandingPage() {
   const sendBirthBasketInterest = useServerFn(requestBirthBasketInterest);
   const [basketSending, setBasketSending] = useState(false);
   const [basketSent, setBasketSent] = useState(false);
+  // The birth-basket button used to fire straight off `book` (the booking
+  // wizard's own state) — almost always empty, since a visitor clicking
+  // this button never opened that wizard, so the studio email arrived with
+  // no way to reach back out. Now it opens its own small form first and
+  // requires name/phone/email before sending, per explicit report.
+  const [basketDialogOpen, setBasketDialogOpen] = useState(false);
+  const [basketForm, setBasketForm] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    wantsAlbum: false,
+  });
   const [sending, setSending] = useState(false);
   const [wizard, setWizard] = useState(false);
   const [step, setStep] = useState(1);
@@ -153,14 +206,26 @@ function NewbornLandingPage() {
   });
   useEffect(() => {
     if (!profile.loaded) return;
-    setBook((b) => ({ ...b, name: b.name || profile.fullName, phone: b.phone || profile.phone, email: b.email || profile.email }));
+    setBook((b) => ({
+      ...b,
+      name: b.name || profile.fullName,
+      phone: b.phone || profile.phone,
+      email: b.email || profile.email,
+    }));
+    setBasketForm((b) => ({
+      ...b,
+      name: b.name || profile.fullName,
+      phone: b.phone || profile.phone,
+      email: b.email || profile.email,
+    }));
   }, [profile.loaded, profile.fullName, profile.phone, profile.email]);
 
   if (isGalleryChild) {
     return <Outlet />;
   }
 
-  const chosenPackage = REGULAR_PACKAGES.find((p) => p.id === book.packageId) ?? REGULAR_PACKAGES[0];
+  const chosenPackage =
+    REGULAR_PACKAGES.find((p) => p.id === book.packageId) ?? REGULAR_PACKAGES[0];
 
   const submitBooking = async () => {
     if (!book.name.trim() || !book.phone.trim() || !book.date) {
@@ -185,7 +250,15 @@ function NewbornLandingPage() {
           payment_method: book.payment as "cash" | "transfer" | "bit" | "later",
           session_type: "ניו-בורן",
           location: "studio",
-          notes: [chosenPackage ? `חבילה מבוקשת: ${chosenPackage.name} (₪${chosenPackage.price})` : null, book.notes || null].filter(Boolean).join(" · ") || null,
+          notes:
+            [
+              chosenPackage
+                ? `חבילה מבוקשת: ${chosenPackage.name} (₪${chosenPackage.price})`
+                : null,
+              book.notes || null,
+            ]
+              .filter(Boolean)
+              .join(" · ") || null,
         },
       });
       toast.success("הבקשה נקלטה ביומן הסטודיו ✓");
@@ -212,14 +285,24 @@ function NewbornLandingPage() {
     setWizard(true);
   };
 
-  const handleBirthBasketInterest = async () => {
+  const submitBirthBasketInterest = async () => {
+    if (!basketForm.name.trim() || !basketForm.phone.trim() || !basketForm.email.trim()) {
+      toast.error("נא למלא שם, טלפון ומייל.");
+      return;
+    }
     setBasketSending(true);
     try {
       await sendBirthBasketInterest({
-        data: { name: book.name || profile.fullName, phone: book.phone || profile.phone, email: book.email || profile.email },
+        data: {
+          name: basketForm.name.trim(),
+          phone: basketForm.phone.trim(),
+          email: basketForm.email.trim(),
+          wants_album: basketForm.wantsAlbum,
+        },
       });
       setBasketSent(true);
-      toast.success("קיבלתי! אחזור אלייך בהקדם 💗");
+      setBasketDialogOpen(false);
+      toast.success("קיבלתי! מייל עם כל הפרטים בדרך אלייך, ואחזור גם בטלפון 💗");
     } catch {
       toast.error("משהו השתבש, נסי שוב או התקשרי");
     } finally {
@@ -228,7 +311,11 @@ function NewbornLandingPage() {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen overflow-x-clip bg-newborn-canvas text-newborn-ink" style={{ fontFamily: "'Karla', sans-serif" }}>
+    <div
+      dir="rtl"
+      className="min-h-screen overflow-x-clip bg-newborn-canvas text-newborn-ink"
+      style={{ fontFamily: "'Karla', sans-serif" }}
+    >
       <MichalHeader />
 
       <section className="relative overflow-hidden px-5 py-12 md:py-20 lg:min-h-[720px] lg:py-24">
@@ -242,15 +329,20 @@ function NewbornLandingPage() {
           >
             <MichalLogo className="mx-auto mb-8 h-36 w-auto max-w-full object-contain mix-blend-multiply sm:h-44 lg:mx-0 lg:mb-10 lg:h-56" />
             <div className="mb-6 inline-flex items-center gap-2 border-r-2 border-newborn-gold bg-newborn-blush/30 px-4 py-1.5 text-xs font-semibold text-newborn-gold">
-              <Heart size={13} className="fill-newborn-rose text-newborn-rose" /> רגעים ראשונים, אהבה אינסופית
+              <Heart size={13} className="fill-newborn-rose text-newborn-rose" /> רגעים ראשונים,
+              אהבה אינסופית
             </div>
-            <h1 className="mb-7 text-5xl font-semibold leading-[1.02] text-newborn-rose sm:text-6xl md:text-8xl" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+            <h1
+              className="mb-7 text-5xl font-semibold leading-[1.02] text-newborn-rose sm:text-6xl md:text-8xl"
+              style={{ fontFamily: "'Cormorant Garamond', serif" }}
+            >
               צילומי ניו־בורן
               <br />
               <span className="block pt-2 font-light italic text-newborn-gold">בסטודיו בוטיק</span>
             </h1>
             <p className="mx-auto mb-10 max-w-lg text-lg font-light leading-relaxed text-newborn-gold lg:mx-0 lg:text-xl">
-              הזיכרונות הראשונים שלכם, עטופים ברכות, אהבה וסבלנות. חוויית צילום רגועה ומקצועית, עם עיבוד מוקפד ואלבום שנשאר למשפחה.
+              הזיכרונות הראשונים שלכם, עטופים ברכות, אהבה וסבלנות. חוויית צילום רגועה ומקצועית, עם
+              עיבוד מוקפד ואלבום שנשאר למשפחה.
             </p>
             <div className="flex flex-nowrap items-stretch justify-center gap-3 lg:justify-start">
               <Button
@@ -260,8 +352,14 @@ function NewbornLandingPage() {
               >
                 <CalendarDays size={18} /> קביעת מועד ביומן
               </Button>
-              <Button asChild variant="outline" className="h-auto min-w-0 rounded-full border-newborn-blush bg-newborn-canvas/70 px-5 py-4 text-sm text-newborn-gold shadow-none transition duration-500 hover:border-newborn-rose hover:bg-newborn-blush/40 hover:text-newborn-rose sm:px-8 sm:text-base">
-                <a href={gmailLink} target="_blank" rel="noopener noreferrer"><Mail size={18} /> לתיאום במייל</a>
+              <Button
+                asChild
+                variant="outline"
+                className="h-auto min-w-0 rounded-full border-newborn-blush bg-newborn-canvas/70 px-5 py-4 text-sm text-newborn-gold shadow-none transition duration-500 hover:border-newborn-rose hover:bg-newborn-blush/40 hover:text-newborn-rose sm:px-8 sm:text-base"
+              >
+                <a href={gmailLink} target="_blank" rel="noopener noreferrer">
+                  <Mail size={18} /> לתיאום במייל
+                </a>
               </Button>
             </div>
           </motion.div>
@@ -275,7 +373,11 @@ function NewbornLandingPage() {
             <div className="absolute -inset-6 -translate-x-3 -translate-y-3 rounded-t-full border border-newborn-gold/20" />
             <div className="relative aspect-[4/5] overflow-hidden rounded-t-full bg-newborn-blush ring-[14px] ring-card shadow-2xl shadow-newborn-rose/15">
               {photos[0] ? (
-                <img src={photos[0]} alt="תינוק בצילומי ניו־בורן של מיכל סיבוני" className="h-full w-full object-cover transition-transform duration-1000 hover:scale-105" />
+                <img
+                  src={photos[0]}
+                  alt="תינוק בצילומי ניו־בורן של מיכל סיבוני"
+                  className="h-full w-full object-cover transition-transform duration-1000 hover:scale-105"
+                />
               ) : (
                 <div className="flex h-full items-center justify-center bg-[#f8f2ed] p-10">
                   <MichalLogo className="w-full mix-blend-multiply" />
@@ -283,11 +385,23 @@ function NewbornLandingPage() {
               )}
             </div>
             {photos[1] && (
-              <button type="button" onClick={() => setLightbox(photos[1])} className="absolute -bottom-8 -left-10 hidden h-60 w-44 overflow-hidden rounded-t-full bg-card ring-8 ring-card shadow-2xl transition duration-700 hover:-translate-y-2 sm:block">
-                <img src={photos[1]} alt="פרט מצילומי ניו־בורן" className="h-full w-full object-cover transition duration-700 hover:scale-105" />
+              <button
+                type="button"
+                onClick={() => setLightbox(photos[1])}
+                className="absolute -bottom-8 -left-10 hidden h-60 w-44 overflow-hidden rounded-t-full bg-card ring-8 ring-card shadow-2xl transition duration-700 hover:-translate-y-2 sm:block"
+              >
+                <img
+                  src={photos[1]}
+                  alt="פרט מצילומי ניו־בורן"
+                  className="h-full w-full object-cover transition duration-700 hover:scale-105"
+                />
               </button>
             )}
-            <div className="absolute right-[-2.75rem] top-1/2 hidden -rotate-12 rounded-full border border-newborn-blush bg-card/85 p-5 text-center text-[10px] font-semibold text-newborn-rose shadow-lg backdrop-blur-md xl:block">BOUTIQUE<br />STUDIO</div>
+            <div className="absolute right-[-2.75rem] top-1/2 hidden -rotate-12 rounded-full border border-newborn-blush bg-card/85 p-5 text-center text-[10px] font-semibold text-newborn-rose shadow-lg backdrop-blur-md xl:block">
+              BOUTIQUE
+              <br />
+              STUDIO
+            </div>
           </motion.div>
         </div>
       </section>
@@ -295,7 +409,10 @@ function NewbornLandingPage() {
       {/* Packages */}
       <section id="packages" className="max-w-6xl mx-auto px-6 py-16 md:py-20">
         <div className="text-center mb-8">
-          <h2 className="text-3xl md:text-4xl mb-2" style={{ fontFamily: "'DM Serif Display', serif" }}>
+          <h2
+            className="text-3xl md:text-4xl mb-2"
+            style={{ fontFamily: "'DM Serif Display', serif" }}
+          >
             חבילות ניו-בורן
           </h2>
           <p className="text-sm text-[#4a3221]/70">בוחרים חבילה, וממשיכים ישר לקביעת מועד</p>
@@ -308,7 +425,9 @@ function NewbornLandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.3 }}
               className={`relative bg-white rounded-3xl border p-7 flex flex-col ${
-                pkg.id === "pampering" ? "border-[#d9b98a] shadow-lg md:scale-105" : "border-[#4a3221]/10"
+                pkg.id === "pampering"
+                  ? "border-[#d9b98a] shadow-lg md:scale-105"
+                  : "border-[#4a3221]/10"
               }`}
             >
               {pkg.id === "pampering" && (
@@ -337,7 +456,8 @@ function NewbornLandingPage() {
           ))}
         </div>
         <div className="mt-6 rounded-2xl bg-white/70 border border-[#4a3221]/10 p-5 text-center text-sm text-[#4a3221]/80">
-          תוספות אפשריות: {NEWBORN_ADDONS.map((a) => a.label.replace(/\s*\(אוכל\)/, "")).join(" · ")}.
+          תוספות אפשריות:{" "}
+          {NEWBORN_ADDONS.map((a) => a.label.replace(/\s*\(אוכל\)/, "")).join(" · ")}.
         </div>
 
         {/* Birth-basket ("סל לידה") interest — a real one-click button that
@@ -351,16 +471,18 @@ function NewbornLandingPage() {
           </div>
           <div className="flex-1">
             <div className="font-semibold text-[#4a3221] mb-0.5">מימוש סל לידה מקופת החולים?</div>
-            <div className="text-sm text-[#4a3221]/75">יש לי חבילות ייעודיות למימוש סל לידה — לחצי ואחזור אלייך עם כל הפרטים.</div>
+            <div className="text-sm text-[#4a3221]/75">
+              יש לי חבילות ייעודיות למימוש סל לידה — לחצי ואחזור אלייך עם כל הפרטים.
+            </div>
           </div>
           <button
             type="button"
-            onClick={handleBirthBasketInterest}
-            disabled={basketSending || basketSent}
+            onClick={() => setBasketDialogOpen(true)}
+            disabled={basketSent}
             className="inline-flex items-center gap-2 shrink-0 bg-[#4a3221] text-white px-6 py-3 rounded-full text-sm font-semibold hover:bg-[#4a3221]/90 transition disabled:opacity-60"
           >
             {basketSent ? <Check size={16} /> : <Gift size={16} />}
-            {basketSent ? "הבקשה נשלחה ✓" : basketSending ? "שולח…" : "מעוניינת במימוש סל לידה"}
+            {basketSent ? "הבקשה נשלחה ✓" : "מעוניינת במימוש סל לידה"}
           </button>
         </div>
       </section>
@@ -377,7 +499,10 @@ function NewbornLandingPage() {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {NEWBORN_TIMELINE_STEPS.map((s, i) => (
-            <div key={s.key} className="bg-white/80 rounded-2xl border border-[#d9b98a]/25 p-4 text-center">
+            <div
+              key={s.key}
+              className="bg-white/80 rounded-2xl border border-[#d9b98a]/25 p-4 text-center"
+            >
               <div className="mx-auto mb-2 h-8 w-8 rounded-full bg-[#f5d5cf] flex items-center justify-center text-sm font-semibold text-[#4a3221]">
                 {i + 1}
               </div>
@@ -399,27 +524,50 @@ function NewbornLandingPage() {
           >
             <div className="flex items-center justify-between mb-4">
               <div className="text-sm font-semibold text-[#4a3221]">שלב {step} מתוך 3</div>
-              <button type="button" aria-label="סגירה" onClick={() => setWizard(false)} className="h-9 w-9 rounded-full hover:bg-[#4a3221]/10 flex items-center justify-center">
+              <button
+                type="button"
+                aria-label="סגירה"
+                onClick={() => setWizard(false)}
+                className="h-9 w-9 rounded-full hover:bg-[#4a3221]/10 flex items-center justify-center"
+              >
                 ✕
               </button>
             </div>
             <div className="h-1.5 rounded-full bg-[#4a3221]/10 mb-6 overflow-hidden">
-              <div className="h-full bg-[#4a3221] transition-all" style={{ width: `${(step / 3) * 100}%` }} />
+              <div
+                className="h-full bg-[#4a3221] transition-all"
+                style={{ width: `${(step / 3) * 100}%` }}
+              />
             </div>
 
             {step === 1 && (
               <div className="grid sm:grid-cols-2 gap-3">
                 <label className="flex flex-col gap-1.5">
                   <span className="text-xs font-semibold text-[#4a3221]/80">תאריך *</span>
-                  <input className={bookInputCls} type="date" value={book.date} onChange={(e) => setBook({ ...book, date: e.target.value })} />
+                  <input
+                    className={bookInputCls}
+                    type="date"
+                    value={book.date}
+                    onChange={(e) => setBook({ ...book, date: e.target.value })}
+                  />
                 </label>
                 <label className="flex flex-col gap-1.5">
                   <span className="text-xs font-semibold text-[#4a3221]/80">שעת התחלה *</span>
-                  <input className={bookInputCls} type="time" step={1800} value={book.time} onChange={(e) => setBook({ ...book, time: e.target.value })} />
+                  <input
+                    className={bookInputCls}
+                    type="time"
+                    step={1800}
+                    value={book.time}
+                    onChange={(e) => setBook({ ...book, time: e.target.value })}
+                  />
                 </label>
                 <label className="flex flex-col gap-1.5 sm:col-span-2">
                   <span className="text-xs font-semibold text-[#4a3221]/80">חבילה</span>
-                  <select className={bookInputCls} value={book.packageId} onChange={(e) => setBook({ ...book, packageId: e.target.value })}>
+                  <select
+                    className={bookInputCls}
+                    value={book.packageId}
+                    onChange={(e) => setBook({ ...book, packageId: e.target.value })}
+                  >
                     {REGULAR_PACKAGES.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name}
@@ -434,28 +582,57 @@ function NewbornLandingPage() {
               <div className="grid sm:grid-cols-2 gap-3">
                 <label className="flex flex-col gap-1.5">
                   <span className="text-xs font-semibold text-[#4a3221]/80">שם מלא *</span>
-                  <input className={bookInputCls} value={book.name} onChange={(e) => setBook({ ...book, name: e.target.value })} />
+                  <input
+                    className={bookInputCls}
+                    value={book.name}
+                    onChange={(e) => setBook({ ...book, name: e.target.value })}
+                  />
                 </label>
                 <label className="flex flex-col gap-1.5">
                   <span className="text-xs font-semibold text-[#4a3221]/80">טלפון *</span>
-                  <input className={bookInputCls} dir="ltr" type="tel" value={book.phone} onChange={(e) => setBook({ ...book, phone: e.target.value })} />
+                  <input
+                    className={bookInputCls}
+                    dir="ltr"
+                    type="tel"
+                    value={book.phone}
+                    onChange={(e) => setBook({ ...book, phone: e.target.value })}
+                  />
                 </label>
                 <label className="flex flex-col gap-1.5">
                   <span className="text-xs font-semibold text-[#4a3221]/80">אימייל לאישור</span>
-                  <input className={bookInputCls} dir="ltr" type="email" list="email-suggest-newborn" value={book.email} onChange={(e) => setBook({ ...book, email: e.target.value })} placeholder="you@example.com" />
+                  <input
+                    className={bookInputCls}
+                    dir="ltr"
+                    type="email"
+                    list="email-suggest-newborn"
+                    value={book.email}
+                    onChange={(e) => setBook({ ...book, email: e.target.value })}
+                    placeholder="you@example.com"
+                  />
                   <EmailDatalist id="email-suggest-newborn" value={book.email} />
                 </label>
                 <label className="flex flex-col gap-1.5">
                   <span className="text-xs font-semibold text-[#4a3221]/80">אמצעי תשלום</span>
-                  <select className={bookInputCls} value={book.payment} onChange={(e) => setBook({ ...book, payment: e.target.value })}>
+                  <select
+                    className={bookInputCls}
+                    value={book.payment}
+                    onChange={(e) => setBook({ ...book, payment: e.target.value })}
+                  >
                     {Object.entries(PAYMENT_LABELS).map(([k, v]) => (
-                      <option key={k} value={k}>{v}</option>
+                      <option key={k} value={k}>
+                        {v}
+                      </option>
                     ))}
                   </select>
                 </label>
                 <label className="flex flex-col gap-1.5 sm:col-span-2">
                   <span className="text-xs font-semibold text-[#4a3221]/80">הערות</span>
-                  <textarea className={bookInputCls} rows={2} value={book.notes} onChange={(e) => setBook({ ...book, notes: e.target.value })} />
+                  <textarea
+                    className={bookInputCls}
+                    rows={2}
+                    value={book.notes}
+                    onChange={(e) => setBook({ ...book, notes: e.target.value })}
+                  />
                 </label>
               </div>
             )}
@@ -463,12 +640,23 @@ function NewbornLandingPage() {
             {step === 3 && (
               <div className="rounded-2xl bg-white border border-[#d9b98a]/30 p-5 text-sm text-[#4a3221] space-y-2">
                 <div className="font-semibold text-[#4a3221] text-base mb-1">סיכום לפני שליחה</div>
-                <div>תאריך: <strong>{book.date || "—"}</strong> · שעה: <strong>{book.time || "—"}</strong></div>
-                <div>חבילה: <strong>{chosenPackage?.name}</strong></div>
-                <div>שם: <strong>{book.name || "—"}</strong> · טלפון: <strong>{book.phone || "—"}</strong></div>
-                <div>תשלום: <strong>{PAYMENT_LABELS[book.payment]}</strong></div>
+                <div>
+                  תאריך: <strong>{book.date || "—"}</strong> · שעה:{" "}
+                  <strong>{book.time || "—"}</strong>
+                </div>
+                <div>
+                  חבילה: <strong>{chosenPackage?.name}</strong>
+                </div>
+                <div>
+                  שם: <strong>{book.name || "—"}</strong> · טלפון:{" "}
+                  <strong>{book.phone || "—"}</strong>
+                </div>
+                <div>
+                  תשלום: <strong>{PAYMENT_LABELS[book.payment]}</strong>
+                </div>
                 <p className="text-xs text-[#4a3221]/80 pt-2">
-                  המועד יישמר ביומן הסטודיו ואישור יישלח למייל. המועד מאושר סופית לאחר תיאום עם הצלמת.
+                  המועד יישמר ביומן הסטודיו ואישור יישלח למייל. המועד מאושר סופית לאחר תיאום עם
+                  הצלמת.
                 </p>
               </div>
             )}
@@ -504,6 +692,87 @@ function NewbornLandingPage() {
         </div>
       )}
 
+      {basketDialogOpen && (
+        <div
+          dir="rtl"
+          className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setBasketDialogOpen(false)}
+        >
+          <div
+            className="w-full max-w-md bg-[#fdf3ec] rounded-3xl p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <div className="text-sm font-semibold text-[#4a3221] flex items-center gap-1.5">
+                <Gift size={16} /> מימוש סל לידה
+              </div>
+              <button
+                type="button"
+                aria-label="סגירה"
+                onClick={() => setBasketDialogOpen(false)}
+                className="h-9 w-9 rounded-full hover:bg-[#4a3221]/10 flex items-center justify-center"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-xs text-[#4a3221]/70 mb-5">
+              נא למלא פרטי קשר — אחזור אלייך, ובנוסף יישלח למייל שלך מייד מידע מלא על החבילות
+              והמחירים.
+            </p>
+            <div className="grid gap-3">
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[#4a3221]/80">שם מלא *</span>
+                <input
+                  className={bookInputCls}
+                  value={basketForm.name}
+                  onChange={(e) => setBasketForm({ ...basketForm, name: e.target.value })}
+                />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[#4a3221]/80">טלפון *</span>
+                <input
+                  className={bookInputCls}
+                  dir="ltr"
+                  type="tel"
+                  value={basketForm.phone}
+                  onChange={(e) => setBasketForm({ ...basketForm, phone: e.target.value })}
+                />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[#4a3221]/80">אימייל *</span>
+                <input
+                  className={bookInputCls}
+                  dir="ltr"
+                  type="email"
+                  list="email-suggest-basket"
+                  value={basketForm.email}
+                  onChange={(e) => setBasketForm({ ...basketForm, email: e.target.value })}
+                  placeholder="you@example.com"
+                />
+                <EmailDatalist id="email-suggest-basket" value={basketForm.email} />
+              </label>
+              <label className="flex items-center gap-2 text-sm text-[#4a3221] pt-1">
+                <input
+                  type="checkbox"
+                  checked={basketForm.wantsAlbum}
+                  onChange={(e) => setBasketForm({ ...basketForm, wantsAlbum: e.target.checked })}
+                  className="h-4 w-4 rounded border-[#4a3221]/30"
+                />
+                מעוניינת בחבילה כולל אלבום מודפס
+              </label>
+            </div>
+            <button
+              type="button"
+              onClick={submitBirthBasketInterest}
+              disabled={basketSending}
+              className="mt-5 w-full inline-flex items-center justify-center gap-2 h-12 rounded-full bg-[#4a3221] text-white text-sm font-semibold hover:bg-[#4a3221]/90 disabled:opacity-60"
+            >
+              <Gift size={16} /> {basketSending ? "שולח…" : "שליחת בקשה"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Gallery — real newborn photos only (see builtinEntries in
           page-images.ts: no generic studio fallback for this page anymore,
           per explicit request — never the general studio-session stock
@@ -517,7 +786,10 @@ function NewbornLandingPage() {
       <section id="gallery" className="max-w-6xl mx-auto px-6 pb-16">
         <div className="flex items-end justify-between mb-6">
           <div>
-            <h2 className="text-3xl md:text-4xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
+            <h2
+              className="text-3xl md:text-4xl"
+              style={{ fontFamily: "'DM Serif Display', serif" }}
+            >
               מהסשנים שלנו
             </h2>
             <p className="text-sm text-[#4a3221]/70 mt-1">רגעים אמיתיים מצילומי ניו-בורן בסטודיו</p>
@@ -525,7 +797,12 @@ function NewbornLandingPage() {
         </div>
 
         {photos.length > 0 ? (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }} className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4 }}
+            className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4"
+          >
             {photos.map((src, i) => (
               <motion.button
                 key={src}
@@ -538,7 +815,12 @@ function NewbornLandingPage() {
                   i % 5 === 0 ? "md:col-span-2 md:row-span-2 aspect-square" : "aspect-square"
                 }`}
               >
-                <img src={src} alt={`צילומי ניו-בורן ${i + 1}`} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition duration-700" />
+                <img
+                  src={src}
+                  alt={`צילומי ניו-בורן ${i + 1}`}
+                  loading="lazy"
+                  className="w-full h-full object-cover group-hover:scale-105 transition duration-700"
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition" />
               </motion.button>
             ))}
@@ -553,7 +835,10 @@ function NewbornLandingPage() {
       {/* CTA */}
       <section className="max-w-4xl mx-auto px-6 pb-20">
         <div className="bg-white text-[#4a3221] rounded-3xl border border-[#4a3221]/10 p-10 md:p-14 text-center">
-          <h3 className="text-3xl md:text-4xl mb-3" style={{ fontFamily: "'DM Serif Display', serif" }}>
+          <h3
+            className="text-3xl md:text-4xl mb-3"
+            style={{ fontFamily: "'DM Serif Display', serif" }}
+          >
             מוכנים להנציח את הימים הראשונים?
           </h3>
           <p className="text-[#4a3221]/75 mb-7 max-w-xl mx-auto">
@@ -567,15 +852,27 @@ function NewbornLandingPage() {
             >
               <CalendarDays size={18} /> קביעת מועד ביומן
             </button>
-            <a href={telLink} dir="ltr" className="inline-flex items-center gap-2 border border-[#4a3221]/15 text-[#4a3221] px-7 py-3.5 rounded-full hover:bg-[#fdf3ec] transition">
+            <a
+              href={telLink}
+              dir="ltr"
+              className="inline-flex items-center gap-2 border border-[#4a3221]/15 text-[#4a3221] px-7 py-3.5 rounded-full hover:bg-[#fdf3ec] transition"
+            >
               <Phone size={18} /> חיוג {PHONE}
             </a>
-            <a href={gmailLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 border border-[#4a3221]/15 text-[#4a3221] px-7 py-3.5 rounded-full hover:bg-[#fdf3ec] transition">
+            <a
+              href={gmailLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 border border-[#4a3221]/15 text-[#4a3221] px-7 py-3.5 rounded-full hover:bg-[#fdf3ec] transition"
+            >
               <Mail size={18} /> מייל
             </a>
           </div>
           <p className="text-xs text-[#4a3221]/60 mt-6">
-            כבר צילמתן איתנו? <Link to="/my-photos" className="underline">התמונות שלך כאן</Link>
+            כבר צילמתן איתנו?{" "}
+            <Link to="/my-photos" className="underline">
+              התמונות שלך כאן
+            </Link>
           </p>
         </div>
       </section>
@@ -590,7 +887,14 @@ function NewbornLandingPage() {
             className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4 cursor-zoom-out"
             onClick={() => setLightbox(null)}
           >
-            <motion.img initial={{ scale: 0.9 }} animate={{ scale: 1 }} src={lightbox} alt="" className="max-w-full max-h-full rounded-2xl shadow-2xl" onClick={(e) => e.stopPropagation()} />
+            <motion.img
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              src={lightbox}
+              alt=""
+              className="max-w-full max-h-full rounded-2xl shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
           </motion.div>
         )}
       </AnimatePresence>

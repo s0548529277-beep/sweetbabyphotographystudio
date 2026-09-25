@@ -46,6 +46,7 @@ import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as SummaryTypeIdRouteImport } from './routes/summary.$type.$id'
 import { Route as NewbornGalleryTokenRouteImport } from './routes/newborn.gallery.$token'
+import { Route as NewbornConfirmTokenRouteImport } from './routes/newborn.confirm.$token'
 import { Route as DepositTypeIdRouteImport } from './routes/deposit.$type.$id'
 import { Route as ApiYemotIvrRouteImport } from './routes/api.yemot.ivr'
 import { Route as ApiVoiceRespondRouteImport } from './routes/api.voice.respond'
@@ -64,6 +65,7 @@ import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAdminNotificationsRouteImport } from './routes/_authenticated/admin.notifications'
 import { Route as AuthenticatedAdminNewsletterRouteImport } from './routes/_authenticated/admin.newsletter'
 import { Route as AuthenticatedAdminNewbornPackagesRouteImport } from './routes/_authenticated/admin.newborn-packages'
+import { Route as AuthenticatedAdminNewbornContractTextRouteImport } from './routes/_authenticated/admin.newborn-contract-text'
 import { Route as AuthenticatedAdminItemsRouteImport } from './routes/_authenticated/admin.items'
 import { Route as AuthenticatedAdminInspirationRouteImport } from './routes/_authenticated/admin.inspiration'
 import { Route as AuthenticatedAdminGalleryRouteImport } from './routes/_authenticated/admin.gallery'
@@ -74,6 +76,7 @@ import { Route as AuthenticatedAdminClientsRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminChatLogsRouteImport } from './routes/_authenticated/admin.chat-logs'
 import { Route as AuthenticatedAdminCalendarRouteImport } from './routes/_authenticated/admin.calendar'
 import { Route as AuthenticatedAdminBotKnowledgeRouteImport } from './routes/_authenticated/admin.bot-knowledge'
+import { Route as AuthenticatedAdminBirthBasketTextRouteImport } from './routes/_authenticated/admin.birth-basket-text'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin.analytics'
 import { Route as AuthenticatedOrdersIdReceiptRouteImport } from './routes/_authenticated/orders.$id.receipt'
 import { Route as AuthenticatedAdminPhotoClientsBookingIdRouteImport } from './routes/_authenticated/admin.photo-clients.$bookingId'
@@ -265,6 +268,11 @@ const NewbornGalleryTokenRoute = NewbornGalleryTokenRouteImport.update({
   path: '/gallery/$token',
   getParentRoute: () => NewbornRoute,
 } as any)
+const NewbornConfirmTokenRoute = NewbornConfirmTokenRouteImport.update({
+  id: '/confirm/$token',
+  path: '/confirm/$token',
+  getParentRoute: () => NewbornRoute,
+} as any)
 const DepositTypeIdRoute = DepositTypeIdRouteImport.update({
   id: '/deposit/$type/$id',
   path: '/deposit/$type/$id',
@@ -369,6 +377,12 @@ const AuthenticatedAdminNewbornPackagesRoute =
     path: '/newborn-packages',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminNewbornContractTextRoute =
+  AuthenticatedAdminNewbornContractTextRouteImport.update({
+    id: '/newborn-contract-text',
+    path: '/newborn-contract-text',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminItemsRoute = AuthenticatedAdminItemsRouteImport.update({
   id: '/items',
   path: '/items',
@@ -426,6 +440,12 @@ const AuthenticatedAdminBotKnowledgeRoute =
   AuthenticatedAdminBotKnowledgeRouteImport.update({
     id: '/bot-knowledge',
     path: '/bot-knowledge',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminBirthBasketTextRoute =
+  AuthenticatedAdminBirthBasketTextRouteImport.update({
+    id: '/birth-basket-text',
+    path: '/birth-basket-text',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminAnalyticsRoute =
@@ -488,6 +508,7 @@ export interface FileRoutesByFullPath {
   '/blog/': typeof BlogIndexRoute
   '/collage-studio/': typeof CollageStudioIndexRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/admin/birth-basket-text': typeof AuthenticatedAdminBirthBasketTextRoute
   '/admin/bot-knowledge': typeof AuthenticatedAdminBotKnowledgeRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/chat-logs': typeof AuthenticatedAdminChatLogsRoute
@@ -498,6 +519,7 @@ export interface FileRoutesByFullPath {
   '/admin/gallery': typeof AuthenticatedAdminGalleryRoute
   '/admin/inspiration': typeof AuthenticatedAdminInspirationRoute
   '/admin/items': typeof AuthenticatedAdminItemsRoute
+  '/admin/newborn-contract-text': typeof AuthenticatedAdminNewbornContractTextRoute
   '/admin/newborn-packages': typeof AuthenticatedAdminNewbornPackagesRouteWithChildren
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
@@ -516,6 +538,7 @@ export interface FileRoutesByFullPath {
   '/api/voice/respond': typeof ApiVoiceRespondRoute
   '/api/yemot/ivr': typeof ApiYemotIvrRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
+  '/newborn/confirm/$token': typeof NewbornConfirmTokenRoute
   '/newborn/gallery/$token': typeof NewbornGalleryTokenRoute
   '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -557,6 +580,7 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/collage-studio': typeof CollageStudioIndexRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/admin/birth-basket-text': typeof AuthenticatedAdminBirthBasketTextRoute
   '/admin/bot-knowledge': typeof AuthenticatedAdminBotKnowledgeRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/chat-logs': typeof AuthenticatedAdminChatLogsRoute
@@ -567,6 +591,7 @@ export interface FileRoutesByTo {
   '/admin/gallery': typeof AuthenticatedAdminGalleryRoute
   '/admin/inspiration': typeof AuthenticatedAdminInspirationRoute
   '/admin/items': typeof AuthenticatedAdminItemsRoute
+  '/admin/newborn-contract-text': typeof AuthenticatedAdminNewbornContractTextRoute
   '/admin/newborn-packages': typeof AuthenticatedAdminNewbornPackagesRouteWithChildren
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
@@ -585,6 +610,7 @@ export interface FileRoutesByTo {
   '/api/voice/respond': typeof ApiVoiceRespondRoute
   '/api/yemot/ivr': typeof ApiYemotIvrRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
+  '/newborn/confirm/$token': typeof NewbornConfirmTokenRoute
   '/newborn/gallery/$token': typeof NewbornGalleryTokenRoute
   '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -629,6 +655,7 @@ export interface FileRoutesById {
   '/blog/': typeof BlogIndexRoute
   '/collage-studio/': typeof CollageStudioIndexRoute
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/_authenticated/admin/birth-basket-text': typeof AuthenticatedAdminBirthBasketTextRoute
   '/_authenticated/admin/bot-knowledge': typeof AuthenticatedAdminBotKnowledgeRoute
   '/_authenticated/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/_authenticated/admin/chat-logs': typeof AuthenticatedAdminChatLogsRoute
@@ -639,6 +666,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/gallery': typeof AuthenticatedAdminGalleryRoute
   '/_authenticated/admin/inspiration': typeof AuthenticatedAdminInspirationRoute
   '/_authenticated/admin/items': typeof AuthenticatedAdminItemsRoute
+  '/_authenticated/admin/newborn-contract-text': typeof AuthenticatedAdminNewbornContractTextRoute
   '/_authenticated/admin/newborn-packages': typeof AuthenticatedAdminNewbornPackagesRouteWithChildren
   '/_authenticated/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/_authenticated/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
@@ -657,6 +685,7 @@ export interface FileRoutesById {
   '/api/voice/respond': typeof ApiVoiceRespondRoute
   '/api/yemot/ivr': typeof ApiYemotIvrRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
+  '/newborn/confirm/$token': typeof NewbornConfirmTokenRoute
   '/newborn/gallery/$token': typeof NewbornGalleryTokenRoute
   '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -701,6 +730,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/collage-studio/'
     | '/admin/analytics'
+    | '/admin/birth-basket-text'
     | '/admin/bot-knowledge'
     | '/admin/calendar'
     | '/admin/chat-logs'
@@ -711,6 +741,7 @@ export interface FileRouteTypes {
     | '/admin/gallery'
     | '/admin/inspiration'
     | '/admin/items'
+    | '/admin/newborn-contract-text'
     | '/admin/newborn-packages'
     | '/admin/newsletter'
     | '/admin/notifications'
@@ -729,6 +760,7 @@ export interface FileRouteTypes {
     | '/api/voice/respond'
     | '/api/yemot/ivr'
     | '/deposit/$type/$id'
+    | '/newborn/confirm/$token'
     | '/newborn/gallery/$token'
     | '/summary/$type/$id'
     | '/admin/'
@@ -770,6 +802,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/collage-studio'
     | '/admin/analytics'
+    | '/admin/birth-basket-text'
     | '/admin/bot-knowledge'
     | '/admin/calendar'
     | '/admin/chat-logs'
@@ -780,6 +813,7 @@ export interface FileRouteTypes {
     | '/admin/gallery'
     | '/admin/inspiration'
     | '/admin/items'
+    | '/admin/newborn-contract-text'
     | '/admin/newborn-packages'
     | '/admin/newsletter'
     | '/admin/notifications'
@@ -798,6 +832,7 @@ export interface FileRouteTypes {
     | '/api/voice/respond'
     | '/api/yemot/ivr'
     | '/deposit/$type/$id'
+    | '/newborn/confirm/$token'
     | '/newborn/gallery/$token'
     | '/summary/$type/$id'
     | '/admin'
@@ -841,6 +876,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/collage-studio/'
     | '/_authenticated/admin/analytics'
+    | '/_authenticated/admin/birth-basket-text'
     | '/_authenticated/admin/bot-knowledge'
     | '/_authenticated/admin/calendar'
     | '/_authenticated/admin/chat-logs'
@@ -851,6 +887,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/gallery'
     | '/_authenticated/admin/inspiration'
     | '/_authenticated/admin/items'
+    | '/_authenticated/admin/newborn-contract-text'
     | '/_authenticated/admin/newborn-packages'
     | '/_authenticated/admin/newsletter'
     | '/_authenticated/admin/notifications'
@@ -869,6 +906,7 @@ export interface FileRouteTypes {
     | '/api/voice/respond'
     | '/api/yemot/ivr'
     | '/deposit/$type/$id'
+    | '/newborn/confirm/$token'
     | '/newborn/gallery/$token'
     | '/summary/$type/$id'
     | '/_authenticated/admin/'
@@ -1177,6 +1215,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NewbornGalleryTokenRouteImport
       parentRoute: typeof NewbornRoute
     }
+    '/newborn/confirm/$token': {
+      id: '/newborn/confirm/$token'
+      path: '/confirm/$token'
+      fullPath: '/newborn/confirm/$token'
+      preLoaderRoute: typeof NewbornConfirmTokenRouteImport
+      parentRoute: typeof NewbornRoute
+    }
     '/deposit/$type/$id': {
       id: '/deposit/$type/$id'
       path: '/deposit/$type/$id'
@@ -1303,6 +1348,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminNewbornPackagesRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/newborn-contract-text': {
+      id: '/_authenticated/admin/newborn-contract-text'
+      path: '/newborn-contract-text'
+      fullPath: '/admin/newborn-contract-text'
+      preLoaderRoute: typeof AuthenticatedAdminNewbornContractTextRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/items': {
       id: '/_authenticated/admin/items'
       path: '/items'
@@ -1373,6 +1425,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminBotKnowledgeRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/birth-basket-text': {
+      id: '/_authenticated/admin/birth-basket-text'
+      path: '/birth-basket-text'
+      fullPath: '/admin/birth-basket-text'
+      preLoaderRoute: typeof AuthenticatedAdminBirthBasketTextRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/analytics': {
       id: '/_authenticated/admin/analytics'
       path: '/analytics'
@@ -1436,6 +1495,7 @@ const AuthenticatedAdminPhotoClientsRouteWithChildren =
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
+  AuthenticatedAdminBirthBasketTextRoute: typeof AuthenticatedAdminBirthBasketTextRoute
   AuthenticatedAdminBotKnowledgeRoute: typeof AuthenticatedAdminBotKnowledgeRoute
   AuthenticatedAdminCalendarRoute: typeof AuthenticatedAdminCalendarRoute
   AuthenticatedAdminChatLogsRoute: typeof AuthenticatedAdminChatLogsRoute
@@ -1446,6 +1506,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminGalleryRoute: typeof AuthenticatedAdminGalleryRoute
   AuthenticatedAdminInspirationRoute: typeof AuthenticatedAdminInspirationRoute
   AuthenticatedAdminItemsRoute: typeof AuthenticatedAdminItemsRoute
+  AuthenticatedAdminNewbornContractTextRoute: typeof AuthenticatedAdminNewbornContractTextRoute
   AuthenticatedAdminNewbornPackagesRoute: typeof AuthenticatedAdminNewbornPackagesRouteWithChildren
   AuthenticatedAdminNewsletterRoute: typeof AuthenticatedAdminNewsletterRoute
   AuthenticatedAdminNotificationsRoute: typeof AuthenticatedAdminNotificationsRoute
@@ -1465,6 +1526,8 @@ interface AuthenticatedAdminRouteChildren {
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
+  AuthenticatedAdminBirthBasketTextRoute:
+    AuthenticatedAdminBirthBasketTextRoute,
   AuthenticatedAdminBotKnowledgeRoute: AuthenticatedAdminBotKnowledgeRoute,
   AuthenticatedAdminCalendarRoute: AuthenticatedAdminCalendarRoute,
   AuthenticatedAdminChatLogsRoute: AuthenticatedAdminChatLogsRoute,
@@ -1475,6 +1538,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminGalleryRoute: AuthenticatedAdminGalleryRoute,
   AuthenticatedAdminInspirationRoute: AuthenticatedAdminInspirationRoute,
   AuthenticatedAdminItemsRoute: AuthenticatedAdminItemsRoute,
+  AuthenticatedAdminNewbornContractTextRoute:
+    AuthenticatedAdminNewbornContractTextRoute,
   AuthenticatedAdminNewbornPackagesRoute:
     AuthenticatedAdminNewbornPackagesRouteWithChildren,
   AuthenticatedAdminNewsletterRoute: AuthenticatedAdminNewsletterRoute,
@@ -1515,10 +1580,12 @@ const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
 interface NewbornRouteChildren {
+  NewbornConfirmTokenRoute: typeof NewbornConfirmTokenRoute
   NewbornGalleryTokenRoute: typeof NewbornGalleryTokenRoute
 }
 
 const NewbornRouteChildren: NewbornRouteChildren = {
+  NewbornConfirmTokenRoute: NewbornConfirmTokenRoute,
   NewbornGalleryTokenRoute: NewbornGalleryTokenRoute,
 }
 
@@ -1566,13 +1633,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

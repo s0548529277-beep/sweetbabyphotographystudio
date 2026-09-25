@@ -11,10 +11,33 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { NEWBORN_ADDONS, NEWBORN_TIMELINE_STEP_KEYS, findNewbornPackage, type NewbornPackage } from "@/lib/newborn-packages";
+import {
+  NEWBORN_ADDONS,
+  NEWBORN_TIMELINE_STEP_KEYS,
+  findNewbornPackage,
+  type NewbornPackage,
+} from "@/lib/newborn-packages";
 import { emailHeartImgTag } from "@/lib/page-images";
+import {
+  DEFAULT_NEWBORN_CONTRACT_TEMPLATE,
+  NEWBORN_CONTRACT_TEMPLATE_KEY,
+  fillNewbornContractPlaceholders,
+  renderNewbornContractHtml,
+} from "@/lib/newbornContract";
+import {
+  DEFAULT_BIRTH_BASKET_TEMPLATE,
+  BIRTH_BASKET_TEMPLATE_KEY,
+  fillBirthBasketPlaceholders,
+  renderBirthBasketHtml,
+} from "@/lib/birthBasketInfo";
+import { PAGE_IMAGE_KEYS, resolveGalleryImages } from "@/lib/page-images";
 
 const STUDIO_EMAIL = "s0548529277@gmail.com";
+// Michal's own address for anything photography-specific (this contract
+// included) — distinct from STUDIO_EMAIL above, which is the general
+// studio-rental/props-order address. Confirmed directly: two real,
+// separate accounts, not a typo of one another.
+const NEWBORN_STUDIO_EMAIL = "m0548529277@gmail.com";
 const STUDIO_PHONE = "0534181051";
 const BANK_DETAILS = { bank: "12", branch: "533", account: "648912", name: "מיכל סיבוני" };
 const DEPOSIT_AMOUNT = 300;
@@ -23,95 +46,99 @@ function formatHebrewDate(dateStr: string | null): string {
   if (!dateStr) return "טרם נקבע";
   try {
     const d = new Date(`${dateStr}T00:00:00`);
-    return new Intl.DateTimeFormat("he-IL", { weekday: "long", day: "numeric", month: "numeric", year: "numeric" }).format(d);
+    return new Intl.DateTimeFormat("he-IL", {
+      weekday: "long",
+      day: "numeric",
+      month: "numeric",
+      year: "numeric",
+    }).format(d);
   } catch {
     return dateStr;
   }
 }
 
+const EXTRA_PHOTO_PRICE = 35;
+
 /**
- * The personal-contract email — transcribed from the studio owner's own
- * PDF template, with the per-order specifics (name/date/time/package/
- * price) filled in; the deposit amount and bank details are fixed (her own
- * account, same on every contract). Sent automatically the moment an order
- * is created (createNewbornOrder below) — "closing the deal" — to both her
- * and the client, mirroring sendStudioAndCustomer's existing pattern used
- * for every other studio email in this app.
+ * Reads the admin-editable template (app_settings, key
+ * NEWBORN_CONTRACT_TEMPLATE_KEY — see admin.newborn-contract-text.tsx) or
+ * falls back to the shipped default, same override pattern as
+ * voice-phrases.server.ts's DEFAULT_PHRASES.
  */
-async function buildNewbornContractHtml(order: {
-  contact_name: string;
-  session_date: string | null;
-  session_time: string | null;
-  package_id: string;
-  total_price: number;
-}): Promise<string> {
-  const heart = await emailHeartImgTag();
+async function getNewbornContractTemplate(supabase: any): Promise<string> {
+  try {
+    const { data } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", NEWBORN_CONTRACT_TEMPLATE_KEY)
+      .maybeSingle();
+    return data?.value || DEFAULT_NEWBORN_CONTRACT_TEMPLATE;
+  } catch (e) {
+    console.error("[SWEETBABY] newborn contract template read failed, using default", e);
+    return DEFAULT_NEWBORN_CONTRACT_TEMPLATE;
+  }
+}
+
+/**
+ * The combined "הכנה ליום הצילומים" email — prep guide + full contract +
+ * a one-click confirm link (/newborn/confirm/$token). Sent automatically
+ * the moment an order is created (createNewbornOrder below) — "closing the
+ * deal" — to both the client and Michal's own photography address
+ * (NEWBORN_STUDIO_EMAIL), since sendStudioAndCustomer's built-in recipient
+ * is the general studio address, not this one.
+ */
+async function buildNewbornContractHtml(
+  supabase: any,
+  order: {
+    contact_name: string;
+    session_date: string | null;
+    session_time: string | null;
+    package_id: string;
+    total_price: number;
+    access_token: string | null;
+  },
+): Promise<string> {
   const pkg: NewbornPackage | null = findNewbornPackage(order.package_id);
-  const pkgLine = pkg ? `${pkg.name} — ${pkg.features.join(", ")}` : order.package_id;
-  const row = (label: string, value: string) =>
-    `<tr><td style="padding:4px 0;color:#6b5b53;font-size:13px;white-space:nowrap">${label}</td><td style="padding:4px 0 4px 12px;font-weight:600">${value}</td></tr>`;
-  return `<div dir="rtl" style="font-family:sans-serif;color:#2d3d2b;max-width:560px;margin:0 auto;line-height:1.7">
-    <h2 style="margin-bottom:4px">היי ${order.contact_name} היקרה ${heart}</h2>
-    <p>שמחה ומתרגשת שבחרת בי לקחת חלק ולתעד את המשפחה שלכם ברגעים מרגשים אלו.</p>
+  const pkgLine = pkg
+    ? `חבילה: ${pkg.name} — ${pkg.features.join(", ")}`
+    : `חבילה: ${order.package_id}`;
+  const confirmLink = order.access_token
+    ? `https://sweetbabyphoto.shop/newborn/confirm/${order.access_token}`
+    : "(קישור אישור יתעדכן בקרוב)";
 
-    <div style="background:#faf2ee;border-radius:14px;padding:16px 20px;margin:18px 0">
-      <table style="width:100%;border-collapse:collapse">
-        ${row("חבילה:", pkgLine)}
-        ${row("מחיר כולל:", `₪${order.total_price}`)}
-        ${row("מועד הצילומים:", formatHebrewDate(order.session_date))}
-        ${row("שעה:", order.session_time ?? "תיקבע בתיאום")}
-      </table>
-    </div>
-
-    <h3>סטיילינג</h3>
-    <p>כדי שהתמונות יהיו מדויקות ויפות, חשוב לי לקחת חלק בבחירת הבגדים — אפשר לשלוח תמונה ולהתייעץ איתי לפני בחירה/קנייה. הביגוד והעיטופים עליי :)</p>
-
-    <h3>הכנות ליום הצילום</h3>
-    <ul>
-      <li>נא לקלח את הבייבי בבוקר לפני היציאה לסטודיו</li>
-      <li>נא להאכיל את הבייבי בסמוך להגעה</li>
-      <li>2 בקבוקים של תמ"ל/חלב שאוב, מוצץ, שמיכה חמה, טיטולים ומגבונים</li>
-    </ul>
-
-    <h3>מקדמה</h3>
-    <p>לשריון התאריך יש להעביר מקדמה על סך ₪${DEPOSIT_AMOUNT}. פרטי חשבון להעברה: בנק ${BANK_DETAILS.bank}, סניף ${BANK_DETAILS.branch}, חשבון ${BANK_DETAILS.account}, על שם ${BANK_DETAILS.name}. במקרה של ביטול הצילומים על ידי הלקוחה, המקדמה אינה מוחזרת.</p>
-
-    <h3>אופן התשלום</h3>
-    <p>שאר התשלום ישולם במלואו (מזומן/העברה) ביום הצילומים. תמונות לבחירה יישלחו רק לאחר תשלום מלא על החבילה.</p>
-
-    <h3>דיוק בזמנים ואיחורים</h3>
-    <p>נא לדייק ולהגיע כ-10 דקות לפני הזמן שנקבע. איחור עשוי לקצר את משך הצילומים; איחור משמעותי שיגרום לחוסר הספקה — אציע יום צילומים נוסף בעלות ₪600.</p>
-
-    <h3>אחרי הצילומים</h3>
-    <p>תמונות לבחירה יישלחו ביום שלאחר הצילומים (סימן מים, איכות מלאה). זמן בחירת התמונות הוא שבוע מיום קבלתן. האלבום יהיה מוכן תוך 60 ימי עסקים שלאחר הבחירה, בכפוף לבחירה בזמן.</p>
-
-    <h3>בטיחות ואחריות</h3>
-    <p>יש לציין שאחריות ובטיחות הילדים מוטלת על ההורים בלבד.</p>
-
-    <h3>אישור</h3>
-    <p>יש להשיב למייל זה (<a href="mailto:${STUDIO_EMAIL}">${STUDIO_EMAIL}</a>) בכתוב: "קראתי את הכתוב בהסכם זה ואני מאשרת את הדברים" — זה משמש כחתימה הדיגיטלית שלך.</p>
-
-    <p style="margin-top:24px">מחכה בקוצר רוח להיפגש איתכם ולצלם לכם תמונות חלומיות ${heart}<br/>מיכל · ${STUDIO_PHONE}</p>
-  </div>`;
+  const template = await getNewbornContractTemplate(supabase);
+  const filled = fillNewbornContractPlaceholders(template, {
+    contact_name: order.contact_name,
+    package_line: pkgLine,
+    price_line: `מחיר כולל: ₪${order.total_price}`,
+    extra_photo_price: String(EXTRA_PHOTO_PRICE),
+    session_date_line: `תאריך הצילומים: ${formatHebrewDate(order.session_date)}`,
+    session_time_line: `שעה: ${order.session_time ?? "תיקבע בתיאום"}`,
+    confirm_link: confirmLink,
+  });
+  return renderNewbornContractHtml(filled);
 }
 
 /** Best-effort contract email on order creation — never blocks the order itself, matching every other post-create sync in this file. */
-async function sendNewbornContractEmail(order: {
-  id: string;
-  contact_name: string;
-  contact_email: string | null;
-  session_date: string | null;
-  session_time: string | null;
-  package_id: string;
-  total_price: number;
-}) {
+async function sendNewbornContractEmail(
+  supabase: any,
+  order: {
+    id: string;
+    contact_name: string;
+    contact_email: string | null;
+    session_date: string | null;
+    session_time: string | null;
+    package_id: string;
+    total_price: number;
+    access_token: string | null;
+  },
+) {
   try {
-    const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
-    await sendStudioAndCustomer({
-      customerEmail: order.contact_email || undefined,
-      subject: `החוזה שלך לצילומי ניו-בורן · מיכל סיבוני 💗`,
-      html: await buildNewbornContractHtml(order),
-    });
+    const { sendGmail } = await import("@/integrations/google/gmail.server");
+    const subject = `הכנה ליום הצילומים — החוזה שלך · מיכל סיבוני 💗`;
+    const html = await buildNewbornContractHtml(supabase, order);
+    const recipients = [order.contact_email, NEWBORN_STUDIO_EMAIL].filter((e): e is string => !!e);
+    await Promise.all(recipients.map((to) => sendGmail({ to, subject, html })));
     return true;
   } catch (e) {
     console.error("[SWEETBABY] newborn contract email failed", e);
@@ -161,15 +188,27 @@ function newbornSessionWindow(sessionTime: string | null): [string, string] {
  */
 async function syncNewbornCalendarEvent(
   db: any,
-  order: { id: string; contact_name: string; contact_email: string | null; session_date: string | null; session_time: string | null; google_event_id?: string | null },
+  order: {
+    id: string;
+    contact_name: string;
+    contact_email: string | null;
+    session_date: string | null;
+    session_time: string | null;
+    google_event_id?: string | null;
+  },
 ): Promise<string | null> {
   try {
-    const { createGoogleCalendarEvent, deleteGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
+    const { createGoogleCalendarEvent, deleteGoogleCalendarEvent } =
+      await import("@/integrations/google/calendar.server");
     if (order.google_event_id) {
       await deleteGoogleCalendarEvent(order.google_event_id).catch(() => {});
     }
     if (!order.session_date) {
-      if (order.google_event_id) await db.from("newborn_package_orders").update({ google_event_id: null }).eq("id", order.id);
+      if (order.google_event_id)
+        await db
+          .from("newborn_package_orders")
+          .update({ google_event_id: null })
+          .eq("id", order.id);
       return null;
     }
     const [time, endTime] = newbornSessionWindow(order.session_time);
@@ -182,7 +221,10 @@ async function syncNewbornCalendarEvent(
       attendees: order.contact_email ? [order.contact_email] : [],
     });
     if (!event) return "יצירת האירוע ביומן החזירה תוצאה ריקה";
-    await db.from("newborn_package_orders").update({ google_event_id: event.id }).eq("id", order.id);
+    await db
+      .from("newborn_package_orders")
+      .update({ google_event_id: event.id })
+      .eq("id", order.id);
     return null;
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
@@ -220,7 +262,10 @@ async function syncNewbornCalendarEvent(
  * "move" primitive needed for this low write-frequency), and the same
  * "never throw, return the real error message" contract.
  */
-type BookingBlockResult = { error: string | null; confirmed?: { date: string; start: string; end: string } };
+type BookingBlockResult = {
+  error: string | null;
+  confirmed?: { date: string; start: string; end: string };
+};
 
 async function syncNewbornBookingBlock(
   db: any,
@@ -245,7 +290,11 @@ async function syncNewbornBookingBlock(
       await db.from("bookings").delete().eq("id", order.blocking_booking_id);
     }
     if (!order.session_date) {
-      if (order.blocking_booking_id) await db.from("newborn_package_orders").update({ blocking_booking_id: null }).eq("id", order.id);
+      if (order.blocking_booking_id)
+        await db
+          .from("newborn_package_orders")
+          .update({ blocking_booking_id: null })
+          .eq("id", order.id);
       return { error: null };
     }
     const [start, end] = newbornSessionWindow(order.session_time);
@@ -269,25 +318,46 @@ async function syncNewbornBookingBlock(
       })
       .select("id")
       .single();
-    if (error || !booking) return { error: error?.message ?? "יצירת חסימת השעות ביומן הסטודיו נכשלה" };
+    if (error || !booking)
+      return { error: error?.message ?? "יצירת חסימת השעות ביומן הסטודיו נכשלה" };
     // Best-effort link-back — if blocking_booking_id itself isn't live on
     // this database yet (same schema-deploy-lag class as session_time/
     // birth_basket_used), the actual blocking booking row above was still
     // created successfully (that's what really stops a double-booking), so
     // this is reported as success regardless; only future re-sync/cleanup
     // on this specific order loses track of which booking row to replace.
-    const { error: linkError } = await db.from("newborn_package_orders").update({ blocking_booking_id: booking.id }).eq("id", order.id);
-    if (linkError) console.error("[SWEETBABY] newborn order booking-block created but link-back failed (likely missing column)", linkError);
+    const { error: linkError } = await db
+      .from("newborn_package_orders")
+      .update({ blocking_booking_id: booking.id })
+      .eq("id", order.id);
+    if (linkError)
+      console.error(
+        "[SWEETBABY] newborn order booking-block created but link-back failed (likely missing column)",
+        linkError,
+      );
     // Reads the row back with a FRESH, independent select — not just
     // trusting the insert's own .select() response — so a genuine
     // "created but somehow not visible again" case (RLS oddity, replica
     // lag) is caught here instead of reporting a false success. Added
     // after a real report of the block silently not showing up anywhere.
-    const { data: verify, error: verifyError } = await db.from("bookings").select("id, session_date, start_time, end_time").eq("id", booking.id).maybeSingle();
+    const { data: verify, error: verifyError } = await db
+      .from("bookings")
+      .select("id, session_date, start_time, end_time")
+      .eq("id", booking.id)
+      .maybeSingle();
     if (verifyError || !verify) {
-      return { error: `נוצר (מזהה ${booking.id.slice(0, 8)}) אבל קריאה חוזרת מיד אחרי נכשלה: ${verifyError?.message ?? "לא נמצא"}` };
+      return {
+        error: `נוצר (מזהה ${booking.id.slice(0, 8)}) אבל קריאה חוזרת מיד אחרי נכשלה: ${verifyError?.message ?? "לא נמצא"}`,
+      };
     }
-    return { error: null, confirmed: { date: verify.session_date, start: String(verify.start_time).slice(0, 5), end: String(verify.end_time).slice(0, 5) } };
+    return {
+      error: null,
+      confirmed: {
+        date: verify.session_date,
+        start: String(verify.start_time).slice(0, 5),
+        end: String(verify.end_time).slice(0, 5),
+      },
+    };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     console.error("[SWEETBABY] newborn order booking-block sync failed", e);
@@ -318,7 +388,11 @@ const createSchema = z.object({
   contact_phone: z.string().trim().min(5).max(40),
   contact_email: z.string().trim().email().max(160).optional().or(z.literal("")).nullable(),
   session_date: z.string().min(10).max(10).optional().nullable(), // "YYYY-MM-DD"
-  session_time: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
+  session_time: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .optional()
+    .nullable(),
   birth_basket_used: z.boolean().optional().default(false),
   notes: z.string().trim().max(1000).optional().nullable(),
 });
@@ -346,7 +420,11 @@ export const createNewbornOrder = createServerFn({ method: "POST" })
       birth_basket_used: data.birth_basket_used ?? false,
       notes: data.notes || null,
     };
-    let { data: row, error } = await (context.supabase as any).from("newborn_package_orders").insert(payload).select("*").single();
+    let { data: row, error } = await (context.supabase as any)
+      .from("newborn_package_orders")
+      .insert(payload)
+      .select("*")
+      .single();
     let schemaFallback = false;
     if (error) {
       // session_time/birth_basket_used are recently added columns — if this
@@ -357,9 +435,16 @@ export const createNewbornOrder = createServerFn({ method: "POST" })
       // without the new columns so creating an order never hard-fails over
       // a schema-deploy lag; worst case the two new fields are silently
       // dropped until the migration catches up.
-      console.error("[SWEETBABY] newborn order insert with new columns failed, retrying without them", error);
+      console.error(
+        "[SWEETBABY] newborn order insert with new columns failed, retrying without them",
+        error,
+      );
       const { session_time: _st, birth_basket_used: _bb, ...withoutNewCols } = payload;
-      const retry = await (context.supabase as any).from("newborn_package_orders").insert(withoutNewCols).select("*").single();
+      const retry = await (context.supabase as any)
+        .from("newborn_package_orders")
+        .insert(withoutNewCols)
+        .select("*")
+        .single();
       row = retry.data;
       error = retry.error;
       schemaFallback = !error;
@@ -372,17 +457,25 @@ export const createNewbornOrder = createServerFn({ method: "POST" })
     const [calendarError, bookingBlock, contractSent] = await Promise.all([
       syncNewbornCalendarEvent(context.supabase, row),
       syncNewbornBookingBlock(context.supabase, context.userId, row),
-      sendNewbornContractEmail(row),
+      sendNewbornContractEmail(context.supabase, row),
     ]);
     if (contractSent) {
       // Best-effort — a stamp failure here only means the admin UI can't
       // show "נשלח" for this order, the email itself already went out.
-      (context.supabase as any)
-        .from("newborn_package_orders")
-        .update({ contract_sent_at: new Date().toISOString() })
-        .eq("id", row.id)
-        .then(() => {})
-        .catch(() => {});
+      // supabase-js's query builder is PromiseLike-only (implements
+      // .then(), not .catch()) — a bare .then().catch() throws
+      // "...catch is not a function" at runtime, so this stays inside a
+      // real try/catch instead (see AGENTS.md's own note on this gotcha).
+      void (async () => {
+        try {
+          await (context.supabase as any)
+            .from("newborn_package_orders")
+            .update({ contract_sent_at: new Date().toISOString() })
+            .eq("id", row.id);
+        } catch {
+          // best-effort, as documented above
+        }
+      })();
     }
     // `schemaFallback` tells the caller the order WAS created but the
     // shooting-time/birth-basket fields could NOT be saved (the columns
@@ -429,9 +522,21 @@ const updateContactSchema = z.object({
   id: z.string().uuid(),
   contact_name: z.string().trim().min(1).max(120).optional(),
   contact_phone: z.string().trim().min(5).max(40).optional(),
-  contact_email: z.string().trim().email().max(160).optional().or(z.literal("")).nullable().optional(),
+  contact_email: z
+    .string()
+    .trim()
+    .email()
+    .max(160)
+    .optional()
+    .or(z.literal(""))
+    .nullable()
+    .optional(),
   session_date: z.string().min(10).max(10).optional().nullable(),
-  session_time: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
+  session_time: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .optional()
+    .nullable(),
   birth_basket_used: z.boolean().optional(),
   notes: z.string().trim().max(1000).optional().nullable(),
 });
@@ -439,7 +544,13 @@ const updateContactSchema = z.object({
 // Fields that, if changed, mean the calendar event AND the availability-
 // blocking booking (if either exists) need re-syncing — everything both of
 // them actually depend on.
-const CALENDAR_RELEVANT_FIELDS = new Set(["contact_name", "contact_email", "contact_phone", "session_date", "session_time"]);
+const CALENDAR_RELEVANT_FIELDS = new Set([
+  "contact_name",
+  "contact_email",
+  "contact_phone",
+  "session_date",
+  "session_time",
+]);
 
 export const updateNewbornOrderContact = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -452,17 +563,26 @@ export const updateNewbornOrderContact = createServerFn({ method: "POST" })
       if (v !== undefined) patch[k] = k === "contact_email" && v === "" ? null : v;
     }
     if (Object.keys(patch).length === 0) return { ok: true };
-    let { error } = await (context.supabase as any).from("newborn_package_orders").update(patch).eq("id", id);
+    let { error } = await (context.supabase as any)
+      .from("newborn_package_orders")
+      .update(patch)
+      .eq("id", id);
     let schemaFallback = false;
     if (error && ("session_time" in patch || "birth_basket_used" in patch)) {
       // Same schema-deploy-lag fallback as createNewbornOrder above — retry
       // without the possibly-missing new columns rather than failing the
       // whole save (which would also silently drop any OTHER field in the
       // same edit, e.g. a name/phone fix bundled with a time change).
-      console.error("[SWEETBABY] newborn order update with new columns failed, retrying without them", error);
+      console.error(
+        "[SWEETBABY] newborn order update with new columns failed, retrying without them",
+        error,
+      );
       const { session_time: _st, birth_basket_used: _bb, ...withoutNewCols } = patch;
       if (Object.keys(withoutNewCols).length > 0) {
-        const retry = await (context.supabase as any).from("newborn_package_orders").update(withoutNewCols).eq("id", id);
+        const retry = await (context.supabase as any)
+          .from("newborn_package_orders")
+          .update(withoutNewCols)
+          .eq("id", id);
         error = retry.error;
       } else {
         error = null;
@@ -480,14 +600,19 @@ export const updateNewbornOrderContact = createServerFn({ method: "POST" })
       // missing column, which would skip re-syncing EVERYTHING (including
       // the calendar, which has nothing to do with the missing field) for a
       // plain name/date change.
-      const baseCols = "id, contact_name, contact_phone, contact_email, session_date, total_price, google_event_id";
+      const baseCols =
+        "id, contact_name, contact_phone, contact_email, session_date, total_price, google_event_id";
       let { data: fresh } = await (context.supabase as any)
         .from("newborn_package_orders")
         .select(`${baseCols}, session_time, blocking_booking_id`)
         .eq("id", id)
         .maybeSingle();
       if (!fresh) {
-        const retry = await (context.supabase as any).from("newborn_package_orders").select(baseCols).eq("id", id).maybeSingle();
+        const retry = await (context.supabase as any)
+          .from("newborn_package_orders")
+          .select(baseCols)
+          .eq("id", id)
+          .maybeSingle();
         fresh = retry.data;
       }
       if (fresh) {
@@ -527,16 +652,27 @@ export const deleteNewbornOrder = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .maybeSingle();
     if (!existing) {
-      const retry = await (context.supabase as any).from("newborn_package_orders").select("google_event_id").eq("id", data.id).maybeSingle();
+      const retry = await (context.supabase as any)
+        .from("newborn_package_orders")
+        .select("google_event_id")
+        .eq("id", data.id)
+        .maybeSingle();
       existing = retry.data;
     }
-    const { error } = await (context.supabase as any).from("newborn_package_orders").delete().eq("id", data.id);
+    const { error } = await (context.supabase as any)
+      .from("newborn_package_orders")
+      .delete()
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     if (existing?.google_event_id) {
       // Best-effort — an order that's already deleted shouldn't fail the whole action over a stray calendar entry.
       import("@/integrations/google/calendar.server")
-        .then(({ deleteGoogleCalendarEvent }) => deleteGoogleCalendarEvent(existing.google_event_id))
-        .catch((e) => console.error("[SWEETBABY] newborn order delete: calendar cleanup failed", e));
+        .then(({ deleteGoogleCalendarEvent }) =>
+          deleteGoogleCalendarEvent(existing.google_event_id),
+        )
+        .catch((e) =>
+          console.error("[SWEETBABY] newborn order delete: calendar cleanup failed", e),
+        );
     }
     if (existing?.blocking_booking_id) {
       // Best-effort — same reasoning: never fail the delete itself over cleanup of the now-orphaned blocking booking row.
@@ -545,13 +681,17 @@ export const deleteNewbornOrder = createServerFn({ method: "POST" })
         .delete()
         .eq("id", existing.blocking_booking_id)
         .then(({ error: delErr }: any) => {
-          if (delErr) console.error("[SWEETBABY] newborn order delete: booking-block cleanup failed", delErr);
+          if (delErr)
+            console.error("[SWEETBABY] newborn order delete: booking-block cleanup failed", delErr);
         });
     }
     return { ok: true };
   });
 
-const paymentSchema = z.object({ id: z.string().uuid(), amount_paid: z.number().nonnegative().max(1000000) });
+const paymentSchema = z.object({
+  id: z.string().uuid(),
+  amount_paid: z.number().nonnegative().max(1000000),
+});
 
 /**
  * Sets the total amount paid so far on an order (not a delta — the admin
@@ -665,13 +805,20 @@ export const deleteNewbornOrderImage = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
-    const { data: row } = await (context.supabase as any).from("newborn_order_images").select("storage_path").eq("id", data.id).maybeSingle();
+    const { data: row } = await (context.supabase as any)
+      .from("newborn_order_images")
+      .select("storage_path")
+      .eq("id", data.id)
+      .maybeSingle();
     const { error } = await withSchemaCacheRetry(context.supabase, () =>
       (context.supabase as any).from("newborn_order_images").delete().eq("id", data.id),
     );
     if (error) throw new Error(error.message);
     if (row?.storage_path) {
-      (context.supabase as any).storage.from("items").remove([row.storage_path]).catch(() => {});
+      (context.supabase as any).storage
+        .from("items")
+        .remove([row.storage_path])
+        .catch(() => {});
     }
     return { ok: true };
   });
@@ -682,13 +829,76 @@ export const resendNewbornContract = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
-    const { data: order, error } = await (context.supabase as any).from("newborn_package_orders").select("*").eq("id", data.id).maybeSingle();
+    const { data: order, error } = await (context.supabase as any)
+      .from("newborn_package_orders")
+      .select("*")
+      .eq("id", data.id)
+      .maybeSingle();
     if (error || !order) throw new Error(error?.message ?? "ההזמנה לא נמצאה");
-    const sent = await sendNewbornContractEmail(order);
+    const sent = await sendNewbornContractEmail(context.supabase, order);
     if (sent) {
-      await (context.supabase as any).from("newborn_package_orders").update({ contract_sent_at: new Date().toISOString() }).eq("id", data.id);
+      await (context.supabase as any)
+        .from("newborn_package_orders")
+        .update({ contract_sent_at: new Date().toISOString() })
+        .eq("id", data.id);
     }
     return { ok: sent };
+  });
+
+/**
+ * Loads the "הכנה ליום הצילומים" template for /admin/newborn-contract-text
+ * — the admin-set override if one exists, else the shipped default, plus
+ * whether it's currently customized (so the UI can offer "reset to
+ * default"). Same shape/intent as listVoiceBotPhrases in
+ * admin-voice-phrases.functions.ts, just for a single big text block
+ * instead of many short phrases.
+ */
+export const getNewbornContractTemplateForAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data } = await (context.supabase as any)
+      .from("app_settings")
+      .select("value")
+      .eq("key", NEWBORN_CONTRACT_TEMPLATE_KEY)
+      .maybeSingle();
+    const value = (data as any)?.value as string | undefined;
+    return {
+      value: value ?? DEFAULT_NEWBORN_CONTRACT_TEMPLATE,
+      isDefault: value === undefined,
+      defaultValue: DEFAULT_NEWBORN_CONTRACT_TEMPLATE,
+    };
+  });
+
+export const updateNewbornContractTemplate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ value: z.string().min(1).max(20000) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await (context.supabase as any).from("app_settings").upsert(
+      {
+        key: NEWBORN_CONTRACT_TEMPLATE_KEY,
+        value: data.value,
+        updated_at: new Date().toISOString(),
+        updated_by: context.userId,
+      },
+      { onConflict: "key" },
+    );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Deletes the override row so the template goes back to the shipped default. */
+export const resetNewbornContractTemplate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await (context.supabase as any)
+      .from("app_settings")
+      .delete()
+      .eq("key", NEWBORN_CONTRACT_TEMPLATE_KEY);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 // ---------------------------------------------------------------------
@@ -703,10 +913,64 @@ export const resendNewbornContract = createServerFn({ method: "POST" })
 
 async function orderByToken(token: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await (supabaseAdmin as any).from("newborn_package_orders").select("*").eq("access_token", token).maybeSingle();
+  const { data, error } = await (supabaseAdmin as any)
+    .from("newborn_package_orders")
+    .select("*")
+    .eq("access_token", token)
+    .maybeSingle();
   if (error || !data) return null;
   return data as any;
 }
+
+/**
+ * The "קראתי ואני מאשרת" one-click confirmation — /newborn/confirm/$token.
+ * Idempotent (a second click/visit is a no-op, same pattern as
+ * finishNewbornProofSelectionByToken below): the stamp only happens once,
+ * and Michal gets a notify email only on the first real confirmation.
+ */
+export const getNewbornContractStatusByToken = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ token: z.string().min(10) }).parse(d))
+  .handler(async ({ data }) => {
+    const order = await orderByToken(data.token);
+    if (!order) throw new Error("קישור לא תקין");
+    return {
+      contactName: order.contact_name as string,
+      confirmedAt: order.contract_confirmed_at as string | null,
+    };
+  });
+
+export const confirmNewbornContractByToken = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ token: z.string().min(10) }).parse(d))
+  .handler(async ({ data }) => {
+    const order = await orderByToken(data.token);
+    if (!order) throw new Error("קישור לא תקין");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const alreadyConfirmed = !!order.contract_confirmed_at;
+    if (!alreadyConfirmed) {
+      await (supabaseAdmin as any)
+        .from("newborn_package_orders")
+        .update({ contract_confirmed_at: new Date().toISOString() })
+        .eq("id", order.id);
+      try {
+        const { sendGmail } = await import("@/integrations/google/gmail.server");
+        const heart = await emailHeartImgTag(40);
+        await sendGmail({
+          to: NEWBORN_STUDIO_EMAIL,
+          subject: `${order.contact_name} אישרה את החוזה! 💗`,
+          html: `<div dir="rtl" style="font-family:sans-serif;color:#2d3d2b;max-width:480px;margin:0 auto;text-align:center">
+            <div style="background:linear-gradient(135deg,#f5d5cf,#a8c4a2);border-radius:20px;padding:28px 20px">
+              <div style="font-size:40px;margin-bottom:8px">✍️ ${heart}</div>
+              <h2 style="margin:0 0 6px">${order.contact_name} קראה ואישרה את החוזה</h2>
+            </div>
+            <p style="margin-top:20px"><a href="https://sweetbabyphoto.shop/admin/newborn-packages" style="color:#2d3d2b;font-weight:600">לצפייה בניהול</a></p>
+          </div>`,
+        });
+      } catch (e) {
+        console.error("[SWEETBABY] newborn contract-confirmed notify failed", e);
+      }
+    }
+    return { ok: true };
+  });
 
 export const getNewbornGalleryByToken = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ token: z.string().min(10) }).parse(d))
@@ -728,12 +992,21 @@ export const getNewbornGalleryByToken = createServerFn({ method: "POST" })
       sessionDate: order.session_date as string | null,
       packageName: pkg?.name ?? order.package_id,
       proofsSelectedAt: order.proofs_selected_at as string | null,
-      images: (images ?? []) as { id: string; kind: "proof" | "edited"; image_url: string; selected: boolean }[],
+      images: (images ?? []) as {
+        id: string;
+        kind: "proof" | "edited";
+        image_url: string;
+        selected: boolean;
+      }[],
     };
   });
 
 export const toggleNewbornProofByToken = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({ token: z.string().min(10), imageId: z.string().uuid(), selected: z.boolean() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z
+      .object({ token: z.string().min(10), imageId: z.string().uuid(), selected: z.boolean() })
+      .parse(d),
+  )
   .handler(async ({ data }) => {
     const order = await orderByToken(data.token);
     if (!order) throw new Error("קישור לא תקין");
@@ -794,38 +1067,164 @@ export const finishNewbornProofSelectionByToken = createServerFn({ method: "POST
   });
 
 /**
- * A visitor on /newborn clicking "מימוש סל לידה" — a one-click "I'm
- * interested" note, not a booking. No auth needed (any site visitor,
- * logged in or not, should be able to use it); best-effort email to her,
- * same pattern as the proof-selection-done notify above.
+ * Reads the admin-editable birth-basket auto-reply template (app_settings,
+ * key BIRTH_BASKET_TEMPLATE_KEY — see admin.birth-basket-text.tsx) or falls
+ * back to the shipped default. Same override pattern as
+ * getNewbornContractTemplate above, but reachable from the fully
+ * unauthenticated requestBirthBasketInterest handler below, so it takes the
+ * db client explicitly rather than assuming an authed `context.supabase`.
+ */
+async function getBirthBasketTemplate(db: any): Promise<string> {
+  try {
+    const { data } = await db
+      .from("app_settings")
+      .select("value")
+      .eq("key", BIRTH_BASKET_TEMPLATE_KEY)
+      .maybeSingle();
+    return data?.value || DEFAULT_BIRTH_BASKET_TEMPLATE;
+  } catch (e) {
+    console.error("[SWEETBABY] birth-basket template read failed, using default", e);
+    return DEFAULT_BIRTH_BASKET_TEMPLATE;
+  }
+}
+
+/**
+ * A visitor on /newborn clicking "מעוניינת במימוש סל לידה" — a one-click
+ * "I'm interested" note, not a booking. No auth needed (any site visitor,
+ * logged in or not, should be able to use it). Two best-effort emails, each
+ * independently caught so one failing never blocks the other: (1) to the
+ * studio, with her contact details + album interest (same pattern as the
+ * proof-selection-done notify above), and (2) — new — an automatic reply to
+ * the visitor herself with the birth-basket packages/prices/photos, built
+ * from the admin-editable template (getBirthBasketTemplate) + the "סל לידה"
+ * photo gallery (PAGE_IMAGE_KEYS.birthBasket, managed at /admin/gallery).
+ * Previously this only emailed the studio and — since the caller almost
+ * never had name/phone/email actually filled in (they're only collected in
+ * the separate booking wizard, not on this button) — usually with no
+ * contact details at all, making the "click" nearly useless. Now
+ * name/phone/email are required inputs, collected in their own small
+ * dialog on /newborn right before this call.
  */
 export const requestBirthBasketInterest = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
-    z.object({ name: z.string().optional(), phone: z.string().optional(), email: z.string().optional() }).parse(d),
+    z
+      .object({
+        name: z.string().min(1, "נא למלא שם"),
+        phone: z.string().min(1, "נא למלא טלפון"),
+        email: z.string().email("נא למלא מייל תקין"),
+        wants_album: z.boolean().optional().default(false),
+      })
+      .parse(d),
   )
   .handler(async ({ data }) => {
+    const name = data.name.trim();
+    const phone = data.phone.trim();
+    const email = data.email.trim();
+    let studioEmailOk = false;
     try {
       const { sendGmail } = await import("@/integrations/google/gmail.server");
       const heart = await emailHeartImgTag(36);
       const contactLines = [
-        data.name?.trim() ? `שם: ${data.name.trim()}` : null,
-        data.phone?.trim() ? `טלפון: ${data.phone.trim()}` : null,
-        data.email?.trim() ? `מייל: ${data.email.trim()}` : null,
-      ].filter(Boolean);
+        `שם: ${name}`,
+        `טלפון: ${phone}`,
+        `מייל: ${email}`,
+        `מעוניינת באלבום: ${data.wants_album ? "כן" : "לא צוין / לא"}`,
+      ];
       await sendGmail({
         to: STUDIO_EMAIL,
-        subject: "מעוניינת במימוש סל לידה",
+        subject: `מעוניינת במימוש סל לידה — ${name}`,
         html: `<div dir="rtl" style="font-family:sans-serif;color:#4a3221;max-width:480px;margin:0 auto;text-align:center">
           <div style="background:linear-gradient(135deg,#f3d3dd,#ecd3ac);border-radius:20px;padding:28px 20px">
             <div style="font-size:36px;margin-bottom:8px">🧺 ${heart}</div>
             <h2 style="margin:0">מעוניינת במימוש סל לידה</h2>
           </div>
-          ${contactLines.length ? `<p style="margin-top:18px;font-size:15px">${contactLines.join("<br/>")}</p>` : `<p style="margin-top:18px;font-size:13px;color:#8a6338">לא צוינו פרטי קשר — התקבל מעמוד הניו-בורן</p>`}
+          <p style="margin-top:18px;font-size:15px">${contactLines.join("<br/>")}</p>
         </div>`,
       });
-      return { ok: true };
+      studioEmailOk = true;
     } catch (e) {
-      console.error("[SWEETBABY] birth-basket interest email failed", e);
-      return { ok: false };
+      console.error("[SWEETBABY] birth-basket interest email to studio failed", e);
     }
+
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { sendGmail } = await import("@/integrations/google/gmail.server");
+      const [template, photoRows] = await Promise.all([
+        getBirthBasketTemplate(supabaseAdmin),
+        (supabaseAdmin as any)
+          .from("page_images")
+          .select("*")
+          .eq("page", PAGE_IMAGE_KEYS.birthBasket)
+          .order("sort_order", { ascending: true }),
+      ]);
+      const photoUrls = resolveGalleryImages(PAGE_IMAGE_KEYS.birthBasket, photoRows?.data ?? []);
+      const filled = fillBirthBasketPlaceholders(template, {
+        contact_name: name,
+        album_line: data.wants_album
+          ? "סימנת שאת מעוניינת באלבום מודפס — נכלול זאת בהצעת המחיר שאשלח."
+          : "אם תרצי אלבום מודפס בנוסף לתמונות הדיגיטליות, אפשר לציין זאת ואוסיף את זה להצעת המחיר.",
+      });
+      await sendGmail({
+        to: email,
+        subject: "🧺 מימוש סל לידה אצלי — כל הפרטים | מיכל סיבוני",
+        html: renderBirthBasketHtml(filled, photoUrls),
+      });
+    } catch (e) {
+      console.error("[SWEETBABY] birth-basket auto-reply to customer failed", e);
+    }
+
+    return { ok: studioEmailOk };
+  });
+
+/**
+ * Loads the birth-basket auto-reply template for /admin/birth-basket-text —
+ * same shape/intent as getNewbornContractTemplateForAdmin above, just for
+ * the birth-basket template key.
+ */
+export const getBirthBasketTemplateForAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data } = await (context.supabase as any)
+      .from("app_settings")
+      .select("value")
+      .eq("key", BIRTH_BASKET_TEMPLATE_KEY)
+      .maybeSingle();
+    const value = (data as any)?.value as string | undefined;
+    return {
+      value: value ?? DEFAULT_BIRTH_BASKET_TEMPLATE,
+      isDefault: value === undefined,
+      defaultValue: DEFAULT_BIRTH_BASKET_TEMPLATE,
+    };
+  });
+
+export const updateBirthBasketTemplate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ value: z.string().min(1).max(20000) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await (context.supabase as any).from("app_settings").upsert(
+      {
+        key: BIRTH_BASKET_TEMPLATE_KEY,
+        value: data.value,
+        updated_at: new Date().toISOString(),
+        updated_by: context.userId,
+      },
+      { onConflict: "key" },
+    );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Deletes the override row so the template goes back to the shipped default. */
+export const resetBirthBasketTemplate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await (context.supabase as any)
+      .from("app_settings")
+      .delete()
+      .eq("key", BIRTH_BASKET_TEMPLATE_KEY);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });

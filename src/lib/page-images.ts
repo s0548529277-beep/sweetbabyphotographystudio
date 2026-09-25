@@ -46,6 +46,11 @@ export const PAGE_IMAGE_KEYS = {
   rentalInspiration: "rental-inspiration",
   about: "about",
   newborn: "newborn",
+  // Photos shown in the birth-basket ("סל לידה") auto-reply email sent to
+  // a customer who clicks "מעוניינת במימוש סל לידה" on /newborn — managed
+  // from /admin/gallery like any other page, admin-editable text lives
+  // separately at /admin/birth-basket-text (see birthBasketInfo.ts).
+  birthBasket: "birth-basket",
 } as const;
 
 export type PageImageKey = (typeof PAGE_IMAGE_KEYS)[keyof typeof PAGE_IMAGE_KEYS];
@@ -109,8 +114,10 @@ export function builtinEntries(page: string): { key: string; url: string }[] {
   if (page === PAGE_IMAGE_KEYS.studioRental) {
     return Object.entries(studioInspirationMap()).map(([key, url]) => ({ key, url }));
   }
-  if (page === PAGE_IMAGE_KEYS.photographyStudio) return BUILTIN_PHOTOGRAPHY_STUDIO.map((u) => ({ key: u, url: u }));
-  if (page === PAGE_IMAGE_KEYS.photographyOutdoor) return BUILTIN_PHOTOGRAPHY_OUTDOOR.map((u) => ({ key: u, url: u }));
+  if (page === PAGE_IMAGE_KEYS.photographyStudio)
+    return BUILTIN_PHOTOGRAPHY_STUDIO.map((u) => ({ key: u, url: u }));
+  if (page === PAGE_IMAGE_KEYS.photographyOutdoor)
+    return BUILTIN_PHOTOGRAPHY_OUTDOOR.map((u) => ({ key: u, url: u }));
   if (page === PAGE_IMAGE_KEYS.homeHero) return builtinHomeHero();
   // Deliberately no bundled fallback for newborn — per explicit request,
   // this gallery must show only real newborn photos she's uploaded via
@@ -167,11 +174,15 @@ export function usePageImages(page: string) {
  */
 export function resolveGalleryImages(page: string, rows: PageImage[] | undefined): string[] {
   const list = rows ?? [];
-  const adoptedKeys = new Set(list.filter((r) => r.source === "builtin").map((r) => r.storage_path ?? ""));
+  const adoptedKeys = new Set(
+    list.filter((r) => r.source === "builtin").map((r) => r.storage_path ?? ""),
+  );
   const pending = builtinEntries(page)
     .filter((e) => !adoptedKeys.has(e.key))
     .map((e) => e.url);
-  const managed = list.filter((r) => !r.hidden && r.source !== "config").map((r) => rowUrl(page, r));
+  const managed = list
+    .filter((r) => !r.hidden && r.source !== "config")
+    .map((r) => rowUrl(page, r));
   return Array.from(new Set([...pending, ...managed]));
 }
 
@@ -193,7 +204,10 @@ export async function saveAspect(page: string, aspect: GalleryAspect) {
   const rows = await fetchPageImages(page);
   const existing = rows.find((r) => r.source === "config");
   if (existing) {
-    const { error } = await supabase.from("page_images").update({ caption: aspect }).eq("id", existing.id);
+    const { error } = await supabase
+      .from("page_images")
+      .update({ caption: aspect })
+      .eq("id", existing.id);
     if (error) throw error;
     return;
   }
@@ -225,8 +239,16 @@ export const HERO_VARIANT_PAGE = "home-hero-variant";
 
 export type HeroVariant = "full-bleed" | "light-arch";
 export const HERO_VARIANTS: { id: HeroVariant; label: string; description: string }[] = [
-  { id: "full-bleed", label: "תמונה מלאה עם כיתוב עליה", description: "עיצוב נוכחי — תמונה ברקע כל הרוחב, כיתוב וכפתורים מעליה" },
-  { id: "light-arch", label: "רקע בהיר עם קשת בצד", description: "עיצוב קודם — רקע ורוד-קרם בהיר, תמונה בקשת בצד" },
+  {
+    id: "full-bleed",
+    label: "תמונה מלאה עם כיתוב עליה",
+    description: "עיצוב נוכחי — תמונה ברקע כל הרוחב, כיתוב וכפתורים מעליה",
+  },
+  {
+    id: "light-arch",
+    label: "רקע בהיר עם קשת בצד",
+    description: "עיצוב קודם — רקע ורוד-קרם בהיר, תמונה בקשת בצד",
+  },
 ];
 
 export function resolveHeroVariant(rows: PageImage[] | undefined): HeroVariant {
@@ -238,13 +260,21 @@ export async function saveHeroVariant(variant: HeroVariant) {
   const rows = await fetchPageImages(HERO_VARIANT_PAGE);
   const existing = rows.find((r) => r.source === "config");
   if (existing) {
-    const { error } = await supabase.from("page_images").update({ caption: variant }).eq("id", existing.id);
+    const { error } = await supabase
+      .from("page_images")
+      .update({ caption: variant })
+      .eq("id", existing.id);
     if (error) throw error;
     return;
   }
-  const { error } = await supabase
-    .from("page_images")
-    .insert({ page: HERO_VARIANT_PAGE, url: "", source: "config", caption: variant, hidden: true, sort_order: 9999 });
+  const { error } = await supabase.from("page_images").insert({
+    page: HERO_VARIANT_PAGE,
+    url: "",
+    source: "config",
+    caption: variant,
+    hidden: true,
+    sort_order: 9999,
+  });
   if (error) throw error;
 }
 
@@ -284,13 +314,22 @@ export async function saveChatbotAvatar(url: string, storagePath: string) {
   const rows = await fetchPageImages(CHATBOT_AVATAR_PAGE);
   const existing = rows.find((r) => r.source === "config");
   if (existing) {
-    const { error } = await supabase.from("page_images").update({ url, storage_path: storagePath }).eq("id", existing.id);
+    const { error } = await supabase
+      .from("page_images")
+      .update({ url, storage_path: storagePath })
+      .eq("id", existing.id);
     if (error) throw error;
     return;
   }
-  const { error } = await supabase
-    .from("page_images")
-    .insert({ page: CHATBOT_AVATAR_PAGE, url, storage_path: storagePath, source: "config", caption: null, hidden: true, sort_order: 9999 });
+  const { error } = await supabase.from("page_images").insert({
+    page: CHATBOT_AVATAR_PAGE,
+    url,
+    storage_path: storagePath,
+    source: "config",
+    caption: null,
+    hidden: true,
+    sort_order: 9999,
+  });
   if (error) throw error;
 }
 
@@ -340,13 +379,22 @@ export async function saveSiteIcon(url: string, storagePath: string) {
   const rows = await fetchPageImages(SITE_ICON_PAGE);
   const existing = rows.find((r) => r.source === "config");
   if (existing) {
-    const { error } = await supabase.from("page_images").update({ url, storage_path: storagePath }).eq("id", existing.id);
+    const { error } = await supabase
+      .from("page_images")
+      .update({ url, storage_path: storagePath })
+      .eq("id", existing.id);
     if (error) throw error;
     return;
   }
-  const { error } = await supabase
-    .from("page_images")
-    .insert({ page: SITE_ICON_PAGE, url, storage_path: storagePath, source: "config", caption: null, hidden: true, sort_order: 9999 });
+  const { error } = await supabase.from("page_images").insert({
+    page: SITE_ICON_PAGE,
+    url,
+    storage_path: storagePath,
+    source: "config",
+    caption: null,
+    hidden: true,
+    sort_order: 9999,
+  });
   if (error) throw error;
 }
 
@@ -395,13 +443,22 @@ export async function saveEmailHeart(url: string, storagePath: string) {
   const rows = await fetchPageImages(EMAIL_HEART_PAGE);
   const existing = rows.find((r) => r.source === "config");
   if (existing) {
-    const { error } = await supabase.from("page_images").update({ url, storage_path: storagePath }).eq("id", existing.id);
+    const { error } = await supabase
+      .from("page_images")
+      .update({ url, storage_path: storagePath })
+      .eq("id", existing.id);
     if (error) throw error;
     return;
   }
-  const { error } = await supabase
-    .from("page_images")
-    .insert({ page: EMAIL_HEART_PAGE, url, storage_path: storagePath, source: "config", caption: null, hidden: true, sort_order: 9999 });
+  const { error } = await supabase.from("page_images").insert({
+    page: EMAIL_HEART_PAGE,
+    url,
+    storage_path: storagePath,
+    source: "config",
+    caption: null,
+    hidden: true,
+    sort_order: 9999,
+  });
   if (error) throw error;
 }
 
