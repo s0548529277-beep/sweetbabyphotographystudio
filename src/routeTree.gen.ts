@@ -76,6 +76,7 @@ import { Route as AuthenticatedAdminClientsRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminChatLogsRouteImport } from './routes/_authenticated/admin.chat-logs'
 import { Route as AuthenticatedAdminCalendarRouteImport } from './routes/_authenticated/admin.calendar'
 import { Route as AuthenticatedAdminBotKnowledgeRouteImport } from './routes/_authenticated/admin.bot-knowledge'
+import { Route as AuthenticatedAdminBirthBasketTextRouteImport } from './routes/_authenticated/admin.birth-basket-text'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin.analytics'
 import { Route as AuthenticatedOrdersIdReceiptRouteImport } from './routes/_authenticated/orders.$id.receipt'
 import { Route as AuthenticatedAdminPhotoClientsBookingIdRouteImport } from './routes/_authenticated/admin.photo-clients.$bookingId'
@@ -441,6 +442,12 @@ const AuthenticatedAdminBotKnowledgeRoute =
     path: '/bot-knowledge',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminBirthBasketTextRoute =
+  AuthenticatedAdminBirthBasketTextRouteImport.update({
+    id: '/birth-basket-text',
+    path: '/birth-basket-text',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminAnalyticsRoute =
   AuthenticatedAdminAnalyticsRouteImport.update({
     id: '/analytics',
@@ -501,6 +508,7 @@ export interface FileRoutesByFullPath {
   '/blog/': typeof BlogIndexRoute
   '/collage-studio/': typeof CollageStudioIndexRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/admin/birth-basket-text': typeof AuthenticatedAdminBirthBasketTextRoute
   '/admin/bot-knowledge': typeof AuthenticatedAdminBotKnowledgeRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/chat-logs': typeof AuthenticatedAdminChatLogsRoute
@@ -572,6 +580,7 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/collage-studio': typeof CollageStudioIndexRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/admin/birth-basket-text': typeof AuthenticatedAdminBirthBasketTextRoute
   '/admin/bot-knowledge': typeof AuthenticatedAdminBotKnowledgeRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/chat-logs': typeof AuthenticatedAdminChatLogsRoute
@@ -646,6 +655,7 @@ export interface FileRoutesById {
   '/blog/': typeof BlogIndexRoute
   '/collage-studio/': typeof CollageStudioIndexRoute
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/_authenticated/admin/birth-basket-text': typeof AuthenticatedAdminBirthBasketTextRoute
   '/_authenticated/admin/bot-knowledge': typeof AuthenticatedAdminBotKnowledgeRoute
   '/_authenticated/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/_authenticated/admin/chat-logs': typeof AuthenticatedAdminChatLogsRoute
@@ -720,6 +730,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/collage-studio/'
     | '/admin/analytics'
+    | '/admin/birth-basket-text'
     | '/admin/bot-knowledge'
     | '/admin/calendar'
     | '/admin/chat-logs'
@@ -791,6 +802,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/collage-studio'
     | '/admin/analytics'
+    | '/admin/birth-basket-text'
     | '/admin/bot-knowledge'
     | '/admin/calendar'
     | '/admin/chat-logs'
@@ -864,6 +876,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/collage-studio/'
     | '/_authenticated/admin/analytics'
+    | '/_authenticated/admin/birth-basket-text'
     | '/_authenticated/admin/bot-knowledge'
     | '/_authenticated/admin/calendar'
     | '/_authenticated/admin/chat-logs'
@@ -1412,6 +1425,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminBotKnowledgeRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/birth-basket-text': {
+      id: '/_authenticated/admin/birth-basket-text'
+      path: '/birth-basket-text'
+      fullPath: '/admin/birth-basket-text'
+      preLoaderRoute: typeof AuthenticatedAdminBirthBasketTextRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/analytics': {
       id: '/_authenticated/admin/analytics'
       path: '/analytics'
@@ -1475,6 +1495,7 @@ const AuthenticatedAdminPhotoClientsRouteWithChildren =
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
+  AuthenticatedAdminBirthBasketTextRoute: typeof AuthenticatedAdminBirthBasketTextRoute
   AuthenticatedAdminBotKnowledgeRoute: typeof AuthenticatedAdminBotKnowledgeRoute
   AuthenticatedAdminCalendarRoute: typeof AuthenticatedAdminCalendarRoute
   AuthenticatedAdminChatLogsRoute: typeof AuthenticatedAdminChatLogsRoute
@@ -1505,6 +1526,8 @@ interface AuthenticatedAdminRouteChildren {
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
+  AuthenticatedAdminBirthBasketTextRoute:
+    AuthenticatedAdminBirthBasketTextRoute,
   AuthenticatedAdminBotKnowledgeRoute: AuthenticatedAdminBotKnowledgeRoute,
   AuthenticatedAdminCalendarRoute: AuthenticatedAdminCalendarRoute,
   AuthenticatedAdminChatLogsRoute: AuthenticatedAdminChatLogsRoute,
@@ -1610,13 +1633,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

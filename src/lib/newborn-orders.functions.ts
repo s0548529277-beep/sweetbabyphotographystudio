@@ -24,6 +24,13 @@ import {
   fillNewbornContractPlaceholders,
   renderNewbornContractHtml,
 } from "@/lib/newbornContract";
+import {
+  DEFAULT_BIRTH_BASKET_TEMPLATE,
+  BIRTH_BASKET_TEMPLATE_KEY,
+  fillBirthBasketPlaceholders,
+  renderBirthBasketHtml,
+} from "@/lib/birthBasketInfo";
+import { PAGE_IMAGE_KEYS, resolveGalleryImages } from "@/lib/page-images";
 
 const STUDIO_EMAIL = "s0548529277@gmail.com";
 // Michal's own address for anything photography-specific (this contract
@@ -1060,44 +1067,164 @@ export const finishNewbornProofSelectionByToken = createServerFn({ method: "POST
   });
 
 /**
- * A visitor on /newborn clicking "מימוש סל לידה" — a one-click "I'm
- * interested" note, not a booking. No auth needed (any site visitor,
- * logged in or not, should be able to use it); best-effort email to her,
- * same pattern as the proof-selection-done notify above.
+ * Reads the admin-editable birth-basket auto-reply template (app_settings,
+ * key BIRTH_BASKET_TEMPLATE_KEY — see admin.birth-basket-text.tsx) or falls
+ * back to the shipped default. Same override pattern as
+ * getNewbornContractTemplate above, but reachable from the fully
+ * unauthenticated requestBirthBasketInterest handler below, so it takes the
+ * db client explicitly rather than assuming an authed `context.supabase`.
+ */
+async function getBirthBasketTemplate(db: any): Promise<string> {
+  try {
+    const { data } = await db
+      .from("app_settings")
+      .select("value")
+      .eq("key", BIRTH_BASKET_TEMPLATE_KEY)
+      .maybeSingle();
+    return data?.value || DEFAULT_BIRTH_BASKET_TEMPLATE;
+  } catch (e) {
+    console.error("[SWEETBABY] birth-basket template read failed, using default", e);
+    return DEFAULT_BIRTH_BASKET_TEMPLATE;
+  }
+}
+
+/**
+ * A visitor on /newborn clicking "מעוניינת במימוש סל לידה" — a one-click
+ * "I'm interested" note, not a booking. No auth needed (any site visitor,
+ * logged in or not, should be able to use it). Two best-effort emails, each
+ * independently caught so one failing never blocks the other: (1) to the
+ * studio, with her contact details + album interest (same pattern as the
+ * proof-selection-done notify above), and (2) — new — an automatic reply to
+ * the visitor herself with the birth-basket packages/prices/photos, built
+ * from the admin-editable template (getBirthBasketTemplate) + the "סל לידה"
+ * photo gallery (PAGE_IMAGE_KEYS.birthBasket, managed at /admin/gallery).
+ * Previously this only emailed the studio and — since the caller almost
+ * never had name/phone/email actually filled in (they're only collected in
+ * the separate booking wizard, not on this button) — usually with no
+ * contact details at all, making the "click" nearly useless. Now
+ * name/phone/email are required inputs, collected in their own small
+ * dialog on /newborn right before this call.
  */
 export const requestBirthBasketInterest = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z
       .object({
-        name: z.string().optional(),
-        phone: z.string().optional(),
-        email: z.string().optional(),
+        name: z.string().min(1, "נא למלא שם"),
+        phone: z.string().min(1, "נא למלא טלפון"),
+        email: z.string().email("נא למלא מייל תקין"),
+        wants_album: z.boolean().optional().default(false),
       })
       .parse(d),
   )
   .handler(async ({ data }) => {
+    const name = data.name.trim();
+    const phone = data.phone.trim();
+    const email = data.email.trim();
+    let studioEmailOk = false;
     try {
       const { sendGmail } = await import("@/integrations/google/gmail.server");
       const heart = await emailHeartImgTag(36);
       const contactLines = [
-        data.name?.trim() ? `שם: ${data.name.trim()}` : null,
-        data.phone?.trim() ? `טלפון: ${data.phone.trim()}` : null,
-        data.email?.trim() ? `מייל: ${data.email.trim()}` : null,
-      ].filter(Boolean);
+        `שם: ${name}`,
+        `טלפון: ${phone}`,
+        `מייל: ${email}`,
+        `מעוניינת באלבום: ${data.wants_album ? "כן" : "לא צוין / לא"}`,
+      ];
       await sendGmail({
         to: STUDIO_EMAIL,
-        subject: "מעוניינת במימוש סל לידה",
+        subject: `מעוניינת במימוש סל לידה — ${name}`,
         html: `<div dir="rtl" style="font-family:sans-serif;color:#4a3221;max-width:480px;margin:0 auto;text-align:center">
           <div style="background:linear-gradient(135deg,#f3d3dd,#ecd3ac);border-radius:20px;padding:28px 20px">
             <div style="font-size:36px;margin-bottom:8px">🧺 ${heart}</div>
             <h2 style="margin:0">מעוניינת במימוש סל לידה</h2>
           </div>
-          ${contactLines.length ? `<p style="margin-top:18px;font-size:15px">${contactLines.join("<br/>")}</p>` : `<p style="margin-top:18px;font-size:13px;color:#8a6338">לא צוינו פרטי קשר — התקבל מעמוד הניו-בורן</p>`}
+          <p style="margin-top:18px;font-size:15px">${contactLines.join("<br/>")}</p>
         </div>`,
       });
-      return { ok: true };
+      studioEmailOk = true;
     } catch (e) {
-      console.error("[SWEETBABY] birth-basket interest email failed", e);
-      return { ok: false };
+      console.error("[SWEETBABY] birth-basket interest email to studio failed", e);
     }
+
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { sendGmail } = await import("@/integrations/google/gmail.server");
+      const [template, photoRows] = await Promise.all([
+        getBirthBasketTemplate(supabaseAdmin),
+        (supabaseAdmin as any)
+          .from("page_images")
+          .select("*")
+          .eq("page", PAGE_IMAGE_KEYS.birthBasket)
+          .order("sort_order", { ascending: true }),
+      ]);
+      const photoUrls = resolveGalleryImages(PAGE_IMAGE_KEYS.birthBasket, photoRows?.data ?? []);
+      const filled = fillBirthBasketPlaceholders(template, {
+        contact_name: name,
+        album_line: data.wants_album
+          ? "סימנת שאת מעוניינת באלבום מודפס — נכלול זאת בהצעת המחיר שאשלח."
+          : "אם תרצי אלבום מודפס בנוסף לתמונות הדיגיטליות, אפשר לציין זאת ואוסיף את זה להצעת המחיר.",
+      });
+      await sendGmail({
+        to: email,
+        subject: "🧺 מימוש סל לידה אצלי — כל הפרטים | מיכל סיבוני",
+        html: renderBirthBasketHtml(filled, photoUrls),
+      });
+    } catch (e) {
+      console.error("[SWEETBABY] birth-basket auto-reply to customer failed", e);
+    }
+
+    return { ok: studioEmailOk };
+  });
+
+/**
+ * Loads the birth-basket auto-reply template for /admin/birth-basket-text —
+ * same shape/intent as getNewbornContractTemplateForAdmin above, just for
+ * the birth-basket template key.
+ */
+export const getBirthBasketTemplateForAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data } = await (context.supabase as any)
+      .from("app_settings")
+      .select("value")
+      .eq("key", BIRTH_BASKET_TEMPLATE_KEY)
+      .maybeSingle();
+    const value = (data as any)?.value as string | undefined;
+    return {
+      value: value ?? DEFAULT_BIRTH_BASKET_TEMPLATE,
+      isDefault: value === undefined,
+      defaultValue: DEFAULT_BIRTH_BASKET_TEMPLATE,
+    };
+  });
+
+export const updateBirthBasketTemplate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ value: z.string().min(1).max(20000) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await (context.supabase as any).from("app_settings").upsert(
+      {
+        key: BIRTH_BASKET_TEMPLATE_KEY,
+        value: data.value,
+        updated_at: new Date().toISOString(),
+        updated_by: context.userId,
+      },
+      { onConflict: "key" },
+    );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Deletes the override row so the template goes back to the shipped default. */
+export const resetBirthBasketTemplate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await (context.supabase as any)
+      .from("app_settings")
+      .delete()
+      .eq("key", BIRTH_BASKET_TEMPLATE_KEY);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });

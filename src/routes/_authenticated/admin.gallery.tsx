@@ -3,7 +3,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Images, Loader2, Trash2, Upload, ChevronLeft, ChevronRight, Eye, GripVertical, RotateCcw } from "lucide-react";
+import {
+  Images,
+  Loader2,
+  Trash2,
+  Upload,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  GripVertical,
+  RotateCcw,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/lib/image-compress";
 import {
@@ -33,6 +43,7 @@ const TABS = [
   { key: PAGE_IMAGE_KEYS.photographyOutdoor, label: "צילומים – בטבע" },
   { key: PAGE_IMAGE_KEYS.homeHero, label: "דף הבית – תמונות מתחלפות" },
   { key: PAGE_IMAGE_KEYS.newborn, label: "ניו-בורן – דף נחיתה" },
+  { key: PAGE_IMAGE_KEYS.birthBasket, label: "סל לידה – תמונות למייל האוטומטי" },
   { key: PAGE_IMAGE_KEYS.rentalInspiration, label: "השכרת אביזרים – תמונות מתחלפות" },
   { key: PAGE_IMAGE_KEYS.about, label: "עלינו – תמונות" },
   { key: SITE_ICON_PAGE, label: "סמל האתר (הלב)" },
@@ -43,11 +54,18 @@ const TABS = [
  * upload replaces it, reset deletes the row so the bundled default takes
  * over again. Shared by both single-image tabs below to avoid duplicating
  * the same upload/reset plumbing per setting. */
-function useSingleImageConfig(pageKey: string, save: (url: string, path: string) => Promise<void>, reset: () => Promise<void>) {
+function useSingleImageConfig(
+  pageKey: string,
+  save: (url: string, path: string) => Promise<void>,
+  reset: () => Promise<void>,
+) {
   const qc = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
-  const query = useQuery({ queryKey: ["page-images", pageKey], queryFn: () => fetchPageImages(pageKey) });
+  const query = useQuery({
+    queryKey: ["page-images", pageKey],
+    queryFn: () => fetchPageImages(pageKey),
+  });
   const url = (query.data ?? []).find((r) => r.source === "config")?.url || null;
   const refresh = () => qc.invalidateQueries({ queryKey: ["page-images", pageKey] });
 
@@ -114,7 +132,13 @@ function SingleImageConfigCard({
       <div className="space-y-2">
         <p className="text-sm text-muted-foreground">{hint}</p>
         <div className="flex flex-wrap gap-2">
-          <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => onFile(e.target.files)} />
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => onFile(e.target.files)}
+          />
           <button
             type="button"
             disabled={busy}
@@ -180,12 +204,16 @@ function AdminGalleryPage() {
   // image on every page can be deleted / reordered from here.
   useEffect(() => {
     if (!images.data) return;
-    const adopted = new Set(images.data.filter((r) => r.source === "builtin").map((r) => r.storage_path ?? ""));
+    const adopted = new Set(
+      images.data.filter((r) => r.source === "builtin").map((r) => r.storage_path ?? ""),
+    );
     const pending = builtinEntries(page).filter((e) => !adopted.has(e.key));
     if (pending.length === 0) return;
     let cancelled = false;
     (async () => {
-      let sort = images.data!.length ? Math.min(...images.data!.map((r) => r.sort_order)) - pending.length : 0;
+      let sort = images.data!.length
+        ? Math.min(...images.data!.map((r) => r.sort_order)) - pending.length
+        : 0;
       const payload = pending.map((e) => ({
         page,
         url: e.url,
@@ -216,7 +244,9 @@ function AdminGalleryPage() {
     const isNewborn = page === PAGE_IMAGE_KEYS.newborn;
     for (const file of list) {
       try {
-        const compressed = isNewborn ? await compressImage(file, 3200, 0.95) : await compressImage(file);
+        const compressed = isNewborn
+          ? await compressImage(file, 3200, 0.95)
+          : await compressImage(file);
         const { url, path } = await uploadToStorage(compressed);
         const { error } = await supabase.from("page_images").insert({
           page,
@@ -242,7 +272,10 @@ function AdminGalleryPage() {
     if (!confirm("למחוק את התמונה מהעמוד?")) return;
     if (img.source === "builtin") {
       // Bundled asset — keep the record so it isn't re-adopted, just hide it.
-      const { error } = await supabase.from("page_images").update({ hidden: true }).eq("id", img.id);
+      const { error } = await supabase
+        .from("page_images")
+        .update({ hidden: true })
+        .eq("id", img.id);
       if (error) return toast.error(error.message);
     } else {
       const { error } = await supabase.from("page_images").delete().eq("id", img.id);
@@ -264,7 +297,10 @@ function AdminGalleryPage() {
     setBusy(true);
     for (let i = 0; i < ordered.length; i++) {
       if (ordered[i].sort_order === i) continue;
-      const { error } = await supabase.from("page_images").update({ sort_order: i }).eq("id", ordered[i].id);
+      const { error } = await supabase
+        .from("page_images")
+        .update({ sort_order: i })
+        .eq("id", ordered[i].id);
       if (error) {
         setBusy(false);
         return toast.error(error.message);
@@ -285,7 +321,6 @@ function AdminGalleryPage() {
 
   const move = (index: number, dir: -1 | 1) => reorder(index, index + dir);
 
-
   return (
     <div dir="rtl" className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -294,7 +329,8 @@ function AdminGalleryPage() {
             <Images className="h-5 w-5" /> גלריות באתר
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            כל התמונות בעמודים – כולל אלה שהיו מוטמעות באתר – ניתנות למחיקה ולשינוי סדר מכאן: אפשר לגרור תמונה למקום חדש או להקליד מספר מיקום על התמונה. אפשר להעלות כמה תמונות בבת אחת.
+            כל התמונות בעמודים – כולל אלה שהיו מוטמעות באתר – ניתנות למחיקה ולשינוי סדר מכאן: אפשר
+            לגרור תמונה למקום חדש או להקליד מספר מיקום על התמונה. אפשר להעלות כמה תמונות בבת אחת.
           </p>
         </div>
         {page !== SITE_ICON_PAGE && page !== EMAIL_HEART_PAGE && (
@@ -339,10 +375,12 @@ function AdminGalleryPage() {
       {(page === PAGE_IMAGE_KEYS.homeHero || page === PAGE_IMAGE_KEYS.rentalInspiration) && (
         <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-primary/10 bg-card p-3">
           <span className="text-sm text-muted-foreground">פורמט התמונות באתר:</span>
-          {([
-            { key: "portrait", label: "לגובה (4:5)" },
-            { key: "landscape", label: "לרוחב (16:9)" },
-          ] as const).map((o) => (
+          {(
+            [
+              { key: "portrait", label: "לגובה (4:5)" },
+              { key: "landscape", label: "לרוחב (16:9)" },
+            ] as const
+          ).map((o) => (
             <button
               key={o.key}
               type="button"
@@ -356,7 +394,9 @@ function AdminGalleryPage() {
                 }
               }}
               className={`px-4 h-9 rounded-full text-sm border ${
-                aspect === o.key ? "bg-primary text-primary-foreground border-primary" : "border-primary/15 hover:bg-cream"
+                aspect === o.key
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "border-primary/15 hover:bg-cream"
               }`}
             >
               {o.label}
@@ -367,7 +407,7 @@ function AdminGalleryPage() {
 
       {page === SITE_ICON_PAGE && (
         <SingleImageConfigCard
-          hint='הלב שמופיע בלשונית הדפדפן (favicon) ובפס הסטטיסטיקות בדף הבית. שינוי כאן חל תוך כמה שניות בדפדפנים שכבר פתוחים באתר — בלשונית סגורה שנפתחת מחדש זה מיידי.'
+          hint="הלב שמופיע בלשונית הדפדפן (favicon) ובפס הסטטיסטיקות בדף הבית. שינוי כאן חל תוך כמה שניות בדפדפנים שכבר פתוחים באתר — בלשונית סגורה שנפתחת מחדש זה מיידי."
           url={siteIcon.url}
           defaultUrl={heartIcon}
           busy={siteIcon.busy}
@@ -391,96 +431,107 @@ function AdminGalleryPage() {
         />
       )}
 
-      {page !== SITE_ICON_PAGE && page !== EMAIL_HEART_PAGE && (images.isLoading ? (
-        <div className="text-sm text-muted-foreground">טוען...</div>
-      ) : rows.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-primary/20 p-10 text-center text-sm text-muted-foreground">
-          אין עדיין תמונות בגלריה הזו. לחצי על "העלאת תמונות".
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {rows.map((img, i) => (
-            <div
-              key={img.id}
-              draggable
-              onDragStart={() => setDragIndex(i)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                if (dragIndex !== null) reorder(dragIndex, i);
-                setDragIndex(null);
-              }}
-              onDragEnd={() => setDragIndex(null)}
-              className={`group relative aspect-square overflow-hidden rounded-2xl border bg-cream cursor-grab active:cursor-grabbing ${
-                dragIndex === i ? "border-peach-deep ring-2 ring-peach-deep/40" : "border-primary/10"
-              } ${img.hidden ? "opacity-40" : ""}`}
-            >
-              <img src={rowUrl(page, img)} alt={img.caption ?? "תמונה"} loading="lazy" className="h-full w-full object-cover pointer-events-none" />
-              <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/55 text-white text-[11px] px-2 py-0.5">
-                <GripVertical className="h-3 w-3 opacity-70" />
-                <input
-                  type="number"
-                  min={1}
-                  max={rows.length}
-                  defaultValue={i + 1}
-                  key={`pos-${img.id}-${i}`}
-                  disabled={busy}
-                  onClick={(e) => e.stopPropagation()}
-                  onDragStart={(e) => e.preventDefault()}
-                  onBlur={(e) => {
-                    const to = Number(e.target.value) - 1;
-                    if (!Number.isNaN(to)) reorder(i, to);
-                  }}
-                  onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                  className="w-9 bg-transparent text-center outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-                  aria-label="מיקום התמונה"
+      {page !== SITE_ICON_PAGE &&
+        page !== EMAIL_HEART_PAGE &&
+        (images.isLoading ? (
+          <div className="text-sm text-muted-foreground">טוען...</div>
+        ) : rows.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-primary/20 p-10 text-center text-sm text-muted-foreground">
+            אין עדיין תמונות בגלריה הזו. לחצי על "העלאת תמונות".
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {rows.map((img, i) => (
+              <div
+                key={img.id}
+                draggable
+                onDragStart={() => setDragIndex(i)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (dragIndex !== null) reorder(dragIndex, i);
+                  setDragIndex(null);
+                }}
+                onDragEnd={() => setDragIndex(null)}
+                className={`group relative aspect-square overflow-hidden rounded-2xl border bg-cream cursor-grab active:cursor-grabbing ${
+                  dragIndex === i
+                    ? "border-peach-deep ring-2 ring-peach-deep/40"
+                    : "border-primary/10"
+                } ${img.hidden ? "opacity-40" : ""}`}
+              >
+                <img
+                  src={rowUrl(page, img)}
+                  alt={img.caption ?? "תמונה"}
+                  loading="lazy"
+                  className="h-full w-full object-cover pointer-events-none"
                 />
-                {img.hidden ? <span>· מוסתרת</span> : null}
-              </div>
+                <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/55 text-white text-[11px] px-2 py-0.5">
+                  <GripVertical className="h-3 w-3 opacity-70" />
+                  <input
+                    type="number"
+                    min={1}
+                    max={rows.length}
+                    defaultValue={i + 1}
+                    key={`pos-${img.id}-${i}`}
+                    disabled={busy}
+                    onClick={(e) => e.stopPropagation()}
+                    onDragStart={(e) => e.preventDefault()}
+                    onBlur={(e) => {
+                      const to = Number(e.target.value) - 1;
+                      if (!Number.isNaN(to)) reorder(i, to);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                    }}
+                    className="w-9 bg-transparent text-center outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                    aria-label="מיקום התמונה"
+                  />
+                  {img.hidden ? <span>· מוסתרת</span> : null}
+                </div>
 
-              {img.hidden ? (
-                <button
-                  type="button"
-                  onClick={() => restore(img)}
-                  className="absolute top-2 left-2 h-9 w-9 rounded-full bg-black/60 text-white flex items-center justify-center"
-                  aria-label="החזרת תמונה לעמוד"
-                >
-                  <Eye className="h-4 w-4" />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => remove(img)}
-                  className="absolute top-2 left-2 h-9 w-9 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                  aria-label="מחיקת תמונה"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
-              <div className="absolute bottom-2 left-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
-                <button
-                  type="button"
-                  disabled={busy || i === 0}
-                  onClick={() => move(i, -1)}
-                  className="h-9 w-9 rounded-full bg-black/60 text-white flex items-center justify-center disabled:opacity-30"
-                  aria-label="הזזה אחורה"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  disabled={busy || i === rows.length - 1}
-                  onClick={() => move(i, 1)}
-                  className="h-9 w-9 rounded-full bg-black/60 text-white flex items-center justify-center disabled:opacity-30"
-                  aria-label="הזזה קדימה"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
+                {img.hidden ? (
+                  <button
+                    type="button"
+                    onClick={() => restore(img)}
+                    className="absolute top-2 left-2 h-9 w-9 rounded-full bg-black/60 text-white flex items-center justify-center"
+                    aria-label="החזרת תמונה לעמוד"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => remove(img)}
+                    className="absolute top-2 left-2 h-9 w-9 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                    aria-label="מחיקת תמונה"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+                <div className="absolute bottom-2 left-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                  <button
+                    type="button"
+                    disabled={busy || i === 0}
+                    onClick={() => move(i, -1)}
+                    className="h-9 w-9 rounded-full bg-black/60 text-white flex items-center justify-center disabled:opacity-30"
+                    aria-label="הזזה אחורה"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy || i === rows.length - 1}
+                    onClick={() => move(i, 1)}
+                    className="h-9 w-9 rounded-full bg-black/60 text-white flex items-center justify-center disabled:opacity-30"
+                    aria-label="הזזה קדימה"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      ))}
+            ))}
+          </div>
+        ))}
     </div>
   );
 }
