@@ -49,8 +49,10 @@ import { Route as NewbornGalleryTokenRouteImport } from './routes/newborn.galler
 import { Route as NewbornConfirmTokenRouteImport } from './routes/newborn.confirm.$token'
 import { Route as DepositTypeIdRouteImport } from './routes/deposit.$type.$id'
 import { Route as ApiYemotIvrRouteImport } from './routes/api.yemot.ivr'
+import { Route as ApiWhatsappWebhookRouteImport } from './routes/api.whatsapp.webhook'
 import { Route as ApiVoiceRespondRouteImport } from './routes/api.voice.respond'
 import { Route as ApiVoiceIncomingRouteImport } from './routes/api.voice.incoming'
+import { Route as AuthenticatedAdminWhatsappRouteImport } from './routes/_authenticated/admin.whatsapp'
 import { Route as AuthenticatedAdminVoiceBotTextRouteImport } from './routes/_authenticated/admin.voice-bot-text'
 import { Route as AuthenticatedAdminVoiceBotRouteImport } from './routes/_authenticated/admin.voice-bot'
 import { Route as AuthenticatedAdminSubscriptionsRouteImport } from './routes/_authenticated/admin.subscriptions'
@@ -283,6 +285,11 @@ const ApiYemotIvrRoute = ApiYemotIvrRouteImport.update({
   path: '/api/yemot/ivr',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWhatsappWebhookRoute = ApiWhatsappWebhookRouteImport.update({
+  id: '/api/whatsapp/webhook',
+  path: '/api/whatsapp/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiVoiceRespondRoute = ApiVoiceRespondRouteImport.update({
   id: '/api/voice/respond',
   path: '/api/voice/respond',
@@ -293,6 +300,12 @@ const ApiVoiceIncomingRoute = ApiVoiceIncomingRouteImport.update({
   path: '/api/voice/incoming',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAdminWhatsappRoute =
+  AuthenticatedAdminWhatsappRouteImport.update({
+    id: '/whatsapp',
+    path: '/whatsapp',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminVoiceBotTextRoute =
   AuthenticatedAdminVoiceBotTextRouteImport.update({
     id: '/voice-bot-text',
@@ -534,8 +547,10 @@ export interface FileRoutesByFullPath {
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/admin/voice-bot': typeof AuthenticatedAdminVoiceBotRoute
   '/admin/voice-bot-text': typeof AuthenticatedAdminVoiceBotTextRoute
+  '/admin/whatsapp': typeof AuthenticatedAdminWhatsappRoute
   '/api/voice/incoming': typeof ApiVoiceIncomingRoute
   '/api/voice/respond': typeof ApiVoiceRespondRoute
+  '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
   '/api/yemot/ivr': typeof ApiYemotIvrRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/newborn/confirm/$token': typeof NewbornConfirmTokenRoute
@@ -606,8 +621,10 @@ export interface FileRoutesByTo {
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/admin/voice-bot': typeof AuthenticatedAdminVoiceBotRoute
   '/admin/voice-bot-text': typeof AuthenticatedAdminVoiceBotTextRoute
+  '/admin/whatsapp': typeof AuthenticatedAdminWhatsappRoute
   '/api/voice/incoming': typeof ApiVoiceIncomingRoute
   '/api/voice/respond': typeof ApiVoiceRespondRoute
+  '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
   '/api/yemot/ivr': typeof ApiYemotIvrRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/newborn/confirm/$token': typeof NewbornConfirmTokenRoute
@@ -681,8 +698,10 @@ export interface FileRoutesById {
   '/_authenticated/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/_authenticated/admin/voice-bot': typeof AuthenticatedAdminVoiceBotRoute
   '/_authenticated/admin/voice-bot-text': typeof AuthenticatedAdminVoiceBotTextRoute
+  '/_authenticated/admin/whatsapp': typeof AuthenticatedAdminWhatsappRoute
   '/api/voice/incoming': typeof ApiVoiceIncomingRoute
   '/api/voice/respond': typeof ApiVoiceRespondRoute
+  '/api/whatsapp/webhook': typeof ApiWhatsappWebhookRoute
   '/api/yemot/ivr': typeof ApiYemotIvrRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/newborn/confirm/$token': typeof NewbornConfirmTokenRoute
@@ -756,8 +775,10 @@ export interface FileRouteTypes {
     | '/admin/subscriptions'
     | '/admin/voice-bot'
     | '/admin/voice-bot-text'
+    | '/admin/whatsapp'
     | '/api/voice/incoming'
     | '/api/voice/respond'
+    | '/api/whatsapp/webhook'
     | '/api/yemot/ivr'
     | '/deposit/$type/$id'
     | '/newborn/confirm/$token'
@@ -828,8 +849,10 @@ export interface FileRouteTypes {
     | '/admin/subscriptions'
     | '/admin/voice-bot'
     | '/admin/voice-bot-text'
+    | '/admin/whatsapp'
     | '/api/voice/incoming'
     | '/api/voice/respond'
+    | '/api/whatsapp/webhook'
     | '/api/yemot/ivr'
     | '/deposit/$type/$id'
     | '/newborn/confirm/$token'
@@ -902,8 +925,10 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/subscriptions'
     | '/_authenticated/admin/voice-bot'
     | '/_authenticated/admin/voice-bot-text'
+    | '/_authenticated/admin/whatsapp'
     | '/api/voice/incoming'
     | '/api/voice/respond'
+    | '/api/whatsapp/webhook'
     | '/api/yemot/ivr'
     | '/deposit/$type/$id'
     | '/newborn/confirm/$token'
@@ -949,6 +974,7 @@ export interface RootRouteChildren {
   CollageStudioIndexRoute: typeof CollageStudioIndexRoute
   ApiVoiceIncomingRoute: typeof ApiVoiceIncomingRoute
   ApiVoiceRespondRoute: typeof ApiVoiceRespondRoute
+  ApiWhatsappWebhookRoute: typeof ApiWhatsappWebhookRoute
   ApiYemotIvrRoute: typeof ApiYemotIvrRoute
   DepositTypeIdRoute: typeof DepositTypeIdRoute
   SummaryTypeIdRoute: typeof SummaryTypeIdRoute
@@ -1236,6 +1262,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiYemotIvrRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/whatsapp/webhook': {
+      id: '/api/whatsapp/webhook'
+      path: '/api/whatsapp/webhook'
+      fullPath: '/api/whatsapp/webhook'
+      preLoaderRoute: typeof ApiWhatsappWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/voice/respond': {
       id: '/api/voice/respond'
       path: '/api/voice/respond'
@@ -1249,6 +1282,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/voice/incoming'
       preLoaderRoute: typeof ApiVoiceIncomingRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/admin/whatsapp': {
+      id: '/_authenticated/admin/whatsapp'
+      path: '/whatsapp'
+      fullPath: '/admin/whatsapp'
+      preLoaderRoute: typeof AuthenticatedAdminWhatsappRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/voice-bot-text': {
       id: '/_authenticated/admin/voice-bot-text'
@@ -1521,6 +1561,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminSubscriptionsRoute: typeof AuthenticatedAdminSubscriptionsRoute
   AuthenticatedAdminVoiceBotRoute: typeof AuthenticatedAdminVoiceBotRoute
   AuthenticatedAdminVoiceBotTextRoute: typeof AuthenticatedAdminVoiceBotTextRoute
+  AuthenticatedAdminWhatsappRoute: typeof AuthenticatedAdminWhatsappRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
 
@@ -1556,6 +1597,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminSubscriptionsRoute: AuthenticatedAdminSubscriptionsRoute,
   AuthenticatedAdminVoiceBotRoute: AuthenticatedAdminVoiceBotRoute,
   AuthenticatedAdminVoiceBotTextRoute: AuthenticatedAdminVoiceBotTextRoute,
+  AuthenticatedAdminWhatsappRoute: AuthenticatedAdminWhatsappRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }
 
@@ -1626,6 +1668,7 @@ const rootRouteChildren: RootRouteChildren = {
   CollageStudioIndexRoute: CollageStudioIndexRoute,
   ApiVoiceIncomingRoute: ApiVoiceIncomingRoute,
   ApiVoiceRespondRoute: ApiVoiceRespondRoute,
+  ApiWhatsappWebhookRoute: ApiWhatsappWebhookRoute,
   ApiYemotIvrRoute: ApiYemotIvrRoute,
   DepositTypeIdRoute: DepositTypeIdRoute,
   SummaryTypeIdRoute: SummaryTypeIdRoute,

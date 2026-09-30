@@ -33,6 +33,7 @@ import {
   BarChart3,
   Droplets,
   FileText,
+  MessageSquare,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -67,6 +68,7 @@ const links: NavEntry[] = [
   { to: "/admin/orders", label: "הזמנות", icon: ShoppingBag },
   { to: "/admin/calendar", label: "יומן", icon: CalendarDays },
   { to: "/admin/clients", label: "לקוחות", icon: Users },
+  { to: "/admin/whatsapp", label: "וואטסאפ", icon: MessageSquare },
   { to: "/admin/newborn-packages", label: "חבילות ניו-בורן", icon: Baby },
   { to: "/admin/newborn-contract-text", label: "מלל הכנה+חוזה ניו-בורן", icon: FileText },
   { to: "/admin/birth-basket-text", label: "מלל מימוש סל לידה", icon: Gift },

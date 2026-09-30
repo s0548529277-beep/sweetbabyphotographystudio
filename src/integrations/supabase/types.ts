@@ -1618,6 +1618,48 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_messages: {
+        Row: {
+          body: string | null
+          contact_name: string | null
+          created_at: string
+          direction: string
+          error: string | null
+          id: string
+          media_type: string | null
+          media_url: string | null
+          phone: string
+          status: string
+          wa_message_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          contact_name?: string | null
+          created_at?: string
+          direction: string
+          error?: string | null
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          phone: string
+          status?: string
+          wa_message_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          contact_name?: string | null
+          created_at?: string
+          direction?: string
+          error?: string | null
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          phone?: string
+          status?: string
+          wa_message_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       booking_busy_slots: {
