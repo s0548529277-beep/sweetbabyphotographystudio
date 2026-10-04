@@ -209,6 +209,7 @@ export const saveCollageCreation = createServerFn({ method: "POST" })
   });
 
 export type TrafficSourceRow = { source: string; sessions: number };
+export type ReferrerHostRow = { host: string; sessions: number };
 export type TopPageRow = { path: string; clicks: number; pageviews: number };
 export type CollageRow = {
   id: string;
@@ -228,6 +229,8 @@ export type AnalyticsSummary = {
   totalClicks: number;
   avgSessionSeconds: number;
   trafficSources: TrafficSourceRow[];
+  /** Breakdown of the "other" bucket by actual referrer hostname — so a specific site (e.g. a local directory) can be identified and counted by name instead of being lost inside one generic "אתרים אחרים" total. */
+  otherReferrers: ReferrerHostRow[];
   topPages: TopPageRow[];
   sessionsByDay: { day: string; sessions: number }[];
   collages: CollageRow[];
@@ -250,7 +253,7 @@ export const getAnalyticsSummary = createServerFn({ method: "POST" })
 
     const runQueries = () =>
       Promise.all([
-        (supabaseAdmin as any).from("analytics_sessions").select("id, first_seen, last_seen, source").gte("first_seen", since),
+        (supabaseAdmin as any).from("analytics_sessions").select("id, first_seen, last_seen, source, referrer").gte("first_seen", since),
         (supabaseAdmin as any).from("analytics_events").select("type, path, created_at").gte("created_at", since).limit(50_000),
         (supabaseAdmin as any)
           .from("collage_creations")
@@ -293,12 +296,22 @@ export const getAnalyticsSummary = createServerFn({ method: "POST" })
     let totalDurationMs = 0;
     const bySourceCount = new Map<string, number>();
     const byDayCount = new Map<string, number>();
+    const byOtherHostCount = new Map<string, number>();
     for (const s of sessions) {
       const dur = new Date(s.last_seen).getTime() - new Date(s.first_seen).getTime();
       if (dur > 0) totalDurationMs += dur;
       bySourceCount.set(s.source, (bySourceCount.get(s.source) ?? 0) + 1);
       const day = String(s.first_seen).slice(0, 10);
       byDayCount.set(day, (byDayCount.get(day) ?? 0) + 1);
+      if (s.source === "other" && s.referrer) {
+        let host: string | null = null;
+        try {
+          host = new URL(s.referrer).hostname.toLowerCase().replace(/^www\./, "");
+        } catch {
+          // malformed referrer string — skip rather than show junk
+        }
+        if (host) byOtherHostCount.set(host, (byOtherHostCount.get(host) ?? 0) + 1);
+      }
     }
     const avgSessionSeconds = totalSessions > 0 ? Math.round(totalDurationMs / totalSessions / 1000) : 0;
 
@@ -324,6 +337,11 @@ export const getAnalyticsSummary = createServerFn({ method: "POST" })
     const trafficSources: TrafficSourceRow[] = Array.from(bySourceCount.entries())
       .map(([source, count]) => ({ source, sessions: count }))
       .sort((a, b) => b.sessions - a.sessions);
+
+    const otherReferrers: ReferrerHostRow[] = Array.from(byOtherHostCount.entries())
+      .map(([host, count]) => ({ host, sessions: count }))
+      .sort((a, b) => b.sessions - a.sessions)
+      .slice(0, 20);
 
     const sessionsByDay = Array.from(byDayCount.entries())
       .map(([day, count]) => ({ day, sessions: count }))
@@ -353,6 +371,7 @@ export const getAnalyticsSummary = createServerFn({ method: "POST" })
       totalClicks,
       avgSessionSeconds,
       trafficSources,
+      otherReferrers,
       topPages,
       sessionsByDay,
       collages: collageRows,
