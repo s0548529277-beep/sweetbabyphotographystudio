@@ -19,7 +19,9 @@ import {
   Trash2,
   ZoomIn,
   CalendarDays,
+  Download,
 } from "lucide-react";
+import { downloadImage } from "@/lib/download-image";
 
 export const Route = createFileRoute("/rental-catalog")({
   head: () => ({
@@ -657,6 +659,14 @@ function RentalCatalogPage() {
               aria-label="סגור"
             >
               <X className="h-4 w-4" />
+            </button>
+            <button
+              className="absolute top-3 left-14 h-9 w-9 rounded-full bg-black/60 text-white flex items-center justify-center z-10 hover:bg-black/75 transition"
+              onClick={() => downloadImage(lightbox.img, `${lightbox.sku || "item"}.jpg`)}
+              aria-label="הורדת התמונה"
+              title="הורדת התמונה"
+            >
+              <Download className="h-4 w-4" />
             </button>
             <img
               src={lightbox.img}

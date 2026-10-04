@@ -13,7 +13,8 @@ import { PAYMENT_LABELS } from "@/lib/photography-options";
 import { NEWBORN_PACKAGES, NEWBORN_ADDONS, NEWBORN_TIMELINE_STEPS } from "@/lib/newborn-packages";
 import { requestBirthBasketInterest } from "@/lib/newborn-orders.functions";
 import { usePageGallery, PAGE_IMAGE_KEYS, useSiteIcon } from "@/lib/page-images";
-import { Heart, Phone, Mail, CalendarDays, Check, ShieldCheck, Gift } from "lucide-react";
+import { Heart, Phone, Mail, CalendarDays, Check, ShieldCheck, Gift, Download } from "lucide-react";
+import { downloadImage } from "@/lib/download-image";
 import michalLogoWordmark from "@/assets/michal-logo-wordmark.png";
 import michalAnimatedLogoAsset from "@/assets/michal-logo-animated-v2.gif.asset.json";
 
@@ -887,14 +888,24 @@ function NewbornLandingPage() {
             className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4 cursor-zoom-out"
             onClick={() => setLightbox(null)}
           >
-            <motion.img
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              src={lightbox}
-              alt=""
-              className="max-w-full max-h-full rounded-2xl shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            />
+            <div className="relative" onClick={(e) => e.stopPropagation()}>
+              <motion.img
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                src={lightbox}
+                alt=""
+                className="max-w-full max-h-full rounded-2xl shadow-2xl"
+              />
+              <button
+                type="button"
+                onClick={() => downloadImage(lightbox, "michal-siboni.jpg")}
+                aria-label="הורדת התמונה"
+                title="הורדת התמונה"
+                className="absolute top-2 left-2 h-7 w-7 rounded-full bg-black/55 text-white flex items-center justify-center hover:bg-black/75 transition"
+              >
+                <Download className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
