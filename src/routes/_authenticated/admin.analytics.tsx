@@ -8,7 +8,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { getAnalyticsSummary, type TrafficSourceRow, type TopPageRow } from "@/lib/analytics.functions";
+import { getAnalyticsSummary, type TrafficSourceRow, type TopPageRow, type ReferrerHostRow } from "@/lib/analytics.functions";
 import { Users, Eye, MousePointerClick, Clock, ImageIcon } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/analytics")({
@@ -167,6 +167,18 @@ function AnalyticsAdmin() {
                   labelOf={(r) => SOURCE_LABELS[r.source] ?? r.source}
                   valueOf={(r) => r.sessions}
                 />
+              )}
+              {data.otherReferrers.length > 0 && (
+                <div className="mt-5 pt-4 border-t border-primary/5">
+                  <div className="text-xs text-muted-foreground mb-3">
+                    פירוט "אתרים אחרים" — כל אתר שהפנה אלינו תנועה, לפי שם (כולל למשל אתר ספציפי שפרסמת בו)
+                  </div>
+                  <BarList
+                    rows={data.otherReferrers as ReferrerHostRow[]}
+                    labelOf={(r) => r.host}
+                    valueOf={(r) => r.sessions}
+                  />
+                </div>
               )}
             </div>
 
