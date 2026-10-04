@@ -894,7 +894,7 @@ function NewbornLandingPage() {
                 animate={{ scale: 1 }}
                 src={lightbox}
                 alt=""
-                className="max-w-full max-h-full rounded-2xl shadow-2xl"
+                className="block max-w-[90vw] max-h-[90vh] w-auto h-auto rounded-2xl shadow-2xl"
               />
               <button
                 type="button"
