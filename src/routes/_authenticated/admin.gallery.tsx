@@ -46,6 +46,12 @@ const TABS = [
   { key: PAGE_IMAGE_KEYS.birthBasket, label: "סל לידה – תמונות למייל האוטומטי" },
   { key: PAGE_IMAGE_KEYS.rentalInspiration, label: "השכרת אביזרים – תמונות מתחלפות" },
   { key: PAGE_IMAGE_KEYS.about, label: "עלינו – תמונות" },
+  { key: PAGE_IMAGE_KEYS.portfolioNewborn, label: "פורטפוליו – ניו-בורן" },
+  { key: PAGE_IMAGE_KEYS.portfolioCakeSmash, label: "פורטפוליו – גיל שנה" },
+  { key: PAGE_IMAGE_KEYS.portfolioUpsherin, label: "פורטפוליו – חלאקה" },
+  { key: PAGE_IMAGE_KEYS.portfolioFamily, label: "פורטפוליו – משפחה" },
+  { key: PAGE_IMAGE_KEYS.portfolioStudioOutdoor, label: "פורטפוליו – סטודיו וחוץ" },
+  { key: PAGE_IMAGE_KEYS.portfolioBatMitzvah, label: "פורטפוליו – בת מצווה" },
   { key: SITE_ICON_PAGE, label: "סמל האתר (הלב)" },
   { key: EMAIL_HEART_PAGE, label: "הלב במיילים" },
 ] as const;
