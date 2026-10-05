@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Sparkles, X } from "lucide-react";
+import { Sparkles, X, Download } from "lucide-react";
+import { downloadImage } from "@/lib/download-image";
 
 type Props = {
   images: string[];
@@ -49,6 +50,17 @@ export function InspirationStrip({ images, title = "השראה מהצילומי�
             aria-label="סגור"
           >
             <X className="h-5 w-5" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              downloadImage(zoom, "sweetbaby.jpg");
+            }}
+            className="absolute top-4 left-16 h-10 w-10 rounded-full bg-white/10 text-white hover:bg-white/20 flex items-center justify-center"
+            aria-label="הורדת התמונה"
+            title="הורדת התמונה"
+          >
+            <Download className="h-4 w-4" />
           </button>
           <img src={zoom} alt="השראה" className="max-h-[90vh] max-w-[95vw] object-contain rounded-2xl" />
         </div>
