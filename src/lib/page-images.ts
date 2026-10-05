@@ -51,6 +51,21 @@ export const PAGE_IMAGE_KEYS = {
   // from /admin/gallery like any other page, admin-editable text lives
   // separately at /admin/birth-basket-text (see birthBasketInfo.ts).
   birthBasket: "birth-basket",
+  // The topic-based portfolio gallery on /studio-photography (see that
+  // route) — separate admin-managed buckets from the rest of this object
+  // so she can curate exactly which highlight shots show per topic there,
+  // independent of /newborn's own fuller gallery or the studio/outdoor
+  // booking-tab galleries above. portfolioStudioOutdoor's bundled fallback
+  // is the union of BUILTIN_PHOTOGRAPHY_STUDIO/OUTDOOR (below) so nothing
+  // already showing on the page disappears when this ships — the other
+  // five topics have no bundled fallback, same "empty until she uploads"
+  // treatment as `newborn` above.
+  portfolioNewborn: "portfolio-newborn",
+  portfolioCakeSmash: "portfolio-cake-smash",
+  portfolioUpsherin: "portfolio-upsherin",
+  portfolioFamily: "portfolio-family",
+  portfolioStudioOutdoor: "portfolio-studio-outdoor",
+  portfolioBatMitzvah: "portfolio-bat-mitzvah",
 } as const;
 
 export type PageImageKey = (typeof PAGE_IMAGE_KEYS)[keyof typeof PAGE_IMAGE_KEYS];
@@ -124,6 +139,12 @@ export function builtinEntries(page: string): { key: string; url: string }[] {
   // /admin/gallery, never the general studio-session stock photos (which
   // mix in non-newborn shots). Empty until she's uploaded her own.
   if (page === PAGE_IMAGE_KEYS.newborn) return [];
+  if (page === PAGE_IMAGE_KEYS.portfolioStudioOutdoor) {
+    return [...BUILTIN_PHOTOGRAPHY_STUDIO, ...BUILTIN_PHOTOGRAPHY_OUTDOOR].map((u) => ({
+      key: u,
+      url: u,
+    }));
+  }
   if (page === PAGE_IMAGE_KEYS.rentalInspiration) {
     return STATIC_CATALOG.flatMap((c) => c.items)
       .filter((i) => i.hasHand && i.img)

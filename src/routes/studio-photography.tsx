@@ -10,12 +10,7 @@ import { useProfilePrefill } from "@/hooks/use-profile";
 import { EmailDatalist } from "@/components/EmailDatalist";
 import { requestPhotographySession } from "@/lib/photography.functions";
 import { PHOTOGRAPHY_HOURLY_RATE, PAYMENT_LABELS } from "@/lib/photography-options";
-import {
-  usePageGallery,
-  PAGE_IMAGE_KEYS,
-  BUILTIN_PHOTOGRAPHY_STUDIO,
-  BUILTIN_PHOTOGRAPHY_OUTDOOR,
-} from "@/lib/page-images";
+import { usePageGallery, PAGE_IMAGE_KEYS } from "@/lib/page-images";
 
 import {
   Camera,
@@ -30,6 +25,11 @@ import {
   CalendarDays,
   Heart,
   Download,
+  Baby,
+  Cake,
+  Scissors,
+  Users,
+  Crown,
 } from "lucide-react";
 import { downloadImage } from "@/lib/download-image";
 import michalLogoWordmark from "@/assets/michal-logo-wordmark.png";
@@ -72,16 +72,75 @@ const PHONE = "0548529277";
 const EMAIL = "s0548529277@gmail.com";
 const MICHAL_SITE = "https://michalsiboni.co.il/";
 
-const STUDIO_PHOTOS = BUILTIN_PHOTOGRAPHY_STUDIO;
-const OUTDOOR_PHOTOS = BUILTIN_PHOTOGRAPHY_OUTDOOR;
+// The portfolio gallery below (6 topic tabs) is a separate, independent
+// section from the studio/outdoor booking tab above it — "tab" picks WHERE
+// a session happens (for pricing/info/booking), while the gallery topics
+// are WHAT KIND of session it is, cutting across both locations. Per
+// explicit request, replacing the old studio-vs-outdoor-only gallery.
+const GALLERY_CATEGORIES = [
+  {
+    id: "newborn" as const,
+    label: "ניו-בורן",
+    icon: Baby,
+    pageKey: PAGE_IMAGE_KEYS.portfolioNewborn,
+  },
+  {
+    id: "cakeSmash" as const,
+    label: "גיל שנה",
+    icon: Cake,
+    pageKey: PAGE_IMAGE_KEYS.portfolioCakeSmash,
+  },
+  {
+    id: "upsherin" as const,
+    label: "חלאקה",
+    icon: Scissors,
+    pageKey: PAGE_IMAGE_KEYS.portfolioUpsherin,
+  },
+  {
+    id: "family" as const,
+    label: "משפחה",
+    icon: Users,
+    pageKey: PAGE_IMAGE_KEYS.portfolioFamily,
+  },
+  {
+    id: "studioOutdoor" as const,
+    label: "סטודיו וחוץ",
+    icon: Camera,
+    pageKey: PAGE_IMAGE_KEYS.portfolioStudioOutdoor,
+  },
+  {
+    id: "batMitzvah" as const,
+    label: "בת מצווה",
+    icon: Crown,
+    pageKey: PAGE_IMAGE_KEYS.portfolioBatMitzvah,
+  },
+];
+type GalleryCategoryId = (typeof GALLERY_CATEGORIES)[number]["id"];
 
 function StudioPhotographyPage() {
   const [tab, setTab] = useState<"studio" | "outdoor">("studio");
   const [lightbox, setLightbox] = useState<string | null>(null);
-  const studioGallery = usePageGallery(PAGE_IMAGE_KEYS.photographyStudio);
-  const outdoorGallery = usePageGallery(PAGE_IMAGE_KEYS.photographyOutdoor);
-  // Built-ins + admin-managed photos, respecting deletions/order made in the admin gallery.
-  const photos = tab === "studio" ? studioGallery.images : outdoorGallery.images;
+
+  const [galleryCategory, setGalleryCategory] = useState<GalleryCategoryId>("studioOutdoor");
+  // One usePageGallery call per topic — each is a cheap cached query (same
+  // pattern this page already used for the studio/outdoor split above), so
+  // switching tabs is instant with no extra network round trip.
+  const newbornGallery = usePageGallery(PAGE_IMAGE_KEYS.portfolioNewborn);
+  const cakeSmashGallery = usePageGallery(PAGE_IMAGE_KEYS.portfolioCakeSmash);
+  const upsherinGallery = usePageGallery(PAGE_IMAGE_KEYS.portfolioUpsherin);
+  const familyGallery = usePageGallery(PAGE_IMAGE_KEYS.portfolioFamily);
+  const studioOutdoorGallery = usePageGallery(PAGE_IMAGE_KEYS.portfolioStudioOutdoor);
+  const batMitzvahGallery = usePageGallery(PAGE_IMAGE_KEYS.portfolioBatMitzvah);
+  const galleryByCategory: Record<GalleryCategoryId, string[]> = {
+    newborn: newbornGallery.images,
+    cakeSmash: cakeSmashGallery.images,
+    upsherin: upsherinGallery.images,
+    family: familyGallery.images,
+    studioOutdoor: studioOutdoorGallery.images,
+    batMitzvah: batMitzvahGallery.images,
+  };
+  const photos = galleryByCategory[galleryCategory];
+  const activeCategory = GALLERY_CATEGORIES.find((c) => c.id === galleryCategory)!;
 
   // --- Booking a session with Michal straight into the studio calendar ---
   const nav = useNavigate();
@@ -560,15 +619,18 @@ function StudioPhotographyPage() {
         </div>
       )}
 
-      {/* Gallery */}
+      {/* Gallery — divided by topic (ניו-בורן / גיל שנה / חלאקה / משפחה /
+          סטודיו וחוץ / בת מצווה), per explicit request. Independent of the
+          studio/outdoor booking tab above — a topic like "בת מצווה" can
+          happen in either location. */}
       <section className="max-w-6xl mx-auto px-6 pb-16">
-        <div className="flex items-end justify-between mb-6">
+        <div className="flex items-end justify-between mb-6 flex-wrap gap-3">
           <div>
             <h2
               className="text-3xl md:text-4xl"
               style={{ fontFamily: "'DM Serif Display', serif" }}
             >
-              {tab === "studio" ? "מהסטודיו" : "מהטבע"}
+              גלריה לפי נושא
             </h2>
             <p className="text-sm text-[#2d3d2b]/70 mt-1">תמונות נבחרות מתוך התיק של מיכל סיבוני</p>
           </div>
@@ -582,36 +644,60 @@ function StudioPhotographyPage() {
           </a>
         </div>
 
+        <div className="flex flex-wrap gap-2 mb-6">
+          {GALLERY_CATEGORIES.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setGalleryCategory(id)}
+              className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition ${
+                galleryCategory === id
+                  ? "bg-[#2d3d2b] text-white shadow"
+                  : "bg-white/70 text-[#2d3d2b] border border-[#a8c4a2]/30 hover:bg-white"
+              }`}
+            >
+              <Icon size={15} /> {label}
+            </button>
+          ))}
+        </div>
+
         <AnimatePresence mode="wait">
           <motion.div
-            key={tab}
+            key={galleryCategory}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.4 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4"
           >
-            {photos.map((src, i) => (
-              <motion.button
-                key={src}
-                onClick={() => setLightbox(src)}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04 }}
-                whileHover={{ scale: 1.02 }}
-                className={`relative overflow-hidden rounded-2xl bg-[#f5d5cf] group ${
-                  i % 5 === 0 ? "md:col-span-2 md:row-span-2 aspect-square" : "aspect-square"
-                }`}
-              >
-                <img
-                  src={src}
-                  alt={`${tab === "studio" ? "צילום בסטודיו" : "צילומי חוץ"} ${i + 1}`}
-                  loading="lazy"
-                  className="w-full h-full object-cover group-hover:scale-105 transition duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition" />
-              </motion.button>
-            ))}
+            {photos.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-[#a8c4a2]/50 bg-white/50 p-10 text-center text-sm text-[#2d3d2b]/70">
+                תמונות בנושא "{activeCategory.label}" בקרוב.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                {photos.map((src, i) => (
+                  <motion.button
+                    key={src}
+                    onClick={() => setLightbox(src)}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.04 }}
+                    whileHover={{ scale: 1.02 }}
+                    className={`relative overflow-hidden rounded-2xl bg-[#f5d5cf] group ${
+                      i % 5 === 0 ? "md:col-span-2 md:row-span-2 aspect-square" : "aspect-square"
+                    }`}
+                  >
+                    <img
+                      src={src}
+                      alt={`${activeCategory.label} ${i + 1}`}
+                      loading="lazy"
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-700"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition" />
+                  </motion.button>
+                ))}
+              </div>
+            )}
           </motion.div>
         </AnimatePresence>
       </section>
