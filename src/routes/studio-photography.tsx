@@ -30,6 +30,7 @@ import {
   Scissors,
   Users,
   Crown,
+  Album,
 } from "lucide-react";
 import { downloadImage } from "@/lib/download-image";
 import michalLogoWordmark from "@/assets/michal-logo-wordmark.png";
@@ -114,6 +115,12 @@ const GALLERY_CATEGORIES = [
     icon: Crown,
     pageKey: PAGE_IMAGE_KEYS.portfolioBatMitzvah,
   },
+  {
+    id: "albums" as const,
+    label: "אלבומים",
+    icon: Album,
+    pageKey: PAGE_IMAGE_KEYS.portfolioAlbums,
+  },
 ];
 type GalleryCategoryId = (typeof GALLERY_CATEGORIES)[number]["id"];
 
@@ -131,6 +138,7 @@ function StudioPhotographyPage() {
   const familyGallery = usePageGallery(PAGE_IMAGE_KEYS.portfolioFamily);
   const studioOutdoorGallery = usePageGallery(PAGE_IMAGE_KEYS.portfolioStudioOutdoor);
   const batMitzvahGallery = usePageGallery(PAGE_IMAGE_KEYS.portfolioBatMitzvah);
+  const albumsGallery = usePageGallery(PAGE_IMAGE_KEYS.portfolioAlbums);
   const galleryByCategory: Record<GalleryCategoryId, string[]> = {
     newborn: newbornGallery.images,
     cakeSmash: cakeSmashGallery.images,
@@ -138,6 +146,7 @@ function StudioPhotographyPage() {
     family: familyGallery.images,
     studioOutdoor: studioOutdoorGallery.images,
     batMitzvah: batMitzvahGallery.images,
+    albums: albumsGallery.images,
   };
   const photos = galleryByCategory[galleryCategory];
   const activeCategory = GALLERY_CATEGORIES.find((c) => c.id === galleryCategory)!;

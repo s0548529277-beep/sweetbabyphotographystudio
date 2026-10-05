@@ -52,6 +52,7 @@ const TABS = [
   { key: PAGE_IMAGE_KEYS.portfolioFamily, label: "פורטפוליו – משפחה" },
   { key: PAGE_IMAGE_KEYS.portfolioStudioOutdoor, label: "פורטפוליו – סטודיו וחוץ" },
   { key: PAGE_IMAGE_KEYS.portfolioBatMitzvah, label: "פורטפוליו – בת מצווה" },
+  { key: PAGE_IMAGE_KEYS.portfolioAlbums, label: "פורטפוליו – אלבומים" },
   { key: SITE_ICON_PAGE, label: "סמל האתר (הלב)" },
   { key: EMAIL_HEART_PAGE, label: "הלב במיילים" },
 ] as const;

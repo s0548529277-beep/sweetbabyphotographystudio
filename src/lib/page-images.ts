@@ -66,6 +66,7 @@ export const PAGE_IMAGE_KEYS = {
   portfolioFamily: "portfolio-family",
   portfolioStudioOutdoor: "portfolio-studio-outdoor",
   portfolioBatMitzvah: "portfolio-bat-mitzvah",
+  portfolioAlbums: "portfolio-albums",
 } as const;
 
 export type PageImageKey = (typeof PAGE_IMAGE_KEYS)[keyof typeof PAGE_IMAGE_KEYS];
