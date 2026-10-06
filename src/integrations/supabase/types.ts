@@ -1436,6 +1436,24 @@ export type Database = {
           },
         ]
       }
+      site_texts: {
+        Row: {
+          original_text: string
+          new_text: string
+          updated_at: string
+        }
+        Insert: {
+          original_text: string
+          new_text: string
+          updated_at?: string
+        }
+        Update: {
+          original_text?: string
+          new_text?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subscription_pass_adjustments: {
         Row: {
           created_at: string
