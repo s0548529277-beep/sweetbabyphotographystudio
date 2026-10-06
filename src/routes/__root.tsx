@@ -19,6 +19,7 @@ import { ChatBot } from "@/components/ChatBot";
 import { Analytics } from "@/components/Analytics";
 import { SiteTracking } from "@/lib/site-tracking";
 import { NewsletterPopup } from "@/components/NewsletterPopup";
+import { SiteTexts } from "@/components/SiteTexts";
 import { supabase } from "@/integrations/supabase/client";
 import { useSiteIcon } from "@/lib/page-images";
 
@@ -186,6 +187,7 @@ function RootComponent() {
           <SiteTracking />
           <NewsletterPopup />
           <DynamicFavicon />
+          <SiteTexts />
         </CartProvider>
       </AuthProvider>
     </QueryClientProvider>
