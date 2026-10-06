@@ -37,6 +37,7 @@ import {
   GripVertical,
   Sparkles,
   Crop,
+  FolderX,
 } from "lucide-react";
 import { toCSV, downloadCSV, parseCSVRecords } from "@/lib/csv";
 import { fetchItemInspiration, type ItemInspirationImage } from "@/lib/item-inspiration";
@@ -458,6 +459,39 @@ function ItemsAdmin() {
     const { error } = await supabase.from("categories").delete().eq("id", cat.id);
     if (error) return toast.error(error.message);
     toast.success("הקטגוריה נמחקה");
+    qc.invalidateQueries({ queryKey: ["categories"] });
+    qc.invalidateQueries({ queryKey: ["admin-items"] });
+    qc.invalidateQueries({ queryKey: ["items"] });
+  };
+
+  /**
+   * Permanently deletes a category AND every item inside it — unlike
+   * deleteCategory above (which only un-assigns items via ON DELETE SET
+   * NULL, leaving them as "ללא קטגוריה"), this removes the item rows
+   * themselves too. For when a whole category is being retired, not just
+   * renamed/merged away. Storage images aren't separately cleaned up here,
+   * same as the single-item delete (`del` below) — items has no stored
+   * storage_path to clean up with (only a signed image_url), and an
+   * orphaned blob in the private "items" bucket is invisible on the site
+   * either way since nothing references it anymore.
+   */
+  const deleteCategoryWithItems = async (cat: { id: string; name: string }) => {
+    const affected = (items.data ?? []).filter((i: any) => i.category_id === cat.id);
+    const msg =
+      affected.length > 0
+        ? `למחוק לצמיתות את הקטגוריה "${cat.name}" ואת כל ${affected.length} הפריטים שבה (כולל התמונות)? לא ניתן לבטל פעולה זו.`
+        : `למחוק את הקטגוריה "${cat.name}"?`;
+    if (!confirm(msg)) return;
+    if (affected.length > 0) {
+      const { error: itemsErr } = await supabase
+        .from("items")
+        .delete()
+        .in("id", affected.map((i: any) => i.id));
+      if (itemsErr) return toast.error(itemsErr.message);
+    }
+    const { error } = await supabase.from("categories").delete().eq("id", cat.id);
+    if (error) return toast.error(error.message);
+    toast.success(affected.length > 0 ? `הקטגוריה ו-${affected.length} הפריטים שבה נמחקו` : "הקטגוריה נמחקה");
     qc.invalidateQueries({ queryKey: ["categories"] });
     qc.invalidateQueries({ queryKey: ["admin-items"] });
     qc.invalidateQueries({ queryKey: ["items"] });
@@ -1003,15 +1037,29 @@ function ItemsAdmin() {
                         }}
                       />
                       <span className="text-sm truncate">{c.name}</span>
+                      <span className="text-xs text-forest/50 shrink-0">
+                        {(items.data ?? []).filter((i: any) => i.category_id === c.id).length} פריטים
+                      </span>
                     </label>
                     <Button
                       size="icon"
                       variant="ghost"
                       className="h-7 w-7 text-destructive"
                       onClick={() => deleteCategory(c)}
-                      aria-label={`מחיקת קטגוריית ${c.name}`}
+                      aria-label={`מחיקת קטגוריית ${c.name} (הפריטים יישארו, ישויכו ל"ללא קטגוריה")`}
+                      title='מחיקת קטגוריה בלבד — הפריטים יישארו, ישויכו ל"ללא קטגוריה"'
                     >
                       <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-destructive"
+                      onClick={() => deleteCategoryWithItems(c)}
+                      aria-label={`מחיקת קטגוריית ${c.name} כולל כל הפריטים והתמונות שבה`}
+                      title="מחיקה מלאה — הקטגוריה וכל הפריטים (כולל תמונות) שבה יימחקו לצמיתות"
+                    >
+                      <FolderX className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 ))}
