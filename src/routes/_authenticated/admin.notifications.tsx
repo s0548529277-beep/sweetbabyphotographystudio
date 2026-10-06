@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { listAdminNotifications, markNotificationRead, getAiProviderStatus } from "@/lib/admin-notifications.functions";
 import { adminConfirmPhoneBookingDeposit } from "@/lib/bookings.functions";
-import { Bell, ChevronDown, ChevronUp, Phone, CalendarDays, Circle, CheckCircle2, Cpu, KeyRound, AlertTriangle, Shuffle, BadgeCheck } from "lucide-react";
+import { Bell, ChevronDown, ChevronUp, Phone, CalendarDays, Circle, CheckCircle2, Cpu, KeyRound, AlertTriangle, Shuffle, BadgeCheck, IdCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/admin/notifications")({
@@ -29,6 +29,7 @@ const TYPE_LABELS: Record<string, string> = {
   ai_provider_switch: "מעבר ספק AI",
   phone_booking_reminder_call: "תזכורת טלפונית — הזמנה ממתינה",
   props_request_reminder_call: "תזכורת טלפונית — בקשת אביזרים ממתינה",
+  subscription_pass: "כרטיסייה נרכשה באשראי",
 };
 
 const TYPE_ICONS: Record<string, typeof Phone> = {
@@ -40,6 +41,7 @@ const TYPE_ICONS: Record<string, typeof Phone> = {
   ai_provider_switch: Shuffle,
   phone_booking_reminder_call: Phone,
   props_request_reminder_call: Phone,
+  subscription_pass: IdCard,
 };
 
 const PROVIDER_LABELS: Record<string, string> = {

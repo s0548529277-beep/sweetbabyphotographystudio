@@ -18,7 +18,9 @@ import { AddEmailCard } from "@/components/AddEmailCard";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { cancelBooking, cancelOrder } from "@/lib/bookings.functions";
-import { Package, Calendar as CalIcon, User as UserIcon, FileText, ShoppingBag } from "lucide-react";
+import { listActiveSubscriptionPlans, purchaseSubscriptionPass } from "@/lib/subscription-purchase.functions";
+import { PayOnlineButton } from "@/components/PayOnlineButton";
+import { Package, Calendar as CalIcon, User as UserIcon, FileText, ShoppingBag, IdCard, Upload } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/account")({
   component: Account,
@@ -113,10 +115,11 @@ function Account() {
     enabled: !!user,
   });
 
-  // Studio-visit passes (e.g. "SWEET 10+1") — admin-issued after a manual
-  // bank transfer, see /admin/subscriptions. Shown here so a customer can
-  // see how many entries she has left; active ones with entries remaining
-  // also power the "השתמשי בכרטיסייה שלך" toggle in /booking.
+  // Studio-visit passes (e.g. the 5 or 10-entry card) — admin-issued after
+  // a manual bank transfer, or self-purchased by card below, see
+  // /admin/subscriptions. Shown here so a customer can see how many
+  // entries she has left; active ones with entries remaining also power
+  // the "השתמשי בכרטיסייה שלך" toggle in /booking.
   const passesQ = useQuery({
     queryKey: ["my-passes", user?.id],
     queryFn: async () => {
@@ -125,10 +128,65 @@ function Account() {
         .select("*")
         .order("purchased_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as unknown as { id: string; plan_name: string; total_entries: number; entries_used: number; status: string; purchased_at: string }[];
+      return (data ?? []) as unknown as {
+        id: string;
+        plan_name: string;
+        total_entries: number;
+        entries_used: number;
+        status: string;
+        purchased_at: string;
+        expires_at: string;
+      }[];
     },
     enabled: !!user,
   });
+
+  // Redemption history (which bookings used which pass's entries) for the
+  // active passes shown below — fetched once for all of them together.
+  const passHistoryQ = useQuery({
+    queryKey: ["my-pass-history", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("bookings")
+        .select("id, session_date, start_time, end_time, subscription_pass_id")
+        .not("subscription_pass_id", "is", null)
+        .neq("status", "cancelled")
+        .order("session_date", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as { id: string; session_date: string; start_time: string; end_time: string; subscription_pass_id: string }[];
+    },
+    enabled: !!user,
+  });
+
+  // ---------- Self-serve pass purchase (card only, paid upfront) ----------
+  const fetchPlans = useServerFn(listActiveSubscriptionPlans);
+  const doPurchase = useServerFn(purchaseSubscriptionPass);
+  const plansQ = useQuery({ queryKey: ["active-subscription-plans"], queryFn: () => fetchPlans({} as any), enabled: !!user });
+  const [selectedPlanId, setSelectedPlanId] = useState("");
+  const [paidConfirmed, setPaidConfirmed] = useState(false);
+  const [purchasing, setPurchasing] = useState(false);
+
+  useEffect(() => {
+    if (!selectedPlanId && plansQ.data && plansQ.data.length > 0) setSelectedPlanId((plansQ.data[0] as any).id);
+  }, [plansQ.data, selectedPlanId]);
+
+  const selectedPlan = (plansQ.data as any[] | undefined)?.find((p) => p.id === selectedPlanId);
+
+  const submitPurchase = async () => {
+    if (!selectedPlanId) return toast.error("נא לבחור חבילה");
+    if (!paidConfirmed) return toast.error("נא לאשר שהתשלום בוצע");
+    setPurchasing(true);
+    try {
+      await doPurchase({ data: { plan_id: selectedPlanId } });
+      toast.success("הכרטיסייה פעילה! 🎟️");
+      setPaidConfirmed(false);
+      passesQ.refetch();
+    } catch (e) {
+      toast.error(heError(e, "הרכישה נכשלה"));
+    } finally {
+      setPurchasing(false);
+    }
+  };
 
   const save = async () => {
     setBusy(true);
@@ -163,14 +221,35 @@ function Account() {
               </div>
             )}
             {(passesQ.data?.length ?? 0) > 0 && (
-              <div className="mb-4 rounded-2xl bg-cream/60 border border-primary/10 px-4 py-3 space-y-2">
-                <div className="text-xs text-muted-foreground">כרטיסיית כניסות (SWEET 10+1)</div>
-                {passesQ.data!.map((p) => (
-                  <div key={p.id} className={`flex items-center justify-between ${p.status === "cancelled" ? "opacity-50" : ""}`}>
-                    <span className="text-sm text-primary">{p.plan_name}{p.status === "cancelled" ? " · בוטלה" : ""}</span>
-                    <span className="font-display text-lg text-primary">{Math.max(0, p.total_entries - p.entries_used)} / {p.total_entries}</span>
-                  </div>
-                ))}
+              <div className="mb-4 rounded-2xl bg-cream/60 border border-primary/10 px-4 py-3 space-y-3">
+                <div className="text-xs text-muted-foreground">כרטיסיית כניסות</div>
+                {passesQ.data!.map((p) => {
+                  const expired = new Date(p.expires_at) < new Date();
+                  const usedUp = p.entries_used >= p.total_entries;
+                  const inactive = p.status === "cancelled" || expired || usedUp;
+                  const history = (passHistoryQ.data ?? []).filter((b) => b.subscription_pass_id === p.id);
+                  return (
+                    <div key={p.id} className={`space-y-1.5 ${inactive ? "opacity-50" : ""}`}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-primary">
+                          {p.plan_name}
+                          {p.status === "cancelled" ? " · בוטלה" : expired ? " · פג תוקף" : usedUp ? " · נוצלה" : ""}
+                        </span>
+                        <span className="font-display text-lg text-primary">{Math.max(0, p.total_entries - p.entries_used)} / {p.total_entries}</span>
+                      </div>
+                      <div className="text-[11px] text-muted-foreground">בתוקף עד {new Date(p.expires_at).toLocaleDateString("he-IL")}</div>
+                      {history.length > 0 && (
+                        <div className="text-[11px] text-muted-foreground space-y-0.5 pt-1 border-t border-primary/5">
+                          {history.map((b) => (
+                            <div key={b.id}>
+                              שומש ב-{new Date(b.session_date).toLocaleDateString("he-IL")} · {String(b.start_time).slice(0, 5)}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
             <div className="space-y-3">
@@ -187,6 +266,60 @@ function Account() {
           <div className="space-y-8">
             <GoogleCompleteCard phone={profile.phone} onPhoneSaved={(p: string) => setProfile((x) => ({ ...x, phone: p }))} />
             <AddEmailCard />
+
+            {/* Self-serve pass purchase — card only, paid in full upfront.
+                Same trust-then-verify model as every other payment on this
+                site (no real payment-gateway API exists anywhere here): the
+                pass activates on the customer's own "I paid" confirmation,
+                tagged for the admin to reconcile against her Takbull
+                dashboard — see purchaseSubscriptionPass's own comment. */}
+            {(plansQ.data?.length ?? 0) > 0 && (
+              <div className="bg-card rounded-3xl p-7 border border-primary/5">
+                <div className="flex items-center gap-2 mb-4">
+                  <IdCard className="h-5 w-5 text-peach-deep" />
+                  <h2 className="font-display text-xl text-primary">רכישת כרטיסייה</h2>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-4 items-start">
+                  <div className="space-y-3">
+                    <div>
+                      <Label>בחרי חבילה</Label>
+                      <select
+                        className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                        value={selectedPlanId}
+                        onChange={(e) => setSelectedPlanId(e.target.value)}
+                      >
+                        {(plansQ.data as any[]).map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} — {p.total_entries} כניסות · ₪{Number(p.price).toFixed(0)} · בתוקף {p.validity_months} חודשים
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    {selectedPlan && (
+                      <PayOnlineButton
+                        className="w-full"
+                        label={`תשלום באשראי · ₪${Number(selectedPlan.price).toFixed(0)}`}
+                        note="החלון נפתח בתוך האתר. התשלום באשראי בלבד, מראש על כל הכניסות."
+                      />
+                    )}
+                  </div>
+                  <div className="space-y-3">
+                    <label className="flex items-start gap-2 p-3 rounded-2xl border border-border bg-cream/30 cursor-pointer text-sm">
+                      <input
+                        type="checkbox"
+                        checked={paidConfirmed}
+                        onChange={(e) => setPaidConfirmed(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 accent-primary"
+                      />
+                      <span className="text-muted-foreground">אני מאשרת שביצעתי את התשלום באשראי דרך הכפתור למעלה.</span>
+                    </label>
+                    <Button onClick={submitPurchase} disabled={purchasing || !paidConfirmed} className="w-full rounded-full gap-2">
+                      <Upload className="h-4 w-4" /> {purchasing ? "מפעילה…" : "הפעלת הכרטיסייה"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
             {/* Current cart */}
 
             <div>

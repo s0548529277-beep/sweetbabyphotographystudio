@@ -79,7 +79,7 @@ const links: NavEntry[] = [
     icon: Gift,
     items: [
       { to: "/admin/coupons", label: "קופונים", icon: Ticket },
-      { to: "/admin/subscriptions", label: "כרטיסיות SWEET 10+1", icon: CreditCard },
+      { to: "/admin/subscriptions", label: "מנויים (כרטיסיות)", icon: CreditCard },
       { to: "/admin/newsletter", label: "ניוזלטר", icon: Mail },
     ],
   },
