@@ -111,9 +111,28 @@ export const placeBooking = createServerFn({ method: "POST" })
     const endTime = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}`;
 
     // A personal negotiated hourly rate (set by the admin on this
-    // customer's loyalty row) overrides the standard price list entirely.
+    // customer's loyalty row) overrides the standard price list entirely —
+    // UNLESS the customer currently has an active studio-visit pass (see
+    // hasActivePass below), whose terms suppress it entirely regardless of
+    // whether this particular booking draws an entry from the pass.
     const { data: loyaltyRow } = await supabase.from("customer_loyalty").select("custom_hourly_rate").eq("user_id", userId).maybeSingle();
-    const customHourlyRate = loyaltyRow?.custom_hourly_rate ? Number(loyaltyRow.custom_hourly_rate) : null;
+
+    // Active studio-visit passes (e.g. the 5-entry card) — fetched once,
+    // used both to gate cashback/the personal rate above (any pass with
+    // entries left and not globally expired, regardless of THIS session's
+    // date) and, below, to find one that specifically covers this session
+    // date for actual redemption.
+    const { data: activePasses } = await supabase
+      .from("subscription_passes")
+      .select("id, total_entries, entries_used, expires_at")
+      .eq("user_id", userId)
+      .eq("status", "active")
+      .order("purchased_at", { ascending: true })
+      .limit(50);
+    const passesWithEntries = (activePasses ?? []).filter((p) => Number(p.entries_used) < Number(p.total_entries));
+    const hasActivePass = passesWithEntries.some((p) => new Date(p.expires_at) >= new Date());
+
+    const customHourlyRate = !hasActivePass && loyaltyRow?.custom_hourly_rate ? Number(loyaltyRow.custom_hourly_rate) : null;
 
     const basePrice = priceForBooking(data.slots, data.start_time, customHourlyRate);
     const guidanceKey = (data.guidance ?? "basic") as keyof typeof GUIDANCE_FEES;
@@ -157,31 +176,42 @@ export const placeBooking = createServerFn({ method: "POST" })
     }
 
     // Optional: cover the first hour using an active studio-visit pass
-    // (e.g. "SWEET 10+1") instead of paying for it. Extra hours beyond the
-    // first are never covered — always paid separately, per the offer.
+    // (e.g. the 5-entry card) instead of paying for it. Extra hours beyond
+    // the first are never covered — always paid separately, per the offer.
+    // Eligibility is checked now (against passesWithEntries fetched above,
+    // filtered to the ones whose validity actually covers THIS session
+    // date — a booking is often made well ahead of the session itself), but
+    // the entry is only actually redeemed after the booking row below is
+    // successfully created — same two-phase pattern as the coupon above,
+    // so a failed booking never burns an entry. If no pass covers this
+    // specific date (expired, or booked past its window), this falls back
+    // to the normal price with an explanatory note instead of throwing —
+    // the customer still gets her booking, just without the pass discount.
     let passIdToRedeem: string | null = null;
+    let passSessionDateForRedeem: string | null = null;
     let passNote: string | null = null;
     if (data.use_pass) {
       if (isMorning) throw new Error("מבצע ניו-בורן בוקר הוא מחיר קבוע וסופי — לא ניתן לשלב אותו עם כרטיסייה");
-      const { data: passes } = await supabase
-        .from("subscription_passes")
-        .select("id, total_entries, entries_used")
-        .eq("user_id", userId)
-        .eq("status", "active")
-        .order("purchased_at", { ascending: true })
-        .limit(50);
-      const usable = (passes ?? []).find((p: any) => Number(p.entries_used) < Number(p.total_entries));
-      if (!usable) throw new Error("אין לך כרטיסייה פעילה עם כניסות זמינות");
-      const firstHourValue = Math.min(price, FIRST_HOUR_PRICE);
-      price = Math.max(0, price - firstHourValue);
-      passNote = `כניסה מהכרטיסייה · שעה ראשונה מכוסה (₪${firstHourValue})`;
-      passIdToRedeem = usable.id;
+      const usable = passesWithEntries.find((p) => data.session_date <= String(p.expires_at).slice(0, 10));
+      if (usable) {
+        const firstHourValue = Math.min(price, FIRST_HOUR_PRICE);
+        price = Math.max(0, price - firstHourValue);
+        const remaining = Math.max(0, Number(usable.total_entries) - Number(usable.entries_used) - 1);
+        passNote = `כניסה מהכרטיסייה · שעה ראשונה מכוסה (₪${firstHourValue}) · נותרו ${remaining} כניסות`;
+        passIdToRedeem = usable.id;
+        passSessionDateForRedeem = data.session_date;
+      } else {
+        passNote = "לכרטיסייה שלך אין כניסות שמכסות את תאריך הצילום הזה — חויבת במחיר רגיל.";
+      }
     }
 
-    // Optional store credit from the customer's cashback loyalty balance.
+    // Optional store credit from the customer's cashback loyalty balance —
+    // not redeemable while a studio-visit pass is active: any balance
+    // earned before the pass was opened is preserved, just not spendable
+    // until the pass itself runs out or expires.
     let creditUsed = 0;
     let creditNote: string | null = null;
-    if (data.use_credit && data.use_credit > 0) {
+    if (!hasActivePass && data.use_credit && data.use_credit > 0) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { previewCreditUse } = await import("@/lib/loyalty");
       creditUsed = await previewCreditUse(supabaseAdmin, userId, data.use_credit, price);
@@ -274,15 +304,27 @@ export const placeBooking = createServerFn({ method: "POST" })
       await supabaseAdmin.from("coupons").update({ redeemed_at: new Date().toISOString() }).eq("id", couponIdToRedeem);
     }
 
-    // Same for the pass entry — increment its usage now that the booking
-    // that consumed it really exists.
-    if (passIdToRedeem) {
+    // Same for the pass entry — redeem it now that the booking that
+    // consumed it really exists. Atomic RPC (not read-then-write) so two
+    // bookings racing for the same pass's last entry can't both succeed —
+    // see redeem_subscription_pass_entry's own doc comment. On the
+    // extremely rare chance this returns false here (the entry got taken
+    // by a concurrent booking in the gap between the eligibility check
+    // above and this call), the booking itself still stands at the
+    // already-discounted price — logged for admin visibility rather than
+    // failing a booking that's already been created.
+    if (passIdToRedeem && passSessionDateForRedeem) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data: p } = await supabaseAdmin.from("subscription_passes").select("entries_used").eq("id", passIdToRedeem).maybeSingle();
-      await supabaseAdmin
-        .from("subscription_passes")
-        .update({ entries_used: Number(p?.entries_used ?? 0) + 1 })
-        .eq("id", passIdToRedeem);
+      const { data: redeemed, error: redeemErr } = await supabaseAdmin.rpc("redeem_subscription_pass_entry", {
+        p_pass_id: passIdToRedeem,
+        p_session_date: passSessionDateForRedeem,
+      });
+      if (redeemErr || !redeemed) {
+        console.error("[SWEETBABY] subscription pass redemption failed after booking created", redeemErr, {
+          bookingId: booking.id,
+          passIdToRedeem,
+        });
+      }
     }
 
     if (creditUsed > 0) {
@@ -620,16 +662,12 @@ export const cancelBooking = createServerFn({ method: "POST" })
     const { error: upErr } = await supabase.from("bookings").update({ status: "cancelled" }).eq("id", data.id);
     if (upErr) throw new Error(upErr.message);
 
-    // Refund the pass entry this booking consumed, if any.
+    // Refund the pass entry this booking consumed, if any — atomic
+    // (clamped at 0, single UPDATE) via the same RPC redemption uses, not
+    // read-then-write.
     const passId = (b as { subscription_pass_id?: string | null }).subscription_pass_id;
     if (passId) {
-      const { data: p } = await supabaseAdmin.from("subscription_passes").select("entries_used").eq("id", passId).maybeSingle();
-      if (p) {
-        await supabaseAdmin
-          .from("subscription_passes")
-          .update({ entries_used: Math.max(0, Number(p.entries_used) - 1) })
-          .eq("id", passId);
-      }
+      await supabaseAdmin.rpc("adjust_subscription_pass_entries", { p_pass_id: passId, p_delta: -1 });
     }
 
     // Refund any loyalty credit applied at checkout — into whichever bucket
@@ -801,10 +839,25 @@ async function finalizeBookingConfirmation(
   }
 
   // Award cashback loyalty credit (if this customer is enrolled) on the
-  // real amount paid, now that payment is actually confirmed.
+  // real amount paid, now that payment is actually confirmed — but never
+  // for a customer who currently has an active, non-expired studio-visit
+  // pass with entries left: per the pass's terms, no cashback accrues on
+  // ANY booking while it's active, extra hours included. Re-checked fresh
+  // here (not threaded through from placeBooking) since deposit
+  // confirmation can happen well after the booking was first created.
   try {
-    const { awardCashback } = await import("@/lib/loyalty");
-    await awardCashback(supabaseAdmin, b.user_id, Number(b.price));
+    const { data: activePasses } = await supabaseAdmin
+      .from("subscription_passes")
+      .select("entries_used, total_entries, expires_at")
+      .eq("user_id", b.user_id)
+      .eq("status", "active");
+    const hasActivePass = (activePasses ?? []).some(
+      (p) => Number(p.entries_used) < Number(p.total_entries) && new Date(p.expires_at) >= new Date(),
+    );
+    if (!hasActivePass) {
+      const { awardCashback } = await import("@/lib/loyalty");
+      await awardCashback(supabaseAdmin, b.user_id, Number(b.price));
+    }
   } catch (e) {
     console.error("[SWEETBABY] cashback award (booking) failed", e);
   }

@@ -95,13 +95,9 @@ export const adminSetStatus = createServerFn({ method: "POST" })
 
       const passId = r.subscription_pass_id;
       if (passId) {
-        const { data: p } = await supabaseAdmin.from("subscription_passes").select("entries_used").eq("id", passId).maybeSingle();
-        if (p) {
-          await supabaseAdmin
-            .from("subscription_passes")
-            .update({ entries_used: Math.max(0, Number(p.entries_used) - 1) })
-            .eq("id", passId);
-        }
+        // Atomic (clamped at 0, single UPDATE) via the same RPC redemption
+        // uses, not read-then-write.
+        await supabaseAdmin.rpc("adjust_subscription_pass_entries", { p_pass_id: passId, p_delta: -1 });
       }
 
       const googleEventId = r.google_event_id;

@@ -217,10 +217,51 @@ function Booking() {
   // server will actually charge.
   const [customHourlyRate, setCustomHourlyRate] = useState<number | null>(null);
 
+  // Studio-visit pass (e.g. the 5 or 10-entry card) — covers the first hour
+  // if the customer has an active pass with entries left (admin-issued, or
+  // self-purchased by card on /account; see /admin/subscriptions).
+  // Deduction order mirrors the server (placeBooking): coupon, then pass,
+  // then credit — so this preview matches what actually gets charged.
+  // Fetched (and hasActivePass derived) before basePrice below, since an
+  // active pass suppresses a personal negotiated rate entirely, on every
+  // booking, regardless of whether this specific booking draws from it.
+  const [passRows, setPassRows] = useState<{ total_entries: number; entries_used: number; expires_at: string }[]>([]);
+  const [usePass, setUsePass] = useState(false);
+  useEffect(() => {
+    if (!user) { setPassRows([]); return; }
+    supabase
+      .from("subscription_passes" as never)
+      .select("total_entries, entries_used, expires_at")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .then(({ data }) => {
+        setPassRows((data ?? []) as unknown as { total_entries: number; entries_used: number; expires_at: string }[]);
+      });
+  }, [user]);
+  const hasActivePass = passRows.some(
+    (p) => Number(p.entries_used) < Number(p.total_entries) && new Date(p.expires_at) >= new Date(),
+  );
+  // Only a pass whose validity actually covers the CHOSEN session date can
+  // be redeemed for it — a booking is often made well ahead of the session.
+  const sessionDateStr = date ? toLocalISODate(date) : null;
+  const passesUsableForThisDate = passRows.filter(
+    (p) =>
+      Number(p.entries_used) < Number(p.total_entries) &&
+      sessionDateStr &&
+      sessionDateStr <= String(p.expires_at).slice(0, 10),
+  );
+  const passRemaining =
+    passesUsableForThisDate.length > 0
+      ? passesUsableForThisDate.reduce((sum, p) => sum + Math.max(0, Number(p.total_entries) - Number(p.entries_used)), 0)
+      : null;
+  const passExpiryLabel = passesUsableForThisDate[0]
+    ? new Date(passesUsableForThisDate[0].expires_at).toLocaleDateString("he-IL")
+    : null;
+
   const basePrice = useMemo(() => {
     if (!startTime) return 0;
-    try { return priceForBooking(slots, startTime, customHourlyRate); } catch { return 0; }
-  }, [startTime, slots, customHourlyRate]);
+    try { return priceForBooking(slots, startTime, hasActivePass ? null : customHourlyRate); } catch { return 0; }
+  }, [startTime, slots, customHourlyRate, hasActivePass]);
   const price = basePrice > 0 ? basePrice + guidanceFee : 0;
 
   // Discount code (e.g. BYBY10 / SWEETBABY10 → 10%)
@@ -247,31 +288,12 @@ function Booking() {
       });
   }, [user]);
 
-  // "SWEET 10+1" style studio-visit pass — covers the first hour if the
-  // customer has an active pass with entries left (admin-issued manually,
-  // see /admin/subscriptions). Deduction order mirrors the server
-  // (placeBooking): coupon, then pass, then credit — so this preview
-  // matches what actually gets charged.
-  const [passRemaining, setPassRemaining] = useState<number | null>(null);
-  const [usePass, setUsePass] = useState(false);
-  useEffect(() => {
-    if (!user) { setPassRemaining(null); return; }
-    supabase
-      .from("subscription_passes" as never)
-      .select("total_entries, entries_used")
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .then(({ data }) => {
-        const rows = (data ?? []) as unknown as { total_entries: number; entries_used: number }[];
-        const remaining = rows.reduce((sum, p) => sum + Math.max(0, Number(p.total_entries) - Number(p.entries_used)), 0);
-        setPassRemaining(remaining > 0 ? remaining : null);
-      });
-  }, [user]);
-
   const afterCoupon = Math.max(0, price - couponOff);
   const passApplied = usePass && passRemaining ? Math.min(afterCoupon, FIRST_HOUR_PRICE) : 0;
   const afterPass = Math.max(0, afterCoupon - passApplied);
-  const creditApplied = useCredit ? Math.min(creditBalance, afterPass) : 0;
+  // Store credit isn't redeemable while a pass is active — any balance
+  // earned before the pass opened is preserved, just not spendable yet.
+  const creditApplied = useCredit && !hasActivePass ? Math.min(creditBalance, afterPass) : 0;
   const finalPrice = Math.max(0, afterPass - creditApplied);
 
   const applyCoupon = async () => {
@@ -683,11 +705,17 @@ function Booking() {
                     usePass ? "bg-[#f5d5cf] text-[#2d3d2b]" : "bg-transparent border border-[#f5d5cf]/50 text-[#f5d5cf]"
                   }`}
                 >
-                  {usePass ? "✓ " : ""}השתמשי בכרטיסייה שלך (נותרו {passRemaining} כניסות)
+                  {usePass ? "✓ " : ""}השתמשי בכרטיסייה שלך (נותרו {passRemaining} כניסות
+                  {passExpiryLabel ? `, בתוקף עד ${passExpiryLabel}` : ""})
                 </button>
               )}
+              {!recurring && hasActivePass && passRemaining === null && (
+                <p className="text-[11px] text-[#f5d5cf]/80 mb-3 text-center">
+                  הכרטיסייה הפעילה שלך לא מכסה את התאריך שנבחר — חיוב במחיר רגיל.
+                </p>
+              )}
 
-              {!recurring && creditBalance > 0 && (
+              {!recurring && !hasActivePass && creditBalance > 0 && (
                 <button
                   type="button"
                   onClick={() => setUseCredit((v) => !v)}
