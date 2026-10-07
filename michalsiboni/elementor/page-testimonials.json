@@ -1,0 +1,266 @@
+[
+ {
+  "id": "7dffcc0",
+  "elType": "container",
+  "settings": {
+   "flex_direction": "column",
+   "boxed_width": {
+    "unit": "%",
+    "size": 90,
+    "sizes": []
+   },
+   "boxed_width_laptop": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_tablet": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_mobile": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "min_height": {
+    "unit": "vh",
+    "size": 10,
+    "sizes": []
+   },
+   "min_height_laptop": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_tablet": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_mobile": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "flex_justify_content": "space-around",
+   "flex_align_items": "center",
+   "background_background": "classic",
+   "__globals__": {
+    "background_color": "globals/colors?id=primary"
+   },
+   "_title": "כותרת השירות הקסום",
+   "margin": {
+    "unit": "px",
+    "top": "0",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": true
+   },
+   "padding": {
+    "unit": "px",
+    "top": "40",
+    "right": "0",
+    "bottom": "40",
+    "left": "0",
+    "isLinked": false
+   }
+  },
+  "elements": [
+   {
+    "id": "c6cdd41",
+    "elType": "widget",
+    "settings": {
+     "title": "המלצות",
+     "align": "center",
+     "_flex_align_self": "center",
+     "__globals__": {
+      "typography_typography": "globals/typography?id=secondary",
+      "title_color": "globals/colors?id=secondary"
+     },
+     "_title": "כותרת חבילות",
+     "typography_line_height": {
+      "unit": "em",
+      "size": "",
+      "sizes": []
+     },
+     "typography_word_spacing": {
+      "unit": "em",
+      "size": "",
+      "sizes": []
+     }
+    },
+    "elements": [],
+    "widgetType": "heading"
+   },
+   {
+    "id": "7bcd009",
+    "elType": "container",
+    "settings": {
+     "boxed_width": {
+      "unit": "%",
+      "size": 92,
+      "sizes": []
+     },
+     "boxed_width_laptop": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "boxed_width_tablet": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "boxed_width_mobile": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "min_height": {
+      "unit": "vh",
+      "size": 70,
+      "sizes": []
+     },
+     "min_height_laptop": {
+      "unit": "vh",
+      "size": "",
+      "sizes": []
+     },
+     "min_height_tablet": {
+      "unit": "vh",
+      "size": "",
+      "sizes": []
+     },
+     "min_height_mobile": {
+      "unit": "vh",
+      "size": "",
+      "sizes": []
+     },
+     "background_background": "classic",
+     "__globals__": {
+      "background_color": "globals/colors?id=primary"
+     },
+     "_title": "המלצות",
+     "content_width": "full"
+    },
+    "elements": [
+     {
+      "id": "0800d03",
+      "elType": "widget",
+      "settings": {
+       "template_id": 319,
+       "post_query_include": [
+        "terms"
+       ],
+       "post_query_include_term_ids": [
+        "11"
+       ],
+       "posts_per_page": 5,
+       "slides_to_show": "1",
+       "slides_to_scroll": "2",
+       "arrows": "",
+       "dots_gap": {
+        "unit": "px",
+        "size": 9,
+        "sizes": []
+       },
+       "dots_size": {
+        "unit": "px",
+        "size": 15,
+        "sizes": []
+       },
+       "_element_width": "initial",
+       "_element_custom_width": {
+        "unit": "%",
+        "size": 45,
+        "sizes": []
+       },
+       "_flex_align_self": "center",
+       "dots_pagination_spacing": {
+        "unit": "px",
+        "size": 0,
+        "sizes": []
+       },
+       "_margin": {
+        "unit": "%",
+        "top": "5",
+        "right": "0",
+        "bottom": "5",
+        "left": "0",
+        "isLinked": false
+       },
+       "__globals__": {
+        "dots_normal_color": "globals/colors?id=accent"
+       },
+       "dots_pagination_spacing_laptop": {
+        "unit": "em",
+        "size": "",
+        "sizes": []
+       },
+       "dots_pagination_spacing_tablet": {
+        "unit": "em",
+        "size": "",
+        "sizes": []
+       },
+       "dots_pagination_spacing_mobile": {
+        "unit": "em",
+        "size": "",
+        "sizes": []
+       },
+       "_padding": {
+        "unit": "px",
+        "top": "0",
+        "right": "0",
+        "bottom": "0",
+        "left": "0",
+        "isLinked": false
+       },
+       "_element_custom_width_tablet": {
+        "unit": "%",
+        "size": 100,
+        "sizes": []
+       },
+       "_element_custom_width_mobile": {
+        "unit": "%",
+        "size": "",
+        "sizes": []
+       },
+       "_margin_laptop": {
+        "unit": "%",
+        "top": "",
+        "right": "",
+        "bottom": "",
+        "left": "",
+        "isLinked": true
+       },
+       "_margin_tablet": {
+        "unit": "%",
+        "top": "",
+        "right": "",
+        "bottom": "",
+        "left": "",
+        "isLinked": true
+       },
+       "_margin_mobile": {
+        "unit": "%",
+        "top": "",
+        "right": "",
+        "bottom": "",
+        "left": "",
+        "isLinked": true
+       },
+       "dots_position": "inside"
+      },
+      "elements": [],
+      "widgetType": "loop-carousel"
+     }
+    ],
+    "isInner": true
+   }
+  ],
+  "isInner": false
+ }
+]

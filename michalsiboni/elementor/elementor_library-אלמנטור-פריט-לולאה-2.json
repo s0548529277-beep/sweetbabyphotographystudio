@@ -1,0 +1,151 @@
+[
+ {
+  "id": "22bd7b7",
+  "elType": "container",
+  "settings": {
+   "content_width": "full",
+   "width": {
+    "unit": "%",
+    "size": 100
+   },
+   "width_laptop": {
+    "unit": "em",
+    "size": "",
+    "sizes": []
+   },
+   "width_tablet": {
+    "unit": "em",
+    "size": "",
+    "sizes": []
+   },
+   "width_mobile": {
+    "unit": "em",
+    "size": "",
+    "sizes": []
+   },
+   "min_height": {
+    "unit": "px",
+    "size": 134,
+    "sizes": []
+   },
+   "_flex_size": "none",
+   "_element_width": "initial"
+  },
+  "elements": [
+   {
+    "id": "3d2b655",
+    "elType": "widget",
+    "settings": {
+     "selected_icon": {
+      "value": {
+       "url": "https://michalsiboni.co.il/wp-content/uploads/2025/05/חץ-לשרותים.svg",
+       "id": 640
+      },
+      "library": "svg"
+     },
+     "title_text_a": "",
+     "description_text_a": "",
+     "background_a_background": "classic",
+     "title_text_b": "",
+     "description_text_b": "",
+     "button_text": "",
+     "background_b_background": "classic",
+     "__dynamic__": {
+      "background_b_image": "[elementor-tag id=\"4f677d1\" name=\"acf-image\" settings=\"%7B%22key%22%3A%22field_682d9e6128d58%3A%D7%AA%D7%9E%D7%95%D7%A0%D7%94_%D7%A8%D7%90%D7%A9%D7%99%D7%AA_%D7%A7%D7%98%D7%92%D7%95%D7%A8%D7%99%D7%94%22%7D\"]",
+      "background_a_image": "[elementor-tag id=\"20e239b\" name=\"acf-image\" settings=\"%7B%22key%22%3A%22field_682d9e6128d58%3A%D7%AA%D7%9E%D7%95%D7%A0%D7%94_%D7%A8%D7%90%D7%A9%D7%99%D7%AA_%D7%A7%D7%98%D7%92%D7%95%D7%A8%D7%99%D7%94%22%7D\"]"
+     },
+     "__globals__": {
+      "background_b_color": "globals/colors?id=8193ed9",
+      "background_a_color": "globals/colors?id=8193ed9",
+      "background_overlay_b": "",
+      "icon_primary_color": "globals/colors?id=8193ed9"
+     },
+     "image_size": "large",
+     "flip_effect": "fade",
+     "image_spacing": {
+      "unit": "px",
+      "size": 26,
+      "sizes": []
+     },
+     "image_width": {
+      "unit": "%",
+      "size": 100,
+      "sizes": []
+     },
+     "background_b_position": "center center",
+     "background_b_repeat": "no-repeat",
+     "background_b_size": "contain",
+     "background_overlay_b": "#474242C4",
+     "vertical_position_b": "middle",
+     "background_a_position": "center center",
+     "background_a_repeat": "no-repeat",
+     "background_a_size": "contain",
+     "image": {
+      "url": "",
+      "id": "",
+      "size": ""
+     },
+     "background_b_color": "#BF386000",
+     "height": {
+      "unit": "px",
+      "size": 142,
+      "sizes": []
+     },
+     "border_radius": {
+      "unit": "px",
+      "size": 200,
+      "sizes": []
+     },
+     "background_a_color": "#BF386000",
+     "vertical_position_a": "middle",
+     "icon_spacing": {
+      "unit": "px",
+      "size": 0,
+      "sizes": []
+     },
+     "icon_size": {
+      "unit": "px",
+      "size": 78,
+      "sizes": []
+     },
+     "alignment_a": "right",
+     "_z_index": 7
+    },
+    "elements": [],
+    "widgetType": "flip-box"
+   },
+   {
+    "id": "26135d1",
+    "elType": "widget",
+    "settings": {
+     "title": "צילום",
+     "align": "center",
+     "__globals__": {
+      "typography_typography": "globals/typography?id=7a50880",
+      "title_color": "globals/colors?id=accent"
+     }
+    },
+    "elements": [],
+    "widgetType": "heading"
+   },
+   {
+    "id": "3aa3605",
+    "elType": "widget",
+    "settings": {
+     "title": "כתוב את הכותרת כאן",
+     "__dynamic__": {
+      "title": "[elementor-tag id=\"1fa0d24\" name=\"archive-title\" settings=\"%7B%22include_context%22%3A%22%22%7D\"]"
+     },
+     "__globals__": {
+      "title_color": "globals/colors?id=text",
+      "typography_typography": "globals/typography?id=text"
+     },
+     "align": "center"
+    },
+    "elements": [],
+    "widgetType": "heading"
+   }
+  ],
+  "isInner": false
+ }
+]

@@ -1,0 +1,338 @@
+[
+ {
+  "id": "22341fc",
+  "elType": "container",
+  "settings": {
+   "background_background": "classic",
+   "__globals__": {
+    "background_color": "globals/colors?id=primary"
+   },
+   "boxed_width": {
+    "unit": "%",
+    "size": 100,
+    "sizes": []
+   },
+   "boxed_width_laptop": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_tablet": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_mobile": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "flex_align_items": "center",
+   "min_height": {
+    "unit": "vh",
+    "size": 100,
+    "sizes": []
+   },
+   "min_height_laptop": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_tablet": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_mobile": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   }
+  },
+  "elements": [
+   {
+    "id": "5fe7267",
+    "elType": "widget",
+    "widgetType": "nested-tabs",
+    "settings": {
+     "tabs": [
+      {
+       "tab_title": "צילומי חוץ",
+       "_id": "ba27e45",
+       "__dynamic__": []
+      },
+      {
+       "tab_title": "סטודיו",
+       "_id": "368974f"
+      },
+      {
+       "tab_title": "NEW BORN",
+       "_id": "bf64c06"
+      },
+      {
+       "_id": "76e216e",
+       "tab_title": "גיל שנה"
+      },
+      {
+       "_id": "41e57bc",
+       "tab_title": "קולאזים"
+      }
+     ],
+     "tabs_direction": "block-start",
+     "tabs_justify_horizontal": "center",
+     "tabs_title_space_between": {
+      "unit": "px",
+      "size": 96,
+      "sizes": []
+     },
+     "tabs_title_spacing": {
+      "unit": "px",
+      "size": 6,
+      "sizes": []
+     },
+     "tabs_title_background_color_background": "classic",
+     "tabs_title_border_border": "solid",
+     "tabs_title_border_width": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "2",
+      "left": "0",
+      "isLinked": false
+     },
+     "tabs_title_border_hover_border": "solid",
+     "tabs_title_border_hover_width": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "2",
+      "left": "0",
+      "isLinked": false
+     },
+     "box_border_radius": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": true
+     },
+     "__globals__": {
+      "tabs_title_background_color_hover_color": "globals/colors?id=primary",
+      "tabs_title_background_color_color": "globals/colors?id=primary",
+      "tabs_title_border_color": "globals/colors?id=accent",
+      "title_typography_typography": "globals/typography?id=7a50880",
+      "title_text_color": "globals/colors?id=accent",
+      "tabs_title_border_hover_color": "globals/colors?id=secondary",
+      "title_text_color_hover": "globals/colors?id=secondary",
+      "title_text_color_active": "globals/colors?id=secondary",
+      "tabs_title_background_color_active_color": "globals/colors?id=primary"
+     }
+    },
+    "elements": [
+     {
+      "id": "3cc8908",
+      "elType": "container",
+      "settings": {
+       "_title": "טאב #1",
+       "content_width": "full"
+      },
+      "elements": [
+       {
+        "id": "afe99c2",
+        "elType": "widget",
+        "settings": {
+         "_skin": "post_taxonomy",
+         "template_id": 2180,
+         "alternate_templates": [
+          {
+           "template_id": null,
+           "_id": "883d60e"
+          }
+         ],
+         "post_taxonomy_query_filter_by": "manual_selection",
+         "post_taxonomy_posts_ids": [
+          "15"
+         ],
+         "pagination_page_limit": "5",
+         "pagination_prev_label": "הקודם",
+         "pagination_next_label": "הבא",
+         "text": "טען עוד",
+         "load_more_no_posts_custom_message": "אין יותר פוסטים להציג",
+         "nothing_found_message_text": "נראה שלא הצלחנו למצוא את מה שחיפשת.",
+         "columns": 1,
+         "posts_per_page": 1
+        },
+        "elements": [],
+        "widgetType": "loop-grid"
+       }
+      ],
+      "isInner": true,
+      "isLocked": true
+     },
+     {
+      "id": "66d71c0",
+      "elType": "container",
+      "settings": {
+       "_title": "טאב #2",
+       "content_width": "full"
+      },
+      "elements": [
+       {
+        "id": "fad8bff",
+        "elType": "widget",
+        "settings": {
+         "_skin": "post_taxonomy",
+         "template_id": 2180,
+         "alternate_templates": [
+          {
+           "template_id": null,
+           "_id": "883d60e"
+          }
+         ],
+         "post_taxonomy_query_filter_by": "manual_selection",
+         "post_taxonomy_posts_ids": [
+          "17"
+         ],
+         "pagination_page_limit": "5",
+         "pagination_prev_label": "הקודם",
+         "pagination_next_label": "הבא",
+         "text": "טען עוד",
+         "load_more_no_posts_custom_message": "אין יותר פוסטים להציג",
+         "nothing_found_message_text": "נראה שלא הצלחנו למצוא את מה שחיפשת.",
+         "columns": 1,
+         "posts_per_page": 1
+        },
+        "elements": [],
+        "widgetType": "loop-grid"
+       }
+      ],
+      "isInner": true,
+      "isLocked": true
+     },
+     {
+      "id": "f3f7a95",
+      "elType": "container",
+      "settings": {
+       "_title": "טאב #3",
+       "content_width": "full"
+      },
+      "elements": [
+       {
+        "id": "3d7d97c",
+        "elType": "widget",
+        "settings": {
+         "_skin": "post_taxonomy",
+         "template_id": 2180,
+         "alternate_templates": [
+          {
+           "template_id": null,
+           "_id": "883d60e"
+          }
+         ],
+         "post_taxonomy_query_filter_by": "manual_selection",
+         "post_taxonomy_posts_ids": [
+          "16"
+         ],
+         "pagination_page_limit": "5",
+         "pagination_prev_label": "הקודם",
+         "pagination_next_label": "הבא",
+         "text": "טען עוד",
+         "load_more_no_posts_custom_message": "אין יותר פוסטים להציג",
+         "nothing_found_message_text": "נראה שלא הצלחנו למצוא את מה שחיפשת.",
+         "columns": 1,
+         "posts_per_page": 1
+        },
+        "elements": [],
+        "widgetType": "loop-grid"
+       }
+      ],
+      "isInner": true,
+      "isLocked": true
+     },
+     {
+      "id": "d5b5adf",
+      "elType": "container",
+      "settings": {
+       "_title": "טאב #4",
+       "content_width": "full"
+      },
+      "elements": [
+       {
+        "id": "9b57bbf",
+        "elType": "widget",
+        "settings": {
+         "_skin": "post_taxonomy",
+         "template_id": 2180,
+         "alternate_templates": [
+          {
+           "template_id": null,
+           "_id": "883d60e"
+          }
+         ],
+         "post_taxonomy_query_filter_by": "manual_selection",
+         "post_taxonomy_posts_ids": [
+          "23"
+         ],
+         "pagination_page_limit": "5",
+         "pagination_prev_label": "הקודם",
+         "pagination_next_label": "הבא",
+         "text": "טען עוד",
+         "load_more_no_posts_custom_message": "אין יותר פוסטים להציג",
+         "nothing_found_message_text": "נראה שלא הצלחנו למצוא את מה שחיפשת.",
+         "columns": 1,
+         "posts_per_page": 1
+        },
+        "elements": [],
+        "widgetType": "loop-grid"
+       }
+      ],
+      "isInner": true,
+      "isLocked": true
+     },
+     {
+      "id": "b7615c4",
+      "elType": "container",
+      "settings": {
+       "_title": "טאב #5",
+       "content_width": "full"
+      },
+      "elements": [
+       {
+        "id": "f1aa17c",
+        "elType": "widget",
+        "settings": {
+         "_skin": "post_taxonomy",
+         "template_id": 2180,
+         "alternate_templates": [
+          {
+           "template_id": null,
+           "_id": "883d60e"
+          }
+         ],
+         "post_taxonomy_query_filter_by": "manual_selection",
+         "post_taxonomy_posts_ids": [
+          "24"
+         ],
+         "pagination_page_limit": "5",
+         "pagination_prev_label": "הקודם",
+         "pagination_next_label": "הבא",
+         "text": "טען עוד",
+         "load_more_no_posts_custom_message": "אין יותר פוסטים להציג",
+         "nothing_found_message_text": "נראה שלא הצלחנו למצוא את מה שחיפשת.",
+         "columns": 1,
+         "posts_per_page": 1
+        },
+        "elements": [],
+        "widgetType": "loop-grid"
+       }
+      ],
+      "isInner": true,
+      "isLocked": true
+     }
+    ]
+   }
+  ],
+  "isInner": false
+ }
+]

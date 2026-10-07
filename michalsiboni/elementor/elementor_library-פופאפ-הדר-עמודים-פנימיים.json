@@ -1,0 +1,102 @@
+[
+ {
+  "id": "91716c7",
+  "elType": "container",
+  "settings": {
+   "flex_direction": "row",
+   "content_width": "full",
+   "min_height": {
+    "unit": "vh",
+    "size": 13,
+    "sizes": []
+   },
+   "min_height_laptop": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_tablet": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_mobile": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "background_background": "classic",
+   "background_color": "#252525",
+   "__globals__": {
+    "background_color": ""
+   },
+   "width": {
+    "unit": "%",
+    "size": 65,
+    "sizes": []
+   }
+  },
+  "elements": [
+   {
+    "id": "6d843ab",
+    "elType": "widget",
+    "settings": {
+     "menu_name": "תפריט",
+     "menu": "header",
+     "pointer_width": {
+      "unit": "px",
+      "size": 2,
+      "sizes": []
+     },
+     "padding_horizontal_menu_item": {
+      "unit": "px",
+      "size": 0,
+      "sizes": []
+     },
+     "padding_vertical_menu_item": {
+      "unit": "px",
+      "size": 2,
+      "sizes": []
+     },
+     "menu_space_between": {
+      "unit": "px",
+      "size": 41,
+      "sizes": []
+     },
+     "_element_custom_width": {
+      "unit": "%",
+      "size": 100,
+      "sizes": []
+     },
+     "_flex_align_self": "flex-end",
+     "__globals__": {
+      "menu_typography_typography": "globals/typography?id=7a50880",
+      "color_menu_item": "globals/colors?id=primary",
+      "color_menu_item_hover": "globals/colors?id=primary",
+      "pointer_color_menu_item_hover": "globals/colors?id=secondary",
+      "color_menu_item_active": "globals/colors?id=primary",
+      "pointer_color_menu_item_active": "globals/colors?id=secondary"
+     },
+     "align_items": "center",
+     "_margin": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": true
+     },
+     "dropdown_top_distance": {
+      "unit": "px",
+      "size": 17,
+      "sizes": []
+     },
+     "text_align": "center"
+    },
+    "elements": [],
+    "widgetType": "nav-menu"
+   }
+  ],
+  "isInner": false
+ }
+]

@@ -1,0 +1,312 @@
+[
+ {
+  "id": "925560d",
+  "elType": "container",
+  "settings": {
+   "flex_direction": "column",
+   "flex_justify_content": "center",
+   "width": {
+    "unit": "%",
+    "size": 91,
+    "sizes": []
+   },
+   "boxed_width": {
+    "unit": "%",
+    "size": 98,
+    "sizes": []
+   },
+   "boxed_width_laptop": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_tablet": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_mobile": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "flex_align_items": "center",
+   "background_background": "classic",
+   "__globals__": {
+    "background_color": "globals/colors?id=primary"
+   }
+  },
+  "elements": [
+   {
+    "id": "61a8e7b",
+    "elType": "widget",
+    "settings": {
+     "__dynamic__": {
+      "title": "[elementor-tag id=\"\" name=\"post-title\" settings=\"%7B%22before%22%3A%22%22%2C%22after%22%3A%22%22%2C%22fallback%22%3A%22%22%7D\"]"
+     },
+     "title": "כתוב את הכותרת כאן",
+     "align": "center",
+     "__globals__": {
+      "typography_typography": "globals/typography?id=secondary",
+      "title_color": "globals/colors?id=secondary"
+     },
+     "_margin": {
+      "unit": "px",
+      "top": "40",
+      "right": "0",
+      "bottom": "40",
+      "left": "0",
+      "isLinked": false
+     }
+    },
+    "elements": [],
+    "widgetType": "theme-post-title"
+   },
+   {
+    "id": "9ec9dcd",
+    "elType": "container",
+    "settings": {
+     "content_width": "full",
+     "width": {
+      "unit": "%",
+      "size": 72,
+      "sizes": []
+     }
+    },
+    "elements": [
+     {
+      "id": "a39970a",
+      "elType": "widget",
+      "settings": {
+       "icon_list": [
+        {
+         "selected_icon": {
+          "value": "fas fa-calendar",
+          "library": "fa-solid"
+         },
+         "_id": "d2e738a",
+         "custom_date_format": "F j, Y",
+         "custom_time_format": "g:i a",
+         "link": ""
+        },
+        {
+         "type": "custom",
+         "selected_icon": {
+          "value": "fas fa-camera",
+          "library": "fa-solid"
+         },
+         "_id": "aacf15c",
+         "custom_date_format": "F j, Y",
+         "custom_time_format": "g:i a",
+         "link": "",
+         "show_icon": "custom",
+         "__dynamic__": {
+          "text_prefix": "[elementor-tag id=\"cddbebf\" name=\"site-tagline\" settings=\"%7B%7D\"]",
+          "custom_text": "[elementor-tag id=\"1e05b49\" name=\"acf-text\" settings=\"%7B%22key%22%3A%22field_685daeabb88b2%3A%D7%A6%D7%99%D7%9C%D7%95%D7%9E%D7%99_%22%7D\"]"
+         }
+        }
+       ],
+       "space_between": {
+        "unit": "px",
+        "size": 32,
+        "sizes": []
+       },
+       "icon_size": {
+        "unit": "px",
+        "size": 24,
+        "sizes": []
+       },
+       "_margin": {
+        "unit": "px",
+        "top": "0",
+        "right": "0",
+        "bottom": "40",
+        "left": "0",
+        "isLinked": false
+       },
+       "_flex_align_self": "flex-start",
+       "__globals__": {
+        "text_color": "globals/colors?id=77e1dcb",
+        "icon_typography_typography": "globals/typography?id=2c55802",
+        "icon_color": "globals/colors?id=77e1dcb"
+       },
+       "icon_align": "right",
+       "_padding": {
+        "unit": "px",
+        "top": "0",
+        "right": "0",
+        "bottom": "0",
+        "left": "0",
+        "isLinked": true
+       },
+       "space_between_mobile": {
+        "unit": "px",
+        "size": 54,
+        "sizes": []
+       },
+       "icon_size_mobile": {
+        "unit": "px",
+        "size": 29,
+        "sizes": []
+       }
+      },
+      "elements": [],
+      "widgetType": "post-info"
+     }
+    ],
+    "isInner": true
+   },
+   {
+    "id": "1762664",
+    "elType": "widget",
+    "settings": {
+     "__globals__": {
+      "text_color": "globals/colors?id=accent",
+      "typography_typography": "globals/typography?id=7a50880"
+     },
+     "_element_width": "initial",
+     "_element_custom_width": {
+      "unit": "%",
+      "size": 70,
+      "sizes": []
+     },
+     "align": "right",
+     "_margin": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "40",
+      "left": "0",
+      "isLinked": false
+     },
+     "_flex_align_self": "center"
+    },
+    "elements": [],
+    "widgetType": "theme-post-content"
+   },
+   {
+    "id": "52b00b0",
+    "elType": "widget",
+    "settings": {
+     "title": "מאמרים אחרונים",
+     "align": "center",
+     "__globals__": {
+      "title_color": "globals/colors?id=secondary",
+      "typography_typography": "globals/typography?id=text"
+     }
+    },
+    "elements": [],
+    "widgetType": "heading"
+   },
+   {
+    "id": "1fca32a",
+    "elType": "widget",
+    "settings": {
+     "template_id": "1023",
+     "alternate_templates": [
+      {
+       "template_id": null,
+       "_id": "3a059c6"
+      }
+     ],
+     "post_query_post_type": "blog",
+     "pagination_page_limit": "5",
+     "pagination_prev_label": "הקודם",
+     "pagination_next_label": "הבא",
+     "text": "טען עוד",
+     "load_more_no_posts_custom_message": "אין יותר פוסטים להציג",
+     "nothing_found_message_text": "נראה שלא הצלחנו למצוא את מה שחיפשת.",
+     "columns": 3,
+     "posts_per_page": 3,
+     "_element_width": "initial",
+     "_element_custom_width": {
+      "unit": "%",
+      "size": 66,
+      "sizes": []
+     },
+     "columns_laptop": 2,
+     "columns_tablet": 1,
+     "_flex_align_self_laptop": "center",
+     "_flex_align_self_mobile": "center"
+    },
+    "elements": [],
+    "widgetType": "loop-grid"
+   },
+   {
+    "id": "b2e2c61",
+    "elType": "container",
+    "settings": {
+     "content_width": "full",
+     "flex_gap": {
+      "column": "0",
+      "row": "0",
+      "isLinked": true,
+      "unit": "px",
+      "size": 0
+     }
+    },
+    "elements": [
+     {
+      "id": "96c060f",
+      "elType": "widget",
+      "settings": {
+       "text": "לבלוג המלא >",
+       "align": "center",
+       "border_border": "solid",
+       "border_width": {
+        "unit": "px",
+        "top": "1",
+        "right": "1",
+        "bottom": "1",
+        "left": "1",
+        "isLinked": true
+       },
+       "border_radius": {
+        "unit": "px",
+        "top": "40",
+        "right": "40",
+        "bottom": "40",
+        "left": "40",
+        "isLinked": true
+       },
+       "text_padding": {
+        "unit": "px",
+        "top": "15",
+        "right": "45",
+        "bottom": "15",
+        "left": "45",
+        "isLinked": false
+       },
+       "_flex_align_self": "center",
+       "__globals__": {
+        "typography_typography": "globals/typography?id=370cf49",
+        "button_text_color": "globals/colors?id=accent",
+        "background_color": "globals/colors?id=8193ed9",
+        "border_color": "globals/colors?id=accent",
+        "hover_color": "globals/colors?id=secondary",
+        "button_hover_border_color": "globals/colors?id=secondary"
+       },
+       "_title": "כפתור חבילות",
+       "_animation": "slideInDown",
+       "__dynamic__": {
+        "link": "[elementor-tag id=\"e129fd5\" name=\"internal-url\" settings=\"%7B%22type%22%3A%22post%22%2C%22post_id%22%3A%2259%22%7D\"]"
+       },
+       "_margin": {
+        "unit": "px",
+        "top": "0",
+        "right": "0",
+        "bottom": "40",
+        "left": "0",
+        "isLinked": false
+       }
+      },
+      "elements": [],
+      "widgetType": "button"
+     }
+    ],
+    "isInner": true
+   }
+  ],
+  "isInner": false
+ }
+]

@@ -1,0 +1,868 @@
+[
+ {
+  "id": "dd986d2",
+  "elType": "container",
+  "settings": {
+   "flex_direction": "column",
+   "boxed_width": {
+    "unit": "%",
+    "size": 90,
+    "sizes": []
+   },
+   "boxed_width_tablet": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_mobile": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "flex_gap": {
+    "column": "0",
+    "row": "0",
+    "isLinked": true,
+    "unit": "px",
+    "size": 0
+   },
+   "content_width": "full",
+   "margin": {
+    "unit": "px",
+    "top": "0",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": true
+   },
+   "padding": {
+    "unit": "px",
+    "top": "0",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": true
+   },
+   "presetTitle": "קונטיינר",
+   "presetIcon": "eicon-container",
+   "background_background": "classic",
+   "background_overlay_background": "classic",
+   "_element_id": "eder",
+   "flex_direction_mobile": "column"
+  },
+  "elements": [
+   {
+    "id": "1750d7a",
+    "elType": "container",
+    "settings": {
+     "min_height": {
+      "unit": "vh",
+      "size": 50,
+      "sizes": []
+     },
+     "min_height_tablet": {
+      "unit": "vh",
+      "size": "",
+      "sizes": []
+     },
+     "min_height_mobile": {
+      "unit": "vh",
+      "size": "",
+      "sizes": []
+     },
+     "flex_direction": "row",
+     "background_background": "classic",
+     "background_image": {
+      "url": "https://michalsiboni.co.il/wp-content/uploads/2025/05/תמונת-רקע-לפוטר-2.png",
+      "id": 2776,
+      "size": "",
+      "alt": "",
+      "source": "library"
+     },
+     "background_position": "top center",
+     "background_repeat": "no-repeat",
+     "background_size": "cover",
+     "width": {
+      "unit": "%",
+      "size": 100,
+      "sizes": []
+     },
+     "flex_justify_content": "space-between",
+     "flex_gap": {
+      "column": "0",
+      "row": "0",
+      "isLinked": true,
+      "unit": "px",
+      "size": 0
+     },
+     "_flex_align_self": "stretch",
+     "boxed_width": {
+      "unit": "%",
+      "size": 92,
+      "sizes": []
+     },
+     "boxed_width_laptop": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "boxed_width_tablet": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "boxed_width_mobile": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "padding": {
+      "unit": "vw",
+      "top": "",
+      "right": "",
+      "bottom": "",
+      "left": "",
+      "isLinked": true
+     },
+     "padding_laptop": {
+      "unit": "vw",
+      "top": "",
+      "right": "",
+      "bottom": "",
+      "left": "",
+      "isLinked": true
+     },
+     "padding_tablet": {
+      "unit": "vw",
+      "top": "",
+      "right": "",
+      "bottom": "",
+      "left": "",
+      "isLinked": true
+     },
+     "padding_mobile": {
+      "unit": "vw",
+      "top": "",
+      "right": "",
+      "bottom": "",
+      "left": "",
+      "isLinked": true
+     },
+     "background_overlay_background": "classic",
+     "flex_direction_mobile": "column"
+    },
+    "elements": [
+     {
+      "id": "a8cf2dd",
+      "elType": "widget",
+      "settings": {
+       "headline_style": "rotate",
+       "animation_type": "clip",
+       "before_text": "בואו נתאם",
+       "highlighted_text": "מדהים",
+       "rotating_text": "יחד:)",
+       "alignment": "right",
+       "title_color": "#FBF7F3",
+       "text_stroke_stroke_color": "#FBF7F3",
+       "animated_text_stroke_text_stroke": {
+        "unit": "px",
+        "size": 0,
+        "sizes": []
+       },
+       "_margin": {
+        "unit": "px",
+        "top": "0",
+        "right": "0",
+        "bottom": "0",
+        "left": "0",
+        "isLinked": true
+       },
+       "_element_width": "initial",
+       "_element_custom_width": {
+        "unit": "%",
+        "size": 12,
+        "sizes": []
+       },
+       "_flex_align_self": "center",
+       "_flex_order": "start",
+       "__globals__": {
+        "title_color": "globals/colors?id=primary",
+        "title_typography_typography": "globals/typography?id=primary",
+        "words_typography_typography": "globals/typography?id=primary",
+        "text_stroke_stroke_color": "globals/colors?id=secondary"
+       },
+       "words_typography_font_size": {
+        "unit": "px",
+        "size": 60,
+        "sizes": []
+       },
+       "_margin_mobile": {
+        "unit": "px",
+        "top": "0",
+        "right": "0",
+        "bottom": "0",
+        "left": "0",
+        "isLinked": false
+       },
+       "_element_custom_width_mobile": {
+        "unit": "px",
+        "size": 290,
+        "sizes": []
+       }
+      },
+      "elements": [],
+      "widgetType": "animated-headline"
+     },
+     {
+      "id": "fa0462b",
+      "elType": "widget",
+      "settings": {
+       "form_name": "טופס חדש",
+       "form_fields": [
+        {
+         "custom_id": "name",
+         "field_label": "מה השם שלך?",
+         "width": "33",
+         "dynamic": {
+          "active": true
+         },
+         "_id": "26ede28"
+        },
+        {
+         "_id": "5b236d9",
+         "field_label": "הטלפון שלך",
+         "width": "33",
+         "custom_id": "field_5b236d9"
+        },
+        {
+         "custom_id": "email",
+         "field_type": "email",
+         "required": "true",
+         "field_label": "הדוא''ל שלך",
+         "width": "33",
+         "_id": "21d569f"
+        },
+        {
+         "custom_id": "message",
+         "field_type": "textarea",
+         "field_label": "על מה תרצי לדבר...",
+         "width": "66",
+         "_id": "b5e75f6",
+         "rows": 1
+        },
+        {
+         "_id": "324736e",
+         "field_type": "acceptance",
+         "acceptance_text": "אני מאשר/ת את איסוף ושימוש הפרטים לצורך טיפול בפנייה ושיפור השירות, בהתאם ל־  <a href=\"https://michalsiboni.co.il/privacy-policy-2/\" target=\"_blank\">מדיניות הפרטיות</a>. ידוע לי כי ניתן לבקש מחיקת פרטי בכל עת.",
+         "custom_id": "field_324736e"
+        }
+       ],
+       "step_next_label": "הבא",
+       "step_previous_label": "הקודם",
+       "button_text": "חזרי אלי >",
+       "email_to": "M0548529277@GMAIL.COM",
+       "email_subject": "הודעה חדשה מאת \"מיכל סיבוני\"",
+       "email_content": "[all-fields]",
+       "email_from": "email@michalsiboni.co.il",
+       "email_from_name": "מיכל סיבוני",
+       "email_to_2": "M0548529277@GMAIL.COM",
+       "email_subject_2": "הודעה חדשה מאת \"מיכל סיבוני\"",
+       "email_content_2": "[all-fields]",
+       "email_from_2": "email@michalsiboni.co.il",
+       "email_from_name_2": "מיכל סיבוני",
+       "email_reply_to_2": "M0548529277@GMAIL.COM",
+       "activecampaign_fields_map": [],
+       "convertkit_fields_map": [],
+       "drip_fields_map": [],
+       "getresponse_fields_map": [],
+       "mailchimp_fields_map": [],
+       "mailerlite_fields_map": [],
+       "success_message": "הטופס נשלח בהצלחה.",
+       "error_message": "שליחת הטופס נכשלה בגלל שגיאה.",
+       "server_message": "שליחת הטופס נכשלה בגלל שגיאת שרת.",
+       "invalid_message": "שליחת הטופס נכשלה בגלל שהטופס לא תקין.",
+       "required_field_message": "שדה זה הוא שדה חובה.",
+       "column_gap": {
+        "unit": "px",
+        "size": 30,
+        "sizes": []
+       },
+       "row_gap": {
+        "unit": "px",
+        "size": 48,
+        "sizes": []
+       },
+       "label_color": "#FBF7F3",
+       "label_typography_typography": "custom",
+       "label_typography_font_family": "TelAviv",
+       "label_typography_font_size": {
+        "unit": "px",
+        "size": 18,
+        "sizes": []
+       },
+       "label_typography_font_weight": "300",
+       "label_typography_line_height": {
+        "unit": "px",
+        "size": 30,
+        "sizes": []
+       },
+       "field_text_color": "#5A5A5A",
+       "field_background_color": "#BF386000",
+       "field_border_color": "#BF3860",
+       "field_border_width": {
+        "unit": "px",
+        "top": "0",
+        "right": "0",
+        "bottom": "1",
+        "left": "0",
+        "isLinked": false
+       },
+       "field_border_radius": {
+        "unit": "px",
+        "top": "0",
+        "right": "0",
+        "bottom": "0",
+        "left": "0",
+        "isLinked": true
+       },
+       "button_align": "start",
+       "button_typography_typography": "custom",
+       "button_typography_font_family": "TelAviv",
+       "button_typography_font_size": {
+        "unit": "px",
+        "size": 20,
+        "sizes": []
+       },
+       "button_typography_font_weight": "400",
+       "button_border_border": "solid",
+       "button_border_width": {
+        "unit": "px",
+        "top": "1",
+        "right": "1",
+        "bottom": "1",
+        "left": "1",
+        "isLinked": true
+       },
+       "button_text_color": "#FBF7F3",
+       "button_border_radius": {
+        "unit": "px",
+        "top": "40",
+        "right": "40",
+        "bottom": "40",
+        "left": "40",
+        "isLinked": true
+       },
+       "button_text_padding": {
+        "unit": "px",
+        "top": "15",
+        "right": "45",
+        "bottom": "15",
+        "left": "45",
+        "isLinked": false
+       },
+       "_element_width": "initial",
+       "_element_custom_width": {
+        "unit": "%",
+        "size": 67,
+        "sizes": []
+       },
+       "_flex_align_self": "center",
+       "_flex_size": "shrink",
+       "__globals__": {
+        "button_typography_typography": "globals/typography?id=370cf49",
+        "label_color": "globals/colors?id=primary",
+        "label_typography_typography": "globals/typography?id=7a50880",
+        "field_text_color": "globals/colors?id=accent",
+        "field_background_color": "",
+        "field_border_color": "globals/colors?id=secondary",
+        "button_background_color": "globals/colors?id=8193ed9",
+        "button_text_color": "globals/colors?id=primary",
+        "button_border_color": "globals/colors?id=primary",
+        "success_message_color": "globals/colors?id=primary",
+        "error_message_color": "globals/colors?id=text",
+        "inline_message_color": "globals/colors?id=primary",
+        "button_hover_border_color": "globals/colors?id=secondary",
+        "message_typography_typography": "globals/typography?id=accent",
+        "html_typography_typography": "globals/typography?id=text",
+        "field_typography_typography": "globals/typography?id=7a50880"
+       },
+       "custom_css": "\n",
+       "_margin": {
+        "unit": "px",
+        "top": "30",
+        "right": "0",
+        "bottom": "30",
+        "left": "0",
+        "isLinked": false
+       },
+       "_padding": {
+        "unit": "px",
+        "top": "0",
+        "right": "0",
+        "bottom": "0",
+        "left": "0",
+        "isLinked": false
+       },
+       "_element_custom_width_mobile": {
+        "unit": "px",
+        "size": 289,
+        "sizes": []
+       }
+      },
+      "elements": [],
+      "widgetType": "form"
+     }
+    ],
+    "isInner": true
+   },
+   {
+    "id": "ca46336",
+    "elType": "container",
+    "settings": {
+     "flex_direction": "row",
+     "min_height": {
+      "unit": "px",
+      "size": 113,
+      "sizes": []
+     },
+     "background_background": "classic",
+     "__globals__": {
+      "background_color": "globals/colors?id=primary"
+     },
+     "flex_align_items": "center",
+     "width": {
+      "unit": "%",
+      "size": 100,
+      "sizes": []
+     },
+     "boxed_width": {
+      "unit": "%",
+      "size": 92,
+      "sizes": []
+     },
+     "boxed_width_laptop": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "boxed_width_tablet": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "boxed_width_mobile": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "flex_gap": {
+      "column": "0",
+      "row": "0",
+      "isLinked": true,
+      "unit": "px",
+      "size": 0
+     }
+    },
+    "elements": [
+     {
+      "id": "0cc2312",
+      "elType": "container",
+      "settings": {
+       "content_width": "full",
+       "flex_direction": "row",
+       "flex_align_items": "center",
+       "border_border": "solid",
+       "border_width": {
+        "unit": "px",
+        "top": "0",
+        "right": "0",
+        "bottom": "1",
+        "left": "0",
+        "isLinked": false
+       },
+       "border_radius": {
+        "unit": "px",
+        "top": "0",
+        "right": "0",
+        "bottom": "1",
+        "left": "0",
+        "isLinked": false
+       }
+      },
+      "elements": [
+       {
+        "id": "084f592",
+        "elType": "widget",
+        "settings": {
+         "menu_name": "תפריט",
+         "menu": "header",
+         "nav_menu_divider": "yes",
+         "nav_menu_divider_weight": {
+          "unit": "px",
+          "size": 1,
+          "sizes": []
+         },
+         "nav_menu_divider_height": {
+          "unit": "px",
+          "size": 20,
+          "sizes": []
+         },
+         "pointer_width": {
+          "unit": "px",
+          "size": 0,
+          "sizes": []
+         },
+         "__globals__": {
+          "menu_typography_typography": "",
+          "color_menu_item_hover": "globals/colors?id=accent"
+         },
+         "menu_typography_typography": "custom",
+         "menu_typography_font_family": "TelAviv",
+         "menu_typography_font_size": {
+          "unit": "px",
+          "size": 16,
+          "sizes": []
+         },
+         "menu_typography_font_weight": "400",
+         "color_menu_item_hover": "#5A5A5A",
+         "_flex_size": "grow",
+         "_margin": {
+          "unit": "px",
+          "top": "0",
+          "right": "0",
+          "bottom": "0",
+          "left": "0",
+          "isLinked": true
+         },
+         "_padding": {
+          "unit": "px",
+          "top": "0",
+          "right": "0",
+          "bottom": "0",
+          "left": "0",
+          "isLinked": true
+         },
+         "hide_mobile": "hidden-mobile"
+        },
+        "elements": [],
+        "widgetType": "nav-menu"
+       },
+       {
+        "id": "b7e4f42",
+        "elType": "widget",
+        "settings": {
+         "image": {
+          "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/לוגו-1.svg",
+          "id": 2097,
+          "size": "",
+          "alt": "",
+          "source": "library"
+         },
+         "width": {
+          "unit": "vw",
+          "size": 56,
+          "sizes": []
+         },
+         "width_laptop": {
+          "unit": "vw",
+          "size": "",
+          "sizes": []
+         },
+         "width_tablet": {
+          "unit": "vw",
+          "size": "",
+          "sizes": []
+         },
+         "width_mobile": {
+          "unit": "vw",
+          "size": 87,
+          "sizes": []
+         },
+         "space": {
+          "unit": "%",
+          "size": 100,
+          "sizes": []
+         },
+         "space_laptop": {
+          "unit": "em",
+          "size": "",
+          "sizes": []
+         },
+         "space_tablet": {
+          "unit": "em",
+          "size": "",
+          "sizes": []
+         },
+         "space_mobile": {
+          "unit": "em",
+          "size": 6.7,
+          "sizes": []
+         },
+         "_element_width": "initial",
+         "_element_custom_width": {
+          "unit": "%",
+          "size": 13,
+          "sizes": []
+         },
+         "align_mobile": "left",
+         "height_mobile": {
+          "unit": "px",
+          "size": 24,
+          "sizes": []
+         },
+         "object-fit_mobile": "cover",
+         "_margin_mobile": {
+          "unit": "px",
+          "top": "0",
+          "right": "-59",
+          "bottom": "0",
+          "left": "3",
+          "isLinked": false
+         }
+        },
+        "elements": [],
+        "widgetType": "image"
+       },
+       {
+        "id": "1b6b5a0",
+        "elType": "widget",
+        "settings": {
+         "title": "מיכל סיבוני | 053.418.1051",
+         "_flex_order": "end",
+         "__globals__": {
+          "title_color": "globals/colors?id=text",
+          "typography_typography": "globals/typography?id=1223241"
+         },
+         "align": "left",
+         "_flex_size": "grow"
+        },
+        "elements": [],
+        "widgetType": "heading"
+       }
+      ],
+      "isInner": true
+     }
+    ],
+    "isInner": true
+   },
+   {
+    "id": "e12d816",
+    "elType": "container",
+    "settings": {
+     "content_width": "full",
+     "flex_direction": "row",
+     "min_height": {
+      "unit": "vh",
+      "size": 10,
+      "sizes": []
+     },
+     "background_background": "classic",
+     "__globals__": {
+      "background_color": "globals/colors?id=primary",
+      "border_color": "globals/colors?id=accent"
+     },
+     "flex_align_items": "center",
+     "flex_gap": {
+      "column": "26",
+      "row": "26",
+      "isLinked": true,
+      "unit": "px",
+      "size": 26
+     },
+     "width": {
+      "unit": "%",
+      "size": 100,
+      "sizes": []
+     },
+     "boxed_width": {
+      "unit": "px",
+      "size": 1084,
+      "sizes": []
+     },
+     "min_height_laptop": {
+      "unit": "vh",
+      "size": "",
+      "sizes": []
+     },
+     "min_height_tablet": {
+      "unit": "vh",
+      "size": "",
+      "sizes": []
+     },
+     "min_height_mobile": {
+      "unit": "vh",
+      "size": "",
+      "sizes": []
+     },
+     "flex_justify_content": "center",
+     "border_border": "solid",
+     "border_width": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": false
+     },
+     "flex_wrap": "wrap"
+    },
+    "elements": [
+     {
+      "id": "024c5e5",
+      "elType": "widget",
+      "settings": {
+       "title": "UI UX // Development // Batsheva Sasson",
+       "_flex_align_self": "center",
+       "__globals__": {
+        "typography_typography": "",
+        "title_color": "globals/colors?id=accent",
+        "title_hover_color": "globals/colors?id=secondary"
+       },
+       "align": "center",
+       "link": {
+        "url": "https://batshevaa.co.il/",
+        "is_external": "on",
+        "nofollow": "",
+        "custom_attributes": ""
+       },
+       "typography_typography": "custom",
+       "typography_font_family": "TelAviv",
+       "typography_font_size": {
+        "unit": "px",
+        "size": 18,
+        "sizes": []
+       },
+       "typography_font_size_tablet": {
+        "unit": "px",
+        "size": 15,
+        "sizes": []
+       },
+       "typography_font_size_mobile": {
+        "unit": "px",
+        "size": 9,
+        "sizes": []
+       },
+       "typography_font_weight": "300",
+       "typography_line_height": {
+        "unit": "px",
+        "size": 30,
+        "sizes": []
+       },
+       "title_color": "#5A5A5A",
+       "_element_width": "inherit"
+      },
+      "elements": [],
+      "widgetType": "heading"
+     },
+     {
+      "id": "bac68b7",
+      "elType": "widget",
+      "settings": {
+       "title": "מדניות פרטיות",
+       "typography_typography": "custom",
+       "typography_font_family": "TelAviv",
+       "typography_font_size": {
+        "unit": "px",
+        "size": 11,
+        "sizes": []
+       },
+       "typography_font_size_tablet": {
+        "unit": "px",
+        "size": 15,
+        "sizes": []
+       },
+       "typography_font_weight": "300",
+       "typography_line_height": {
+        "unit": "px",
+        "size": 30,
+        "sizes": []
+       },
+       "title_color": "#5A5A5A",
+       "__globals__": {
+        "title_color": "globals/colors?id=accent",
+        "typography_typography": ""
+       },
+       "__dynamic__": {
+        "link": "[elementor-tag id=\"05e2d5a\" name=\"internal-url\" settings=\"%7B%22type%22%3A%22post%22%2C%22post_id%22%3A%222981%22%7D\"]"
+       }
+      },
+      "elements": [],
+      "widgetType": "heading"
+     },
+     {
+      "id": "9f69103",
+      "elType": "widget",
+      "settings": {
+       "title": "תקנון אתר",
+       "typography_typography": "custom",
+       "typography_font_family": "TelAviv",
+       "typography_font_size": {
+        "unit": "px",
+        "size": 11,
+        "sizes": []
+       },
+       "typography_font_size_tablet": {
+        "unit": "px",
+        "size": 15,
+        "sizes": []
+       },
+       "typography_font_weight": "300",
+       "typography_line_height": {
+        "unit": "px",
+        "size": 30,
+        "sizes": []
+       },
+       "title_color": "#5A5A5A",
+       "__globals__": {
+        "title_color": "globals/colors?id=accent",
+        "typography_typography": ""
+       },
+       "__dynamic__": {
+        "link": "[elementor-tag id=\"a60c9d3\" name=\"internal-url\" settings=\"%7B%22type%22%3A%22post%22%2C%22post_id%22%3A%222990%22%7D\"]"
+       }
+      },
+      "elements": [],
+      "widgetType": "heading"
+     },
+     {
+      "id": "dcdaa20",
+      "elType": "widget",
+      "settings": {
+       "title": "הצהרת נגישות",
+       "typography_typography": "custom",
+       "typography_font_family": "TelAviv",
+       "typography_font_size": {
+        "unit": "px",
+        "size": 11,
+        "sizes": []
+       },
+       "typography_font_size_tablet": {
+        "unit": "px",
+        "size": 15,
+        "sizes": []
+       },
+       "typography_font_weight": "300",
+       "typography_line_height": {
+        "unit": "px",
+        "size": 30,
+        "sizes": []
+       },
+       "title_color": "#5A5A5A",
+       "__globals__": {
+        "title_color": "globals/colors?id=accent",
+        "typography_typography": ""
+       },
+       "__dynamic__": {
+        "link": "[elementor-tag id=\"5fdaa95\" name=\"internal-url\" settings=\"%7B%22type%22%3A%22post%22%2C%22post_id%22%3A%222971%22%7D\"]"
+       }
+      },
+      "elements": [],
+      "widgetType": "heading"
+     }
+    ],
+    "isInner": true
+   }
+  ],
+  "isInner": false
+ }
+]

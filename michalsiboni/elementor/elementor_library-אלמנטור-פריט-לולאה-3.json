@@ -1,0 +1,143 @@
+[
+ {
+  "id": "7d6736c",
+  "elType": "container",
+  "settings": {
+   "content_width": "full",
+   "min_height": {
+    "unit": "vh",
+    "size": 47,
+    "sizes": []
+   },
+   "min_height_laptop": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_tablet": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_mobile": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "flex_align_items": "center",
+   "width": {
+    "unit": "px",
+    "size": 659,
+    "sizes": []
+   },
+   "width_laptop": {
+    "unit": "em",
+    "size": "",
+    "sizes": []
+   },
+   "width_tablet": {
+    "unit": "em",
+    "size": "",
+    "sizes": []
+   },
+   "width_mobile": {
+    "unit": "em",
+    "size": "",
+    "sizes": []
+   }
+  },
+  "elements": [
+   {
+    "id": "5725cfd",
+    "elType": "widget",
+    "settings": {
+     "image_size": "thumbnail",
+     "__dynamic__": {
+      "image": "[elementor-tag id=\"085b392\" name=\"acf-image\" settings=\"%7B%22key%22%3A%22field_682b3d540e596%3A%D7%AA%D7%9E%D7%95%D7%A0%D7%94_%D7%A4%D7%95%D7%A1%D7%98%D7%99%D7%9D_%D7%9C%D7%94%D7%9E%D7%9C%D7%A6%D7%95%D7%AA%22%7D\"]"
+     },
+     "width": {
+      "unit": "%",
+      "size": 72,
+      "sizes": []
+     },
+     "align": "center",
+     "_margin": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "40",
+      "left": "0",
+      "isLinked": false
+     },
+     "_padding": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": false
+     }
+    },
+    "elements": [],
+    "widgetType": "image"
+   },
+   {
+    "id": "22248ce",
+    "elType": "widget",
+    "settings": {
+     "align": "center",
+     "__globals__": {
+      "typography_typography": "globals/typography?id=7a50880",
+      "text_color": "globals/colors?id=accent"
+     },
+     "_element_width_laptop": "initial",
+     "_element_custom_width_laptop": {
+      "unit": "px",
+      "size": 224
+     },
+     "_flex_size": "none",
+     "_element_custom_width_tablet": {
+      "unit": "px",
+      "size": 503,
+      "sizes": []
+     }
+    },
+    "elements": [],
+    "widgetType": "theme-post-content"
+   },
+   {
+    "id": "0f54f0e",
+    "elType": "widget",
+    "settings": {
+     "__dynamic__": {
+      "title": "[elementor-tag id=\"\" name=\"post-title\" settings=\"%7B%22before%22%3A%22%22%2C%22after%22%3A%22%22%2C%22fallback%22%3A%22%22%7D\"]"
+     },
+     "title": "כתוב את הכותרת כאן",
+     "__globals__": {
+      "typography_typography": "globals/typography?id=text",
+      "title_color": "globals/colors?id=text"
+     },
+     "_margin": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": true
+     },
+     "_padding": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": true
+     }
+    },
+    "elements": [],
+    "widgetType": "theme-post-title"
+   }
+  ],
+  "isInner": false
+ }
+]

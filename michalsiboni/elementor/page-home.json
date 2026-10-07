@@ -1,0 +1,2757 @@
+[
+ {
+  "id": "d6d2d5a",
+  "elType": "container",
+  "settings": {
+   "flex_direction": "column",
+   "boxed_width": {
+    "unit": "%",
+    "size": 92,
+    "sizes": []
+   },
+   "boxed_width_tablet": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_mobile": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "min_height": {
+    "unit": "vh",
+    "size": 100,
+    "sizes": []
+   },
+   "min_height_tablet": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_mobile": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "background_background": "slideshow",
+   "background_color": "#2F2F2F00",
+   "background_image": {
+    "url": "https://michalsiboni.co.il/wp-content/uploads/2025/05/תמונה-לקאבר-ראשי-1.png",
+    "id": 118,
+    "size": "",
+    "alt": "",
+    "source": "library"
+   },
+   "background_overlay_background": "gradient",
+   "background_overlay_image": {
+    "url": "",
+    "id": "",
+    "size": "",
+    "alt": "",
+    "source": "library"
+   },
+   "background_overlay_position": "center center",
+   "background_overlay_repeat": "no-repeat",
+   "background_overlay_opacity": {
+    "unit": "px",
+    "size": 1,
+    "sizes": []
+   },
+   "margin": {
+    "unit": "%",
+    "top": "-13",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": false
+   },
+   "padding": {
+    "unit": "px",
+    "top": "0",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": true
+   },
+   "flex_gap": {
+    "column": "0",
+    "row": "0",
+    "isLinked": true,
+    "unit": "px",
+    "size": 0
+   },
+   "background_position": "top center",
+   "background_repeat": "no-repeat",
+   "background_size": "cover",
+   "_title": "קאבר ראשי",
+   "margin_laptop": {
+    "unit": "%",
+    "top": "-17",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": false
+   },
+   "margin_tablet": {
+    "unit": "%",
+    "top": "-23",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": false
+   },
+   "margin_mobile": {
+    "unit": "%",
+    "top": "-74",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": false
+   },
+   "flex_justify_content": "flex-end",
+   "content_width": "full",
+   "width_laptop": {
+    "unit": "px",
+    "size": 1424
+   },
+   "_flex_size": "none",
+   "_element_width_laptop": "initial",
+   "background_slideshow_gallery": [
+    {
+     "id": 2920,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2025/09/dsc07219_optimized-2-scaled.jpg"
+    },
+    {
+     "id": 2373,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc09842_optimized-1-scaled.jpg"
+    },
+    {
+     "id": 118,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2025/05/תמונה-לקאבר-ראשי-1.png"
+    },
+    {
+     "id": 1890,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc09757_optimized-1-scaled.jpg"
+    },
+    {
+     "id": 1909,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/DSC00793-scaled.jpg"
+    },
+    {
+     "id": 2849,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2025/08/dsc02256_optimized-scaled.jpg"
+    },
+    {
+     "id": 2845,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2025/08/dsc08549_optimized-scaled.jpg"
+    },
+    {
+     "id": 2778,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2025/08/DSC06466-scaled.jpg"
+    },
+    {
+     "id": 2924,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2025/09/dsc07877_optimized-1-scaled.jpg"
+    },
+    {
+     "id": 3085,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2026/06/dsc05196_optimized-2-scaled.jpg"
+    },
+    {
+     "id": 3086,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2026/06/dsc05632_optimized-2-scaled.jpg"
+    },
+    {
+     "id": 3087,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2026/06/dsc07958_optimized-scaled.jpg"
+    },
+    {
+     "id": 3088,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2026/06/dsc07980_optimized-scaled.jpg"
+    },
+    {
+     "id": 3089,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2026/06/dsc00269_optimized-scaled.jpg"
+    },
+    {
+     "id": 3090,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2026/06/dsc07907_optimized-scaled.jpg"
+    },
+    {
+     "id": 3091,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2026/06/dsc09690_optimized-scaled.jpg"
+    }
+   ],
+   "background_slideshow_slide_duration": 1000,
+   "background_overlay_color_b": "#0E0D0DB5",
+   "background_overlay_color_b_stop": {
+    "unit": "%",
+    "size": 59,
+    "sizes": []
+   },
+   "__globals__": {
+    "background_overlay_color_b": "",
+    "background_overlay_color": "globals/colors?id=8193ed9"
+   },
+   "background_slideshow_transition_duration": 2000
+  },
+  "elements": [
+   {
+    "id": "5164199",
+    "elType": "widget",
+    "settings": {
+     "headline_style": "rotate",
+     "animation_type": "clip",
+     "before_text": "מנציחה",
+     "highlighted_text": "מדהים",
+     "rotating_text": "רגעים מתוקים\nרגעים מתוקים\nרגעים מתוקים\nרגעים מתוקים\nרגעים מתוקים",
+     "_margin": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "40",
+      "left": "0",
+      "isLinked": false
+     },
+     "__globals__": {
+      "title_typography_typography": "globals/typography?id=primary",
+      "title_color": "globals/colors?id=primary",
+      "words_color": "globals/colors?id=primary"
+     },
+     "_element_width": "inherit"
+    },
+    "elements": [],
+    "widgetType": "animated-headline"
+   },
+   {
+    "id": "066717c",
+    "elType": "widget",
+    "settings": {
+     "text": "לגלריה שלי >",
+     "align": "center",
+     "border_border": "solid",
+     "border_width": {
+      "unit": "px",
+      "top": "1",
+      "right": "1",
+      "bottom": "1",
+      "left": "1",
+      "isLinked": true
+     },
+     "border_radius": {
+      "unit": "px",
+      "top": "40",
+      "right": "40",
+      "bottom": "40",
+      "left": "40",
+      "isLinked": true
+     },
+     "text_padding": {
+      "unit": "px",
+      "top": "15",
+      "right": "45",
+      "bottom": "15",
+      "left": "45",
+      "isLinked": false
+     },
+     "_margin": {
+      "unit": "px",
+      "top": "55",
+      "right": "0",
+      "bottom": "87",
+      "left": "0",
+      "isLinked": false
+     },
+     "_title": "כפתור קאבר ראשי",
+     "__globals__": {
+      "typography_typography": "globals/typography?id=370cf49",
+      "background_color": "globals/colors?id=8193ed9",
+      "border_color": "globals/colors?id=primary",
+      "button_text_color": "globals/colors?id=primary",
+      "button_hover_border_color": "globals/colors?id=secondary",
+      "hover_color": "globals/colors?id=primary"
+     },
+     "_flex_align_self": "center",
+     "link": {
+      "url": "",
+      "is_external": "",
+      "nofollow": "",
+      "custom_attributes": ""
+     },
+     "__dynamic__": {
+      "link": "[elementor-tag id=\"bed7746\" name=\"internal-url\" settings=\"%7B%22type%22%3A%22post%22%2C%22post_id%22%3A%222165%22%7D\"]"
+     }
+    },
+    "elements": [],
+    "widgetType": "button"
+   }
+  ],
+  "isInner": false
+ },
+ {
+  "id": "978db26",
+  "elType": "container",
+  "settings": {
+   "flex_direction": "row",
+   "min_height": {
+    "unit": "vh",
+    "size": 59,
+    "sizes": []
+   },
+   "min_height_laptop": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_tablet": {
+    "unit": "vh",
+    "size": 15,
+    "sizes": []
+   },
+   "min_height_mobile": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "flex_align_items": "center",
+   "flex_gap": {
+    "column": "40",
+    "row": "40",
+    "isLinked": true,
+    "unit": "px",
+    "size": 40
+   },
+   "background_background": "classic",
+   "_title": "אודות",
+   "__globals__": {
+    "background_color": "globals/colors?id=primary"
+   },
+   "padding": {
+    "unit": "px",
+    "top": "45",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": false
+   },
+   "boxed_width_tablet": {
+    "unit": "%",
+    "size": 100,
+    "sizes": []
+   },
+   "boxed_width_mobile": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "flex_gap_tablet": {
+    "column": "0",
+    "row": "0",
+    "isLinked": false,
+    "unit": "px",
+    "size": 0
+   },
+   "flex_direction_tablet": "column"
+  },
+  "elements": [
+   {
+    "id": "27b2a19",
+    "elType": "widget",
+    "settings": {
+     "image": {
+      "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/עיכ.gif",
+      "id": 2141,
+      "size": "",
+      "alt": "",
+      "source": "library"
+     },
+     "height": {
+      "unit": "px",
+      "size": 352,
+      "sizes": []
+     },
+     "object-fit": "contain",
+     "_element_width": "initial",
+     "_element_custom_width": {
+      "unit": "%",
+      "size": 37,
+      "sizes": []
+     },
+     "_flex_align_self": "center",
+     "_title": "לוגו",
+     "width": {
+      "unit": "%",
+      "size": 100,
+      "sizes": []
+     },
+     "space": {
+      "unit": "%",
+      "size": 100,
+      "sizes": []
+     },
+     "_margin": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": true
+     },
+     "_padding": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": true
+     },
+     "_element_width_laptop": "initial",
+     "_element_custom_width_laptop": {
+      "unit": "px",
+      "size": 505.8
+     },
+     "_flex_size": "none",
+     "_margin_mobile": {
+      "unit": "px",
+      "top": "-172",
+      "right": "0",
+      "bottom": "-145",
+      "left": "0",
+      "isLinked": false
+     },
+     "width_tablet": {
+      "unit": "%",
+      "size": 100,
+      "sizes": []
+     },
+     "space_tablet": {
+      "unit": "%",
+      "size": 100,
+      "sizes": []
+     },
+     "height_tablet": {
+      "unit": "px",
+      "size": 141,
+      "sizes": []
+     },
+     "image_size": "full",
+     "space_mobile": {
+      "unit": "%",
+      "size": 100,
+      "sizes": []
+     },
+     "_element_custom_width_mobile": {
+      "unit": "%",
+      "size": 92,
+      "sizes": []
+     }
+    },
+    "elements": [],
+    "widgetType": "image"
+   },
+   {
+    "id": "673c0df",
+    "elType": "widget",
+    "settings": {
+     "_element_width": "initial",
+     "_element_custom_width": {
+      "unit": "%",
+      "size": 56,
+      "sizes": []
+     },
+     "__globals__": {
+      "text_color": "globals/colors?id=accent",
+      "typography_typography": ""
+     },
+     "editor": "<p><strong>היי,👋אני מיכל סיבוני,</strong> צלמת ילדים ומשפחה ומתמחה בNEW BORN מאחורי כל תמונה יש סיפור החיוך הראשון, שובבות של גיל שנה, או ההתרגשות של חלאקה ואני כאן כדי לעצור את הזמן ולשמור אותם איתכם לתמיד.</p><p>כל סשן אצלי מתחיל עם שיחת סטיילינג אישית, כדי שתגיעו הכי מוכנים, רגועים ובטוחים.😊אני מאמינה בצילום רגיש, סבלני וקשוב – כזה שהולך לפי הקצב של הילד אני כאן כדי להפוך את הרגעים שלכם לזיכרונות אומנותיים שילוו אותכם לאורך החיים🫶</p>",
+     "_title": "טקסט אודות",
+     "_margin": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": false
+     },
+     "_padding": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": true
+     },
+     "align_mobile": "right",
+     "typography_typography": "custom",
+     "typography_font_family": "TelAviv",
+     "typography_font_size": {
+      "unit": "px",
+      "size": 18,
+      "sizes": []
+     },
+     "typography_font_size_tablet": {
+      "unit": "px",
+      "size": 15,
+      "sizes": []
+     },
+     "typography_font_size_mobile": {
+      "unit": "px",
+      "size": 13,
+      "sizes": []
+     },
+     "typography_font_weight": "300",
+     "typography_line_height": {
+      "unit": "px",
+      "size": 30,
+      "sizes": []
+     },
+     "typography_line_height_mobile": {
+      "unit": "em",
+      "size": 1.4,
+      "sizes": []
+     },
+     "text_color": "#5A5A5A",
+     "_margin_mobile": {
+      "unit": "px",
+      "top": "0",
+      "right": "24",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": false
+     },
+     "_element_custom_width_mobile": {
+      "unit": "px",
+      "size": 313,
+      "sizes": []
+     },
+     "_flex_align_self_mobile": "center",
+     "_element_width_tablet": "initial",
+     "_element_custom_width_tablet": {
+      "unit": "%",
+      "size": 65,
+      "sizes": []
+     },
+     "_flex_align_self_tablet": "center"
+    },
+    "elements": [],
+    "widgetType": "text-editor"
+   }
+  ],
+  "isInner": false
+ },
+ {
+  "id": "382f3b0",
+  "elType": "container",
+  "settings": {
+   "flex_direction": "column",
+   "boxed_width": {
+    "unit": "%",
+    "size": 90,
+    "sizes": []
+   },
+   "boxed_width_laptop": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_tablet": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_mobile": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "min_height": {
+    "unit": "vh",
+    "size": 10,
+    "sizes": []
+   },
+   "min_height_laptop": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_tablet": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_mobile": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "flex_justify_content": "space-around",
+   "flex_align_items": "center",
+   "background_background": "classic",
+   "__globals__": {
+    "background_color": "globals/colors?id=primary"
+   },
+   "_title": "כותרת השירות הקסום",
+   "margin": {
+    "unit": "px",
+    "top": "0",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": false
+   },
+   "padding": {
+    "unit": "px",
+    "top": "40",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": false
+   }
+  },
+  "elements": [
+   {
+    "id": "924612a",
+    "elType": "widget",
+    "settings": {
+     "headline_style": "rotate",
+     "animation_type": "clip",
+     "before_text": "השירות",
+     "highlighted_text": "מדהים",
+     "rotating_text": "הקסום שלי\nהקסום שלי\nהקסום שלי\nהקסום שלי\nהקסום שלי\nהקסום שלי",
+     "_margin": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "40",
+      "left": "0",
+      "isLinked": false
+     },
+     "__globals__": {
+      "title_typography_typography": ""
+     },
+     "rotate_iteration_delay": 2000,
+     "title_typography_typography": "custom",
+     "title_typography_font_family": "TelAviv",
+     "title_typography_font_size": {
+      "unit": "px",
+      "size": 35,
+      "sizes": []
+     },
+     "title_typography_font_size_tablet": {
+      "unit": "px",
+      "size": 30,
+      "sizes": []
+     },
+     "title_typography_font_size_mobile": {
+      "unit": "px",
+      "size": 20,
+      "sizes": []
+     },
+     "title_typography_font_weight": "400",
+     "_margin_mobile": {
+      "unit": "px",
+      "top": "28",
+      "right": "28",
+      "bottom": "28",
+      "left": "28",
+      "isLinked": true
+     }
+    },
+    "elements": [],
+    "widgetType": "animated-headline"
+   }
+  ],
+  "isInner": false
+ },
+ {
+  "id": "140f235",
+  "elType": "container",
+  "settings": {
+   "flex_direction": "column",
+   "boxed_width": {
+    "unit": "%",
+    "size": 95,
+    "sizes": []
+   },
+   "boxed_width_laptop": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_tablet": {
+    "unit": "%",
+    "size": 100,
+    "sizes": []
+   },
+   "boxed_width_mobile": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "min_height": {
+    "unit": "vh",
+    "size": 45,
+    "sizes": []
+   },
+   "min_height_laptop": {
+    "unit": "rem",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_tablet": {
+    "unit": "rem",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_mobile": {
+    "unit": "rem",
+    "size": "",
+    "sizes": []
+   },
+   "flex_direction_laptop": "column",
+   "flex_justify_content_laptop": "space-around",
+   "flex_align_items_laptop": "center",
+   "flex_justify_content": "flex-start",
+   "background_background": "classic",
+   "__globals__": {
+    "background_color": "globals/colors?id=primary"
+   },
+   "_title": "עיגולים"
+  },
+  "elements": [
+   {
+    "id": "394293e",
+    "elType": "widget",
+    "settings": {
+     "_skin": "post_taxonomy",
+     "template_id": "1409",
+     "alternate_templates": [
+      {
+       "template_id": null,
+       "_id": "7fcbad3"
+      }
+     ],
+     "post_query_include": [
+      "authors"
+     ],
+     "post_taxonomy_query_filter_by": "manual_selection",
+     "post_taxonomy_posts_ids": [
+      "16",
+      "17",
+      "15"
+     ],
+     "pagination_page_limit": "5",
+     "pagination_prev_label": "הקודם",
+     "pagination_next_label": "הבא",
+     "text": "טען עוד",
+     "load_more_no_posts_custom_message": "אין יותר פוסטים להציג",
+     "nothing_found_message_text": "נראה שלא הצלחנו למצוא את מה שחיפשת.",
+     "column_gap": {
+      "unit": "em",
+      "size": 10,
+      "sizes": []
+     },
+     "column_gap_laptop": {
+      "unit": "em",
+      "size": "",
+      "sizes": []
+     },
+     "column_gap_tablet": {
+      "unit": "em",
+      "size": "",
+      "sizes": []
+     },
+     "column_gap_mobile": {
+      "unit": "em",
+      "size": "",
+      "sizes": []
+     },
+     "_background_hover_background": "classic",
+     "posts_per_page": 3,
+     "post_taxonomy_orderby": "term_id",
+     "post_taxonomy_order": "ASC",
+     "_flex_align_self_tablet": "center"
+    },
+    "elements": [],
+    "widgetType": "loop-grid"
+   },
+   {
+    "id": "2840461",
+    "elType": "widget",
+    "settings": {
+     "template_id": "1452",
+     "alternate_templates": [
+      {
+       "template_id": null,
+       "_id": "7fcbad3"
+      }
+     ],
+     "post_query_include": [
+      "authors"
+     ],
+     "post_taxonomy_query_filter_by": "manual_selection",
+     "post_taxonomy_posts_ids": [],
+     "pagination_page_limit": "5",
+     "pagination_prev_label": "הקודם",
+     "pagination_next_label": "הבא",
+     "text": "טען עוד",
+     "load_more_no_posts_custom_message": "אין יותר פוסטים להציג",
+     "nothing_found_message_text": "נראה שלא הצלחנו למצוא את מה שחיפשת.",
+     "column_gap": {
+      "unit": "em",
+      "size": 10,
+      "sizes": []
+     },
+     "column_gap_laptop": {
+      "unit": "em",
+      "size": "",
+      "sizes": []
+     },
+     "column_gap_tablet": {
+      "unit": "em",
+      "size": "",
+      "sizes": []
+     },
+     "column_gap_mobile": {
+      "unit": "em",
+      "size": "",
+      "sizes": []
+     },
+     "_background_hover_background": "classic",
+     "posts_per_page": 3,
+     "_flex_align_self": "center",
+     "columns": 2,
+     "post_query_post_type": "by_id",
+     "post_query_posts_ids": [
+      "53",
+      "514"
+     ],
+     "post_query_include_term_ids": [],
+     "post_taxonomy_query_post_type": "elementor_library_type",
+     "post_taxonomy_exclude_ids": [],
+     "row_gap": {
+      "unit": "px",
+      "size": 10,
+      "sizes": []
+     },
+     "_element_width": "initial",
+     "_element_custom_width": {
+      "unit": "%",
+      "size": 70,
+      "sizes": []
+     },
+     "_element_custom_width_laptop": {
+      "unit": "%",
+      "size": 75,
+      "sizes": []
+     },
+     "_element_custom_width_tablet": {
+      "unit": "%",
+      "size": 100,
+      "sizes": []
+     },
+     "_element_custom_width_mobile": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     }
+    },
+    "elements": [],
+    "widgetType": "loop-grid"
+   }
+  ],
+  "isInner": false
+ },
+ {
+  "id": "465c590",
+  "elType": "container",
+  "settings": {
+   "flex_direction": "row-reverse",
+   "content_width": "full",
+   "boxed_width": {
+    "unit": "%",
+    "size": 92,
+    "sizes": []
+   },
+   "boxed_width_laptop": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_tablet": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_mobile": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "min_height": {
+    "unit": "vh",
+    "size": 76,
+    "sizes": []
+   },
+   "min_height_laptop": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_tablet": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_mobile": {
+    "unit": "vh",
+    "size": 62,
+    "sizes": []
+   },
+   "background_background": "slideshow",
+   "__globals__": {
+    "background_color": "globals/colors?id=primary",
+    "background_hover_color": "",
+    "background_overlay_hover_color": ""
+   },
+   "background_slideshow_gallery": [
+    {
+     "id": 690,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2025/05/מטריף-scaled.jpg"
+    },
+    {
+     "id": 689,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2025/05/לוגו-scaled.jpg"
+    },
+    {
+     "id": 686,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2025/05/DSC06825-scaled.jpg"
+    },
+    {
+     "id": 684,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2025/05/DSC01673-scaled.jpg"
+    },
+    {
+     "id": 683,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2025/05/777-scaled.jpg"
+    },
+    {
+     "id": 682,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2025/05/ו-1-scaled.jpg"
+    },
+    {
+     "id": 681,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2025/05/DSC09013-1-scaled.jpg"
+    },
+    {
+     "id": 680,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2025/05/DSC02597-scaled.jpg"
+    },
+    {
+     "id": 679,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2025/05/DSC04088-scaled.jpg"
+    },
+    {
+     "id": 678,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2025/05/DSC02419-scaled.jpg"
+    },
+    {
+     "id": 1894,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/1-1-scaled.jpg"
+    },
+    {
+     "id": 1895,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/2-1-scaled.jpg"
+    },
+    {
+     "id": 1896,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04158_optimized-2-scaled.jpg"
+    },
+    {
+     "id": 1897,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/לוגו_optimized-1-scaled.jpg"
+    }
+   ],
+   "background_slideshow_slide_duration": 1000,
+   "background_overlay_hover_background": "classic",
+   "background_slideshow_background_size": "cover",
+   "background_slideshow_background_position": "center center",
+   "background_color": "#FBF7F3",
+   "background_hover_color": "#BF386000",
+   "background_overlay_hover_color": "#242424",
+   "flex_align_items": "center",
+   "_title": "גלריה",
+   "background_hover_background": "classic",
+   "flex_justify_content": "center",
+   "flex_gap": {
+    "column": "",
+    "row": "0",
+    "isLinked": false,
+    "unit": "px",
+    "size": null
+   },
+   "padding": {
+    "unit": "px",
+    "top": "0",
+    "right": "200",
+    "bottom": "0",
+    "left": "164",
+    "isLinked": false
+   },
+   "custom_css": "\nselector {\n  position: relative;\n}\n\nselector .lmn-slider-dots {\n  position: absolute;\n  top: 50%;\n  left: 30px;\n  transform: translateY(-50%);\n  display: flex;\n  flex-direction: column;\n  gap: 14px;\n  z-index: 10;\n}\n\nselector .lmn-slider-dots .dot {\n  width: 14px;\n  height: 14px;\n  border-radius: 50%;\n  background-color: #FBF7F3;\n  opacity: 0.45;\n  transition: all 0.3s ease;\n}\n\nselector .lmn-slider-dots .dot.active {\n  width: 18px;\n  height: 18px;\n  opacity: 1;\n}",
+   "padding_mobile": {
+    "unit": "px",
+    "top": "0",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": true
+   },
+   "hide_mobile": "hidden-mobile",
+   "background_slideshow_transition_duration": 2000
+  },
+  "elements": [
+   {
+    "id": "f1478ca",
+    "elType": "widget",
+    "settings": {
+     "html": "<style>\r\n  .lmn-slider-dots {\r\n    position: absolute;\r\n    top: 50%;\r\n    left: 30px;\r\n    transform: translateY(-50%);\r\n    display: flex;\r\n    flex-direction: column;\r\n    gap: 14px;\r\n    z-index: 10;\r\n  }\r\n\r\n  .lmn-slider-dots .dot {\r\n    width: 14px;\r\n    height: 14px;\r\n    border-radius: 50%;\r\n    background-color: #FBF7F3;\r\n    opacity: 0.45;\r\n    transition: all 0.3s ease;\r\n  }\r\n\r\n  .lmn-slider-dots .dot.active {\r\n    width: 18px;\r\n    height: 18px;\r\n    opacity: 1;\r\n  }\r\n</style>\r\n\r\n<div class=\"lmn-slider-dots\">\r\n  <span class=\"dot active\"></span>\r\n  <span class=\"dot\"></span>\r\n  <span class=\"dot\"></span>\r\n  <span class=\"dot\"></span>\r\n  <span class=\"dot\"></span>\r\n</div>\r\n\r\n<script>\r\n  /* מעבר בין נקודות כל 3 שניות - Code by LEMON SHLIF */\r\n  jQuery(document).ready(function($){\r\n    let dots = $('.lmn-slider-dots .dot');\r\n    let index = 0;\r\n\r\n    setInterval(function(){\r\n      dots.removeClass('active');\r\n      index = (index + 1) % dots.length;\r\n      dots.eq(index).addClass('active');\r\n    }, 2200);\r\n  });\r\n</script>\r\n"
+    },
+    "elements": [],
+    "widgetType": "html"
+   },
+   {
+    "id": "538cd0e",
+    "elType": "container",
+    "settings": {
+     "content_width": "full",
+     "boxed_width": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "boxed_width_laptop": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "boxed_width_tablet": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "boxed_width_mobile": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "min_height": {
+      "unit": "vh",
+      "size": 76,
+      "sizes": []
+     },
+     "min_height_laptop": {
+      "unit": "vh",
+      "size": "",
+      "sizes": []
+     },
+     "min_height_tablet": {
+      "unit": "vh",
+      "size": "",
+      "sizes": []
+     },
+     "min_height_mobile": {
+      "unit": "vh",
+      "size": "",
+      "sizes": []
+     },
+     "flex_direction": "row",
+     "flex_align_items": "center",
+     "custom_css": "selector {\r\n  background-color: transparent !important;\r\n  transition: background-color 0.4s ease;\r\n}\r\n\r\nselector .elementor-widget {\r\n  opacity: 0;\r\n  transition: opacity 0.4s ease;\r\n}\r\n\r\nselector:hover {\r\n  background-color: rgba(31, 30, 30, 0.82) !important; /* שקול ל-#1F1E1ED1 */\r\n}\r\n\r\nselector:hover .elementor-widget {\r\n  opacity: 1;\r\n}",
+     "background_background": "classic",
+     "background_hover_background": "classic",
+     "__globals__": {
+      "background_color": "globals/colors?id=8193ed9"
+     },
+     "width": {
+      "unit": "vw",
+      "size": 104,
+      "sizes": []
+     },
+     "width_tablet": {
+      "unit": "vw",
+      "size": "",
+      "sizes": []
+     },
+     "width_mobile": {
+      "unit": "vw",
+      "size": "",
+      "sizes": []
+     },
+     "_title": "במעבר עכבר",
+     "width_laptop": {
+      "unit": "em",
+      "size": 1280.4
+     },
+     "margin": {
+      "unit": "px",
+      "top": "0",
+      "right": "-90",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": false
+     },
+     "padding": {
+      "unit": "px",
+      "top": "62",
+      "right": "62",
+      "bottom": "62",
+      "left": "62",
+      "isLinked": true
+     },
+     "_flex_size": "none",
+     "presetTitle": "קונטיינר",
+     "presetIcon": "eicon-container",
+     "_element_width_laptop": "initial",
+     "background_color_b": "#181818",
+     "margin_mobile": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": true
+     },
+     "padding_mobile": {
+      "unit": "px",
+      "top": "74",
+      "right": "74",
+      "bottom": "74",
+      "left": "74",
+      "isLinked": true
+     }
+    },
+    "elements": [
+     {
+      "id": "3c1bf6f",
+      "elType": "widget",
+      "settings": {
+       "editor": "<p>כל תמונה מספרת סיפור. כאן תוכלו למצוא אוסף מצילומי הסטודיו והחוץ שלי, בהם תיעדתי את הרגעים הכי קסומים של ניו בורן, חלאקה, סמאש קייק, משפחות.</p>",
+       "column_gap": {
+        "unit": "px",
+        "size": 100,
+        "sizes": []
+       },
+       "align": "right",
+       "_margin": {
+        "unit": "px",
+        "top": "0",
+        "right": "0",
+        "bottom": "0",
+        "left": "0",
+        "isLinked": true
+       },
+       "_padding": {
+        "unit": "px",
+        "top": "0",
+        "right": "70",
+        "bottom": "9",
+        "left": "0",
+        "isLinked": false
+       },
+       "_element_width": "initial",
+       "_element_custom_width": {
+        "unit": "vw",
+        "size": 62,
+        "sizes": []
+       },
+       "_element_custom_width_laptop": {
+        "unit": "em",
+        "size": "",
+        "sizes": []
+       },
+       "_element_custom_width_tablet": {
+        "unit": "em",
+        "size": "",
+        "sizes": []
+       },
+       "_element_custom_width_mobile": {
+        "unit": "em",
+        "size": "",
+        "sizes": []
+       },
+       "_flex_align_self": "flex-end",
+       "__globals__": {
+        "typography_typography": "globals/typography?id=7a50880",
+        "text_color": "globals/colors?id=primary",
+        "link_hover_color": "globals/colors?id=8193ed9"
+       },
+       "align_mobile": "right"
+      },
+      "elements": [],
+      "widgetType": "text-editor"
+     },
+     {
+      "id": "947e186",
+      "elType": "widget",
+      "settings": {
+       "text": "לגלריה המלאה >",
+       "align": "left",
+       "border_border": "solid",
+       "border_width": {
+        "unit": "px",
+        "top": "1",
+        "right": "1",
+        "bottom": "1",
+        "left": "1",
+        "isLinked": true
+       },
+       "border_radius": {
+        "unit": "px",
+        "top": "40",
+        "right": "40",
+        "bottom": "40",
+        "left": "40",
+        "isLinked": true
+       },
+       "text_padding": {
+        "unit": "px",
+        "top": "15",
+        "right": "45",
+        "bottom": "15",
+        "left": "45",
+        "isLinked": false
+       },
+       "_margin": {
+        "unit": "px",
+        "top": "0",
+        "right": "0",
+        "bottom": "0",
+        "left": "0",
+        "isLinked": true
+       },
+       "_title": "כפתור קאבר ראשי",
+       "__globals__": {
+        "typography_typography": "globals/typography?id=370cf49",
+        "background_color": "globals/colors?id=8193ed9",
+        "border_color": "globals/colors?id=primary",
+        "button_text_color": "globals/colors?id=primary",
+        "hover_color": "globals/colors?id=primary",
+        "button_background_hover_color": "",
+        "button_hover_border_color": "globals/colors?id=secondary"
+       },
+       "_flex_align_self": "flex-end",
+       "link": {
+        "url": "",
+        "is_external": "",
+        "nofollow": "",
+        "custom_attributes": ""
+       },
+       "_padding": {
+        "unit": "px",
+        "top": "0",
+        "right": "0",
+        "bottom": "20",
+        "left": "69",
+        "isLinked": false
+       },
+       "_element_width": "initial",
+       "_element_custom_width": {
+        "unit": "%",
+        "size": 80,
+        "sizes": []
+       },
+       "typography_typography": "custom",
+       "typography_font_family": "TelAviv",
+       "typography_font_size": {
+        "unit": "px",
+        "size": 20,
+        "sizes": []
+       },
+       "typography_font_weight": "400",
+       "button_text_color": "#FBF7F3",
+       "background_color": "#BF386000",
+       "button_hover_border_color": "#BF3860",
+       "border_color": "#BF386000",
+       "__dynamic__": {
+        "link": "[elementor-tag id=\"336f4a2\" name=\"internal-url\" settings=\"%7B%22type%22%3A%22post%22%2C%22taxonomy_id%22%3A%2218%22%2C%22post_id%22%3A%222165%22%7D\"]"
+       },
+       "_element_custom_width_mobile": {
+        "unit": "%",
+        "size": 100,
+        "sizes": []
+       }
+      },
+      "elements": [],
+      "widgetType": "button"
+     }
+    ],
+    "isInner": true
+   }
+  ],
+  "isInner": false
+ },
+ {
+  "id": "55f9fc8",
+  "elType": "container",
+  "settings": {
+   "min_height": {
+    "unit": "vh",
+    "size": 0,
+    "sizes": []
+   },
+   "min_height_laptop": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_tablet": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_mobile": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   }
+  },
+  "elements": [
+   {
+    "id": "efe2f55",
+    "elType": "widget",
+    "settings": {
+     "text": "לגלריה המלאה >",
+     "align": "center",
+     "border_border": "solid",
+     "border_width": {
+      "unit": "px",
+      "top": "1",
+      "right": "1",
+      "bottom": "1",
+      "left": "1",
+      "isLinked": true
+     },
+     "border_radius": {
+      "unit": "px",
+      "top": "40",
+      "right": "40",
+      "bottom": "40",
+      "left": "40",
+      "isLinked": true
+     },
+     "text_padding": {
+      "unit": "px",
+      "top": "15",
+      "right": "45",
+      "bottom": "15",
+      "left": "45",
+      "isLinked": false
+     },
+     "_flex_align_self": "center",
+     "__globals__": {
+      "typography_typography": "globals/typography?id=370cf49",
+      "button_text_color": "globals/colors?id=accent",
+      "background_color": "globals/colors?id=8193ed9",
+      "border_color": "globals/colors?id=accent",
+      "hover_color": "globals/colors?id=secondary",
+      "button_hover_border_color": "globals/colors?id=secondary"
+     },
+     "_title": "כפתור חבילות",
+     "_animation": "slideInDown",
+     "link": {
+      "url": "",
+      "is_external": "",
+      "nofollow": "",
+      "custom_attributes": ""
+     },
+     "_padding": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "57",
+      "left": "0",
+      "isLinked": false
+     },
+     "hide_desktop": "hidden-desktop",
+     "hide_laptop": "hidden-laptop",
+     "hide_tablet": "hidden-tablet",
+     "__dynamic__": {
+      "link": "[elementor-tag id=\"2a7121a\" name=\"internal-url\" settings=\"%7B%22type%22%3A%22post%22%2C%22post_id%22%3A%222165%22%7D\"]"
+     }
+    },
+    "elements": [],
+    "widgetType": "button"
+   }
+  ],
+  "isInner": false
+ },
+ {
+  "id": "941d63f",
+  "elType": "container",
+  "settings": {
+   "flex_direction": "column",
+   "width": {
+    "unit": "%",
+    "size": 92,
+    "sizes": []
+   },
+   "boxed_width": {
+    "unit": "%",
+    "size": 92,
+    "sizes": []
+   },
+   "boxed_width_laptop": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_tablet": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_mobile": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "background_background": "classic",
+   "_title": "חבילות",
+   "__globals__": {
+    "background_color": "globals/colors?id=primary"
+   },
+   "min_height": {
+    "unit": "vh",
+    "size": 68,
+    "sizes": []
+   },
+   "min_height_laptop": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_tablet": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_mobile": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "margin": {
+    "unit": "px",
+    "top": "-20",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": false
+   }
+  },
+  "elements": [
+   {
+    "id": "2485606",
+    "elType": "container",
+    "settings": {
+     "content_width": "full",
+     "flex_gap": {
+      "column": "0",
+      "row": "0",
+      "isLinked": true,
+      "unit": "px",
+      "size": 0
+     },
+     "padding": {
+      "unit": "px",
+      "top": "40",
+      "right": "0",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": false
+     }
+    },
+    "elements": [
+     {
+      "id": "79ae57c",
+      "elType": "widget",
+      "settings": {
+       "headline_style": "rotate",
+       "animation_type": "clip",
+       "before_text": "חבילות",
+       "highlighted_text": "מדהים",
+       "rotating_text": "New born",
+       "_margin": {
+        "unit": "px",
+        "top": "40",
+        "right": "0",
+        "bottom": "40",
+        "left": "0",
+        "isLinked": false
+       },
+       "__globals__": {
+        "title_typography_typography": ""
+       },
+       "rotate_iteration_delay": 2000,
+       "title_typography_typography": "custom",
+       "title_typography_font_family": "TelAviv",
+       "title_typography_font_size": {
+        "unit": "px",
+        "size": 35,
+        "sizes": []
+       },
+       "title_typography_font_size_tablet": {
+        "unit": "px",
+        "size": 30,
+        "sizes": []
+       },
+       "title_typography_font_size_mobile": {
+        "unit": "px",
+        "size": 20,
+        "sizes": []
+       },
+       "title_typography_font_weight": "400"
+      },
+      "elements": [],
+      "widgetType": "animated-headline"
+     },
+     {
+      "id": "1ca39ef",
+      "elType": "container",
+      "settings": {
+       "width": {
+        "unit": "%",
+        "size": 91,
+        "sizes": []
+       },
+       "boxed_width": {
+        "unit": "%",
+        "size": 77,
+        "sizes": []
+       },
+       "boxed_width_laptop": {
+        "unit": "%",
+        "size": "",
+        "sizes": []
+       },
+       "boxed_width_tablet": {
+        "unit": "%",
+        "size": 98,
+        "sizes": []
+       },
+       "boxed_width_mobile": {
+        "unit": "%",
+        "size": "",
+        "sizes": []
+       },
+       "min_height": {
+        "unit": "vh",
+        "size": 29,
+        "sizes": []
+       },
+       "min_height_laptop": {
+        "unit": "vh",
+        "size": "",
+        "sizes": []
+       },
+       "min_height_tablet": {
+        "unit": "vh",
+        "size": "",
+        "sizes": []
+       },
+       "min_height_mobile": {
+        "unit": "vh",
+        "size": "",
+        "sizes": []
+       },
+       "flex_direction": "row",
+       "flex_justify_content": "space-evenly",
+       "flex_align_items": "center",
+       "flex_gap": {
+        "column": "70",
+        "row": "70",
+        "isLinked": true,
+        "unit": "px",
+        "size": 70
+       },
+       "flex_justify_content_tablet": "space-evenly"
+      },
+      "elements": [
+       {
+        "id": "7769b46",
+        "elType": "container",
+        "settings": {
+         "content_width": "full",
+         "width": {
+          "unit": "%",
+          "size": 25,
+          "sizes": []
+         },
+         "min_height": {
+          "unit": "px",
+          "size": 313,
+          "sizes": []
+         },
+         "width_tablet": {
+          "unit": "%",
+          "size": 100,
+          "sizes": []
+         },
+         "width_mobile": {
+          "unit": "%",
+          "size": "",
+          "sizes": []
+         },
+         "motion_fx_translateY_effect": "yes",
+         "motion_fx_translateY_speed": {
+          "unit": "px",
+          "size": 4.1,
+          "sizes": []
+         }
+        },
+        "elements": [
+         {
+          "id": "e654497",
+          "elType": "widget",
+          "settings": {
+           "selected_icon": {
+            "value": "",
+            "library": ""
+           },
+           "title_text_a": "",
+           "description_text_a": "",
+           "background_a_background": "classic",
+           "background_a_image": {
+            "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/Group-626227.png",
+            "id": 1087,
+            "size": "",
+            "alt": "",
+            "source": "library"
+           },
+           "background_a_position": "center center",
+           "background_a_repeat": "no-repeat",
+           "background_a_size": "contain",
+           "title_text_b": "",
+           "description_text_b": "",
+           "button_text": "",
+           "background_b_background": "classic",
+           "background_b_image": {
+            "url": "https://michalsiboni.co.il/wp-content/uploads/2025/07/Group-626219-1.png",
+            "id": 2508,
+            "size": "",
+            "alt": "",
+            "source": "library"
+           },
+           "background_b_position": "center center",
+           "background_b_repeat": "no-repeat",
+           "background_b_size": "contain",
+           "height": {
+            "unit": "vh",
+            "size": 34,
+            "sizes": []
+           },
+           "height_laptop": {
+            "unit": "vh",
+            "size": "",
+            "sizes": []
+           },
+           "height_tablet": {
+            "unit": "vh",
+            "size": "",
+            "sizes": []
+           },
+           "height_mobile": {
+            "unit": "vh",
+            "size": "",
+            "sizes": []
+           },
+           "border_radius": {
+            "unit": "%",
+            "size": "",
+            "sizes": []
+           },
+           "flip_effect": "fade",
+           "__globals__": {
+            "background_a_color": "globals/colors?id=8193ed9",
+            "background_overlay_a": "globals/colors?id=8193ed9",
+            "background_b_color": "globals/colors?id=8193ed9",
+            "background_overlay_b": "globals/colors?id=8193ed9"
+           },
+           "_animation": "rotateInDownRight"
+          },
+          "elements": [],
+          "widgetType": "flip-box"
+         },
+         {
+          "id": "0f35b53",
+          "elType": "widget",
+          "settings": {
+           "title": "חבילת מיני",
+           "align": "center",
+           "__globals__": {
+            "typography_typography": "globals/typography?id=accent",
+            "title_color": "globals/colors?id=secondary"
+           }
+          },
+          "elements": [],
+          "widgetType": "heading"
+         }
+        ],
+        "isInner": true
+       },
+       {
+        "id": "0502631",
+        "elType": "container",
+        "settings": {
+         "content_width": "full",
+         "width": {
+          "unit": "%",
+          "size": 25,
+          "sizes": []
+         },
+         "min_height": {
+          "unit": "px",
+          "size": 313,
+          "sizes": []
+         },
+         "width_tablet": {
+          "unit": "%",
+          "size": 100,
+          "sizes": []
+         },
+         "width_mobile": {
+          "unit": "%",
+          "size": "",
+          "sizes": []
+         },
+         "animation": "none"
+        },
+        "elements": [
+         {
+          "id": "94b2dc2",
+          "elType": "widget",
+          "settings": {
+           "selected_icon": {
+            "value": "",
+            "library": ""
+           },
+           "title_text_a": "",
+           "description_text_a": "",
+           "background_a_background": "classic",
+           "background_a_image": {
+            "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/Group-626228.png",
+            "id": 1089,
+            "size": "",
+            "alt": "",
+            "source": "library"
+           },
+           "background_a_position": "center center",
+           "background_a_repeat": "no-repeat",
+           "background_a_size": "contain",
+           "title_text_b": "",
+           "description_text_b": "",
+           "button_text": "",
+           "background_b_background": "classic",
+           "background_b_image": {
+            "url": "https://michalsiboni.co.il/wp-content/uploads/2025/07/Group-626268.png",
+            "id": 2515,
+            "size": "",
+            "alt": "",
+            "source": "library"
+           },
+           "background_b_position": "center center",
+           "background_b_repeat": "no-repeat",
+           "background_b_size": "contain",
+           "height": {
+            "unit": "vh",
+            "size": 34,
+            "sizes": []
+           },
+           "height_laptop": {
+            "unit": "vh",
+            "size": "",
+            "sizes": []
+           },
+           "height_tablet": {
+            "unit": "vh",
+            "size": "",
+            "sizes": []
+           },
+           "height_mobile": {
+            "unit": "vh",
+            "size": "",
+            "sizes": []
+           },
+           "border_radius": {
+            "unit": "%",
+            "size": "",
+            "sizes": []
+           },
+           "flip_effect": "fade",
+           "__globals__": {
+            "background_a_color": "globals/colors?id=8193ed9",
+            "background_overlay_a": "globals/colors?id=8193ed9",
+            "background_b_color": "globals/colors?id=8193ed9",
+            "background_overlay_b": "globals/colors?id=8193ed9"
+           },
+           "_animation": "rotateInDownRight",
+           "_animation_delay": 300
+          },
+          "elements": [],
+          "widgetType": "flip-box"
+         },
+         {
+          "id": "edf9f2f",
+          "elType": "widget",
+          "settings": {
+           "title": " חבילה מפנקת",
+           "align": "center",
+           "_element_width": "initial",
+           "_element_custom_width": {
+            "unit": "%",
+            "size": 100,
+            "sizes": []
+           },
+           "__globals__": {
+            "typography_typography": "globals/typography?id=accent",
+            "title_color": "globals/colors?id=secondary"
+           }
+          },
+          "elements": [],
+          "widgetType": "heading"
+         }
+        ],
+        "isInner": true
+       },
+       {
+        "id": "b89c08e",
+        "elType": "container",
+        "settings": {
+         "content_width": "full",
+         "width": {
+          "unit": "%",
+          "size": 25,
+          "sizes": []
+         },
+         "min_height": {
+          "unit": "px",
+          "size": 313,
+          "sizes": []
+         },
+         "width_tablet": {
+          "unit": "%",
+          "size": 100,
+          "sizes": []
+         },
+         "width_mobile": {
+          "unit": "%",
+          "size": "",
+          "sizes": []
+         }
+        },
+        "elements": [
+         {
+          "id": "300ba05",
+          "elType": "widget",
+          "settings": {
+           "selected_icon": {
+            "value": "",
+            "library": ""
+           },
+           "title_text_a": "",
+           "description_text_a": "",
+           "background_a_background": "classic",
+           "background_a_image": {
+            "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/Group-626225.png",
+            "id": 1076,
+            "size": "",
+            "alt": "",
+            "source": "library"
+           },
+           "background_a_position": "center center",
+           "background_a_repeat": "no-repeat",
+           "background_a_size": "contain",
+           "title_text_b": "",
+           "description_text_b": "",
+           "button_text": "",
+           "background_b_background": "classic",
+           "background_b_image": {
+            "url": "https://michalsiboni.co.il/wp-content/uploads/2025/07/Group-626226.png",
+            "id": 2519,
+            "size": "",
+            "alt": "",
+            "source": "library"
+           },
+           "background_b_position": "center center",
+           "background_b_repeat": "no-repeat",
+           "background_b_size": "contain",
+           "height": {
+            "unit": "vh",
+            "size": 34,
+            "sizes": []
+           },
+           "height_laptop": {
+            "unit": "vh",
+            "size": "",
+            "sizes": []
+           },
+           "height_tablet": {
+            "unit": "vh",
+            "size": "",
+            "sizes": []
+           },
+           "height_mobile": {
+            "unit": "vh",
+            "size": "",
+            "sizes": []
+           },
+           "border_radius": {
+            "unit": "%",
+            "size": "",
+            "sizes": []
+           },
+           "flip_effect": "fade",
+           "__globals__": {
+            "background_a_color": "globals/colors?id=8193ed9",
+            "background_overlay_a": "globals/colors?id=8193ed9",
+            "background_b_color": "globals/colors?id=8193ed9",
+            "background_overlay_b": "globals/colors?id=8193ed9"
+           },
+           "_animation": "rotateInDownRight",
+           "_animation_delay": 600
+          },
+          "elements": [],
+          "widgetType": "flip-box"
+         },
+         {
+          "id": "6960218",
+          "elType": "widget",
+          "settings": {
+           "title": "חבילה חלומית",
+           "align": "center",
+           "__globals__": {
+            "typography_typography": "globals/typography?id=accent",
+            "title_color": "globals/colors?id=secondary"
+           }
+          },
+          "elements": [],
+          "widgetType": "heading"
+         }
+        ],
+        "isInner": true
+       }
+      ],
+      "isInner": true
+     }
+    ],
+    "isInner": true
+   },
+   {
+    "id": "5661605",
+    "elType": "container",
+    "settings": {
+     "content_width": "full",
+     "flex_gap": {
+      "column": "0",
+      "row": "0",
+      "isLinked": true,
+      "unit": "px",
+      "size": 0
+     }
+    },
+    "elements": [
+     {
+      "id": "5120ea3",
+      "elType": "widget",
+      "settings": {
+       "text": "מעונינים בחבילה אחרת? דברו איתי",
+       "align": "center",
+       "border_border": "solid",
+       "border_width": {
+        "unit": "px",
+        "top": "1",
+        "right": "1",
+        "bottom": "1",
+        "left": "1",
+        "isLinked": true
+       },
+       "border_radius": {
+        "unit": "px",
+        "top": "40",
+        "right": "40",
+        "bottom": "40",
+        "left": "40",
+        "isLinked": true
+       },
+       "text_padding": {
+        "unit": "px",
+        "top": "15",
+        "right": "45",
+        "bottom": "15",
+        "left": "45",
+        "isLinked": false
+       },
+       "_flex_align_self": "center",
+       "__globals__": {
+        "typography_typography": "globals/typography?id=370cf49",
+        "button_text_color": "globals/colors?id=accent",
+        "background_color": "globals/colors?id=8193ed9",
+        "border_color": "globals/colors?id=accent",
+        "hover_color": "globals/colors?id=secondary",
+        "button_hover_border_color": "globals/colors?id=secondary"
+       },
+       "_title": "כפתור חבילות",
+       "_animation": "slideInDown",
+       "link": {
+        "url": "#eder",
+        "is_external": "",
+        "nofollow": "",
+        "custom_attributes": ""
+       },
+       "_padding": {
+        "unit": "px",
+        "top": "0",
+        "right": "0",
+        "bottom": "57",
+        "left": "0",
+        "isLinked": false
+       }
+      },
+      "elements": [],
+      "widgetType": "button"
+     }
+    ],
+    "isInner": true
+   }
+  ],
+  "isInner": false
+ },
+ {
+  "id": "f006f8f",
+  "elType": "container",
+  "settings": {
+   "flex_direction": "row",
+   "boxed_width": {
+    "unit": "%",
+    "size": 97,
+    "sizes": []
+   },
+   "boxed_width_laptop": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_tablet": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_mobile": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "min_height": {
+    "unit": "vh",
+    "size": 40,
+    "sizes": []
+   },
+   "min_height_laptop": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_tablet": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_mobile": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "background_background": "classic",
+   "_title": "ניוזליטר",
+   "__globals__": {
+    "background_color": "globals/colors?id=primary",
+    "border_color": "globals/colors?id=accent"
+   },
+   "flex_justify_content": "space-around",
+   "margin": {
+    "unit": "px",
+    "top": "0",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": false
+   },
+   "padding": {
+    "unit": "px",
+    "top": "0",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": false
+   },
+   "background_overlay_background": "classic",
+   "border_width": {
+    "unit": "px",
+    "top": "1",
+    "right": "0",
+    "bottom": "1",
+    "left": "0",
+    "isLinked": false
+   },
+   "border_radius": {
+    "unit": "px",
+    "top": "0",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": true
+   }
+  },
+  "elements": [
+   {
+    "id": "c4abd92",
+    "elType": "container",
+    "settings": {
+     "content_width": "full",
+     "width": {
+      "unit": "%",
+      "size": 90,
+      "sizes": []
+     },
+     "flex_direction": "row",
+     "flex_justify_content": "space-around",
+     "border_border": "solid",
+     "border_width": {
+      "unit": "px",
+      "top": "1",
+      "right": "1",
+      "bottom": "1",
+      "left": "1",
+      "isLinked": true
+     },
+     "margin": {
+      "unit": "px",
+      "top": "40",
+      "right": "0",
+      "bottom": "40",
+      "left": "0",
+      "isLinked": false
+     }
+    },
+    "elements": [
+     {
+      "id": "0f542b3",
+      "elType": "widget",
+      "settings": {
+       "editor": "<p>רוצה להתעדכן<br />בכל מה שחדש?</p><h5>הרשמי עכשיו לניוזלטר שלי ותתעדכני ראשונה</h5>",
+       "column_gap": {
+        "unit": "px",
+        "size": 0,
+        "sizes": []
+       },
+       "align": "right",
+       "paragraph_spacing": {
+        "unit": "px",
+        "size": 0,
+        "sizes": []
+       },
+       "_margin": {
+        "unit": "px",
+        "top": "0",
+        "right": "0",
+        "bottom": "0",
+        "left": "0",
+        "isLinked": true
+       },
+       "_padding": {
+        "unit": "px",
+        "top": "0",
+        "right": "0",
+        "bottom": "0",
+        "left": "0",
+        "isLinked": true
+       },
+       "_flex_align_self": "center",
+       "__globals__": {
+        "typography_typography": ""
+       },
+       "_title": "כותרת ניוזליטר",
+       "typography_typography": "custom",
+       "typography_font_family": "TelAviv",
+       "typography_font_size": {
+        "unit": "px",
+        "size": 35,
+        "sizes": []
+       },
+       "typography_font_size_tablet": {
+        "unit": "px",
+        "size": 30,
+        "sizes": []
+       },
+       "typography_font_size_mobile": {
+        "unit": "px",
+        "size": 21,
+        "sizes": []
+       },
+       "typography_font_weight": "400"
+      },
+      "elements": [],
+      "widgetType": "text-editor"
+     },
+     {
+      "id": "ae05b0a",
+      "elType": "widget",
+      "settings": {
+       "form_name": "טופס חדש",
+       "form_fields": [
+        {
+         "custom_id": "name",
+         "placeholder": "שם",
+         "dynamic": {
+          "active": true
+         },
+         "_id": "eda5013",
+         "width": "50"
+        },
+        {
+         "custom_id": "email",
+         "field_type": "email",
+         "required": "true",
+         "placeholder": "אימייל",
+         "_id": "24e120c",
+         "width": "50"
+        }
+       ],
+       "step_next_label": "הבא",
+       "step_previous_label": "הקודם",
+       "button_text": "רוצה להרשם >",
+       "email_to": "M0548529277@GMAIL.COM",
+       "email_subject": "הודעה חדשה מאת \"מיכל סיבוני\"",
+       "email_content": "[all-fields]",
+       "email_from": "email@michalsiboni.co.il",
+       "email_from_name": "מיכל סיבוני",
+       "email_to_2": "M0548529277@GMAIL.COM",
+       "email_subject_2": "הודעה חדשה מאת \"מיכל סיבוני\"",
+       "email_content_2": "[all-fields]",
+       "email_from_2": "email@michalsiboni.co.il",
+       "email_from_name_2": "מיכל סיבוני",
+       "email_reply_to_2": "M0548529277@GMAIL.COM",
+       "activecampaign_fields_map": [],
+       "convertkit_fields_map": [],
+       "drip_fields_map": [],
+       "getresponse_fields_map": [],
+       "mailchimp_fields_map": [],
+       "mailerlite_fields_map": [],
+       "success_message": "הטופס נשלח בהצלחה.",
+       "error_message": "שליחת הטופס נכשלה בגלל שגיאה.",
+       "server_message": "שליחת הטופס נכשלה בגלל שגיאת שרת.",
+       "invalid_message": "שליחת הטופס נכשלה בגלל שהטופס לא תקין.",
+       "required_field_message": "שדה זה הוא שדה חובה.",
+       "field_border_width": {
+        "unit": "px",
+        "top": "0",
+        "right": "0",
+        "bottom": "1",
+        "left": "0",
+        "isLinked": false
+       },
+       "field_border_radius": {
+        "unit": "px",
+        "top": "0",
+        "right": "0",
+        "bottom": "0",
+        "left": "0",
+        "isLinked": true
+       },
+       "button_border_border": "solid",
+       "button_border_width": {
+        "unit": "px",
+        "top": "1",
+        "right": "1",
+        "bottom": "1",
+        "left": "1",
+        "isLinked": true
+       },
+       "button_border_radius": {
+        "unit": "px",
+        "top": "40",
+        "right": "40",
+        "bottom": "40",
+        "left": "40",
+        "isLinked": true
+       },
+       "button_text_padding": {
+        "unit": "px",
+        "top": "15",
+        "right": "45",
+        "bottom": "15",
+        "left": "45",
+        "isLinked": false
+       },
+       "_flex_align_self": "center",
+       "_flex_order": "end",
+       "__globals__": {
+        "label_color": "globals/colors?id=accent",
+        "field_text_color": "globals/colors?id=accent",
+        "field_typography_typography": "globals/typography?id=7a50880",
+        "field_background_color": "globals/colors?id=8193ed9",
+        "field_border_color": "globals/colors?id=text",
+        "button_typography_typography": "",
+        "button_background_color": "globals/colors?id=8193ed9",
+        "button_text_color": "globals/colors?id=accent",
+        "previous_button_text_color": "globals/colors?id=text",
+        "button_hover_color": "globals/colors?id=text",
+        "button_hover_border_color": "globals/colors?id=text"
+       },
+       "column_gap": {
+        "unit": "px",
+        "size": 47,
+        "sizes": []
+       },
+       "row_gap": {
+        "unit": "px",
+        "size": 25,
+        "sizes": []
+       },
+       "button_align": "start",
+       "label_color": "#5A5A5A",
+       "field_text_color": "#5A5A5A",
+       "field_typography_typography": "custom",
+       "field_typography_font_family": "TelAviv",
+       "field_typography_font_size": {
+        "unit": "px",
+        "size": 18,
+        "sizes": []
+       },
+       "field_typography_font_size_tablet": {
+        "unit": "px",
+        "size": 15,
+        "sizes": []
+       },
+       "field_typography_font_weight": "300",
+       "field_typography_line_height": {
+        "unit": "px",
+        "size": 30,
+        "sizes": []
+       },
+       "field_background_color": "#BF386000",
+       "field_border_color": "#906833",
+       "button_typography_typography": "custom",
+       "button_typography_font_family": "TelAviv",
+       "button_typography_font_size": {
+        "unit": "px",
+        "size": 20,
+        "sizes": []
+       },
+       "button_typography_font_size_tablet": {
+        "unit": "px",
+        "size": 14,
+        "sizes": []
+       },
+       "button_typography_font_size_mobile": {
+        "unit": "px",
+        "size": 17,
+        "sizes": []
+       },
+       "button_typography_font_weight": "400",
+       "button_background_color": "#BF386000",
+       "button_text_color": "#5A5A5A",
+       "previous_button_text_color": "#906833",
+       "button_hover_color": "#906833",
+       "button_hover_border_color": "#906833"
+      },
+      "elements": [],
+      "widgetType": "form"
+     }
+    ],
+    "isInner": true
+   }
+  ],
+  "isInner": false
+ },
+ {
+  "id": "f5c40c5",
+  "elType": "container",
+  "settings": {
+   "boxed_width": {
+    "unit": "%",
+    "size": 92,
+    "sizes": []
+   },
+   "boxed_width_laptop": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_tablet": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_mobile": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "min_height": {
+    "unit": "vh",
+    "size": 70,
+    "sizes": []
+   },
+   "min_height_laptop": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_tablet": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_mobile": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "background_background": "classic",
+   "__globals__": {
+    "background_color": "globals/colors?id=primary"
+   },
+   "_title": "המלצות",
+   "margin": {
+    "unit": "px",
+    "top": "0",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": false
+   },
+   "padding": {
+    "unit": "px",
+    "top": "40",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": false
+   }
+  },
+  "elements": [
+   {
+    "id": "a3cc8f6",
+    "elType": "widget",
+    "settings": {
+     "template_id": 319,
+     "post_query_include": [
+      "terms"
+     ],
+     "post_query_include_term_ids": [
+      "11"
+     ],
+     "posts_per_page": 5,
+     "slides_to_show": "1",
+     "slides_to_scroll": "2",
+     "arrows": "",
+     "dots_gap": {
+      "unit": "px",
+      "size": 9,
+      "sizes": []
+     },
+     "dots_size": {
+      "unit": "px",
+      "size": 15,
+      "sizes": []
+     },
+     "_element_width": "initial",
+     "_element_custom_width": {
+      "unit": "%",
+      "size": 45,
+      "sizes": []
+     },
+     "_flex_align_self": "center",
+     "dots_pagination_spacing": {
+      "unit": "px",
+      "size": 0,
+      "sizes": []
+     },
+     "_margin": {
+      "unit": "%",
+      "top": "5",
+      "right": "0",
+      "bottom": "5",
+      "left": "0",
+      "isLinked": false
+     },
+     "__globals__": {
+      "dots_normal_color": "globals/colors?id=accent"
+     },
+     "dots_pagination_spacing_laptop": {
+      "unit": "em",
+      "size": "",
+      "sizes": []
+     },
+     "dots_pagination_spacing_tablet": {
+      "unit": "em",
+      "size": "",
+      "sizes": []
+     },
+     "dots_pagination_spacing_mobile": {
+      "unit": "em",
+      "size": "",
+      "sizes": []
+     },
+     "_padding": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": false
+     },
+     "_element_custom_width_tablet": {
+      "unit": "%",
+      "size": 100,
+      "sizes": []
+     },
+     "_element_custom_width_mobile": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_margin_laptop": {
+      "unit": "%",
+      "top": "",
+      "right": "",
+      "bottom": "",
+      "left": "",
+      "isLinked": true
+     },
+     "_margin_tablet": {
+      "unit": "%",
+      "top": "",
+      "right": "",
+      "bottom": "",
+      "left": "",
+      "isLinked": true
+     },
+     "_margin_mobile": {
+      "unit": "%",
+      "top": "",
+      "right": "",
+      "bottom": "",
+      "left": "",
+      "isLinked": true
+     },
+     "dots_position": "inside",
+     "slides_to_show_laptop": "2",
+     "_element_width_laptop": "initial"
+    },
+    "elements": [],
+    "widgetType": "loop-carousel"
+   }
+  ],
+  "isInner": false
+ },
+ {
+  "id": "d98264a",
+  "elType": "container",
+  "settings": {
+   "flex_gap": {
+    "column": "0",
+    "row": "0",
+    "isLinked": true,
+    "unit": "px",
+    "size": 0
+   },
+   "padding": {
+    "unit": "px",
+    "top": "60",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": false
+   },
+   "width": {
+    "unit": "%",
+    "size": 77,
+    "sizes": []
+   },
+   "min_height": {
+    "unit": "vh",
+    "size": 100,
+    "sizes": []
+   },
+   "min_height_laptop": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_tablet": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_mobile": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "background_background": "classic",
+   "__globals__": {
+    "background_color": "globals/colors?id=primary"
+   },
+   "_title": "בלוג"
+  },
+  "elements": [
+   {
+    "id": "c40f579",
+    "elType": "widget",
+    "settings": {
+     "headline_style": "rotate",
+     "animation_type": "clip",
+     "before_text": "מאמרים",
+     "highlighted_text": "מדהים",
+     "rotating_text": "אחרונים\nאחרונים\nאחרונים\nאחרונים\nאחרונים\nאחרונים",
+     "_margin": {
+      "unit": "px",
+      "top": "40",
+      "right": "0",
+      "bottom": "40",
+      "left": "0",
+      "isLinked": false
+     },
+     "__globals__": {
+      "title_typography_typography": ""
+     },
+     "rotate_iteration_delay": 2000,
+     "title_typography_typography": "custom",
+     "title_typography_font_family": "TelAviv",
+     "title_typography_font_size": {
+      "unit": "px",
+      "size": 35,
+      "sizes": []
+     },
+     "title_typography_font_size_tablet": {
+      "unit": "px",
+      "size": 30,
+      "sizes": []
+     },
+     "title_typography_font_size_mobile": {
+      "unit": "px",
+      "size": 20,
+      "sizes": []
+     },
+     "title_typography_font_weight": "400"
+    },
+    "elements": [],
+    "widgetType": "animated-headline"
+   },
+   {
+    "id": "b2d332b",
+    "elType": "widget",
+    "settings": {
+     "template_id": "1023",
+     "alternate_templates": [
+      {
+       "template_id": null,
+       "_id": "3a059c6"
+      }
+     ],
+     "post_query_post_type": "blog",
+     "pagination_page_limit": "5",
+     "pagination_prev_label": "הקודם",
+     "pagination_next_label": "הבא",
+     "text": "טען עוד",
+     "load_more_no_posts_custom_message": "אין יותר פוסטים להציג",
+     "nothing_found_message_text": "נראה שלא הצלחנו למצוא את מה שחיפשת.",
+     "columns": 3,
+     "posts_per_page": 3,
+     "columns_tablet": 1
+    },
+    "elements": [],
+    "widgetType": "loop-grid"
+   },
+   {
+    "id": "09c347f",
+    "elType": "container",
+    "settings": {
+     "content_width": "full",
+     "flex_gap": {
+      "column": "0",
+      "row": "0",
+      "isLinked": true,
+      "unit": "px",
+      "size": 0
+     }
+    },
+    "elements": [
+     {
+      "id": "44c6d58",
+      "elType": "widget",
+      "settings": {
+       "text": "לבלוג המלא >",
+       "align": "center",
+       "border_border": "solid",
+       "border_width": {
+        "unit": "px",
+        "top": "1",
+        "right": "1",
+        "bottom": "1",
+        "left": "1",
+        "isLinked": true
+       },
+       "border_radius": {
+        "unit": "px",
+        "top": "40",
+        "right": "40",
+        "bottom": "40",
+        "left": "40",
+        "isLinked": true
+       },
+       "text_padding": {
+        "unit": "px",
+        "top": "15",
+        "right": "45",
+        "bottom": "15",
+        "left": "45",
+        "isLinked": false
+       },
+       "_flex_align_self": "center",
+       "__globals__": {
+        "typography_typography": "globals/typography?id=370cf49",
+        "button_text_color": "globals/colors?id=accent",
+        "background_color": "globals/colors?id=8193ed9",
+        "border_color": "globals/colors?id=accent",
+        "hover_color": "globals/colors?id=secondary",
+        "button_hover_border_color": "globals/colors?id=secondary"
+       },
+       "_title": "כפתור חבילות",
+       "_animation": "slideInDown",
+       "__dynamic__": {
+        "link": "[elementor-tag id=\"e129fd5\" name=\"internal-url\" settings=\"%7B%22type%22%3A%22post%22%2C%22post_id%22%3A%2259%22%7D\"]"
+       },
+       "_margin": {
+        "unit": "px",
+        "top": "0",
+        "right": "0",
+        "bottom": "60",
+        "left": "0",
+        "isLinked": false
+       }
+      },
+      "elements": [],
+      "widgetType": "button"
+     }
+    ],
+    "isInner": true
+   }
+  ],
+  "isInner": true
+ }
+]

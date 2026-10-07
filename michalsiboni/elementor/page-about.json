@@ -1,0 +1,331 @@
+[
+ {
+  "id": "edb8dc5",
+  "elType": "container",
+  "settings": {
+   "flex_direction": "row",
+   "min_height": {
+    "unit": "vh",
+    "size": 59,
+    "sizes": []
+   },
+   "min_height_laptop": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_tablet": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_mobile": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "flex_align_items": "center",
+   "flex_gap": {
+    "column": "40",
+    "row": "40",
+    "isLinked": true,
+    "unit": "px",
+    "size": 40
+   },
+   "background_background": "classic",
+   "_title": "אודות",
+   "__globals__": {
+    "background_color": "globals/colors?id=primary"
+   },
+   "padding": {
+    "unit": "px",
+    "top": "45",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": false
+   },
+   "z_index": 0
+  },
+  "elements": [
+   {
+    "id": "1f6f43c",
+    "elType": "widget",
+    "settings": {
+     "image": {
+      "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/עיכ.gif",
+      "id": 2141,
+      "size": "",
+      "alt": "",
+      "source": "library"
+     },
+     "height": {
+      "unit": "px",
+      "size": 352,
+      "sizes": []
+     },
+     "object-fit": "contain",
+     "_element_width": "initial",
+     "_element_custom_width": {
+      "unit": "%",
+      "size": 37,
+      "sizes": []
+     },
+     "_flex_align_self": "center",
+     "_title": "לוגו",
+     "width": {
+      "unit": "%",
+      "size": 100,
+      "sizes": []
+     },
+     "space": {
+      "unit": "%",
+      "size": 100,
+      "sizes": []
+     },
+     "_margin": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": true
+     },
+     "_padding": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": true
+     },
+     "_element_width_laptop": "initial",
+     "_element_custom_width_laptop": {
+      "unit": "px",
+      "size": 505.8
+     },
+     "_flex_size": "none",
+     "_background_color_stop_laptop": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_background_color_stop_tablet": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_background_color_stop_mobile": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_background_color_b_stop_laptop": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_background_color_b_stop_tablet": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_background_color_b_stop_mobile": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_background_gradient_angle_laptop": {
+      "unit": "deg",
+      "size": "",
+      "sizes": []
+     },
+     "_background_gradient_angle_tablet": {
+      "unit": "deg",
+      "size": "",
+      "sizes": []
+     },
+     "_background_gradient_angle_mobile": {
+      "unit": "deg",
+      "size": "",
+      "sizes": []
+     },
+     "_background_hover_color_stop_laptop": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_background_hover_color_stop_tablet": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_background_hover_color_stop_mobile": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_background_hover_color_b_stop_laptop": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_background_hover_color_b_stop_tablet": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_background_hover_color_b_stop_mobile": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_background_hover_gradient_angle_laptop": {
+      "unit": "deg",
+      "size": "",
+      "sizes": []
+     },
+     "_background_hover_gradient_angle_tablet": {
+      "unit": "deg",
+      "size": "",
+      "sizes": []
+     },
+     "_background_hover_gradient_angle_mobile": {
+      "unit": "deg",
+      "size": "",
+      "sizes": []
+     }
+    },
+    "elements": [],
+    "widgetType": "image"
+   },
+   {
+    "id": "1020b7c",
+    "elType": "widget",
+    "settings": {
+     "_element_width": "initial",
+     "_element_custom_width": {
+      "unit": "%",
+      "size": 56,
+      "sizes": []
+     },
+     "__globals__": {
+      "text_color": "globals/colors?id=accent",
+      "typography_typography": "globals/typography?id=7a50880"
+     },
+     "editor": "<p><strong>היי אני מיכל סיבוני👋,</strong></p><p>צלמת מקצועית המתמחה בצילומי ניו בורן, חלאקה, סמאש קייק, משפחה וצילומי חוץ.</p><p>אני משתמשת בציוד מתקדם ובטכניקות חדשניות כדי ליצור תוצאות מדהימות, אך מעל הכל אני משתמשת בלב🥰..</p><p>עם ניסיון עשיר של למעלה מחמש שנים בעבודה עם משפחות וילדים פיתחתי סגנון ייחודי של סטילינג מוקפד שבו כל פרט בתמונה מתחבר להרמוניה מושלמת. הלבוש, האביזרים והלוקיישן נבחרים בהתאמה כדי ליצור תמונה מושלמת שתשקף את ההבעה האישית והייחודית לכם🎉!!</p>",
+     "_title": "טקסט אודות",
+     "_margin": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": false
+     },
+     "_padding": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": true
+     },
+     "_background_color_stop_laptop": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_background_color_stop_tablet": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_background_color_stop_mobile": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_background_color_b_stop_laptop": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_background_color_b_stop_tablet": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_background_color_b_stop_mobile": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_background_gradient_angle_laptop": {
+      "unit": "deg",
+      "size": "",
+      "sizes": []
+     },
+     "_background_gradient_angle_tablet": {
+      "unit": "deg",
+      "size": "",
+      "sizes": []
+     },
+     "_background_gradient_angle_mobile": {
+      "unit": "deg",
+      "size": "",
+      "sizes": []
+     },
+     "_background_hover_color_stop_laptop": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_background_hover_color_stop_tablet": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_background_hover_color_stop_mobile": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_background_hover_color_b_stop_laptop": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_background_hover_color_b_stop_tablet": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_background_hover_color_b_stop_mobile": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "_background_hover_gradient_angle_laptop": {
+      "unit": "deg",
+      "size": "",
+      "sizes": []
+     },
+     "_background_hover_gradient_angle_tablet": {
+      "unit": "deg",
+      "size": "",
+      "sizes": []
+     },
+     "_background_hover_gradient_angle_mobile": {
+      "unit": "deg",
+      "size": "",
+      "sizes": []
+     }
+    },
+    "elements": [],
+    "widgetType": "text-editor"
+   }
+  ],
+  "isInner": false
+ }
+]

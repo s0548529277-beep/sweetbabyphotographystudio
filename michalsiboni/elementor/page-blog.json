@@ -1,0 +1,143 @@
+[
+ {
+  "id": "bc39892",
+  "elType": "container",
+  "settings": {
+   "flex_direction": "column",
+   "boxed_width": {
+    "unit": "%",
+    "size": 90,
+    "sizes": []
+   },
+   "boxed_width_laptop": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_tablet": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_mobile": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "min_height": {
+    "unit": "vh",
+    "size": 10,
+    "sizes": []
+   },
+   "min_height_laptop": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_tablet": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_mobile": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "flex_justify_content": "space-around",
+   "flex_align_items": "center",
+   "background_background": "classic",
+   "__globals__": {
+    "background_color": "globals/colors?id=primary"
+   },
+   "_title": "כותרת השירות הקסום",
+   "margin": {
+    "unit": "px",
+    "top": "0",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": true
+   },
+   "padding": {
+    "unit": "px",
+    "top": "40",
+    "right": "0",
+    "bottom": "40",
+    "left": "0",
+    "isLinked": false
+   }
+  },
+  "elements": [
+   {
+    "id": "1241925",
+    "elType": "widget",
+    "settings": {
+     "title": "בלוג",
+     "align": "center",
+     "_flex_align_self": "center",
+     "__globals__": {
+      "typography_typography": "globals/typography?id=secondary",
+      "title_color": "globals/colors?id=secondary"
+     },
+     "_title": "כותרת חבילות",
+     "typography_line_height": {
+      "unit": "em",
+      "size": "",
+      "sizes": []
+     },
+     "typography_word_spacing": {
+      "unit": "em",
+      "size": "",
+      "sizes": []
+     },
+     "_background_gradient_position_laptop": "center center",
+     "_background_gradient_position_tablet": "center center",
+     "_background_gradient_position_mobile": "center center",
+     "_background_hover_gradient_position_laptop": "center center",
+     "_background_hover_gradient_position_tablet": "center center",
+     "_background_hover_gradient_position_mobile": "center center"
+    },
+    "elements": [],
+    "widgetType": "heading"
+   }
+  ],
+  "isInner": false
+ },
+ {
+  "id": "cd4f006",
+  "elType": "container",
+  "settings": {
+   "background_background": "classic",
+   "__globals__": {
+    "background_color": "globals/colors?id=primary"
+   }
+  },
+  "elements": [
+   {
+    "id": "6a479fa",
+    "elType": "widget",
+    "settings": {
+     "template_id": "1023",
+     "alternate_templates": [
+      {
+       "template_id": null,
+       "_id": "6c61b79"
+      }
+     ],
+     "post_query_post_type": "blog",
+     "pagination_page_limit": "5",
+     "pagination_prev_label": "הקודם",
+     "pagination_next_label": "הבא",
+     "text": "טען עוד",
+     "load_more_no_posts_custom_message": "אין יותר פוסטים להציג",
+     "nothing_found_message_text": "נראה שלא הצלחנו למצוא את מה שחיפשת.",
+     "posts_per_page": 8
+    },
+    "elements": [],
+    "widgetType": "loop-grid"
+   }
+  ],
+  "isInner": false
+ }
+]

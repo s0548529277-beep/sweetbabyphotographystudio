@@ -1,0 +1,929 @@
+[
+ {
+  "id": "76d689c",
+  "elType": "container",
+  "settings": {
+   "flex_direction": "row",
+   "boxed_width": {
+    "unit": "%",
+    "size": 90,
+    "sizes": []
+   },
+   "boxed_width_laptop": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_tablet": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_mobile": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "min_height": {
+    "unit": "vh",
+    "size": 100,
+    "sizes": []
+   },
+   "min_height_laptop": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_tablet": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_mobile": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   }
+  },
+  "elements": [
+   {
+    "id": "df5f0f3",
+    "elType": "widget",
+    "widgetType": "nested-tabs",
+    "settings": {
+     "tabs": [
+      {
+       "tab_title": "צילומי חוץ",
+       "_id": "70eec64"
+      },
+      {
+       "tab_title": "צילומי סטודיו",
+       "_id": "1b8da1c"
+      },
+      {
+       "tab_title": "New Born",
+       "_id": "37b69ab"
+      },
+      {
+       "tab_title": "צילומי גיל שנה",
+       "_id": "a951881"
+      },
+      {
+       "tab_title": "אלבומים",
+       "_id": "fa4dceb"
+      }
+     ],
+     "tabs_justify_horizontal": "center",
+     "title_alignment": "center",
+     "tabs_title_space_between": {
+      "unit": "px",
+      "size": 10,
+      "sizes": []
+     },
+     "tabs_title_spacing": {
+      "unit": "px",
+      "size": 19,
+      "sizes": []
+     },
+     "tabs_title_background_color_background": "classic",
+     "tabs_title_border_active_border": "solid",
+     "tabs_title_border_active_width": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "3",
+      "left": "0",
+      "isLinked": false
+     },
+     "icon_size": {
+      "unit": "px",
+      "size": 0,
+      "sizes": []
+     },
+     "__globals__": {
+      "tabs_title_background_color_color": "globals/colors?id=8193ed9",
+      "tabs_title_background_color_active_color": "globals/colors?id=8193ed9",
+      "tabs_title_border_active_color": "globals/colors?id=secondary",
+      "title_text_color": "globals/colors?id=secondary",
+      "title_typography_typography": "globals/typography?id=text",
+      "title_text_color_active": "globals/colors?id=text",
+      "title_text_color_hover": "globals/colors?id=text",
+      "tabs_title_background_color_hover_color": "globals/colors?id=8193ed9"
+     },
+     "_margin": {
+      "unit": "px",
+      "top": "40",
+      "right": "0",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": false
+     }
+    },
+    "elements": [
+     {
+      "id": "972228f",
+      "elType": "container",
+      "settings": {
+       "_title": "טאב #1",
+       "content_width": "full"
+      },
+      "elements": [
+       {
+        "id": "09d8493",
+        "elType": "container",
+        "settings": {
+         "flex_direction": "row",
+         "boxed_width": {
+          "unit": "%",
+          "size": 90,
+          "sizes": []
+         },
+         "boxed_width_laptop": {
+          "unit": "%",
+          "size": "",
+          "sizes": []
+         },
+         "boxed_width_tablet": {
+          "unit": "%",
+          "size": "",
+          "sizes": []
+         },
+         "boxed_width_mobile": {
+          "unit": "%",
+          "size": "",
+          "sizes": []
+         },
+         "min_height": {
+          "unit": "vh",
+          "size": 100,
+          "sizes": []
+         },
+         "min_height_laptop": {
+          "unit": "vh",
+          "size": "",
+          "sizes": []
+         },
+         "min_height_tablet": {
+          "unit": "vh",
+          "size": "",
+          "sizes": []
+         },
+         "min_height_mobile": {
+          "unit": "vh",
+          "size": "",
+          "sizes": []
+         }
+        },
+        "elements": [
+         {
+          "id": "e976ec8",
+          "elType": "widget",
+          "settings": {
+           "gallery": [
+            {
+             "id": 877,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/חתוך_optimized-scaled.jpg"
+            },
+            {
+             "id": 885,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/עם-לוגו_optimized-scaled.jpg"
+            },
+            {
+             "id": 882,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/מטריף_optimized-scaled.jpg"
+            },
+            {
+             "id": 881,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/מואר-וחתוך_optimized-scaled.jpg"
+            },
+            {
+             "id": 879,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/לוגו_optimized-scaled.jpg"
+            },
+            {
+             "id": 866,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc08770_optimized-scaled.jpg"
+            },
+            {
+             "id": 865,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc08617_optimized-scaled.jpg"
+            },
+            {
+             "id": 858,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc06776_optimized-scaled.jpg"
+            },
+            {
+             "id": 857,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc06723_optimized-scaled.jpg"
+            },
+            {
+             "id": 862,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc08108_optimized-scaled.jpg"
+            },
+            {
+             "id": 861,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc07052_optimized-scaled.jpg"
+            },
+            {
+             "id": 853,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04181_optimized-scaled.jpg"
+            },
+            {
+             "id": 854,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04565_optimized-scaled.jpg"
+            },
+            {
+             "id": 855,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc06563_optimized-scaled.jpg"
+            },
+            {
+             "id": 841,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc03228_optimized-scaled.jpg"
+            },
+            {
+             "id": 813,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc01673_optimized-scaled.jpg"
+            },
+            {
+             "id": 817,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc01689_optimized-scaled.jpg"
+            },
+            {
+             "id": 804,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc01523_optimized-scaled.jpg"
+            },
+            {
+             "id": 795,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc01427_optimized-scaled.jpg"
+            },
+            {
+             "id": 789,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc01367_optimized-scaled.jpg"
+            },
+            {
+             "id": 783,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc01246_optimized-scaled.jpg"
+            },
+            {
+             "id": 778,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc01182_optimized-scaled.jpg"
+            },
+            {
+             "id": 771,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc00967_optimized-scaled.jpg"
+            },
+            {
+             "id": 688,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/05/DSC08770-scaled.jpg"
+            }
+           ],
+           "galleries": [
+            {
+             "gallery_title": "גלריה חדשה",
+             "_id": "b45e3ab"
+            }
+           ],
+           "gallery_layout": "masonry",
+           "show_all_galleries_label": "הכל",
+           "thumbnail_image_size": "full"
+          },
+          "elements": [],
+          "widgetType": "gallery"
+         }
+        ],
+        "isInner": true
+       }
+      ],
+      "isInner": true,
+      "isLocked": true
+     },
+     {
+      "id": "da0b452",
+      "elType": "container",
+      "settings": {
+       "_title": "טאב #2",
+       "content_width": "full"
+      },
+      "elements": [
+       {
+        "id": "1976d76",
+        "elType": "container",
+        "settings": {
+         "flex_direction": "row",
+         "boxed_width": {
+          "unit": "%",
+          "size": 90,
+          "sizes": []
+         },
+         "boxed_width_laptop": {
+          "unit": "%",
+          "size": "",
+          "sizes": []
+         },
+         "boxed_width_tablet": {
+          "unit": "%",
+          "size": "",
+          "sizes": []
+         },
+         "boxed_width_mobile": {
+          "unit": "%",
+          "size": "",
+          "sizes": []
+         },
+         "min_height": {
+          "unit": "vh",
+          "size": 100,
+          "sizes": []
+         },
+         "min_height_laptop": {
+          "unit": "vh",
+          "size": "",
+          "sizes": []
+         },
+         "min_height_tablet": {
+          "unit": "vh",
+          "size": "",
+          "sizes": []
+         },
+         "min_height_mobile": {
+          "unit": "vh",
+          "size": "",
+          "sizes": []
+         }
+        },
+        "elements": [
+         {
+          "id": "fffb174",
+          "elType": "widget",
+          "settings": {
+           "gallery": [
+            {
+             "id": 899,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/עו-scaled.jpg"
+            },
+            {
+             "id": 825,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc08096_optimized-scaled.jpg"
+            },
+            {
+             "id": 828,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc08131_optimized-scaled.jpg"
+            },
+            {
+             "id": 805,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04141_optimized-scaled.jpg"
+            },
+            {
+             "id": 806,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc05830_optimized-scaled.jpg"
+            },
+            {
+             "id": 808,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04166_optimized-scaled.jpg"
+            },
+            {
+             "id": 776,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc02498_optimized-scaled.jpg"
+            },
+            {
+             "id": 766,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc02406_optimized-scaled.jpg"
+            },
+            {
+             "id": 757,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc01484_optimized-scaled.jpg"
+            },
+            {
+             "id": 791,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc02727_optimized-scaled.jpg"
+            },
+            {
+             "id": 749,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc00628_optimized-scaled.jpg"
+            },
+            {
+             "id": 754,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc00380_optimized-scaled.jpg"
+            },
+            {
+             "id": 764,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04417_optimized-scaled.jpg"
+            },
+            {
+             "id": 465,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/05/DSC03554_1-scaled.jpg"
+            },
+            {
+             "id": 218,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/05/תמונה-פוסט-2-בלוג.png"
+            }
+           ],
+           "galleries": [
+            {
+             "gallery_title": "גלריה חדשה",
+             "_id": "b45e3ab"
+            }
+           ],
+           "gallery_layout": "masonry",
+           "show_all_galleries_label": "הכל",
+           "thumbnail_image_size": "full"
+          },
+          "elements": [],
+          "widgetType": "gallery"
+         }
+        ],
+        "isInner": true
+       }
+      ],
+      "isInner": true,
+      "isLocked": true
+     },
+     {
+      "id": "8d052b8",
+      "elType": "container",
+      "settings": {
+       "_title": "טאב #3",
+       "content_width": "full"
+      },
+      "elements": [
+       {
+        "id": "d63f46f",
+        "elType": "container",
+        "settings": {
+         "flex_direction": "row",
+         "boxed_width": {
+          "unit": "%",
+          "size": 90,
+          "sizes": []
+         },
+         "boxed_width_laptop": {
+          "unit": "%",
+          "size": "",
+          "sizes": []
+         },
+         "boxed_width_tablet": {
+          "unit": "%",
+          "size": "",
+          "sizes": []
+         },
+         "boxed_width_mobile": {
+          "unit": "%",
+          "size": "",
+          "sizes": []
+         },
+         "min_height": {
+          "unit": "vh",
+          "size": 100,
+          "sizes": []
+         },
+         "min_height_laptop": {
+          "unit": "vh",
+          "size": "",
+          "sizes": []
+         },
+         "min_height_tablet": {
+          "unit": "vh",
+          "size": "",
+          "sizes": []
+         },
+         "min_height_mobile": {
+          "unit": "vh",
+          "size": "",
+          "sizes": []
+         }
+        },
+        "elements": [
+         {
+          "id": "bcb7b47",
+          "elType": "widget",
+          "settings": {
+           "gallery": [
+            {
+             "id": 842,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/עם_optimized-scaled.jpg"
+            },
+            {
+             "id": 839,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/ו_optimized-scaled.jpg"
+            },
+            {
+             "id": 829,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/בלי-לוגו_optimized-scaled.jpg"
+            },
+            {
+             "id": 836,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/גגגג_optimized-scaled.jpg"
+            },
+            {
+             "id": 823,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc09136_optimized-scaled.jpg"
+            },
+            {
+             "id": 826,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc09164_optimized-scaled.jpg"
+            },
+            {
+             "id": 820,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc09133_optimized-scaled.jpg"
+            },
+            {
+             "id": 818,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc09013_optimized-scaled.jpg"
+            },
+            {
+             "id": 815,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc08926_optimized-scaled.jpg"
+            },
+            {
+             "id": 812,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc08871_optimized-scaled.jpg"
+            },
+            {
+             "id": 809,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc08780_optimized-scaled.jpg"
+            },
+            {
+             "id": 681,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/05/DSC09013-1-scaled.jpg"
+            },
+            {
+             "id": 761,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04393_optimized-scaled.jpg"
+            },
+            {
+             "id": 770,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04508_optimized-scaled.jpg"
+            },
+            {
+             "id": 784,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc05441_optimized-scaled.jpg"
+            },
+            {
+             "id": 793,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc05532_optimized-scaled.jpg"
+            },
+            {
+             "id": 758,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc03461_optimized-scaled.jpg"
+            },
+            {
+             "id": 777,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04972הההה_optimized-scaled.jpg"
+            },
+            {
+             "id": 790,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc05510_optimized-scaled.jpg"
+            },
+            {
+             "id": 764,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04417_optimized-scaled.jpg"
+            }
+           ],
+           "galleries": [
+            {
+             "gallery_title": "גלריה חדשה",
+             "_id": "b45e3ab"
+            }
+           ],
+           "gallery_layout": "masonry",
+           "show_all_galleries_label": "הכל",
+           "thumbnail_image_size": "full"
+          },
+          "elements": [],
+          "widgetType": "gallery"
+         }
+        ],
+        "isInner": true
+       }
+      ],
+      "isInner": true,
+      "isLocked": true
+     },
+     {
+      "id": "75c5e18",
+      "elType": "container",
+      "settings": {
+       "_title": "טאב #3",
+       "content_width": "full"
+      },
+      "elements": [
+       {
+        "id": "aa6f7f8",
+        "elType": "container",
+        "settings": {
+         "flex_direction": "row",
+         "boxed_width": {
+          "unit": "%",
+          "size": 90,
+          "sizes": []
+         },
+         "boxed_width_laptop": {
+          "unit": "%",
+          "size": "",
+          "sizes": []
+         },
+         "boxed_width_tablet": {
+          "unit": "%",
+          "size": "",
+          "sizes": []
+         },
+         "boxed_width_mobile": {
+          "unit": "%",
+          "size": "",
+          "sizes": []
+         },
+         "min_height": {
+          "unit": "vh",
+          "size": 100,
+          "sizes": []
+         },
+         "min_height_laptop": {
+          "unit": "vh",
+          "size": "",
+          "sizes": []
+         },
+         "min_height_tablet": {
+          "unit": "vh",
+          "size": "",
+          "sizes": []
+         },
+         "min_height_mobile": {
+          "unit": "vh",
+          "size": "",
+          "sizes": []
+         }
+        },
+        "elements": [
+         {
+          "id": "0b88b9a",
+          "elType": "widget",
+          "settings": {
+           "gallery": [
+            {
+             "id": 842,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/עם_optimized-scaled.jpg"
+            },
+            {
+             "id": 839,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/ו_optimized-scaled.jpg"
+            },
+            {
+             "id": 829,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/בלי-לוגו_optimized-scaled.jpg"
+            },
+            {
+             "id": 836,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/גגגג_optimized-scaled.jpg"
+            },
+            {
+             "id": 823,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc09136_optimized-scaled.jpg"
+            },
+            {
+             "id": 826,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc09164_optimized-scaled.jpg"
+            },
+            {
+             "id": 820,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc09133_optimized-scaled.jpg"
+            },
+            {
+             "id": 818,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc09013_optimized-scaled.jpg"
+            },
+            {
+             "id": 815,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc08926_optimized-scaled.jpg"
+            },
+            {
+             "id": 812,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc08871_optimized-scaled.jpg"
+            },
+            {
+             "id": 809,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc08780_optimized-scaled.jpg"
+            },
+            {
+             "id": 681,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/05/DSC09013-1-scaled.jpg"
+            },
+            {
+             "id": 761,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04393_optimized-scaled.jpg"
+            },
+            {
+             "id": 770,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04508_optimized-scaled.jpg"
+            },
+            {
+             "id": 784,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc05441_optimized-scaled.jpg"
+            },
+            {
+             "id": 793,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc05532_optimized-scaled.jpg"
+            },
+            {
+             "id": 758,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc03461_optimized-scaled.jpg"
+            },
+            {
+             "id": 777,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04972הההה_optimized-scaled.jpg"
+            },
+            {
+             "id": 790,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc05510_optimized-scaled.jpg"
+            },
+            {
+             "id": 764,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04417_optimized-scaled.jpg"
+            }
+           ],
+           "galleries": [
+            {
+             "gallery_title": "גלריה חדשה",
+             "_id": "b45e3ab"
+            }
+           ],
+           "gallery_layout": "masonry",
+           "show_all_galleries_label": "הכל",
+           "thumbnail_image_size": "full"
+          },
+          "elements": [],
+          "widgetType": "gallery"
+         }
+        ],
+        "isInner": true
+       }
+      ],
+      "isInner": true,
+      "isLocked": true
+     },
+     {
+      "id": "e4270d3",
+      "elType": "container",
+      "settings": {
+       "_title": "טאב #3",
+       "content_width": "full"
+      },
+      "elements": [
+       {
+        "id": "f2747b2",
+        "elType": "container",
+        "settings": {
+         "flex_direction": "row",
+         "boxed_width": {
+          "unit": "%",
+          "size": 90,
+          "sizes": []
+         },
+         "boxed_width_laptop": {
+          "unit": "%",
+          "size": "",
+          "sizes": []
+         },
+         "boxed_width_tablet": {
+          "unit": "%",
+          "size": "",
+          "sizes": []
+         },
+         "boxed_width_mobile": {
+          "unit": "%",
+          "size": "",
+          "sizes": []
+         },
+         "min_height": {
+          "unit": "vh",
+          "size": 100,
+          "sizes": []
+         },
+         "min_height_laptop": {
+          "unit": "vh",
+          "size": "",
+          "sizes": []
+         },
+         "min_height_tablet": {
+          "unit": "vh",
+          "size": "",
+          "sizes": []
+         },
+         "min_height_mobile": {
+          "unit": "vh",
+          "size": "",
+          "sizes": []
+         }
+        },
+        "elements": [
+         {
+          "id": "d418898",
+          "elType": "widget",
+          "settings": {
+           "gallery": [
+            {
+             "id": 842,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/עם_optimized-scaled.jpg"
+            },
+            {
+             "id": 839,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/ו_optimized-scaled.jpg"
+            },
+            {
+             "id": 829,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/בלי-לוגו_optimized-scaled.jpg"
+            },
+            {
+             "id": 836,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/גגגג_optimized-scaled.jpg"
+            },
+            {
+             "id": 823,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc09136_optimized-scaled.jpg"
+            },
+            {
+             "id": 826,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc09164_optimized-scaled.jpg"
+            },
+            {
+             "id": 820,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc09133_optimized-scaled.jpg"
+            },
+            {
+             "id": 818,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc09013_optimized-scaled.jpg"
+            },
+            {
+             "id": 815,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc08926_optimized-scaled.jpg"
+            },
+            {
+             "id": 812,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc08871_optimized-scaled.jpg"
+            },
+            {
+             "id": 809,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc08780_optimized-scaled.jpg"
+            },
+            {
+             "id": 681,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/05/DSC09013-1-scaled.jpg"
+            },
+            {
+             "id": 761,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04393_optimized-scaled.jpg"
+            },
+            {
+             "id": 770,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04508_optimized-scaled.jpg"
+            },
+            {
+             "id": 784,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc05441_optimized-scaled.jpg"
+            },
+            {
+             "id": 793,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc05532_optimized-scaled.jpg"
+            },
+            {
+             "id": 758,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc03461_optimized-scaled.jpg"
+            },
+            {
+             "id": 777,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04972הההה_optimized-scaled.jpg"
+            },
+            {
+             "id": 790,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc05510_optimized-scaled.jpg"
+            },
+            {
+             "id": 764,
+             "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/dsc04417_optimized-scaled.jpg"
+            }
+           ],
+           "galleries": [
+            {
+             "gallery_title": "גלריה חדשה",
+             "_id": "b45e3ab"
+            }
+           ],
+           "gallery_layout": "masonry",
+           "show_all_galleries_label": "הכל",
+           "thumbnail_image_size": "full"
+          },
+          "elements": [],
+          "widgetType": "gallery"
+         }
+        ],
+        "isInner": true
+       }
+      ],
+      "isInner": true,
+      "isLocked": true
+     }
+    ]
+   }
+  ],
+  "isInner": false
+ }
+]

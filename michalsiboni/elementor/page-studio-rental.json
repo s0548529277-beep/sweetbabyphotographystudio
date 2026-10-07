@@ -1,0 +1,279 @@
+[
+ {
+  "id": "327ed55",
+  "elType": "container",
+  "settings": {
+   "flex_direction": "row",
+   "flex_justify_content": "center",
+   "padding": {
+    "unit": "px",
+    "top": "40",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": false
+   },
+   "_title": "כותרת",
+   "background_background": "classic",
+   "__globals__": {
+    "background_color": "globals/colors?id=primary"
+   }
+  },
+  "elements": [
+   {
+    "id": "71744f4",
+    "elType": "widget",
+    "settings": {
+     "title": "השכרת הסטודיו",
+     "__globals__": {
+      "typography_typography": "globals/typography?id=secondary",
+      "title_color": "globals/colors?id=secondary"
+     },
+     "_padding": {
+      "unit": "px",
+      "top": "17",
+      "right": "0",
+      "bottom": "19",
+      "left": "0",
+      "isLinked": false
+     }
+    },
+    "elements": [],
+    "widgetType": "heading"
+   }
+  ],
+  "isInner": false
+ },
+ {
+  "id": "59ea261",
+  "elType": "container",
+  "settings": {
+   "flex_direction": "row",
+   "content_width": "full",
+   "min_height": {
+    "unit": "px",
+    "size": 380,
+    "sizes": []
+   },
+   "background_background": "slideshow",
+   "background_slideshow_gallery": [
+    {
+     "id": 3012,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2026/02/תמונה-פינת-אמא-scaled.jpg"
+    },
+    {
+     "id": 3013,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2026/02/תמונה3-scaled.jpg"
+    },
+    {
+     "id": 3014,
+     "url": "https://michalsiboni.co.il/wp-content/uploads/2026/02/תמונה2-scaled.jpg"
+    }
+   ],
+   "background_slideshow_slide_duration": 2000,
+   "padding": {
+    "unit": "px",
+    "top": "0",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": true
+   },
+   "margin": {
+    "unit": "px",
+    "top": "0",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": false
+   },
+   "_title": "תמונות",
+   "custom_css": "selector {\r\n  position: relative;\r\n}\r\n\r\nselector .lmn-slider-dots {\r\n  position: absolute;\r\n  top: 50%;\r\n  left: 30px;\r\n  transform: translateY(-50%);\r\n  display: flex;\r\n  flex-direction: column;\r\n  gap: 14px;\r\n  z-index: 10;\r\n}\r\n\r\nselector .lmn-slider-dots .dot {\r\n  width: 14px;\r\n  height: 14px;\r\n  border-radius: 50%;\r\n  background-color: #FBF7F3;\r\n  opacity: 0.45;\r\n  transition: all 0.3s ease;\r\n}\r\n\r\nselector .lmn-slider-dots .dot.active {\r\n  width: 18px;\r\n  height: 18px;\r\n  opacity: 1;\r\n}"
+  },
+  "elements": [
+   {
+    "id": "0813919",
+    "elType": "widget",
+    "settings": {
+     "html": "<style>\r\n  .lmn-slider-dots {\r\n    position: absolute;\r\n    top: 50%;\r\n    left: 30px;\r\n    transform: translateY(-50%);\r\n    display: flex;\r\n    flex-direction: column;\r\n    gap: 14px;\r\n    z-index: 10;\r\n  }\r\n\r\n  .lmn-slider-dots .dot {\r\n    width: 14px;\r\n    height: 14px;\r\n    border-radius: 50%;\r\n    background-color: #FBF7F3;\r\n    opacity: 0.45;\r\n    transition: all 0.3s ease;\r\n  }\r\n\r\n  .lmn-slider-dots .dot.active {\r\n    width: 18px;\r\n    height: 18px;\r\n    opacity: 1;\r\n  }\r\n</style>\r\n\r\n<div class=\"lmn-slider-dots\">\r\n  <span class=\"dot active\"></span>\r\n  <span class=\"dot\"></span>\r\n  <span class=\"dot\"></span>\r\n  <span class=\"dot\"></span>\r\n  <span class=\"dot\"></span>\r\n</div>\r\n\r\n<script>\r\n  /* מעבר בין נקודות כל 3 שניות - Code by LEMON SHLIF */\r\n  jQuery(document).ready(function($){\r\n    let dots = $('.lmn-slider-dots .dot');\r\n    let index = 0;\r\n\r\n    setInterval(function(){\r\n      dots.removeClass('active');\r\n      index = (index + 1) % dots.length;\r\n      dots.eq(index).addClass('active');\r\n    }, 2200);\r\n  });\r\n</script>\r\n"
+    },
+    "elements": [],
+    "widgetType": "html"
+   }
+  ],
+  "isInner": false
+ },
+ {
+  "id": "d6fe1d5",
+  "elType": "container",
+  "settings": {
+   "padding": {
+    "unit": "px",
+    "top": "40",
+    "right": "0",
+    "bottom": "60",
+    "left": "0",
+    "isLinked": false
+   },
+   "_title": "כפתור לסטודיו",
+   "background_background": "classic",
+   "__globals__": {
+    "background_color": "globals/colors?id=primary"
+   }
+  },
+  "elements": [
+   {
+    "id": "1c24454",
+    "elType": "widget",
+    "settings": {
+     "text": "להשכרת הסטודיו >",
+     "align": "center",
+     "border_border": "solid",
+     "border_width": {
+      "unit": "px",
+      "top": "1",
+      "right": "1",
+      "bottom": "1",
+      "left": "1",
+      "isLinked": true
+     },
+     "border_radius": {
+      "unit": "px",
+      "top": "40",
+      "right": "40",
+      "bottom": "40",
+      "left": "40",
+      "isLinked": true
+     },
+     "text_padding": {
+      "unit": "px",
+      "top": "15",
+      "right": "45",
+      "bottom": "15",
+      "left": "45",
+      "isLinked": false
+     },
+     "_flex_align_self": "center",
+     "__globals__": {
+      "typography_typography": "globals/typography?id=370cf49",
+      "button_text_color": "globals/colors?id=accent",
+      "background_color": "globals/colors?id=8193ed9",
+      "border_color": "globals/colors?id=accent"
+     },
+     "_title": "כפתור קטלוג",
+     "_animation": "slideInDown",
+     "link": {
+      "url": "#eder",
+      "is_external": "",
+      "nofollow": "",
+      "custom_attributes": ""
+     }
+    },
+    "elements": [],
+    "widgetType": "button"
+   }
+  ],
+  "isInner": false
+ },
+ {
+  "id": "d47d18a",
+  "elType": "container",
+  "settings": {
+   "_title": "כפתור לקטלוג",
+   "background_background": "classic",
+   "__globals__": {
+    "background_color": "globals/colors?id=primary"
+   }
+  },
+  "elements": [
+   {
+    "id": "d7b22fb",
+    "elType": "widget",
+    "settings": {
+     "title": "רוצה לצלם בבית?",
+     "align": "center",
+     "__globals__": {
+      "typography_typography": "globals/typography?id=secondary",
+      "title_color": "globals/colors?id=secondary"
+     }
+    },
+    "elements": [],
+    "widgetType": "heading"
+   },
+   {
+    "id": "4d76487",
+    "elType": "widget",
+    "settings": {
+     "editor": "<p>מבחר ענק של אביזרים מעוצבים לכל סגנון וצורך<br />ניו בורן, סמאש קייק,חלאקה ,משפחה ועוד.<br />תוכלו לצלם בכל לוקישין שתבחרו<br />בואו להקפיץ את התמונות שלכם עם אביזרים מלאי אווירה</p>",
+     "align": "center",
+     "__globals__": {
+      "typography_typography": "globals/typography?id=7a50880",
+      "link_color": "globals/colors?id=accent",
+      "text_color": "globals/colors?id=accent"
+     }
+    },
+    "elements": [],
+    "widgetType": "text-editor"
+   },
+   {
+    "id": "516e714",
+    "elType": "widget",
+    "settings": {
+     "text": "להורדת הקטלוג >",
+     "align": "center",
+     "border_border": "solid",
+     "border_width": {
+      "unit": "px",
+      "top": "1",
+      "right": "1",
+      "bottom": "1",
+      "left": "1",
+      "isLinked": true
+     },
+     "border_radius": {
+      "unit": "px",
+      "top": "40",
+      "right": "40",
+      "bottom": "40",
+      "left": "40",
+      "isLinked": true
+     },
+     "text_padding": {
+      "unit": "px",
+      "top": "15",
+      "right": "45",
+      "bottom": "15",
+      "left": "45",
+      "isLinked": false
+     },
+     "_flex_align_self": "center",
+     "__globals__": {
+      "typography_typography": "globals/typography?id=370cf49",
+      "button_text_color": "globals/colors?id=accent",
+      "background_color": "globals/colors?id=8193ed9",
+      "border_color": "globals/colors?id=accent"
+     },
+     "_title": "כפתור קטלוג",
+     "_animation": "slideInDown",
+     "link": {
+      "url": "https://michalsiboni.co.il/wp-content/uploads/2026/02/קטלוג-מוקטן-2026.pdf",
+      "is_external": "on",
+      "nofollow": "",
+      "custom_attributes": ""
+     },
+     "_padding": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "60",
+      "left": "0",
+      "isLinked": false
+     }
+    },
+    "elements": [],
+    "widgetType": "button"
+   }
+  ],
+  "isInner": false
+ }
+]

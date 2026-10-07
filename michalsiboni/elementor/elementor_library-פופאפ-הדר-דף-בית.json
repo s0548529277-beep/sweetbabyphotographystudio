@@ -1,0 +1,114 @@
+[
+ {
+  "id": "6f7e090",
+  "elType": "container",
+  "settings": {
+   "flex_direction": "column",
+   "boxed_width": {
+    "unit": "%",
+    "size": 100,
+    "sizes": []
+   },
+   "boxed_width_tablet": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_mobile": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "min_height": {
+    "unit": "vh",
+    "size": 100,
+    "sizes": []
+   },
+   "min_height_tablet": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_mobile": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "flex_justify_content": "space-around",
+   "flex_align_items": "center",
+   "background_background": "classic",
+   "__globals__": {
+    "background_color": ""
+   },
+   "background_color": "#000000",
+   "background_color_stop": {
+    "unit": "%",
+    "size": 30,
+    "sizes": []
+   },
+   "background_color_b": "#020202",
+   "padding": {
+    "unit": "px",
+    "top": "0",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": true
+   },
+   "min_height_laptop": {
+    "unit": "em",
+    "size": "",
+    "sizes": []
+   }
+  },
+  "elements": [
+   {
+    "id": "c10bbb8",
+    "elType": "widget",
+    "settings": {
+     "menu_name": "תפריט",
+     "menu": "header",
+     "layout": "vertical",
+     "align_items": "center",
+     "__globals__": {
+      "menu_typography_typography": "globals/typography?id=7a50880",
+      "color_menu_item": "globals/colors?id=primary",
+      "color_menu_item_hover": "globals/colors?id=primary",
+      "pointer_color_menu_item_hover": "globals/colors?id=secondary"
+     },
+     "pointer_width": {
+      "unit": "px",
+      "size": 0,
+      "sizes": []
+     },
+     "padding_horizontal_menu_item": {
+      "unit": "px",
+      "size": 0,
+      "sizes": []
+     },
+     "padding_vertical_menu_item": {
+      "unit": "px",
+      "size": 20,
+      "sizes": []
+     },
+     "menu_space_between": {
+      "unit": "px",
+      "size": 0,
+      "sizes": []
+     },
+     "_padding": {
+      "unit": "px",
+      "top": "35",
+      "right": "0",
+      "bottom": "35",
+      "left": "0",
+      "isLinked": false
+     }
+    },
+    "elements": [],
+    "widgetType": "nav-menu"
+   }
+  ],
+  "isInner": false
+ }
+]

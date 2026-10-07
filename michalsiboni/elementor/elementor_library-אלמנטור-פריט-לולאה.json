@@ -1,0 +1,100 @@
+[
+ {
+  "id": "69d150c",
+  "elType": "container",
+  "settings": {
+   "flex_direction": "column",
+   "content_width": "full",
+   "width": {
+    "unit": "em",
+    "size": 10
+   },
+   "width_laptop": {
+    "unit": "em",
+    "size": "",
+    "sizes": []
+   },
+   "width_tablet": {
+    "unit": "em",
+    "size": "",
+    "sizes": []
+   },
+   "width_mobile": {
+    "unit": "em",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width": {
+    "unit": "px",
+    "size": 1311,
+    "sizes": []
+   },
+   "min_height": {
+    "unit": "vh",
+    "size": 21,
+    "sizes": []
+   },
+   "min_height_laptop": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_tablet": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_mobile": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "_flex_size": "none",
+   "_element_width": "initial"
+  },
+  "elements": [
+   {
+    "id": "5f850b8",
+    "elType": "widget",
+    "settings": {
+     "__dynamic__": {
+      "image": "[elementor-tag id=\"a1a83cd\" name=\"acf-image\" settings=\"%7B%22key%22%3A%22field_682d9e6128d58%3A%D7%AA%D7%9E%D7%95%D7%A0%D7%94_%D7%A8%D7%90%D7%A9%D7%99%D7%AA_%D7%A7%D7%98%D7%92%D7%95%D7%A8%D7%99%D7%94%22%7D\"]"
+     }
+    },
+    "elements": [],
+    "widgetType": "image"
+   },
+   {
+    "id": "944f128",
+    "elType": "widget",
+    "settings": {
+     "title": "צילום",
+     "align": "center",
+     "__globals__": {
+      "title_color": "globals/colors?id=accent",
+      "typography_typography": "globals/typography?id=7a50880"
+     }
+    },
+    "elements": [],
+    "widgetType": "heading"
+   },
+   {
+    "id": "e5203b1",
+    "elType": "widget",
+    "settings": {
+     "title": "כתוב את הכותרת כאן",
+     "__dynamic__": {
+      "title": "[elementor-tag id=\"d435eeb\" name=\"archive-title\" settings=\"%7B%22include_context%22%3A%22%22%7D\"]"
+     },
+     "__globals__": {
+      "title_color": "globals/colors?id=text",
+      "typography_typography": "globals/typography?id=text"
+     }
+    },
+    "elements": [],
+    "widgetType": "heading"
+   }
+  ],
+  "isInner": false
+ }
+]

@@ -1,0 +1,34 @@
+[
+ {
+  "id": "c8f29c6",
+  "elType": "container",
+  "settings": {
+   "content_width": "full"
+  },
+  "elements": [
+   {
+    "id": "978bba7",
+    "elType": "widget",
+    "settings": {
+     "galleries": [
+      {
+       "gallery_title": "גלריה חדשה",
+       "_id": "4ae31bb"
+      }
+     ],
+     "show_all_galleries_label": "הכל",
+     "__dynamic__": {
+      "gallery": "[elementor-tag id=\"732b81b\" name=\"jet-post-custom-gallery\" settings=\"%7B%22gallery_field%22%3A%22gallery%22%7D\"]"
+     },
+     "gallery_layout": "masonry",
+     "thumbnail_image_size": "full",
+     "columns": 3,
+     "_element_width": "inherit"
+    },
+    "elements": [],
+    "widgetType": "gallery"
+   }
+  ],
+  "isInner": false
+ }
+]

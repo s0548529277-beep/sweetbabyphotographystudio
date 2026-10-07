@@ -1,0 +1,224 @@
+[
+ {
+  "id": "fadedc5",
+  "elType": "container",
+  "settings": {
+   "flex_direction": "row",
+   "boxed_width": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_laptop": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_tablet": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_mobile": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "min_height": {
+    "unit": "vh",
+    "size": 66,
+    "sizes": []
+   },
+   "min_height_laptop": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_tablet": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_mobile": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "__dynamic__": [],
+   "flex_justify_content_tablet": "center",
+   "flex_align_items_tablet": "center"
+  },
+  "elements": [
+   {
+    "id": "2f94ac7",
+    "elType": "widget",
+    "settings": {
+     "selected_icon": {
+      "value": {
+       "url": "https://michalsiboni.co.il/wp-content/uploads/2025/06/Line-4.svg",
+       "id": 1382
+      },
+      "library": "svg"
+     },
+     "title_text_a": "כותרת אלמנט",
+     "description_text_a": "",
+     "background_a_background": "classic",
+     "title_text_b": "",
+     "description_text_b": "לורם איפסום דולור סיט אמט, קונסקטורר אדיפיסינג אלית סילט אגמטן. ",
+     "button_text": "לפוסט המלא >",
+     "background_b_background": "classic",
+     "background_overlay_b": "#5A5A5A57",
+     "alignment_a": "right",
+     "vertical_position_a": "bottom",
+     "icon_spacing": {
+      "unit": "rem",
+      "size": 0.1,
+      "sizes": []
+     },
+     "icon_primary_color": "#BF386000",
+     "icon_size": {
+      "unit": "px",
+      "size": 84,
+      "sizes": []
+     },
+     "title_color_a": "#FBF7F3",
+     "title_typography_a_typography": "custom",
+     "title_typography_a_font_family": "TelAviv",
+     "title_typography_a_font_size": {
+      "unit": "px",
+      "size": 18,
+      "sizes": []
+     },
+     "title_typography_a_font_weight": "300",
+     "__dynamic__": {
+      "background_a_image": "[elementor-tag id=\"7e49e82\" name=\"post-featured-image\" settings=\"%7B%7D\"]",
+      "title_text_a": "[elementor-tag id=\"7f464a0\" name=\"post-title\" settings=\"%7B%7D\"]",
+      "background_b_image": "[elementor-tag id=\"0bc9c55\" name=\"post-featured-image\" settings=\"%7B%7D\"]",
+      "link": "[elementor-tag id=\"a2e4999\" name=\"post-url\" settings=\"%7B%7D\"]",
+      "description_text_b": "[elementor-tag id=\"28083bf\" name=\"acf-text\" settings=\"%7B%22key%22%3A%22field_68509ebf6ec11%3A%D7%AA%D7%A7%D7%A6%D7%99%D7%A8_%D7%91%D7%9C%D7%95%D7%92%22%7D\"]"
+     },
+     "__globals__": {
+      "icon_primary_color": "globals/colors?id=8193ed9",
+      "title_color_a": "globals/colors?id=primary",
+      "title_typography_a_typography": "globals/typography?id=7a50880",
+      "background_overlay_b": "",
+      "description_color_b": "globals/colors?id=primary",
+      "description_typography_b_typography": "globals/typography?id=1223241",
+      "button_text_color": "globals/colors?id=primary",
+      "button_border_color": "globals/colors?id=secondary",
+      "button_background_color": "globals/colors?id=8193ed9",
+      "background_b_color": "",
+      "background_a_color": "globals/colors?id=8193ed9",
+      "background_overlay_a": "globals/colors?id=8193ed9",
+      "button_typography_typography": "globals/typography?id=370cf49"
+     },
+     "height": {
+      "unit": "vh",
+      "size": 55,
+      "sizes": []
+     },
+     "height_laptop": {
+      "unit": "vh",
+      "size": "",
+      "sizes": []
+     },
+     "height_tablet": {
+      "unit": "vh",
+      "size": 54,
+      "sizes": []
+     },
+     "height_mobile": {
+      "unit": "vh",
+      "size": "",
+      "sizes": []
+     },
+     "vertical_position_b": "bottom",
+     "flip_effect": "fade",
+     "button_border_width": {
+      "unit": "px",
+      "size": 1,
+      "sizes": []
+     },
+     "button_border_radius": {
+      "unit": "px",
+      "size": 40,
+      "sizes": []
+     },
+     "description_spacing_b": {
+      "unit": "px",
+      "size": 5,
+      "sizes": []
+     },
+     "background_a_repeat": "no-repeat",
+     "background_b_repeat": "no-repeat",
+     "padding_a": {
+      "unit": "px",
+      "top": "0",
+      "right": "20",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": false
+     },
+     "_margin": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": false
+     },
+     "_padding": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": false
+     },
+     "background_a_color": "#BF386000",
+     "background_overlay_a": "#BF386000",
+     "background_b_color": "#6C686980",
+     "title_typography_a_line_height": {
+      "unit": "px",
+      "size": 30,
+      "sizes": []
+     },
+     "description_color_b": "#FBF7F3",
+     "description_typography_b_typography": "custom",
+     "description_typography_b_font_family": "TelAviv",
+     "description_typography_b_font_size": {
+      "unit": "px",
+      "size": 16,
+      "sizes": []
+     },
+     "description_typography_b_font_weight": "400",
+     "button_typography_typography": "custom",
+     "button_typography_font_family": "TelAviv",
+     "button_typography_font_size": {
+      "unit": "px",
+      "size": 20,
+      "sizes": []
+     },
+     "button_typography_font_weight": "400",
+     "button_text_color": "#FBF7F3",
+     "button_background_color": "#BF386000",
+     "button_border_color": "#BF3860",
+     "_element_width_tablet": "initial",
+     "_element_custom_width_tablet": {
+      "unit": "px",
+      "size": 351,
+      "sizes": []
+     },
+     "_element_custom_width_mobile": {
+      "unit": "px",
+      "size": 238,
+      "sizes": []
+     }
+    },
+    "elements": [],
+    "widgetType": "flip-box"
+   }
+  ],
+  "isInner": false
+ }
+]

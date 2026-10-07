@@ -1,0 +1,186 @@
+[
+ {
+  "id": "f39b2a2",
+  "elType": "container",
+  "settings": {
+   "flex_direction": "row",
+   "boxed_width": {
+    "unit": "%",
+    "size": 92,
+    "sizes": []
+   },
+   "boxed_width_tablet": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width_mobile": {
+    "unit": "%",
+    "size": "",
+    "sizes": []
+   },
+   "min_height": {
+    "unit": "vh",
+    "size": 23,
+    "sizes": []
+   },
+   "min_height_tablet": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "min_height_mobile": {
+    "unit": "vh",
+    "size": "",
+    "sizes": []
+   },
+   "flex_gap": {
+    "column": "0",
+    "row": "0",
+    "isLinked": true,
+    "unit": "px",
+    "size": 0
+   },
+   "margin": {
+    "unit": "px",
+    "top": "0",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": true
+   },
+   "padding": {
+    "unit": "px",
+    "top": "0",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": true
+   },
+   "z_index": 20,
+   "sticky": "top",
+   "custom_css": "selector.elementor-sticky--effects {\r\n  background: linear-gradient(to bottom, rgba(79, 79, 79, 0.5) 0%, rgba(79, 79, 79, 0) 100%) !important;\r\n}",
+   "sticky_effects_offset": 200
+  },
+  "elements": [
+   {
+    "id": "df7db19",
+    "elType": "container",
+    "settings": {
+     "content_width": "full",
+     "flex_justify_content": "center",
+     "width_mobile": {
+      "unit": "px",
+      "size": 920,
+      "sizes": []
+     },
+     "boxed_width": {
+      "unit": "px",
+      "size": 500,
+      "sizes": []
+     },
+     "boxed_width_mobile": {
+      "unit": "px",
+      "size": 630,
+      "sizes": []
+     },
+     "flex_align_items": "flex-start",
+     "margin": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": true
+     },
+     "padding": {
+      "unit": "px",
+      "top": "0",
+      "right": "0",
+      "bottom": "0",
+      "left": "0",
+      "isLinked": true
+     }
+    },
+    "elements": [
+     {
+      "id": "4b8615e",
+      "elType": "widget",
+      "settings": {
+       "selected_icon": {
+        "value": {
+         "url": "https://michalsiboni.co.il/wp-content/uploads/2025/05/Frame-5-1.svg",
+         "id": 1657
+        },
+        "library": "svg"
+       },
+       "align": "right",
+       "size": {
+        "unit": "px",
+        "size": 47,
+        "sizes": []
+       },
+       "_flex_size": "shrink",
+       "__globals__": {
+        "primary_color": "globals/colors?id=primary"
+       },
+       "__dynamic__": {
+        "link": "[elementor-tag id=\"3242239\" name=\"popup\" settings=\"%7B%22popup%22%3A%2285%22%7D\"]"
+       },
+       "size_mobile": {
+        "unit": "px",
+        "size": 31,
+        "sizes": []
+       },
+       "_element_width_mobile": "initial",
+       "_element_custom_width_mobile": {
+        "unit": "px",
+        "size": 56,
+        "sizes": []
+       }
+      },
+      "elements": [],
+      "widgetType": "icon"
+     }
+    ],
+    "isInner": true
+   },
+   {
+    "id": "d98a47f",
+    "elType": "container",
+    "settings": {
+     "content_width": "full",
+     "flex_justify_content": "center"
+    },
+    "elements": [
+     {
+      "id": "10a1255",
+      "elType": "widget",
+      "settings": {
+       "__dynamic__": {
+        "image": "[elementor-tag id=\"\" name=\"site-logo\" settings=\"%7B%7D\"]"
+       },
+       "align": "left",
+       "space_mobile": {
+        "unit": "%",
+        "size": 76,
+        "sizes": []
+       },
+       "_element_width_mobile": "initial",
+       "_element_custom_width_mobile": {
+        "unit": "px",
+        "size": 194,
+        "sizes": []
+       },
+       "_flex_align_self_mobile": "flex-end"
+      },
+      "elements": [],
+      "widgetType": "theme-site-logo"
+     }
+    ],
+    "isInner": true
+   }
+  ],
+  "isInner": false
+ }
+]

@@ -1,0 +1,194 @@
+[
+ {
+  "id": "f82a8a3",
+  "elType": "container",
+  "settings": {
+   "content_width": "full",
+   "width": {
+    "unit": "vw",
+    "size": 15,
+    "sizes": []
+   },
+   "flex_gap": {
+    "column": "0",
+    "row": "0",
+    "isLinked": false,
+    "unit": "px",
+    "size": 0
+   },
+   "width_laptop": {
+    "unit": "em",
+    "size": "",
+    "sizes": []
+   },
+   "width_tablet": {
+    "unit": "em",
+    "size": "",
+    "sizes": []
+   },
+   "width_mobile": {
+    "unit": "em",
+    "size": "",
+    "sizes": []
+   },
+   "boxed_width": {
+    "unit": "px",
+    "size": 1600,
+    "sizes": []
+   },
+   "flex_direction": "column",
+   "background_hover_background": "classic",
+   "background_hover_transition": {
+    "unit": "px",
+    "size": 0,
+    "sizes": []
+   },
+   "html_tag": "a",
+   "__dynamic__": []
+  },
+  "elements": [
+   {
+    "id": "c84b3fd",
+    "elType": "container",
+    "settings": {
+     "content_width": "full",
+     "width": {
+      "unit": "%",
+      "size": 100,
+      "sizes": []
+     },
+     "boxed_width": {
+      "unit": "%",
+      "size": 100,
+      "sizes": []
+     },
+     "boxed_width_laptop": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "boxed_width_tablet": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "boxed_width_mobile": {
+      "unit": "%",
+      "size": "",
+      "sizes": []
+     },
+     "min_height": {
+      "unit": "vh",
+      "size": 21,
+      "sizes": []
+     },
+     "flex_direction": "column",
+     "flex_justify_content": "center",
+     "background_background": "classic",
+     "__globals__": {
+      "background_color": "globals/colors?id=8193ed9",
+      "background_overlay_hover_color": "globals/colors?id=8193ed9"
+     },
+     "min_height_laptop": {
+      "unit": "vh",
+      "size": "",
+      "sizes": []
+     },
+     "min_height_tablet": {
+      "unit": "vh",
+      "size": "",
+      "sizes": []
+     },
+     "min_height_mobile": {
+      "unit": "vh",
+      "size": "",
+      "sizes": []
+     },
+     "background_color": "#BF386000",
+     "background_repeat": "no-repeat",
+     "background_size": "contain",
+     "background_overlay_background": "classic",
+     "background_overlay_opacity": {
+      "unit": "px",
+      "size": 0,
+      "sizes": []
+     },
+     "background_overlay_hover_background": "classic",
+     "background_overlay_hover_image": {
+      "url": "",
+      "id": "",
+      "size": "",
+      "alt": "",
+      "source": "library"
+     },
+     "background_overlay_hover_repeat": "no-repeat",
+     "background_overlay_hover_size": "contain",
+     "background_overlay_hover_opacity": {
+      "unit": "px",
+      "size": 1,
+      "sizes": []
+     },
+     "__dynamic__": {
+      "background_image": "[elementor-tag id=\"0ff680f\" name=\"acf-image\" settings=\"%7B%22key%22%3A%22field_682d9e6128d58%3A%D7%AA%D7%9E%D7%95%D7%A0%D7%94_%D7%A8%D7%90%D7%A9%D7%99%D7%AA_%D7%A7%D7%98%D7%92%D7%95%D7%A8%D7%99%D7%94%22%7D\"]",
+      "background_hover_image": "[elementor-tag id=\"016019d\" name=\"acf-image\" settings=\"%7B%22key%22%3A%22field_6852c000207ae%3A%D7%AA%D7%9E%D7%95%D7%A0%D7%94_%D7%9C%D7%A8%D7%99%D7%97%D7%95%D7%A3_%D7%A7%D7%98%D7%92%D7%95%D7%A8%D7%99%D7%94%22%7D\"]",
+      "link": "[elementor-tag id=\"83a6308\" name=\"archive-url\" settings=\"%7B%7D\"]"
+     },
+     "background_hover_background": "classic",
+     "background_hover_transition": {
+      "unit": "px",
+      "size": 1.1,
+      "sizes": []
+     },
+     "background_position": "center center",
+     "background_hover_position": "center center",
+     "background_hover_repeat": "no-repeat",
+     "background_hover_size": "contain",
+     "html_tag": "a"
+    },
+    "elements": [],
+    "isInner": true
+   },
+   {
+    "id": "07dca9f",
+    "elType": "widget",
+    "settings": {
+     "title": "",
+     "__dynamic__": {
+      "title": "[elementor-tag id=\"3e2df39\" name=\"archive-description\" settings=\"%7B%7D\"]"
+     },
+     "__globals__": {
+      "typography_typography": "globals/typography?id=accent",
+      "title_color": "globals/colors?id=accent"
+     },
+     "align": "center"
+    },
+    "elements": [],
+    "widgetType": "heading"
+   },
+   {
+    "id": "69e22fa",
+    "elType": "widget",
+    "settings": {
+     "title": "ניו בורן",
+     "align": "center",
+     "__globals__": {
+      "typography_typography": "globals/typography?id=text",
+      "title_color": "globals/colors?id=text"
+     },
+     "__dynamic__": {
+      "title": "[elementor-tag id=\"aab9c12\" name=\"archive-title\" settings=\"%7B%22include_context%22%3A%22%22%7D\"]"
+     },
+     "_element_width_laptop": "initial",
+     "_element_custom_width_laptop": {
+      "unit": "px",
+      "size": 217,
+      "sizes": []
+     }
+    },
+    "elements": [],
+    "widgetType": "heading"
+   }
+  ],
+  "isInner": true
+ }
+]

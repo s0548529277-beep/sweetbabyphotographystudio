@@ -1,0 +1,58 @@
+[
+ {
+  "id": "117b305",
+  "elType": "container",
+  "settings": {
+   "content_width": "full",
+   "margin": {
+    "unit": "px",
+    "top": "40",
+    "right": "0",
+    "bottom": "0",
+    "left": "0",
+    "isLinked": false
+   }
+  },
+  "elements": [
+   {
+    "id": "7323bf5",
+    "elType": "widget",
+    "settings": {
+     "title": "כתוב את הכותרת כאן",
+     "align": "center",
+     "__globals__": {
+      "typography_typography": "globals/typography?id=primary",
+      "title_color": "globals/colors?id=accent"
+     },
+     "__dynamic__": {
+      "title": "[elementor-tag id=\"11e1b4e\" name=\"archive-title\" settings=\"%7B%22include_context%22%3A%22%22%7D\"]"
+     }
+    },
+    "elements": [],
+    "widgetType": "heading"
+   },
+   {
+    "id": "f96c3b0",
+    "elType": "widget",
+    "settings": {
+     "galleries": [
+      {
+       "gallery_title": "גלריה חדשה",
+       "_id": "a97a0fd"
+      }
+     ],
+     "gallery_layout": "masonry",
+     "show_all_galleries_label": "הכל",
+     "__dynamic__": {
+      "gallery": "[elementor-tag id=\"eded877\" name=\"jet-post-custom-gallery\" settings=\"%7B%22gallery_field%22%3A%22gallery%22%7D\"]"
+     },
+     "thumbnail_image_size": "full",
+     "_element_width": "inherit"
+    },
+    "elements": [],
+    "widgetType": "gallery"
+   }
+  ],
+  "isInner": false
+ }
+]

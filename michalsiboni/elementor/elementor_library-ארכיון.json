@@ -1,0 +1,29 @@
+[
+ {
+  "id": "29bf69a",
+  "elType": "container",
+  "settings": [],
+  "elements": [
+   {
+    "id": "befd61a",
+    "elType": "widget",
+    "settings": {
+     "galleries": [
+      {
+       "gallery_title": "גלריה חדשה",
+       "_id": "bada1ca"
+      }
+     ],
+     "show_all_galleries_label": "הכל",
+     "__dynamic__": {
+      "gallery": "[elementor-tag id=\"2dc9e02\" name=\"acf-photo-gallery\" settings=\"%7B%22Key%22%3A%22field_6846b1d60b0bd%3Agallery_b%22%7D\"]"
+     },
+     "thumbnail_image_size": "full"
+    },
+    "elements": [],
+    "widgetType": "gallery"
+   }
+  ],
+  "isInner": false
+ }
+]
