@@ -43,6 +43,13 @@
       "when": 1791444887297,
       "tag": "0005_add_retouch_presets",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791444906131,
+      "tag": "0006_add_retouch_allowed_clients",
+      "breakpoints": true
     }
   ]
 }
