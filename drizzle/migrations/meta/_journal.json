@@ -8,6 +8,34 @@
       "when": 1791444781735,
       "tag": "0000_refresh_schema_comment",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791444857537,
+      "tag": "0001_add_app_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791444862153,
+      "tag": "0002_add_site_texts",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791444866054,
+      "tag": "0003_add_whatsapp_messages",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791444870337,
+      "tag": "0004_add_subscription_pass_expiry_and_online_purchase",
+      "breakpoints": true
     }
   ]
 }
