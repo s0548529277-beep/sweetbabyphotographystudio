@@ -1302,6 +1302,89 @@ export type Database = {
         }
         Relationships: []
       }
+      retouch_presets: {
+        Row: {
+          after_path: string
+          after_url: string
+          before_path: string
+          before_url: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          prompt: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          after_path: string
+          after_url: string
+          before_path: string
+          before_url: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          prompt: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          after_path?: string
+          after_url?: string
+          before_path?: string
+          before_url?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          prompt?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      retouch_usage_log: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          preset_id: string | null
+          session_id: string
+          success: boolean
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          preset_id?: string | null
+          session_id: string
+          success: boolean
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          preset_id?: string | null
+          session_id?: string
+          success?: boolean
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "retouch_usage_log_preset_id_fkey"
+            columns: ["preset_id"]
+            isOneToOne: false
+            referencedRelation: "retouch_presets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       site_bot_questions: {
         Row: {
           answer: string | null

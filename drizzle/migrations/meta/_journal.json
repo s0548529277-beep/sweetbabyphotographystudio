@@ -36,6 +36,13 @@
       "when": 1791444870337,
       "tag": "0004_add_subscription_pass_expiry_and_online_purchase",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791444887297,
+      "tag": "0005_add_retouch_presets",
+      "breakpoints": true
     }
   ]
 }
