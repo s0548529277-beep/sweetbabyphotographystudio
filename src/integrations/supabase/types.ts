@@ -1421,70 +1421,15 @@ export type Database = {
           },
         ]
       }
-      site_texts: {
-        Row: {
-          original_text: string
-          new_text: string
-          updated_at: string
-        }
-        Insert: {
-          original_text: string
-          new_text: string
-          updated_at?: string
-        }
-        Update: {
-          original_text?: string
-          new_text?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      subscription_pass_adjustments: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          delta: number
-          id: string
-          note: string
-          pass_id: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          delta: number
-          id?: string
-          note: string
-          pass_id: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          delta?: number
-          id?: string
-          note?: string
-          pass_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "subscription_pass_adjustments_pass_id_fkey"
-            columns: ["pass_id"]
-            isOneToOne: false
-            referencedRelation: "subscription_passes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       subscription_passes: {
         Row: {
           created_by: string | null
           entries_used: number
-          expires_at: string
           id: string
           notes: string | null
           plan_id: string | null
           plan_name: string
           price_paid: number
-          purchase_source: string
           purchased_at: string
           status: string
           total_entries: number
@@ -1493,13 +1438,11 @@ export type Database = {
         Insert: {
           created_by?: string | null
           entries_used?: number
-          expires_at: string
           id?: string
           notes?: string | null
           plan_id?: string | null
           plan_name: string
           price_paid?: number
-          purchase_source?: string
           purchased_at?: string
           status?: string
           total_entries: number
@@ -1508,13 +1451,11 @@ export type Database = {
         Update: {
           created_by?: string | null
           entries_used?: number
-          expires_at?: string
           id?: string
           notes?: string | null
           plan_id?: string | null
           plan_name?: string
           price_paid?: number
-          purchase_source?: string
           purchased_at?: string
           status?: string
           total_entries?: number
@@ -1538,7 +1479,6 @@ export type Database = {
           name: string
           price: number
           total_entries: number
-          validity_months: number
         }
         Insert: {
           active?: boolean
@@ -1547,7 +1487,6 @@ export type Database = {
           name: string
           price?: number
           total_entries: number
-          validity_months?: number
         }
         Update: {
           active?: boolean
@@ -1556,7 +1495,6 @@ export type Database = {
           name?: string
           price?: number
           total_entries?: number
-          validity_months?: number
         }
         Relationships: []
       }
@@ -1665,48 +1603,6 @@ export type Database = {
         }
         Relationships: []
       }
-      whatsapp_messages: {
-        Row: {
-          body: string | null
-          contact_name: string | null
-          created_at: string
-          direction: string
-          error: string | null
-          id: string
-          media_type: string | null
-          media_url: string | null
-          phone: string
-          status: string
-          wa_message_id: string | null
-        }
-        Insert: {
-          body?: string | null
-          contact_name?: string | null
-          created_at?: string
-          direction: string
-          error?: string | null
-          id?: string
-          media_type?: string | null
-          media_url?: string | null
-          phone: string
-          status?: string
-          wa_message_id?: string | null
-        }
-        Update: {
-          body?: string | null
-          contact_name?: string | null
-          created_at?: string
-          direction?: string
-          error?: string | null
-          id?: string
-          media_type?: string | null
-          media_url?: string | null
-          phone?: string
-          status?: string
-          wa_message_id?: string | null
-        }
-        Relationships: []
-      }
     }
     Views: {
       booking_busy_slots: {
@@ -1737,17 +1633,9 @@ export type Database = {
           manual_credit_balance: number
         }[]
       }
-      adjust_subscription_pass_entries: {
-        Args: { p_delta: number; p_pass_id: string }
-        Returns: number
-      }
       count_item_reservations: {
         Args: { _from: string; _item_id: string; _to: string }
         Returns: number
-      }
-      redeem_subscription_pass_entry: {
-        Args: { p_pass_id: string; p_session_date: string }
-        Returns: boolean
       }
       reload_pgrst_schema: { Args: never; Returns: undefined }
       run_readonly_query: { Args: { q: string }; Returns: Json }
