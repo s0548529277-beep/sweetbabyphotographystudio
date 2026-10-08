@@ -127,6 +127,27 @@ export type Database = {
         }
         Relationships: []
       }
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: string | null
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string | null
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string | null
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           balance_amount: number | null
@@ -1281,6 +1302,107 @@ export type Database = {
         }
         Relationships: []
       }
+      retouch_allowed_clients: {
+        Row: {
+          created_at: string
+          granted_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          granted_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          granted_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      retouch_presets: {
+        Row: {
+          after_path: string
+          after_url: string
+          before_path: string
+          before_url: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          prompt: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          after_path: string
+          after_url: string
+          before_path: string
+          before_url: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          prompt: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          after_path?: string
+          after_url?: string
+          before_path?: string
+          before_url?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          prompt?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      retouch_usage_log: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          preset_id: string | null
+          session_id: string
+          success: boolean
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          preset_id?: string | null
+          session_id: string
+          success: boolean
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          preset_id?: string | null
+          session_id?: string
+          success?: boolean
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "retouch_usage_log_preset_id_fkey"
+            columns: ["preset_id"]
+            isOneToOne: false
+            referencedRelation: "retouch_presets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       site_bot_questions: {
         Row: {
           answer: string | null
@@ -1359,6 +1481,24 @@ export type Database = {
         }
         Relationships: []
       }
+      site_texts: {
+        Row: {
+          new_text: string
+          original_text: string
+          updated_at: string
+        }
+        Insert: {
+          new_text: string
+          original_text: string
+          updated_at?: string
+        }
+        Update: {
+          new_text?: string
+          original_text?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       studio_closures: {
         Row: {
           close_time: string | null
@@ -1420,24 +1560,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      site_texts: {
-        Row: {
-          original_text: string
-          new_text: string
-          updated_at: string
-        }
-        Insert: {
-          original_text: string
-          new_text: string
-          updated_at?: string
-        }
-        Update: {
-          original_text?: string
-          new_text?: string
-          updated_at?: string
-        }
-        Relationships: []
       }
       subscription_pass_adjustments: {
         Row: {
