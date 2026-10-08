@@ -1,0 +1,1 @@
+COMMENT ON SCHEMA public IS 'Sweetbaby studio app schema';
