@@ -19,7 +19,7 @@ export const Route = createFileRoute("/items/$id")({
     <div className="min-h-screen flex items-center justify-center" dir="rtl">
       <div className="text-center">
         <p className="text-lg mb-2">שגיאה בטעינת הפריט</p>
-        <p className="text-sm text-muted-foreground">{error.message}</p>
+        <p className="text-sm text-muted-foreground">{error instanceof Error ? error.message : String(error)}</p>
       </div>
     </div>
   ),

@@ -50,6 +50,13 @@
       "when": 1791444906131,
       "tag": "0006_add_retouch_allowed_clients",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791445055897,
+      "tag": "0007_add_expense_debt_details",
+      "breakpoints": true
     }
   ]
 }
