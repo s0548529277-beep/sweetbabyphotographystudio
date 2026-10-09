@@ -153,6 +153,7 @@ export type Database = {
           balance_amount: number | null
           balance_method: string | null
           cancellation_charge: number | null
+          cashback_awarded: number
           contact_name: string | null
           contact_phone: string | null
           coupon_code: string | null
@@ -195,6 +196,7 @@ export type Database = {
           balance_amount?: number | null
           balance_method?: string | null
           cancellation_charge?: number | null
+          cashback_awarded?: number
           contact_name?: string | null
           contact_phone?: string | null
           coupon_code?: string | null
@@ -237,6 +239,7 @@ export type Database = {
           balance_amount?: number | null
           balance_method?: string | null
           cancellation_charge?: number | null
+          cashback_awarded?: number
           contact_name?: string | null
           contact_phone?: string | null
           coupon_code?: string | null
@@ -956,6 +959,7 @@ export type Database = {
           balance_method: string | null
           camera_model: string | null
           cancellation_charge: number | null
+          cashback_awarded: number
           confirmation_sent_at: string | null
           contact_name: string | null
           contact_phone: string | null
@@ -996,6 +1000,7 @@ export type Database = {
           balance_method?: string | null
           camera_model?: string | null
           cancellation_charge?: number | null
+          cashback_awarded?: number
           confirmation_sent_at?: string | null
           contact_name?: string | null
           contact_phone?: string | null
@@ -1036,6 +1041,7 @@ export type Database = {
           balance_method?: string | null
           camera_model?: string | null
           cancellation_charge?: number | null
+          cashback_awarded?: number
           confirmation_sent_at?: string | null
           contact_name?: string | null
           contact_phone?: string | null
