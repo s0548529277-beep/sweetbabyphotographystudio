@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { CalendarDays, Check, ChevronDown, Clock3, PackageSearch, Send, X } from "lucide-react";
+import { CalendarDays, Check, ChevronDown, Clock3, PackageSearch, Send } from "lucide-react";
 import { chatWithBot } from "@/lib/ai.functions";
 import { checkItemsAvailability } from "@/lib/orders.functions";
 import { useAuth } from "@/lib/auth";
@@ -110,6 +110,49 @@ export function ChatBot() {
     return () => clearTimeout(timer);
   }, [open]);
 
+  // The nudge grows the button in place (see the JSX below) instead of
+  // popping a separate card — it only needs to catch the eye for a few
+  // seconds, then shrinks back to the normal compact pill on its own.
+  useEffect(() => {
+    if (!showNudge) return;
+    const timer = setTimeout(() => setShowNudge(false), 7_000);
+    return () => clearTimeout(timer);
+  }, [showNudge]);
+
+  // Lets the floating button be dragged a little out of the way (e.g. if it
+  // covers something on the page) without that drag being mistaken for a
+  // click that opens the chat — a real click never moves the pointer past
+  // the small threshold below, so `moved` stays false and the click fires
+  // normally.
+  const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
+  const dragState = useRef<{ startX: number; startY: number; origX: number; origY: number; moved: boolean } | null>(null);
+  const justDraggedRef = useRef(false);
+
+  const onDragPointerDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    dragState.current = { startX: e.clientX, startY: e.clientY, origX: dragPos.x, origY: dragPos.y, moved: false };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onDragPointerMove = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    const ds = dragState.current;
+    if (!ds) return;
+    const dx = e.clientX - ds.startX;
+    const dy = e.clientY - ds.startY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) ds.moved = true;
+    if (ds.moved) setDragPos({ x: ds.origX + dx, y: ds.origY + dy });
+  };
+  const onDragPointerUp = () => {
+    if (dragState.current?.moved) justDraggedRef.current = true;
+    dragState.current = null;
+  };
+  const handleBubbleClick = () => {
+    if (justDraggedRef.current) {
+      justDraggedRef.current = false;
+      return;
+    }
+    setOpen(true);
+    setShowNudge(false);
+  };
+
   const send = async (rawText: string) => {
     const text = rawText.trim();
     if (!text || loading) return;
@@ -172,63 +215,28 @@ export function ChatBot() {
   };
 
   return (
-    <div dir="rtl" className="fixed bottom-4 left-4 z-[100] font-body sm:bottom-6 sm:left-6">
-      {!open && showNudge && (
-        <div className="absolute bottom-[calc(100%+12px)] left-0 w-[min(310px,calc(100vw-32px))] animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <div className="relative overflow-hidden rounded-2xl border border-secondary bg-card p-4 shadow-[0_20px_55px_-22px_color-mix(in_oklab,var(--color-primary)_30%,transparent)]">
-            <div className="absolute inset-x-0 top-0 h-1 bg-secondary" />
-            <Button
-              onClick={() => setShowNudge(false)}
-              aria-label="סגירת ההודעה"
-              variant="ghost"
-              size="icon-sm"
-              className="absolute left-2 top-2 rounded-full text-muted-foreground"
-            >
-              <X />
-            </Button>
-            <div className="flex items-center gap-3 pl-7">
-              <img
-                src={avatarSrc}
-                alt="נועה, העוזרת של Sweetbaby"
-                width={768}
-                height={768}
-                className="size-12 shrink-0 rounded-full bg-secondary/50 object-contain p-1"
-              />
-              <div>
-                <p className="font-semibold text-foreground">צריכה יד קטנה?</p>
-                <p className="mt-0.5 text-sm leading-6 text-muted-foreground">
-                  אני יכולה לבדוק מועד, למצוא אביזר או לחשב מחיר — ממש כאן.
-                </p>
-              </div>
-            </div>
-            <Button
-              onClick={() => {
-                setShowNudge(false);
-                setOpen(true);
-              }}
-              className="mt-3 w-full rounded-xl bg-secondary text-secondary-foreground shadow-none hover:bg-secondary/80"
-            >
-              דברי עם נועה
-              <Send />
-            </Button>
-          </div>
-        </div>
-      )}
-
+    <div
+      dir="rtl"
+      className="fixed bottom-4 left-4 z-[100] font-body sm:bottom-6 sm:left-6"
+      style={dragPos.x || dragPos.y ? { transform: `translate(${dragPos.x}px, ${dragPos.y}px)` } : undefined}
+    >
       {!open && (
         <button
           type="button"
-          onClick={() => {
-            setOpen(true);
-            setShowNudge(false);
-          }}
+          onPointerDown={onDragPointerDown}
+          onPointerMove={onDragPointerMove}
+          onPointerUp={onDragPointerUp}
+          onPointerCancel={onDragPointerUp}
+          onClick={handleBubbleClick}
           aria-label="פתיחת הצ׳אט עם נועה"
-          className="group relative flex items-center gap-3 rounded-full border border-bone/60 bg-gradient-to-br from-bone via-bone to-sand/40 py-2.5 pr-2.5 pl-5 text-foreground shadow-[0_22px_55px_-18px_color-mix(in_oklab,var(--color-ink)_42%,transparent)] ring-1 ring-white/40 transition-transform duration-300 hover:scale-[1.04] active:scale-95"
+          className={`group relative flex items-center gap-3 rounded-full border border-bone/60 bg-gradient-to-br from-bone via-bone to-sand/40 pr-2.5 pl-5 text-foreground shadow-[0_22px_55px_-18px_color-mix(in_oklab,var(--color-ink)_42%,transparent)] ring-1 ring-white/40 transition-all duration-500 hover:scale-[1.04] active:scale-95 touch-none select-none ${
+            showNudge ? "py-4 pl-6 max-w-[280px] ring-2 ring-accent/60" : "py-2.5"
+          }`}
         >
           <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-full">
             <span className="absolute -right-6 -top-8 size-24 rounded-full bg-white/30 blur-2xl transition-opacity duration-500 group-hover:opacity-80" />
           </span>
-          <span className="relative flex size-16 items-center justify-center overflow-hidden rounded-full border-2 border-white/70 bg-white/85 shadow-inner">
+          <span className="relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white/70 bg-white/85 shadow-inner">
             <img
               src={avatarSrc}
               alt=""
@@ -238,14 +246,23 @@ export function ChatBot() {
             />
             <span className="absolute bottom-1 right-1 size-3.5 rounded-full border-2 border-white bg-accent shadow-sm" />
           </span>
-          <span className="relative text-right">
-            <span className="block text-[11px] font-semibold leading-none text-ink-soft">
-              נועה · זמינה עכשיו
+          {showNudge ? (
+            <span className="relative text-right">
+              <span className="block text-base font-bold leading-snug text-ink">היי! אני כאן לעזור — נסו אותי</span>
+              <span className="mt-1 block text-xs font-medium leading-tight text-ink-soft">
+                תנסו ואולי תופתעו
+              </span>
             </span>
-            <span className="mt-1 block text-base font-bold leading-tight text-ink">
-              איך אפשר לעזור?
+          ) : (
+            <span className="relative text-right">
+              <span className="block text-[11px] font-semibold leading-none text-ink-soft">
+                נועה · זמינה עכשיו
+              </span>
+              <span className="mt-1 block text-base font-bold leading-tight text-ink">
+                איך אפשר לעזור?
+              </span>
             </span>
-          </span>
+          )}
         </button>
       )}
 
