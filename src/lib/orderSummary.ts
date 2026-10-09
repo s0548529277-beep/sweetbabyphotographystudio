@@ -144,7 +144,7 @@ export function buildBookingSummaryHtml(opts: {
     <p>${intro}</p>
     <h3 style="color:#2d3d2b">סיכום הזמנה</h3>
     <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">
-      <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>מספר הזמנה</strong></td><td style="padding:6px 10px" dir="ltr">#${b.id.slice(0, 8)}</td></tr>
+      <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>מספר הזמנה</strong></td><td style="padding:6px 10px;font-size:20px;font-weight:700;color:#2d3d2b" dir="ltr">#${b.id.slice(0, 8)}</td></tr>
       ${row("תאריך", dateWithHebrew(b.session_date))}
       ${row("שעה", `${String(b.start_time).slice(0, 5)} - ${String(b.end_time).slice(0, 5)}`)}
       ${row("מחיר כולל", `₪${b.price}`)}
@@ -217,7 +217,7 @@ export function buildPropsOrderSummaryHtml(opts: {
     <p>${intro}</p>
     <h3 style="color:#2d3d2b">סיכום הזמנה</h3>
     <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">
-      <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>מספר הזמנה</strong></td><td style="padding:6px 10px" dir="ltr">#${o.id.slice(0, 8)}</td></tr>
+      <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>מספר הזמנה</strong></td><td style="padding:6px 10px;font-size:20px;font-weight:700;color:#2d3d2b" dir="ltr">#${o.id.slice(0, 8)}</td></tr>
       ${row("איסוף", `${dateWithHebrew(o.session_date)}${o.pickup_time ? ` בשעה ${o.pickup_time}` : ""}`)}
       ${row("החזרה", `${dateWithHebrew(o.return_date)}${o.return_time ? ` בשעה ${o.return_time}` : ""}`)}
       ${o.balance_method ? row("אמצעי תשלום", PAYMENT_METHOD_LABELS[o.balance_method] ?? escapeHtml(o.balance_method)) : ""}
@@ -226,6 +226,7 @@ export function buildPropsOrderSummaryHtml(opts: {
     <h3 style="color:#2d3d2b;margin-top:24px">פריטים</h3>
     <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">${itemsRows}</table>
     <p style="margin-top:12px"><strong>סה״כ לתשלום:</strong> ₪${o.total}</p>
+    <p style="margin-top:16px;padding:12px 16px;background:#fdeceb;border:1px solid #f3c6c2;border-radius:10px;color:#b91c1c;font-weight:600">חובה לדווח לבעלת הסטודיו על כל נזק באביזרים. אין להחזיר אביזר שבור ללא הודעה מראש.</p>
     ${doorCodeHtml}
     ${includeArrival ? buildArrivalHtml() : ""}
     ${footerNote ? `<p style="color:#6b8a63;font-size:13px;margin-top:16px">${footerNote}</p>` : ""}

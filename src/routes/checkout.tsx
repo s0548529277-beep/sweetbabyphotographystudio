@@ -281,17 +281,13 @@ function Checkout() {
               <p className="text-xs text-muted-foreground mb-4">
                 מיקום הסטודיו: <span className="font-medium text-primary">תלמוד ירושלמי 24, בית שמש</span>
               </p>
-              <ul className="text-xs text-muted-foreground space-y-1.5 mb-4 max-h-32 overflow-y-auto pr-2">
+              <ul className="text-xs text-muted-foreground space-y-1.5 pr-2">
                 <li>· חפץ שלא ייאסף תוך 30 יום ייכנס למאגר האביזרים.</li>
                 <li>· ניקיון: השארת מקום מלוכלך – חיוב 150₪.</li>
                 <li>· רקעי נייר לקירות בלבד. שימוש כרצפה – 50₪ מראש. נזק – 100₪ למטר.</li>
                 <li>· נזק לציוד – עלות התיקון + 20% דמי טיפול.</li>
                 <li>· ביטול עד יום האירוע – מקדמה לא מוחזרת. ביטול ביום עצמו – חיוב 100%.</li>
               </ul>
-              <label className="flex items-start gap-2 text-sm cursor-pointer bg-blush/30 rounded-2xl p-4 border border-blush">
-                <Checkbox checked={form.terms_accepted} onCheckedChange={(v) => setForm({ ...form, terms_accepted: !!v })} className="mt-0.5" />
-                <span className="font-medium">אני מאשר/ת שקראתי את הכללים ואני מסכימה לתנאי ההשכרה *</span>
-              </label>
             </div>
           </div>
 
@@ -362,10 +358,14 @@ function Checkout() {
               </button>
             )}
             <div className="text-[11px] text-primary-foreground/60 mt-2">מינימום 50₪ · תשלום מלא בסיום ההזמנה (מזומן/אשראי/העברה/Bit).</div>
+            <label className="flex items-start gap-2 text-sm cursor-pointer bg-primary-foreground/10 rounded-2xl p-4 border border-blush/40 mt-4">
+              <Checkbox checked={form.terms_accepted} onCheckedChange={(v) => setForm({ ...form, terms_accepted: !!v })} className="mt-0.5" />
+              <span className="font-medium">אני מאשר/ת שקראתי את הכללים ואני מסכימה לתנאי ההשכרה *</span>
+            </label>
             <Button
               type="submit"
               disabled={disabled || busy || !form.terms_accepted || !form.session_date || !form.return_date || anyUnavailable}
-              className="w-full mt-6 rounded-full h-12 bg-blush text-primary hover:bg-blush-deep"
+              className="w-full mt-3 rounded-full h-12 bg-blush text-primary hover:bg-blush-deep"
             >
               {busy ? "שולח…" : "אישור הזמנה"}
             </Button>
