@@ -34,6 +34,8 @@ import {
   Droplets,
   FileText,
   MessageSquare,
+  Menu,
+  X,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -118,10 +120,21 @@ function isLinkActive(path: string, l: NavLink) {
   return l.exact ? path === l.to : path === l.to || path.startsWith(`${l.to}/`);
 }
 
-function NavLinkRow({ l, active, indent }: { l: NavLink; active: boolean; indent?: boolean }) {
+function NavLinkRow({
+  l,
+  active,
+  indent,
+  onNavigate,
+}: {
+  l: NavLink;
+  active: boolean;
+  indent?: boolean;
+  onNavigate?: () => void;
+}) {
   return (
     <Link
       to={l.to}
+      onClick={onNavigate}
       className={`flex items-center gap-3 h-11 rounded-xl text-sm transition-colors ${indent ? "px-4 mr-3" : "px-4"} ${
         active ? "bg-primary text-primary-foreground" : "hover:bg-cream text-foreground"
       }`}
@@ -129,6 +142,19 @@ function NavLinkRow({ l, active, indent }: { l: NavLink; active: boolean; indent
       <l.icon className="h-4 w-4" /> {l.label}
     </Link>
   );
+}
+
+/** The currently-active link's own label (incl. sub-items inside a group) — shown on the mobile menu toggle so it's clear which admin page is open. */
+function currentPageLabel(path: string): string {
+  for (const entry of links) {
+    if (!isGroup(entry)) {
+      if (isLinkActive(path, entry)) return entry.label;
+      continue;
+    }
+    const match = entry.items.find((l) => isLinkActive(path, l));
+    if (match) return match.label;
+  }
+  return "ניהול";
 }
 
 function AdminLayout() {
@@ -141,6 +167,13 @@ function AdminLayout() {
     }
     return initial;
   });
+  // The sidebar lists 15+ links — on a phone that's taller than the
+  // viewport, so it's collapsed behind this toggle by default there
+  // (always expanded on lg: and up, see the aside's own classes below).
+  // Per explicit report: without this, the nav list alone filled the whole
+  // screen and a page like "לקוחות" never had room to actually show.
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const closeMobileNav = () => setMobileNavOpen(false);
 
   return (
     <div className="min-h-screen flex flex-col bg-cream/40">
@@ -150,11 +183,35 @@ function AdminLayout() {
         <h1 className="font-display text-4xl text-primary mb-8">ניהול סטודיו</h1>
 
         <div className="grid lg:grid-cols-[220px_1fr] gap-8">
-          <aside className="bg-card rounded-2xl p-3 border border-primary/5 h-fit sticky top-24">
+          <div className="lg:hidden">
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen((v) => !v)}
+              className="w-full flex items-center justify-between gap-3 px-4 h-12 rounded-xl bg-card border border-primary/5 text-sm font-medium text-primary"
+            >
+              <span className="flex items-center gap-2">
+                {mobileNavOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+                תפריט ניהול
+              </span>
+              <span className="text-forest/60">{currentPageLabel(path)}</span>
+            </button>
+          </div>
+          <aside
+            className={`bg-card rounded-2xl p-3 border border-primary/5 h-fit lg:sticky lg:top-24 ${
+              mobileNavOpen ? "block" : "hidden"
+            } lg:block`}
+          >
             <nav className="flex flex-col gap-1">
               {links.map((entry) => {
                 if (!isGroup(entry)) {
-                  return <NavLinkRow key={entry.to} l={entry} active={isLinkActive(path, entry)} />;
+                  return (
+                    <NavLinkRow
+                      key={entry.to}
+                      l={entry}
+                      active={isLinkActive(path, entry)}
+                      onNavigate={closeMobileNav}
+                    />
+                  );
                 }
                 const isOpen = !!openGroups[entry.key];
                 const hasActiveChild = entry.items.some((l) => isLinkActive(path, l));
@@ -180,7 +237,13 @@ function AdminLayout() {
                     {isOpen && (
                       <div className="flex flex-col gap-1 mt-1">
                         {entry.items.map((l) => (
-                          <NavLinkRow key={l.to} l={l} active={isLinkActive(path, l)} indent />
+                          <NavLinkRow
+                            key={l.to}
+                            l={l}
+                            active={isLinkActive(path, l)}
+                            indent
+                            onNavigate={closeMobileNav}
+                          />
                         ))}
                       </div>
                     )}
