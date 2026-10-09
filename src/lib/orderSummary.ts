@@ -153,7 +153,6 @@ export function buildBookingSummaryHtml(opts: {
       ${row("יתרה לתשלום בסטודיו", `₪${balance}`)}
       ${b.notes ? row("הערות", escapeHtml(String(b.notes))) : ""}
     </table>
-    <p style="color:#6b8a63;font-size:13px;margin-top:4px">מחירון השכרת סטודיו: ₪180 לשעה הראשונה, ₪100 לכל שעה נוספת. מבצע ניו-בורן (חבילה קבועה של 3 שעות): ₪320.</p>
     ${itemsHtml}
     ${paymentHtml}
     ${doorCodeHtml}
