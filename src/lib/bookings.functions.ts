@@ -645,7 +645,7 @@ export const cancelBooking = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: b, error } = await supabase
       .from("bookings")
-      .select("id, user_id, status, google_event_id, credit_used_cashback, credit_used_manual, subscription_pass_id")
+      .select("id, user_id, status, google_event_id, credit_used_cashback, credit_used_manual, subscription_pass_id, cashback_awarded")
       .eq("id", data.id)
       .maybeSingle();
     if (error || !b) throw new Error("השריון לא נמצא");
@@ -686,6 +686,11 @@ export const cancelBooking = createServerFn({ method: "POST" })
       console.error("[SWEETBABY] credit refund on booking cancel failed", e);
     }
 
+    // Claw back cashback this booking itself earned (if any) — the
+    // counterpart to the refund above, see clawBackCashback's own comment.
+    const { clawBackCashback } = await import("@/lib/loyalty");
+    await clawBackCashback(supabaseAdmin, userId, (b as { cashback_awarded?: number }).cashback_awarded ?? 0);
+
     if ((b as { google_event_id?: string }).google_event_id) {
       try {
         await deleteGoogleEvent((b as { google_event_id: string }).google_event_id);
@@ -703,7 +708,7 @@ export const cancelOrder = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: o, error } = await supabase
       .from("orders")
-      .select("id, user_id, status, credit_used_cashback, credit_used_manual")
+      .select("id, user_id, status, credit_used_cashback, credit_used_manual, cashback_awarded")
       .eq("id", data.id)
       .maybeSingle();
     if (error || !o) throw new Error("ההזמנה לא נמצאה");
@@ -735,6 +740,10 @@ export const cancelOrder = createServerFn({ method: "POST" })
     } catch (e) {
       console.error("[SWEETBABY] credit refund on order cancel failed", e);
     }
+
+    // Claw back cashback this order itself earned (if any).
+    const { clawBackCashback } = await import("@/lib/loyalty");
+    await clawBackCashback(supabaseAdmin, userId, (o as { cashback_awarded?: number }).cashback_awarded ?? 0);
 
     return { ok: true };
   });
@@ -856,7 +865,10 @@ async function finalizeBookingConfirmation(
     );
     if (!hasActivePass) {
       const { awardCashback } = await import("@/lib/loyalty");
-      await awardCashback(supabaseAdmin, b.user_id, Number(b.price));
+      const earned = await awardCashback(supabaseAdmin, b.user_id, Number(b.price));
+      if (earned > 0) {
+        await supabaseAdmin.from("bookings").update({ cashback_awarded: earned }).eq("id", b.id);
+      }
     }
   } catch (e) {
     console.error("[SWEETBABY] cashback award (booking) failed", e);

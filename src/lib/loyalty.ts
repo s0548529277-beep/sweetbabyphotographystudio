@@ -26,10 +26,14 @@ const CASHBACK_MIN_AMOUNT = 150;
  * `DEFAULT_CASHBACK_PERCENT` for every registered customer by default, or
  * her own admin-set `cashback_percent` if she has a customer_loyalty row —
  * but only when `amount` is at least CASHBACK_MIN_AMOUNT. Never throws — a
- * loyalty hiccup must never block a booking/order confirmation.
+ * loyalty hiccup must never block a booking/order confirmation. Returns the
+ * actual amount credited (0 if nothing was awarded) so the caller can
+ * snapshot it onto the booking/order row (cashback_awarded) — needed so a
+ * later cancellation can claw back exactly this amount, not a recomputed
+ * value that could differ if the customer's rate changed since.
  */
-export async function awardCashback(supabaseAdmin: any, userId: string, amount: number): Promise<void> {
-  if (!amount || amount < CASHBACK_MIN_AMOUNT) return;
+export async function awardCashback(supabaseAdmin: any, userId: string, amount: number): Promise<number> {
+  if (!amount || amount < CASHBACK_MIN_AMOUNT) return 0;
   try {
     const { data: loyalty } = await supabaseAdmin
       .from("customer_loyalty")
@@ -37,18 +41,39 @@ export async function awardCashback(supabaseAdmin: any, userId: string, amount: 
       .eq("user_id", userId)
       .maybeSingle();
     const percent = loyalty ? loyalty.cashback_percent : DEFAULT_CASHBACK_PERCENT;
-    if (!percent) return;
-    if (loyalty?.cashback_expires_at && new Date(loyalty.cashback_expires_at) < new Date()) return;
+    if (!percent) return 0;
+    if (loyalty?.cashback_expires_at && new Date(loyalty.cashback_expires_at) < new Date()) return 0;
     const earned = Math.round(amount * percent) / 100;
-    if (earned <= 0) return;
+    if (earned <= 0) return 0;
     // Atomic +earned on credit_balance (single UPDATE, row-locked) instead
     // of read-then-write, so a concurrent award/deduction for this same
     // customer can never clobber this one. See migration
     // 20260820090000_atomic_loyalty_credit_adjust.sql.
     const { error } = await supabaseAdmin.rpc("adjust_loyalty_credit", { p_user_id: userId, p_delta: earned });
     if (error) throw error;
+    return earned;
   } catch (e) {
     console.error("[SWEETBABY] cashback award failed", e);
+    return 0;
+  }
+}
+
+/**
+ * Claws back cashback earned from a now-cancelled booking/order — the
+ * counterpart to awardCashback, called on every cancellation path (self or
+ * admin) alongside the existing credit_used_cashback/manual refund. Clamped
+ * at 0 by adjust_loyalty_credit itself (same RPC awardCashback uses, just a
+ * negative delta), so it's safe even if the balance was already spent
+ * elsewhere. Never throws.
+ */
+export async function clawBackCashback(supabaseAdmin: any, userId: string, cashbackAwarded: number): Promise<void> {
+  const amount = Number(cashbackAwarded) || 0;
+  if (amount <= 0) return;
+  try {
+    const { error } = await supabaseAdmin.rpc("adjust_loyalty_credit", { p_user_id: userId, p_delta: -amount, p_source: "cashback" });
+    if (error) throw error;
+  } catch (e) {
+    console.error("[SWEETBABY] cashback clawback on cancel failed", e);
   }
 }
 
