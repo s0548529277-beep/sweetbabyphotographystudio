@@ -36,6 +36,17 @@ export function buildDoorCodeHtml(code: string, extraNote?: string): string {
 /** The extra caveat shown only on props/accessories orders — the code doesn't just cover a fixed window, it goes dead overnight. */
 const PROPS_DOOR_CODE_NOTE = "הקוד לא פעיל בין 00:00 ל-07:00. אין לקחת או להחזיר אביזרים בלי לתאם טלפונית מראש · 054-8529277.";
 
+/** Shown on a confirmation email only when this specific booking/order actually earned cashback (see awardCashback) — omitted entirely otherwise. Styled as a small celebratory moment, not just another info row. */
+export function buildCashbackEarnedHtml(amount: number): string {
+  if (!amount || amount <= 0) return "";
+  return `<div style="margin:20px 0;padding:20px;background:linear-gradient(135deg,#fdf3ec,#f8e9d8);border-radius:16px;border:1px solid #f0d9b8;text-align:center;box-shadow:0 6px 18px -8px rgba(201,153,74,0.35)">
+    <p style="margin:0 0 4px;font-size:26px;line-height:1">🎉✨🎊</p>
+    <p style="margin:0 0 2px;color:#6b4f1d;font-size:14px;font-weight:600">צברת קאשבק!</p>
+    <p style="margin:0;color:#8a5a12;font-size:32px;font-weight:800;letter-spacing:0.5px">₪${amount.toFixed(0)}</p>
+    <p style="margin:6px 0 0;color:#6b8a63;font-size:13px">מההזמנה הזו — זמין לשימוש בהזמנה הבאה שלך 💗</p>
+  </div>`;
+}
+
 /**
  * Maps the raw studio-intake questionnaire payload (studio_intake_forms.payload)
  * to Hebrew labels, in display order. Shared so every email that shows the
@@ -126,8 +137,10 @@ export function buildBookingSummaryHtml(opts: {
   paymentAmount?: number;
   /** TTLock door passcode, once issued — see integrations/ttlock/client.server.ts. */
   doorCode?: string | null;
+  /** Cashback this specific booking earned (see awardCashback) — shown only when > 0. */
+  cashbackEarned?: number;
 }): string {
-  const { heading, intro, booking, intakePayload, includeArrival = true, includeIntake = true, footerNote, paymentAmount, doorCode } = opts;
+  const { heading, intro, booking, intakePayload, includeArrival = true, includeIntake = true, footerNote, paymentAmount, doorCode, cashbackEarned } = opts;
   const b = booking;
   const balance = b.balance_amount ?? Math.max(0, (b.price ?? 0) - (b.deposit_amount ?? 0));
 
@@ -137,6 +150,7 @@ export function buildBookingSummaryHtml(opts: {
       : "";
   const paymentHtml = paymentAmount != null ? buildPaymentButtonHtml(paymentAmount) : "";
   const doorCodeHtml = doorCode ? buildDoorCodeHtml(doorCode) : "";
+  const cashbackHtml = cashbackEarned ? buildCashbackEarnedHtml(cashbackEarned) : "";
 
   return `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:600px;margin:auto">
     <h2 style="color:#2d3d2b">${escapeHtml(heading)}</h2>
@@ -153,6 +167,7 @@ export function buildBookingSummaryHtml(opts: {
       ${row("יתרה לתשלום בסטודיו", `₪${balance}`)}
       ${b.notes ? row("הערות", escapeHtml(String(b.notes))) : ""}
     </table>
+    ${cashbackHtml}
     ${itemsHtml}
     ${paymentHtml}
     ${doorCodeHtml}
@@ -200,9 +215,12 @@ export function buildPropsOrderSummaryHtml(opts: {
   footerNote?: string;
   /** TTLock door passcode, once issued — see integrations/ttlock/client.server.ts. */
   doorCode?: string | null;
+  /** Cashback this specific order earned (see awardCashback) — shown only when > 0. */
+  cashbackEarned?: number;
 }): string {
-  const { heading, intro, order: o, includeArrival = true, footerNote, doorCode } = opts;
+  const { heading, intro, order: o, includeArrival = true, footerNote, doorCode, cashbackEarned } = opts;
   const doorCodeHtml = doorCode ? buildDoorCodeHtml(doorCode, PROPS_DOOR_CODE_NOTE) : "";
+  const cashbackHtml = cashbackEarned ? buildCashbackEarnedHtml(cashbackEarned) : "";
 
   const itemsRows = o.lines
     .map(
@@ -227,6 +245,7 @@ export function buildPropsOrderSummaryHtml(opts: {
     <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">${itemsRows}</table>
     <p style="margin-top:12px"><strong>סה״כ לתשלום:</strong> ₪${o.total}</p>
     <p style="margin-top:16px;padding:12px 16px;background:#fdeceb;border:1px solid #f3c6c2;border-radius:10px;color:#b91c1c;font-weight:600">חובה לדווח לבעלת הסטודיו על כל נזק באביזרים. אין להחזיר אביזר שבור ללא הודעה מראש.</p>
+    ${cashbackHtml}
     ${doorCodeHtml}
     ${includeArrival ? buildArrivalHtml() : ""}
     ${footerNote ? `<p style="color:#6b8a63;font-size:13px;margin-top:16px">${footerNote}</p>` : ""}

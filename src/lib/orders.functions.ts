@@ -438,7 +438,7 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
           console.error("[SWEETBABY] TTLock door code backfill (order) failed", e);
         }
       }
-      return { ok: true, already: true, doorCode };
+      return { ok: true, already: true, doorCode, cashbackEarned: 0 };
     }
 
     const { data: itemRows } = await supabase
@@ -466,6 +466,7 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
     // the function's final return — the door code needs to reach the
     // client so the success screen can show it, not just the email.
     let doorCode: string | null = null;
+    let cashbackEarned = 0;
 
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -478,6 +479,7 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
         const earned = await awardCashback(supabaseAdmin, userId, Number(o.total));
         if (earned > 0) {
           await supabaseAdmin.from("orders").update({ cashback_awarded: earned }).eq("id", o.id);
+          cashbackEarned = earned;
         }
       } catch (e) {
         console.error("[SWEETBABY] cashback award (order) failed", e);
@@ -544,6 +546,7 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
         },
         footerNote: receiptAttachment ? "קובץ האסמכתא שצירפת מופיע כקובץ מצורף למייל זה." : undefined,
         doorCode,
+        cashbackEarned,
       });
 
       const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
@@ -629,7 +632,7 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
       }
     }
 
-    return { ok: true, already: false, doorCode };
+    return { ok: true, already: false, doorCode, cashbackEarned };
   });
 
 // ---------- opt-in reminder, customer-chosen hours-before (props/equipment orders) ----------
