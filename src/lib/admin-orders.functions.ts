@@ -48,8 +48,8 @@ export const adminSetStatus = createServerFn({ method: "POST" })
       // rental never touches a studio-visit pass).
       .select(
         data.kind === "booking"
-          ? "id, user_id, status, credit_used_cashback, credit_used_manual, google_event_id, subscription_pass_id"
-          : "id, user_id, status, credit_used_cashback, credit_used_manual, google_event_id",
+          ? "id, user_id, status, credit_used_cashback, credit_used_manual, cashback_awarded, google_event_id, subscription_pass_id"
+          : "id, user_id, status, credit_used_cashback, credit_used_manual, cashback_awarded, google_event_id",
       )
       .eq("id", data.id)
       .maybeSingle();
@@ -63,6 +63,7 @@ export const adminSetStatus = createServerFn({ method: "POST" })
       user_id: string;
       credit_used_cashback?: number | null;
       credit_used_manual?: number | null;
+      cashback_awarded?: number | null;
       google_event_id?: string | null;
       subscription_pass_id?: string | null;
     };
@@ -92,6 +93,11 @@ export const adminSetStatus = createServerFn({ method: "POST" })
       } catch (e) {
         console.error("[SWEETBABY] credit refund on admin cancel failed", e);
       }
+
+      // Claw back cashback this order/booking itself earned (if any) —
+      // otherwise a cancelled purchase still leaves its cashback behind.
+      const { clawBackCashback } = await import("@/lib/loyalty");
+      await clawBackCashback(supabaseAdmin, r.user_id, r.cashback_awarded ?? 0);
 
       const passId = r.subscription_pass_id;
       if (passId) {

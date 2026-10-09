@@ -475,7 +475,10 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
       // real amount paid, now that payment is actually confirmed.
       try {
         const { awardCashback } = await import("@/lib/loyalty");
-        await awardCashback(supabaseAdmin, userId, Number(o.total));
+        const earned = await awardCashback(supabaseAdmin, userId, Number(o.total));
+        if (earned > 0) {
+          await supabaseAdmin.from("orders").update({ cashback_awarded: earned }).eq("id", o.id);
+        }
       } catch (e) {
         console.error("[SWEETBABY] cashback award (order) failed", e);
       }
