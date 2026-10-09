@@ -137,9 +137,36 @@ export const grantManualCredit = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
     const row = Array.isArray(result) ? result[0] : result;
+    const creditBalance = Number(row?.credit_balance ?? 0);
+
+    // Notify the customer only on a positive top-up (a gesture/credit grant
+    // worth celebrating) — never on a negative correction/removal, which
+    // isn't good news to announce. Best-effort: a failed email must never
+    // undo or block the credit that was already granted above.
+    if (data.amount > 0) {
+      try {
+        const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
+        const customerEmail = authUser?.user?.email;
+        if (customerEmail) {
+          const { sendGmail } = await import("@/integrations/google/gmail.server");
+          const html = `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:480px;margin:auto">
+            <div style="margin:20px 0;padding:20px;background:linear-gradient(135deg,#fdf3ec,#f8e9d8);border-radius:16px;border:1px solid #f0d9b8;text-align:center;box-shadow:0 6px 18px -8px rgba(201,153,74,0.35)">
+              <p style="margin:0 0 4px;font-size:26px;line-height:1">🎁✨🎊</p>
+              <p style="margin:0 0 2px;color:#6b4f1d;font-size:14px;font-weight:600">קיבלת זיכוי מהסטודיו!</p>
+              <p style="margin:0;color:#8a5a12;font-size:32px;font-weight:800;letter-spacing:0.5px">₪${data.amount.toFixed(0)}</p>
+              <p style="margin:6px 0 0;color:#6b8a63;font-size:13px">יתרת הקרדיט שלך כעת: ₪${creditBalance.toFixed(0)} — זמין לשימוש בהזמנה הבאה שלך 💗</p>
+            </div>
+          </div>`;
+          await sendGmail({ to: customerEmail, subject: "קיבלת זיכוי מסטודיו Sweetbaby 🎁", html });
+        }
+      } catch (e) {
+        console.error("[SWEETBABY] manual credit grant notification email failed", e);
+      }
+    }
+
     return {
       ok: true,
-      credit_balance: Number(row?.credit_balance ?? 0),
+      credit_balance: creditBalance,
       cashback_credit_balance: Number(row?.cashback_credit_balance ?? 0),
       manual_credit_balance: Number(row?.manual_credit_balance ?? 0),
     };

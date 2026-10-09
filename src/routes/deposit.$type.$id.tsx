@@ -60,6 +60,7 @@ function Deposit() {
   const [confirmedPaid, setConfirmedPaid] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [doorCode, setDoorCode] = useState<string | null>(null);
+  const [cashbackEarned, setCashbackEarned] = useState(0);
   const [wantsReminder, setWantsReminder] = useState(false);
   const [reminderHoursBefore, setReminderHoursBefore] = useState("12");
   const confirmDeposit = useServerFn(confirmBookingDeposit);
@@ -140,6 +141,7 @@ function Deposit() {
         try {
           const res = await confirmDeposit({ data: { id } });
           if (res?.doorCode) setDoorCode(res.doorCode);
+          if (res?.cashbackEarned) setCashbackEarned(res.cashbackEarned);
         } catch (e) {
           console.error("[SWEETBABY] calendar sync after deposit failed", e);
         }
@@ -151,6 +153,7 @@ function Deposit() {
         try {
           const res = await confirmOrder({ data: { id } });
           if (res?.doorCode) setDoorCode(res.doorCode);
+          if (res?.cashbackEarned) setCashbackEarned(res.cashbackEarned);
         } catch (e) {
           console.error("[SWEETBABY] order confirmation email trigger failed", e);
         }
@@ -205,6 +208,14 @@ function Deposit() {
                       ? "קיבלנו את האסמכתא ואישור נשלח למייל. מחכות לפגוש אותך!"
                       : "התאריך נשמר ואישור נשלח למייל. התשלום יאומת ויסומן כ'שולם' בהמשך, עד לסיום ההזמנה."}
                 </p>
+                {cashbackEarned > 0 && (
+                  <div className="mx-auto max-w-sm mb-6 p-5 rounded-2xl text-center bg-gradient-to-br from-[#fdf3ec] to-[#f8e9d8] border border-[#f0d9b8] shadow-[0_6px_18px_-8px_rgba(201,153,74,0.35)]">
+                    <p className="text-2xl leading-none mb-1">🎉✨🎊</p>
+                    <p className="text-sm font-semibold text-[#6b4f1d] mb-0.5">צברת קאשבק!</p>
+                    <p className="font-display text-3xl font-extrabold text-[#8a5a12]">₪{cashbackEarned.toFixed(0)}</p>
+                    <p className="text-xs text-muted-foreground mt-1.5">זמין לשימוש בהזמנה הבאה שלך 💗</p>
+                  </div>
+                )}
                 {doorCode && (
                   <div className="mx-auto max-w-sm mb-6 p-4 rounded-2xl bg-[#faf7f4] border border-primary/10 text-center">
                     <p className="text-sm font-semibold text-primary mb-1">🔑 קוד כניסה לדלת הסטודיו</p>

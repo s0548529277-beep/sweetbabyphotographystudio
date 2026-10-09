@@ -825,7 +825,7 @@ type ConfirmableBooking = {
 async function finalizeBookingConfirmation(
   b: ConfirmableBooking,
   customerEmail: string | undefined,
-): Promise<{ doorCode: string | null }> {
+): Promise<{ doorCode: string | null; cashbackEarned: number }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { createGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
   const event = await createGoogleCalendarEvent({
@@ -854,6 +854,7 @@ async function finalizeBookingConfirmation(
   // ANY booking while it's active, extra hours included. Re-checked fresh
   // here (not threaded through from placeBooking) since deposit
   // confirmation can happen well after the booking was first created.
+  let cashbackEarned = 0;
   try {
     const { data: activePasses } = await supabaseAdmin
       .from("subscription_passes")
@@ -868,6 +869,7 @@ async function finalizeBookingConfirmation(
       const earned = await awardCashback(supabaseAdmin, b.user_id, Number(b.price));
       if (earned > 0) {
         await supabaseAdmin.from("bookings").update({ cashback_awarded: earned }).eq("id", b.id);
+        cashbackEarned = earned;
       }
     }
   } catch (e) {
@@ -931,6 +933,7 @@ async function finalizeBookingConfirmation(
       intakePayload,
       footerNote: receiptAttachment ? "קובץ האסמכתא שצירפת מופיע כקובץ מצורף למייל זה." : undefined,
       doorCode,
+      cashbackEarned,
     });
 
     const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
@@ -959,7 +962,7 @@ async function finalizeBookingConfirmation(
     }
   }
 
-  return { doorCode };
+  return { doorCode, cashbackEarned };
 }
 
 /**
@@ -1031,7 +1034,7 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
           console.error("[SWEETBABY] TTLock door code backfill (booking) failed", e);
         }
       }
-      return { ok: true, already: true, doorCode };
+      return { ok: true, already: true, doorCode, cashbackEarned: 0 };
     }
 
     let customerEmail: string | undefined;
@@ -1045,11 +1048,11 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
     }
 
     try {
-      const { doorCode } = await finalizeBookingConfirmation(b as unknown as ConfirmableBooking, customerEmail);
-      return { ok: true, already: false, doorCode };
+      const { doorCode, cashbackEarned } = await finalizeBookingConfirmation(b as unknown as ConfirmableBooking, customerEmail);
+      return { ok: true, already: false, doorCode, cashbackEarned };
     } catch (e) {
       console.error("[SWEETBABY] deposit calendar sync failed", e);
-      return { ok: false, already: false, doorCode: null as string | null };
+      return { ok: false, already: false, doorCode: null as string | null, cashbackEarned: 0 };
     }
   });
 
@@ -1093,14 +1096,14 @@ export const adminConfirmPhoneBookingDeposit = createServerFn({ method: "POST" }
       .eq("id", data.id)
       .maybeSingle();
     if (error || !b) throw new Error("השריון לא נמצא");
-    if (b.google_event_id) return { ok: true, already: true, doorCode: (b as any).door_code ?? null };
+    if (b.google_event_id) return { ok: true, already: true, doorCode: (b as any).door_code ?? null, cashbackEarned: 0 };
 
     try {
-      const { doorCode } = await finalizeBookingConfirmation(b as unknown as ConfirmableBooking, data.contactEmail);
-      return { ok: true, already: false, doorCode };
+      const { doorCode, cashbackEarned } = await finalizeBookingConfirmation(b as unknown as ConfirmableBooking, data.contactEmail);
+      return { ok: true, already: false, doorCode, cashbackEarned };
     } catch (e) {
       console.error("[SWEETBABY] admin phone-booking confirmation failed", e);
-      return { ok: false, already: false, doorCode: null as string | null };
+      return { ok: false, already: false, doorCode: null as string | null, cashbackEarned: 0 };
     }
   });
 
