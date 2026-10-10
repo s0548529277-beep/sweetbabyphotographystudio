@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { listAdminNotifications, markNotificationRead, getAiProviderStatus } from "@/lib/admin-notifications.functions";
 import { adminConfirmPhoneBookingDeposit } from "@/lib/bookings.functions";
-import { Bell, ChevronDown, ChevronUp, Phone, CalendarDays, Circle, CheckCircle2, Cpu, KeyRound, AlertTriangle, Shuffle, BadgeCheck, IdCard } from "lucide-react";
+import { Bell, ChevronDown, ChevronUp, Phone, CalendarDays, Circle, CheckCircle2, Cpu, KeyRound, AlertTriangle, Shuffle, BadgeCheck, IdCard, ShoppingBag, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/admin/notifications")({
@@ -20,7 +20,7 @@ type NotifRow = {
   created_at: string;
 };
 
-const TYPE_LABELS: Record<string, string> = {
+export const TYPE_LABELS: Record<string, string> = {
   voice_message: "הודעה מהבוט הקולי",
   booking: "שריון סטודיו",
   ttlock_error: "כשל בהנפקת קוד כניסה",
@@ -30,9 +30,11 @@ const TYPE_LABELS: Record<string, string> = {
   phone_booking_reminder_call: "תזכורת טלפונית — הזמנה ממתינה",
   props_request_reminder_call: "תזכורת טלפונית — בקשת אביזרים ממתינה",
   subscription_pass: "כרטיסייה נרכשה באשראי",
+  order: "הזמנת אביזרים",
+  studio_intake: "טופס תיאום ציפיות",
 };
 
-const TYPE_ICONS: Record<string, typeof Phone> = {
+export const TYPE_ICONS: Record<string, typeof Phone> = {
   voice_message: Phone,
   booking: CalendarDays,
   ttlock_error: KeyRound,
@@ -42,6 +44,8 @@ const TYPE_ICONS: Record<string, typeof Phone> = {
   phone_booking_reminder_call: Phone,
   props_request_reminder_call: Phone,
   subscription_pass: IdCard,
+  order: ShoppingBag,
+  studio_intake: ClipboardList,
 };
 
 const PROVIDER_LABELS: Record<string, string> = {
