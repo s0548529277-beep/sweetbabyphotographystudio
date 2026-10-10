@@ -1,48 +1,41 @@
-// Bespoke fetch/crypto-based client for the official WhatsApp Business
-// Platform (Meta Cloud API) — same house style as twilio.server.ts and the
-// Google Calendar integration: no heavy SDK, just direct Graph API calls.
-// Requires three env vars once the studio owner has a Meta Business /
-// WhatsApp Business Platform account set up (see /admin/whatsapp for the
-// exact setup steps shown there):
-//   WHATSAPP_ACCESS_TOKEN   — the permanent (System User) access token
-//   WHATSAPP_PHONE_NUMBER_ID — Meta's internal id for the sending number (NOT the phone number itself)
-//   WHATSAPP_APP_SECRET     — used to verify incoming webhook signatures
-//   WHATSAPP_VERIFY_TOKEN   — any string she picks herself, used only for the one-time webhook handshake
+// WhatsApp Business client routed through the Lovable connector gateway
+// (the "SWEETBABY's WhatsApp Business" connection linked to this project).
+// The gateway injects Meta's access token and phone-number id, so paths
+// carry no account identifiers and no Graph version: `/messages` sends,
+// `/media/<id>` reads media metadata, `/media_download` fetches the bytes.
+// Credentials live only in the two headers below — never in URLs.
+//
+//   WHATSAPP_API_KEY  — per-connection key, injected by the connector link
+//   LOVABLE_API_KEY   — project key, already present
 
-const GRAPH_VERSION = "v21.0";
+const GATEWAY_URL = "https://connector-gateway.lovable.dev/whatsapp";
 
-function apiUrl(path: string): string {
-  return `https://graph.facebook.com/${GRAPH_VERSION}/${path}`;
-}
-
-function accessToken(): string {
-  const token = process.env.WHATSAPP_ACCESS_TOKEN;
-  if (!token) throw new Error("Missing WHATSAPP_ACCESS_TOKEN — WhatsApp is not connected yet.");
-  return token;
-}
-
-function phoneNumberId(): string {
-  const id = process.env.WHATSAPP_PHONE_NUMBER_ID;
-  if (!id) throw new Error("Missing WHATSAPP_PHONE_NUMBER_ID — WhatsApp is not connected yet.");
-  return id;
+function gatewayHeaders(): Record<string, string> {
+  const lovableKey = process.env.LOVABLE_API_KEY;
+  const connectionKey = process.env.WHATSAPP_API_KEY;
+  if (!lovableKey || !connectionKey) {
+    throw new Error("WhatsApp is not connected yet — missing gateway credentials.");
+  }
+  return {
+    Authorization: `Bearer ${lovableKey}`,
+    "X-Connection-Api-Key": connectionKey,
+  };
 }
 
 async function postToMessagesEndpoint(
   body: Record<string, unknown>,
 ): Promise<{ wamid: string | null }> {
-  const res = await fetch(apiUrl(`${phoneNumberId()}/messages`), {
+  const res = await fetch(`${GATEWAY_URL}/messages`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken()}`,
-      "Content-Type": "application/json",
-    },
+    headers: { ...gatewayHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify({ messaging_product: "whatsapp", ...body }),
   });
-  const json = await res.json().catch(() => null);
+  const text = await res.text();
   if (!res.ok) {
-    const reason = json?.error?.message || res.statusText;
-    throw new Error(`WhatsApp send failed: ${reason}`);
+    console.error(`[SWEETBABY] whatsapp send failed [${res.status}]: ${text}`);
+    throw new Error(`WhatsApp send failed (${res.status}): ${text}`);
   }
+  const json = JSON.parse(text);
   return { wamid: json?.messages?.[0]?.id ?? null };
 }
 
@@ -77,57 +70,63 @@ export async function sendWhatsAppMedia(
 
 /**
  * Resolves a Meta media id (from an incoming message) to a short-lived
- * download URL + mime type. The URL itself still needs the same Bearer
- * token to actually fetch — see downloadWhatsAppMedia.
+ * download URL + mime type, through the gateway. The URL expires after ~5
+ * minutes and still needs authorization to fetch — see downloadWhatsAppMedia.
  */
 export async function fetchWhatsAppMediaInfo(
   mediaId: string,
-): Promise<{ url: string; mimeType: string } | null> {
-  const res = await fetch(apiUrl(mediaId), {
-    headers: { Authorization: `Bearer ${accessToken()}` },
+): Promise<{ url: string; mimeType: string; fileSize: number | null } | null> {
+  const res = await fetch(`${GATEWAY_URL}/media/${mediaId}`, {
+    headers: gatewayHeaders(),
   });
   if (!res.ok) return null;
   const json = await res.json().catch(() => null);
   if (!json?.url) return null;
-  return { url: json.url, mimeType: json.mime_type ?? "application/octet-stream" };
+  return {
+    url: json.url,
+    mimeType: json.mime_type ?? "application/octet-stream",
+    fileSize: typeof json.file_size === "number" ? json.file_size : null,
+  };
 }
 
-/** Downloads the actual media bytes from a URL returned by fetchWhatsAppMediaInfo. */
-export async function downloadWhatsAppMedia(url: string): Promise<ArrayBuffer | null> {
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken()}` } });
-  if (!res.ok) return null;
-  return res.arrayBuffer();
-}
+const MAX_MEDIA_BYTES = 20 * 1024 * 1024;
 
 /**
- * Verifies the `X-Hub-Signature-256` header Meta sends on every webhook
- * POST, per their documented algorithm: HMAC-SHA256 over the exact raw
- * request body, keyed with the app secret, hex-encoded, prefixed
- * "sha256=". MUST run against the raw body text (before JSON.parse) — Web
- * Crypto (crypto.subtle) so this runs the same on Cloudflare Workers and
- * Node, same approach as verifyTwilioSignature in twilio.server.ts.
+ * Downloads the actual media bytes through the gateway's media_download
+ * endpoint (the Meta URL goes in a header, never the query string). Reads
+ * the body as a stream with a hard byte cap instead of arrayBuffer(), so an
+ * untrusted oversized response can't buffer unbounded into memory.
  */
-export async function verifyWhatsAppSignature(
-  rawBody: string,
-  signatureHeader: string | null,
-): Promise<boolean> {
-  const appSecret = process.env.WHATSAPP_APP_SECRET;
-  if (!appSecret || !signatureHeader) return false;
-  const expectedPrefix = "sha256=";
-  if (!signatureHeader.startsWith(expectedPrefix)) return false;
+export async function downloadWhatsAppMedia(
+  url: string,
+  declaredSize?: number | null,
+): Promise<ArrayBuffer | null> {
+  if (declaredSize && declaredSize > MAX_MEDIA_BYTES) return null;
+  const res = await fetch(`${GATEWAY_URL}/media_download`, {
+    headers: { ...gatewayHeaders(), "X-WhatsApp-Media-URL": url },
+  });
+  if (!res.ok || !res.body) return null;
 
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(appSecret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const sigBuffer = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(rawBody));
-  const computed = Array.from(new Uint8Array(sigBuffer))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-  return computed === signatureHeader.slice(expectedPrefix.length);
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_MEDIA_BYTES) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return out.buffer;
 }
 
 export const WHATSAPP_MEDIA_EXT: Record<string, string> = {
