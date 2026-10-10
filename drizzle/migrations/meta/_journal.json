@@ -92,6 +92,13 @@
       "when": 1791667971723,
       "tag": "0012_add_whatsapp_webhook_events",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791668248445,
+      "tag": "0013_extend_10_entry_pass_validity_to_8_months",
+      "breakpoints": true
     }
   ]
 }
