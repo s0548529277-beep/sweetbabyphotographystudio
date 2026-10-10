@@ -443,7 +443,7 @@ export function ChatBot() {
               />
               <PromptInputFooter className="justify-between border-t border-secondary/50 px-2 py-2">
                 <span className="pr-1 text-[10px] text-muted-foreground">
-                  אפשר לשאול גם במילים פשוטות
+                  נועה היא בוט AI ועלולה לטעות לעיתים
                 </span>
                 <PromptInputSubmit
                   status={loading ? "submitted" : "ready"}

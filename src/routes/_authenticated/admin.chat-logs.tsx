@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { listChatLogs, listVoiceCallLogs } from "@/lib/admin-chat-logs.functions";
 import { listClientEmails } from "@/lib/admin-clients.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { MessageCircle, Phone, ChevronDown, ChevronUp } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/chat-logs")({
@@ -23,6 +24,29 @@ function ChatLogsAdmin() {
   const calls = useQuery({ queryKey: ["admin-voice-call-logs"], queryFn: () => fetchCalls({}), refetchInterval: 15000 });
   const emailsQ = useQuery({ queryKey: ["admin-client-emails"], queryFn: () => fetchEmails({ data: {} } as any) });
   const emails: Record<string, string> = (emailsQ.data as any) ?? {};
+  // Names/phones so a logged-in customer's chat shows who she actually is,
+  // not just "לקוחה מחוברת" — that generic fallback was easy to miss her
+  // identity entirely when no name happened to be in the emails map either.
+  const profilesQ = useQuery({
+    queryKey: ["admin-chat-log-profiles"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("id, full_name, phone");
+      return data ?? [];
+    },
+  });
+  const profiles: Record<string, { full_name: string | null; phone: string | null }> = Object.fromEntries(
+    (profilesQ.data ?? []).map((p: any) => [p.id, { full_name: p.full_name, phone: p.phone }]),
+  );
+  const whoLabel = (userId: string | null) => {
+    if (!userId) return "אורחת (לא מחוברת)";
+    const p = profiles[userId];
+    const name = p?.full_name?.trim();
+    const phone = p?.phone?.trim();
+    if (name && phone) return `${name} · ${phone}`;
+    if (name) return name;
+    if (phone) return phone;
+    return emails[userId] || "לקוחה מחוברת (ללא שם בפרופיל)";
+  };
 
   const [openId, setOpenId] = useState<string | null>(null);
   const chatRows = (logs.data ?? []) as unknown as ChatLogRow[];
@@ -67,7 +91,7 @@ function ChatLogsAdmin() {
         <div className="space-y-2">
           {chatRows.map((r) => {
             const isOpen = openId === r.id;
-            const who = r.user_id ? emails[r.user_id] || "לקוחה מחוברת" : "אורחת (לא מחוברת)";
+            const who = whoLabel(r.user_id);
             const lastMsg = r.messages?.[r.messages.length - 1];
             return (
               <div key={r.id} className="bg-card rounded-xl border border-primary/5 overflow-hidden">
@@ -77,7 +101,7 @@ function ChatLogsAdmin() {
                   className="w-full flex items-center justify-between gap-3 p-4 text-right hover:bg-cream/30 transition"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm font-medium truncate" dir="ltr">
+                    <p className="text-sm font-medium truncate">
                       {who}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5 truncate">{lastMsg?.content ?? ""}</p>
