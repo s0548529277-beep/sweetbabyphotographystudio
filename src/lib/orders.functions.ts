@@ -110,6 +110,27 @@ export const placeOrder = createServerFn({ method: "POST" })
       if (c!.single_use) couponIdToRedeem = c!.id;
     }
 
+    // Automatic, no-code-needed discount for a specific customer (e.g. a
+    // colleague photographer) — admin-set per customer via
+    // customer_loyalty.fixed_discount_percent (/admin/clients, "הנחה קבועה
+    // ללקוחה"). Never stacks with a real entered coupon code.
+    let fixedDiscountNote: string | null = null;
+    if (!couponCodeUsed) {
+      const { data: loyaltyRow } = await supabase
+        .from("customer_loyalty")
+        .select("fixed_discount_percent")
+        .eq("user_id", userId)
+        .maybeSingle();
+      const fixedDiscountPercent = Math.max(0, Math.min(100, Number((loyaltyRow as any)?.fixed_discount_percent) || 0));
+      if (fixedDiscountPercent > 0) {
+        const off = Math.round((total * fixedDiscountPercent) / 100);
+        if (off > 0) {
+          total = Math.max(0, total - off);
+          fixedDiscountNote = `הנחה קבועה ללקוחה (${fixedDiscountPercent}%) · -₪${off}`;
+        }
+      }
+    }
+
     // Optional store credit from the customer's cashback loyalty balance.
     let creditUsed = 0;
     let creditNote: string | null = null;
@@ -173,6 +194,7 @@ export const placeOrder = createServerFn({ method: "POST" })
             ? `שעות השכרה: ${data.start_time}–${data.end_time} · ${dayMultiplier} יח׳ של 24ש (מכפיל x${dayMultiplier})`
             : null,
           couponNote,
+          fixedDiscountNote,
           creditNote,
           data.notes,
         ].filter(Boolean).join("\n") || null,

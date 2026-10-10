@@ -449,6 +449,7 @@ export type Database = {
           cashback_percent: number
           credit_balance: number | null
           custom_hourly_rate: number | null
+          fixed_discount_percent: number
           manual_credit_balance: number
           updated_at: string
           user_id: string
@@ -460,6 +461,7 @@ export type Database = {
           cashback_percent?: number
           credit_balance?: number | null
           custom_hourly_rate?: number | null
+          fixed_discount_percent?: number
           manual_credit_balance?: number
           updated_at?: string
           user_id: string
@@ -471,6 +473,7 @@ export type Database = {
           cashback_percent?: number
           credit_balance?: number | null
           custom_hourly_rate?: number | null
+          fixed_discount_percent?: number
           manual_credit_balance?: number
           updated_at?: string
           user_id?: string
