@@ -121,7 +121,7 @@ function Cart() {
                     <Input
                       value={couponInput}
                       onChange={(e) => setCouponInput(e.target.value)}
-                      placeholder="למשל SWEET10"
+                      placeholder="קוד קופון"
                       dir="ltr"
                       className="uppercase"
                     />
