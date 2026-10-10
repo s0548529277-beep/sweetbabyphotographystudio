@@ -48,7 +48,7 @@ export const adminSetStatus = createServerFn({ method: "POST" })
       // rental never touches a studio-visit pass).
       .select(
         data.kind === "booking"
-          ? "id, user_id, status, credit_used_cashback, credit_used_manual, cashback_awarded, google_event_id, subscription_pass_id"
+          ? "id, user_id, status, credit_used_cashback, credit_used_manual, cashback_awarded, google_event_id, subscription_pass_id, session_date"
           : "id, user_id, status, credit_used_cashback, credit_used_manual, cashback_awarded, google_event_id",
       )
       .eq("id", data.id)
@@ -66,6 +66,7 @@ export const adminSetStatus = createServerFn({ method: "POST" })
       cashback_awarded?: number | null;
       google_event_id?: string | null;
       subscription_pass_id?: string | null;
+      session_date?: string | null;
     };
 
     const wasCancelled = r.status === "cancelled";
@@ -114,6 +115,11 @@ export const adminSetStatus = createServerFn({ method: "POST" })
         } catch (e) {
           console.error("[SWEETBABY] gcal delete on admin cancel failed", e);
         }
+      }
+
+      if (data.kind === "booking" && r.session_date) {
+        const { notifyWaitlistForFreedSlot } = await import("@/lib/waitlist.functions");
+        await notifyWaitlistForFreedSlot(r.session_date);
       }
     }
 

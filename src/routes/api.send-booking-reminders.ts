@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
-import { runDueBookingReminders, notifyPendingPhoneBookingConfirmations, notifyPendingPropsRequests } from "@/lib/bookings.functions";
+import { runDueBookingReminders, runDueAbandonedHoldReminders, notifyPendingPhoneBookingConfirmations, notifyPendingPropsRequests } from "@/lib/bookings.functions";
 import { runDueOrderReminders } from "@/lib/orders.functions";
 import { runDueProofSelectionReminders } from "@/lib/photo-clients.functions";
 
@@ -12,7 +12,10 @@ import { runDueProofSelectionReminders } from "@/lib/photo-clients.functions";
 // "hours before" timing they chose there — nobody gets a reminder unless
 // she asked for one. Also runs the (opt-out-free, always-on) 7-day
 // post-shoot "please pick your proof photos" reminder — see
-// runDueProofSelectionReminders in photo-clients.functions.ts.
+// runDueProofSelectionReminders in photo-clients.functions.ts — and the
+// abandoned-cart-style "your spot is still held" email shortly before an
+// unpaid website booking's temporary hold silently expires, see
+// runDueAbandonedHoldReminders in bookings.functions.ts.
 //
 // Protected by a shared-secret query param so it can't be triggered by
 // randoms: set REMINDER_CRON_SECRET in the project's environment variables,
@@ -33,14 +36,15 @@ export const Route = createFileRoute("/api/send-booking-reminders")({
           });
         }
 
-        const [bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders] = await Promise.all([
+        const [bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds] = await Promise.all([
           runDueBookingReminders(),
           runDueOrderReminders(),
           notifyPendingPhoneBookingConfirmations(),
           notifyPendingPropsRequests(),
           runDueProofSelectionReminders(),
+          runDueAbandonedHoldReminders(),
         ]);
-        return new Response(JSON.stringify({ bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders }), {
+        return new Response(JSON.stringify({ bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         });

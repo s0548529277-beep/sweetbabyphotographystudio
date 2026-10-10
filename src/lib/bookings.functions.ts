@@ -2,8 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { buildBookingSummaryHtml } from "@/lib/orderSummary";
-import { bookingBlocksSlot, PENDING_HOLD_MINUTES } from "@/lib/availability.server";
+import { bookingBlocksSlot, PENDING_HOLD_MINUTES, PHONE_BOOKING_NOTES_MARKER } from "@/lib/availability.server";
 import { PROPS_REQUEST_CONTEXT_MARKER } from "@/lib/voice-message.server";
+import { isPlaceholderEmail } from "@/lib/auth.functions";
 
 // Studio pricing rules
 // - Minimum 2 half-hour slots (1 hour)
@@ -645,7 +646,7 @@ export const cancelBooking = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: b, error } = await supabase
       .from("bookings")
-      .select("id, user_id, status, google_event_id, credit_used_cashback, credit_used_manual, subscription_pass_id, cashback_awarded")
+      .select("id, user_id, status, google_event_id, credit_used_cashback, credit_used_manual, subscription_pass_id, cashback_awarded, session_date")
       .eq("id", data.id)
       .maybeSingle();
     if (error || !b) throw new Error("השריון לא נמצא");
@@ -698,6 +699,16 @@ export const cancelBooking = createServerFn({ method: "POST" })
         console.error("[SWEETBABY] gcal delete failed", e);
       }
     }
+
+    // Let anyone waiting for this now-freed date know. Awaited (not
+    // fire-and-forget) — this runs on Cloudflare Workers, where an
+    // un-awaited promise can be torn down the moment the response is sent,
+    // same reasoning as every other async call in this handler.
+    // notifyWaitlistForFreedSlot itself never throws, so this can't turn an
+    // otherwise-successful cancellation into an error.
+    const { notifyWaitlistForFreedSlot } = await import("@/lib/waitlist.functions");
+    await notifyWaitlistForFreedSlot((b as { session_date: string }).session_date);
+
     return { ok: true };
   });
 
@@ -1348,6 +1359,82 @@ export async function runDueBookingReminders(): Promise<{ checked: number; sent:
       sent += 1;
     } catch (e) {
       console.error("[SWEETBABY] reminder send failed for booking", b.id, e);
+    }
+  }
+
+  return { checked: (candidates ?? []).length, sent };
+}
+
+// How close to the hold's actual expiry (PENDING_HOLD_MINUTES) a booking
+// has to be before it's reminded — wide enough to safely catch every
+// eligible booking even if the cron that calls this only runs every
+// 15-30 min (see api.send-booking-reminders.ts's own doc comment), without
+// being so wide it reminds someone who still has plenty of time left.
+const ABANDONED_HOLD_REMINDER_WINDOW_MINUTES = 20;
+
+/**
+ * A booking placed on the website but never paid for holds its slot for
+ * PENDING_HOLD_MINUTES (availability.server.ts) before it's silently
+ * released back to availability — today with no word to the customer at
+ * all, even though she already showed real intent by picking a slot. This
+ * sends one "your spot is still held, finish in X minutes" email shortly
+ * before that silent release, with a link straight back to her deposit
+ * page. Phone bookings are skipped — they have a much longer,
+ * staff-confirmed hold (PHONE_BOOKING_HOLD_MINUTES) and no self-serve
+ * deposit page to link back to.
+ */
+export async function runDueAbandonedHoldReminders(): Promise<{ checked: number; sent: number }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  // Bound the scan to bookings young enough to still matter — anything
+  // older than the hold window itself has either converted (deposit_status
+  // moved on) or already expired.
+  const windowStart = new Date(Date.now() - PENDING_HOLD_MINUTES * 60_000).toISOString();
+
+  const { data: candidates, error } = await supabaseAdmin
+    .from("bookings")
+    .select("id, user_id, session_date, start_time, price, deposit_amount, contact_name, notes, created_at, status, deposit_status, abandoned_hold_reminder_sent_at")
+    .eq("deposit_status", "pending")
+    .neq("status", "cancelled")
+    .is("abandoned_hold_reminder_sent_at", null)
+    .gte("created_at", windowStart);
+
+  if (error) {
+    console.error("[SWEETBABY] abandoned-hold reminder scan failed", error);
+    return { checked: 0, sent: 0 };
+  }
+
+  const now = Date.now();
+  let sent = 0;
+
+  for (const b of candidates ?? []) {
+    if (b.notes?.includes(PHONE_BOOKING_NOTES_MARKER)) continue;
+    const ageMinutes = (now - new Date(b.created_at as string).getTime()) / 60_000;
+    const minutesLeft = PENDING_HOLD_MINUTES - ageMinutes;
+    if (minutesLeft <= 0 || minutesLeft > ABANDONED_HOLD_REMINDER_WINDOW_MINUTES) continue;
+
+    try {
+      const {
+        data: { user },
+      } = await supabaseAdmin.auth.admin.getUserById(b.user_id);
+      const customerEmail = user?.email;
+      // A phone-only account's "email" is a synthetic placeholder nobody
+      // reads — nothing to send to, and nothing to mark as reminded since
+      // trying again next pass can't help either, so still mark it below.
+      if (customerEmail && !isPlaceholderEmail(customerEmail)) {
+        const html = `<div dir="rtl" style="font-family:sans-serif;color:#2d3d2b;max-width:520px;margin:0 auto">
+          <h2>המקום שלך עדיין שמור! ⏳</h2>
+          <p>שלום ${b.contact_name || ""},</p>
+          <p>בחרת תור בסטודיו Sweetbaby ל-${new Date(`${b.session_date}T00:00:00`).toLocaleDateString("he-IL", { day: "numeric", month: "long" })} בשעה ${String(b.start_time).slice(0, 5)} — המקום עדיין שמור לך, אבל רק לעוד כ-${Math.max(1, Math.round(minutesLeft))} דקות לפני שהוא משתחרר.</p>
+          <p style="margin:18px 0"><a href="https://sweetbabyphoto.shop/deposit/booking/${b.id}" style="background:#2d3d2b;color:#f8ede4;padding:10px 22px;border-radius:999px;text-decoration:none;display:inline-block">סיום התשלום ואישור השריון</a></p>
+        </div>`;
+        const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+        await sendStudioAndCustomer({ customerEmail, subject: "המקום שלך בסטודיו עדיין שמור — רק לכמה דקות ⏳", html });
+      }
+      await supabaseAdmin.from("bookings").update({ abandoned_hold_reminder_sent_at: new Date().toISOString() }).eq("id", b.id);
+      sent += 1;
+    } catch (e) {
+      console.error("[SWEETBABY] abandoned-hold reminder send failed for booking", b.id, e);
     }
   }
 
