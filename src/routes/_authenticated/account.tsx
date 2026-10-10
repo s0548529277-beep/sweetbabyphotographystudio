@@ -20,7 +20,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { cancelBooking, cancelOrder } from "@/lib/bookings.functions";
 import { listActiveSubscriptionPlans, purchaseSubscriptionPass } from "@/lib/subscription-purchase.functions";
 import { PayOnlineButton } from "@/components/PayOnlineButton";
-import { Package, Calendar as CalIcon, User as UserIcon, FileText, ShoppingBag, IdCard, Upload } from "lucide-react";
+import { Package, Calendar as CalIcon, User as UserIcon, FileText, ShoppingBag, IdCard, Upload, Crown } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/account")({
   component: Account,
@@ -109,11 +109,18 @@ function Account() {
   const loyaltyQ = useQuery({
     queryKey: ["my-loyalty", user?.id],
     queryFn: async () => {
-      const { data } = await supabase.from("customer_loyalty").select("credit_balance").eq("user_id", user!.id).maybeSingle();
+      const { data } = await supabase.from("customer_loyalty").select("credit_balance, cashback_percent").eq("user_id", user!.id).maybeSingle();
       return data;
     },
     enabled: !!user,
   });
+  // Default cashback rate for a customer with no customer_loyalty row at
+  // all (never admin-overridden) — kept in sync by eye with
+  // DEFAULT_CASHBACK_PERCENT in loyalty.ts, which isn't importable here
+  // (server-only file). A customer with a row always shows her real,
+  // possibly-admin-set percent instead, including 0 if opted out.
+  const DEFAULT_CASHBACK_PERCENT = 10;
+  const cashbackPercent = loyaltyQ.data ? Number(loyaltyQ.data.cashback_percent) : DEFAULT_CASHBACK_PERCENT;
 
   // Studio-visit passes (e.g. the 5 or 10-entry card) — admin-issued after
   // a manual bank transfer, or self-purchased by card below, see
@@ -214,44 +221,58 @@ function Account() {
                 <div className="text-xs text-muted-foreground">{user?.email}</div>
               </div>
             </div>
-            {Number(loyaltyQ.data?.credit_balance ?? 0) > 0 && (
-              <div className="mb-4 rounded-2xl bg-peach/30 border border-peach px-4 py-3">
-                <div className="text-xs text-muted-foreground">קרדיט זמין להזמנות הבאות</div>
-                <div className="font-display text-2xl text-primary">₪{Number(loyaltyQ.data!.credit_balance).toFixed(0)}</div>
+            {/* Unified "club status" card — credit, cashback rate, and any
+                entry passes all in one place, instead of scattered as
+                separate raw-number blocks. */}
+            <div className="mb-4 rounded-2xl bg-gradient-to-br from-peach/35 via-cream/50 to-[#eef3e9] border border-peach/60 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Crown className="h-4 w-4 text-peach-deep" />
+                <span className="font-display text-lg text-primary">סטטוס המועדון שלי</span>
               </div>
-            )}
-            {(passesQ.data?.length ?? 0) > 0 && (
-              <div className="mb-4 rounded-2xl bg-cream/60 border border-primary/10 px-4 py-3 space-y-3">
-                <div className="text-xs text-muted-foreground">כרטיסיית כניסות</div>
-                {passesQ.data!.map((p) => {
-                  const expired = new Date(p.expires_at) < new Date();
-                  const usedUp = p.entries_used >= p.total_entries;
-                  const inactive = p.status === "cancelled" || expired || usedUp;
-                  const history = (passHistoryQ.data ?? []).filter((b) => b.subscription_pass_id === p.id);
-                  return (
-                    <div key={p.id} className={`space-y-1.5 ${inactive ? "opacity-50" : ""}`}>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-primary">
-                          {p.plan_name}
-                          {p.status === "cancelled" ? " · בוטלה" : expired ? " · פג תוקף" : usedUp ? " · נוצלה" : ""}
-                        </span>
-                        <span className="font-display text-lg text-primary">{Math.max(0, p.total_entries - p.entries_used)} / {p.total_entries}</span>
-                      </div>
-                      <div className="text-[11px] text-muted-foreground">בתוקף עד {new Date(p.expires_at).toLocaleDateString("he-IL")}</div>
-                      {history.length > 0 && (
-                        <div className="text-[11px] text-muted-foreground space-y-0.5 pt-1 border-t border-primary/5">
-                          {history.map((b) => (
-                            <div key={b.id}>
-                              שומש ב-{new Date(b.session_date).toLocaleDateString("he-IL")} · {String(b.start_time).slice(0, 5)}
-                            </div>
-                          ))}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl bg-white/50 px-3 py-2">
+                  <div className="text-[11px] text-muted-foreground">קרדיט זמין</div>
+                  <div className="font-display text-xl text-primary">₪{Number(loyaltyQ.data?.credit_balance ?? 0).toFixed(0)}</div>
+                </div>
+                <div className="rounded-xl bg-white/50 px-3 py-2">
+                  <div className="text-[11px] text-muted-foreground">קאשבק על הזמנות</div>
+                  <div className="font-display text-xl text-primary">{cashbackPercent}%</div>
+                </div>
+              </div>
+
+              {(passesQ.data?.length ?? 0) > 0 && (
+                <div className="mt-3 pt-3 border-t border-primary/10 space-y-3">
+                  <div className="text-[11px] text-muted-foreground">כרטיסיית כניסות</div>
+                  {passesQ.data!.map((p) => {
+                    const expired = new Date(p.expires_at) < new Date();
+                    const usedUp = p.entries_used >= p.total_entries;
+                    const inactive = p.status === "cancelled" || expired || usedUp;
+                    const history = (passHistoryQ.data ?? []).filter((b) => b.subscription_pass_id === p.id);
+                    return (
+                      <div key={p.id} className={`space-y-1.5 ${inactive ? "opacity-50" : ""}`}>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-primary">
+                            {p.plan_name}
+                            {p.status === "cancelled" ? " · בוטלה" : expired ? " · פג תוקף" : usedUp ? " · נוצלה" : ""}
+                          </span>
+                          <span className="font-display text-lg text-primary">{Math.max(0, p.total_entries - p.entries_used)} / {p.total_entries}</span>
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                        <div className="text-[11px] text-muted-foreground">בתוקף עד {new Date(p.expires_at).toLocaleDateString("he-IL")}</div>
+                        {history.length > 0 && (
+                          <div className="text-[11px] text-muted-foreground space-y-0.5 pt-1 border-t border-primary/5">
+                            {history.map((b) => (
+                              <div key={b.id}>
+                                שומש ב-{new Date(b.session_date).toLocaleDateString("he-IL")} · {String(b.start_time).slice(0, 5)}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
             <div className="space-y-3">
               <div><Label>שם מלא</Label><Input value={profile.full_name} onChange={(e) => setProfile({ ...profile, full_name: e.target.value })} className="mt-1" /></div>
               <div><Label>טלפון</Label><Input value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} className="mt-1" dir="ltr" /></div>
