@@ -147,15 +147,21 @@ function FinanceAdmin() {
       setImportDateCol(guessCol(["תאריך"]));
       setImportDescCol(guessCol(["תיאור", "פירוט", "בית העסק", "שם"]));
       setImportAmountCol(guessCol(["סכום", "חיוב", "₪"]));
-      setImportRows(
-        dataRows
-          .filter((r) => r.cells.some((c) => c.value.trim() !== ""))
-          .map((r) => ({
-            cells: r.cells.map((c) => c.value),
-            isRed: r.cells.some((c) => isReddishArgb(c.fillArgb)),
-            business: false,
-          })),
-      );
+      const parsedRows = dataRows
+        .filter((r) => r.cells.some((c) => c.value.trim() !== ""))
+        .map((r) => ({
+          cells: r.cells.map((c) => c.value),
+          isRed: r.cells.some((c) => isReddishArgb(c.fillArgb)),
+          business: false,
+        }));
+      setImportRows(parsedRows);
+      // Some exports (e.g. a credit-card statement) never have red-colored
+      // rows at all — a file like a bank statement where she marks rows
+      // red is the exception, not the rule. Defaulting the "red only"
+      // filter to on would just show an empty table in that case, so only
+      // default to it when the file actually has red rows to filter to;
+      // otherwise she sees every row immediately and picks אישי/עסק herself.
+      setImportShowOnlyRed(parsedRows.some((r) => r.isRed));
       setImportOpen(true);
     } catch (err) {
       console.error("[SWEETBABY] xlsx import parse failed", err);
@@ -1077,7 +1083,7 @@ function FinanceAdmin() {
                 {importRows.length})
               </label>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">קובץ אשראי? כל השורות הן הוצאה:</span>
+                <span className="text-xs text-muted-foreground">סימון מהיר:</span>
                 <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => markAllImportRows(true)}>
                   סימון הכל כעסק
                 </Button>
