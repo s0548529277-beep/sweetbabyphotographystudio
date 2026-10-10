@@ -1,8 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { PayOnlineButton } from "@/components/PayOnlineButton";
-import { CheckSquare } from "lucide-react";
 
 const CANONICAL = "https://sweetbabyphoto.shop/terms";
 const TITLE = "תקנון ותנאי שימוש | Sweetbaby";
@@ -201,18 +199,6 @@ function Terms() {
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* Payment + agreement confirmation */}
-            <div className="mt-16 rounded-3xl border border-primary/10 bg-card p-7">
-              <div className="flex items-start gap-3">
-                <CheckSquare className="h-5 w-5 text-peach-deep shrink-0 mt-0.5" />
-                <p className="text-sm text-foreground/90 leading-relaxed">
-                  אני מאשר/ת שקראתי והבנתי את תנאי השימוש. השימוש בדף התשלום ותשלום מקדמה/השכרה מהווים הסכמה לתקנון זה
-                  על כל סעיפיו.
-                </p>
-              </div>
-              <PayOnlineButton className="mt-6" label="תשלום מקדמה / השכרה" />
             </div>
 
             <div className="mt-12 pt-8 border-t border-border text-sm text-muted-foreground">

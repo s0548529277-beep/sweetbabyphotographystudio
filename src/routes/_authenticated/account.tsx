@@ -38,7 +38,7 @@ const STATUS_HE: Record<string, string> = {
 function Account() {
   const { user } = useAuth();
   const { lines: cartLines, subtotal: cartSubtotal, count: cartCount, remove: removeFromCart } = useCart();
-  const [profile, setProfile] = useState({ full_name: "", phone: "", address: "", city: "", discount_code: "", notes: "" });
+  const [profile, setProfile] = useState({ full_name: "", phone: "", discount_code: "", notes: "" });
   const [busy, setBusy] = useState(false);
   const cancelB = useServerFn(cancelBooking);
   const cancelO = useServerFn(cancelOrder);
@@ -72,8 +72,6 @@ function Account() {
       setProfile({
         full_name: profileQ.data.full_name ?? "",
         phone: profileQ.data.phone ?? "",
-        address: profileQ.data.address ?? "",
-        city: (profileQ.data as any).city ?? "",
         discount_code: (profileQ.data as any).discount_code ?? "",
         notes: profileQ.data.notes ?? "",
       });
@@ -276,9 +274,7 @@ function Account() {
             <div className="space-y-3">
               <div><Label>שם מלא</Label><Input value={profile.full_name} onChange={(e) => setProfile({ ...profile, full_name: e.target.value })} className="mt-1" /></div>
               <div><Label>טלפון</Label><Input value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} className="mt-1" dir="ltr" /></div>
-              <div><Label>כתובת</Label><Input value={profile.address} onChange={(e) => setProfile({ ...profile, address: e.target.value })} className="mt-1" /></div>
-              <div><Label>עיר / יישוב</Label><Input value={profile.city} onChange={(e) => setProfile({ ...profile, city: e.target.value })} className="mt-1" /></div>
-              <div><Label>קוד הנחה (אם יש)</Label><Input value={profile.discount_code} onChange={(e) => setProfile({ ...profile, discount_code: e.target.value })} className="mt-1" dir="ltr" placeholder="SWEET10" /></div>
+              <div><Label>קוד הנחה (אם יש)</Label><Input value={profile.discount_code} onChange={(e) => setProfile({ ...profile, discount_code: e.target.value })} className="mt-1" dir="ltr" placeholder="קוד קופון" /></div>
               <div><Label>הערות</Label><Textarea rows={2} value={profile.notes} onChange={(e) => setProfile({ ...profile, notes: e.target.value })} className="mt-1" /></div>
               <Button onClick={save} disabled={busy} className="w-full rounded-full mt-2">שמור שינויים</Button>
             </div>
