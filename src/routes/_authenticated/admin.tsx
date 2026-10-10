@@ -36,6 +36,7 @@ import {
   MessageSquare,
   Menu,
   X,
+  BellRing,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -83,6 +84,7 @@ const links: NavEntry[] = [
       { to: "/admin/coupons", label: "קופונים", icon: Ticket },
       { to: "/admin/subscriptions", label: "מנויים (כרטיסיות)", icon: CreditCard },
       { to: "/admin/newsletter", label: "ניוזלטר", icon: Mail },
+      { to: "/admin/waitlist", label: "רשימת המתנה", icon: BellRing },
     ],
   },
   {

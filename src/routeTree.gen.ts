@@ -71,6 +71,7 @@ import { Route as AuthenticatedAdminSiteBotAskRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminSubscriptionsRouteImport } from './routes/_authenticated/admin.subscriptions'
 import { Route as AuthenticatedAdminVoiceBotRouteImport } from './routes/_authenticated/admin.voice-bot'
 import { Route as AuthenticatedAdminVoiceBotTextRouteImport } from './routes/_authenticated/admin.voice-bot-text'
+import { Route as AuthenticatedAdminWaitlistRouteImport } from './routes/_authenticated/admin.waitlist'
 import { Route as AuthenticatedAdminWhatsappRouteImport } from './routes/_authenticated/admin.whatsapp'
 import { Route as ApiVoiceIncomingRouteImport } from './routes/api.voice.incoming'
 import { Route as ApiVoiceRespondRouteImport } from './routes/api.voice.respond'
@@ -421,6 +422,12 @@ const AuthenticatedAdminVoiceBotTextRoute =
     path: '/voice-bot-text',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminWaitlistRoute =
+  AuthenticatedAdminWaitlistRouteImport.update({
+    id: '/waitlist',
+    path: '/waitlist',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminWhatsappRoute =
   AuthenticatedAdminWhatsappRouteImport.update({
     id: '/whatsapp',
@@ -547,6 +554,7 @@ export interface FileRoutesByFullPath {
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/admin/voice-bot': typeof AuthenticatedAdminVoiceBotRoute
   '/admin/voice-bot-text': typeof AuthenticatedAdminVoiceBotTextRoute
+  '/admin/waitlist': typeof AuthenticatedAdminWaitlistRoute
   '/admin/whatsapp': typeof AuthenticatedAdminWhatsappRoute
   '/api/voice/incoming': typeof ApiVoiceIncomingRoute
   '/api/voice/respond': typeof ApiVoiceRespondRoute
@@ -621,6 +629,7 @@ export interface FileRoutesByTo {
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/admin/voice-bot': typeof AuthenticatedAdminVoiceBotRoute
   '/admin/voice-bot-text': typeof AuthenticatedAdminVoiceBotTextRoute
+  '/admin/waitlist': typeof AuthenticatedAdminWaitlistRoute
   '/admin/whatsapp': typeof AuthenticatedAdminWhatsappRoute
   '/api/voice/incoming': typeof ApiVoiceIncomingRoute
   '/api/voice/respond': typeof ApiVoiceRespondRoute
@@ -698,6 +707,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsRoute
   '/_authenticated/admin/voice-bot': typeof AuthenticatedAdminVoiceBotRoute
   '/_authenticated/admin/voice-bot-text': typeof AuthenticatedAdminVoiceBotTextRoute
+  '/_authenticated/admin/waitlist': typeof AuthenticatedAdminWaitlistRoute
   '/_authenticated/admin/whatsapp': typeof AuthenticatedAdminWhatsappRoute
   '/api/voice/incoming': typeof ApiVoiceIncomingRoute
   '/api/voice/respond': typeof ApiVoiceRespondRoute
@@ -775,6 +785,7 @@ export interface FileRouteTypes {
     | '/admin/subscriptions'
     | '/admin/voice-bot'
     | '/admin/voice-bot-text'
+    | '/admin/waitlist'
     | '/admin/whatsapp'
     | '/api/voice/incoming'
     | '/api/voice/respond'
@@ -849,6 +860,7 @@ export interface FileRouteTypes {
     | '/admin/subscriptions'
     | '/admin/voice-bot'
     | '/admin/voice-bot-text'
+    | '/admin/waitlist'
     | '/admin/whatsapp'
     | '/api/voice/incoming'
     | '/api/voice/respond'
@@ -925,6 +937,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/subscriptions'
     | '/_authenticated/admin/voice-bot'
     | '/_authenticated/admin/voice-bot-text'
+    | '/_authenticated/admin/waitlist'
     | '/_authenticated/admin/whatsapp'
     | '/api/voice/incoming'
     | '/api/voice/respond'
@@ -1416,6 +1429,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminVoiceBotTextRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/waitlist': {
+      id: '/_authenticated/admin/waitlist'
+      path: '/waitlist'
+      fullPath: '/admin/waitlist'
+      preLoaderRoute: typeof AuthenticatedAdminWaitlistRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/whatsapp': {
       id: '/_authenticated/admin/whatsapp'
       path: '/whatsapp'
@@ -1561,6 +1581,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminSubscriptionsRoute: typeof AuthenticatedAdminSubscriptionsRoute
   AuthenticatedAdminVoiceBotRoute: typeof AuthenticatedAdminVoiceBotRoute
   AuthenticatedAdminVoiceBotTextRoute: typeof AuthenticatedAdminVoiceBotTextRoute
+  AuthenticatedAdminWaitlistRoute: typeof AuthenticatedAdminWaitlistRoute
   AuthenticatedAdminWhatsappRoute: typeof AuthenticatedAdminWhatsappRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
@@ -1597,6 +1618,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminSubscriptionsRoute: AuthenticatedAdminSubscriptionsRoute,
   AuthenticatedAdminVoiceBotRoute: AuthenticatedAdminVoiceBotRoute,
   AuthenticatedAdminVoiceBotTextRoute: AuthenticatedAdminVoiceBotTextRoute,
+  AuthenticatedAdminWaitlistRoute: AuthenticatedAdminWaitlistRoute,
   AuthenticatedAdminWhatsappRoute: AuthenticatedAdminWhatsappRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }

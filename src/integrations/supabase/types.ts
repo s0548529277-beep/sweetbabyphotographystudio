@@ -150,6 +150,7 @@ export type Database = {
       }
       bookings: {
         Row: {
+          abandoned_hold_reminder_sent_at: string | null
           balance_amount: number | null
           balance_method: string | null
           cancellation_charge: number | null
@@ -193,6 +194,7 @@ export type Database = {
           wheel_prize_won_at: string | null
         }
         Insert: {
+          abandoned_hold_reminder_sent_at?: string | null
           balance_amount?: number | null
           balance_method?: string | null
           cancellation_charge?: number | null
@@ -236,6 +238,7 @@ export type Database = {
           wheel_prize_won_at?: string | null
         }
         Update: {
+          abandoned_hold_reminder_sent_at?: string | null
           balance_amount?: number | null
           balance_method?: string | null
           cancellation_charge?: number | null
@@ -1805,6 +1808,42 @@ export type Database = {
           messages?: Json
           stage?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      waitlist_entries: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          notes: string | null
+          notified_at: string | null
+          phone: string
+          session_date: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          notes?: string | null
+          notified_at?: string | null
+          phone: string
+          session_date: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          notes?: string | null
+          notified_at?: string | null
+          phone?: string
+          session_date?: string
+          user_id?: string | null
         }
         Relationships: []
       }

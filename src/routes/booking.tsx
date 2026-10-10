@@ -26,10 +26,11 @@ import {
 } from "@/lib/bookings.functions";
 import { checkItemsAvailability } from "@/lib/orders.functions";
 import { getStudioDayBusy } from "@/lib/studio-availability.functions";
+import { joinWaitlist } from "@/lib/waitlist.functions";
 
 import { toast } from "sonner";
 import { he } from "date-fns/locale";
-import { Lock, Clock, Sparkles, CalendarDays, Package, X, Search } from "lucide-react";
+import { Lock, Clock, Sparkles, CalendarDays, Package, X, Search, BellRing } from "lucide-react";
 import { useCatalogItems, type CatalogItem } from "@/lib/catalog";
 import { GuestContinueButton } from "@/components/GuestContinueButton";
 
@@ -114,6 +115,12 @@ function Booking() {
   const placeRecurring = useServerFn(placeRecurringBooking);
   const checkAvail = useServerFn(checkItemsAvailability);
   const dayBusy = useServerFn(getStudioDayBusy);
+  const joinWl = useServerFn(joinWaitlist);
+  const [wlName, setWlName] = useState("");
+  const [wlPhone, setWlPhone] = useState("");
+  const [wlEmail, setWlEmail] = useState("");
+  const [wlBusy, setWlBusy] = useState(false);
+  const [wlJoined, setWlJoined] = useState(false);
 
   // Live catalog — reflects edits made in /admin/items right away.
   const ALL_PROPS: CatItem[] = useCatalogItems();
@@ -206,8 +213,15 @@ function Booking() {
 
   const daySlots = useMemo(() => (date ? slotsForDate(date, closures) : []), [date, closures]);
   const grouped = useMemo(() => groupSlots(daySlots), [daySlots]);
+  // A date with active hours but every single slot already taken — the
+  // moment to offer the waitlist instead of just a dead-end grid of
+  // crossed-out buttons.
+  const dayFullyBooked = useMemo(
+    () => daySlots.length > 0 && daySlots.every((s) => overlaps(s, 1, existing)),
+    [daySlots, existing],
+  );
 
-  
+
   const guidanceKey = (profile.guidance || "basic") as keyof typeof GUIDANCE_FEES;
   const guidanceFee = GUIDANCE_FEES[guidanceKey] ?? 0;
 
@@ -331,6 +345,24 @@ function Booking() {
   const [recurWeeks, setRecurWeeks] = useState(4);
 
   const canBook = date && startTime && slots >= 2 && contactName && contactPhone && user;
+
+  useEffect(() => {
+    setWlJoined(false);
+  }, [date]);
+
+  const submitWaitlist = async () => {
+    if (!date || !wlName.trim() || !wlPhone.trim()) return;
+    setWlBusy(true);
+    try {
+      await joinWl({ data: { session_date: toLocalISODate(date), full_name: wlName.trim(), phone: wlPhone.trim(), email: wlEmail.trim() || undefined } });
+      setWlJoined(true);
+      toast.success("נרשמת לרשימת ההמתנה — נודיע לך אם יתפנה מקום");
+    } catch (e) {
+      toast.error(heError(e, "ההצטרפות נכשלה, נסי שוב"));
+    } finally {
+      setWlBusy(false);
+    }
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -535,6 +567,38 @@ function Booking() {
                   </div>
                 </div>
               </>
+            )}
+
+            {dayFullyBooked && (
+              <div className="bg-[#f8ede4]/70 border border-[#2d3d2b]/10 rounded-2xl p-4 mt-4">
+                {wlJoined ? (
+                  <div className="flex items-center gap-3 text-[#2d3d2b]">
+                    <BellRing className="h-5 w-5 text-[#6b8a63] shrink-0" />
+                    <p className="text-sm">נרשמת לרשימת ההמתנה לתאריך הזה — נודיע לך אם יתפנה מקום.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2 mb-1">
+                      <BellRing className="h-4 w-4 text-[#6b8a63]" />
+                      <h3 className="font-display text-base text-[#2d3d2b]">התאריך הזה תפוס — רוצה שנודיע לך אם יתפנה?</h3>
+                    </div>
+                    <p className="text-xs text-[#2d3d2b]/60 mb-3">השאירי טלפון ונודיע לך ברגע שמשבצת מתפנה בתאריך הזה.</p>
+                    <div className="grid sm:grid-cols-3 gap-2">
+                      <Input placeholder="שם מלא" value={wlName} onChange={(e) => setWlName(e.target.value)} className="text-sm" />
+                      <Input placeholder="טלפון" dir="ltr" value={wlPhone} onChange={(e) => setWlPhone(e.target.value)} className="text-sm" />
+                      <Input placeholder="אימייל (אופציונלי)" dir="ltr" type="email" value={wlEmail} onChange={(e) => setWlEmail(e.target.value)} className="text-sm" />
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={submitWaitlist}
+                      disabled={wlBusy || !wlName.trim() || !wlPhone.trim()}
+                      className="mt-3 rounded-full bg-[#2d3d2b] hover:bg-[#2d3d2b]/90"
+                    >
+                      {wlBusy ? "רגע…" : "הצטרפות לרשימת ההמתנה"}
+                    </Button>
+                  </>
+                )}
+              </div>
             )}
           </div>
 
