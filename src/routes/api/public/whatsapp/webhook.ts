@@ -186,11 +186,20 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook")({
         const secret = process.env.WHATSAPP_API_KEY;
         if (!secret) return new Response("Not configured", { status: 500 });
 
-        let verified: { deliveryId: string; event: string; body: string };
+        const deliveryId = request.headers.get("X-Lovable-Delivery");
+        const event = request.headers.get("X-Lovable-Event");
+        if (!deliveryId || !event) {
+          return new Response("Missing delivery headers", { status: 400 });
+        }
+
+        let payload: unknown;
         try {
-          verified = await verifyWebhookRequest(request, secret, {
+          const verified = await verifyWebhookRequest({
+            req: request,
+            secret,
             maxBodyBytes: 4 * 1024 * 1024,
           });
+          payload = verified.payload;
         } catch {
           return new Response("Invalid signature", { status: 401 });
         }
@@ -201,11 +210,7 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook")({
         const { data: row, error: insertError } = await supabaseAdmin
           .from("whatsapp_webhook_events")
           .upsert(
-            {
-              delivery_id: verified.deliveryId,
-              event: verified.event,
-              payload: JSON.parse(verified.body),
-            },
+            { delivery_id: deliveryId, event, payload },
             { onConflict: "delivery_id", ignoreDuplicates: true },
           )
           .select()
