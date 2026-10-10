@@ -161,37 +161,8 @@ function WhatsAppAdmin() {
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 text-sm text-amber-900 space-y-2">
           <p className="font-semibold">וואטסאפ עדיין לא מחובר</p>
           <p>
-            כדי להפעיל, צריך חשבון WhatsApp Business Platform דרך Meta (business.facebook.com), ואז
-            להזין 4 משתני סביבה (באותו מקום שכבר הוגדר TWILIO_AUTH_TOKEN):
-          </p>
-          <ul className="list-disc pr-5 space-y-0.5">
-            <li>
-              <code dir="ltr" className="bg-white/60 px-1 rounded">
-                WHATSAPP_ACCESS_TOKEN
-              </code>
-            </li>
-            <li>
-              <code dir="ltr" className="bg-white/60 px-1 rounded">
-                WHATSAPP_PHONE_NUMBER_ID
-              </code>
-            </li>
-            <li>
-              <code dir="ltr" className="bg-white/60 px-1 rounded">
-                WHATSAPP_APP_SECRET
-              </code>
-            </li>
-            <li>
-              <code dir="ltr" className="bg-white/60 px-1 rounded">
-                WHATSAPP_VERIFY_TOKEN
-              </code>{" "}
-              — כל מחרוזת שתבחרי בעצמך
-            </li>
-          </ul>
-          <p>
-            וב-Meta, בכתובת ה-webhook להזין:{" "}
-            <code dir="ltr" className="bg-white/60 px-1 rounded">
-              https://sweetbabyphoto.shop/api/whatsapp/webhook
-            </code>
+            כדי להפעיל, חברי את חשבון הוואטסאפ ביזנס דרך הגדרות הפרויקט ← Connectors ← WhatsApp
+            Business. אחרי החיבור, שליחה וקבלה של הודעות עובדות ישירות מכאן — בלי הגדרות נוספות.
           </p>
         </div>
       )}
