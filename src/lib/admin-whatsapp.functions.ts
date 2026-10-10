@@ -14,7 +14,7 @@ export const getWhatsAppConfigStatus = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     await assertAdmin(context.supabase, context.userId);
     return {
-      configured: !!(process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID),
+      configured: !!(process.env.WHATSAPP_API_KEY && process.env.LOVABLE_API_KEY),
     };
   });
 
