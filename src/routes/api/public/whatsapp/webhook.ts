@@ -6,6 +6,7 @@ import {
   downloadWhatsAppMedia,
   WHATSAPP_MEDIA_EXT,
 } from "@/lib/whatsapp.server";
+import { runWhatsAppBotReply } from "@/lib/whatsapp-bot.server";
 
 // Receives every WhatsApp webhook delivery the Lovable connector gateway
 // forwards for the connected number (selected under Connectors → WhatsApp →
@@ -109,6 +110,16 @@ async function handleIncomingMessage(
   // retried — expected and harmless, not worth logging as an error.
   if (error && !String(error.message ?? "").includes("duplicate key")) {
     console.error("[SWEETBABY] whatsapp incoming message insert failed", error);
+  }
+
+  // Auto-reply bot v1: text messages only — media (image/video/document/
+  // audio) isn't passed to the AI yet, so the conversation just logs for an
+  // admin to pick up manually in /admin/whatsapp, same as before this
+  // feature existed. A duplicate delivery is harmless here too: the bot
+  // reply would just restate itself in the rolling history, not double-book
+  // or double-charge anything.
+  if (msg.type === "text" && body) {
+    await runWhatsAppBotReply(msg.from, contactName, body);
   }
 }
 

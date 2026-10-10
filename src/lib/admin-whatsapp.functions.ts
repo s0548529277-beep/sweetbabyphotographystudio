@@ -80,6 +80,36 @@ export const sendWhatsAppMessageAdmin = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Whether the auto-reply bot has handed this conversation off to Michal (whatsapp_bot_sessions.handoff_requested_at set) — backs the "bot paused, talking to you directly" banner on /admin/whatsapp. */
+export const getWhatsAppBotHandoff = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ phone: z.string().min(1) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row } = await supabaseAdmin
+      .from("whatsapp_bot_sessions")
+      .select("handoff_requested_at")
+      .eq("phone", data.phone)
+      .maybeSingle();
+    return { handoffRequestedAt: row?.handoff_requested_at ?? null };
+  });
+
+/** Clears the handoff so the auto-reply bot resumes answering this number. */
+export const resumeWhatsAppBot = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ phone: z.string().min(1) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("whatsapp_bot_sessions")
+      .update({ handoff_requested_at: null })
+      .eq("phone", data.phone);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 /** Sends a photo/video/document by URL (already uploaded to Supabase Storage by the admin UI) and records it. */
 export const sendWhatsAppMediaAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

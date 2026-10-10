@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { countUnreadAdminNotifications } from "@/lib/admin-notifications.functions";
+import { countPendingOrders } from "@/lib/admin-orders.functions";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import {
@@ -191,6 +192,37 @@ function NotificationBell() {
   );
 }
 
+/**
+ * Second bell next to NotificationBell, specifically for orders awaiting
+ * confirmation — per explicit request, since the dashboard's old dedicated
+ * "recent orders" section was replaced by the general notifications feed
+ * (admin.index.tsx) and orders needed their own always-visible indicator
+ * again, separate from the general notifications bell.
+ */
+function OrdersBell() {
+  const fetchCount = useServerFn(countPendingOrders);
+  const q = useQuery({
+    queryKey: ["admin-pending-orders-count"],
+    queryFn: () => fetchCount({}),
+    refetchInterval: 15000,
+  });
+  const pending = q.data?.count ?? 0;
+  return (
+    <Link
+      to="/admin/orders"
+      className="relative inline-flex items-center justify-center h-9 w-9 rounded-full bg-card border border-primary/10 text-primary hover:bg-cream transition-colors shrink-0"
+      aria-label={pending > 0 ? `הזמנות ממתינות — ${pending}` : "הזמנות"}
+    >
+      <ShoppingBag className="h-4 w-4" />
+      {pending > 0 && (
+        <span className="absolute -top-1 -left-1 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-semibold flex items-center justify-center">
+          {pending > 99 ? "99+" : pending}
+        </span>
+      )}
+    </Link>
+  );
+}
+
 function AdminLayout() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
@@ -215,7 +247,10 @@ function AdminLayout() {
       <section className="container-page py-10 flex-1">
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="text-xs tracking-[0.3em] uppercase text-forest/70">Admin</div>
-          <NotificationBell />
+          <div className="flex items-center gap-2">
+            <OrdersBell />
+            <NotificationBell />
+          </div>
         </div>
         <h1 className="font-display text-4xl text-primary mb-8">ניהול סטודיו</h1>
 
