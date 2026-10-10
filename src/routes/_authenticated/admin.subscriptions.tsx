@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { listClientEmails } from "@/lib/admin-clients.functions";
-import { adminAdjustSubscriptionPassEntries } from "@/lib/admin-subscriptions.functions";
+import { adminAdjustSubscriptionPassEntries, adminApproveSubscriptionPass } from "@/lib/admin-subscriptions.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +36,7 @@ import {
   CalendarClock,
   CreditCard,
   X,
+  BadgeCheck,
 } from "lucide-react";
 import { heError } from "@/lib/he-errors";
 
@@ -75,7 +76,7 @@ type Pass = {
   total_entries: number;
   entries_used: number;
   price_paid: number;
-  status: "active" | "cancelled";
+  status: "active" | "cancelled" | "pending_approval";
   notes: string | null;
   purchase_source: string;
   purchased_at: string;
@@ -114,14 +115,16 @@ type AdjustmentRow = { id: string; delta: number; note: string; created_at: stri
 // Derived at read time rather than stored — a pass's "real" state depends
 // on today's date and its own counters, not a value that needs a cron job
 // to keep in sync.
-type DerivedStatus = "active" | "used_up" | "expired" | "cancelled";
+type DerivedStatus = "pending_approval" | "active" | "used_up" | "expired" | "cancelled";
 function derivedStatus(p: Pass): DerivedStatus {
+  if (p.status === "pending_approval") return "pending_approval";
   if (p.status === "cancelled") return "cancelled";
   if (new Date(p.expires_at) < new Date()) return "expired";
   if (p.entries_used >= p.total_entries) return "used_up";
   return "active";
 }
 const STATUS_LABELS: Record<DerivedStatus, string> = {
+  pending_approval: "ממתינה לאישור",
   active: "פעילה",
   used_up: "נוצלה",
   expired: "פג תוקף",
@@ -129,6 +132,7 @@ const STATUS_LABELS: Record<DerivedStatus, string> = {
 };
 const STATUS_FILTERS: { id: DerivedStatus | "all"; label: string }[] = [
   { id: "all", label: "הכל" },
+  { id: "pending_approval", label: "ממתינה לאישור" },
   { id: "active", label: "פעילה" },
   { id: "used_up", label: "נוצלה" },
   { id: "expired", label: "פג תוקף" },
@@ -144,6 +148,20 @@ function SubscriptionsAdmin() {
   });
   const emails: Record<string, string> = (emailsQ.data as any) ?? {};
   const adjustEntries = useServerFn(adminAdjustSubscriptionPassEntries);
+  const approvePass = useServerFn(adminApproveSubscriptionPass);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const doApprove = async (p: Pass) => {
+    setApprovingId(p.id);
+    try {
+      await approvePass({ data: { pass_id: p.id } });
+      toast.success("הכרטיסייה אושרה והופעלה — נשלח מייל ללקוחה");
+      qc.invalidateQueries({ queryKey: ["admin-subscription-passes"] });
+    } catch (e) {
+      toast.error(heError(e, "האישור נכשל"));
+    } finally {
+      setApprovingId(null);
+    }
+  };
 
   // ---------- Plan templates ----------
   const [planOpen, setPlanOpen] = useState(false);
@@ -477,7 +495,9 @@ function SubscriptionsAdmin() {
                             ? "default"
                             : status === "cancelled"
                               ? "destructive"
-                              : "outline"
+                              : status === "pending_approval"
+                                ? "secondary"
+                                : "outline"
                         }
                       >
                         {STATUS_LABELS[status]}
@@ -485,6 +505,16 @@ function SubscriptionsAdmin() {
                     </td>
                     <td className="p-3">
                       <div className="flex items-center gap-1">
+                        {p.status === "pending_approval" && (
+                          <Button
+                            size="sm"
+                            className="rounded-full gap-1"
+                            disabled={approvingId === p.id}
+                            onClick={() => doApprove(p)}
+                          >
+                            <BadgeCheck className="h-3.5 w-3.5" /> {approvingId === p.id ? "מאשרת…" : "אישור"}
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant="outline"
@@ -716,6 +746,8 @@ function SubscriptionsAdmin() {
             onAdjust={adjustEntries}
             onChanged={() => qc.invalidateQueries({ queryKey: ["admin-subscription-passes"] })}
             onCancel={() => cancelPass(detailPass)}
+            onApprove={() => doApprove(detailPass)}
+            approving={approvingId === detailPass.id}
           />
         )}
       </Dialog>
@@ -729,12 +761,16 @@ function PassDetailContent({
   onAdjust,
   onChanged,
   onCancel,
+  onApprove,
+  approving,
 }: {
   pass: Pass;
   clientLabel: string;
   onAdjust: ReturnType<typeof useServerFn<typeof adminAdjustSubscriptionPassEntries>>;
   onChanged: () => void;
   onCancel: () => void;
+  onApprove: () => void;
+  approving: boolean;
 }) {
   const status = derivedStatus(pass);
   const [delta, setDelta] = useState(1);
@@ -812,7 +848,13 @@ function PassDetailContent({
           </span>
           <Badge
             variant={
-              status === "active" ? "default" : status === "cancelled" ? "destructive" : "outline"
+              status === "active"
+                ? "default"
+                : status === "cancelled"
+                  ? "destructive"
+                  : status === "pending_approval"
+                    ? "secondary"
+                    : "outline"
             }
           >
             {STATUS_LABELS[status]}
@@ -909,6 +951,11 @@ function PassDetailContent({
         </div>
       </div>
       <DialogFooter>
+        {status === "pending_approval" && (
+          <Button className="gap-1.5" disabled={approving} onClick={onApprove}>
+            <BadgeCheck className="h-4 w-4" /> {approving ? "מאשרת…" : "אישור והפעלה"}
+          </Button>
+        )}
         {status !== "cancelled" && (
           <Button variant="destructive" className="gap-1.5" onClick={onCancel}>
             <X className="h-4 w-4" /> ביטול כרטיסייה

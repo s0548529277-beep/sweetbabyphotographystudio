@@ -183,7 +183,7 @@ function Account() {
     setPurchasing(true);
     try {
       await doPurchase({ data: { plan_id: selectedPlanId } });
-      toast.success("הכרטיסייה פעילה! 🎟️");
+      toast.success("הבקשה נשלחה! יישלח אליך מייל אישור ברגע שהכרטיסייה תופעל 🎟️");
       setPaidConfirmed(false);
       passesQ.refetch();
     } catch (e) {
@@ -251,10 +251,24 @@ function Account() {
                 <div className="mt-3 pt-3 border-t border-primary/10 space-y-3">
                   <div className="text-[11px] text-muted-foreground">כרטיסיית כניסות</div>
                   {passesQ.data!.map((p) => {
+                    const pending = p.status === "pending_approval";
                     const expired = new Date(p.expires_at) < new Date();
                     const usedUp = p.entries_used >= p.total_entries;
-                    const inactive = p.status === "cancelled" || expired || usedUp;
+                    const inactive = !pending && (p.status === "cancelled" || expired || usedUp);
                     const history = (passHistoryQ.data ?? []).filter((b) => b.subscription_pass_id === p.id);
+                    if (pending) {
+                      return (
+                        <div key={p.id} className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-primary">{p.plan_name} · ממתינה לאישור</span>
+                            <span className="text-xs text-muted-foreground">⏳</span>
+                          </div>
+                          <div className="text-[11px] text-muted-foreground">
+                            הבקשה התקבלה — יישלח אליך מייל ברגע שהכרטיסייה תאושר ותופעל.
+                          </div>
+                        </div>
+                      );
+                    }
                     return (
                       <div key={p.id} className={`space-y-1.5 ${inactive ? "opacity-50" : ""}`}>
                         <div className="flex items-center justify-between">
@@ -340,8 +354,11 @@ function Account() {
                       <span className="text-muted-foreground">אני מאשרת שביצעתי את התשלום באשראי דרך הכפתור למעלה.</span>
                     </label>
                     <Button onClick={submitPurchase} disabled={purchasing || !paidConfirmed} className="w-full rounded-full gap-2">
-                      <Upload className="h-4 w-4" /> {purchasing ? "מפעילה…" : "הפעלת הכרטיסייה"}
+                      <Upload className="h-4 w-4" /> {purchasing ? "שולחת…" : "שליחת בקשה להפעלה"}
                     </Button>
+                    <p className="text-[11px] text-muted-foreground text-center">
+                      הבקשה תיבדק על ידי הצוות — יישלח אליך מייל אישור ברגע שהכרטיסייה תופעל.
+                    </p>
                   </div>
                 </div>
               </div>

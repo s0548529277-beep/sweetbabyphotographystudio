@@ -56,3 +56,50 @@ export const adminAdjustSubscriptionPassEntries = createServerFn({ method: "POST
     if (logError) throw new Error(logError.message);
     return { entries_used: newCount };
   });
+
+/**
+ * Approves a self-serve pass purchase sitting in 'pending_approval'
+ * (purchaseSubscriptionPass, subscription-purchase.functions.ts), flipping
+ * it to 'active' — the point it actually becomes usable (every real read
+ * of subscription_passes already filters status='active') — and sends the
+ * customer her "your pass is active" confirmation email, which the
+ * original purchase email promised would come.
+ */
+export const adminApproveSubscriptionPass = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ pass_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: pass, error: fetchErr } = await supabaseAdmin
+      .from("subscription_passes")
+      .select("id, user_id, plan_name, total_entries, expires_at, status")
+      .eq("id", data.pass_id)
+      .maybeSingle();
+    if (fetchErr || !pass) throw new Error("הכרטיסייה לא נמצאה");
+    if (pass.status !== "pending_approval") throw new Error("הכרטיסייה הזו כבר אינה ממתינה לאישור");
+
+    const { error: upErr } = await supabaseAdmin
+      .from("subscription_passes")
+      .update({ status: "active", approved_at: new Date().toISOString() })
+      .eq("id", data.pass_id);
+    if (upErr) throw new Error(upErr.message);
+
+    try {
+      const { data: { user } } = await supabaseAdmin.auth.admin.getUserById(pass.user_id);
+      const customerEmail = user?.email;
+      if (customerEmail) {
+        const { sendGmail } = await import("@/integrations/google/gmail.server");
+        const html = `<div dir="rtl" style="font-family:sans-serif;color:#2d3d2b;max-width:480px;margin:0 auto">
+          <h2>הכרטיסייה שלך אושרה ופעילה! 🎟️</h2>
+          <p>${pass.plan_name} — ${pass.total_entries} כניסות, בתוקף עד ${new Date(pass.expires_at).toLocaleDateString("he-IL")}.</p>
+          <p>כל כניסה מכסה את השעה הראשונה בהשכרת סטודיו לפי שעה — שעות נוספות בתשלום רגיל.</p>
+        </div>`;
+        await sendGmail({ to: customerEmail, subject: `הכרטיסייה שלך אושרה — ${pass.plan_name}`, html });
+      }
+    } catch (e) {
+      console.error("[SWEETBABY] pass approval email failed", e);
+    }
+
+    return { ok: true };
+  });

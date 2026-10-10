@@ -3,6 +3,7 @@ import type {} from "@tanstack/react-start";
 import { runDueBookingReminders, runDueAbandonedHoldReminders, notifyPendingPhoneBookingConfirmations, notifyPendingPropsRequests } from "@/lib/bookings.functions";
 import { runDueOrderReminders } from "@/lib/orders.functions";
 import { runDueProofSelectionReminders } from "@/lib/photo-clients.functions";
+import { runDuePendingPassApprovalNudges } from "@/lib/subscription-purchase.functions";
 
 // Called periodically (every 15-30 min recommended) by an external
 // scheduler — e.g. a free cron service like cron-job.org, or Supabase
@@ -36,15 +37,16 @@ export const Route = createFileRoute("/api/send-booking-reminders")({
           });
         }
 
-        const [bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds] = await Promise.all([
+        const [bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds, pendingPassApprovals] = await Promise.all([
           runDueBookingReminders(),
           runDueOrderReminders(),
           notifyPendingPhoneBookingConfirmations(),
           notifyPendingPropsRequests(),
           runDueProofSelectionReminders(),
           runDueAbandonedHoldReminders(),
+          runDuePendingPassApprovalNudges(),
         ]);
-        return new Response(JSON.stringify({ bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds }), {
+        return new Response(JSON.stringify({ bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds, pendingPassApprovals }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         });
