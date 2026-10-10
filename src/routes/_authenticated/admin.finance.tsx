@@ -167,6 +167,16 @@ function FinanceAdmin() {
     setImportRows((rows) => rows.map((r, i) => (i === idx ? { ...r, business: !r.business } : r)));
   };
 
+  // For a credit-card statement every line is a charge — there's nothing to
+  // color red, so marking row by row is pointless. This marks every row
+  // "עסק" at once (and drops the red-only filter so she can see and
+  // deselect any exceptions), instead of trying to guess "this looks like
+  // a credit file" from the data itself.
+  const markAllImportRows = (business: boolean) => {
+    if (business) setImportShowOnlyRed(false);
+    setImportRows((rows) => rows.map((r) => ({ ...r, business })));
+  };
+
   const submitImport = async () => {
     const selected = importRows.filter((r) => r.business);
     if (selected.length === 0) return toast.error("לא נבחרו שורות לייבוא — סמני 'עסק' על השורות הרצויות");
@@ -1060,11 +1070,22 @@ function FinanceAdmin() {
               </div>
             </div>
 
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <Checkbox checked={importShowOnlyRed} onCheckedChange={(v) => setImportShowOnlyRed(!!v)} />
-              הצגת שורות מסומנות באדום בלבד ({importRows.filter((r) => r.isRed).length} מתוך{" "}
-              {importRows.length})
-            </label>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={importShowOnlyRed} onCheckedChange={(v) => setImportShowOnlyRed(!!v)} />
+                הצגת שורות מסומנות באדום בלבד ({importRows.filter((r) => r.isRed).length} מתוך{" "}
+                {importRows.length})
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">קובץ אשראי? כל השורות הן הוצאה:</span>
+                <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => markAllImportRows(true)}>
+                  סימון הכל כעסק
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => markAllImportRows(false)}>
+                  ביטול הכל
+                </Button>
+              </div>
+            </div>
 
             <div className="border border-primary/10 rounded-xl overflow-hidden">
               <table className="w-full text-sm">
