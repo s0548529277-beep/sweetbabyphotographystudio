@@ -17,6 +17,7 @@ import { AuthProvider } from "@/lib/auth";
 import { CartProvider } from "@/lib/cart";
 import { Toaster } from "@/components/ui/sonner";
 import { ChatBot } from "@/components/ChatBot";
+import { AccessibilityWidget } from "@/components/AccessibilityWidget";
 import { Analytics } from "@/components/Analytics";
 import { SiteTracking } from "@/lib/site-tracking";
 import { NewsletterPopup } from "@/components/NewsletterPopup";
@@ -184,6 +185,7 @@ function RootComponent() {
           <Outlet />
           <Toaster position="top-center" richColors />
           <ChatBot />
+          <AccessibilityWidget />
           <Analytics />
           <SiteTracking />
           <NewsletterPopup />
