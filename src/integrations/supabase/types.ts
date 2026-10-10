@@ -794,6 +794,7 @@ export type Database = {
           amount_paid: number
           base_price: number
           birth_basket_used: boolean
+          blocking_booking_id: string | null
           contact_email: string | null
           contact_name: string
           contact_phone: string
@@ -826,6 +827,7 @@ export type Database = {
           amount_paid?: number
           base_price?: number
           birth_basket_used?: boolean
+          blocking_booking_id?: string | null
           contact_email?: string | null
           contact_name: string
           contact_phone: string
@@ -858,6 +860,7 @@ export type Database = {
           amount_paid?: number
           base_price?: number
           birth_basket_used?: boolean
+          blocking_booking_id?: string | null
           contact_email?: string | null
           contact_name?: string
           contact_phone?: string
@@ -882,7 +885,15 @@ export type Database = {
           shoot_done_at?: string | null
           total_price?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "newborn_package_orders_blocking_booking_id_fkey"
+            columns: ["blocking_booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       newsletter_signups: {
         Row: {
