@@ -21,3 +21,4 @@
 - [x] לעצב מחדש את עמוד צילומי הניו־בורן עם לוגו מונפש גדול וצבעי זהב־ורוד
 
 - [ ] להחליף את עיצוב הניו־בורן שנדחה בכיוון נקי ומקצועי חדש
+- [x] Switch admin WhatsApp page to the new connector-gateway connection (std_01m4kst9t5ejqbdn8tkny15t5x)
