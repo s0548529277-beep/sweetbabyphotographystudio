@@ -106,6 +106,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:description", content: "סטודיו לצילום להשכרה סוויט בייבי — התמונה הראשונה שלי. סטודיו בוטיק להשכרה בבית שמש השכרת אביזרים לצילום ניוברן חלאקה סמאש קיק ועוד, סשן צילום -הצלמת מיכל סיבוני" },
       { property: "og:image", content: `https://sweetbabyphoto.shop${defaultOgImage.url}` },
       { name: "twitter:image", content: `https://sweetbabyphoto.shop${defaultOgImage.url}` },
+      { name: "theme-color", content: "#2d3d2b" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -113,6 +114,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,400&family=Fira+Sans:wght@300;400;500;600;700&family=Karla:wght@300;400;500;600&family=Assistant:wght@300;400;500;600;700&display=swap" },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "manifest", href: "/manifest.json" },
+      { rel: "apple-touch-icon", href: "/icon-192.png" },
     ],
     scripts: [
       {

@@ -193,7 +193,7 @@ const RESET_CODE_TTL_MINUTES = 10;
 // stops an unlimited number of guesses within the 10-minute TTL. Once a
 // code hits this many wrong guesses it's treated as invalid, same as an
 // expired one — the caller just has to request a fresh call.
-const MAX_RESET_CODE_ATTEMPTS = 5;
+const MAX_RESET_CODE_ATTEMPTS = 15;
 
 function randomResetCode(): string {
   return String(Math.floor(1000 + Math.random() * 9000)); // 4 digits — short enough to catch correctly by ear over a phone line
