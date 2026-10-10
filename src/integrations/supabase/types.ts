@@ -1622,6 +1622,9 @@ export type Database = {
       }
       subscription_passes: {
         Row: {
+          approval_nudge_count: number
+          approval_nudge_sent_at: string | null
+          approved_at: string | null
           created_by: string | null
           entries_used: number
           expires_at: string
@@ -1637,6 +1640,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          approval_nudge_count?: number
+          approval_nudge_sent_at?: string | null
+          approved_at?: string | null
           created_by?: string | null
           entries_used?: number
           expires_at: string
@@ -1652,6 +1658,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          approval_nudge_count?: number
+          approval_nudge_sent_at?: string | null
+          approved_at?: string | null
           created_by?: string | null
           entries_used?: number
           expires_at?: string
