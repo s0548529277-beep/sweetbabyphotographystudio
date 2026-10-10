@@ -228,7 +228,7 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook")({
             await supabaseAdmin
               .from("whatsapp_webhook_events")
               .select()
-              .eq("delivery_id", verified.deliveryId)
+              .eq("delivery_id", deliveryId)
               .maybeSingle()
           ).data;
         if (!eventRow) return new Response("Inbox write failed", { status: 500 });
