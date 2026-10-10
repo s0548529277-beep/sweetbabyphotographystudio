@@ -7,6 +7,19 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data?.some((r: any) => r.role === "admin")) throw new Error("אין הרשאת ניהול");
 }
 
+/** Count of orders still awaiting confirmation ("ממתין לאישור") — backs the orders bell shown next to the notifications bell on every admin page. */
+export const countPendingOrders = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { count, error } = await context.supabase
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending");
+    if (error) throw new Error(error.message);
+    return { count: count ?? 0 };
+  });
+
 /**
  * Admin-side status change for an order/booking (used by the dropdown on
  * /admin/orders). This replaces a previous direct client-side

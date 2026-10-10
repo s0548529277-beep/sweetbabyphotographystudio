@@ -11,6 +11,7 @@ import {
   CheckCheck,
   Check,
   AlertCircle,
+  UserRound,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/lib/image-compress";
@@ -20,6 +21,8 @@ import {
   listWhatsAppThread,
   sendWhatsAppMessageAdmin,
   sendWhatsAppMediaAdmin,
+  getWhatsAppBotHandoff,
+  resumeWhatsAppBot,
 } from "@/lib/admin-whatsapp.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/whatsapp")({
@@ -67,6 +70,8 @@ function WhatsAppAdmin() {
   const fetchThread = useServerFn(listWhatsAppThread);
   const doSendText = useServerFn(sendWhatsAppMessageAdmin);
   const doSendMedia = useServerFn(sendWhatsAppMediaAdmin);
+  const fetchHandoff = useServerFn(getWhatsAppBotHandoff);
+  const doResumeBot = useServerFn(resumeWhatsAppBot);
 
   const config = useQuery({ queryKey: ["whatsapp-config"], queryFn: () => fetchConfig({}) });
   const convos = useQuery({
@@ -86,6 +91,26 @@ function WhatsAppAdmin() {
     enabled: !!activePhone,
     refetchInterval: activePhone ? 10000 : false,
   });
+
+  const handoff = useQuery({
+    queryKey: ["whatsapp-handoff", activePhone],
+    queryFn: () => fetchHandoff({ data: { phone: activePhone! } }),
+    enabled: !!activePhone,
+    refetchInterval: activePhone ? 10000 : false,
+  });
+  const [resuming, setResuming] = useState(false);
+  const resumeBot = async () => {
+    if (!activePhone) return;
+    setResuming(true);
+    try {
+      await doResumeBot({ data: { phone: activePhone } });
+      qc.invalidateQueries({ queryKey: ["whatsapp-handoff", activePhone] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "הפעלה מחדש נכשלה");
+    } finally {
+      setResuming(false);
+    }
+  };
 
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -208,6 +233,22 @@ function WhatsAppAdmin() {
               <div className="p-4 border-b border-primary/5 font-medium" dir="ltr">
                 {activeName}
               </div>
+              {handoff.data?.handoffRequestedAt && (
+                <div className="px-4 py-2.5 bg-amber-50 border-b border-amber-200 flex items-center justify-between gap-3 text-sm">
+                  <div className="flex items-center gap-2 text-amber-900">
+                    <UserRound className="h-4 w-4 shrink-0" />
+                    <span>הלקוחה ביקשה לדבר איתך — הבוט שותק בשיחה הזו עד שתלחצי "החזרת הבוט"</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={resumeBot}
+                    disabled={resuming}
+                    className="shrink-0 h-8 px-3 rounded-full bg-amber-900 text-amber-50 text-xs font-medium disabled:opacity-50"
+                  >
+                    {resuming ? "מפעילה…" : "החזרת הבוט"}
+                  </button>
+                </div>
+              )}
               <div className="flex-1 overflow-y-auto p-4 space-y-2 max-h-[55vh]">
                 {((thread.data ?? []) as unknown as Msg[]).map((m) => (
                   <div
