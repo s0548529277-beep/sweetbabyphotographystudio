@@ -25,7 +25,9 @@ import {
   PieChart,
   HandCoins,
   AlertCircle,
+  FileSpreadsheet,
 } from "lucide-react";
+import { readXlsxFirstSheet, isReddishArgb, parseAmountCell, parseDateCell } from "@/lib/xlsx-read";
 
 export const Route = createFileRoute("/_authenticated/admin/finance")({
   component: FinanceAdmin,
@@ -104,6 +106,89 @@ function FinanceAdmin() {
     is_paid: false,
   };
   const [debtForm, setDebtForm] = useState(emptyDebtForm);
+
+  // Excel import ("הביאי אקסל, מה שאדום זה הוצאה, את בוחרת אישי/עסק") — see
+  // src/lib/xlsx-read.ts for the actual .xlsx parsing. Every row from the
+  // file is kept (not just the red ones) so a color-detection miss never
+  // hides a row she needs — "red" only pre-marks likely candidates; nothing
+  // is ever imported without her explicitly marking it "עסק" herself.
+  const [importOpen, setImportOpen] = useState(false);
+  const [importHeaders, setImportHeaders] = useState<string[]>([]);
+  const [importRows, setImportRows] = useState<
+    { cells: string[]; isRed: boolean; business: boolean }[]
+  >([]);
+  const [importDateCol, setImportDateCol] = useState(0);
+  const [importDescCol, setImportDescCol] = useState(1);
+  const [importAmountCol, setImportAmountCol] = useState(2);
+  const [importCategory, setImportCategory] = useState("אחר");
+  const [importShowOnlyRed, setImportShowOnlyRed] = useState(true);
+  const [importBusy, setImportBusy] = useState(false);
+  const importFileRef = useRef<HTMLInputElement>(null);
+
+  const resetImport = () => {
+    setImportHeaders([]);
+    setImportRows([]);
+  };
+
+  const onImportFileSelected = async (file: File) => {
+    try {
+      const sheetRows = await readXlsxFirstSheet(file);
+      const [headerRow, ...dataRows] = sheetRows;
+      if (!headerRow) {
+        toast.error("לא נמצאו שורות בקובץ");
+        return;
+      }
+      const headers = headerRow.cells.map((c) => c.value || "");
+      setImportHeaders(headers);
+      const guessCol = (keywords: string[]) => {
+        const idx = headers.findIndex((h) => keywords.some((k) => h.includes(k)));
+        return idx >= 0 ? idx : 0;
+      };
+      setImportDateCol(guessCol(["תאריך"]));
+      setImportDescCol(guessCol(["תיאור", "פירוט", "בית העסק", "שם"]));
+      setImportAmountCol(guessCol(["סכום", "חיוב", "₪"]));
+      setImportRows(
+        dataRows
+          .filter((r) => r.cells.some((c) => c.value.trim() !== ""))
+          .map((r) => ({
+            cells: r.cells.map((c) => c.value),
+            isRed: r.cells.some((c) => isReddishArgb(c.fillArgb)),
+            business: false,
+          })),
+      );
+      setImportOpen(true);
+    } catch (err) {
+      console.error("[SWEETBABY] xlsx import parse failed", err);
+      toast.error("קריאת הקובץ נכשלה — ודאי שזה קובץ אקסל תקין (.xlsx)");
+    }
+  };
+
+  const toggleImportRow = (idx: number) => {
+    setImportRows((rows) => rows.map((r, i) => (i === idx ? { ...r, business: !r.business } : r)));
+  };
+
+  const submitImport = async () => {
+    const selected = importRows.filter((r) => r.business);
+    if (selected.length === 0) return toast.error("לא נבחרו שורות לייבוא — סמני 'עסק' על השורות הרצויות");
+    const toInsert = selected
+      .map((r) => ({
+        title: (r.cells[importDescCol] || "").trim() || "יובא מאקסל",
+        amount: parseAmountCell(r.cells[importAmountCol]),
+        category: importCategory,
+        spent_on: parseDateCell(r.cells[importDateCol]) || new Date().toISOString().slice(0, 10),
+        notes: "יובא מאקסל",
+      }))
+      .filter((r) => r.amount > 0);
+    if (toInsert.length === 0) return toast.error("לא נמצא סכום תקין באף שורה שנבחרה — בדקי את מיפוי העמודות");
+    setImportBusy(true);
+    const { error } = await supabase.from("expenses").insert(toInsert);
+    setImportBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success(`${toInsert.length} הוצאות יובאו`);
+    setImportOpen(false);
+    resetImport();
+    qc.invalidateQueries({ queryKey: ["admin-finance"] });
+  };
 
   // Filters — defaults to the current calendar month (not all history), per
   // explicit request; still fully editable/clearable like any other filter.
@@ -722,17 +807,38 @@ function FinanceAdmin() {
       <div className="bg-card rounded-2xl border border-primary/5 p-5">
         <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
           <h3 className="font-display text-lg">רישום הוצאה</h3>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={() => {
-              setDebtForm(emptyDebtForm);
-              setDebtOpen(true);
-            }}
-          >
-            <HandCoins className="h-4 w-4" /> הוספת הוצאה / חוב מפורט
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <input
+              ref={importFileRef}
+              type="file"
+              accept=".xlsx"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) onImportFileSelected(file);
+              }}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => importFileRef.current?.click()}
+            >
+              <FileSpreadsheet className="h-4 w-4" /> ייבוא מאקסל
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => {
+                setDebtForm(emptyDebtForm);
+                setDebtOpen(true);
+              }}
+            >
+              <HandCoins className="h-4 w-4" /> הוספת הוצאה / חוב מפורט
+            </Button>
+          </div>
         </div>
         <div className="grid sm:grid-cols-5 gap-3">
           <Input
@@ -874,6 +980,157 @@ function FinanceAdmin() {
               ביטול
             </Button>
             <Button onClick={addDebtExpense}>{debtForm.is_paid ? "הוסף הוצאה" : "הוסף חוב"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Excel import review — every row from the file, red-highlighted rows
+          pre-flagged (not pre-selected) as likely expense candidates; only
+          rows she explicitly marks "עסק" get imported. */}
+      <Dialog
+        open={importOpen}
+        onOpenChange={(o) => {
+          setImportOpen(o);
+          if (!o) resetImport();
+        }}
+      >
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>ייבוא הוצאות מאקסל</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              שורות שצבעת באדום בקובץ מסומנות כאן אוטומטית בנקודה אדומה — אבל זו רק המלצה. הייבוא
+              בפועל קורה רק לשורות שמסמנים עליהן "עסק" למטה.
+            </p>
+            <div className="grid sm:grid-cols-4 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground">עמודת תאריך</label>
+                <select
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={importDateCol}
+                  onChange={(e) => setImportDateCol(Number(e.target.value))}
+                >
+                  {importHeaders.map((h, i) => (
+                    <option key={i} value={i}>
+                      {h || `עמודה ${i + 1}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">עמודת תיאור</label>
+                <select
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={importDescCol}
+                  onChange={(e) => setImportDescCol(Number(e.target.value))}
+                >
+                  {importHeaders.map((h, i) => (
+                    <option key={i} value={i}>
+                      {h || `עמודה ${i + 1}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">עמודת סכום</label>
+                <select
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={importAmountCol}
+                  onChange={(e) => setImportAmountCol(Number(e.target.value))}
+                >
+                  {importHeaders.map((h, i) => (
+                    <option key={i} value={i}>
+                      {h || `עמודה ${i + 1}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">קטגוריה לשורות שיובאו</label>
+                <select
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={importCategory}
+                  onChange={(e) => setImportCategory(e.target.value)}
+                >
+                  {CATEGORIES.map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox checked={importShowOnlyRed} onCheckedChange={(v) => setImportShowOnlyRed(!!v)} />
+              הצגת שורות מסומנות באדום בלבד ({importRows.filter((r) => r.isRed).length} מתוך{" "}
+              {importRows.length})
+            </label>
+
+            <div className="border border-primary/10 rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-cream/60 text-right">
+                  <tr>
+                    <th className="p-2 font-medium w-8"></th>
+                    <th className="p-2 font-medium">{importHeaders[importDateCol] || "תאריך"}</th>
+                    <th className="p-2 font-medium">{importHeaders[importDescCol] || "תיאור"}</th>
+                    <th className="p-2 font-medium">{importHeaders[importAmountCol] || "סכום"}</th>
+                    <th className="p-2 font-medium">בחירה</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {importRows.map((r, i) => {
+                    if (importShowOnlyRed && !r.isRed) return null;
+                    return (
+                      <tr key={i} className={`border-t border-primary/5 ${r.business ? "bg-primary/5" : ""}`}>
+                        <td className="p-2 text-center">
+                          {r.isRed && <span className="inline-block h-2.5 w-2.5 rounded-full bg-destructive" />}
+                        </td>
+                        <td className="p-2 whitespace-nowrap">{r.cells[importDateCol] || "—"}</td>
+                        <td className="p-2 max-w-[220px] truncate">{r.cells[importDescCol] || "—"}</td>
+                        <td className="p-2 whitespace-nowrap">{r.cells[importAmountCol] || "—"}</td>
+                        <td className="p-2">
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="sm"
+                              variant={!r.business ? "default" : "outline"}
+                              className="h-7 px-2.5 rounded-full text-xs"
+                              onClick={() => r.business && toggleImportRow(i)}
+                            >
+                              אישי
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={r.business ? "default" : "outline"}
+                              className="h-7 px-2.5 rounded-full text-xs"
+                              onClick={() => !r.business && toggleImportRow(i)}
+                            >
+                              עסק
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {importRows.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="p-6 text-center text-muted-foreground">
+                        אין שורות להצגה
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImportOpen(false)}>
+              ביטול
+            </Button>
+            <Button onClick={submitImport} disabled={importBusy}>
+              {importBusy
+                ? "מייבא…"
+                : `ייבוא ${importRows.filter((r) => r.business).length} הוצאות`}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
