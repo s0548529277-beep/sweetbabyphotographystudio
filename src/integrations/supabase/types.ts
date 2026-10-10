@@ -1862,27 +1862,6 @@ export type Database = {
         }
         Relationships: []
       }
-      whatsapp_bot_sessions: {
-        Row: {
-          handoff_requested_at: string | null
-          messages: Json
-          phone: string
-          updated_at: string
-        }
-        Insert: {
-          handoff_requested_at?: string | null
-          messages?: Json
-          phone: string
-          updated_at?: string
-        }
-        Update: {
-          handoff_requested_at?: string | null
-          messages?: Json
-          phone?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       whatsapp_messages: {
         Row: {
           body: string | null
