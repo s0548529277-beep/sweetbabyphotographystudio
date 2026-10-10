@@ -1,0 +1,2 @@
+ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS cashback_awarded numeric(10,2) NOT NULL DEFAULT 0;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS cashback_awarded numeric(10,2) NOT NULL DEFAULT 0;

@@ -794,6 +794,7 @@ export type Database = {
           contact_email: string | null
           contact_name: string
           contact_phone: string
+          contract_confirmed_at: string | null
           contract_sent_at: string | null
           created_at: string
           date_deposit_at: string | null
@@ -825,6 +826,7 @@ export type Database = {
           contact_email?: string | null
           contact_name: string
           contact_phone: string
+          contract_confirmed_at?: string | null
           contract_sent_at?: string | null
           created_at?: string
           date_deposit_at?: string | null
@@ -856,6 +858,7 @@ export type Database = {
           contact_email?: string | null
           contact_name?: string
           contact_phone?: string
+          contract_confirmed_at?: string | null
           contract_sent_at?: string | null
           created_at?: string
           date_deposit_at?: string | null
