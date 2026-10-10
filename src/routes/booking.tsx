@@ -124,7 +124,9 @@ function Booking() {
 
   // Live catalog — reflects edits made in /admin/items right away.
   const ALL_PROPS: CatItem[] = useCatalogItems();
-  const [date, setDate] = useState<Date | undefined>(undefined);
+  // Defaults to today so the calendar/time-picker show real availability
+  // immediately on page load, instead of an empty "pick a date" state.
+  const [date, setDate] = useState<Date | undefined>(() => new Date());
   const [existing, setExisting] = useState<Booking[]>([]);
   const [closures, setClosures] = useState<{ date: string; closed: boolean; open_time: string | null; close_time: string | null }[]>([]);
   const [startTime, setStartTime] = useState<string | null>(null);
