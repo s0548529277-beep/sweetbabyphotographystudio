@@ -15,6 +15,7 @@ import { Copy, Check, Upload, Banknote, CreditCard, Wallet, PlayCircle, Bell } f
 import { StudioGuideModal } from "@/components/StudioGuideModal";
 import { PrizeWheel } from "@/components/PrizeWheel";
 import { isEligibleForWheel } from "@/lib/wheel-prizes";
+import { isWheelEnabled } from "@/lib/wheel.functions";
 
 
 export const Route = createFileRoute("/deposit/$type/$id")({
@@ -65,8 +66,8 @@ function Deposit() {
   const [reminderHoursBefore, setReminderHoursBefore] = useState("12");
   const confirmDeposit = useServerFn(confirmBookingDeposit);
   const confirmOrder = useServerFn(confirmOrderDeposit);
-
-
+  const fetchWheelEnabled = useServerFn(isWheelEnabled);
+  const [wheelEnabled, setWheelEnabled] = useState(false);
 
   useEffect(() => {
     const table = type === "booking" ? "bookings" : "orders";
@@ -76,6 +77,10 @@ function Deposit() {
       .maybeSingle()
       .then(({ data }: any) => setRecord(data));
   }, [type, id]);
+
+  useEffect(() => {
+    if (isStudio) fetchWheelEnabled({}).then((r) => setWheelEnabled(r.enabled));
+  }, [isStudio]);
 
   const total = record?.price ?? record?.total ?? 0;
   // Studio rentals only require a ₪90 deposit up front; the rest is paid at the studio.
@@ -246,7 +251,9 @@ function Deposit() {
                   </div>
                 )}
               </div>
-              {isStudio && record && isEligibleForWheel(record) && <PrizeWheel bookingId={record.id} initialPrizeId={record.wheel_prize} />}
+              {isStudio && record && isEligibleForWheel(record) && (wheelEnabled || record.wheel_prize) && (
+                <PrizeWheel bookingId={record.id} initialPrizeId={record.wheel_prize} />
+              )}
               <ArrivalDirections />
             </div>
           ) : (
