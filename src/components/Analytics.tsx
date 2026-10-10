@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { getCookieConsent, onCookieConsentChange } from "@/lib/cookie-consent";
 
 // Both IDs are public by nature (they end up visible in every rendered
 // page anyway), so they're read from plain VITE_* env vars like the rest
@@ -49,14 +50,23 @@ function loadMetaPixel(id: string) {
   window.fbq("track", "PageView");
 }
 
-// Renders nothing — only loads GA4 / Meta Pixel when the corresponding
-// env var is configured, so the site stays tracker-free until someone
-// fills in VITE_GA_MEASUREMENT_ID / VITE_META_PIXEL_ID.
+// Renders nothing — only loads GA4 / Meta Pixel when the corresponding env
+// var is configured AND the visitor has actively accepted the cookie-
+// consent banner (CookieConsent.tsx) — these are third-party trackers, so
+// they're exactly the case Amendment 13 requires opt-in consent for.
 export function Analytics() {
+  const [consented, setConsented] = useState(false);
+
   useEffect(() => {
+    setConsented(getCookieConsent() === "accepted");
+    return onCookieConsentChange((choice) => setConsented(choice === "accepted"));
+  }, []);
+
+  useEffect(() => {
+    if (!consented) return;
     if (GA_MEASUREMENT_ID) loadGoogleAnalytics(GA_MEASUREMENT_ID);
     if (META_PIXEL_ID) loadMetaPixel(META_PIXEL_ID);
-  }, []);
+  }, [consented]);
 
   return null;
 }

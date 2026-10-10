@@ -136,13 +136,70 @@ function Terms() {
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-dashed border-primary/25 bg-cream/40 p-6">
-                <div className="text-xs tracking-widest uppercase text-peach-deep mb-2">לעדכן · TODO</div>
-                <h2 className="font-display text-2xl text-primary mb-2">מדיניות פרטיות</h2>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  סעיף זה יושלם בהמשך (מומלץ בליווי בדיקה משפטית) ויכלול: אילו פרטים נאספים, לאיזו מטרה, שמירת מידע,
-                  שיתוף עם צדדים שלישיים (סליקה, יומן, דיוור) וזכות לעיון/מחיקה.
-                </p>
+              <div>
+                <h2 className="font-display text-2xl md:text-3xl text-primary mb-4">מדיניות פרטיות</h2>
+                <div className="space-y-5 text-foreground/90">
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-1">איזה מידע אנו אוספים</h3>
+                    <ul className="space-y-2">
+                      <li className="flex gap-3">
+                        <span className="text-peach-deep font-display text-xl leading-none">·</span>
+                        <span className="leading-relaxed">פרטים שנמסרים בעת הזמנה/הרשמה: שם, טלפון, אימייל ופרטי ההזמנה (תאריך, שעה, פריטים).</span>
+                      </li>
+                      <li className="flex gap-3">
+                        <span className="text-peach-deep font-display text-xl leading-none">·</span>
+                        <span className="leading-relaxed">פרטי תשלום מתבצעים ישירות דרך חברת הסליקה המחוברת לאתר — הסטודיו לא שומר מספרי כרטיס אשראי בשרתיו.</span>
+                      </li>
+                      <li className="flex gap-3">
+                        <span className="text-peach-deep font-display text-xl leading-none">·</span>
+                        <span className="leading-relaxed">נתוני שימוש בסיסיים באתר (עמודים שנצפו, קליקים) לצורכי שיפור השירות — באישור מפורש בבאנר העוגיות, ונאספים במערכת אנליטיקס פנימית שלנו.</span>
+                      </li>
+                      <li className="flex gap-3">
+                        <span className="text-peach-deep font-display text-xl leading-none">·</span>
+                        <span className="leading-relaxed">הרשמה לרשימת תפוצה — רק עבור מי שנרשם/ה אליה מרצונו, לשליחת עדכונים ומבצעים.</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-1">למה המידע משמש</h3>
+                    <p className="leading-relaxed">
+                      לתיאום ההזמנה/השכרה ויצירת קשר בנוגע אליה, ניהול תשלומים, ושיפור השירות והאתר. דיוור שיווקי
+                      נשלח רק למי שנרשם/ה לרשימת התפוצה, ובכל מייל כזה יש קישור הסרה.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-1">שמירת מידע ושיתוף עם צדדים שלישיים</h3>
+                    <ul className="space-y-2">
+                      <li className="flex gap-3">
+                        <span className="text-peach-deep font-display text-xl leading-none">·</span>
+                        <span className="leading-relaxed">המידע מאוחסן במסדי נתונים מאובטחים (Supabase).</span>
+                      </li>
+                      <li className="flex gap-3">
+                        <span className="text-peach-deep font-display text-xl leading-none">·</span>
+                        <span className="leading-relaxed">לצורך תיאום פנימי בלבד, פרטים בסיסיים (כגון שם ותאריך) עשויים להישמר גם ביומן Google ובדואר האלקטרוני של הסטודיו.</span>
+                      </li>
+                      <li className="flex gap-3">
+                        <span className="text-peach-deep font-display text-xl leading-none">·</span>
+                        <span className="leading-relaxed">אנחנו לא מוכרים ולא משכירים מידע אישי לצדדים שלישיים לצורכי שיווק.</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-1">זכויותיך</h3>
+                    <p className="leading-relaxed">
+                      ניתן לפנות אלינו בכל עת לבקשת עיון, עדכון או מחיקה של המידע השמור עליך, וכן להסרה מרשימת
+                      התפוצה בכל עת.
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl bg-cream/40 p-4 text-sm text-muted-foreground">
+                    האתר משתמש באחסון מקומי בדפדפן לצורכי אנליטיקס פנימיים בלבד, באישור מפורש של הגולש/ת (ראו באנר
+                    העוגיות). ניתן לשנות את ההסכמה בכל עת באמצעות ניקוי נתוני האתר בדפדפן.
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -159,7 +216,7 @@ function Terms() {
             </div>
 
             <div className="mt-12 pt-8 border-t border-border text-sm text-muted-foreground">
-              <p>עודכן לאחרונה: אוגוסט 2026</p>
+              <p>עודכן לאחרונה: אוקטובר 2026</p>
               <p className="mt-2">
                 שאלות? ניתן לפנות אלינו דרך{" "}
                 <Link to="/contact" className="underline underline-offset-4 text-foreground hover:text-peach-deep">

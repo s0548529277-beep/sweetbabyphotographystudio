@@ -18,6 +18,7 @@ import { CartProvider } from "@/lib/cart";
 import { Toaster } from "@/components/ui/sonner";
 import { ChatBot } from "@/components/ChatBot";
 import { AccessibilityWidget } from "@/components/AccessibilityWidget";
+import { CookieConsent } from "@/components/CookieConsent";
 import { Analytics } from "@/components/Analytics";
 import { SiteTracking } from "@/lib/site-tracking";
 import { NewsletterPopup } from "@/components/NewsletterPopup";
@@ -191,6 +192,7 @@ function RootComponent() {
           <NewsletterPopup />
           <DynamicFavicon />
           <SiteTexts />
+          <CookieConsent />
         </CartProvider>
       </AuthProvider>
     </QueryClientProvider>
