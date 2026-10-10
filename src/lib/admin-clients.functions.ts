@@ -87,6 +87,7 @@ export const setCustomerLoyalty = createServerFn({ method: "POST" })
         cashback_expires_at: z.string().max(10).optional().nullable(), // yyyy-mm-dd, empty/null = no expiry
         custom_hourly_rate: z.number().nonnegative().max(10000).optional().nullable(),
         can_book_recurring: z.boolean().optional(),
+        fixed_discount_percent: z.number().int().min(0).max(100).optional(),
       })
       .parse(d),
   )
@@ -100,6 +101,7 @@ export const setCustomerLoyalty = createServerFn({ method: "POST" })
         cashback_expires_at: data.cashback_expires_at ? new Date(data.cashback_expires_at).toISOString() : null,
         custom_hourly_rate: data.custom_hourly_rate || null,
         can_book_recurring: !!data.can_book_recurring,
+        fixed_discount_percent: data.fixed_discount_percent ?? 0,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id" },

@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { createFileRoute, Outlet, Link, redirect, useRouterState } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { countUnreadAdminNotifications } from "@/lib/admin-notifications.functions";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import {
@@ -95,7 +98,6 @@ const links: NavEntry[] = [
       { to: "/admin/site-bot", label: "בוט עריכה", icon: Bot },
       { to: "/admin/site-bot-ask", label: "בוט מידע כללי", icon: MessageCircleQuestion },
       { to: "/admin/chat-logs", label: "שיחות בוט (צ'אט וטלפון)", icon: MessageCircle },
-      { to: "/admin/notifications", label: "הודעות מערכת", icon: Bell },
       { to: "/admin/voice-bot-text", label: "מלל בוט הטלפון", icon: Mic },
       { to: "/admin/voice-bot", label: "קול בוט הטלפון (Twilio)", icon: Phone },
       { to: "/admin/email-assistant", label: "בוט ניהול מייל", icon: Inbox },
@@ -159,6 +161,36 @@ function currentPageLabel(path: string): string {
   return "ניהול";
 }
 
+/**
+ * Persistent bell button shown at the top of every admin page (not buried
+ * in the nav list anymore, see the removed "הודעות מערכת" link above) —
+ * per direct report that it was too easy to forget the notifications page
+ * existed. Polls every 15s, same interval as the notifications page itself.
+ */
+function NotificationBell() {
+  const fetchCount = useServerFn(countUnreadAdminNotifications);
+  const q = useQuery({
+    queryKey: ["admin-unread-notifications-count"],
+    queryFn: () => fetchCount({}),
+    refetchInterval: 15000,
+  });
+  const unread = q.data?.count ?? 0;
+  return (
+    <Link
+      to="/admin/notifications"
+      className="relative inline-flex items-center justify-center h-9 w-9 rounded-full bg-card border border-primary/10 text-primary hover:bg-cream transition-colors shrink-0"
+      aria-label={unread > 0 ? `הודעות מערכת — ${unread} לא נקראו` : "הודעות מערכת"}
+    >
+      <Bell className="h-4 w-4" />
+      {unread > 0 && (
+        <span className="absolute -top-1 -left-1 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-semibold flex items-center justify-center">
+          {unread > 99 ? "99+" : unread}
+        </span>
+      )}
+    </Link>
+  );
+}
+
 function AdminLayout() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
@@ -181,7 +213,10 @@ function AdminLayout() {
     <div className="min-h-screen flex flex-col bg-cream/40">
       <Header />
       <section className="container-page py-10 flex-1">
-        <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-3">Admin</div>
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="text-xs tracking-[0.3em] uppercase text-forest/70">Admin</div>
+          <NotificationBell />
+        </div>
         <h1 className="font-display text-4xl text-primary mb-8">ניהול סטודיו</h1>
 
         <div className="grid lg:grid-cols-[220px_1fr] gap-8">

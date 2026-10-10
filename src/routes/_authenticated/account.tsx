@@ -107,7 +107,7 @@ function Account() {
   const loyaltyQ = useQuery({
     queryKey: ["my-loyalty", user?.id],
     queryFn: async () => {
-      const { data } = await supabase.from("customer_loyalty").select("credit_balance, cashback_percent").eq("user_id", user!.id).maybeSingle();
+      const { data } = await supabase.from("customer_loyalty").select("credit_balance, cashback_percent, fixed_discount_percent").eq("user_id", user!.id).maybeSingle();
       return data;
     },
     enabled: !!user,
@@ -237,6 +237,15 @@ function Account() {
                   <div className="font-display text-xl text-primary">{cashbackPercent}%</div>
                 </div>
               </div>
+
+              {Number(loyaltyQ.data?.fixed_discount_percent ?? 0) > 0 && (
+                <div className="mt-3 rounded-xl bg-white/50 px-3 py-2 flex items-center justify-between">
+                  <span className="text-[11px] text-muted-foreground">הנחה קבועה שלך</span>
+                  <span className="font-display text-lg text-primary">
+                    {loyaltyQ.data!.fixed_discount_percent}% הנחה אוטומטית
+                  </span>
+                </div>
+              )}
 
               {(passesQ.data?.length ?? 0) > 0 && (
                 <div className="mt-3 pt-3 border-t border-primary/10 space-y-3">

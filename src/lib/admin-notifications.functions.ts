@@ -27,6 +27,19 @@ export const listAdminNotifications = createServerFn({ method: "POST" })
     return data ?? [];
   });
 
+/** Lightweight unread count for the persistent bell button in the admin top bar (admin.tsx) — a count-only query instead of fetching all 200 rows just to size a badge. */
+export const countUnreadAdminNotifications = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { count, error } = await context.supabase
+      .from("admin_notifications")
+      .select("id", { count: "exact", head: true })
+      .is("read_at", null);
+    if (error) throw new Error(error.message);
+    return { count: count ?? 0 };
+  });
+
 /** Which AI provider/model actually served the last successful request — see recordProviderUsed in ai-gateway.server.ts. */
 export const getAiProviderStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

@@ -12,7 +12,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { listClientEmails, setClientPassword, updateClientProfile, setCustomerLoyalty, grantManualCredit } from "@/lib/admin-clients.functions";
 import { startManualPhotoWorkflow } from "@/lib/photo-clients.functions";
-import { Camera, Package, Pencil, Gift, Tag, Wand2, ImagePlus } from "lucide-react";
+import { Camera, Package, Pencil, Gift, Tag, Wand2, ImagePlus, Ticket } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/clients")({
   component: ClientsAdmin,
@@ -266,7 +266,7 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
       setRetouchBusy(false);
     }
   };
-  const [lf, setLf] = useState({ cashback_percent: "0", cashback_expires_at: "", custom_hourly_rate: "", can_book_recurring: false });
+  const [lf, setLf] = useState({ cashback_percent: "0", cashback_expires_at: "", custom_hourly_rate: "", can_book_recurring: false, fixed_discount_percent: "0" });
   const [manualAmount, setManualAmount] = useState("");
   const [grantBusy, setGrantBusy] = useState(false);
   useEffect(() => {
@@ -276,6 +276,7 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
         cashback_expires_at: loyalty.data.cashback_expires_at ? String(loyalty.data.cashback_expires_at).slice(0, 10) : "",
         custom_hourly_rate: (loyalty.data as any).custom_hourly_rate ? String((loyalty.data as any).custom_hourly_rate) : "",
         can_book_recurring: !!(loyalty.data as any).can_book_recurring,
+        fixed_discount_percent: String((loyalty.data as any).fixed_discount_percent ?? 0),
       });
     }
   }, [loyalty.data]);
@@ -291,6 +292,7 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
           cashback_expires_at: lf.cashback_expires_at || null,
           custom_hourly_rate: lf.custom_hourly_rate.trim() ? Math.max(0, Number(lf.custom_hourly_rate)) : null,
           can_book_recurring: lf.can_book_recurring,
+          fixed_discount_percent: Math.max(0, Math.min(100, Math.floor(Number(lf.fixed_discount_percent) || 0))),
         },
       });
       if (pw.trim()) {
@@ -361,6 +363,27 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
             <div className="text-[11px] text-muted-foreground">רק לקוחות מאושרות יכולות לקבוע סדרת שריונים שבועית (עד 3 חודשים קדימה) ב-/booking.</div>
           </div>
           <Switch checked={lf.can_book_recurring} onCheckedChange={(v) => setLf({ ...lf, can_book_recurring: v })} />
+        </div>
+      </div>
+
+      <div className="rounded-xl bg-card p-3 space-y-2">
+        <div className="flex items-center gap-1.5 text-sm font-medium text-forest">
+          <Ticket className="h-4 w-4" /> הנחה קבועה (קופון קבוע)
+        </div>
+        <p className="text-xs text-muted-foreground">
+          אחוז הנחה שחל אוטומטית על כל שריון סטודיו/הזמנת אביזרים של הלקוחה הזו — בלי שהיא צריכה להזין שום קוד.
+          לא חל על מבצע ניו-בורן בוקר, על מנוי/כרטיסייה, ולא משולב עם קוד קופון שהיא מזינה בעצמה (אם הזינה קוד, הוא גובר). השאירי 0 לביטול.
+        </p>
+        <div className="max-w-[200px]">
+          <Label className="text-xs text-muted-foreground">הנחה (%)</Label>
+          <Input
+            type="number"
+            min={0}
+            max={100}
+            dir="ltr"
+            value={lf.fixed_discount_percent}
+            onChange={(e) => setLf({ ...lf, fixed_discount_percent: e.target.value })}
+          />
         </div>
       </div>
 

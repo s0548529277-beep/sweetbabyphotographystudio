@@ -116,7 +116,7 @@ export const placeBooking = createServerFn({ method: "POST" })
     // UNLESS the customer currently has an active studio-visit pass (see
     // hasActivePass below), whose terms suppress it entirely regardless of
     // whether this particular booking draws an entry from the pass.
-    const { data: loyaltyRow } = await supabase.from("customer_loyalty").select("custom_hourly_rate").eq("user_id", userId).maybeSingle();
+    const { data: loyaltyRow } = await supabase.from("customer_loyalty").select("custom_hourly_rate, fixed_discount_percent").eq("user_id", userId).maybeSingle();
 
     // Active studio-visit passes (e.g. the 5-entry card) — fetched once,
     // used both to gate cashback/the personal rate above (any pass with
@@ -174,6 +174,24 @@ export const placeBooking = createServerFn({ method: "POST" })
       couponCodeUsed = c!.code;
       couponDiscount = off;
       if (c!.single_use) couponIdToRedeem = c!.id;
+    }
+
+    // Automatic, no-code-needed discount for a specific customer (e.g. a
+    // colleague photographer) — admin-set per customer via
+    // customer_loyalty.fixed_discount_percent (/admin/clients, "הנחה קבועה
+    // ללקוחה"). Never stacks with a real entered coupon code, and skipped
+    // on the newborn morning package / a custom hourly rate, same
+    // exclusions a real coupon already has.
+    let fixedDiscountNote: string | null = null;
+    if (!couponCodeUsed && !isMorning && !customHourlyRate) {
+      const fixedDiscountPercent = Math.max(0, Math.min(100, Number(loyaltyRow?.fixed_discount_percent) || 0));
+      if (fixedDiscountPercent > 0) {
+        const off = Math.round((price * fixedDiscountPercent) / 100);
+        if (off > 0) {
+          price = Math.max(0, price - off);
+          fixedDiscountNote = `הנחה קבועה ללקוחה (${fixedDiscountPercent}%) · -₪${off}`;
+        }
+      }
     }
 
     // Optional: cover the first hour using an active studio-visit pass
@@ -285,6 +303,7 @@ export const placeBooking = createServerFn({ method: "POST" })
           guidanceFee > 0 ? `חבילת הדרכה: ${GUIDANCE_LABELS[guidanceKey]} (+₪${guidanceFee})` : null,
           customRateNote,
           couponNote,
+          fixedDiscountNote,
           passNote,
           creditNote,
           data.notes,
