@@ -117,8 +117,22 @@ async function upsertVoiceSession(
   if (error2) console.error(`[SWEETBABY] voice_call_sessions upsert fallback ALSO failed — callSid=${row.call_sid}`, error2);
 }
 
+// Unlike Twilio/WhatsApp, Yemot's own protocol has no request-signing
+// mechanism at all — anyone who discovers this URL could otherwise POST
+// fabricated call data. If YEMOT_WEBHOOK_SECRET is set, Yemot's own
+// "שלוחת API" extension has to be configured (ניהול → הגדרות מתקדמות →
+// עריכת קבצי INI, on the api_link URL itself) to send the same value as a
+// `secret` query param, e.g. .../api/yemot/ivr?secret=<value>. Left unset,
+// this check is skipped entirely — intentionally, so deploying this code
+// alone never breaks the live phone line before that URL is updated.
+const YEMOT_WEBHOOK_SECRET = process.env.YEMOT_WEBHOOK_SECRET;
+
 async function handle(request: Request): Promise<Response> {
   const params = await parseYemotParams(request);
+  if (YEMOT_WEBHOOK_SECRET && params.secret !== YEMOT_WEBHOOK_SECRET) {
+    console.error("[SWEETBABY] yemot webhook rejected — missing/invalid secret");
+    return new Response("Forbidden", { status: 403 });
+  }
   const rawCallId = params.ApiCallId;
   if (!rawCallId) return new Response("Bad Request", { status: 400 });
   const callSid = `yemot:${rawCallId}`;

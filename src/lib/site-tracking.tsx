@@ -3,8 +3,9 @@
 // <Analytics /> (GA4/Meta Pixel, still separate and still opt-in via env
 // var) — this one always runs, no configuration needed, and writes into
 // our own Supabase tables instead of a third party.
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
+import { getCookieConsent, onCookieConsentChange } from "@/lib/cookie-consent";
 
 const SESSION_KEY = "sb_session_id";
 const HEARTBEAT_MS = 20_000;
@@ -48,9 +49,21 @@ export function SiteTracking() {
   // it points at exists. Already-resolved for a returning tab (isNew
   // false), so this adds no delay after the first pageview of a session.
   const sessionReadyRef = useRef<Promise<void>>(Promise.resolve());
+  // Gates every effect below — none of them touch storage until the visitor
+  // has actively accepted the cookie-consent banner (CookieConsent.tsx).
+  // Starts false even if a past "accepted" choice is already in
+  // localStorage, resolved synchronously right after mount below, so this
+  // never does a same-tick read of localStorage during render.
+  const [consented, setConsented] = useState(false);
 
-  // Session start — once per tab.
   useEffect(() => {
+    setConsented(getCookieConsent() === "accepted");
+    return onCookieConsentChange((choice) => setConsented(choice === "accepted"));
+  }, []);
+
+  // Session start — once per tab, only after consent.
+  useEffect(() => {
+    if (!consented) return;
     const { id, isNew } = getOrCreateSessionId();
     sessionIdRef.current = id;
     if (!isNew) return;
@@ -62,21 +75,23 @@ export function SiteTracking() {
       )
       .then(() => {}, () => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [consented]);
 
   // Pageview per navigation (including the first render) — queued behind
   // sessionReadyRef so it never races the session row's own insert.
   useEffect(() => {
+    if (!consented) return;
     const id = sessionIdRef.current;
     if (!id) return;
     sessionReadyRef.current.then(() =>
       import("@/lib/analytics.functions").then(({ trackPageview }) => trackPageview({ data: { sessionId: id, path: pathname } }).catch(() => {})),
     );
-  }, [pathname]);
+  }, [pathname, consented]);
 
   // Click batching — accumulate locally, flush periodically and on
   // navigation/hide instead of one request per click.
   useEffect(() => {
+    if (!consented) return;
     const flush = () => {
       const id = sessionIdRef.current;
       const clicks = pendingClicksRef.current;
@@ -101,12 +116,13 @@ export function SiteTracking() {
       document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("pagehide", onHide);
     };
-  }, []);
+  }, [consented]);
 
   // Heartbeat — keeps last_seen moving while the tab is open and visible,
   // even if the visitor isn't clicking or navigating (e.g. reading a long
   // page). Skips while hidden so a backgrounded tab doesn't inflate duration.
   useEffect(() => {
+    if (!consented) return;
     const tick = () => {
       const id = sessionIdRef.current;
       if (!id || document.visibilityState !== "visible") return;
@@ -116,7 +132,7 @@ export function SiteTracking() {
     };
     const interval = setInterval(tick, HEARTBEAT_MS);
     return () => clearInterval(interval);
-  }, []);
+  }, [consented]);
 
   return null;
 }

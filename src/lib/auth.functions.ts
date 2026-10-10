@@ -189,6 +189,11 @@ export const signUpWithPhoneOrEmail = createServerFn({ method: "POST" })
 // user_metadata, cleared the moment it's used or replaced by a newer one.
 
 const RESET_CODE_TTL_MINUTES = 10;
+// A 4-digit code is only 10,000 combinations — without a cap, nothing
+// stops an unlimited number of guesses within the 10-minute TTL. Once a
+// code hits this many wrong guesses it's treated as invalid, same as an
+// expired one — the caller just has to request a fresh call.
+const MAX_RESET_CODE_ATTEMPTS = 5;
 
 function randomResetCode(): string {
   return String(Math.floor(1000 + Math.random() * 9000)); // 4 digits — short enough to catch correctly by ear over a phone line
@@ -215,6 +220,7 @@ export const requestPhoneResetCode = createServerFn({ method: "POST" })
           ...(current?.user?.user_metadata ?? {}),
           password_reset_code: code,
           password_reset_code_expires: Date.now() + RESET_CODE_TTL_MINUTES * 60_000,
+          password_reset_code_attempts: 0,
         },
       });
 
@@ -244,10 +250,17 @@ export const resetPasswordWithPhoneCode = createServerFn({ method: "POST" })
       const meta = (current?.user?.user_metadata ?? {}) as Record<string, unknown>;
       const storedCode = meta.password_reset_code as string | undefined;
       const expires = meta.password_reset_code_expires as number | undefined;
-      if (!storedCode || storedCode !== data.code.trim() || !expires || Date.now() > expires) {
+      const attempts = (meta.password_reset_code_attempts as number | undefined) ?? 0;
+      if (!storedCode || !expires || Date.now() > expires || attempts >= MAX_RESET_CODE_ATTEMPTS) {
         return { ok: false, error: GENERIC_ERROR };
       }
-      const { password_reset_code: _c, password_reset_code_expires: _e, ...restMeta } = meta;
+      if (storedCode !== data.code.trim()) {
+        await supabaseAdmin.auth.admin.updateUserById(account.userId, {
+          user_metadata: { ...meta, password_reset_code_attempts: attempts + 1 },
+        });
+        return { ok: false, error: GENERIC_ERROR };
+      }
+      const { password_reset_code: _c, password_reset_code_expires: _e, password_reset_code_attempts: _a, ...restMeta } = meta;
       const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(account.userId, {
         password: toAuthPassword(data.newPassword),
         user_metadata: restMeta,
