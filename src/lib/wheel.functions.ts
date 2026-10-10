@@ -8,6 +8,34 @@ import { isEligibleForWheel, pickWeightedPrize, findWheelPrize } from "@/lib/whe
 
 type SpinResult = { prizeId: string; label: string; detail: string; couponCode: string | null; alreadyWon: boolean };
 
+const WHEEL_ENABLED_SETTING_KEY = "prize_wheel_enabled";
+
+/**
+ * Global on/off switch for the whole prize-wheel feature, controlled from
+ * /admin/prize-wheel (app_settings, same key/value pattern as
+ * voice_bot_voice). Per explicit request: the wheel is frozen for
+ * customers for now, with the option to turn it back on later from admin —
+ * no change to the eligibility rule itself (isEligibleForWheel), just a
+ * global gate on top of it. Defaults to **disabled** when the setting row
+ * doesn't exist yet (e.g. this migration hasn't run on the live DB yet) —
+ * fail closed, so the freeze takes effect the moment this code deploys
+ * rather than waiting on the migration too.
+ */
+async function wheelEnabled(supabaseAdmin: any): Promise<boolean> {
+  const { data } = await supabaseAdmin
+    .from("app_settings")
+    .select("value")
+    .eq("key", WHEEL_ENABLED_SETTING_KEY)
+    .maybeSingle();
+  return data?.value === "true";
+}
+
+/** Public read (no auth) so the booking-confirmation page can decide whether to render the wheel at all — app_settings itself is admin-only RLS, so this goes through supabaseAdmin instead of the client's RLS-scoped query. */
+export const isWheelEnabled = createServerFn({ method: "POST" }).handler(async () => {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return { enabled: await wheelEnabled(supabaseAdmin) };
+});
+
 /** Mints a real single-use coupon for this win, same pattern as newsletter.functions.ts's issuePersonalCoupon — a genuine, redeemable code, not just a promise. */
 async function mintWheelCoupon(supabaseAdmin: any, percent: number, email: string | null, bookingId: string): Promise<string | null> {
   const suffix = Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -47,6 +75,11 @@ export const spinWheel = createServerFn({ method: "POST" })
     if (error || !b) throw new Error("ההזמנה לא נמצאה");
     if (b.user_id !== userId) throw new Error("אין הרשאה");
 
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    if (!b.wheel_prize && !(await wheelEnabled(supabaseAdmin))) {
+      throw new Error("גלגל המתנות מוקפא כרגע");
+    }
+
     // Already spun — return the SAME prize again (idempotent), never a
     // fresh one, so refreshing the page can't grant a second spin.
     if (b.wheel_prize) {
@@ -62,8 +95,6 @@ export const spinWheel = createServerFn({ method: "POST" })
       .update({ wheel_prize: prize.id, wheel_prize_won_at: new Date().toISOString() })
       .eq("id", data.id);
     if (updErr) throw new Error(updErr.message);
-
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     let couponCode: string | null = null;
     if (prize.kind === "coupon" && prize.couponPercent) {
