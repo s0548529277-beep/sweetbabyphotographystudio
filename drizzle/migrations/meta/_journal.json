@@ -78,6 +78,13 @@
       "when": 1791660355817,
       "tag": "0010_photo_workflow_service_type",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791667606040,
+      "tag": "0011_apply_pending_schema_oct10",
+      "breakpoints": true
     }
   ]
 }

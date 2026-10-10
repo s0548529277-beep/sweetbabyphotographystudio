@@ -150,6 +150,7 @@ export type Database = {
       }
       bookings: {
         Row: {
+          abandoned_hold_reminder_sent_at: string | null
           balance_amount: number | null
           balance_method: string | null
           cancellation_charge: number | null
@@ -193,6 +194,7 @@ export type Database = {
           wheel_prize_won_at: string | null
         }
         Insert: {
+          abandoned_hold_reminder_sent_at?: string | null
           balance_amount?: number | null
           balance_method?: string | null
           cancellation_charge?: number | null
@@ -236,6 +238,7 @@ export type Database = {
           wheel_prize_won_at?: string | null
         }
         Update: {
+          abandoned_hold_reminder_sent_at?: string | null
           balance_amount?: number | null
           balance_method?: string | null
           cancellation_charge?: number | null
@@ -446,6 +449,7 @@ export type Database = {
           cashback_percent: number
           credit_balance: number | null
           custom_hourly_rate: number | null
+          fixed_discount_percent: number
           manual_credit_balance: number
           updated_at: string
           user_id: string
@@ -457,6 +461,7 @@ export type Database = {
           cashback_percent?: number
           credit_balance?: number | null
           custom_hourly_rate?: number | null
+          fixed_discount_percent?: number
           manual_credit_balance?: number
           updated_at?: string
           user_id: string
@@ -468,6 +473,7 @@ export type Database = {
           cashback_percent?: number
           credit_balance?: number | null
           custom_hourly_rate?: number | null
+          fixed_discount_percent?: number
           manual_credit_balance?: number
           updated_at?: string
           user_id?: string
@@ -1622,6 +1628,9 @@ export type Database = {
       }
       subscription_passes: {
         Row: {
+          approval_nudge_count: number
+          approval_nudge_sent_at: string | null
+          approved_at: string | null
           created_by: string | null
           entries_used: number
           expires_at: string
@@ -1637,6 +1646,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          approval_nudge_count?: number
+          approval_nudge_sent_at?: string | null
+          approved_at?: string | null
           created_by?: string | null
           entries_used?: number
           expires_at: string
@@ -1652,6 +1664,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          approval_nudge_count?: number
+          approval_nudge_sent_at?: string | null
+          approved_at?: string | null
           created_by?: string | null
           entries_used?: number
           expires_at?: string
@@ -1808,6 +1823,42 @@ export type Database = {
           messages?: Json
           stage?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      waitlist_entries: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          notes: string | null
+          notified_at: string | null
+          phone: string
+          session_date: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          notes?: string | null
+          notified_at?: string | null
+          phone: string
+          session_date: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          notes?: string | null
+          notified_at?: string | null
+          phone?: string
+          session_date?: string
+          user_id?: string | null
         }
         Relationships: []
       }
