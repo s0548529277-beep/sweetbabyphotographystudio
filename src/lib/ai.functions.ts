@@ -64,6 +64,7 @@ export const SYSTEM = `אתה "בוט Sweetbaby", העוזר האישי של ס�
 - מועדון קאשבק: כל לקוחה רשומה צוברת אוטומטית 10% מסכום כל הזמנה של 150 ₪ ומעלה (השכרת סטודיו או הזמנת אביזרים) כקרדיט לחשבון שלה, לשימוש בהזמנה הבאה. מתחת ל-150 ₪ אין צבירה. הצבירה קורית לבד, אין קוד או הרשמה נפרדת — היתרה מוצגת בעמוד /account.
 - עיכוב: 15 דק׳ = חצי שעה נוספת · 45 דק׳ = שעה מלאה. חובה לעדכן לפני שמאחרים!
 - שריון מועד: מקדמה 90₪ (לא מוחזרת) בהעברה בנקאית/ביט. ביום האירוע — תשלום מלא מראש.
+- פרטי חשבון בנק להעברה (תני אותם בכל פעם שמבקשים, בלי לשאול למה): בנק הפועלים (12) · סניף 533 · חשבון 648912 · על שם מיכל סיבוני.
 - ביטול: עד יום האירוע — המקדמה לא מוחזרת. ביום עצמו — 100%.
 - קודי הנחה/קופון: לעולם אל תיתני, תמציאי או תזכירי קוד קופון בשיחה — גם לא כשנשאלת עליו במפורש. הדרך היחידה לקבל הנחה היא הרשמה לניוזלטר (טופס בתחתית כל עמוד באתר), שם נשלח למייל קוד אישי חד-פעמי. כשעולה נושא הנחה/מחיר יותר זול — הציעי בחום להירשם לניוזלטר, בלי לציין שום קוד קונקרטי.
 - חבילות הדרכה (תוספת חד-פעמית לשריון סטודיו): בסיסי חינם (עד 5 דק׳ הכוונה) · MINI 50₪ (עד 20 דק׳ הדרכה טכנית, סט אחד) · PLUS 100₪ (ליווי מקצועי ראשוני, הכי פופולרי) · PREMIUM 300₪ (הצלמת מיכל איתך בסטודיו — 2 סטים יפים בהתאמה אישית, עד שעה)
@@ -72,7 +73,8 @@ export const SYSTEM = `אתה "בוט Sweetbaby", העוזר האישי של ס�
 - מפת האתר והשירותים: /studio-rental להשכרת הסטודיו והסכם תיאום ציפיות · /booking לבחירת מועד · /rental-catalog לקטלוג והשכרת אביזרים · /studio-photography לצילומים עם מיכל בסטודיו או בחוץ · /collage-maker ליצירת קולאז׳ חינם · /account להזמנות, קבלות והדרכה של לקוחה מחוברת · /contact ליצירת קשר. כשמתאים, תן קישור קצר וברור לעמוד המדויק ולא לעמוד הבית.
 - נושאים וקטגוריות מרכזיים בקטלוג האביזרים: חדש 2026, אביזרי ניו-בורן גדולים, כריות פוזינג, בגדים ועיטופים, שמיכות ופרוות, כובעים וסרטים, דובונים סרוגים, פרחים, מזוודות, כלי זכוכית, רקעים, וינטג׳, לייפסטייל ואביזרי גיל שנה. כשלקוחה מתארת רעיון או סגנון ולא מק״ט, השתמש ב-search_catalog והצע עד 4 התאמות ממוקדות עם שם, מק״ט ומחיר — לא רשימה ארוכה ומבלבלת.
 - התאמת שירות: אם לא ברור אם הלקוחה רוצה צלמת, חלל או אביזרים — שאל שאלה אחת קצרה: "את מחפשת שמיכל תצלם אותך, לשכור את הסטודיו לצילום עצמאי, או לשכור אביזרים?" לאחר התשובה המשך למסלול המדויק.
-- קולאז׳ים בחינם: באתר יש יוצר קולאז׳ מודרך עם מאות רעיונות, גדלים להדפסה ולרשתות, רקעים, דוגמאות, מדבקות וכיתובים בעברית. התמונות נשארות במכשיר. הפנה ל-/collage-maker.
+- קולאז׳ים בחינם: באתר יש יוצר קולאז׳ מודרך עם מאות רעיונות, גדלים להדפסה ולרשתות, רקעים, דוגמאות, מדבקות וכיתובים בעברית. התמונות נשארות במכשיר. הפנה ל-/collage-maker — **רק** כשהלקוחה רוצה ליצור קולאז' מהתמונות **שלה** (לא לבקשת תמונות השראה/דוגמאות, זה סעיף אחר למטה).
+- בקשות "תמונות להשראה" / "דוגמאות לצילומי גיל שנה/ניוברן/משפחה" (רוצה לראות סגנון של מיכל לפני הזמנה) — זה **לא** /collage-maker (שזה כלי ליצירת קולאז' מתמונות אישיות של הלקוחה, לא גלריית עבודות). הפני לגלריית התיק עבודות האמיתית: /studio-photography (יש שם גלריה עם קטגוריות כולל ניו-בורן, גיל שנה/קייק סמאש, משפחה ועוד), ואם רוצים עוד דוגמאות — האתר הנוסף של מיכל https://michalsiboni.co.il/.
 - תשובות צריכות להיות קלות לסריקה: קודם תשובה ישירה, אחריה עד 3 נקודות קצרות, ובסוף צעד הבא אחד. אל תעמיס את כל כללי הסטודיו אם לא נשאלת עליהם.
 - שאלות "מתי פנוי / יש תאריך פנוי": אם יש תאריך מדויק — תבדוק מיד עם check_studio_availability ותן תשובה ישירה (פנוי/לא, ואם לא — הצע את השעות הפנויות הקרובות באותו יום). אם אין תאריך מדויק ("מתי הכי קרוב אפשר", "מה פנוי השבוע") — אל תשאלי שאלות הבהרה מיותרות קודם, תבדוק מיד עם find_next_available_days ותני 2–3 אפשרויות קונקרטיות (תאריך + שעות). תמיד תבדקי בכלים בפועל, אף פעם אל תנחשי או תסתמכי על מה שדיברתם קודם באותה שיחה.
 - **חשוב מאוד — לעולם אל תכללי חלקי פנוי כ"היום כולו פנוי":** freeSlots שמוחזר מ-check_studio_availability הוא רשימת השעות הפנויות בפועל, לא ערובה שכל היום פתוח. אם יש שעות שנחסמו (חלק מהיום תפוס), חובה לציין בפירוש אילו שעות באמת פנויות ("פנוי בין 10:00 ל-14:00, אחרי זה תפוס") ולא לענות סתם "כן, מחר פנוי" — זו הטעיה. רק אם freeSlots מכסה בפועל את כל שעות הפעילות של היום מותר לומר "היום כולו פנוי".
@@ -143,7 +145,7 @@ export const chatWithBot = createServerFn({ method: "POST" })
 - כששואלים על מחיר — חשבי את המחיר המדויק עם quote_studio_price ואל תעריכי בעצמך.
 - אם הלקוחה אומרת שנתקעה, שהטופס לא עובד או שהיא רוצה שתעשי זאת בשבילה — אל תחזירי אותה מיד לאותו טופס. בדקי מה חסר, עזרי בצ׳אט שלב-שלב, וללקוחה עם חשבון אמיתי הציעי ליצור את השריון כאן בהתאם לכללי create_studio_booking.
 - יצירת שריון בפועל בשם הלקוחה — רק עם create_studio_booking, ורק אחרי שמתקיימים כל התנאים בתיאור הכלי (זמינות אמיתית, פרטי קשר, אישור מפורש על תנאים ומקדמה). לעולם אל תגידי ללקוחה "שריינתי לך" בלי לקרוא לכלי הזה בפועל.`;
-    const { text } = await generateTextResilient({
+    const { text, toolCalls } = await generateTextResilient({
       system: SYSTEM + personalized + toolRules + extraKnowledge,
       messages: data.messages,
       tools: buildAssistantTools({ isAuthenticated: isRealAccount }),
@@ -167,6 +169,40 @@ export const chatWithBot = createServerFn({ method: "POST" })
         );
       } catch (e) {
         console.error("[SWEETBABY] chat log upsert failed", e);
+      }
+
+      // Per explicit request: flag any conversation that went beyond a
+      // generic FAQ-style question — a real tool call (checking a specific
+      // date's availability, pricing, catalog search, actually booking,
+      // etc.) is a cheap, reliable proxy for "this wasn't just small talk",
+      // with no extra AI call needed to judge "importance" separately. One
+      // notification per session (deduped below), not one per turn — a long
+      // back-and-forth would otherwise flood the admin inbox.
+      if (toolCalls && toolCalls.length > 0) {
+        try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { data: already } = await supabaseAdmin
+            .from("admin_notifications")
+            .select("id")
+            .eq("type", "site_chat_important")
+            .contains("body", { session_id: data.sessionId })
+            .limit(1);
+          if (!already || already.length === 0) {
+            const lastUserMsg = [...data.messages].reverse().find((m) => m.role === "user")?.content ?? "";
+            await supabaseAdmin.from("admin_notifications").insert({
+              type: "site_chat_important",
+              title: `שיחת צ'אט עם כוונה ממשית${data.userName ? ` · ${data.userName}` : ""}`,
+              body: {
+                session_id: data.sessionId,
+                snippet: String(lastUserMsg).slice(0, 200),
+                tools: [...new Set(toolCalls.map((t: any) => t.toolName))].join(", "),
+                user_id: realUserId,
+              },
+            });
+          }
+        } catch (e) {
+          console.error("[SWEETBABY] important chat notify failed", e);
+        }
       }
     }
 

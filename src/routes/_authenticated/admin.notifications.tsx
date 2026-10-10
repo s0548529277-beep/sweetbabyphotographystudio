@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { listAdminNotifications, markNotificationRead, getAiProviderStatus } from "@/lib/admin-notifications.functions";
 import { adminConfirmPhoneBookingDeposit } from "@/lib/bookings.functions";
-import { Bell, ChevronDown, ChevronUp, Phone, CalendarDays, Circle, CheckCircle2, Cpu, KeyRound, AlertTriangle, Shuffle, BadgeCheck, IdCard, ShoppingBag, ClipboardList } from "lucide-react";
+import { Bell, ChevronDown, ChevronUp, Phone, CalendarDays, Circle, CheckCircle2, Cpu, KeyRound, AlertTriangle, Shuffle, BadgeCheck, IdCard, ShoppingBag, ClipboardList, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/admin/notifications")({
@@ -32,6 +32,7 @@ export const TYPE_LABELS: Record<string, string> = {
   subscription_pass: "כרטיסייה נרכשה באשראי",
   order: "הזמנת אביזרים",
   studio_intake: "טופס תיאום ציפיות",
+  site_chat_important: "שיחת צ'אט עם כוונה ממשית",
 };
 
 export const TYPE_ICONS: Record<string, typeof Phone> = {
@@ -46,6 +47,7 @@ export const TYPE_ICONS: Record<string, typeof Phone> = {
   subscription_pass: IdCard,
   order: ShoppingBag,
   studio_intake: ClipboardList,
+  site_chat_important: MessageCircle,
 };
 
 const PROVIDER_LABELS: Record<string, string> = {
