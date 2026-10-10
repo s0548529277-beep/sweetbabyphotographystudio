@@ -210,7 +210,7 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook")({
         const { data: row, error: insertError } = await supabaseAdmin
           .from("whatsapp_webhook_events")
           .upsert(
-            { delivery_id: deliveryId, event, payload },
+            { delivery_id: deliveryId, event, payload: payload as any },
             { onConflict: "delivery_id", ignoreDuplicates: true },
           )
           .select()
