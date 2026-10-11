@@ -56,6 +56,24 @@ async function uploadMediaToStorage(file: File): Promise<{ url: string; type: "i
   return { url: data.signedUrl, type: isImage ? "image" : "video" };
 }
 
+/**
+ * Ready-made message templates — one click drops the text into the composer
+ * for a final edit before sending. These work for replies inside Meta's 24h
+ * window; initiating a first contact to someone who never wrote in requires
+ * a Meta-approved template (created in Meta Business Suite, not from code),
+ * and these texts double as the copy to submit there.
+ */
+const MESSAGE_TEMPLATES: { label: string; text: string }[] = [
+  {
+    label: "אישור הזמנה",
+    text: "היי {שם} 💗\nמאשרת שההזמנה שלך נקלטה אצלנו בסטודיו!\n📅 תאריך: {תאריך}\n🕐 שעה: {שעה}\n\nאשלח לך לפני המועד את כל הפרטים להגעה. אם צריך לשנות משהו — אני כאן.\nמיכל | Sweetbaby 📸",
+  },
+  {
+    label: "חזרה ללקוחה שהשאירה פרטים",
+    text: "היי {שם} 💗\nקיבלתי את הפנייה שלך באתר ורציתי לחזור אליך אישית.\nאשמח לשמוע קצת יותר — איזה סוג צילום מעניין אותך ולאיזה תאריך חשבת? ככה אוכל לבדוק לך זמינות ולהתאים בדיוק את מה שמתאים לך.\nמיכל | Sweetbaby 📸",
+  },
+];
+
 function StatusIcon({ status }: { status: string }) {
   if (status === "failed") return <AlertCircle className="h-3.5 w-3.5 text-destructive" />;
   if (status === "read") return <CheckCheck className="h-3.5 w-3.5 text-blue-500" />;
@@ -301,7 +319,20 @@ function WhatsAppAdmin() {
                 ))}
                 <div ref={bottomRef} />
               </div>
-              <div className="p-3 border-t border-primary/5 flex items-center gap-2">
+              <div className="px-3 pt-2 border-t border-primary/5 flex flex-wrap items-center gap-2">
+                <span className="text-[11px] text-muted-foreground">תבניות:</span>
+                {MESSAGE_TEMPLATES.map((t) => (
+                  <button
+                    key={t.label}
+                    type="button"
+                    onClick={() => setDraft(t.text)}
+                    className="h-7 px-3 rounded-full bg-cream/60 hover:bg-cream text-xs text-primary transition"
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              <div className="p-3 flex items-center gap-2">
                 <input
                   ref={fileInputRef}
                   type="file"
