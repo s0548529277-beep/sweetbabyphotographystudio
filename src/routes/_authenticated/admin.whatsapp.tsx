@@ -319,7 +319,20 @@ function WhatsAppAdmin() {
                 ))}
                 <div ref={bottomRef} />
               </div>
-              <div className="p-3 border-t border-primary/5 flex items-center gap-2">
+              <div className="px-3 pt-2 border-t border-primary/5 flex flex-wrap items-center gap-2">
+                <span className="text-[11px] text-muted-foreground">תבניות:</span>
+                {MESSAGE_TEMPLATES.map((t) => (
+                  <button
+                    key={t.label}
+                    type="button"
+                    onClick={() => setDraft(t.text)}
+                    className="h-7 px-3 rounded-full bg-cream/60 hover:bg-cream text-xs text-primary transition"
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              <div className="p-3 flex items-center gap-2">
                 <input
                   ref={fileInputRef}
                   type="file"
