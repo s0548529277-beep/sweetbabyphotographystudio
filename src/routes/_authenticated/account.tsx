@@ -83,7 +83,7 @@ function Account() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("*, order_items(*)")
+        .select("*, order_items(*, items(image_url))")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -479,9 +479,16 @@ function Account() {
                       )}
                     </div>
                   </div>
-                  <div className="text-sm text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+                  <div className="text-sm text-muted-foreground flex flex-wrap gap-x-4 gap-y-2">
                     {o.order_items?.map((oi: any) => (
-                      <span key={oi.id}>{oi.item_name} × {oi.quantity}</span>
+                      <span key={oi.id} className="flex items-center gap-1.5">
+                        {oi.items?.image_url ? (
+                          <img src={oi.items.image_url} alt="" className="h-7 w-7 rounded-md object-cover shrink-0" />
+                        ) : (
+                          <span className="h-7 w-7 rounded-md bg-cream shrink-0" />
+                        )}
+                        {oi.item_name} × {oi.quantity}
+                      </span>
                     ))}
                   </div>
                   <div className="mt-4 pt-4 border-t border-primary/5 flex justify-end">
