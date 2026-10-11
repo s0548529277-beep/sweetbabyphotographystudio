@@ -10,6 +10,24 @@ export const Route = createFileRoute("/_authenticated/admin/")({
   component: Overview,
 });
 
+const ORDER_STATUS_LABELS: Record<string, string> = {
+  pending: "ממתין לאישור",
+  confirmed: "אושר",
+  active: "בהשכרה",
+  returned: "הוחזר",
+  completed: "התקיים",
+  cancelled: "בוטל",
+};
+
+type RecentOrderRow = {
+  id: string;
+  kind: "order" | "booking";
+  createdAt: string;
+  name: string;
+  total: number;
+  status: string;
+};
+
 function Overview() {
   const stats = useQuery({
     queryKey: ["admin-stats"],
@@ -38,6 +56,42 @@ function Overview() {
   });
   const recentNotifs = (notifs.data ?? []).slice(0, 8);
 
+  const recentOrders = useQuery({
+    queryKey: ["admin-recent-orders"],
+    queryFn: async (): Promise<RecentOrderRow[]> => {
+      const [ordersRes, bookingsRes] = await Promise.all([
+        supabase
+          .from("orders")
+          .select("id, created_at, contact_name, total, status")
+          .order("created_at", { ascending: false })
+          .limit(8),
+        supabase
+          .from("bookings")
+          .select("id, created_at, contact_name, price, status")
+          .order("created_at", { ascending: false })
+          .limit(8),
+      ]);
+      const orders: RecentOrderRow[] = (ordersRes.data ?? []).map((o: any) => ({
+        id: o.id,
+        kind: "order",
+        createdAt: o.created_at,
+        name: o.contact_name || "—",
+        total: Number(o.total ?? 0),
+        status: o.status,
+      }));
+      const bookings: RecentOrderRow[] = (bookingsRes.data ?? []).map((b: any) => ({
+        id: b.id,
+        kind: "booking",
+        createdAt: b.created_at,
+        name: b.contact_name || "—",
+        total: Number(b.price ?? 0),
+        status: b.status,
+      }));
+      return [...orders, ...bookings].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8);
+    },
+    refetchInterval: 15000,
+  });
+
   const cards = [
     { icon: Package, label: "אביזרים בקטלוג", value: stats.data?.items ?? 0, to: "/admin/items" },
     { icon: ShoppingBag, label: "הזמנות סה״כ", value: stats.data?.orders ?? 0, to: "/admin/orders" },
@@ -61,42 +115,83 @@ function Overview() {
         ))}
       </div>
 
-      <div className="bg-card rounded-2xl p-6 border border-primary/5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-2xl text-primary flex items-center gap-2">
-            <Bell className="h-5 w-5" /> הודעות מערכת
-          </h2>
-          <Link to="/admin/notifications" className="text-xs text-forest hover:text-primary underline underline-offset-4">
-            לכל ההודעות
-          </Link>
-        </div>
-        {recentNotifs.length === 0 ? (
-          <div className="text-muted-foreground text-sm py-10 text-center">אין עדיין הודעות.</div>
-        ) : (
-          <div className="divide-y divide-border">
-            {recentNotifs.map((n: any) => {
-              const Icon = TYPE_ICONS[n.type] ?? Bell;
-              return (
-                <Link
-                  key={n.id}
-                  to="/admin/notifications"
-                  className="flex items-center gap-3 py-3 hover:bg-cream/50 rounded-lg px-2 -mx-2"
-                >
-                  <div className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${n.read_at ? "bg-cream/60 text-forest/50" : "bg-peach text-primary"}`}>
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className={`font-medium truncate ${n.read_at ? "text-forest/70" : "text-primary"}`}>{n.title}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {TYPE_LABELS[n.type] ?? n.type} · {new Date(n.created_at).toLocaleString("he-IL")}
-                    </div>
-                  </div>
-                  {!n.read_at && <div className="h-2 w-2 rounded-full bg-destructive shrink-0" />}
-                </Link>
-              );
-            })}
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="bg-card rounded-2xl p-6 border border-primary/5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-2xl text-primary flex items-center gap-2">
+              <ShoppingBag className="h-5 w-5" /> הזמנות אחרונות
+            </h2>
+            <Link to="/admin/orders" className="text-xs text-forest hover:text-primary underline underline-offset-4">
+              לכל ההזמנות
+            </Link>
           </div>
-        )}
+          {recentOrders.data?.length === 0 ? (
+            <div className="text-muted-foreground text-sm py-10 text-center">אין עדיין הזמנות.</div>
+          ) : (
+            <div className="divide-y divide-border">
+              {(recentOrders.data ?? []).map((o) => {
+                const Icon = o.kind === "booking" ? CalendarDays : Package;
+                return (
+                  <Link
+                    key={`${o.kind}-${o.id}`}
+                    to="/admin/orders"
+                    className="flex items-center gap-3 py-3 hover:bg-cream/50 rounded-lg px-2 -mx-2"
+                  >
+                    <div className="h-9 w-9 rounded-full flex items-center justify-center shrink-0 bg-peach text-primary">
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate text-primary">{o.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {o.kind === "booking" ? "השכרת סטודיו" : "השכרת אביזרים"} · {ORDER_STATUS_LABELS[o.status] ?? o.status} ·{" "}
+                        {new Date(o.createdAt).toLocaleString("he-IL")}
+                      </div>
+                    </div>
+                    <div className="text-sm font-medium text-primary shrink-0">₪{o.total.toFixed(0)}</div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-card rounded-2xl p-6 border border-primary/5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-2xl text-primary flex items-center gap-2">
+              <Bell className="h-5 w-5" /> הודעות מערכת
+            </h2>
+            <Link to="/admin/notifications" className="text-xs text-forest hover:text-primary underline underline-offset-4">
+              לכל ההודעות
+            </Link>
+          </div>
+          {recentNotifs.length === 0 ? (
+            <div className="text-muted-foreground text-sm py-10 text-center">אין עדיין הודעות.</div>
+          ) : (
+            <div className="divide-y divide-border">
+              {recentNotifs.map((n: any) => {
+                const Icon = TYPE_ICONS[n.type] ?? Bell;
+                return (
+                  <Link
+                    key={n.id}
+                    to="/admin/notifications"
+                    className="flex items-center gap-3 py-3 hover:bg-cream/50 rounded-lg px-2 -mx-2"
+                  >
+                    <div className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${n.read_at ? "bg-cream/60 text-forest/50" : "bg-peach text-primary"}`}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className={`font-medium truncate ${n.read_at ? "text-forest/70" : "text-primary"}`}>{n.title}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {TYPE_LABELS[n.type] ?? n.type} · {new Date(n.created_at).toLocaleString("he-IL")}
+                      </div>
+                    </div>
+                    {!n.read_at && <div className="h-2 w-2 rounded-full bg-destructive shrink-0" />}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
