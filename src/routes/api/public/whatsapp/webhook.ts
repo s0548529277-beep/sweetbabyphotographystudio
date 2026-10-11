@@ -74,6 +74,7 @@ async function handleIncomingMessage(
   supabaseAdmin: any,
   msg: IncomingMessage,
   contactName: string | null,
+  businessPhone: string | null,
 ) {
   let body: string | null = null;
   let media: { url: string; type: "image" | "video" | "document" | "audio" } | null = null;
@@ -105,6 +106,7 @@ async function handleIncomingMessage(
     media_url: media?.url ?? null,
     media_type: media?.type ?? null,
     status: "received",
+    business_phone: businessPhone,
   });
   // A unique-constraint hit just means a webhook we already recorded was
   // retried — expected and harmless, not worth logging as an error.
@@ -127,7 +129,7 @@ async function handleIncomingMessage(
 // one arriving out of order (sent after delivered, etc.).
 const STATUS_RANK: Record<string, number> = { sent: 1, delivered: 2, read: 3, failed: 4 };
 
-async function handleStatusUpdate(supabaseAdmin: any, status: StatusUpdate) {
+async function handleStatusUpdate(supabaseAdmin: any, status: StatusUpdate, businessPhone: string | null) {
   const mapped = ["sent", "delivered", "read", "failed"].includes(status.status)
     ? status.status
     : null;
@@ -146,6 +148,7 @@ async function handleStatusUpdate(supabaseAdmin: any, status: StatusUpdate) {
       phone: "unknown",
       body: null,
       status: mapped,
+      business_phone: businessPhone,
     });
     return;
   }
@@ -160,14 +163,19 @@ async function handleStatusUpdate(supabaseAdmin: any, status: StatusUpdate) {
 /** Processes one stored delivery's payload. Unknown event types are stored and acknowledged without further work. */
 async function processPayload(supabaseAdmin: any, event: string, payload: any) {
   const value = payload?.entry?.[0]?.changes?.[0]?.value ?? {};
+  // Which of the studio's own WhatsApp numbers this delivery is for —
+  // present on every Meta webhook regardless of how many numbers/
+  // connections exist, so a second/third connection tags itself correctly
+  // with no further code change (see whatsapp-numbers.ts).
+  const businessPhone: string | null = value.metadata?.display_phone_number ?? null;
   if (event === "whatsapp.message") {
     const contactName: string | null = value.contacts?.[0]?.profile?.name ?? null;
     for (const msg of value.messages ?? []) {
-      await handleIncomingMessage(supabaseAdmin, msg, contactName);
+      await handleIncomingMessage(supabaseAdmin, msg, contactName, businessPhone);
     }
   } else if (event === "whatsapp.status") {
     for (const status of value.statuses ?? []) {
-      await handleStatusUpdate(supabaseAdmin, status);
+      await handleStatusUpdate(supabaseAdmin, status, businessPhone);
     }
   }
   // Anything else (template status updates, errors, smb echoes…) stays in

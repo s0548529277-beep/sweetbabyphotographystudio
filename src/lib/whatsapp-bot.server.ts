@@ -13,6 +13,7 @@ import { generateTextResilient } from "./ai-gateway.server";
 import { buildAssistantTools } from "./ai-tools.server";
 import { SYSTEM, buildToolRules } from "./ai.functions";
 import { sendWhatsAppText } from "./whatsapp.server";
+import { DEFAULT_BUSINESS_PHONE } from "./whatsapp-numbers";
 
 const STUDIO_EMAIL = "s0548529277@gmail.com";
 const MAX_HISTORY_MESSAGES = 20;
@@ -181,6 +182,7 @@ async function logOutgoing(supabaseAdmin: any, phone: string, wamid: string | nu
     phone,
     body,
     status: "sent",
+    business_phone: DEFAULT_BUSINESS_PHONE,
   });
   if (error) console.error("[SWEETBABY] whatsapp bot outgoing log failed", error);
 }

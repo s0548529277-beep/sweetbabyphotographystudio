@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { sendWhatsAppText, sendWhatsAppMedia, type WhatsAppMediaType } from "@/lib/whatsapp.server";
+import { DEFAULT_BUSINESS_PHONE } from "@/lib/whatsapp-numbers";
 
 async function assertAdmin(supabase: any, userId: string) {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
@@ -75,6 +76,7 @@ export const sendWhatsAppMessageAdmin = createServerFn({ method: "POST" })
       phone: data.phone,
       body: data.body,
       status: "sent",
+      business_phone: DEFAULT_BUSINESS_PHONE,
     });
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -140,6 +142,7 @@ export const sendWhatsAppMediaAdmin = createServerFn({ method: "POST" })
       media_url: data.mediaUrl,
       media_type: data.mediaType,
       status: "sent",
+      business_phone: DEFAULT_BUSINESS_PHONE,
     });
     if (error) throw new Error(error.message);
     return { ok: true };

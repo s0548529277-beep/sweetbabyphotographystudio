@@ -24,6 +24,7 @@ import {
   getWhatsAppBotHandoff,
   resumeWhatsAppBot,
 } from "@/lib/admin-whatsapp.functions";
+import { labelForBusinessPhone } from "@/lib/whatsapp-numbers";
 
 export const Route = createFileRoute("/_authenticated/admin/whatsapp")({
   component: WhatsAppAdmin,
@@ -186,6 +187,11 @@ function WhatsAppAdmin() {
     return row?.contact_name || activePhone || "";
   }, [convos.data, activePhone]);
 
+  const activeBusinessLabel = useMemo(() => {
+    const row = (convos.data ?? []).find((c: any) => c.phone === activePhone) as any;
+    return labelForBusinessPhone(row?.business_phone);
+  }, [convos.data, activePhone]);
+
   return (
     <div dir="rtl" className="space-y-5">
       <div className="flex items-center gap-3">
@@ -224,8 +230,15 @@ function WhatsAppAdmin() {
                 activePhone === c.phone ? "bg-cream/60" : ""
               }`}
             >
-              <div className="text-sm font-medium truncate" dir="ltr">
-                {c.contact_name || c.phone}
+              <div className="flex items-center gap-1.5">
+                <div className="text-sm font-medium truncate" dir="ltr">
+                  {c.contact_name || c.phone}
+                </div>
+                {labelForBusinessPhone(c.business_phone) && (
+                  <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                    {labelForBusinessPhone(c.business_phone)}
+                  </span>
+                )}
               </div>
               <div className="text-xs text-muted-foreground truncate mt-0.5">
                 {c.media_type
@@ -248,8 +261,13 @@ function WhatsAppAdmin() {
         <div className="flex flex-col">
           {activePhone ? (
             <>
-              <div className="p-4 border-b border-primary/5 font-medium" dir="ltr">
-                {activeName}
+              <div className="p-4 border-b border-primary/5 font-medium flex items-center gap-2" dir="ltr">
+                <span>{activeName}</span>
+                {activeBusinessLabel && (
+                  <span dir="rtl" className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                    {activeBusinessLabel}
+                  </span>
+                )}
               </div>
               {handoff.data?.handoffRequestedAt && (
                 <div className="px-4 py-2.5 bg-amber-50 border-b border-amber-200 flex items-center justify-between gap-3 text-sm">
