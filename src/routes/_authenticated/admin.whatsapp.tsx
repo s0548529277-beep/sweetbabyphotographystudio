@@ -51,6 +51,7 @@ type Msg = {
   media_url: string | null;
   media_type: "image" | "video" | "document" | "audio" | null;
   status: string;
+  error: string | null;
   created_at: string;
 };
 
@@ -434,6 +435,11 @@ function WhatsAppAdmin() {
                         </a>
                       )}
                       {m.body && <div className="whitespace-pre-line">{m.body}</div>}
+                      {m.status === "failed" && m.error && (
+                        <div className="mt-1 text-[11px] text-destructive font-medium whitespace-pre-line">
+                          סיבת הכישלון: {m.error}
+                        </div>
+                      )}
                       <div
                         className={`flex items-center gap-1 mt-1 text-[10px] ${
                           m.direction === "out"
