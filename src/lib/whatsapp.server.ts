@@ -47,6 +47,34 @@ export async function sendWhatsAppText(
   return postToMessagesEndpoint({ to, type: "text", text: { body } });
 }
 
+/**
+ * Sends an approved message TEMPLATE — the only way to message a number
+ * that hasn't written in within the last 24h (WhatsApp/Meta's own policy;
+ * a plain sendWhatsAppText to such a number is rejected). `languageCode`
+ * and the order/count of `bodyParams` must match exactly what was
+ * registered in Meta's WhatsApp Manager for this template name — see
+ * whatsapp-templates.ts. Meta renders the actual approved wording from the
+ * template name + these parameters; this call never sends free-form text.
+ */
+export async function sendWhatsAppTemplate(
+  to: string,
+  templateName: string,
+  languageCode: string,
+  bodyParams: string[],
+): Promise<{ wamid: string | null }> {
+  return postToMessagesEndpoint({
+    to,
+    type: "template",
+    template: {
+      name: templateName,
+      language: { code: languageCode },
+      ...(bodyParams.length
+        ? { components: [{ type: "body", parameters: bodyParams.map((text) => ({ type: "text", text })) }] }
+        : {}),
+    },
+  });
+}
+
 export type WhatsAppMediaType = "image" | "video" | "document";
 
 /**

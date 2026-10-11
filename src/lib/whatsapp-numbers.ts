@@ -37,3 +37,11 @@ export function labelForBusinessPhone(phone?: string | null): string | undefined
   if (!target) return undefined;
   return BUSINESS_NUMBERS.find((b) => lastDigits(b.digits) === target)?.label;
 }
+
+/** Converts common Israeli phone input shapes ("054-123-4567", "0541234567", "+972 54-123-4567") to the digits-only, country-code-prefixed format sendWhatsAppText/sendWhatsAppTemplate require (e.g. "972541234567") — no "+", no leading "0". */
+export function toWhatsAppPhone(input: string): string {
+  const digits = input.replace(/\D/g, "");
+  if (digits.startsWith("972")) return digits;
+  if (digits.startsWith("0")) return `972${digits.slice(1)}`;
+  return `972${digits}`;
+}

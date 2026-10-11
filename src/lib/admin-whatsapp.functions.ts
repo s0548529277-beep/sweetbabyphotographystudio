@@ -1,8 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { sendWhatsAppText, sendWhatsAppMedia, type WhatsAppMediaType } from "@/lib/whatsapp.server";
-import { DEFAULT_BUSINESS_PHONE } from "@/lib/whatsapp-numbers";
+import { sendWhatsAppText, sendWhatsAppMedia, sendWhatsAppTemplate, type WhatsAppMediaType } from "@/lib/whatsapp.server";
+import { DEFAULT_BUSINESS_PHONE, toWhatsAppPhone } from "@/lib/whatsapp-numbers";
+import { findWhatsAppTemplate } from "@/lib/whatsapp-templates";
 
 async function assertAdmin(supabase: any, userId: string) {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
@@ -80,6 +81,46 @@ export const sendWhatsAppMessageAdmin = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+/**
+ * Sends an approved template message — the only way to message someone who
+ * hasn't written in within the last 24h (free-form text is rejected by
+ * WhatsApp/Meta's own policy in that case). Accepts a raw phone in any
+ * common Israeli format (toWhatsAppPhone normalizes it) since this is a
+ * brand-new conversation, not a reply inside an existing thread the admin
+ * screen already has in WhatsApp's own "to" format.
+ */
+export const sendWhatsAppTemplateAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        phone: z.string().min(5).max(30),
+        templateId: z.string().min(1),
+        params: z.array(z.string().min(1).max(200)).max(5),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const template = findWhatsAppTemplate(data.templateId);
+    if (!template) throw new Error("תבנית לא מוכרת");
+    if (data.params.length !== template.params.length) throw new Error("מספר הפרטים לא תואם לתבנית");
+    const phone = toWhatsAppPhone(data.phone);
+    const { wamid } = await sendWhatsAppTemplate(phone, template.id, template.language, data.params);
+    const summary = `[${template.label}] ${template.params.map((p, i) => `${p.label.split(" (")[0]}: ${data.params[i]}`).join(" · ")}`;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("whatsapp_messages").insert({
+      wa_message_id: wamid,
+      direction: "out",
+      phone,
+      body: summary,
+      status: "sent",
+      business_phone: DEFAULT_BUSINESS_PHONE,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true, phone };
   });
 
 /** Whether the auto-reply bot has handed this conversation off to Michal (whatsapp_bot_sessions.handoff_requested_at set) — backs the "bot paused, talking to you directly" banner on /admin/whatsapp. */

@@ -8,6 +8,7 @@ import {
   Image as ImageIcon,
   Loader2,
   MessageSquare,
+  MessageSquarePlus,
   CheckCheck,
   Check,
   AlertCircle,
@@ -21,10 +22,21 @@ import {
   listWhatsAppThread,
   sendWhatsAppMessageAdmin,
   sendWhatsAppMediaAdmin,
+  sendWhatsAppTemplateAdmin,
   getWhatsAppBotHandoff,
   resumeWhatsAppBot,
 } from "@/lib/admin-whatsapp.functions";
 import { labelForBusinessPhone } from "@/lib/whatsapp-numbers";
+import { WHATSAPP_TEMPLATES, findWhatsAppTemplate } from "@/lib/whatsapp-templates";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/admin/whatsapp")({
   component: WhatsAppAdmin,
@@ -91,6 +103,7 @@ function WhatsAppAdmin() {
   const doSendMedia = useServerFn(sendWhatsAppMediaAdmin);
   const fetchHandoff = useServerFn(getWhatsAppBotHandoff);
   const doResumeBot = useServerFn(resumeWhatsAppBot);
+  const doSendTemplate = useServerFn(sendWhatsAppTemplateAdmin);
 
   const config = useQuery({ queryKey: ["whatsapp-config"], queryFn: () => fetchConfig({}) });
   const convos = useQuery({
@@ -135,6 +148,43 @@ function WhatsAppAdmin() {
   const [sending, setSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // "New conversation" via an approved template — the only legal way to
+  // message a number that hasn't written in within WhatsApp's 24h window.
+  const [newConvoOpen, setNewConvoOpen] = useState(false);
+  const [newPhone, setNewPhone] = useState("");
+  const [newTemplateId, setNewTemplateId] = useState(WHATSAPP_TEMPLATES[0]?.id ?? "");
+  const [newParams, setNewParams] = useState<Record<string, string>>({});
+  const [sendingTemplate, setSendingTemplate] = useState(false);
+  const newTemplate = findWhatsAppTemplate(newTemplateId);
+
+  const sendNewConversation = async () => {
+    if (!newPhone.trim() || !newTemplate) return;
+    if (newTemplate.params.some((p) => !newParams[p.key]?.trim())) {
+      toast.error("יש למלא את כל השדות");
+      return;
+    }
+    setSendingTemplate(true);
+    try {
+      const { phone } = await doSendTemplate({
+        data: {
+          phone: newPhone.trim(),
+          templateId: newTemplate.id,
+          params: newTemplate.params.map((p) => newParams[p.key].trim()),
+        },
+      });
+      toast.success("ההודעה נשלחה");
+      setNewConvoOpen(false);
+      setNewPhone("");
+      setNewParams({});
+      qc.invalidateQueries({ queryKey: ["whatsapp-conversations"] });
+      setActivePhone(phone);
+    } catch (e: any) {
+      toast.error(e?.message ?? "השליחה נכשלה");
+    } finally {
+      setSendingTemplate(false);
+    }
+  };
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -194,17 +244,82 @@ function WhatsAppAdmin() {
 
   return (
     <div dir="rtl" className="space-y-5">
-      <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-          <MessageSquare className="h-5 w-5" />
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+            <MessageSquare className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="font-display text-2xl text-primary">וואטסאפ</h2>
+            <p className="text-sm text-muted-foreground">
+              קבלה ושליחה של הודעות, תמונות וסרטונים — ישירות מכאן, בלי טלפון חכם
+            </p>
+          </div>
         </div>
-        <div>
-          <h2 className="font-display text-2xl text-primary">וואטסאפ</h2>
-          <p className="text-sm text-muted-foreground">
-            קבלה ושליחה של הודעות, תמונות וסרטונים — ישירות מכאן, בלי טלפון חכם
-          </p>
-        </div>
+        <Button variant="outline" className="rounded-full gap-2 shrink-0" onClick={() => setNewConvoOpen(true)}>
+          <MessageSquarePlus className="h-4 w-4" /> שיחה חדשה
+        </Button>
       </div>
+
+      <Dialog open={newConvoOpen} onOpenChange={setNewConvoOpen}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle>פתיחת שיחה חדשה</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground -mt-2">
+            למספר שלא כתב אלייך קודם — חייבים תבנית מאושרת (ולא טקסט חופשי), לפי מדיניות וואטסאפ.
+          </p>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">מספר טלפון</label>
+              <input
+                value={newPhone}
+                onChange={(e) => setNewPhone(e.target.value)}
+                placeholder="054-1234567"
+                dir="ltr"
+                className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">תבנית</label>
+              <Select
+                value={newTemplateId}
+                onValueChange={(v) => {
+                  setNewTemplateId(v);
+                  setNewParams({});
+                }}
+              >
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {WHATSAPP_TEMPLATES.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {newTemplate?.params.map((p) => (
+              <div key={p.key}>
+                <label className="text-xs text-muted-foreground mb-1 block">{p.label}</label>
+                <input
+                  value={newParams[p.key] ?? ""}
+                  onChange={(e) => setNewParams((prev) => ({ ...prev, [p.key]: e.target.value }))}
+                  className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                />
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button onClick={sendNewConversation} disabled={sendingTemplate} className="rounded-full gap-2">
+              {sendingTemplate ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              שליחה
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {config.data && !config.data.configured && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 text-sm text-amber-900 space-y-2">
