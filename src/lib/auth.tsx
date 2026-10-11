@@ -6,6 +6,8 @@ type AuthCtx = {
   user: User | null;
   session: Session | null;
   isAdmin: boolean;
+  /** True once the admin-role lookup for the current session has settled (immediately true for a signed-out visitor, since there's nothing to look up). Separate from `loading` — a restored session resolves `loading` almost instantly, but the role query itself still takes a moment, and anything gating on "this is definitely not an admin" (e.g. site-tracking.tsx) needs to wait for this, not just for `loading`. */
+  adminChecked: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
 };
@@ -15,6 +17,7 @@ const Ctx = createContext<AuthCtx | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [adminChecked, setAdminChecked] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,6 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(s);
       setIsAdmin(false);
       if (s?.user) {
+        setAdminChecked(false);
         void (async () => {
           try {
             const { data } = await supabase
@@ -36,8 +40,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } catch {
             if (!mounted) return;
             setIsAdmin(false);
+          } finally {
+            if (mounted) setAdminChecked(true);
           }
         })();
+      } else {
+        setAdminChecked(true);
       }
     };
 
@@ -62,11 +70,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     setSession(null);
     setIsAdmin(false);
+    setAdminChecked(true);
     await supabase.auth.signOut();
   };
 
   return (
-    <Ctx.Provider value={{ user: session?.user ?? null, session, isAdmin, loading, signOut }}>
+    <Ctx.Provider value={{ user: session?.user ?? null, session, isAdmin, adminChecked, loading, signOut }}>
       {children}
     </Ctx.Provider>
   );
