@@ -6,6 +6,21 @@ import { bookingBlocksSlot, PENDING_HOLD_MINUTES, PHONE_BOOKING_NOTES_MARKER } f
 import { PROPS_REQUEST_CONTEXT_MARKER } from "@/lib/voice-message.server";
 import { isPlaceholderEmail } from "@/lib/auth.functions";
 
+/** Resolves reserved-prop SKUs to name + photo for the confirmation/reminder emails — so the customer (and the studio's own copy) sees a recognizable thumbnail instead of a bare SKU she'd otherwise have to look up. Best-effort: any DB hiccup just falls back to the plain SKU list already handled by buildBookingSummaryHtml. */
+async function resolveReservedItemDetails(
+  supabaseLike: any,
+  skus: string[] | null | undefined,
+): Promise<{ sku: string; name: string; image_url: string | null }[] | null> {
+  if (!skus || skus.length === 0) return null;
+  try {
+    const { data } = await supabaseLike.from("items").select("sku, name, image_url").in("sku", skus);
+    if (!data || data.length === 0) return null;
+    return data.map((it: any) => ({ sku: it.sku, name: it.name, image_url: it.image_url ?? null }));
+  } catch {
+    return null;
+  }
+}
+
 // Studio pricing rules
 // - Minimum 2 half-hour slots (1 hour)
 // - First hour 180₪, every additional hour 100₪ (half-hour = half of the
@@ -434,6 +449,7 @@ export const placeBooking = createServerFn({ method: "POST" })
     // (fuller) confirmation email with the receipt attached.
     try {
       const intakePayload = await fetchLatestIntake(supabase, userId);
+      const reservedItemDetails = await resolveReservedItemDetails(supabase, data.reserved_items);
       const html = buildBookingSummaryHtml({
         heading: "בקשת השריון התקבלה 📋",
         intro: `קיבלנו את בקשת השריון שלך לסטודיו Sweetbaby. <strong>התאריך עדיין לא סופי</strong> — כדי לאשר ולשריין אותו בפועל, יש להשלים את תשלום המקדמה (או לצרף אסמכתא לתשלום) בעמוד הבא <strong>תוך ${PENDING_HOLD_MINUTES / 60} שעה</strong>, אחרת התאריך עלול להשתחרר ללקוחות אחרות. ברגע שהתשלום יאושר, יישלח אליך אישור שריון נוסף עם סיכום מלא.`,
@@ -448,6 +464,7 @@ export const placeBooking = createServerFn({ method: "POST" })
           balance_amount: Math.max(0, price - deposit),
           notes: data.notes,
           reserved_items: data.reserved_items ?? [],
+          reserved_item_details: reservedItemDetails,
         },
         intakePayload,
       });
@@ -942,6 +959,7 @@ async function finalizeBookingConfirmation(
   try {
     const intakePayload = await fetchLatestIntake(supabaseAdmin, b.user_id);
     const receiptAttachment = await fetchReceiptAttachment(supabaseAdmin, b.deposit_receipt_url ?? null);
+    const reservedItemDetails = await resolveReservedItemDetails(supabaseAdmin, b.reserved_items);
 
     const html = buildBookingSummaryHtml({
       heading: "אישור הזמנה — השכרת סטודיו ✓",
@@ -959,6 +977,7 @@ async function finalizeBookingConfirmation(
         balance_method: b.balance_method ?? null,
         notes: b.notes,
         reserved_items: b.reserved_items ?? [],
+        reserved_item_details: reservedItemDetails,
       },
       intakePayload,
       footerNote: receiptAttachment ? "קובץ האסמכתא שצירפת מופיע כקובץ מצורף למייל זה." : undefined,
@@ -1337,6 +1356,7 @@ export async function runDueBookingReminders(): Promise<{ checked: number; sent:
       const customerEmail = user?.email ?? undefined;
 
       const intakePayload = await fetchLatestIntake(supabaseAdmin, b.user_id);
+      const reservedItemDetails = await resolveReservedItemDetails(supabaseAdmin, b.reserved_items as string[] | null);
       const html = buildBookingSummaryHtml({
         heading: "תזכורת: הצילומים שלך מתקרבים ⏰",
         intro: `רק תזכורת חמה — הצילומים שלך בסטודיו Sweetbaby מתקיימים בעוד כ-${hoursBefore} שעות. למטה סיכום ההזמנה ופרטי ההגעה, שיהיה קל להתארגן.`,
@@ -1352,6 +1372,7 @@ export async function runDueBookingReminders(): Promise<{ checked: number; sent:
           balance_method: b.balance_method,
           notes: b.notes,
           reserved_items: (b.reserved_items as string[] | null) ?? [],
+          reserved_item_details: reservedItemDetails,
         },
         intakePayload,
       });

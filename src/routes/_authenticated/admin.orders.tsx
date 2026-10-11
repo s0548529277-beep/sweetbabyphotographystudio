@@ -53,21 +53,29 @@ function OrdersAdmin() {
     refetchInterval: 15000,
     refetchOnWindowFocus: true,
     queryFn: async (): Promise<Row[]> => {
-      const [ordersRes, bookingsRes, profilesRes] = await Promise.all([
+      const [ordersRes, bookingsRes, profilesRes, itemsRes] = await Promise.all([
         supabase
           .from("orders")
-          .select("*, order_items(*)")
+          .select("*, order_items(*, items(image_url))")
           .order("created_at", { ascending: false }),
         supabase
           .from("bookings")
           .select("*")
           .order("created_at", { ascending: false }),
         supabase.from("profiles").select("id, full_name, phone"),
+        // Used to resolve bookings.reserved_items (a bare SKU string array)
+        // to a name + thumbnail, same as order_items gets via the nested
+        // select above — so a reserved prop is recognizable without having
+        // to look up its SKU in the catalog.
+        supabase.from("items").select("sku, name, image_url"),
       ]);
       if (ordersRes.error) throw ordersRes.error;
       if (bookingsRes.error) throw bookingsRes.error;
 
       const byUser = new Map<string, any>((profilesRes.data ?? []).map((p: any) => [p.id, p]));
+      const itemsBySku = new Map<string, { name: string; image_url: string | null }>(
+        (itemsRes.data ?? []).map((it: any) => [it.sku, { name: it.name, image_url: it.image_url }]),
+      );
 
 
       const orders: Row[] = (ordersRes.data ?? []).map((o: any) => ({
@@ -91,7 +99,13 @@ function OrdersAdmin() {
         time: b.start_time ? `${b.start_time}–${b.end_time}` : null,
         total: Number(b.price ?? 0),
         status: b.status,
-        raw: b,
+        raw: {
+          ...b,
+          reserved_item_details: (Array.isArray(b.reserved_items) ? b.reserved_items : []).map((sku: string) => ({
+            sku,
+            ...(itemsBySku.get(sku) ?? { name: sku, image_url: null }),
+          })),
+        },
       }));
       return [...bookings, ...orders].sort((a, b) => b.created_at.localeCompare(a.created_at));
     },
@@ -233,16 +247,30 @@ function OrdersAdmin() {
                         <div className="grid md:grid-cols-2 gap-4">
                           <div>
                             <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">פריטים</div>
-                            <ul className="text-sm space-y-1">
+                            <ul className="text-sm space-y-1.5">
                               {r.kind === "order"
                                 ? (o.order_items ?? []).map((oi: any) => (
-                                    <li key={oi.id} className="flex justify-between">
-                                      <span>{oi.item_name} <span className="text-muted-foreground">({oi.item_sku})</span> × {oi.quantity}</span>
-                                      <span>₪{(oi.price * oi.quantity).toFixed(0)}</span>
+                                    <li key={oi.id} className="flex items-center justify-between gap-2">
+                                      <span className="flex items-center gap-2 min-w-0">
+                                        {oi.items?.image_url ? (
+                                          <img src={oi.items.image_url} alt="" className="h-8 w-8 rounded-md object-cover shrink-0" />
+                                        ) : (
+                                          <span className="h-8 w-8 rounded-md bg-cream shrink-0" />
+                                        )}
+                                        <span className="truncate">{oi.item_name} <span className="text-muted-foreground">({oi.item_sku})</span> × {oi.quantity}</span>
+                                      </span>
+                                      <span className="shrink-0">₪{(oi.price * oi.quantity).toFixed(0)}</span>
                                     </li>
                                   ))
-                                : (Array.isArray(o.reserved_items) ? o.reserved_items : []).map((ri: any, i: number) => (
-                                    <li key={i}>{ri?.name ?? ri?.sku ?? String(ri)}</li>
+                                : (o.reserved_item_details ?? []).map((ri: any, i: number) => (
+                                    <li key={i} className="flex items-center gap-2">
+                                      {ri.image_url ? (
+                                        <img src={ri.image_url} alt="" className="h-8 w-8 rounded-md object-cover shrink-0" />
+                                      ) : (
+                                        <span className="h-8 w-8 rounded-md bg-cream shrink-0" />
+                                      )}
+                                      <span>{ri.name} <span className="text-muted-foreground">({ri.sku})</span></span>
+                                    </li>
                                   ))}
                               {((r.kind === "order" && !(o.order_items ?? []).length) ||
                                 (r.kind === "booking" && !(Array.isArray(o.reserved_items) ? o.reserved_items : []).length)) && (

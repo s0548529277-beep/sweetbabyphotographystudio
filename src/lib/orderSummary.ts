@@ -113,6 +113,8 @@ export type SummaryBooking = {
   balance_amount?: number | null;
   notes?: string | null;
   reserved_items?: string[] | null;
+  /** Same SKUs as reserved_items, resolved to name + photo — shown as a thumbnail list instead of a bare SKU string when provided. Falls back to reserved_items' plain "#SKU" list when this is missing (e.g. an item was deleted since). */
+  reserved_item_details?: { sku: string; name: string; image_url: string | null }[] | null;
   /** How the customer paid the deposit: "transfer" | "bit" | "card" | "cash". */
   balance_method?: string | null;
 };
@@ -145,9 +147,24 @@ export function buildBookingSummaryHtml(opts: {
   const balance = b.balance_amount ?? Math.max(0, (b.price ?? 0) - (b.deposit_amount ?? 0));
 
   const itemsHtml =
-    b.reserved_items && b.reserved_items.length > 0
-      ? `<p><strong>אביזרים ששוריינו:</strong> ${b.reserved_items.map((s) => `#${s}`).join(", ")}</p>`
-      : "";
+    b.reserved_item_details && b.reserved_item_details.length > 0
+      ? `<div style="margin:12px 0"><strong>אביזרים ששוריינו:</strong>
+          <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px;margin-top:6px">
+            ${b.reserved_item_details
+              .map(
+                (it) =>
+                  `<tr>${
+                    it.image_url
+                      ? `<td style="padding:6px 0 6px 8px;width:44px"><img src="${escapeHtml(it.image_url)}" alt="" width="40" height="40" style="width:40px;height:40px;object-fit:cover;border-radius:8px;display:block" /></td>`
+                      : ""
+                  }<td style="padding:6px 10px">${escapeHtml(it.name)} (${escapeHtml(it.sku)})</td></tr>`,
+              )
+              .join("")}
+          </table>
+        </div>`
+      : b.reserved_items && b.reserved_items.length > 0
+        ? `<p><strong>אביזרים ששוריינו:</strong> ${b.reserved_items.map((s) => `#${s}`).join(", ")}</p>`
+        : "";
   const paymentHtml = paymentAmount != null ? buildPaymentButtonHtml(paymentAmount) : "";
   const doorCodeHtml = doorCode ? buildDoorCodeHtml(doorCode) : "";
   const cashbackHtml = cashbackEarned ? buildCashbackEarnedHtml(cashbackEarned) : "";
@@ -186,6 +203,8 @@ export type SummaryOrderLine = {
   item_sku: string;
   quantity: number;
   price: number; // line total (already ×quantity and ×day-multiplier)
+  /** Catalog photo (items.image_url) — shown as a small thumbnail so the item is recognizable at a glance, without having to look up the SKU. Omitted/null just renders no thumbnail. */
+  image_url?: string | null;
 };
 
 export type SummaryOrder = {
@@ -225,7 +244,11 @@ export function buildPropsOrderSummaryHtml(opts: {
   const itemsRows = o.lines
     .map(
       (l) =>
-        `<tr><td style="padding:6px 10px">${escapeHtml(l.item_name)} (${escapeHtml(l.item_sku)})</td><td style="padding:6px 10px;text-align:center">×${l.quantity}</td><td style="padding:6px 10px;text-align:left">₪${l.price.toFixed(0)}</td></tr>`,
+        `<tr>${
+          l.image_url
+            ? `<td style="padding:6px 0 6px 8px;width:44px"><img src="${escapeHtml(l.image_url)}" alt="" width="40" height="40" style="width:40px;height:40px;object-fit:cover;border-radius:8px;display:block" /></td>`
+            : ""
+        }<td style="padding:6px 10px">${escapeHtml(l.item_name)} (${escapeHtml(l.item_sku)})</td><td style="padding:6px 10px;text-align:center">×${l.quantity}</td><td style="padding:6px 10px;text-align:left">₪${l.price.toFixed(0)}</td></tr>`,
     )
     .join("");
 
