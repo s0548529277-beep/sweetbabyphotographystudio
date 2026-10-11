@@ -8,7 +8,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { getAnalyticsSummary, type TrafficSourceRow, type TopPageRow, type ReferrerHostRow } from "@/lib/analytics.functions";
+import { getAnalyticsSummary, type TrafficSourceRow, type TopPageRow, type ReferrerHostRow, type SessionDetailRow } from "@/lib/analytics.functions";
 import { Users, Eye, MousePointerClick, Clock, ImageIcon } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/analytics")({
@@ -194,6 +194,52 @@ function AnalyticsAdmin() {
                 />
               )}
             </div>
+          </div>
+
+          <div className="bg-card rounded-2xl p-6 border border-primary/5">
+            <h3 className="font-display text-xl text-primary mb-1">כניסות בודדות (אנונימי)</h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              כל כניסה בנפרד — מאיפה הגיעה, לאיזה עמוד, כמה צפתה ולחצה. בלי שם או זהות — בדיוק כמו
+              שאר הדף, רק לפי כניסה בודדת ולא מצטבר. כניסות מהחשבון שלך (מחוברת כאדמין) לא נספרות
+              כלל, כדי שלא יבלבלו את התנועה האמיתית.
+            </p>
+            {data.recentSessions.length === 0 ? (
+              <div className="text-muted-foreground text-sm py-6 text-center">עדיין אין מספיק נתונים.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-right text-xs text-muted-foreground border-b border-primary/5">
+                      <th className="py-2 pr-2 font-medium">מתי</th>
+                      <th className="py-2 pr-2 font-medium">מאיפה</th>
+                      <th className="py-2 pr-2 font-medium">עמוד כניסה</th>
+                      <th className="py-2 pr-2 font-medium">צפיות</th>
+                      <th className="py-2 pr-2 font-medium">הקלקות</th>
+                      <th className="py-2 pr-2 font-medium">זמן שהייה</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(data.recentSessions as SessionDetailRow[]).map((s, i) => (
+                      <tr key={i} className="border-b border-primary/5 last:border-0">
+                        <td className="py-2 pr-2 whitespace-nowrap text-muted-foreground">
+                          {new Date(s.firstSeen).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short" })}
+                        </td>
+                        <td className="py-2 pr-2 whitespace-nowrap">
+                          {SOURCE_LABELS[s.source] ?? s.source}
+                          {s.referrerHost && <span className="text-muted-foreground"> · {s.referrerHost}</span>}
+                        </td>
+                        <td className="py-2 pr-2 whitespace-nowrap">{friendlyPage(s.entryPath)}</td>
+                        <td className="py-2 pr-2 tabular-nums">{s.pageviews}</td>
+                        <td className="py-2 pr-2 tabular-nums">{s.clicks}</td>
+                        <td className="py-2 pr-2 whitespace-nowrap text-muted-foreground">
+                          {s.durationSeconds > 0 ? formatDuration(s.durationSeconds) : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           <div className="bg-card rounded-2xl p-6 border border-primary/5">

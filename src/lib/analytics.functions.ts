@@ -222,6 +222,24 @@ export type CollageRow = {
   subtitle: string | null;
   createdAt: string;
 };
+/**
+ * One row per individual visit, newest first — per explicit request to see
+ * "who came in from where" at the single-visit level, not just bucketed
+ * totals. Deliberately carries no session id or any other identifier back
+ * to the client — this stays exactly as anonymous as the bucketed charts
+ * above it, just with the raw referrer host shown instead of only the
+ * coarse source bucket ("google"/"meta"/"other"), and per-visit counts
+ * instead of per-page totals.
+ */
+export type SessionDetailRow = {
+  firstSeen: string;
+  source: string;
+  referrerHost: string | null;
+  entryPath: string;
+  pageviews: number;
+  clicks: number;
+  durationSeconds: number;
+};
 export type AnalyticsSummary = {
   rangeDays: number;
   totalSessions: number;
@@ -233,8 +251,12 @@ export type AnalyticsSummary = {
   otherReferrers: ReferrerHostRow[];
   topPages: TopPageRow[];
   sessionsByDay: { day: string; sessions: number }[];
+  /** Most recent visits, newest first — capped (see MAX_SESSION_DETAIL_ROWS) so a busy site doesn't dump thousands of rows into one response. */
+  recentSessions: SessionDetailRow[];
   collages: CollageRow[];
 };
+
+const MAX_SESSION_DETAIL_ROWS = 150;
 
 /**
  * The admin page's one data source. Reads with the service-role client
@@ -253,8 +275,8 @@ export const getAnalyticsSummary = createServerFn({ method: "POST" })
 
     const runQueries = () =>
       Promise.all([
-        (supabaseAdmin as any).from("analytics_sessions").select("id, first_seen, last_seen, source, referrer").gte("first_seen", since),
-        (supabaseAdmin as any).from("analytics_events").select("type, path, created_at").gte("created_at", since).limit(50_000),
+        (supabaseAdmin as any).from("analytics_sessions").select("id, entry_path, first_seen, last_seen, source, referrer").gte("first_seen", since),
+        (supabaseAdmin as any).from("analytics_events").select("session_id, type, path, created_at").gte("created_at", since).limit(50_000),
         (supabaseAdmin as any)
           .from("collage_creations")
           .select("id, storage_path, format_id, size_id, style_id, photo_count, caption, subtitle, created_at")
@@ -292,24 +314,31 @@ export const getAnalyticsSummary = createServerFn({ method: "POST" })
     const events = eventsRes.data ?? [];
     const collages = (collagesRes.data ?? []) as any[];
 
+    const hostOf = (referrer: string | null): string | null => {
+      if (!referrer) return null;
+      try {
+        return new URL(referrer).hostname.toLowerCase().replace(/^www\./, "");
+      } catch {
+        // malformed referrer string — skip rather than show junk
+        return null;
+      }
+    };
+
     const totalSessions = sessions.length;
     let totalDurationMs = 0;
     const bySourceCount = new Map<string, number>();
     const byDayCount = new Map<string, number>();
     const byOtherHostCount = new Map<string, number>();
+    const durationBySession = new Map<string, number>();
     for (const s of sessions) {
       const dur = new Date(s.last_seen).getTime() - new Date(s.first_seen).getTime();
       if (dur > 0) totalDurationMs += dur;
+      durationBySession.set(s.id, Math.max(0, Math.round(dur / 1000)));
       bySourceCount.set(s.source, (bySourceCount.get(s.source) ?? 0) + 1);
       const day = String(s.first_seen).slice(0, 10);
       byDayCount.set(day, (byDayCount.get(day) ?? 0) + 1);
-      if (s.source === "other" && s.referrer) {
-        let host: string | null = null;
-        try {
-          host = new URL(s.referrer).hostname.toLowerCase().replace(/^www\./, "");
-        } catch {
-          // malformed referrer string — skip rather than show junk
-        }
+      if (s.source === "other") {
+        const host = hostOf(s.referrer);
         if (host) byOtherHostCount.set(host, (byOtherHostCount.get(host) ?? 0) + 1);
       }
     }
@@ -317,14 +346,18 @@ export const getAnalyticsSummary = createServerFn({ method: "POST" })
 
     const clicksByPath = new Map<string, number>();
     const viewsByPath = new Map<string, number>();
+    const clicksBySession = new Map<string, number>();
+    const viewsBySession = new Map<string, number>();
     let totalPageviews = 0;
     let totalClicks = 0;
     for (const e of events) {
       if (e.type === "click") {
         clicksByPath.set(e.path, (clicksByPath.get(e.path) ?? 0) + 1);
+        clicksBySession.set(e.session_id, (clicksBySession.get(e.session_id) ?? 0) + 1);
         totalClicks++;
       } else {
         viewsByPath.set(e.path, (viewsByPath.get(e.path) ?? 0) + 1);
+        viewsBySession.set(e.session_id, (viewsBySession.get(e.session_id) ?? 0) + 1);
         totalPageviews++;
       }
     }
@@ -346,6 +379,20 @@ export const getAnalyticsSummary = createServerFn({ method: "POST" })
     const sessionsByDay = Array.from(byDayCount.entries())
       .map(([day, count]) => ({ day, sessions: count }))
       .sort((a, b) => a.day.localeCompare(b.day));
+
+    const recentSessions: SessionDetailRow[] = sessions
+      .slice()
+      .sort((a: any, b: any) => String(b.first_seen).localeCompare(String(a.first_seen)))
+      .slice(0, MAX_SESSION_DETAIL_ROWS)
+      .map((s: any) => ({
+        firstSeen: s.first_seen,
+        source: s.source,
+        referrerHost: hostOf(s.referrer),
+        entryPath: s.entry_path,
+        pageviews: viewsBySession.get(s.id) ?? 0,
+        clicks: clicksBySession.get(s.id) ?? 0,
+        durationSeconds: durationBySession.get(s.id) ?? 0,
+      }));
 
     const collageRows: CollageRow[] = [];
     for (const c of collages) {
@@ -370,6 +417,7 @@ export const getAnalyticsSummary = createServerFn({ method: "POST" })
       totalPageviews,
       totalClicks,
       avgSessionSeconds,
+      recentSessions,
       trafficSources,
       otherReferrers,
       topPages,
