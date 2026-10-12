@@ -1,16 +1,17 @@
 // Plain constants (no `.server` suffix) describing the WhatsApp message
-// templates approved in Meta's WhatsApp Manager — see the exact wording
-// that was submitted in that approval (AGENTS.md / this session's own
-// history has the full text). Only the template NAME, language and the
-// ORDER/COUNT of {{1}}, {{2}}, … body variables matter here — Meta renders
-// the actual approved text from these on delivery, so this file never
-// needs the template body text itself, just enough to build the send
-// request and a simple admin form for filling in the variables.
+// templates approved/pending in Meta's WhatsApp Manager. `id` here is sent
+// VERBATIM as the Meta template name (see sendWhatsAppTemplate's call site
+// in admin-whatsapp.functions.ts) — it must match the real name EXACTLY,
+// character for character, or sending fails live (confirmed: a wrong name
+// produced Meta error 132001 in production). Only confirmed entries,
+// copy-pasted directly from the real WhatsApp Manager list, belong here —
+// never a guessed name.
 //
-// Both approved as category "Utility" — the only kind this app currently
-// sends via sendWhatsAppTemplateAdmin (a first message to someone who
-// hasn't written in within the last 24h, where a free-form reply is
-// rejected by WhatsApp/Meta's own policy).
+// 2026-10-12: rebuilding this list from scratch against the 5 real
+// templates in the account (previous entries — booking_confirmation,
+// lead_follow_up — were this app's own guessed names/shapes from before
+// the real templates existed, and don't match any of the 5 actual ones).
+// Only 1 of 5 confirmed so far — see each entry's own note.
 export type WhatsAppTemplateParam = { key: string; label: string };
 
 export type WhatsAppTemplateDef = {
@@ -22,20 +23,23 @@ export type WhatsAppTemplateDef = {
 
 export const WHATSAPP_TEMPLATES: WhatsAppTemplateDef[] = [
   {
-    id: "booking_confirmation",
-    label: "אישור הזמנה",
+    // Pasted exactly as sent — category "שירות ציבורי" (Utility), language
+    // Hebrew, body: "שלום {{1}}, תודה שהזמנתם עם {{2}}. התור שלך ל{{3}}
+    // ב{{4}} בשעה {{5}} אושר." NOTE: confirm this spelling — it was typed
+    // as "ssweetbabyphotoshop" (double s) in the message this was copied
+    // from; using the single-s form here as the far more likely reading,
+    // but this needs a yes/no confirmation before relying on it, since a
+    // wrong name fails sending exactly like the 132001 error already seen.
+    id: "sweetbabyphotoshop",
+    label: "אישור הזמנה (5 משתנים)",
     language: "he",
     params: [
       { key: "name", label: "שם הלקוחה" },
-      { key: "date", label: "תאריך (לדוגמה 15/11/2026)" },
-      { key: "time", label: "שעה (לדוגמה 10:00)" },
+      { key: "business", label: "שם העסק (כפי שמוזן בהודעה, למשל Sweet Baby)" },
+      { key: "service", label: "השירות/חבילה" },
+      { key: "date", label: "תאריך" },
+      { key: "time", label: "שעה" },
     ],
-  },
-  {
-    id: "lead_follow_up",
-    label: "חזרה ללקוחה שהשאירה פרטים",
-    language: "he",
-    params: [{ key: "name", label: "שם הלקוחה" }],
   },
 ];
 
