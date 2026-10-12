@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { listAdminNotifications } from "@/lib/admin-notifications.functions";
 import { TYPE_LABELS, TYPE_ICONS } from "@/routes/_authenticated/admin.notifications";
-import { Package, ShoppingBag, CalendarDays, TrendingUp, Bell } from "lucide-react";
+import { Package, ShoppingBag, CalendarDays, TrendingUp, Bell, Sun, PackageOpen, PackageCheck } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   component: Overview,
@@ -55,6 +55,37 @@ function Overview() {
     refetchInterval: 15000,
   });
   const recentNotifs = (notifs.data ?? []).slice(0, 8);
+
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const today = useQuery({
+    queryKey: ["admin-today", todayKey],
+    queryFn: async () => {
+      const [sessionsRes, pickupsRes, returnsRes] = await Promise.all([
+        supabase
+          .from("bookings")
+          .select("id, contact_name, start_time, end_time, package, status")
+          .eq("session_date", todayKey)
+          .neq("status", "cancelled")
+          .order("start_time", { ascending: true }),
+        supabase
+          .from("orders")
+          .select("id, contact_name, pickup_at, status")
+          .eq("session_date", todayKey)
+          .neq("status", "cancelled"),
+        supabase
+          .from("orders")
+          .select("id, contact_name, return_at, status")
+          .eq("return_date", todayKey)
+          .neq("status", "cancelled"),
+      ]);
+      return {
+        sessions: sessionsRes.data ?? [],
+        pickups: pickupsRes.data ?? [],
+        returns: returnsRes.data ?? [],
+      };
+    },
+    refetchInterval: 60000,
+  });
 
   const recentOrders = useQuery({
     queryKey: ["admin-recent-orders"],
@@ -113,6 +144,75 @@ function Overview() {
             <div className="font-display text-4xl text-primary mt-4">{c.value}</div>
           </Link>
         ))}
+      </div>
+
+      <div className="bg-card rounded-2xl p-6 border border-primary/5">
+        <h2 className="font-display text-2xl text-primary flex items-center gap-2 mb-4">
+          <Sun className="h-5 w-5" /> היום במבט אחד
+        </h2>
+        {today.isLoading ? (
+          <div className="text-muted-foreground text-sm py-6 text-center">טוען…</div>
+        ) : !today.data?.sessions.length && !today.data?.pickups.length && !today.data?.returns.length ? (
+          <div className="text-muted-foreground text-sm py-6 text-center">אין שום דבר מתוכנן היום.</div>
+        ) : (
+          <div className="grid sm:grid-cols-3 gap-4">
+            <div>
+              <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+                <CalendarDays className="h-3.5 w-3.5" /> צילומים בסטודיו ({today.data?.sessions.length ?? 0})
+              </div>
+              {today.data?.sessions.length ? (
+                <ul className="space-y-1.5 text-sm">
+                  {today.data.sessions.map((s: any) => (
+                    <li key={s.id} className="flex items-center justify-between gap-2">
+                      <span className="truncate">{s.contact_name || "—"}</span>
+                      <span className="text-muted-foreground shrink-0" dir="ltr">{s.start_time?.slice(0, 5)}–{s.end_time?.slice(0, 5)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-xs text-muted-foreground">אין צילומים היום</div>
+              )}
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+                <PackageOpen className="h-3.5 w-3.5" /> איסוף אביזרים ({today.data?.pickups.length ?? 0})
+              </div>
+              {today.data?.pickups.length ? (
+                <ul className="space-y-1.5 text-sm">
+                  {today.data.pickups.map((o: any) => (
+                    <li key={o.id} className="flex items-center justify-between gap-2">
+                      <span className="truncate">{o.contact_name || "—"}</span>
+                      <span className="text-muted-foreground shrink-0" dir="ltr">
+                        {o.pickup_at ? new Date(o.pickup_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" }) : "—"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-xs text-muted-foreground">אין איסופים היום</div>
+              )}
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1.5">
+                <PackageCheck className="h-3.5 w-3.5" /> החזרת אביזרים ({today.data?.returns.length ?? 0})
+              </div>
+              {today.data?.returns.length ? (
+                <ul className="space-y-1.5 text-sm">
+                  {today.data.returns.map((o: any) => (
+                    <li key={o.id} className="flex items-center justify-between gap-2">
+                      <span className="truncate">{o.contact_name || "—"}</span>
+                      <span className="text-muted-foreground shrink-0" dir="ltr">
+                        {o.return_at ? new Date(o.return_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" }) : "—"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-xs text-muted-foreground">אין החזרות היום</div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">

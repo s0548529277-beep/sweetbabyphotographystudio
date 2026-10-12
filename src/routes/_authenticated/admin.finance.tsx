@@ -28,6 +28,7 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import { readXlsxFirstSheet, isReddishArgb, parseAmountCell, parseDateCell } from "@/lib/xlsx-read";
+import { toCSV, downloadCSV } from "@/lib/csv";
 
 export const Route = createFileRoute("/_authenticated/admin/finance")({
   component: FinanceAdmin,
@@ -72,6 +73,31 @@ type Txn = {
     dueDate: string | null;
   };
 };
+
+/** Exports exactly the rows currently visible (respects every active filter — date range, type, client search, paid/pending) as a CSV that opens straight into Excel — same toCSV/downloadCSV pattern as the catalog's own export. */
+function exportTxnsCSV(rows: Txn[]) {
+  const csv = toCSV(
+    rows.map((t) => ({
+      date: t.date,
+      kind: t.kind === "income" ? "הכנסה" : "הוצאה",
+      type: t.type,
+      title: t.title,
+      client: t.client,
+      amount: t.amount,
+      status: t.depositStatus === "pending" ? "ממתין לתשלום" : t.debt ? "חוב פתוח" : "שולם",
+    })),
+    [
+      { key: "date", label: "תאריך" },
+      { key: "kind", label: "סוג" },
+      { key: "type", label: "קטגוריה" },
+      { key: "title", label: "פירוט" },
+      { key: "client", label: "לקוחה" },
+      { key: "amount", label: "סכום" },
+      { key: "status", label: "סטטוס" },
+    ],
+  );
+  downloadCSV(`כספים-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+}
 
 function FinanceAdmin() {
   const qc = useQueryClient();
@@ -719,11 +745,22 @@ function FinanceAdmin() {
                 : "תנועות"}{" "}
             ({visibleTxns.length})
           </h3>
-          {kindFilter !== "all" && (
-            <Button variant="ghost" size="sm" onClick={() => setKindFilter("all")}>
-              הצג הכל
+          <div className="flex items-center gap-2">
+            {kindFilter !== "all" && (
+              <Button variant="ghost" size="sm" onClick={() => setKindFilter("all")}>
+                הצג הכל
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full gap-1.5"
+              onClick={() => exportTxnsCSV(visibleTxns)}
+              disabled={visibleTxns.length === 0}
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5" /> ייצוא לאקסל
             </Button>
-          )}
+          </div>
         </div>
         <div className="divide-y divide-primary/5 max-h-[520px] overflow-auto">
           {visibleTxns.map((t) => (
