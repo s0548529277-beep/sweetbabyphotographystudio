@@ -23,14 +23,13 @@ export type WhatsAppTemplateDef = {
 
 export const WHATSAPP_TEMPLATES: WhatsAppTemplateDef[] = [
   {
-    // Pasted exactly as sent — category "שירות ציבורי" (Utility), language
-    // Hebrew, body: "שלום {{1}}, תודה שהזמנתם עם {{2}}. התור שלך ל{{3}}
-    // ב{{4}} בשעה {{5}} אושר." NOTE: confirm this spelling — it was typed
-    // as "ssweetbabyphotoshop" (double s) in the message this was copied
-    // from; using the single-s form here as the far more likely reading,
-    // but this needs a yes/no confirmation before relying on it, since a
-    // wrong name fails sending exactly like the 132001 error already seen.
-    id: "sweetbabyphotoshop",
+    // Category "שירות ציבורי" (Utility), language Hebrew, body: "שלום {{1}},
+    // תודה שהזמנתם עם {{2}}. התור שלך ל{{3}} ב{{4}} בשעה {{5}} אושר."
+    // The double "s" IS the real name — confirmed live: sending with the
+    // single-s guess failed with Meta error 132001 "template name
+    // (sweetbabyphotoshop) does not exist in he"; the double-s form is what
+    // Meta's own account actually has.
+    id: "ssweetbabyphotoshop",
     label: "אישור הזמנה (5 משתנים)",
     language: "he",
     params: [
