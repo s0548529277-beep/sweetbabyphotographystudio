@@ -24,7 +24,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowRight, Check, ImagePlus, Loader2, Send, Trash2 } from "lucide-react";
+import { ArrowRight, Check, Droplet, ImagePlus, Loader2, Send, Trash2 } from "lucide-react";
+
+// Compression presets for the DISPLAY copy shown in the gallery grid — the
+// full-resolution original is always kept separately regardless of this
+// choice (see uploadImage/UploadSection below), so picking a stronger level
+// here only affects how heavy the on-screen browsing experience is, never
+// what the client's final ZIP download contains.
+const COMPRESSION_LEVELS = {
+  none: { label: "ללא דחיסה (כבד, איכות מרבית)", maxDim: null as number | null, quality: 1 },
+  light: { label: "קלה (מומלץ לתמונות גלם)", maxDim: 3200, quality: 0.92 },
+  medium: { label: "בינונית (ברירת מחדל)", maxDim: 2400, quality: 0.85 },
+  strong: { label: "חזקה (קובץ קטן, טעינה מהירה)", maxDim: 1600, quality: 0.75 },
+} as const;
+type CompressionLevel = keyof typeof COMPRESSION_LEVELS;
 
 // Route param is still named "bookingId" (unchanged, so routeTree.gen.ts
 // doesn't need regenerating) but it now carries a photo_client_workflows.id
@@ -34,7 +47,7 @@ export const Route = createFileRoute("/_authenticated/admin/photo-clients/$booki
   component: PhotoClientDetail,
 });
 
-type ImageRow = { id: string; kind: "proof" | "edited"; image_url: string; selected: boolean };
+type ImageRow = { id: string; kind: "proof" | "edited"; image_url: string; selected: boolean; watermarked?: boolean };
 
 async function uploadImage(workflowId: string, file: File): Promise<{ url: string; path: string }> {
   const ext = file.name.split(".").pop();
@@ -68,22 +81,41 @@ function UploadSection({
   const addImage = useServerFn(addPhotoClientImage);
   const removeImage = useServerFn(deletePhotoClientImage);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  // Proofs default to watermarked (today's existing behavior, now a real
+  // toggle instead of forced-on) and no extra compression beyond the full
+  // original — she's shopping, so a crisp display copy matters. Edited
+  // (final) uploads default to no watermark, medium compression — a lighter
+  // browsing grid, with the full-quality original always kept regardless
+  // for the ZIP download.
+  const [watermark, setWatermark] = useState(kind === "proof");
+  const [compression, setCompression] = useState<CompressionLevel>(kind === "proof" ? "none" : "medium");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const onFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (imageFiles.length === 0) return;
     setUploading(true);
+    setUploadProgress({ done: 0, total: imageFiles.length });
     try {
-      for (const file of Array.from(files)) {
-        if (!file.type.startsWith("image/")) continue;
-        // Proofs upload at full resolution with the studio logo watermarked
-        // in (per explicit request) — no compressImage downscale, since the
-        // whole point is the client sees full quality while shopping. Only
-        // "edited" (final delivery) images keep the normal compressed path.
-        const prepared = kind === "proof" ? await applyWatermark(file) : await compressImage(file);
-        const { url, path } = await uploadImage(workflowId, prepared);
-        await addImage({ data: { workflowId, kind, storagePath: path, imageUrl: url } });
+      for (const file of imageFiles) {
+        // The untouched original ALWAYS goes up too — the single source
+        // the client's "download full quality" ZIP ever pulls from,
+        // regardless of what display settings were picked below.
+        const { url: originalUrl, path: originalPath } = await uploadImage(workflowId, file);
+
+        let displayFile = file;
+        if (watermark) displayFile = await applyWatermark(displayFile);
+        const level = COMPRESSION_LEVELS[compression];
+        if (level.maxDim != null) displayFile = await compressImage(displayFile, level.maxDim, level.quality);
+        const { url, path } = await uploadImage(workflowId, displayFile);
+
+        await addImage({
+          data: { workflowId, kind, storagePath: path, imageUrl: url, originalStoragePath: originalPath, originalImageUrl: originalUrl, watermarked: watermark },
+        });
+        setUploadProgress((p) => (p ? { done: p.done + 1, total: p.total } : p));
       }
       toast.success("התמונות הועלו");
       onChanged();
@@ -91,6 +123,7 @@ function UploadSection({
       toast.error(e?.message ?? "העלאה נכשלה");
     } finally {
       setUploading(false);
+      setUploadProgress(null);
       if (inputRef.current) inputRef.current.value = "";
     }
   };
@@ -114,6 +147,32 @@ function UploadSection({
         {images.length > 0 && <span className="text-xs text-muted-foreground shrink-0">תמונות ({images.length})</span>}
       </div>
 
+      {/* Upload-time choices — apply to the next batch dropped in below. The full-resolution original is always kept too, regardless of these. */}
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 bg-primary/5 rounded-xl px-3 py-2.5">
+        <label className="flex items-center gap-1.5 text-xs font-medium cursor-pointer select-none">
+          <input type="checkbox" checked={watermark} onChange={(e) => setWatermark(e.target.checked)} className="accent-primary h-3.5 w-3.5" />
+          <Droplet className="h-3.5 w-3.5 text-primary" /> סימן מים
+        </label>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-medium text-muted-foreground">דחיסה לתצוגה:</span>
+          <Select value={compression} onValueChange={(v) => setCompression(v as CompressionLevel)}>
+            <SelectTrigger className="h-7 text-xs w-[220px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.entries(COMPRESSION_LEVELS) as [CompressionLevel, (typeof COMPRESSION_LEVELS)[CompressionLevel]][]).map(([key, c]) => (
+                <SelectItem key={key} value={key}>
+                  {c.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <p className="text-[11px] text-muted-foreground -mt-1">
+        הדחיסה משפיעה רק על עותק התצוגה בגלריה — המקור באיכות מלאה תמיד נשמר בנפרד, וזה מה שיורד בהורדת ה-ZIP.
+      </p>
+
       {/* Drop zone — drag files in, or click to browse. Plain HTML5 DnD, no library. */}
       <button
         type="button"
@@ -135,7 +194,7 @@ function UploadSection({
       >
         {uploading ? <Loader2 className="h-5 w-5 shrink-0 text-primary animate-spin" /> : <ImagePlus className="h-5 w-5 shrink-0 text-primary" />}
         <div className="min-w-0">
-          <p className="text-sm font-medium">{uploading ? "מעלה..." : "לחצי או גררי תמונות לכאן"}</p>
+          <p className="text-sm font-medium">{uploading ? (uploadProgress ? `מעלה... ${uploadProgress.done}/${uploadProgress.total}` : "מעלה...") : "לחצי או גררי תמונות לכאן"}</p>
           <p className="text-xs text-muted-foreground">JPG, PNG, HEIC</p>
         </div>
       </button>
@@ -149,6 +208,11 @@ function UploadSection({
               <span className="absolute bottom-1 right-1 bg-background/85 text-foreground text-[10px] font-mono px-1.5 py-0.5 rounded">
                 {String(i + 1).padStart(3, "0")}
               </span>
+              {img.watermarked && (
+                <span className="absolute top-1 left-1 bg-background/85 text-primary rounded-full p-1" title="כולל סימן מים">
+                  <Droplet className="h-3 w-3" />
+                </span>
+              )}
               {kind === "proof" && onToggleSelect && (
                 <button
                   type="button"
@@ -187,6 +251,7 @@ type PackageForm = {
   albumUpgrades: string;
   totalPrice: string;
   amountPaid: string;
+  maxProofSelections: string;
 };
 
 function toPackageForm(workflow: any): PackageForm {
@@ -199,6 +264,7 @@ function toPackageForm(workflow: any): PackageForm {
     albumUpgrades: workflow.album_upgrades ?? "",
     totalPrice: workflow.total_price != null ? String(workflow.total_price) : "",
     amountPaid: workflow.amount_paid != null ? String(workflow.amount_paid) : "0",
+    maxProofSelections: workflow.max_proof_selections != null ? String(workflow.max_proof_selections) : "",
   };
 }
 
@@ -239,6 +305,7 @@ function PackageDetails({ workflow, workflowId, onSaved }: { workflow: any; work
           albumUpgrades: form.albumUpgrades.trim() || null,
           totalPrice: form.totalPrice.trim() ? Number(form.totalPrice) : null,
           amountPaid: form.amountPaid.trim() ? Number(form.amountPaid) : 0,
+          maxProofSelections: form.maxProofSelections.trim() ? Number(form.maxProofSelections) : null,
         },
       });
       toast.success("פרטי החבילה נשמרו");
@@ -297,6 +364,17 @@ function PackageDetails({ workflow, workflowId, onSaved }: { workflow: any; work
         <div>
           <Label className="text-xs text-muted-foreground">כמות תמונות לעיבוד</Label>
           <Input type="number" min={0} dir="ltr" value={form.photosToEdit} onChange={(e) => set("photosToEdit", e.target.value)} />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">מגבלת בחירה ללקוחה</Label>
+          <Input
+            type="number"
+            min={1}
+            dir="ltr"
+            value={form.maxProofSelections}
+            onChange={(e) => set("maxProofSelections", e.target.value)}
+            placeholder="ריק = בלי הגבלה"
+          />
         </div>
         <div className="sm:col-span-2">
           <Label className="text-xs text-muted-foreground">אלבום ושדרוגים</Label>
@@ -466,7 +544,7 @@ function PhotoClientDetail() {
 
           <UploadSection
             title="תמונות גלם (Proofs)"
-            hint='מועלות באיכות מלאה עם לוגו בסימן מים (אוטומטי). הלקוחה תראה את אלה ותוכל לסמן מועדפות (או שמסמנים כאן בשמה, ב-✓) ברגע שהשלב יעודכן ל"המתנה לבחירת לקוחה".'
+            hint='סימן המים והדחיסה נבחרים למעלה (ברירת מחדל: עם סימן מים, בלי דחיסה). הלקוחה תראה את אלה ותוכל לסמן מועדפות (או שמסמנים כאן בשמה, ב-✓) ברגע שהשלב יעודכן ל"המתנה לבחירת לקוחה".'
             kind="proof"
             workflowId={workflowId}
             images={proofImages}

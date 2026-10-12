@@ -330,6 +330,9 @@ const updateDetailsSchema = z.object({
   amountPaid: z.number().nonnegative().max(1000000).optional(),
   hasPackage: z.boolean().optional(),
   wantsEditing: z.boolean().optional().nullable(),
+  // Max proofs the client may mark as favorites before submitting her
+  // final selection — null/omitted means no limit (today's behavior).
+  maxProofSelections: z.number().int().min(1).max(1000).optional().nullable(),
 });
 
 /** Edits a client card's package/shoot/payment details after creation — the detail page's "עריכת פרטי חבילה" panel. */
@@ -353,6 +356,7 @@ export const updatePhotoClientDetails = createServerFn({ method: "POST" })
         ...(fields.amountPaid != null ? { amount_paid: fields.amountPaid } : {}),
         ...(fields.hasPackage != null ? { has_package: fields.hasPackage } : {}),
         ...(fields.wantsEditing !== undefined ? { wants_editing: fields.wantsEditing } : {}),
+        ...(fields.maxProofSelections !== undefined ? { max_proof_selections: fields.maxProofSelections } : {}),
         updated_at: new Date().toISOString(),
       })
       .eq("id", workflowId);
@@ -373,7 +377,7 @@ export const getPhotoClientDetail = createServerFn({ method: "POST" })
     const { data: workflow, error: wErr } = await supabaseAdmin
       .from("photo_client_workflows")
       .select(
-        "id, user_id, booking_id, stage, session_date, session_time, location, package_type, photos_to_edit, album_upgrades, total_price, amount_paid, balance, has_package, wants_editing",
+        "id, user_id, booking_id, stage, session_date, session_time, location, package_type, photos_to_edit, album_upgrades, total_price, amount_paid, balance, has_package, wants_editing, max_proof_selections, proof_selection_submitted_at",
       )
       .eq("id", data.workflowId)
       .single();
@@ -416,6 +420,8 @@ export const getPhotoClientDetail = createServerFn({ method: "POST" })
         balance: workflow.balance as number | null,
         has_package: workflow.has_package as boolean,
         wants_editing: workflow.wants_editing as boolean | null,
+        max_proof_selections: workflow.max_proof_selections as number | null,
+        proof_selection_submitted_at: workflow.proof_selection_submitted_at as string | null,
       },
       images: images ?? [],
     };
@@ -556,10 +562,14 @@ const advanceSchema = z.object({ workflowId: z.string().uuid(), stage: z.enum(WO
 
 /**
  * Admin manually moves a client's workflow to a given stage (confirm date,
- * publish album, etc.). Moving to `album_published` also emails the client
- * that her edited photos are ready — per explicit request, best-effort
- * (a failed email never blocks the stage update itself, same as every
- * other notification send in this file).
+ * publish album, etc.). Moving to `proofs_ready` emails the client (and the
+ * studio's own inbox — sendStudioAndCustomer always CCs it) that her proof
+ * photos are up for selection, with the one-week pick deadline called out —
+ * matching the actual one-week window runDueProofSelectionReminders' own
+ * nudge is timed around. Moving to `album_published` emails that the final
+ * edited photos are ready. Both per explicit request, both best-effort (a
+ * failed email never blocks the stage update itself, same as every other
+ * notification send in this file).
  */
 export const advancePhotoClientStage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -573,6 +583,31 @@ export const advancePhotoClientStage = createServerFn({ method: "POST" })
       .update({ stage: data.stage, updated_at: new Date().toISOString() })
       .eq("id", data.workflowId);
     if (error) throw new Error(error.message);
+
+    if (data.stage === "proofs_ready" && before && before.stage !== "proofs_ready") {
+      try {
+        const {
+          data: { user },
+        } = await supabaseAdmin.auth.admin.getUserById(before.user_id);
+        const { data: profile } = await supabaseAdmin.from("profiles").select("full_name").eq("id", before.user_id).maybeSingle();
+        const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+        const { emailHeartImgTag } = await import("@/lib/page-images");
+        const heart = await emailHeartImgTag();
+        await sendStudioAndCustomer({
+          customerEmail: user?.email,
+          subject: "התמונות שלך מחכות לבחירה 📸 · Sweetbaby",
+          html: `<div dir="rtl" style="font-family:sans-serif">
+            <p>שלום${profile?.full_name ? " " + profile.full_name : ""},</p>
+            <p>תמונות הגלם מהצילומים שלך נשלחו לבחירה! אפשר לבחור את המועדפות עלייך כאן:</p>
+            <p><a href="https://sweetbabyphoto.shop/my-photos">https://sweetbabyphoto.shop/my-photos</a></p>
+            <p><b>יש לבחור תוך שבוע</b> כדי שנוכל להתקדם לעיבוד בזמן.</p>
+            <p>מחכים לבחירה שלך ${heart}</p>
+          </div>`,
+        });
+      } catch (e) {
+        console.error("[SWEETBABY] proofs-ready notification email failed", e);
+      }
+    }
 
     if (data.stage === "album_published" && before && before.stage !== "album_published") {
       try {
@@ -706,6 +741,14 @@ const addImageSchema = z.object({
   kind: z.enum(["proof", "edited"]),
   storagePath: z.string().min(1),
   imageUrl: z.string().url(),
+  // The untouched, full-resolution upload — kept alongside the (possibly
+  // compressed/watermarked) display copy above so the client's ZIP
+  // download always has something genuinely full-quality to pull from.
+  // Omitted falls back to the display copy itself (e.g. the old proof
+  // path, which already uploads at full res with no separate original).
+  originalStoragePath: z.string().min(1).optional(),
+  originalImageUrl: z.string().url().optional(),
+  watermarked: z.boolean().optional(),
 });
 
 /** Records one uploaded image (the actual file upload happens client-side to Storage first, same pattern as admin.items.tsx). */
@@ -715,11 +758,14 @@ export const addPhotoClientImage = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.from("photo_client_images").insert({
+    const { error } = await (supabaseAdmin as any).from("photo_client_images").insert({
       workflow_id: data.workflowId,
       kind: data.kind,
       storage_path: data.storagePath,
       image_url: data.imageUrl,
+      original_storage_path: data.originalStoragePath ?? data.storagePath,
+      original_image_url: data.originalImageUrl ?? data.imageUrl,
+      watermarked: data.watermarked ?? false,
     });
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -753,8 +799,13 @@ export const deletePhotoClientImage = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: img } = await supabaseAdmin.from("photo_client_images").select("storage_path").eq("id", data.imageId).maybeSingle();
-    if (img?.storage_path) await supabaseAdmin.storage.from("items").remove([img.storage_path]);
+    const { data: img } = await (supabaseAdmin as any)
+      .from("photo_client_images")
+      .select("storage_path, original_storage_path")
+      .eq("id", data.imageId)
+      .maybeSingle();
+    const paths = Array.from(new Set([img?.storage_path, img?.original_storage_path].filter(Boolean))) as string[];
+    if (paths.length) await supabaseAdmin.storage.from("items").remove(paths);
     const { error } = await supabaseAdmin.from("photo_client_images").delete().eq("id", data.imageId);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -774,9 +825,9 @@ export const getMyPhotoGalleries = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
-    const { data: workflows, error } = await supabase
+    const { data: workflows, error } = await (supabase as any)
       .from("photo_client_workflows")
-      .select("id, stage, booking_id")
+      .select("id, stage, booking_id, max_proof_selections, proof_selection_submitted_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -796,15 +847,26 @@ export const getMyPhotoGalleries = createServerFn({ method: "POST" })
 
         let images: any[] = [];
         if (kind) {
-          const { data: imgs } = await supabase
+          // original_image_url: for "edited" this is what the ZIP download
+          // actually pulls (always full quality, regardless of what the
+          // grid displays) — harmless to also select it for "proof", just
+          // unused there.
+          const { data: imgs } = await (supabase as any)
             .from("photo_client_images")
-            .select("id, kind, image_url, selected, sort_order")
+            .select("id, kind, image_url, original_image_url, selected, sort_order")
             .eq("workflow_id", w.id)
             .eq("kind", kind)
             .order("sort_order", { ascending: true });
           images = imgs ?? [];
         }
-        return { id: w.id as string, booking: bookingById.get(w.booking_id) ?? null, stage, images };
+        return {
+          id: w.id as string,
+          booking: bookingById.get(w.booking_id) ?? null,
+          stage,
+          images,
+          max_proof_selections: w.max_proof_selections as number | null,
+          proof_selection_submitted_at: w.proof_selection_submitted_at as string | null,
+        };
       }),
     );
     return galleries;
@@ -828,16 +890,119 @@ export const toggleProofSelection = createServerFn({ method: "POST" })
     if (imgErr || !img) throw new Error("תמונה לא נמצאה");
     if (img.kind !== "proof") throw new Error("אפשר לסמן רק תמונות הוכחה");
 
-    const { data: wf, error: wfErr } = await supabaseAdmin
+    const { data: wf, error: wfErr } = await (supabaseAdmin as any)
       .from("photo_client_workflows")
-      .select("id, stage, user_id")
+      .select("id, stage, user_id, max_proof_selections, proof_selection_submitted_at")
       .eq("id", img.workflow_id)
       .single();
     if (wfErr || !wf) throw new Error("תהליך עבודה לא נמצא");
     if (wf.stage !== "proofs_ready") throw new Error("שלב בחירת התמונות כבר לא פעיל");
     if (wf.user_id !== userId) throw new Error("אין הרשאה");
+    if (wf.proof_selection_submitted_at) throw new Error("הבחירה כבר נשלחה — אי אפשר לשנות אותה יותר");
+
+    if (data.selected && wf.max_proof_selections != null) {
+      const { count } = await supabaseAdmin
+        .from("photo_client_images")
+        .select("id", { count: "exact", head: true })
+        .eq("workflow_id", wf.id)
+        .eq("selected", true);
+      if ((count ?? 0) >= wf.max_proof_selections) {
+        throw new Error(`אפשר לבחור עד ${wf.max_proof_selections} תמונות`);
+      }
+    }
 
     const { error } = await supabaseAdmin.from("photo_client_images").update({ selected: data.selected }).eq("id", data.imageId);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+const submitSelectionSchema = z.object({ workflowId: z.string().uuid() });
+
+/**
+ * Customer-facing "סיימתי לבחור" — finalizes her proof picks: marks the
+ * submission timestamp (locks further toggling, see toggleProofSelection
+ * above), auto-advances the workflow to edited_uploaded (same stage the
+ * admin would otherwise move it to by hand once she's done), and notifies
+ * the studio both ways per explicit request — an admin_notifications row
+ * (shows in the "הודעות מערכת" bell/list already read by
+ * listAdminNotifications) AND an email, both naming exactly which photos
+ * were picked, not just a count.
+ */
+export const submitProofSelection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => submitSelectionSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: wf, error: wfErr } = await (supabaseAdmin as any)
+      .from("photo_client_workflows")
+      .select("id, stage, user_id, booking_id, proof_selection_submitted_at")
+      .eq("id", data.workflowId)
+      .single();
+    if (wfErr || !wf) throw new Error("תהליך עבודה לא נמצא");
+    if (wf.user_id !== userId) throw new Error("אין הרשאה");
+    if (wf.stage !== "proofs_ready") throw new Error("שלב בחירת התמונות כבר לא פעיל");
+    if (wf.proof_selection_submitted_at) throw new Error("הבחירה כבר נשלחה");
+
+    const { data: selectedImages, error: imgErr } = await supabaseAdmin
+      .from("photo_client_images")
+      .select("id, image_url, sort_order")
+      .eq("workflow_id", wf.id)
+      .eq("kind", "proof")
+      .eq("selected", true)
+      .order("sort_order", { ascending: true });
+    if (imgErr) throw new Error(imgErr.message);
+    if (!selectedImages || selectedImages.length === 0) throw new Error("יש לבחור לפחות תמונה אחת לפני השליחה");
+
+    const now = new Date().toISOString();
+    const { error: updErr } = await (supabaseAdmin as any)
+      .from("photo_client_workflows")
+      .update({ proof_selection_submitted_at: now, stage: "edited_uploaded", updated_at: now })
+      .eq("id", wf.id);
+    if (updErr) throw new Error(updErr.message);
+
+    let contactName = "";
+    if (wf.booking_id) {
+      const { data: booking } = await supabaseAdmin.from("bookings").select("contact_name").eq("id", wf.booking_id).maybeSingle();
+      contactName = booking?.contact_name || "";
+    }
+    if (!contactName) {
+      const { data: profile } = await supabaseAdmin.from("profiles").select("full_name").eq("id", userId).maybeSingle();
+      contactName = profile?.full_name || "";
+    }
+
+    try {
+      await supabaseAdmin.from("admin_notifications").insert({
+        type: "proof_selection",
+        title: `${contactName || "לקוחה"} בחרה ${selectedImages.length} תמונות`,
+        body: { workflow_id: wf.id, contact_name: contactName, count: selectedImages.length, image_urls: selectedImages.map((i: any) => i.image_url) },
+      });
+    } catch (e) {
+      console.error("[SWEETBABY] admin_notifications write for proof selection failed", e);
+    }
+
+    try {
+      const {
+        data: { user },
+      } = await supabaseAdmin.auth.admin.getUserById(userId);
+      const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+      const thumbsHtml = selectedImages
+        .slice(0, 60)
+        .map((i: any) => `<img src="${i.image_url}" alt="" width="110" height="110" style="object-fit:cover;border-radius:8px;margin:3px" />`)
+        .join("");
+      await sendStudioAndCustomer({
+        customerEmail: user?.email,
+        subject: `${contactName || "לקוחה"} שלחה בחירת תמונות — ${selectedImages.length} תמונות · Sweetbaby`,
+        html: `<div dir="rtl" style="font-family:sans-serif">
+          <p>${contactName ? contactName + " " : ""}שלחה את הבחירה הסופית — ${selectedImages.length} תמונות:</p>
+          <div>${thumbsHtml}</div>
+          <p style="margin-top:12px">התמונות עוברות עכשיו לעיבוד.</p>
+        </div>`,
+      });
+    } catch (e) {
+      console.error("[SWEETBABY] proof-selection confirmation email failed", e);
+    }
+
+    return { ok: true, count: selectedImages.length };
   });
