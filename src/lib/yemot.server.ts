@@ -159,7 +159,22 @@ export function yemotSayThenResume(text: string, musicOnHoldId?: string | null):
   // Yemot's own normal default wait — never a dropped call") — just
   // actually taking it now that there's a real report to act on, instead
   // of a hypothetical one.
-  return yemotResponse(`read=${holdSegment}${textSegment(text)}=speech,no,voice,he`);
+  //
+  // quiet_max=4 ADDED 2026-10-12: per a direct report of Yemot's own native
+  // "לא זוהה דיבור" (M1613, "speech not recognized") playing audibly on the
+  // AI extension — the exact same native message that quiet_max=4 was
+  // already confirmed to fix in yemotSayAndListen above (2026-09-08 entry).
+  // THINKING_FILLER_KEY defaults ON (see voice-phrases.server.ts), so THIS
+  // function's read/listen now fires on every AI turn slow enough to need
+  // the filler — making it, not yemotSayAndListen, the live path a caller
+  // actually hits most often on a slow turn. It was left at Yemot's unknown
+  // default (no quiet_max) rather than 4 only because the ,,,1 revert above
+  // predates that fix being discovered; nothing here was ever tested at 4.
+  // Safe to add: the same reasoning from yemotSayAndListen applies verbatim
+  // (more patience before giving up, never less) and 4 full seconds is well
+  // above the 1-second value already confirmed too tight, so this cannot
+  // reproduce the earlier "wrong fallthrough" failure either.
+  return yemotResponse(`read=${holdSegment}${textSegment(text)}=speech,no,voice,he,,,4`);
 }
 
 // Yemot's own built-in typing_playback_mode presets that ALSO fix the
