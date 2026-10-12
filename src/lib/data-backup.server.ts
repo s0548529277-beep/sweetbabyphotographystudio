@@ -1,8 +1,10 @@
 // Backs up customer data, balances, and finance records to Google Drive —
-// one CSV per source table, uploaded into a dedicated "Sweetbaby - גיבוי
-// נתונים" Drive folder, named with today's date so each day's backup is its
-// own file (a history, not an overwrite — easiest to implement safely and
-// most useful for a backup anyway). Raw per-table CSVs rather than the
+// one editable Google Sheet per source table, uploaded into a dedicated
+// "Sweetbaby - גיבוי נתונים" Drive folder. Each table has ONE standing file
+// (fixed name, no date in it) that gets its content replaced in place on
+// every run (see uploadTextFileToDrive's find-or-update logic in
+// drive.server.ts) — a live current snapshot to open and edit, not a
+// growing pile of dated files. Raw per-table CSVs rather than the
 // merged/processed view admin.finance.tsx renders — simpler, more robust,
 // and better for a backup (preserves the real underlying rows).
 import { toCSV } from "@/lib/csv";
@@ -25,7 +27,6 @@ export async function runDataBackup(): Promise<{ ok: boolean; filesUploaded: str
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { uploadTextFileToDrive } = await import("@/integrations/google/drive.server");
 
-    const dateStamp = new Date().toISOString().slice(0, 10);
     const filesUploaded: string[] = [];
 
     const [profiles, loyalty, orders, bookings, expenses, manualIncome] = await Promise.all([
@@ -70,7 +71,7 @@ export async function runDataBackup(): Promise<{ ok: boolean; filesUploaded: str
 
     const uploads: { filename: string; rows: any[]; headers: { key: string; label: string }[] }[] = [
       {
-        filename: `לקוחות-${dateStamp}.csv`,
+        filename: "לקוחות",
         rows: clientRows,
         headers: [
           { key: "full_name", label: "שם" },
@@ -87,7 +88,7 @@ export async function runDataBackup(): Promise<{ ok: boolean; filesUploaded: str
         ],
       },
       {
-        filename: `הזמנות-אביזרים-${dateStamp}.csv`,
+        filename: "הזמנות-אביזרים",
         rows: orders,
         headers: [
           { key: "contact_name", label: "לקוחה" },
@@ -102,7 +103,7 @@ export async function runDataBackup(): Promise<{ ok: boolean; filesUploaded: str
         ],
       },
       {
-        filename: `הזמנות-סטודיו-${dateStamp}.csv`,
+        filename: "הזמנות-סטודיו",
         rows: bookings,
         headers: [
           { key: "contact_name", label: "לקוחה" },
@@ -119,12 +120,12 @@ export async function runDataBackup(): Promise<{ ok: boolean; filesUploaded: str
         ],
       },
       {
-        filename: `הוצאות-${dateStamp}.csv`,
+        filename: "הוצאות",
         rows: expenses,
         headers: Object.keys(expenses[0] ?? {}).map((k) => ({ key: k, label: k })),
       },
       {
-        filename: `הכנסות-ידניות-${dateStamp}.csv`,
+        filename: "הכנסות-ידניות",
         rows: manualIncome,
         headers: Object.keys(manualIncome[0] ?? {}).map((k) => ({ key: k, label: k })),
       },
@@ -133,7 +134,7 @@ export async function runDataBackup(): Promise<{ ok: boolean; filesUploaded: str
     for (const u of uploads) {
       if (u.rows.length === 0) continue;
       const csv = toCSV(u.rows, u.headers);
-      await uploadTextFileToDrive(u.filename, csv, BACKUP_FOLDER);
+      await uploadTextFileToDrive(u.filename, csv, BACKUP_FOLDER, "text/csv", true);
       filesUploaded.push(u.filename);
     }
 
