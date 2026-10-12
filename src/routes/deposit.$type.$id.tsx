@@ -24,6 +24,10 @@ export const Route = createFileRoute("/deposit/$type/$id")({
 });
 
 const BANK = { bank: "12", branch: "533", account: "648912", name: "מיכל סיבוני" };
+// Bit and PayBox transfer to different numbers — never the bank account
+// details above, which is what this screen showed here before (the "bit"
+// method fell through to the same transfer-details block as "transfer").
+const BIT_PAYBOX = { bit: "0559840237", paybox: "0553173954" };
 
 function CopyRow({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = useState(false);
@@ -304,6 +308,12 @@ function Deposit() {
                   method === "card" ? (
                   <div className="mt-2 p-5 rounded-2xl bg-blush/40 text-primary text-sm">
                     שילמתי באשראי דרך הכפתור למעלה — אפשר לצרף צילום מסך של אישור התשלום (מומלץ), או לאשר למטה שהתשלום בוצע. התאריך משתריין רק לאחר אחת מהשתיים.
+                  </div>
+                ) : method === "bit" ? (
+                  <div className="space-y-3 pt-2">
+                    <CopyRow label="Bit" value={BIT_PAYBOX.bit} />
+                    <CopyRow label="PayBox" value={BIT_PAYBOX.paybox} />
+                    <CopyRow label="על שם" value={BANK.name} />
                   </div>
                 ) : (
                   <div className="space-y-3 pt-2">
