@@ -16,6 +16,7 @@ import {
   Images,
   Camera,
   Wallet,
+  Cloud,
   Ticket,
   Bot,
   MessageCircleQuestion,
@@ -81,6 +82,7 @@ const links: NavEntry[] = [
   { to: "/admin/newborn-contract-text", label: "מלל הכנה+חוזה ניו-בורן", icon: FileText },
   { to: "/admin/birth-basket-text", label: "מלל מימוש סל לידה", icon: Gift },
   { to: "/admin/finance", label: "הכנסות והוצאות", icon: Wallet },
+  { to: "/admin/backup", label: "גיבוי נתונים", icon: Cloud },
   {
     key: "club",
     label: "מועדון",
