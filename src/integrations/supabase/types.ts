@@ -1210,6 +1210,8 @@ export type Database = {
           balance: number | null
           booking_id: string | null
           created_at: string
+          drive_folder_url: string | null
+          drive_synced_at: string | null
           has_package: boolean
           id: string
           location: string | null
@@ -1232,6 +1234,8 @@ export type Database = {
           balance?: number | null
           booking_id?: string | null
           created_at?: string
+          drive_folder_url?: string | null
+          drive_synced_at?: string | null
           has_package?: boolean
           id?: string
           location?: string | null
@@ -1254,6 +1258,8 @@ export type Database = {
           balance?: number | null
           booking_id?: string | null
           created_at?: string
+          drive_folder_url?: string | null
+          drive_synced_at?: string | null
           has_package?: boolean
           id?: string
           location?: string | null

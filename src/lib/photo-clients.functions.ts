@@ -377,7 +377,7 @@ export const getPhotoClientDetail = createServerFn({ method: "POST" })
     const { data: workflow, error: wErr } = await supabaseAdmin
       .from("photo_client_workflows")
       .select(
-        "id, user_id, booking_id, stage, session_date, session_time, location, package_type, photos_to_edit, album_upgrades, total_price, amount_paid, balance, has_package, wants_editing, max_proof_selections, proof_selection_submitted_at",
+        "id, user_id, booking_id, stage, session_date, session_time, location, package_type, photos_to_edit, album_upgrades, total_price, amount_paid, balance, has_package, wants_editing, max_proof_selections, proof_selection_submitted_at, drive_folder_url, drive_synced_at",
       )
       .eq("id", data.workflowId)
       .single();
@@ -422,6 +422,8 @@ export const getPhotoClientDetail = createServerFn({ method: "POST" })
         wants_editing: workflow.wants_editing as boolean | null,
         max_proof_selections: workflow.max_proof_selections as number | null,
         proof_selection_submitted_at: workflow.proof_selection_submitted_at as string | null,
+        drive_folder_url: (workflow as any).drive_folder_url as string | null,
+        drive_synced_at: (workflow as any).drive_synced_at as string | null,
       },
       images: images ?? [],
     };
@@ -809,6 +811,130 @@ export const deletePhotoClientImage = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin.from("photo_client_images").delete().eq("id", data.imageId);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+const DRIVE_ALBUMS_PARENT_FOLDER = "Sweetbaby - אלבומים ללקוחות";
+
+/**
+ * "גיבוי ושיתוף בדרייב" — per explicit request, serves BOTH purposes at
+ * once rather than two separate buttons: uploads every "edited" (final)
+ * image's full-quality ORIGINAL (never the possibly-compressed display
+ * copy) into a per-client subfolder of a shared Drive parent, which also
+ * doubles as a real backup of the delivered album outside this app's own
+ * storage. The subfolder is made link-shareable in the same call, so the
+ * admin gets back a link she can choose to copy/send to the client (see
+ * the "שליחת קישור ללקוחה" button in admin.photo-clients.$bookingId.tsx) —
+ * sharing it is her call, not automatic. Safe to re-run any time an image
+ * is added/changed: uploadImageToDrive replaces a same-named file in place
+ * rather than duplicating it.
+ */
+export const syncAlbumToDrive = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => workflowIdSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { uploadImageToDrive, getShareableAlbumFolderLink } = await import("@/integrations/google/drive.server");
+
+    const { data: workflow, error: wErr } = await supabaseAdmin
+      .from("photo_client_workflows")
+      .select("id, user_id, booking_id")
+      .eq("id", data.workflowId)
+      .single();
+    if (wErr || !workflow) throw new Error(wErr?.message ?? "לקוחה לא נמצאה");
+
+    let contactName = "";
+    if (workflow.booking_id) {
+      const { data: booking } = await supabaseAdmin.from("bookings").select("contact_name").eq("id", workflow.booking_id).maybeSingle();
+      contactName = booking?.contact_name || "";
+    }
+    if (!contactName) {
+      const { data: profile } = await supabaseAdmin.from("profiles").select("full_name").eq("id", workflow.user_id).maybeSingle();
+      contactName = profile?.full_name || "";
+    }
+    const subFolderName = `${contactName || "לקוחה"} · ${data.workflowId.slice(0, 8)}`;
+
+    const { data: images, error: imgErr } = await (supabaseAdmin as any)
+      .from("photo_client_images")
+      .select("original_image_url, image_url, sort_order")
+      .eq("workflow_id", data.workflowId)
+      .eq("kind", "edited")
+      .order("sort_order", { ascending: true });
+    if (imgErr) throw new Error(imgErr.message);
+    if (!images || images.length === 0) throw new Error("אין תמונות מעובדות להעלאה");
+
+    let uploaded = 0;
+    for (let i = 0; i < images.length; i++) {
+      const img = images[i];
+      const sourceUrl = img.original_image_url || img.image_url;
+      try {
+        const res = await fetch(sourceUrl);
+        if (!res.ok) throw new Error(`fetch failed (${res.status})`);
+        const bytes = await res.arrayBuffer();
+        const contentType = res.headers.get("content-type") || "image/jpeg";
+        const ext = contentType.includes("png") ? "png" : "jpg";
+        await uploadImageToDrive(`${String(i + 1).padStart(3, "0")}.${ext}`, bytes, contentType, DRIVE_ALBUMS_PARENT_FOLDER, subFolderName);
+        uploaded += 1;
+      } catch (e) {
+        console.error(`[SWEETBABY] Drive album sync: image ${i + 1} failed`, e);
+      }
+    }
+
+    const link = await getShareableAlbumFolderLink(DRIVE_ALBUMS_PARENT_FOLDER, subFolderName);
+    const now = new Date().toISOString();
+    await (supabaseAdmin as any).from("photo_client_workflows").update({ drive_folder_url: link, drive_synced_at: now }).eq("id", data.workflowId);
+
+    return { ok: true, uploaded, total: images.length, link };
+  });
+
+const shareLinkSchema = z.object({ workflowId: z.string().uuid() });
+
+/** "שליחת קישור ללקוחה" — emails the already-synced Drive album link to the client (and studio, as every sendStudioAndCustomer call does). Refuses if syncAlbumToDrive hasn't run yet (no link saved) rather than sending a broken/empty email. */
+export const sendDriveAlbumLinkToClient = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => shareLinkSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: workflow, error: wErr } = await (supabaseAdmin as any)
+      .from("photo_client_workflows")
+      .select("id, user_id, booking_id, drive_folder_url")
+      .eq("id", data.workflowId)
+      .single();
+    if (wErr || !workflow) throw new Error(wErr?.message ?? "לקוחה לא נמצאה");
+    if (!workflow.drive_folder_url) throw new Error("יש לבצע קודם גיבוי לדרייב");
+
+    let contactName = "";
+    if (workflow.booking_id) {
+      const { data: booking } = await supabaseAdmin.from("bookings").select("contact_name").eq("id", workflow.booking_id).maybeSingle();
+      contactName = booking?.contact_name || "";
+    }
+    if (!contactName) {
+      const { data: profile } = await supabaseAdmin.from("profiles").select("full_name").eq("id", workflow.user_id).maybeSingle();
+      contactName = profile?.full_name || "";
+    }
+
+    const {
+      data: { user },
+    } = await supabaseAdmin.auth.admin.getUserById(workflow.user_id);
+    if (!user?.email) throw new Error("לא נמצאה כתובת מייל ללקוחה הזו");
+
+    const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+    const { emailHeartImgTag } = await import("@/lib/page-images");
+    const heart = await emailHeartImgTag();
+    await sendStudioAndCustomer({
+      customerEmail: user.email,
+      subject: "האלבום שלך בדרייב 📁 · Sweetbaby",
+      html: `<div dir="rtl" style="font-family:sans-serif">
+        <p>שלום${contactName ? " " + contactName : ""},</p>
+        <p>האלבום המלא שלך זמין גם בגוגל דרייב, באיכות מלאה:</p>
+        <p><a href="${workflow.drive_folder_url}">${workflow.drive_folder_url}</a></p>
+        <p>מקווה שתאהבי ${heart}</p>
+      </div>`,
+    });
+
+    return { ok: true, sentTo: user.email };
   });
 
 // ---------- Customer ----------
