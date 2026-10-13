@@ -305,22 +305,28 @@ export function HeroLightArch({ slide, setSlide, slides, logo, aspect }: HeroPro
                 ))}
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => document.getElementById("testimonials")?.scrollIntoView({ behavior: "smooth" })}
-              className="mt-4 w-full flex items-center justify-between gap-4 rounded-2xl border border-[#2d3d2b]/10 bg-white/70 px-5 py-3.5 text-right hover:bg-white transition-colors"
-            >
-              <div className="flex items-center gap-2">
+            <div className="mt-4 w-full flex items-center justify-between gap-4 rounded-2xl border border-[#2d3d2b]/10 bg-white/70 px-5 py-3.5 text-right">
+              <button
+                type="button"
+                onClick={() => document.getElementById("testimonials")?.scrollIntoView({ behavior: "smooth" })}
+                className="flex items-center gap-2 hover:opacity-70 transition-opacity"
+              >
                 <Star className="h-4 w-4 fill-[#a8c4a2] text-[#a8c4a2]" />
                 <span className="text-sm text-[#2d3d2b]">
                   <strong className="font-medium">5.0</strong> · לקוחות מרוצים
                 </span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-[#2d3d2b]/70">
+              </button>
+              <a
+                href="https://waze.com/ul?q=%D7%AA%D7%9C%D7%9E%D7%95%D7%93%20%D7%99%D7%A8%D7%95%D7%A9%D7%9C%D7%9E%D7%99%2024%2C%20%D7%91%D7%99%D7%AA%20%D7%A9%D7%9E%D7%A9&navigate=yes"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-2 text-sm text-[#2d3d2b]/70 hover:text-[#2d3d2b] transition-colors"
+              >
                 <MapPin className="h-4 w-4 text-[#6b8a63]" />
                 תלמוד ירושלמי 24, בית שמש
-              </div>
-            </button>
+                <span className="underline underline-offset-2 text-[#6b8a63]">נווט בוויז</span>
+              </a>
+            </div>
           </motion.div>
         </div>
       </div>
