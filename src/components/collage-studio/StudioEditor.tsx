@@ -48,6 +48,7 @@ import {
   ChevronUp,
   ChevronDown,
   Lock,
+  MessageCircle,
   Unlock,
   Eye,
   EyeOff,
@@ -127,6 +128,7 @@ export function StudioEditor({ template }: { template: CollageTemplate }) {
   const [textLang, setTextLang] = useState<StudioFontLang>("he");
   const [zoomLevel, setZoomLevel] = useState(1);
   const [downloading, setDownloading] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   const zoomBy = (factor: number) => {
     canvasHandleRef.current?.zoom(factor);
@@ -203,6 +205,41 @@ export function StudioEditor({ template }: { template: CollageTemplate }) {
     }
   };
 
+  // Same approach as the simpler collage wizard's WhatsApp button: only the
+  // Web Share API can attach an actual image file to the share sheet — a
+  // wa.me link can only carry text. Falls back to a plain download + open
+  // WhatsApp where file sharing isn't supported (desktop browsers mostly).
+  const shareToWhatsApp = async () => {
+    setSharing(true);
+    try {
+      const dataUrl = await canvasHandleRef.current?.exportPNG(3);
+      if (!dataUrl) return;
+      const blob = await (await fetch(dataUrl)).blob();
+      const file = new File([blob], `${template.name}.png`, { type: blob.type || "image/png" });
+      const nav = navigator as Navigator & {
+        share?: (data: ShareData) => Promise<void>;
+        canShare?: (data: ShareData) => boolean;
+      };
+      if (nav.share && nav.canShare?.({ files: [file] })) {
+        await nav.share({ files: [file], title: "הקולאז׳ שלי מ-Sweetbaby" });
+        return;
+      }
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = `${template.name}.png`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.open("https://wa.me/", "_blank");
+      toast.success("הקובץ ירד למכשיר — אפשר לצרף אותו בוואטסאפ");
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") return;
+      toast.error("השיתוף נכשל, נסי שוב");
+    } finally {
+      setSharing(false);
+    }
+  };
+
   const hasSelection = selection.kind !== "none";
 
   return (
@@ -240,6 +277,14 @@ export function StudioEditor({ template }: { template: CollageTemplate }) {
         </div>
 
         <div className="h-6 w-px bg-black/10 mx-1" />
+        <Button
+          onClick={shareToWhatsApp}
+          disabled={sharing}
+          variant="outline"
+          className="rounded-full gap-2 border-[#25D366]/40 text-[#128C7E] hover:bg-[#25D366]/10"
+        >
+          <MessageCircle className="h-4 w-4" /> {sharing ? "מכינה..." : "וואטסאפ"}
+        </Button>
         <Button onClick={download} disabled={downloading} className="rounded-full gap-2">
           <Download className="h-4 w-4" /> {downloading ? "מכינה..." : "הורדה"}
         </Button>

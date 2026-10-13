@@ -10,6 +10,7 @@ import {
   LayoutGrid,
   Loader2,
   LockKeyhole,
+  MessageCircle,
   Move,
   Palette,
   Ruler,
@@ -75,7 +76,10 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
-async function downloadCollage(svgEl: SVGSVGElement, type: "png" | "jpeg"): Promise<string> {
+async function renderCollageToBlob(
+  svgEl: SVGSVGElement,
+  type: "png" | "jpeg",
+): Promise<{ blob: Blob; dataUrl: string }> {
   await document.fonts.ready.catch(() => undefined);
   const viewBox = svgEl.viewBox.baseVal;
   const width = viewBox.width || 1000;
@@ -110,17 +114,51 @@ async function downloadCollage(svgEl: SVGSVGElement, type: "png" | "jpeg"): Prom
     const dataUrl = canvas.toDataURL(mime, 0.94);
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, mime, 0.94));
     if (!blob) throw new Error("יצירת הקובץ נכשלה");
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `sweetbaby-collage.${type === "jpeg" ? "jpg" : "png"}`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(link.href), 5000);
-    return dataUrl;
+    return { blob, dataUrl };
   } finally {
     URL.revokeObjectURL(url);
   }
+}
+
+async function downloadCollage(svgEl: SVGSVGElement, type: "png" | "jpeg"): Promise<string> {
+  const { blob, dataUrl } = await renderCollageToBlob(svgEl, type);
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `sweetbaby-collage.${type === "jpeg" ? "jpg" : "png"}`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(link.href), 5000);
+  return dataUrl;
+}
+
+// Sharing straight to WhatsApp needs an actual image FILE in the share
+// sheet, which only the Web Share API (navigator.share with `files`) can
+// do — a wa.me link can only carry text, never an attached image. Where
+// that API (or file sharing specifically) isn't supported — desktop
+// browsers mostly — fall back to downloading the file and opening WhatsApp
+// so the picture is at least one "attach" tap away, instead of silently
+// doing nothing.
+async function shareCollageToWhatsApp(svgEl: SVGSVGElement): Promise<"shared" | "downloaded"> {
+  const { blob } = await renderCollageToBlob(svgEl, "jpeg");
+  const file = new File([blob], "sweetbaby-collage.jpg", { type: "image/jpeg" });
+  const nav = navigator as Navigator & {
+    share?: (data: ShareData) => Promise<void>;
+    canShare?: (data: ShareData) => boolean;
+  };
+  if (nav.share && nav.canShare?.({ files: [file] })) {
+    await nav.share({ files: [file], title: "הקולאז׳ שלי מ-Sweetbaby" });
+    return "shared";
+  }
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "sweetbaby-collage.jpg";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(link.href), 5000);
+  window.open("https://wa.me/", "_blank");
+  return "downloaded";
 }
 
 function StickerPreview({ kind }: { kind: StickerKind }) {
@@ -169,6 +207,7 @@ export function CollageWizard() {
   const [stickers, setStickers] = useState<PlacedSticker[]>([]);
   const [search, setSearch] = useState("");
   const [downloading, setDownloading] = useState(false);
+  const [sharing, setSharing] = useState(false);
   // English toggle for this tool only (idea names/descriptions + the
   // caption/subtitle applied to the collage) — per explicit request, not a
   // site-wide language switch. Hand-translated once and looked up locally
@@ -392,6 +431,22 @@ export function CollageWizard() {
       toast.error(error instanceof Error ? error.message : "ההורדה נכשלה, נסי שוב");
     } finally {
       setDownloading(false);
+    }
+  };
+
+  const shareToWhatsApp = async () => {
+    if (!svgRef.current) return;
+    setSharing(true);
+    try {
+      const outcome = await shareCollageToWhatsApp(svgRef.current);
+      if (outcome === "downloaded") {
+        toast.success("הקולאז׳ ירד למכשיר — אפשר לצרף אותו בוואטסאפ");
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") return;
+      toast.error(error instanceof Error ? error.message : "השיתוף נכשל, נסי שוב");
+    } finally {
+      setSharing(false);
     }
   };
 
@@ -761,6 +816,15 @@ export function CollageWizard() {
                     <Button type="button" onClick={() => download("jpeg")} disabled={downloading} className="h-12 rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/85">{downloading ? <Loader2 className="animate-spin" /> : <Download />} הורדת JPG</Button>
                     <Button type="button" onClick={() => download("png")} disabled={downloading} className="h-12 rounded-xl"><Download /> הורדת PNG</Button>
                   </div>
+                  <Button
+                    type="button"
+                    onClick={shareToWhatsApp}
+                    disabled={sharing}
+                    variant="outline"
+                    className="mt-3 h-12 w-full rounded-xl border-[#25D366]/40 text-[#128C7E] hover:bg-[#25D366]/10"
+                  >
+                    {sharing ? <Loader2 className="animate-spin" /> : <MessageCircle />} שיתוף בוואטסאפ
+                  </Button>
                 </div>
               </div>
             )}
