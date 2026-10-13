@@ -1,5 +1,6 @@
 import newbornOg from "@/assets/blog-newborn-props-og.jpg";
 import chalakahOg from "@/assets/home-hero-4.jpg.asset.json";
+import smashCakeOg from "@/assets/home-hero-5.jpg.asset.json";
 
 export interface BlogPost {
   slug: string;
@@ -34,5 +35,16 @@ export const BLOG_POSTS: BlogPost[] = [
     date: "2026-08-23",
     readMinutes: 5,
     image: chalakahOg.url,
+  },
+  {
+    slug: "smash-cake-toddler-prep",
+    to: "/blog/smash-cake-toddler-prep",
+    title: "איך להכין פעוט לצילומי סמאש קייק/שנה בלי סטרס",
+    excerpt:
+      "תזמון סביב שעות השינה, מה כדאי להביא, ואיך להגיב כשהפעוט לא משתף פעולה — מדריך מעשי לצילומי יום שנה עם עוגה.",
+    category: "מדריכים",
+    date: "2026-10-13",
+    readMinutes: 5,
+    image: smashCakeOg.url,
   },
 ];

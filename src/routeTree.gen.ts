@@ -40,6 +40,7 @@ import { Route as ApiSendBookingRemindersRouteImport } from './routes/api.send-b
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogChalakahPhotoshootGuideRouteImport } from './routes/blog.chalakah-photoshoot-guide'
 import { Route as BlogEssentialNewbornPropsRouteImport } from './routes/blog.essential-newborn-props'
+import { Route as BlogSmashCakeToddlerPrepRouteImport } from './routes/blog.smash-cake-toddler-prep'
 import { Route as CollageStudioIndexRouteImport } from './routes/collage-studio.index'
 import { Route as CollageStudioTemplateIdRouteImport } from './routes/collage-studio.$templateId'
 import { Route as ItemsIdRouteImport } from './routes/items.$id'
@@ -242,6 +243,12 @@ const BlogEssentialNewbornPropsRoute =
   BlogEssentialNewbornPropsRouteImport.update({
     id: '/blog/essential-newborn-props',
     path: '/blog/essential-newborn-props',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const BlogSmashCakeToddlerPrepRoute =
+  BlogSmashCakeToddlerPrepRouteImport.update({
+    id: '/blog/smash-cake-toddler-prep',
+    path: '/blog/smash-cake-toddler-prep',
     getParentRoute: () => rootRouteImport,
   } as any)
 const CollageStudioIndexRoute = CollageStudioIndexRouteImport.update({
@@ -544,6 +551,7 @@ export interface FileRoutesByFullPath {
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
+  '/blog/smash-cake-toddler-prep': typeof BlogSmashCakeToddlerPrepRoute
   '/collage-studio/$templateId': typeof CollageStudioTemplateIdRoute
   '/items/$id': typeof ItemsIdRoute
   '/photo-thanks/$id': typeof PhotoThanksIdRoute
@@ -622,6 +630,7 @@ export interface FileRoutesByTo {
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
+  '/blog/smash-cake-toddler-prep': typeof BlogSmashCakeToddlerPrepRoute
   '/collage-studio/$templateId': typeof CollageStudioTemplateIdRoute
   '/items/$id': typeof ItemsIdRoute
   '/photo-thanks/$id': typeof PhotoThanksIdRoute
@@ -703,6 +712,7 @@ export interface FileRoutesById {
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
+  '/blog/smash-cake-toddler-prep': typeof BlogSmashCakeToddlerPrepRoute
   '/collage-studio/$templateId': typeof CollageStudioTemplateIdRoute
   '/items/$id': typeof ItemsIdRoute
   '/photo-thanks/$id': typeof PhotoThanksIdRoute
@@ -784,6 +794,7 @@ export interface FileRouteTypes {
     | '/api/send-booking-reminders'
     | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
+    | '/blog/smash-cake-toddler-prep'
     | '/collage-studio/$templateId'
     | '/items/$id'
     | '/photo-thanks/$id'
@@ -862,6 +873,7 @@ export interface FileRouteTypes {
     | '/api/send-booking-reminders'
     | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
+    | '/blog/smash-cake-toddler-prep'
     | '/collage-studio/$templateId'
     | '/items/$id'
     | '/photo-thanks/$id'
@@ -942,6 +954,7 @@ export interface FileRouteTypes {
     | '/api/send-booking-reminders'
     | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
+    | '/blog/smash-cake-toddler-prep'
     | '/collage-studio/$templateId'
     | '/items/$id'
     | '/photo-thanks/$id'
@@ -1020,6 +1033,7 @@ export interface RootRouteChildren {
   ApiSendBookingRemindersRoute: typeof ApiSendBookingRemindersRoute
   BlogChalakahPhotoshootGuideRoute: typeof BlogChalakahPhotoshootGuideRoute
   BlogEssentialNewbornPropsRoute: typeof BlogEssentialNewbornPropsRoute
+  BlogSmashCakeToddlerPrepRoute: typeof BlogSmashCakeToddlerPrepRoute
   CollageStudioTemplateIdRoute: typeof CollageStudioTemplateIdRoute
   ItemsIdRoute: typeof ItemsIdRoute
   PhotoThanksIdRoute: typeof PhotoThanksIdRoute
@@ -1250,6 +1264,13 @@ declare module '@tanstack/react-router' {
       path: '/blog/essential-newborn-props'
       fullPath: '/blog/essential-newborn-props'
       preLoaderRoute: typeof BlogEssentialNewbornPropsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/smash-cake-toddler-prep': {
+      id: '/blog/smash-cake-toddler-prep'
+      path: '/blog/smash-cake-toddler-prep'
+      fullPath: '/blog/smash-cake-toddler-prep'
+      preLoaderRoute: typeof BlogSmashCakeToddlerPrepRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/collage-studio/': {
@@ -1749,6 +1770,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSendBookingRemindersRoute: ApiSendBookingRemindersRoute,
   BlogChalakahPhotoshootGuideRoute: BlogChalakahPhotoshootGuideRoute,
   BlogEssentialNewbornPropsRoute: BlogEssentialNewbornPropsRoute,
+  BlogSmashCakeToddlerPrepRoute: BlogSmashCakeToddlerPrepRoute,
   CollageStudioTemplateIdRoute: CollageStudioTemplateIdRoute,
   ItemsIdRoute: ItemsIdRoute,
   PhotoThanksIdRoute: PhotoThanksIdRoute,
