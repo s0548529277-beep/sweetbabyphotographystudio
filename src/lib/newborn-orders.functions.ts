@@ -977,6 +977,37 @@ export const sendNewbornDriveAlbumLinkToClient = createServerFn({ method: "POST"
     return { ok: true, sentTo: order.contact_email as string };
   });
 
+// ---------- "כל התמונות בלי סימן מים" unlock (150₪ add-on) — admin side ----------
+// Mirrors the same feature in photo-clients.functions.ts; see that file's
+// own doc comment for the full picture. The one real difference here: the
+// RECEIPT UPLOAD itself (below, in the token-gated public section) can't
+// use the authenticated client-side Storage upload the main flow uses —
+// a newborn client has no Supabase session at all, just the token — so it
+// goes through a server function instead (submitNewbornUnlockReceiptByToken).
+
+export const getNewbornUnlockReceiptUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ orderId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: order } = await (supabaseAdmin as any).from("newborn_package_orders").select("unlock_receipt_path").eq("id", data.orderId).maybeSingle();
+    if (!order?.unlock_receipt_path) return { url: null };
+    const { data: signed } = await supabaseAdmin.storage.from("receipts").createSignedUrl(order.unlock_receipt_path, 60 * 60);
+    return { url: signed?.signedUrl ?? null };
+  });
+
+export const approveNewbornAllPhotosUnlock = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ orderId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await (supabaseAdmin as any).from("newborn_package_orders").update({ all_photos_unlocked: true }).eq("id", data.orderId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 /** Best-effort resend, e.g. if the automatic send-on-create failed or she wants to remind the client to reply/confirm. */
 export const resendNewbornContract = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -1148,6 +1179,8 @@ export const getNewbornGalleryByToken = createServerFn({ method: "POST" })
       proofsSelectedAt: order.proofs_selected_at as string | null,
       maxProofSelections: order.max_proof_selections as number | null,
       guidedSelectionEnabled: !!order.guided_selection_enabled,
+      allPhotosUnlocked: !!order.all_photos_unlocked,
+      unlockReceiptSubmittedAt: order.unlock_receipt_submitted_at as string | null,
       images: (images ?? []) as {
         id: string;
         kind: "proof" | "edited";
@@ -1247,6 +1280,50 @@ export const finishNewbornProofSelectionByToken = createServerFn({ method: "POST
       } catch (e) {
         console.error("[SWEETBABY] newborn proof-selection-done notify failed", e);
       }
+    }
+    return { ok: true };
+  });
+
+const MAX_RECEIPT_BASE64_LEN = 8_000_000; // ~6MB decoded — plenty for a phone-camera receipt photo, small enough to pass safely as server-fn JSON
+
+/**
+ * Token-gated "שליחת אסמכתא" for the 150₪ all-photos-unlock add-on. Unlike
+ * every other image upload in this app, this one can't go straight from
+ * the browser to Storage with the normal authenticated client (a newborn
+ * visitor has no Supabase session, just the token) — so the file travels
+ * here as base64 and gets written to Storage server-side with the
+ * service-role client instead.
+ */
+export const submitNewbornUnlockReceiptByToken = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z
+      .object({ token: z.string().min(10), fileBase64: z.string().min(1).max(MAX_RECEIPT_BASE64_LEN), fileName: z.string().min(1).max(200), contentType: z.string().min(1).max(100) })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const order = await orderByToken(data.token);
+    if (!order) throw new Error("קישור לא תקין");
+    if (order.all_photos_unlocked) return { ok: true };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const ext = data.fileName.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "bin";
+    const path = `newborn-orders/${order.id}/unlock-receipt-${Date.now()}.${ext}`;
+    const bytes = Buffer.from(data.fileBase64, "base64");
+    const { error: upErr } = await supabaseAdmin.storage.from("receipts").upload(path, bytes, { contentType: data.contentType, upsert: false });
+    if (upErr) throw new Error(upErr.message);
+
+    const now = new Date().toISOString();
+    const { error } = await (supabaseAdmin as any).from("newborn_package_orders").update({ unlock_receipt_path: path, unlock_receipt_submitted_at: now }).eq("id", order.id);
+    if (error) throw new Error(error.message);
+
+    try {
+      await supabaseAdmin.from("admin_notifications").insert({
+        type: "newborn_unlock_receipt",
+        title: `${order.contact_name} שלחה אסמכתא לפתיחת כל התמונות (150₪)`,
+        body: { order_id: order.id, contact_name: order.contact_name },
+      });
+    } catch (e) {
+      console.error("[SWEETBABY] admin_notifications write for newborn unlock receipt failed", e);
     }
     return { ok: true };
   });

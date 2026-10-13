@@ -8,10 +8,25 @@ import {
   getNewbornGalleryByToken,
   toggleNewbornProofByToken,
   finishNewbornProofSelectionByToken,
+  submitNewbornUnlockReceiptByToken,
 } from "@/lib/newborn-orders.functions";
 import { downloadPhotosAsZip } from "@/lib/photo-zip";
 import { PhotoLightbox, GuidedStepper } from "@/components/PhotoLightbox";
+import { AllPhotosUnlockPanel } from "@/components/AllPhotosUnlockPanel";
 import michalLogoWordmark from "@/assets/michal-logo-wordmark.png";
+
+/** Reads a File as base64 (no data: prefix) — needed because submitNewbornUnlockReceiptByToken has to carry the file over as a plain server-fn argument (a newborn visitor has no Supabase session for a direct authenticated Storage upload, see that function's own doc comment). */
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result.slice(result.indexOf(",") + 1));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("קריאת הקובץ נכשלה"));
+    reader.readAsDataURL(file);
+  });
+}
 
 // The client-facing gallery for Michal's own newborn-photography business —
 // per explicit request, a completely separate surface from the general
@@ -36,6 +51,9 @@ function ProofSection({
   maxProofSelections,
   guidedSelectionEnabled,
   proofsSelectedAt,
+  allPhotosUnlocked,
+  unlockReceiptSubmittedAt,
+  contactName,
   onRefetch,
 }: {
   proofs: Img[];
@@ -43,10 +61,14 @@ function ProofSection({
   maxProofSelections: number | null;
   guidedSelectionEnabled: boolean;
   proofsSelectedAt: string | null;
+  allPhotosUnlocked: boolean;
+  unlockReceiptSubmittedAt: string | null;
+  contactName: string;
   onRefetch: () => void;
 }) {
   const toggleProof = useServerFn(toggleNewbornProofByToken);
   const finishSelection = useServerFn(finishNewbornProofSelectionByToken);
+  const submitUnlockReceipt = useServerFn(submitNewbornUnlockReceiptByToken);
   const [finishing, setFinishing] = useState(false);
   const [phase, setPhase] = useState<"browse" | "narrow">("browse");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -92,6 +114,12 @@ function ProofSection({
     } finally {
       setFinishing(false);
     }
+  };
+
+  const onSubmitUnlockReceipt = async (file: File) => {
+    const fileBase64 = await fileToBase64(file);
+    await submitUnlockReceipt({ data: { token, fileBase64, fileName: file.name, contentType: file.type || "application/octet-stream" } });
+    onRefetch();
   };
 
   return (
@@ -151,7 +179,16 @@ function ProofSection({
         />
       )}
 
-      <p className="text-center text-sm font-medium text-[#4a3221] bg-[#d9b98a]/15 border border-[#d9b98a]/30 rounded-xl py-3 px-4 mt-6">קבלת כל התמונות מותנת בתוספת 150 ש"ח</p>
+      <div className="mt-6">
+        <AllPhotosUnlockPanel
+          displayPhotos={proofs.map((img, i) => ({ url: img.image_url, name: `${String(i + 1).padStart(3, "0")}.jpg` }))}
+          originalPhotos={proofs.map((img, i) => ({ url: img.original_image_url || img.image_url, name: `${String(i + 1).padStart(3, "0")}.jpg` }))}
+          zipBaseName={contactName || "תמונות"}
+          unlocked={allPhotosUnlocked}
+          receiptSubmittedAt={unlockReceiptSubmittedAt}
+          onSubmitReceipt={onSubmitUnlockReceipt}
+        />
+      </div>
 
       <div className="flex items-center justify-center gap-3 mt-6 flex-wrap">
         {submitted ? (
@@ -305,13 +342,15 @@ function NewbornGalleryPage() {
     );
   }
 
-  const { contactName, packageName, images, proofsSelectedAt, maxProofSelections, guidedSelectionEnabled } = query.data as {
+  const { contactName, packageName, images, proofsSelectedAt, maxProofSelections, guidedSelectionEnabled, allPhotosUnlocked, unlockReceiptSubmittedAt } = query.data as {
     contactName: string;
     packageName: string;
     images: Img[];
     proofsSelectedAt: string | null;
     maxProofSelections: number | null;
     guidedSelectionEnabled: boolean;
+    allPhotosUnlocked: boolean;
+    unlockReceiptSubmittedAt: string | null;
   };
   const edited = images.filter((i) => i.kind === "edited");
   const proofs = images.filter((i) => i.kind === "proof");
@@ -352,6 +391,9 @@ function NewbornGalleryPage() {
             maxProofSelections={maxProofSelections}
             guidedSelectionEnabled={guidedSelectionEnabled}
             proofsSelectedAt={proofsSelectedAt}
+            allPhotosUnlocked={allPhotosUnlocked}
+            unlockReceiptSubmittedAt={unlockReceiptSubmittedAt}
+            contactName={contactName}
             onRefetch={onRefetch}
           />
         )}

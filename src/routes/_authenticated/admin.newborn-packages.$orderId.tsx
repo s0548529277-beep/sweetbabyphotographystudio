@@ -17,10 +17,13 @@ import {
   updateNewbornPhotoSettings,
   syncNewbornAlbumToDrive,
   sendNewbornDriveAlbumLinkToClient,
+  getNewbornUnlockReceiptUrl,
+  approveNewbornAllPhotosUnlock,
 } from "@/lib/newborn-orders.functions";
 import { findNewbornPackage } from "@/lib/newborn-packages";
 import { PhotoTriagePanel } from "@/components/PhotoTriagePanel";
 import { DriveSyncCard } from "@/components/DriveSyncCard";
+import { UnlockApprovalCard } from "@/components/UnlockApprovalCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -272,6 +275,8 @@ function NewbornOrderGallery() {
   const bulkDeleteImages = useServerFn(bulkDeleteNewbornOrderImages);
   const syncDrive = useServerFn(syncNewbornAlbumToDrive);
   const sendDriveLink = useServerFn(sendNewbornDriveAlbumLinkToClient);
+  const getReceiptUrl = useServerFn(getNewbornUnlockReceiptUrl);
+  const approveUnlock = useServerFn(approveNewbornAllPhotosUnlock);
   const [resending, setResending] = useState(false);
 
   // The order list is already fetched on the main admin page — reused here
@@ -383,6 +388,16 @@ function NewbornOrderGallery() {
           admin.photo-clients.$bookingId.tsx, added after a direct report). */}
       {proofImages.length > 0 && !order.proofs_selected_at && (
         <PhotoTriagePanel images={proofImages.map((i) => ({ id: i.id, url: i.image_url }))} onDeleteMany={onDeleteTrashedProofs} />
+      )}
+
+      {proofImages.length > 0 && (
+        <UnlockApprovalCard
+          unlocked={order.all_photos_unlocked ?? false}
+          receiptSubmittedAt={order.unlock_receipt_submitted_at ?? null}
+          onGetReceiptUrl={() => getReceiptUrl({ data: { orderId } })}
+          onApprove={() => approveUnlock({ data: { orderId } }).then(() => {})}
+          onApproved={refreshOrder}
+        />
       )}
 
       <DriveSyncCard
