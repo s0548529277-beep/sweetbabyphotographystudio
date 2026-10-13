@@ -751,9 +751,12 @@ export type Database = {
           image_url: string
           kind: string
           order_id: string
+          original_image_url: string | null
+          original_storage_path: string | null
           selected: boolean
           sort_order: number
           storage_path: string | null
+          watermarked: boolean
         }
         Insert: {
           created_at?: string
@@ -761,9 +764,12 @@ export type Database = {
           image_url: string
           kind: string
           order_id: string
+          original_image_url?: string | null
+          original_storage_path?: string | null
           selected?: boolean
           sort_order?: number
           storage_path?: string | null
+          watermarked?: boolean
         }
         Update: {
           created_at?: string
@@ -771,9 +777,12 @@ export type Database = {
           image_url?: string
           kind?: string
           order_id?: string
+          original_image_url?: string | null
+          original_storage_path?: string | null
           selected?: boolean
           sort_order?: number
           storage_path?: string | null
+          watermarked?: boolean
         }
         Relationships: [
           {
@@ -791,6 +800,7 @@ export type Database = {
           addons: Json
           addons_price: number
           album_design_done_at: string | null
+          all_photos_unlocked: boolean
           amount_paid: number
           base_price: number
           birth_basket_used: boolean
@@ -803,11 +813,15 @@ export type Database = {
           created_at: string
           date_deposit_at: string | null
           delivered_at: string | null
+          drive_folder_url: string | null
+          drive_synced_at: string | null
           editing_done_at: string | null
           gallery_opened_at: string | null
           google_event_id: string | null
+          guided_selection_enabled: boolean
           id: string
           last_payment_at: string | null
+          max_proof_selections: number | null
           notes: string | null
           package_id: string
           payment_done_at: string | null
@@ -818,12 +832,15 @@ export type Database = {
           session_time: string | null
           shoot_done_at: string | null
           total_price: number
+          unlock_receipt_path: string | null
+          unlock_receipt_submitted_at: string | null
         }
         Insert: {
           access_token?: string | null
           addons?: Json
           addons_price?: number
           album_design_done_at?: string | null
+          all_photos_unlocked?: boolean
           amount_paid?: number
           base_price?: number
           birth_basket_used?: boolean
@@ -836,11 +853,15 @@ export type Database = {
           created_at?: string
           date_deposit_at?: string | null
           delivered_at?: string | null
+          drive_folder_url?: string | null
+          drive_synced_at?: string | null
           editing_done_at?: string | null
           gallery_opened_at?: string | null
           google_event_id?: string | null
+          guided_selection_enabled?: boolean
           id?: string
           last_payment_at?: string | null
+          max_proof_selections?: number | null
           notes?: string | null
           package_id: string
           payment_done_at?: string | null
@@ -851,12 +872,15 @@ export type Database = {
           session_time?: string | null
           shoot_done_at?: string | null
           total_price?: number
+          unlock_receipt_path?: string | null
+          unlock_receipt_submitted_at?: string | null
         }
         Update: {
           access_token?: string | null
           addons?: Json
           addons_price?: number
           album_design_done_at?: string | null
+          all_photos_unlocked?: boolean
           amount_paid?: number
           base_price?: number
           birth_basket_used?: boolean
@@ -869,11 +893,15 @@ export type Database = {
           created_at?: string
           date_deposit_at?: string | null
           delivered_at?: string | null
+          drive_folder_url?: string | null
+          drive_synced_at?: string | null
           editing_done_at?: string | null
           gallery_opened_at?: string | null
           google_event_id?: string | null
+          guided_selection_enabled?: boolean
           id?: string
           last_payment_at?: string | null
+          max_proof_selections?: number | null
           notes?: string | null
           package_id?: string
           payment_done_at?: string | null
@@ -884,6 +912,8 @@ export type Database = {
           session_time?: string | null
           shoot_done_at?: string | null
           total_price?: number
+          unlock_receipt_path?: string | null
+          unlock_receipt_submitted_at?: string | null
         }
         Relationships: [
           {
@@ -1206,6 +1236,7 @@ export type Database = {
       photo_client_workflows: {
         Row: {
           album_upgrades: string | null
+          all_photos_unlocked: boolean
           amount_paid: number
           balance: number | null
           booking_id: string | null
@@ -1225,12 +1256,15 @@ export type Database = {
           session_time: string | null
           stage: string
           total_price: number | null
+          unlock_receipt_path: string | null
+          unlock_receipt_submitted_at: string | null
           updated_at: string
           user_id: string
           wants_editing: boolean | null
         }
         Insert: {
           album_upgrades?: string | null
+          all_photos_unlocked?: boolean
           amount_paid?: number
           balance?: number | null
           booking_id?: string | null
@@ -1250,12 +1284,15 @@ export type Database = {
           session_time?: string | null
           stage?: string
           total_price?: number | null
+          unlock_receipt_path?: string | null
+          unlock_receipt_submitted_at?: string | null
           updated_at?: string
           user_id: string
           wants_editing?: boolean | null
         }
         Update: {
           album_upgrades?: string | null
+          all_photos_unlocked?: boolean
           amount_paid?: number
           balance?: number | null
           booking_id?: string | null
@@ -1275,6 +1312,8 @@ export type Database = {
           session_time?: string | null
           stage?: string
           total_price?: number | null
+          unlock_receipt_path?: string | null
+          unlock_receipt_submitted_at?: string | null
           updated_at?: string
           user_id?: string
           wants_editing?: boolean | null

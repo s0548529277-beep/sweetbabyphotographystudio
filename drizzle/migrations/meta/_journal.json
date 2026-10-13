@@ -127,6 +127,20 @@
       "when": 1791890870245,
       "tag": "0017_photo_delivery_drive_guided",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791922276165,
+      "tag": "0018_newborn_photo_delivery_upgrade",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791922279415,
+      "tag": "0019_all_photos_unlock",
+      "breakpoints": true
     }
   ]
 }
