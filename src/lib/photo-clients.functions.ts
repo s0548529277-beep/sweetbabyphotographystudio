@@ -382,7 +382,7 @@ export const getPhotoClientDetail = createServerFn({ method: "POST" })
     const { data: workflow, error: wErr } = await (supabaseAdmin as any)
       .from("photo_client_workflows")
       .select(
-        "id, user_id, booking_id, stage, session_date, session_time, location, package_type, photos_to_edit, album_upgrades, total_price, amount_paid, balance, has_package, wants_editing, max_proof_selections, proof_selection_submitted_at, drive_folder_url, drive_synced_at, guided_selection_enabled, all_photos_unlocked, unlock_receipt_submitted_at",
+        "id, user_id, booking_id, stage, session_date, session_time, location, package_type, photos_to_edit, album_upgrades, total_price, amount_paid, balance, has_package, wants_editing, max_proof_selections, proof_selection_submitted_at, drive_folder_url, drive_synced_at, guided_selection_enabled, all_photos_unlocked, unlock_receipt_submitted_at, client_step, production_step",
       )
       .eq("id", data.workflowId)
       .single();
@@ -432,6 +432,8 @@ export const getPhotoClientDetail = createServerFn({ method: "POST" })
         guided_selection_enabled: (workflow as any).guided_selection_enabled as boolean,
         all_photos_unlocked: (workflow as any).all_photos_unlocked as boolean,
         unlock_receipt_submitted_at: (workflow as any).unlock_receipt_submitted_at as string | null,
+        client_step: ((workflow as any).client_step ?? 1) as number,
+        production_step: ((workflow as any).production_step ?? 1) as number,
       },
       images: images ?? [],
     };
@@ -746,6 +748,33 @@ export async function runDueProofSelectionReminders(): Promise<{ checked: number
   return { checked: (candidates ?? []).length, sent };
 }
 
+const stepTrackerSchema = z.object({
+  workflowId: z.string().uuid(),
+  clientStep: z.number().int().min(1).max(4).optional(),
+  productionStep: z.number().int().min(1).max(6).optional(),
+});
+
+/**
+ * Admin-only — moves either (or both) of the two visual progress
+ * breadcrumbs (StepTracker.tsx) on the client detail page. Purely a manual
+ * indicator, same as its sibling in photographer-portal — never touches
+ * `stage`, which keeps driving the real proof-selection/album logic.
+ */
+export const updatePhotoClientSteps = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => stepTrackerSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const update: Record<string, number> = {};
+    if (data.clientStep != null) update.client_step = data.clientStep;
+    if (data.productionStep != null) update.production_step = data.productionStep;
+    if (Object.keys(update).length === 0) return { ok: true };
+    const { error } = await (supabaseAdmin as any).from("photo_client_workflows").update(update).eq("id", data.workflowId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 const addImageSchema = z.object({
   workflowId: z.string().uuid(),
   kind: z.enum(["proof", "edited"]),
@@ -981,7 +1010,7 @@ export const getMyPhotoGalleries = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: workflows, error } = await (supabase as any)
       .from("photo_client_workflows")
-      .select("id, stage, booking_id, max_proof_selections, proof_selection_submitted_at, guided_selection_enabled, all_photos_unlocked, unlock_receipt_submitted_at")
+      .select("id, stage, booking_id, max_proof_selections, proof_selection_submitted_at, guided_selection_enabled, all_photos_unlocked, unlock_receipt_submitted_at, client_step")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -1023,6 +1052,7 @@ export const getMyPhotoGalleries = createServerFn({ method: "POST" })
           guided_selection_enabled: w.guided_selection_enabled as boolean,
           all_photos_unlocked: w.all_photos_unlocked as boolean,
           unlock_receipt_submitted_at: w.unlock_receipt_submitted_at as string | null,
+          client_step: (w.client_step ?? 1) as number,
         };
       }),
     );
@@ -1127,9 +1157,13 @@ export const submitProofSelection = createServerFn({ method: "POST" })
     }
 
     const now = new Date().toISOString();
+    // client_step: advance to 3 ("בחירת כיתובים, תמונות לקולאז' וכריכה") —
+    // step 2 ("בחירת תמונות") is exactly what she just finished. Only moves
+    // forward (never backward) so a pre-existing admin-advanced value isn't
+    // clobbered if this ever runs more than once for the same workflow.
     const { error: updErr } = await (supabaseAdmin as any)
       .from("photo_client_workflows")
-      .update({ proof_selection_submitted_at: now, stage: "edited_uploaded", updated_at: now })
+      .update({ proof_selection_submitted_at: now, stage: "edited_uploaded", client_step: 3, updated_at: now })
       .eq("id", wf.id);
     if (updErr) throw new Error(updErr.message);
 

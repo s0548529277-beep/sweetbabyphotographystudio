@@ -13,6 +13,8 @@ import {
 import { downloadPhotosAsZip } from "@/lib/photo-zip";
 import { PhotoLightbox, GuidedStepper } from "@/components/PhotoLightbox";
 import { AllPhotosUnlockPanel } from "@/components/AllPhotosUnlockPanel";
+import { StepTracker } from "@/components/StepTracker";
+import { CLIENT_STEPS } from "@/lib/gallery-steps";
 import michalLogoWordmark from "@/assets/michal-logo-wordmark.png";
 
 /** Reads a File as base64 (no data: prefix) — needed because submitNewbornUnlockReceiptByToken has to carry the file over as a plain server-fn argument (a newborn visitor has no Supabase session for a direct authenticated Storage upload, see that function's own doc comment). */
@@ -342,7 +344,7 @@ function NewbornGalleryPage() {
     );
   }
 
-  const { contactName, packageName, images, proofsSelectedAt, maxProofSelections, guidedSelectionEnabled, allPhotosUnlocked, unlockReceiptSubmittedAt } = query.data as {
+  const { contactName, packageName, images, proofsSelectedAt, maxProofSelections, guidedSelectionEnabled, allPhotosUnlocked, unlockReceiptSubmittedAt, clientStep } = query.data as {
     contactName: string;
     packageName: string;
     images: Img[];
@@ -351,6 +353,7 @@ function NewbornGalleryPage() {
     guidedSelectionEnabled: boolean;
     allPhotosUnlocked: boolean;
     unlockReceiptSubmittedAt: string | null;
+    clientStep: number;
   };
   const edited = images.filter((i) => i.kind === "edited");
   const proofs = images.filter((i) => i.kind === "proof");
@@ -369,6 +372,10 @@ function NewbornGalleryPage() {
       </header>
 
       <div className="max-w-5xl mx-auto px-6 py-10">
+        <div className="bg-white/60 border border-[#4a3221]/10 rounded-2xl p-4 mb-8">
+          <StepTracker theme="pink" steps={CLIENT_STEPS} current={clientStep ?? 1} />
+        </div>
+
         <div className="text-center mb-8">
           <h1 className="text-3xl md:text-4xl mb-2" style={{ fontFamily: "'DM Serif Display', serif" }}>
             {showEdited ? "התמונות המוכנות שלך 💗" : "בואי נבחר תמונות"}

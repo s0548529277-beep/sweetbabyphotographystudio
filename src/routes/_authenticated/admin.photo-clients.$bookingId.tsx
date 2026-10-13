@@ -13,6 +13,7 @@ import {
   bulkDeletePhotoClientImages,
   getPhotoClientDetail,
   updatePhotoClientDetails,
+  updatePhotoClientSteps,
   sendPhotoClientContract,
   syncAlbumToDrive,
   sendDriveAlbumLinkToClient,
@@ -26,6 +27,8 @@ import {
 } from "@/lib/photo-clients.functions";
 import { PhotoTriagePanel } from "@/components/PhotoTriagePanel";
 import { UnlockApprovalCard } from "@/components/UnlockApprovalCard";
+import { StepTracker } from "@/components/StepTracker";
+import { CLIENT_STEPS, PRODUCTION_STEPS } from "@/lib/gallery-steps";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -573,6 +576,7 @@ function PhotoClientDetail() {
   const qc = useQueryClient();
   const fetchDetail = useServerFn(getPhotoClientDetail);
   const advanceStage = useServerFn(advancePhotoClientStage);
+  const setSteps = useServerFn(updatePhotoClientSteps);
   const toggleSelect = useServerFn(adminToggleProofSelection);
   const bulkDeleteImages = useServerFn(bulkDeletePhotoClientImages);
   const getReceiptUrl = useServerFn(getAllPhotosUnlockReceiptUrl);
@@ -600,6 +604,24 @@ function PhotoClientDetail() {
   const onToggleSelect = async (imageId: string, selected: boolean) => {
     try {
       await toggleSelect({ data: { imageId, selected } });
+      refetch();
+    } catch (e: any) {
+      toast.error(e?.message ?? "העדכון נכשל");
+    }
+  };
+
+  const onClientStepClick = async (step: number) => {
+    try {
+      await setSteps({ data: { workflowId, clientStep: step } });
+      refetch();
+    } catch (e: any) {
+      toast.error(e?.message ?? "העדכון נכשל");
+    }
+  };
+
+  const onProductionStepClick = async (step: number) => {
+    try {
+      await setSteps({ data: { workflowId, productionStep: step } });
       refetch();
     } catch (e: any) {
       toast.error(e?.message ?? "העדכון נכשל");
@@ -636,6 +658,17 @@ function PhotoClientDetail() {
             : "· אין מועד קבוע"}
           {workflow.location ? ` · ${workflow.location}` : ""}
         </p>
+      </div>
+
+      <div className="bg-card rounded-2xl border border-primary/10 p-5 space-y-5">
+        <div>
+          <p className="text-xs font-semibold text-[#5a3a33] mb-3">התקדמות הלקוחה</p>
+          <StepTracker theme="pink" steps={CLIENT_STEPS} current={workflow.client_step ?? 1} onStepClick={onClientStepClick} />
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-[#4a3221] mb-3">התקדמות הייצור (פנימי)</p>
+          <StepTracker theme="gold" steps={PRODUCTION_STEPS} current={workflow.production_step ?? 1} onStepClick={onProductionStepClick} />
+        </div>
       </div>
 
       <PackageDetails workflow={workflow} workflowId={workflowId} onSaved={refetch} />

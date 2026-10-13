@@ -14,6 +14,8 @@ import {
 import { downloadPhotosAsZip } from "@/lib/photo-zip";
 import { PhotoLightbox, GuidedStepper } from "@/components/PhotoLightbox";
 import { AllPhotosUnlockPanel } from "@/components/AllPhotosUnlockPanel";
+import { StepTracker } from "@/components/StepTracker";
+import { CLIENT_STEPS } from "@/lib/gallery-steps";
 import { uploadReceiptFile } from "@/lib/receipt-upload";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
@@ -37,6 +39,7 @@ type Gallery = {
   guided_selection_enabled: boolean;
   all_photos_unlocked: boolean;
   unlock_receipt_submitted_at: string | null;
+  client_step: number;
 };
 
 const STAGE_MESSAGE: Record<WorkflowStage, string> = {
@@ -339,6 +342,9 @@ function MyPhotosPage() {
                   <Check className="h-3.5 w-3.5" /> {g.images.filter((i) => i.selected).length} נבחרו
                 </span>
               )}
+            </div>
+            <div className="bg-card border border-primary/10 rounded-2xl p-4">
+              <StepTracker theme="pink" steps={CLIENT_STEPS} current={g.client_step ?? 1} />
             </div>
             <p className="text-sm text-muted-foreground">{STAGE_MESSAGE[g.stage]}</p>
             {g.stage === "proofs_ready" && g.images.length > 0 && (

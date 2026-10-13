@@ -518,6 +518,29 @@ export const toggleNewbornOrderStep = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const updateClientStepSchema = z.object({ id: z.string().uuid(), clientStep: z.number().int().min(1).max(4) });
+
+/**
+ * Admin-only — moves the client-facing pink progress breadcrumb
+ * (StepTracker.tsx, CLIENT_STEPS) on the order detail page. Deliberately
+ * no gold/production-step counterpart here: NEWBORN_TIMELINE_STEPS (the
+ * existing 8-step, independently-timestamped checklist above) already
+ * covers that for this flow, so a second parallel "current step" number
+ * would just duplicate/conflict with it rather than add anything.
+ */
+export const updateNewbornOrderClientStep = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => updateClientStepSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await (context.supabase as any)
+      .from("newborn_package_orders")
+      .update({ client_step: data.clientStep })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 const updateContactSchema = z.object({
   id: z.string().uuid(),
   contact_name: z.string().trim().min(1).max(120).optional(),
@@ -1181,6 +1204,7 @@ export const getNewbornGalleryByToken = createServerFn({ method: "POST" })
       guidedSelectionEnabled: !!order.guided_selection_enabled,
       allPhotosUnlocked: !!order.all_photos_unlocked,
       unlockReceiptSubmittedAt: order.unlock_receipt_submitted_at as string | null,
+      clientStep: ((order as any).client_step ?? 1) as number,
       images: (images ?? []) as {
         id: string;
         kind: "proof" | "edited";
@@ -1258,9 +1282,12 @@ export const finishNewbornProofSelectionByToken = createServerFn({ method: "POST
       if (order.max_proof_selections != null && selectedCount > order.max_proof_selections) {
         throw new Error(`נבחרו ${selectedCount} תמונות — יש להסיר עוד ${selectedCount - order.max_proof_selections} כדי להגיע ל-${order.max_proof_selections}`);
       }
+      // client_step: advance to 3 ("בחירת כיתובים, תמונות לקולאז' וכריכה")
+      // — step 2 ("בחירת תמונות") is exactly what she just finished, same
+      // reasoning as submitProofSelection in photo-clients.functions.ts.
       await (supabaseAdmin as any)
         .from("newborn_package_orders")
-        .update({ proofs_selected_at: new Date().toISOString() })
+        .update({ proofs_selected_at: new Date().toISOString(), client_step: 3 })
         .eq("id", order.id);
       try {
         const { sendGmail } = await import("@/integrations/google/gmail.server");

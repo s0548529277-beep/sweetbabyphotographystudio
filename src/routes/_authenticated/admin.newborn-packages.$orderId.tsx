@@ -15,6 +15,7 @@ import {
   bulkDeleteNewbornOrderImages,
   resendNewbornContract,
   updateNewbornPhotoSettings,
+  updateNewbornOrderClientStep,
   syncNewbornAlbumToDrive,
   sendNewbornDriveAlbumLinkToClient,
   getNewbornUnlockReceiptUrl,
@@ -24,6 +25,8 @@ import { findNewbornPackage } from "@/lib/newborn-packages";
 import { PhotoTriagePanel } from "@/components/PhotoTriagePanel";
 import { DriveSyncCard } from "@/components/DriveSyncCard";
 import { UnlockApprovalCard } from "@/components/UnlockApprovalCard";
+import { StepTracker } from "@/components/StepTracker";
+import { CLIENT_STEPS } from "@/lib/gallery-steps";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -277,6 +280,7 @@ function NewbornOrderGallery() {
   const sendDriveLink = useServerFn(sendNewbornDriveAlbumLinkToClient);
   const getReceiptUrl = useServerFn(getNewbornUnlockReceiptUrl);
   const approveUnlock = useServerFn(approveNewbornAllPhotosUnlock);
+  const setClientStep = useServerFn(updateNewbornOrderClientStep);
   const [resending, setResending] = useState(false);
 
   // The order list is already fetched on the main admin page — reused here
@@ -308,6 +312,15 @@ function NewbornOrderGallery() {
       () => toast.success("הקישור הועתק"),
       () => toast.error("ההעתקה נכשלה"),
     );
+  };
+
+  const onClientStepClick = async (step: number) => {
+    try {
+      await setClientStep({ data: { id: orderId, clientStep: step } });
+      refreshOrder();
+    } catch (e: any) {
+      toast.error(e?.message ?? "העדכון נכשל");
+    }
   };
 
   const handleResend = async () => {
@@ -344,6 +357,11 @@ function NewbornOrderGallery() {
             {pkg?.name ?? order.package_id} · ₪{order.total_price}
           </p>
         </div>
+      </div>
+
+      <div className="bg-card rounded-2xl border border-primary/10 p-5">
+        <p className="text-xs font-semibold text-[#5a3a33] mb-3">התקדמות הלקוחה</p>
+        <StepTracker theme="pink" steps={CLIENT_STEPS} current={order.client_step ?? 1} onStepClick={onClientStepClick} />
       </div>
 
       <div className="bg-card rounded-2xl border border-primary/10 p-5 space-y-3">
