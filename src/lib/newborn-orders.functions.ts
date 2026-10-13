@@ -737,6 +737,55 @@ export const updateNewbornOrderPayment = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const newbornPaymentReminderSchema = z.object({ orderIds: z.array(z.string().uuid()).min(1).max(200) });
+
+/**
+ * Bulk "מייל תשלום ללקוחות" for newborn orders — same capability/shape as
+ * sendPaymentReminderEmails in photo-clients.functions.ts, ported here per
+ * explicit request. Simpler than that one: contact_email lives directly on
+ * the order row (no auth.users lookup needed — newborn clients have no
+ * site account). Skips (never fails the whole batch on) an order with no
+ * email, no price, or no open balance.
+ */
+export const sendNewbornPaymentReminderEmails = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => newbornPaymentReminderSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data: orders, error } = await (context.supabase as any)
+      .from("newborn_package_orders")
+      .select("id, contact_name, contact_email, total_price, amount_paid")
+      .in("id", data.orderIds);
+    if (error) throw new Error(error.message);
+
+    const { sendGmail } = await import("@/integrations/google/gmail.server");
+    const results = await Promise.all(
+      (orders ?? []).map(async (o: any) => {
+        if (!o.contact_email) return { orderId: o.id, sent: false, reason: "אין אימייל ללקוחה" };
+        if (o.total_price == null) return { orderId: o.id, sent: false, reason: "לא הוגדר סכום כולל" };
+        const balance = Number(o.total_price) - Number(o.amount_paid ?? 0);
+        if (balance <= 0) return { orderId: o.id, sent: false, reason: "אין יתרה פתוחה" };
+        try {
+          const ok = await sendGmail({
+            to: o.contact_email,
+            subject: "תזכורת תשלום · מיכל סיבוני",
+            html: `<div dir="rtl" style="font-family:sans-serif">
+              <p>שלום${o.contact_name ? " " + o.contact_name : ""},</p>
+              <p>סה״כ לתשלום: <b>₪${Number(o.total_price).toFixed(0)}</b><br/>
+              שולם עד כה: <b>₪${Number(o.amount_paid ?? 0).toFixed(0)}</b><br/>
+              יתרה לתשלום: <b>₪${balance.toFixed(0)}</b></p>
+              <p>לתיאום התשלום אפשר להשיב למייל הזה.</p>
+            </div>`,
+          });
+          return { orderId: o.id, sent: ok, reason: ok ? undefined : "שליחת המייל נכשלה" };
+        } catch (e: any) {
+          return { orderId: o.id, sent: false, reason: e?.message ?? "שליחת המייל נכשלה" };
+        }
+      }),
+    );
+    return { results };
+  });
+
 /** Stamps gallery_opened_at (idempotent — safe to call every time "פתיחת גלריה" is clicked) so the dashboard can count how many orders actually have a gallery started. */
 export const markNewbornGalleryOpened = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -829,6 +878,27 @@ export const addNewbornOrderImage = createServerFn({ method: "POST" })
         original_storage_path: data.originalStoragePath ?? data.storagePath ?? null,
         watermarked: data.watermarked ?? false,
       }),
+    );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const adminToggleSchema = z.object({ imageId: z.string().uuid(), selected: z.boolean() });
+
+/**
+ * Admin-side "✓" marking on a proof photo — e.g. the client picked her
+ * favorites in person/by phone rather than through the gallery link. Same
+ * capability as adminToggleProofSelection in photo-clients.functions.ts,
+ * ported here per explicit request that the newborn flow get the same
+ * admin options the general photo-clients flow already has.
+ */
+export const adminToggleNewbornProofSelection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => adminToggleSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await withSchemaCacheRetry(context.supabase, () =>
+      (context.supabase as any).from("newborn_order_images").update({ selected: data.selected }).eq("id", data.imageId),
     );
     if (error) throw new Error(error.message);
     return { ok: true };

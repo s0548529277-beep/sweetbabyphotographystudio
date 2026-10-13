@@ -20,6 +20,7 @@ import {
   updateNewbornOrderPayment,
   markNewbornGalleryOpened,
   deleteNewbornOrder,
+  sendNewbornPaymentReminderEmails,
 } from "@/lib/newborn-orders.functions";
 import { listNewbornPackageTypes, saveNewbornPackageType, deleteNewbornPackageType } from "@/lib/newborn-package-types.functions";
 import { NEWBORN_PACKAGES, NEWBORN_PACKAGE_CATEGORIES, NEWBORN_ADDONS, NEWBORN_TIMELINE_STEPS, findNewbornPackage } from "@/lib/newborn-packages";
@@ -965,7 +966,12 @@ function PackageTypesSection() {
   );
 }
 
-/** "תשלומים" — running balance per order, editable inline (types the new total-paid amount, not a delta). */
+/**
+ * "תשלומים" — running balance per order, editable inline (types the new
+ * total-paid amount, not a delta), plus a bulk "מייל תשלום ללקוחות" action
+ * — same capability as PaymentsView in admin.photo-clients.tsx, ported
+ * here per explicit request.
+ */
 function NewbornPaymentsView({
   rows,
   runUpdatePayment,
@@ -977,9 +983,38 @@ function NewbornPaymentsView({
 }) {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [sendingReminders, setSendingReminders] = useState(false);
+  const sendReminders = useServerFn(sendNewbornPaymentReminderEmails);
 
   const paidTotal = rows.reduce((s, o) => s + Number(o.amount_paid), 0);
   const openTotal = rows.reduce((s, o) => s + Math.max(0, Number(o.total_price) - Number(o.amount_paid)), 0);
+
+  const toggleSelected = (id: string) =>
+    setSelected((s) => {
+      const next = new Set(s);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const sendToSelected = async () => {
+    if (selected.size === 0) return toast.error("צריך לבחור לפחות הזמנה אחת");
+    setSendingReminders(true);
+    try {
+      const { results } = await sendReminders({ data: { orderIds: Array.from(selected) } });
+      const sentCount = results.filter((r) => r.sent).length;
+      const skipped = results.filter((r) => !r.sent);
+      if (sentCount > 0) toast.success(`נשלחו ${sentCount} מיילים`);
+      if (skipped.length > 0) {
+        toast.error(`${skipped.length} לא נשלחו: ${skipped.map((s) => s.reason).join(", ")}`, { duration: 8000 });
+      }
+      setSelected(new Set());
+    } catch (e) {
+      toast.error(heError(e, "השליחה נכשלה"));
+    } finally {
+      setSendingReminders(false);
+    }
+  };
 
   const save = async (order: OrderRow) => {
     const raw = drafts[order.id];
@@ -1008,17 +1043,25 @@ function NewbornPaymentsView({
         <StatCard icon={Wallet2} value={`₪${openTotal.toFixed(0)}`} label="יתרה פתוחה סה״כ" tone={openTotal > 0 ? "warn" : undefined} />
       </div>
 
+      <div className="flex items-center justify-end">
+        <Button type="button" size="sm" variant="outline" className="rounded-full gap-1.5" disabled={sendingReminders || selected.size === 0} onClick={sendToSelected}>
+          <Mail className="h-3.5 w-3.5" /> {sendingReminders ? "שולח..." : `מייל תשלום ללקוחות (${selected.size})`}
+        </Button>
+      </div>
+
       <div className="space-y-3">
         {rows.map((order) => {
           const draft = drafts[order.id];
           const shown = draft ?? String(order.amount_paid);
           const pct = order.total_price > 0 ? Math.min(100, (Number(order.amount_paid) / order.total_price) * 100) : 0;
           const balance = Math.max(0, order.total_price - Number(order.amount_paid));
+          const paidInFull = balance <= 0;
           return (
             <div key={order.id} className="bg-card rounded-2xl border border-primary/10 p-4">
-              <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
+              <div className="flex items-center gap-3 flex-wrap mb-2">
+                <Checkbox checked={selected.has(order.id)} onCheckedChange={() => toggleSelected(order.id)} disabled={paidInFull} />
                 <span className="font-medium text-primary">{order.contact_name}</span>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-sm text-muted-foreground mr-auto">
                   מתוך <span className="font-display text-primary">₪{order.total_price}</span>
                 </span>
               </div>

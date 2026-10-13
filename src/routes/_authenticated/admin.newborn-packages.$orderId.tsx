@@ -13,6 +13,7 @@ import {
   addNewbornOrderImage,
   deleteNewbornOrderImage,
   bulkDeleteNewbornOrderImages,
+  adminToggleNewbornProofSelection,
   resendNewbornContract,
   updateNewbornPhotoSettings,
   updateNewbornOrderClientStep,
@@ -22,6 +23,7 @@ import {
   approveNewbornAllPhotosUnlock,
 } from "@/lib/newborn-orders.functions";
 import { findNewbornPackage } from "@/lib/newborn-packages";
+import { heError } from "@/lib/he-errors";
 import { PhotoTriagePanel } from "@/components/PhotoTriagePanel";
 import { DriveSyncCard } from "@/components/DriveSyncCard";
 import { UnlockApprovalCard } from "@/components/UnlockApprovalCard";
@@ -71,6 +73,7 @@ function UploadSection({
   orderId,
   images,
   onChanged,
+  onToggleSelect,
 }: {
   title: string;
   hint: string;
@@ -78,6 +81,8 @@ function UploadSection({
   orderId: string;
   images: ImageRow[];
   onChanged: () => void;
+  /** Only passed for the proofs section — lets the admin mark/unmark a favorite herself, e.g. when the client picked in person rather than through the gallery link. */
+  onToggleSelect?: (imageId: string, selected: boolean) => void;
 }) {
   const addImage = useServerFn(addNewbornOrderImage);
   const removeImage = useServerFn(deleteNewbornOrderImage);
@@ -201,10 +206,18 @@ function UploadSection({
                   <Droplet className="h-3 w-3" />
                 </span>
               )}
-              {kind === "proof" && img.selected && (
-                <span className="absolute top-1 right-1 rounded-full p-1 bg-primary text-primary-foreground">
+              {kind === "proof" && onToggleSelect && (
+                <button
+                  type="button"
+                  onClick={() => onToggleSelect(img.id, !img.selected)}
+                  className={`absolute top-1 right-1 rounded-full p-1 transition-colors ${
+                    img.selected ? "bg-primary text-primary-foreground" : "bg-background/80 text-muted-foreground opacity-0 group-hover:opacity-100"
+                  }`}
+                  aria-label="סימון מועדפת"
+                  title="סימון/ביטול כתמונה נבחרת"
+                >
                   <Check className="h-3.5 w-3.5" />
-                </span>
+                </button>
               )}
               <button
                 type="button"
@@ -281,6 +294,7 @@ function NewbornOrderGallery() {
   const getReceiptUrl = useServerFn(getNewbornUnlockReceiptUrl);
   const approveUnlock = useServerFn(approveNewbornAllPhotosUnlock);
   const setClientStep = useServerFn(updateNewbornOrderClientStep);
+  const adminToggleSelect = useServerFn(adminToggleNewbornProofSelection);
   const [resending, setResending] = useState(false);
 
   // The order list is already fetched on the main admin page — reused here
@@ -302,6 +316,15 @@ function NewbornOrderGallery() {
   const onDeleteTrashedProofs = async (ids: string[]) => {
     await bulkDeleteImages({ data: { ids } });
     refresh();
+  };
+
+  const onToggleSelect = async (imageId: string, selected: boolean) => {
+    try {
+      await adminToggleSelect({ data: { imageId, selected } });
+      refresh();
+    } catch (e) {
+      toast.error(heError(e, "העדכון נכשל"));
+    }
   };
 
   const shareUrl = order?.access_token ? `https://sweetbabyphoto.shop/newborn/gallery/${order.access_token}` : null;
@@ -395,7 +418,15 @@ function NewbornOrderGallery() {
         <div className="text-sm text-muted-foreground">טוען תמונות...</div>
       ) : (
         <div className="grid md:grid-cols-2 gap-5">
-          <UploadSection title="תמונות לבחירה (עם סימן מים)" hint="הלקוחה בוחרת מתוכן." kind="proof" orderId={orderId} images={proofImages} onChanged={refresh} />
+          <UploadSection
+            title="תמונות לבחירה (עם סימן מים)"
+            hint='הלקוחה בוחרת מתוכן, או שמסמנים כאן בשמה (ה-✓) אם היא בחרה בעצמה בטלפון/בפגישה.'
+            kind="proof"
+            orderId={orderId}
+            images={proofImages}
+            onChanged={refresh}
+            onToggleSelect={onToggleSelect}
+          />
           <UploadSection title="תמונות מעובדות (איכות סופית)" hint="ברגע שיש כאן תמונות, הלקוחה רואה אותן במקום תמונות הבחירה." kind="edited" orderId={orderId} images={editedImages} onChanged={refresh} />
         </div>
       )}
