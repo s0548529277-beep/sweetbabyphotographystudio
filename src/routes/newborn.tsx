@@ -13,7 +13,7 @@ import { PAYMENT_LABELS } from "@/lib/photography-options";
 import { NEWBORN_PACKAGES, NEWBORN_ADDONS, NEWBORN_TIMELINE_STEPS } from "@/lib/newborn-packages";
 import { requestBirthBasketInterest } from "@/lib/newborn-orders.functions";
 import { usePageGallery, PAGE_IMAGE_KEYS, useSiteIcon } from "@/lib/page-images";
-import { Heart, Phone, Mail, CalendarDays, Check, ShieldCheck, Gift, Download } from "lucide-react";
+import { Heart, Phone, Mail, CalendarDays, Check, ShieldCheck, Gift, Download, ChevronDown } from "lucide-react";
 import { downloadImage } from "@/lib/download-image";
 import michalLogoWordmark from "@/assets/michal-logo-wordmark.png";
 import michalAnimatedLogoAsset from "@/assets/michal-logo-animated-v2.gif.asset.json";
@@ -113,6 +113,134 @@ function MichalFooter() {
         <p className="text-xs text-[#4a3221]/50 mt-2">© מיכל סיבוני — כל הזכויות שמורות</p>
       </div>
     </footer>
+  );
+}
+
+// Ideal newborn-shoot window is the well-known 5-14-days-after-birth range
+// (babies sleep deeper and curl up more easily in that window) — pure date
+// math off the birth/expected date, no AI or guessing involved.
+function DueDateCalculator() {
+  const [birthDate, setBirthDate] = useState("");
+
+  const result = (() => {
+    if (!birthDate) return null;
+    const base = new Date(birthDate + "T00:00:00");
+    if (Number.isNaN(base.getTime())) return null;
+    const from = new Date(base);
+    from.setDate(from.getDate() + 5);
+    const to = new Date(base);
+    to.setDate(to.getDate() + 14);
+    const fmt = (d: Date) => d.toLocaleDateString("he-IL", { day: "numeric", month: "long" });
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const pastWindow = today > to;
+    return { fromLabel: fmt(from), toLabel: fmt(to), pastWindow };
+  })();
+
+  return (
+    <section className="max-w-3xl mx-auto px-6 pb-16">
+      <div className="bg-white/80 rounded-3xl border border-[#d9b98a]/30 p-6 md:p-8 text-center">
+        <div className="inline-flex items-center gap-2 text-[#8a6338] text-xs tracking-[0.28em] uppercase mb-2">
+          <CalendarDays size={14} /> מחשבון חלון הצילום האידיאלי
+        </div>
+        <h2 className="text-2xl md:text-3xl mb-2" style={{ fontFamily: "'DM Serif Display', serif" }}>
+          מתי הכי כדאי לצלם?
+        </h2>
+        <p className="text-sm text-[#4a3221]/70 mb-5">
+          החלון המושלם הוא 5–14 יום מהלידה — התינוק/ת עוד ישנ/ה עמוק ומתכנס/ת לתנוחות הקלאסיות.
+        </p>
+        <label className="flex flex-col items-center gap-1.5 mb-4">
+          <span className="text-xs font-semibold text-[#4a3221]/80">תאריך לידה (משוער או בפועל)</span>
+          <input
+            type="date"
+            value={birthDate}
+            onChange={(e) => setBirthDate(e.target.value)}
+            className="h-11 rounded-full border border-[#d9b98a]/50 bg-white px-4 text-sm text-[#4a3221] focus:outline-none focus:ring-2 focus:ring-[#f5d5cf]"
+          />
+        </label>
+        {result && (
+          <div className="rounded-2xl bg-[#fdf3ec] border border-[#d9b98a]/25 px-5 py-4 text-sm text-[#4a3221]">
+            {result.pastWindow ? (
+              <>
+                חלון הצילום האידיאלי ({result.fromLabel} – {result.toLabel}) כבר עבר — זה לא מונע
+                צילומים! נבחר יחד תנוחות שמתאימות לגיל הנוכחי.
+              </>
+            ) : (
+              <>
+                כדאי לתאם צילומים בין <strong>{result.fromLabel}</strong> ל־<strong>{result.toLabel}</strong>.
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+const NEWBORN_FAQS: { q: string; a: string }[] = [
+  {
+    q: "מתי הכי כדאי לקבוע את הצילומים?",
+    a: "מומלץ לתאם תאריך עוד בהיריון (סביב שבוע 30-32) ולהשאיר את התאריך המדויק גמיש — ברגע שהתינוק/ת נולד/ה, נאשר מועד בחלון 5-14 הימים הראשונים.",
+  },
+  {
+    q: "כמה זמן אורך הצילום?",
+    a: "סשן ניו-בורן אורך בממוצע 2-3 שעות, בקצב רגוע שמתחשב בצרכי התינוק/ת — האכלה, הרגעה והחתלה לפי הצורך.",
+  },
+  {
+    q: "מה אם התינוק/ת בוכה או לא משתף פעולה?",
+    a: "זה חלק טבעי מהתהליך — יש לנו סבלנות וכלים להרגיע, ואם צריך מפסיקים להאכלה/הרגעה וממשיכים בהמשך. הסשן מתוכנן בגמישות ולא בלוח זמנים קשוח.",
+  },
+  {
+    q: "מה כולל המחיר?",
+    a: "המחיר כולל את הסטודיו, האביזרים, ההדרכה המקצועית וצילום עם מיכל. עריכה, הדפסה ואלבומים הם לפי החבילה שנבחרה — פירוט מלא בטבלת החבילות למעלה.",
+  },
+  {
+    q: "איך מתקבלות התמונות בסוף?",
+    a: "לאחר הצילום תקבלו גלריה דיגיטלית לבחירת התמונות האהובות עליכם, ולאחר העיבוד — קישור להורדה (ובחבילות עם אלבום, גם משלוח פיזי).",
+  },
+];
+
+function FaqAccordion() {
+  const [open, setOpen] = useState<number | null>(0);
+
+  return (
+    <section className="max-w-3xl mx-auto px-6 pb-16">
+      <div className="text-center mb-8">
+        <div className="inline-flex items-center gap-2 text-[#8a6338] text-xs tracking-[0.28em] uppercase mb-2">
+          שאלות נפוצות
+        </div>
+        <h2 className="text-3xl md:text-4xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
+          כל מה שרציתם לדעת
+        </h2>
+      </div>
+      <div className="space-y-3">
+        {NEWBORN_FAQS.map((f, i) => {
+          const isOpen = open === i;
+          return (
+            <div
+              key={f.q}
+              className="rounded-2xl border border-[#d9b98a]/30 bg-white/80 overflow-hidden"
+            >
+              <button
+                type="button"
+                onClick={() => setOpen(isOpen ? null : i)}
+                className="w-full flex items-center justify-between gap-3 px-5 py-4 text-right"
+                aria-expanded={isOpen}
+              >
+                <span className="text-sm font-semibold text-[#4a3221]">{f.q}</span>
+                <ChevronDown
+                  size={18}
+                  className={"shrink-0 text-[#8a6338] transition-transform " + (isOpen ? "rotate-180" : "")}
+                />
+              </button>
+              {isOpen && (
+                <div className="px-5 pb-4 text-sm text-[#4a3221]/75 leading-relaxed">{f.a}</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -406,6 +534,8 @@ function NewbornLandingPage() {
           </motion.div>
         </div>
       </section>
+
+      <DueDateCalculator />
 
       {/* Packages */}
       <section id="packages" className="max-w-6xl mx-auto px-6 py-16 md:py-20">
@@ -773,6 +903,8 @@ function NewbornLandingPage() {
           </div>
         </div>
       )}
+
+      <FaqAccordion />
 
       {/* Gallery — real newborn photos only (see builtinEntries in
           page-images.ts: no generic studio fallback for this page anymore,
