@@ -10,6 +10,7 @@ import {
   adminToggleProofSelection,
   advancePhotoClientStage,
   deletePhotoClientImage,
+  bulkDeletePhotoClientImages,
   getPhotoClientDetail,
   updatePhotoClientDetails,
   sendPhotoClientContract,
@@ -21,6 +22,7 @@ import {
   type WorkflowStage,
   type PhotoPackageKey,
 } from "@/lib/photo-clients.functions";
+import { PhotoTriagePanel } from "@/components/PhotoTriagePanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -569,9 +571,15 @@ function PhotoClientDetail() {
   const fetchDetail = useServerFn(getPhotoClientDetail);
   const advanceStage = useServerFn(advancePhotoClientStage);
   const toggleSelect = useServerFn(adminToggleProofSelection);
+  const bulkDeleteImages = useServerFn(bulkDeletePhotoClientImages);
   const detail = useQuery({ queryKey: ["photo-client", workflowId], queryFn: () => fetchDetail({ data: { workflowId } }) });
 
   const refetch = () => qc.invalidateQueries({ queryKey: ["photo-client", workflowId] });
+
+  const onDeleteTrashedProofs = async (imageIds: string[]) => {
+    await bulkDeleteImages({ data: { imageIds } });
+    refetch();
+  };
 
   const setStage = async (stage: WorkflowStage) => {
     try {
@@ -663,6 +671,10 @@ function PhotoClientDetail() {
             onChanged={refetch}
             onToggleSelect={onToggleSelect}
           />
+
+          {proofImages.length > 0 && stage !== "proofs_ready" && (
+            <PhotoTriagePanel images={proofImages.map((i) => ({ id: i.id, url: i.image_url }))} onDeleteMany={onDeleteTrashedProofs} />
+          )}
 
           {stage !== "booked" && stage !== "date_confirmed" && (
             <p className="text-sm text-muted-foreground -mt-3">

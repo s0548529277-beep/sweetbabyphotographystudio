@@ -819,6 +819,26 @@ export const deletePhotoClientImage = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const bulkDeleteSchema = z.object({ imageIds: z.array(z.string().uuid()).min(1).max(500) });
+
+/** Bulk version of deletePhotoClientImage — used by PhotoTriagePanel.tsx's "מחיקת המסומנות" (delete the ones marked trash) button, so confirming a triage pass is one call instead of N. */
+export const bulkDeletePhotoClientImages = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => bulkDeleteSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: imgs } = await (supabaseAdmin as any)
+      .from("photo_client_images")
+      .select("storage_path, original_storage_path")
+      .in("id", data.imageIds);
+    const paths = Array.from(new Set((imgs ?? []).flatMap((i: any) => [i.storage_path, i.original_storage_path]).filter(Boolean))) as string[];
+    if (paths.length) await supabaseAdmin.storage.from("items").remove(paths);
+    const { error } = await supabaseAdmin.from("photo_client_images").delete().in("id", data.imageIds);
+    if (error) throw new Error(error.message);
+    return { ok: true, deleted: data.imageIds.length };
+  });
+
 const DRIVE_ALBUMS_PARENT_FOLDER = "Sweetbaby - אלבומים ללקוחות";
 
 /**
