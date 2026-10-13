@@ -69,6 +69,32 @@ function Contact() {
 
         <ArrivalDirections className="mt-12" />
 
+        <div className="mt-8 rounded-3xl border border-primary/10 bg-cream/60 p-6 md:p-8">
+          <div className="flex items-center gap-2 mb-2">
+            <MapPin className="h-5 w-5 text-peach-deep" />
+            <h3 className="font-display text-xl text-primary">שעות פעילות</h3>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            השעות הפנויות משתנות מיום ליום לפי יומן הסטודיו — לצפייה בזמנים הפנויים בפועל ותיאום שריון,{" "}
+            <a href="/booking" className="text-primary underline underline-offset-2">
+              היכנסו ליומן השריון
+            </a>
+            .
+          </p>
+        </div>
+
+        <div className="mt-8 rounded-3xl border border-primary/10 overflow-hidden">
+          <iframe
+            title="מפת הגעה לסטודיו — תלמוד ירושלמי 24, בית שמש"
+            src="https://www.google.com/maps?q=%D7%AA%D7%9C%D7%9E%D7%95%D7%93+%D7%99%D7%A8%D7%95%D7%A9%D7%9C%D7%9E%D7%99+24+%D7%91%D7%99%D7%AA+%D7%A9%D7%9E%D7%A9&output=embed"
+            width="100%"
+            height="320"
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            className="block border-0"
+          />
+        </div>
+
       </section>
       <Footer />
     </div>
