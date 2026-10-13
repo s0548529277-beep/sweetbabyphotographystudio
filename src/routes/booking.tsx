@@ -514,7 +514,7 @@ function Booking() {
                 ] as const).filter(([, arr]) => arr.length > 0).map(([label, arr]) => (
                   <div key={label} className="mb-4">
                     <div className="text-[10px] tracking-[0.28em] uppercase text-[#6b8a63] mb-2">{label}</div>
-                    <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-1.5">
+                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5">
                       {arr.map((s) => {
                         const taken = overlaps(s, 1, existing);
                         const selected = startTime === s;
@@ -524,7 +524,7 @@ function Booking() {
                             key={s}
                             disabled={taken}
                             onClick={() => setStartTime(s)}
-                            className={`h-9 rounded-lg text-xs font-medium border transition-all ${
+                            className={`h-10 sm:h-9 rounded-lg text-xs font-medium border transition-all ${
                               taken
                                 ? "opacity-25 line-through cursor-not-allowed border-[#2d3d2b]/10 bg-[#f8ede4]/50"
                                 : selected
