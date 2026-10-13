@@ -672,7 +672,14 @@ function PhotoClientDetail() {
             onToggleSelect={onToggleSelect}
           />
 
-          {proofImages.length > 0 && stage !== "proofs_ready" && (
+          {/* Only before the client has ever had access to these proofs
+              (booked/date_confirmed) — once she's seen them and may have
+              started/finished picking favorites, this panel's bulk-delete
+              operates on ALL proof images with no "already selected"
+              distinction, so showing it past that point risks wiping out
+              her real picks. Per a direct report confirming exactly this
+              risk. */}
+          {proofImages.length > 0 && (stage === "booked" || stage === "date_confirmed") && (
             <PhotoTriagePanel images={proofImages.map((i) => ({ id: i.id, url: i.image_url }))} onDeleteMany={onDeleteTrashedProofs} />
           )}
 

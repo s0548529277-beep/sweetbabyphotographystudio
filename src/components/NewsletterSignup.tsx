@@ -1,31 +1,34 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Mail, Check, Copy } from "lucide-react";
-import { subscribeNewsletter } from "@/lib/newsletter.functions";
-import { useFeaturedCoupon, discountLabel, type FeaturedCoupon } from "@/hooks/use-featured-coupon";
+import { Mail } from "lucide-react";
+import { spinNewsletterWheel } from "@/lib/newsletter-wheel.functions";
+import { NewsletterWheel } from "@/components/NewsletterWheel";
 import { useAuth } from "@/lib/auth";
 import { EmailDatalist } from "@/components/EmailDatalist";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
+/**
+ * Footer newsletter signup — per explicit request, now routes through the
+ * SAME one-time wheel spin as the popup (spinNewsletterWheel +
+ * NewsletterWheel, see NewsletterPopup.tsx) instead of a separate flat
+ * "X% off" coupon. Already single-use by construction: spinNewsletterWheel
+ * keys on `newsletter_signups.wheel_spun_at` per email — a second spin
+ * attempt for the same email (reopening this form, or the popup, on any
+ * device) just replays the SAME saved result, never grants a new prize.
+ */
 export function NewsletterSignup({ className = "" }: { className?: string }) {
   const { user } = useAuth();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [started, setStarted] = useState(false);
+  const runSpin = useServerFn(spinNewsletterWheel);
 
   // A logged-in customer — no need to make her retype her own email.
   useEffect(() => {
     if (user && !user.is_anonymous && user.email) setEmail((v) => v || user.email!);
   }, [user]);
-  // Before signup this is just the shared template (for the teaser
-  // text/percentage) — after signup it's replaced with the personal,
-  // single-use code the server minted for this email.
-  const featured = useFeaturedCoupon();
-  const [submitted, setSubmitted] = useState(false);
-  const [issued, setIssued] = useState<FeaturedCoupon | null>(null);
-  const coupon = submitted ? issued : featured;
-  const subscribe = useServerFn(subscribeNewsletter);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -33,57 +36,36 @@ export function NewsletterSignup({ className = "" }: { className?: string }) {
     if (!trimmed || loading) return;
     setLoading(true);
     try {
-      const res = await subscribe({ data: { email: trimmed, source: "footer" } });
-      setIssued(res.coupon ?? null);
-      setSubmitted(true);
-    } catch {
-      toast.error("לא הצלחנו לרשום אותך, נסי שוב בעוד רגע");
+      setStarted(true);
     } finally {
       setLoading(false);
     }
   };
 
-  const copyCode = async (code: string) => {
+  const spin = async () => {
+    const trimmed = email.trim();
     try {
-      await navigator.clipboard.writeText(code);
-      toast.success("הקוד הועתק");
-    } catch {
-      // clipboard API unavailable — the code is already visible on screen
+      return await runSpin({ data: { email: trimmed } });
+    } catch (e) {
+      toast.error("לא הצלחנו לרשום אותך, נסי שוב בעוד רגע");
+      throw e;
     }
   };
 
-  if (submitted) {
+  if (started) {
     return (
       <div className={className}>
-        <h4 className="text-[10px] tracking-[0.35em] uppercase text-sand mb-4">תודה שנרשמת!</h4>
-        {coupon ? (
-          <>
-            <p className="text-background/85 text-sm mb-3">קוד ההנחה שלך ({discountLabel(coupon)}):</p>
-            <button
-              type="button"
-              onClick={() => copyCode(coupon.code)}
-              className="inline-flex items-center gap-2 rounded-full border border-background/30 px-4 py-2 text-sm font-medium hover:bg-background/10 transition-colors"
-              dir="ltr"
-            >
-              <Check className="h-3.5 w-3.5" /> {coupon.code} <Copy className="h-3.5 w-3.5 opacity-60" />
-            </button>
-          </>
-        ) : (
-          <p className="text-background/85 text-sm">נעדכן אותך במבצעים ובהטבות חדשות.</p>
-        )}
+        <h4 className="text-[10px] tracking-[0.35em] uppercase text-sand mb-4">🎡 קבלי הטבה בגלגל המתנות</h4>
+        <NewsletterWheel onSpin={spin} />
       </div>
     );
   }
 
   return (
     <div className={className}>
-      <h4 className="text-[10px] tracking-[0.35em] uppercase text-sand mb-4">
-        {coupon ? `קבלי ${discountLabel(coupon)} הנחה` : "הצטרפי לרשימת התפוצה"}
-      </h4>
+      <h4 className="text-[10px] tracking-[0.35em] uppercase text-sand mb-4">קבלי הטבה בגלגל המתנות 🎡</h4>
       <p className="text-background/70 text-sm mb-3 max-w-xs leading-relaxed">
-        {coupon
-          ? "הצטרפי לרשימת התפוצה ותקבלי מיד קוד הנחה להשכרת אביזרים."
-          : "עדכונים על מבצעים, אביזרים חדשים והטבות — ישירות למייל."}
+        הצטרפי לרשימת התפוצה וסובבי את הגלגל — הנחה או קרדיט מתנה, חד פעמי לכל כתובת מייל.
       </p>
       <form onSubmit={submit} className="flex gap-2 max-w-xs">
         <Input
