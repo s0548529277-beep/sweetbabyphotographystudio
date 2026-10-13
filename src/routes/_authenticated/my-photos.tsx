@@ -4,9 +4,18 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { getMyPhotoGalleries, toggleProofSelection, submitProofSelection, type WorkflowStage } from "@/lib/photo-clients.functions";
+import {
+  getMyPhotoGalleries,
+  toggleProofSelection,
+  submitProofSelection,
+  submitAllPhotosUnlockReceipt,
+  type WorkflowStage,
+} from "@/lib/photo-clients.functions";
 import { downloadPhotosAsZip } from "@/lib/photo-zip";
 import { PhotoLightbox, GuidedStepper } from "@/components/PhotoLightbox";
+import { AllPhotosUnlockPanel } from "@/components/AllPhotosUnlockPanel";
+import { uploadReceiptFile } from "@/lib/receipt-upload";
+import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { Camera, Check, Download, FileArchive, Heart, Loader2, SendHorizonal, X } from "lucide-react";
 
@@ -26,6 +35,8 @@ type Gallery = {
   max_proof_selections: number | null;
   proof_selection_submitted_at: string | null;
   guided_selection_enabled: boolean;
+  all_photos_unlocked: boolean;
+  unlock_receipt_submitted_at: string | null;
 };
 
 const STAGE_MESSAGE: Record<WorkflowStage, string> = {
@@ -37,8 +48,10 @@ const STAGE_MESSAGE: Record<WorkflowStage, string> = {
 };
 
 function ProofGrid({ gallery, onRefetch }: { gallery: Gallery; onRefetch: () => void }) {
+  const { user } = useAuth();
   const toggle = useServerFn(toggleProofSelection);
   const submitSelection = useServerFn(submitProofSelection);
+  const submitUnlockReceipt = useServerFn(submitAllPhotosUnlockReceipt);
   const [submitting, setSubmitting] = useState(false);
   const [phase, setPhase] = useState<"browse" | "narrow">("browse");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -86,6 +99,13 @@ function ProofGrid({ gallery, onRefetch }: { gallery: Gallery; onRefetch: () => 
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const onSubmitUnlockReceipt = async (file: File) => {
+    if (!user) throw new Error("יש להתחבר כדי לשלוח אסמכתא");
+    const path = await uploadReceiptFile(file, user.id, `unlock-${gallery.id}`);
+    await submitUnlockReceipt({ data: { workflowId: gallery.id, receiptPath: path } });
+    onRefetch();
   };
 
   return (
@@ -147,6 +167,15 @@ function ProofGrid({ gallery, onRefetch }: { gallery: Gallery; onRefetch: () => 
           }
         />
       )}
+
+      <AllPhotosUnlockPanel
+        displayPhotos={gallery.images.map((img, i) => ({ url: img.image_url, name: `${String(i + 1).padStart(3, "0")}.jpg` }))}
+        originalPhotos={gallery.images.map((img, i) => ({ url: img.original_image_url || img.image_url, name: `${String(i + 1).padStart(3, "0")}.jpg` }))}
+        zipBaseName={gallery.booking?.contact_name || "תמונות"}
+        unlocked={gallery.all_photos_unlocked}
+        receiptSubmittedAt={gallery.unlock_receipt_submitted_at}
+        onSubmitReceipt={onSubmitUnlockReceipt}
+      />
 
       <div className="sticky bottom-3 z-10 mt-3 bg-card/95 backdrop-blur border border-primary/15 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 shadow-sm flex-wrap">
         <div className="text-sm">

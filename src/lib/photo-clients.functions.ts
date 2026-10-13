@@ -379,10 +379,10 @@ export const getPhotoClientDetail = createServerFn({ method: "POST" })
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: workflow, error: wErr } = await supabaseAdmin
+    const { data: workflow, error: wErr } = await (supabaseAdmin as any)
       .from("photo_client_workflows")
       .select(
-        "id, user_id, booking_id, stage, session_date, session_time, location, package_type, photos_to_edit, album_upgrades, total_price, amount_paid, balance, has_package, wants_editing, max_proof_selections, proof_selection_submitted_at, drive_folder_url, drive_synced_at, guided_selection_enabled",
+        "id, user_id, booking_id, stage, session_date, session_time, location, package_type, photos_to_edit, album_upgrades, total_price, amount_paid, balance, has_package, wants_editing, max_proof_selections, proof_selection_submitted_at, drive_folder_url, drive_synced_at, guided_selection_enabled, all_photos_unlocked, unlock_receipt_submitted_at",
       )
       .eq("id", data.workflowId)
       .single();
@@ -430,6 +430,8 @@ export const getPhotoClientDetail = createServerFn({ method: "POST" })
         drive_folder_url: (workflow as any).drive_folder_url as string | null,
         drive_synced_at: (workflow as any).drive_synced_at as string | null,
         guided_selection_enabled: (workflow as any).guided_selection_enabled as boolean,
+        all_photos_unlocked: (workflow as any).all_photos_unlocked as boolean,
+        unlock_receipt_submitted_at: (workflow as any).unlock_receipt_submitted_at as string | null,
       },
       images: images ?? [],
     };
@@ -979,7 +981,7 @@ export const getMyPhotoGalleries = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: workflows, error } = await (supabase as any)
       .from("photo_client_workflows")
-      .select("id, stage, booking_id, max_proof_selections, proof_selection_submitted_at, guided_selection_enabled")
+      .select("id, stage, booking_id, max_proof_selections, proof_selection_submitted_at, guided_selection_enabled, all_photos_unlocked, unlock_receipt_submitted_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -999,10 +1001,10 @@ export const getMyPhotoGalleries = createServerFn({ method: "POST" })
 
         let images: any[] = [];
         if (kind) {
-          // original_image_url: for "edited" this is what the ZIP download
-          // actually pulls (always full quality, regardless of what the
-          // grid displays) — harmless to also select it for "proof", just
-          // unused there.
+          // original_image_url: what the ZIP download actually pulls for
+          // both kinds — always full quality regardless of what the grid
+          // displays. For "proof" this backs the paid "ללא סימן מים"
+          // unlock ZIP; for "edited" it's the regular album ZIP.
           const { data: imgs } = await (supabase as any)
             .from("photo_client_images")
             .select("id, kind, image_url, original_image_url, selected, sort_order")
@@ -1019,6 +1021,8 @@ export const getMyPhotoGalleries = createServerFn({ method: "POST" })
           max_proof_selections: w.max_proof_selections as number | null,
           proof_selection_submitted_at: w.proof_selection_submitted_at as string | null,
           guided_selection_enabled: w.guided_selection_enabled as boolean,
+          all_photos_unlocked: w.all_photos_unlocked as boolean,
+          unlock_receipt_submitted_at: w.unlock_receipt_submitted_at as string | null,
         };
       }),
     );
@@ -1172,4 +1176,85 @@ export const submitProofSelection = createServerFn({ method: "POST" })
     }
 
     return { ok: true, count: selectedImages.length };
+  });
+
+// ---------- "כל התמונות בלי סימן מים" unlock (150₪ add-on) ----------
+// Per explicit request: a client can get a ZIP of every proof photo at
+// full quality, no watermark, for a 150₪ add-on — either by uploading a
+// payment receipt (same `receipts` storage bucket/path convention as the
+// studio-rental deposit flow in deposit.$type.$id.tsx) that the admin then
+// reviews and approves, or the admin can just pre-approve it directly with
+// no receipt at all (e.g. already bundled into a client's package).
+// all_photos_unlocked/unlock_receipt_path/unlock_receipt_submitted_at are
+// brand-new columns — cast past the generated types (same reasoning as
+// every other very-new column in this file; see photo_client_workflows'
+// own migration history for how often an external regen strips these
+// before the real migration has landed, so casting avoids re-patching
+// types.ts over and over for columns not core to query shape anyway).
+
+const submitUnlockReceiptSchema = z.object({ workflowId: z.string().uuid(), receiptPath: z.string().min(1) });
+
+/** Customer-facing — the file itself is uploaded client-side to the `receipts` bucket first (same as the deposit page); this just records the path and notifies the studio for review. */
+export const submitAllPhotosUnlockReceipt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => submitUnlockReceiptSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: wf, error: wfErr } = await (supabaseAdmin as any)
+      .from("photo_client_workflows")
+      .select("id, user_id, booking_id, all_photos_unlocked")
+      .eq("id", data.workflowId)
+      .single();
+    if (wfErr || !wf) throw new Error("תהליך עבודה לא נמצא");
+    if (wf.user_id !== userId) throw new Error("אין הרשאה");
+    if (wf.all_photos_unlocked) return { ok: true };
+
+    const now = new Date().toISOString();
+    const { error } = await (supabaseAdmin as any)
+      .from("photo_client_workflows")
+      .update({ unlock_receipt_path: data.receiptPath, unlock_receipt_submitted_at: now })
+      .eq("id", wf.id);
+    if (error) throw new Error(error.message);
+
+    let contactName = "";
+    if (wf.booking_id) {
+      const { data: booking } = await supabaseAdmin.from("bookings").select("contact_name").eq("id", wf.booking_id).maybeSingle();
+      contactName = booking?.contact_name || "";
+    }
+    try {
+      await supabaseAdmin.from("admin_notifications").insert({
+        type: "all_photos_unlock_receipt",
+        title: `${contactName || "לקוחה"} שלחה אסמכתא לפתיחת כל התמונות (150₪)`,
+        body: { workflow_id: wf.id, contact_name: contactName },
+      });
+    } catch (e) {
+      console.error("[SWEETBABY] admin_notifications write for unlock receipt failed", e);
+    }
+    return { ok: true };
+  });
+
+/** Admin-facing — signs the uploaded receipt so it can be viewed/reviewed. */
+export const getAllPhotosUnlockReceiptUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => workflowIdSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: wf } = await (supabaseAdmin as any).from("photo_client_workflows").select("unlock_receipt_path").eq("id", data.workflowId).maybeSingle();
+    if (!wf?.unlock_receipt_path) return { url: null };
+    const { data: signed } = await supabaseAdmin.storage.from("receipts").createSignedUrl(wf.unlock_receipt_path, 60 * 60);
+    return { url: signed?.signedUrl ?? null };
+  });
+
+/** Admin-facing — approves the unlock, with or without a receipt on file (the admin's own call — e.g. pre-approved in advance for a client where it's bundled into the price). */
+export const approveAllPhotosUnlock = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => workflowIdSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await (supabaseAdmin as any).from("photo_client_workflows").update({ all_photos_unlocked: true }).eq("id", data.workflowId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
