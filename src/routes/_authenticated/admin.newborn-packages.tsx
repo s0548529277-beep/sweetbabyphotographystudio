@@ -21,6 +21,7 @@ import {
   markNewbornGalleryOpened,
   deleteNewbornOrder,
 } from "@/lib/newborn-orders.functions";
+import { listNewbornPackageTypes, saveNewbornPackageType, deleteNewbornPackageType } from "@/lib/newborn-package-types.functions";
 import { NEWBORN_PACKAGES, NEWBORN_PACKAGE_CATEGORIES, NEWBORN_ADDONS, NEWBORN_TIMELINE_STEPS, findNewbornPackage } from "@/lib/newborn-packages";
 import { heError } from "@/lib/he-errors";
 import {
@@ -129,7 +130,7 @@ function NewbornPackagesAdmin() {
   const orders = useQuery({ queryKey: ["newborn-orders"], queryFn: () => fetchOrders({}), enabled: !isDetail });
   const rows = (orders.data ?? []) as OrderRow[];
 
-  const [view, setView] = useState<"dashboard" | "list" | "table" | "calendar" | "payments">("dashboard");
+  const [view, setView] = useState<"dashboard" | "list" | "table" | "calendar" | "payments" | "packages">("dashboard");
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState(emptyCreateForm);
   const [saving, setSaving] = useState(false);
@@ -312,6 +313,7 @@ function NewbornPackagesAdmin() {
                 { key: "table", label: "טבלה", icon: Table2 },
                 { key: "calendar", label: "לוח", icon: CalendarRange },
                 { key: "payments", label: "תשלומים", icon: Wallet },
+                { key: "packages", label: "חבילות (גרסה 2)", icon: Baby },
               ] as const
             ).map((t) => (
               <button
@@ -354,6 +356,8 @@ function NewbornPackagesAdmin() {
       {view === "table" && <NewbornTableView rows={rows} />}
 
       {view === "payments" && <NewbornPaymentsView rows={rows} runUpdatePayment={runUpdatePayment} onSaved={() => qc.invalidateQueries({ queryKey: ["newborn-orders"] })} />}
+
+      {view === "packages" && <PackageTypesSection />}
 
       {view === "list" && (
         <div className="space-y-4">
@@ -890,6 +894,74 @@ function NewbornTableView({ rows }: { rows: OrderRow[] }) {
       </table>
       {rows.length === 0 && <p className="text-sm text-muted-foreground text-center py-10">אין עדיין הזמנות.</p>}
     </div>
+  );
+}
+
+/**
+ * "חבילות" — admin-editable newborn package list (name/price/description),
+ * ported as-is from the photographer-portal project's PackageTypesSection
+ * (admin.settings.tsx there) per explicit request to compare it against
+ * the existing hardcoded NEWBORN_PACKAGES list above. Reads/writes
+ * newborn_package_types — a brand-new, separate table; nothing here
+ * touches NEWBORN_PACKAGES or order creation.
+ */
+function PackageTypesSection() {
+  const qc = useQueryClient();
+  const runList = useServerFn(listNewbornPackageTypes);
+  const runSave = useServerFn(saveNewbornPackageType);
+  const runDelete = useServerFn(deleteNewbornPackageType);
+  const packages = useQuery({ queryKey: ["newborn_package_types"], queryFn: () => runList({}) });
+
+  const [newPkg, setNewPkg] = useState({ name: "", price: "", description: "" });
+
+  const add = async () => {
+    if (!newPkg.name.trim()) return;
+    try {
+      await runSave({ data: { name: newPkg.name, price: Number(newPkg.price) || 0, description: newPkg.description } });
+      setNewPkg({ name: "", price: "", description: "" });
+      qc.invalidateQueries({ queryKey: ["newborn_package_types"] });
+    } catch (e) {
+      toast.error(heError(e, "ההוספה נכשלה"));
+    }
+  };
+
+  const remove = async (pkgId: string) => {
+    if (!confirm("למחוק את החבילה?")) return;
+    await runDelete({ data: { id: pkgId } });
+    qc.invalidateQueries({ queryKey: ["newborn_package_types"] });
+  };
+
+  return (
+    <section className="space-y-4">
+      <h2 className="text-lg font-semibold">חבילות</h2>
+      <div className="bg-card border border-primary/10 rounded-2xl p-5 space-y-4 max-w-2xl">
+        <div className="divide-y divide-border">
+          {(packages.data ?? []).length === 0 && <p className="text-sm text-muted-foreground py-2">אין עדיין חבילות.</p>}
+          {(packages.data ?? []).map((p: any) => (
+            <div key={p.id} className="py-3 flex items-center justify-between gap-3">
+              <div>
+                <div className="font-medium">
+                  {p.name} — ₪{p.price}
+                </div>
+                {p.description && <div className="text-xs text-muted-foreground">{p.description}</div>}
+              </div>
+              <button type="button" onClick={() => remove(p.id)} className="h-8 w-8 rounded-full hover:bg-destructive/10 text-destructive flex items-center justify-center">
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid sm:grid-cols-[1fr_120px_1fr_auto] gap-2 pt-2 border-t border-border">
+          <Input placeholder="שם החבילה" value={newPkg.name} onChange={(e) => setNewPkg({ ...newPkg, name: e.target.value })} />
+          <Input placeholder="מחיר" type="number" value={newPkg.price} onChange={(e) => setNewPkg({ ...newPkg, price: e.target.value })} />
+          <Input placeholder="תיאור (אופציונלי)" value={newPkg.description} onChange={(e) => setNewPkg({ ...newPkg, description: e.target.value })} />
+          <Button onClick={add} className="gap-1.5">
+            <Plus className="h-4 w-4" /> הוספה
+          </Button>
+        </div>
+      </div>
+    </section>
   );
 }
 
