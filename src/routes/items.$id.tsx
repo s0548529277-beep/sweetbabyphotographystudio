@@ -54,6 +54,21 @@ function ItemPage() {
   const line = lines.find((l) => l.id === id);
   const inCart = line?.quantity ?? 0;
 
+  const combos = useQuery({
+    queryKey: ["item-combos", id, item.data?.category_id],
+    enabled: !!item.data?.category_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("items")
+        .select("id, name, sku, price, image_url")
+        .eq("category_id", item.data!.category_id as string)
+        .neq("id", id)
+        .limit(3);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const ld = useMemo(() => {
     if (!item.data) return null;
     return {
@@ -188,6 +203,32 @@ function ItemPage() {
           title="כך זה נראה בצילומים"
           subtitle="השראה בלבד — הצילומים לא כלולים בהשכרה."
         />
+
+        {combos.data && combos.data.length > 0 && (
+          <div className="mt-14 pt-10 border-t border-black/5">
+            <h2 className="font-display text-2xl mb-5">שילובים מומלצים</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {combos.data.map((c) => (
+                <Link
+                  key={c.id}
+                  to="/items/$id"
+                  params={{ id: c.id }}
+                  className="group rounded-2xl overflow-hidden bg-white border border-black/5 hover:border-black/15 transition-colors"
+                >
+                  <div className="aspect-square bg-[#efe6df]">
+                    <ProductImage imageUrl={c.image_url} alt={c.name} fallbackClassName="h-10 w-10" />
+                  </div>
+                  <div className="p-3">
+                    <div className="text-sm font-medium truncate">{c.name}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      ₪{Number(c.price).toFixed(0)}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       <Footer />

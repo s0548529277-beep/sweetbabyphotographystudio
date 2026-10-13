@@ -49,6 +49,17 @@ import { useCatalogCategories, type CatalogCategory, type CatalogItem } from "@/
 type Item = CatalogItem;
 type Category = CatalogCategory;
 
+// Theme-filter chips: the catalog has no curated tags field, so this matches
+// a keyword heuristic against each item's own name/category text instead of
+// pretending to a precise tagging system that doesn't exist.
+const THEME_TAGS: { label: string; keywords: string[] }[] = [
+  { label: "סמאש קייק", keywords: ["סמאש", "smash", "קייק", "עוגה", "עוגת"] },
+  { label: "חלאקה", keywords: ["חלאקה", "תספורת"] },
+  { label: "ניו-בורן בנים", keywords: ["תכלת", "כחול", " בן ", "בנים"] },
+  { label: "ניו-בורן בנות", keywords: ["ורוד", "פרחוני", "פרח", " בת ", "בנות"] },
+  { label: "עץ טבעי וכפרי", keywords: ["עץ", "עצי", "טבעי", "כפרי", "רטרו"] },
+];
+
 function RentalCatalogPage() {
   // Live catalog — admin edits (name/price/category/image) show up here.
   const categories = useCatalogCategories();
@@ -62,6 +73,7 @@ function RentalCatalogPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [lightbox, setLightbox] = useState<Item | null>(null);
   const [activeCat, setActiveCat] = useState<string>("all");
+  const [activeTheme, setActiveTheme] = useState<string | null>(null);
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -146,6 +158,11 @@ function RentalCatalogPage() {
     }
   }, [dateFrom, dateTo, timeFrom, timeTo]);
 
+  const activeThemeKeywords = useMemo(
+    () => THEME_TAGS.find((t) => t.label === activeTheme)?.keywords ?? null,
+    [activeTheme],
+  );
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const searching = !!aiSkus || !!q;
@@ -158,6 +175,11 @@ function RentalCatalogPage() {
           ...c,
           items: c.items.filter((it) => {
             if (it.hasHand) return false;
+            if (activeThemeKeywords) {
+              const hayTheme = ` ${it.sku} ${it.name} ${it.alt} ${c.title} `.toLowerCase();
+              if (!activeThemeKeywords.some((kw) => hayTheme.includes(kw.toLowerCase())))
+                return false;
+            }
             if (aiSkus?.has(it.sku)) return true;
             if (aiSkus && !q) return false;
             if (!q) return true;
@@ -167,7 +189,7 @@ function RentalCatalogPage() {
         }))
         .filter((c) => c.items.length > 0)
     );
-  }, [query, aiSkus, activeCat, categories]);
+  }, [query, aiSkus, activeCat, activeThemeKeywords, categories]);
 
   const resultCount = useMemo(() => filtered.reduce((n, c) => n + c.items.length, 0), [filtered]);
 
@@ -403,6 +425,20 @@ function RentalCatalogPage() {
                     onClick={() => setActiveCat(c.title)}
                   >
                     {c.title}
+                  </Chip>
+                ))}
+              </div>
+
+              {/* Theme chips — keyword-based, not a curated tag field */}
+              <div className="flex flex-wrap gap-2 mt-2">
+                <span className="text-xs text-muted-foreground self-center ml-1">לפי סגנון:</span>
+                {THEME_TAGS.map((t) => (
+                  <Chip
+                    key={t.label}
+                    active={activeTheme === t.label}
+                    onClick={() => setActiveTheme((cur) => (cur === t.label ? null : t.label))}
+                  >
+                    {t.label}
                   </Chip>
                 ))}
               </div>
