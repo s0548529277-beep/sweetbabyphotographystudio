@@ -1352,13 +1352,23 @@ export const finishNewbornProofSelectionByToken = createServerFn({ method: "POST
       if (order.max_proof_selections != null && selectedCount > order.max_proof_selections) {
         throw new Error(`נבחרו ${selectedCount} תמונות — יש להסיר עוד ${selectedCount - order.max_proof_selections} כדי להגיע ל-${order.max_proof_selections}`);
       }
-      // client_step: advance to 3 ("בחירת כיתובים, תמונות לקולאז' וכריכה")
-      // — step 2 ("בחירת תמונות") is exactly what she just finished, same
-      // reasoning as submitProofSelection in photo-clients.functions.ts.
-      await (supabaseAdmin as any)
+      // The real, load-bearing stamp (proofs_selected_at) is kept SEPARATE
+      // from the client_step write below — client_step is a brand-new
+      // column that may not have landed on the live database yet (the
+      // usual Lovable/Drizzle migration lag), and a missing column must
+      // never silently stop proofs_selected_at from being saved, which is
+      // what every client is doing right now when this runs.
+      const { error: stampErr } = await (supabaseAdmin as any)
         .from("newborn_package_orders")
-        .update({ proofs_selected_at: new Date().toISOString(), client_step: 3 })
+        .update({ proofs_selected_at: new Date().toISOString() })
         .eq("id", order.id);
+      if (stampErr) throw new Error(stampErr.message);
+
+      // client_step: advance to 3 ("בחירת כיתובים, תמונות לקולאז' וכריכה")
+      // — step 2 ("בחירת תמונות") is exactly what she just finished.
+      // Best-effort, same reasoning as the split above.
+      const { error: stepErr } = await (supabaseAdmin as any).from("newborn_package_orders").update({ client_step: 3 }).eq("id", order.id);
+      if (stepErr) console.error("[SWEETBABY] newborn client_step advance failed (column may not be live yet)", stepErr);
       try {
         const { sendGmail } = await import("@/integrations/google/gmail.server");
         const heart = await emailHeartImgTag(40);

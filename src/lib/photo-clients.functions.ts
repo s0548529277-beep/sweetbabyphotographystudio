@@ -379,11 +379,17 @@ export const getPhotoClientDetail = createServerFn({ method: "POST" })
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    // select("*") rather than an explicit column list — client_step/
+    // production_step (and any other very-new column) may not have landed
+    // on the live database yet (the usual Lovable/Drizzle migration lag
+    // documented elsewhere in this codebase); naming a column that doesn't
+    // exist yet makes PostgREST error out the WHOLE select, which breaks
+    // this entire page. "*" just omits a missing column from the row
+    // instead of erroring, and every field below already casts through
+    // `workflow as any` with `?? defaults` for exactly this reason.
     const { data: workflow, error: wErr } = await (supabaseAdmin as any)
       .from("photo_client_workflows")
-      .select(
-        "id, user_id, booking_id, stage, session_date, session_time, location, package_type, photos_to_edit, album_upgrades, total_price, amount_paid, balance, has_package, wants_editing, max_proof_selections, proof_selection_submitted_at, drive_folder_url, drive_synced_at, guided_selection_enabled, all_photos_unlocked, unlock_receipt_submitted_at, client_step, production_step",
-      )
+      .select("*")
       .eq("id", data.workflowId)
       .single();
     if (wErr || !workflow) throw new Error(wErr?.message ?? "לקוחה לא נמצאה");
@@ -1008,9 +1014,13 @@ export const getMyPhotoGalleries = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
+    // select("*") — see getPhotoClientDetail's matching comment: naming a
+    // very-new column (client_step) that hasn't landed on the live
+    // database yet would error out this ENTIRE query, breaking /my-photos
+    // for every customer. "*" degrades gracefully instead.
     const { data: workflows, error } = await (supabase as any)
       .from("photo_client_workflows")
-      .select("id, stage, booking_id, max_proof_selections, proof_selection_submitted_at, guided_selection_enabled, all_photos_unlocked, unlock_receipt_submitted_at, client_step")
+      .select("*")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -1157,15 +1167,24 @@ export const submitProofSelection = createServerFn({ method: "POST" })
     }
 
     const now = new Date().toISOString();
-    // client_step: advance to 3 ("בחירת כיתובים, תמונות לקולאז' וכריכה") —
-    // step 2 ("בחירת תמונות") is exactly what she just finished. Only moves
-    // forward (never backward) so a pre-existing admin-advanced value isn't
-    // clobbered if this ever runs more than once for the same workflow.
+    // The real, load-bearing update (proof_selection_submitted_at + stage)
+    // is kept SEPARATE from the client_step write below — client_step is a
+    // brand-new column that may not have landed on the live database yet
+    // (the usual Lovable/Drizzle migration lag), and a missing column must
+    // never block the actual proof-selection submission, which is what
+    // every customer is doing right now when this runs.
     const { error: updErr } = await (supabaseAdmin as any)
       .from("photo_client_workflows")
-      .update({ proof_selection_submitted_at: now, stage: "edited_uploaded", client_step: 3, updated_at: now })
+      .update({ proof_selection_submitted_at: now, stage: "edited_uploaded", updated_at: now })
       .eq("id", wf.id);
     if (updErr) throw new Error(updErr.message);
+
+    // client_step: advance to 3 ("בחירת כיתובים, תמונות לקולאז' וכריכה") —
+    // step 2 ("בחירת תמונות") is exactly what she just finished. Best-effort
+    // and separate from the update above for exactly the reason in the
+    // comment there.
+    const { error: stepErr } = await (supabaseAdmin as any).from("photo_client_workflows").update({ client_step: 3 }).eq("id", wf.id);
+    if (stepErr) console.error("[SWEETBABY] client_step advance failed (column may not be live yet)", stepErr);
 
     let contactName = "";
     if (wf.booking_id) {
