@@ -348,6 +348,9 @@ function Deposit() {
                   </div>
                 ) : (
                   <>
+                    <p className="text-xs text-muted-foreground text-center -mt-1">
+                      צילום מסך או PDF של אישור ההעברה/התשלום — הקובץ נגיש רק לצוות הסטודיו.
+                    </p>
                     <label className="block border-2 border-dashed border-border rounded-2xl p-8 text-center cursor-pointer hover:border-primary transition-colors">
                       <input
                         type="file"

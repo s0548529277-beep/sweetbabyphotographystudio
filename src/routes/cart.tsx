@@ -148,7 +148,17 @@ function Cart() {
                 <div className="h-px bg-[#2d3d2b]/15 my-3" />
                 <Row k="סה״כ" v={`₪${total.toFixed(0)}`} big />
                 {total < 50 && (
-                  <p className="text-[#2d3d2b]/80 text-xs mt-3">מינימום להזמנה 50 ש״ח — יש להוסיף ₪{(50 - total).toFixed(0)}.</p>
+                  <div className="mt-3">
+                    <div className="h-2 rounded-full bg-[#2d3d2b]/10 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-[#2d3d2b] transition-all"
+                        style={{ width: `${Math.min(100, (total / 50) * 100)}%` }}
+                      />
+                    </div>
+                    <p className="text-[#2d3d2b]/80 text-xs mt-2">
+                      מינימום להזמנה 50 ש״ח — יש להוסיף ₪{(50 - total).toFixed(0)}.
+                    </p>
+                  </div>
                 )}
               </div>
               <Link to="/checkout" className="block">
