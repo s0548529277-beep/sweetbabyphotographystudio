@@ -254,6 +254,7 @@ type PackageForm = {
   totalPrice: string;
   amountPaid: string;
   maxProofSelections: string;
+  guidedSelectionEnabled: boolean;
 };
 
 function toPackageForm(workflow: any): PackageForm {
@@ -267,6 +268,7 @@ function toPackageForm(workflow: any): PackageForm {
     totalPrice: workflow.total_price != null ? String(workflow.total_price) : "",
     amountPaid: workflow.amount_paid != null ? String(workflow.amount_paid) : "0",
     maxProofSelections: workflow.max_proof_selections != null ? String(workflow.max_proof_selections) : "",
+    guidedSelectionEnabled: !!workflow.guided_selection_enabled,
   };
 }
 
@@ -308,6 +310,7 @@ function PackageDetails({ workflow, workflowId, onSaved }: { workflow: any; work
           totalPrice: form.totalPrice.trim() ? Number(form.totalPrice) : null,
           amountPaid: form.amountPaid.trim() ? Number(form.amountPaid) : 0,
           maxProofSelections: form.maxProofSelections.trim() ? Number(form.maxProofSelections) : null,
+          guidedSelectionEnabled: form.guidedSelectionEnabled,
         },
       });
       toast.success("פרטי החבילה נשמרו");
@@ -377,6 +380,18 @@ function PackageDetails({ workflow, workflowId, onSaved }: { workflow: any; work
             onChange={(e) => set("maxProofSelections", e.target.value)}
             placeholder="ריק = בלי הגבלה"
           />
+        </div>
+        <div className="sm:col-span-2 flex items-start gap-2 bg-primary/5 rounded-lg px-3 py-2.5">
+          <input
+            type="checkbox"
+            id="guidedSelection"
+            checked={form.guidedSelectionEnabled}
+            onChange={(e) => set("guidedSelectionEnabled", e.target.checked)}
+            className="accent-primary h-4 w-4 mt-0.5"
+          />
+          <label htmlFor="guidedSelection" className="text-xs cursor-pointer select-none">
+            <span className="font-medium">מצב בחירה חכם</span> — הלקוחה תבחר חופשי קודם, ואז תצמצם אחת אחת עד למגבלה (עדיף כשיש מגבלה מוגדרת). בלי זה: בחירה פשוטה, חסומה אוטומטית במגבלה.
+          </label>
         </div>
         <div className="sm:col-span-2">
           <Label className="text-xs text-muted-foreground">אלבום ושדרוגים</Label>

@@ -1212,6 +1212,7 @@ export type Database = {
           created_at: string
           drive_folder_url: string | null
           drive_synced_at: string | null
+          guided_selection_enabled: boolean
           has_package: boolean
           id: string
           location: string | null
@@ -1236,6 +1237,7 @@ export type Database = {
           created_at?: string
           drive_folder_url?: string | null
           drive_synced_at?: string | null
+          guided_selection_enabled?: boolean
           has_package?: boolean
           id?: string
           location?: string | null
@@ -1260,6 +1262,7 @@ export type Database = {
           created_at?: string
           drive_folder_url?: string | null
           drive_synced_at?: string | null
+          guided_selection_enabled?: boolean
           has_package?: boolean
           id?: string
           location?: string | null

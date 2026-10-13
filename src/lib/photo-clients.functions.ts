@@ -333,6 +333,10 @@ const updateDetailsSchema = z.object({
   // Max proofs the client may mark as favorites before submitting her
   // final selection — null/omitted means no limit (today's behavior).
   maxProofSelections: z.number().int().min(1).max(1000).optional().nullable(),
+  // Opt-in "smart" two-phase flow (free selection first, then narrow down
+  // to the limit) — per explicit request, OFF by default; most clients
+  // still get the plain single-pass grid unless the admin turns this on.
+  guidedSelectionEnabled: z.boolean().optional(),
 });
 
 /** Edits a client card's package/shoot/payment details after creation — the detail page's "עריכת פרטי חבילה" panel. */
@@ -357,6 +361,7 @@ export const updatePhotoClientDetails = createServerFn({ method: "POST" })
         ...(fields.hasPackage != null ? { has_package: fields.hasPackage } : {}),
         ...(fields.wantsEditing !== undefined ? { wants_editing: fields.wantsEditing } : {}),
         ...(fields.maxProofSelections !== undefined ? { max_proof_selections: fields.maxProofSelections } : {}),
+        ...(fields.guidedSelectionEnabled != null ? { guided_selection_enabled: fields.guidedSelectionEnabled } : {}),
         updated_at: new Date().toISOString(),
       })
       .eq("id", workflowId);
@@ -377,7 +382,7 @@ export const getPhotoClientDetail = createServerFn({ method: "POST" })
     const { data: workflow, error: wErr } = await supabaseAdmin
       .from("photo_client_workflows")
       .select(
-        "id, user_id, booking_id, stage, session_date, session_time, location, package_type, photos_to_edit, album_upgrades, total_price, amount_paid, balance, has_package, wants_editing, max_proof_selections, proof_selection_submitted_at, drive_folder_url, drive_synced_at",
+        "id, user_id, booking_id, stage, session_date, session_time, location, package_type, photos_to_edit, album_upgrades, total_price, amount_paid, balance, has_package, wants_editing, max_proof_selections, proof_selection_submitted_at, drive_folder_url, drive_synced_at, guided_selection_enabled",
       )
       .eq("id", data.workflowId)
       .single();
@@ -424,6 +429,7 @@ export const getPhotoClientDetail = createServerFn({ method: "POST" })
         proof_selection_submitted_at: workflow.proof_selection_submitted_at as string | null,
         drive_folder_url: (workflow as any).drive_folder_url as string | null,
         drive_synced_at: (workflow as any).drive_synced_at as string | null,
+        guided_selection_enabled: (workflow as any).guided_selection_enabled as boolean,
       },
       images: images ?? [],
     };
@@ -953,7 +959,7 @@ export const getMyPhotoGalleries = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: workflows, error } = await (supabase as any)
       .from("photo_client_workflows")
-      .select("id, stage, booking_id, max_proof_selections, proof_selection_submitted_at")
+      .select("id, stage, booking_id, max_proof_selections, proof_selection_submitted_at, guided_selection_enabled")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -992,6 +998,7 @@ export const getMyPhotoGalleries = createServerFn({ method: "POST" })
           images,
           max_proof_selections: w.max_proof_selections as number | null,
           proof_selection_submitted_at: w.proof_selection_submitted_at as string | null,
+          guided_selection_enabled: w.guided_selection_enabled as boolean,
         };
       }),
     );
@@ -1018,7 +1025,7 @@ export const toggleProofSelection = createServerFn({ method: "POST" })
 
     const { data: wf, error: wfErr } = await (supabaseAdmin as any)
       .from("photo_client_workflows")
-      .select("id, stage, user_id, max_proof_selections, proof_selection_submitted_at")
+      .select("id, stage, user_id, max_proof_selections, proof_selection_submitted_at, guided_selection_enabled")
       .eq("id", img.workflow_id)
       .single();
     if (wfErr || !wf) throw new Error("תהליך עבודה לא נמצא");
@@ -1026,7 +1033,13 @@ export const toggleProofSelection = createServerFn({ method: "POST" })
     if (wf.user_id !== userId) throw new Error("אין הרשאה");
     if (wf.proof_selection_submitted_at) throw new Error("הבחירה כבר נשלחה — אי אפשר לשנות אותה יותר");
 
-    if (data.selected && wf.max_proof_selections != null) {
+    // Guided mode (two-phase: pick freely, then narrow down) deliberately
+    // does NOT block selecting past the limit here — the limit is only
+    // enforced at submit time (see submitProofSelection), so she can
+    // over-select first and remove down to the right count afterward, per
+    // explicit request. The plain (non-guided) flow keeps the original,
+    // simpler behavior: blocked from ever exceeding the limit.
+    if (data.selected && wf.max_proof_selections != null && !wf.guided_selection_enabled) {
       const { count } = await supabaseAdmin
         .from("photo_client_images")
         .select("id", { count: "exact", head: true })
@@ -1063,7 +1076,7 @@ export const submitProofSelection = createServerFn({ method: "POST" })
 
     const { data: wf, error: wfErr } = await (supabaseAdmin as any)
       .from("photo_client_workflows")
-      .select("id, stage, user_id, booking_id, proof_selection_submitted_at")
+      .select("id, stage, user_id, booking_id, proof_selection_submitted_at, max_proof_selections")
       .eq("id", data.workflowId)
       .single();
     if (wfErr || !wf) throw new Error("תהליך עבודה לא נמצא");
@@ -1080,6 +1093,14 @@ export const submitProofSelection = createServerFn({ method: "POST" })
       .order("sort_order", { ascending: true });
     if (imgErr) throw new Error(imgErr.message);
     if (!selectedImages || selectedImages.length === 0) throw new Error("יש לבחור לפחות תמונה אחת לפני השליחה");
+    // Always enforced here regardless of guided/plain mode — the plain
+    // flow never lets her exceed the limit in the first place (see
+    // toggleProofSelection), so this is a no-op there; in guided mode this
+    // is the actual enforcement point, since over-selecting is allowed
+    // until she narrows down.
+    if (wf.max_proof_selections != null && selectedImages.length > wf.max_proof_selections) {
+      throw new Error(`נבחרו ${selectedImages.length} תמונות — יש להסיר עוד ${selectedImages.length - wf.max_proof_selections} כדי להגיע ל-${wf.max_proof_selections}`);
+    }
 
     const now = new Date().toISOString();
     const { error: updErr } = await (supabaseAdmin as any)
