@@ -781,6 +781,14 @@ const addImageSchema = z.object({
   kind: z.enum(["proof", "edited"]),
   url: z.string().min(1),
   storagePath: z.string().nullable().optional(),
+  // The untouched, full-resolution upload — kept alongside the (possibly
+  // compressed/watermarked) display copy above, same split as the general
+  // photo_client_images system, so the client's ZIP download always has a
+  // genuinely full-quality original to pull from. Omitted falls back to
+  // the display copy itself.
+  originalUrl: z.string().min(1).optional(),
+  originalStoragePath: z.string().nullable().optional(),
+  watermarked: z.boolean().optional(),
 });
 
 export const addNewbornOrderImage = createServerFn({ method: "POST" })
@@ -794,6 +802,9 @@ export const addNewbornOrderImage = createServerFn({ method: "POST" })
         kind: data.kind,
         image_url: data.url,
         storage_path: data.storagePath ?? null,
+        original_image_url: data.originalUrl ?? data.url,
+        original_storage_path: data.originalStoragePath ?? data.storagePath ?? null,
+        watermarked: data.watermarked ?? false,
       }),
     );
     if (error) throw new Error(error.message);
@@ -807,20 +818,163 @@ export const deleteNewbornOrderImage = createServerFn({ method: "POST" })
     await assertAdmin(context.supabase, context.userId);
     const { data: row } = await (context.supabase as any)
       .from("newborn_order_images")
-      .select("storage_path")
+      .select("storage_path, original_storage_path")
       .eq("id", data.id)
       .maybeSingle();
     const { error } = await withSchemaCacheRetry(context.supabase, () =>
       (context.supabase as any).from("newborn_order_images").delete().eq("id", data.id),
     );
     if (error) throw new Error(error.message);
-    if (row?.storage_path) {
+    const paths = Array.from(new Set([row?.storage_path, row?.original_storage_path].filter(Boolean))) as string[];
+    if (paths.length) {
       (context.supabase as any).storage
         .from("items")
-        .remove([row.storage_path])
+        .remove(paths)
         .catch(() => {});
     }
     return { ok: true };
+  });
+
+/** Bulk version of deleteNewbornOrderImage — used by PhotoTriagePanel's "מחיקת המסומנות" button. */
+export const bulkDeleteNewbornOrderImages = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ ids: z.array(z.string().uuid()).min(1).max(500) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data: rows } = await (context.supabase as any)
+      .from("newborn_order_images")
+      .select("storage_path, original_storage_path")
+      .in("id", data.ids);
+    const paths = Array.from(new Set((rows ?? []).flatMap((r: any) => [r.storage_path, r.original_storage_path]).filter(Boolean))) as string[];
+    const { error } = await withSchemaCacheRetry(context.supabase, () =>
+      (context.supabase as any).from("newborn_order_images").delete().in("id", data.ids),
+    );
+    if (error) throw new Error(error.message);
+    if (paths.length) {
+      (context.supabase as any).storage
+        .from("items")
+        .remove(paths)
+        .catch(() => {});
+    }
+    return { ok: true, deleted: data.ids.length };
+  });
+
+const photoSettingsSchema = z.object({
+  id: z.string().uuid(),
+  maxProofSelections: z.number().int().min(1).max(1000).nullable().optional(),
+  guidedSelectionEnabled: z.boolean().optional(),
+});
+
+/** Admin-editable per-order photo-selection settings — the "מגבלת בחירה" + "מצב בחירה חכם" fields on the order gallery page, same shape/intent as updatePhotoClientDetails' equivalent fields in photo-clients.functions.ts. */
+export const updateNewbornPhotoSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => photoSettingsSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const patch: Record<string, unknown> = {};
+    if (data.maxProofSelections !== undefined) patch.max_proof_selections = data.maxProofSelections;
+    if (data.guidedSelectionEnabled !== undefined) patch.guided_selection_enabled = data.guidedSelectionEnabled;
+    if (Object.keys(patch).length === 0) return { ok: true };
+    const { error } = await (context.supabase as any).from("newborn_package_orders").update(patch).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const DRIVE_NEWBORN_PARENT_FOLDER = "Sweetbaby - ניו-בורן אלבומים";
+
+/**
+ * "גיבוי ושיתוף בדרייב" for a newborn order — mirrors syncAlbumToDrive in
+ * photo-clients.functions.ts exactly (same drive.server.ts helpers, same
+ * backup-and-share-link behavior), just reading from newborn_order_images/
+ * newborn_package_orders and its own Drive parent folder so the two
+ * businesses' albums never mix in Drive either.
+ */
+export const syncNewbornAlbumToDrive = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ orderId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { uploadImageToDrive, getShareableAlbumFolderLink } = await import("@/integrations/google/drive.server");
+
+    const { data: order, error: oErr } = await (supabaseAdmin as any)
+      .from("newborn_package_orders")
+      .select("id, contact_name")
+      .eq("id", data.orderId)
+      .single();
+    if (oErr || !order) throw new Error(oErr?.message ?? "הזמנה לא נמצאה");
+
+    const subFolderName = `${order.contact_name || "לקוחה"} · ${data.orderId.slice(0, 8)}`;
+
+    const { data: images, error: imgErr } = await (supabaseAdmin as any)
+      .from("newborn_order_images")
+      .select("image_url, original_image_url, sort_order")
+      .eq("order_id", data.orderId)
+      .eq("kind", "edited")
+      .order("sort_order", { ascending: true });
+    if (imgErr) throw new Error(imgErr.message);
+    if (!images || images.length === 0) throw new Error("אין תמונות מעובדות להעלאה");
+
+    let uploaded = 0;
+    for (let i = 0; i < images.length; i++) {
+      const img = images[i];
+      const sourceUrl = img.original_image_url || img.image_url;
+      try {
+        const res = await fetch(sourceUrl);
+        if (!res.ok) throw new Error(`fetch failed (${res.status})`);
+        const bytes = await res.arrayBuffer();
+        const contentType = res.headers.get("content-type") || "image/jpeg";
+        const ext = contentType.includes("png") ? "png" : "jpg";
+        await uploadImageToDrive(`${String(i + 1).padStart(3, "0")}.${ext}`, bytes, contentType, DRIVE_NEWBORN_PARENT_FOLDER, subFolderName);
+        uploaded += 1;
+      } catch (e) {
+        console.error(`[SWEETBABY] newborn Drive album sync: image ${i + 1} failed`, e);
+      }
+    }
+
+    const link = await getShareableAlbumFolderLink(DRIVE_NEWBORN_PARENT_FOLDER, subFolderName);
+    const now = new Date().toISOString();
+    await (supabaseAdmin as any).from("newborn_package_orders").update({ drive_folder_url: link, drive_synced_at: now }).eq("id", data.orderId);
+
+    return { ok: true, uploaded, total: images.length, link };
+  });
+
+/** Emails the already-synced Drive album link to the newborn client (and the studio). Refuses if syncNewbornAlbumToDrive hasn't run yet. */
+export const sendNewbornDriveAlbumLinkToClient = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ orderId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: order, error } = await (supabaseAdmin as any)
+      .from("newborn_package_orders")
+      .select("id, contact_name, contact_email, drive_folder_url")
+      .eq("id", data.orderId)
+      .single();
+    if (error || !order) throw new Error(error?.message ?? "הזמנה לא נמצאה");
+    if (!order.drive_folder_url) throw new Error("יש לבצע קודם גיבוי לדרייב");
+    if (!order.contact_email) throw new Error("לא נמצאה כתובת מייל ללקוחה הזו");
+
+    const { sendGmail } = await import("@/integrations/google/gmail.server");
+    const heart = await emailHeartImgTag(40);
+    await sendGmail({
+      to: order.contact_email,
+      subject: "האלבום שלך בדרייב 📁 · מיכל סיבוני",
+      html: `<div dir="rtl" style="font-family:sans-serif">
+        <p>שלום${order.contact_name ? " " + order.contact_name : ""},</p>
+        <p>האלבום המלא שלך זמין גם בגוגל דרייב, באיכות מלאה:</p>
+        <p><a href="${order.drive_folder_url}">${order.drive_folder_url}</a></p>
+        <p>מקווה שתאהבי ${heart}</p>
+      </div>`,
+    });
+    await sendGmail({
+      to: NEWBORN_STUDIO_EMAIL,
+      subject: `קישור הדרייב נשלח ל${order.contact_name} 📁`,
+      html: `<div dir="rtl" style="font-family:sans-serif"><p>${order.drive_folder_url}</p></div>`,
+    });
+
+    return { ok: true, sentTo: order.contact_email as string };
   });
 
 /** Best-effort resend, e.g. if the automatic send-on-create failed or she wants to remind the client to reply/confirm. */
@@ -981,7 +1135,7 @@ export const getNewbornGalleryByToken = createServerFn({ method: "POST" })
     const { data: images } = await withSchemaCacheRetry(supabaseAdmin, () =>
       (supabaseAdmin as any)
         .from("newborn_order_images")
-        .select("id, kind, image_url, selected, sort_order")
+        .select("id, kind, image_url, original_image_url, selected, sort_order")
         .eq("order_id", order.id)
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: true }),
@@ -992,10 +1146,13 @@ export const getNewbornGalleryByToken = createServerFn({ method: "POST" })
       sessionDate: order.session_date as string | null,
       packageName: pkg?.name ?? order.package_id,
       proofsSelectedAt: order.proofs_selected_at as string | null,
+      maxProofSelections: order.max_proof_selections as number | null,
+      guidedSelectionEnabled: !!order.guided_selection_enabled,
       images: (images ?? []) as {
         id: string;
         kind: "proof" | "edited";
         image_url: string;
+        original_image_url: string | null;
         selected: boolean;
       }[],
     };
@@ -1010,7 +1167,26 @@ export const toggleNewbornProofByToken = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const order = await orderByToken(data.token);
     if (!order) throw new Error("קישור לא תקין");
+    if (order.proofs_selected_at) throw new Error("הבחירה כבר נשלחה — אי אפשר לשנות אותה יותר");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Plain (non-guided) mode keeps the original simple rule: never let her
+    // exceed the limit. Guided mode allows over-selecting here on purpose
+    // — the limit is only enforced once she submits (finishNewbornProof
+    // SelectionByToken below) — same split as toggleProofSelection in the
+    // general photo-clients flow.
+    if (data.selected && order.max_proof_selections != null && !order.guided_selection_enabled) {
+      const { count } = await (supabaseAdmin as any)
+        .from("newborn_order_images")
+        .select("id", { count: "exact", head: true })
+        .eq("order_id", order.id)
+        .eq("kind", "proof")
+        .eq("selected", true);
+      if ((count ?? 0) >= order.max_proof_selections) {
+        throw new Error(`אפשר לבחור עד ${order.max_proof_selections} תמונות`);
+      }
+    }
+
     // Scope the update to this order's own images so one token can never touch another order's rows.
     const { error } = await withSchemaCacheRetry(supabaseAdmin, () =>
       (supabaseAdmin as any)
@@ -1032,10 +1208,6 @@ export const finishNewbornProofSelectionByToken = createServerFn({ method: "POST
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const alreadyDone = !!order.proofs_selected_at;
     if (!alreadyDone) {
-      await (supabaseAdmin as any)
-        .from("newborn_package_orders")
-        .update({ proofs_selected_at: new Date().toISOString() })
-        .eq("id", order.id);
       const { data: selected } = await withSchemaCacheRetry(supabaseAdmin, () =>
         (supabaseAdmin as any)
           .from("newborn_order_images")
@@ -1044,6 +1216,19 @@ export const finishNewbornProofSelectionByToken = createServerFn({ method: "POST
           .eq("kind", "proof")
           .eq("selected", true),
       );
+      const selectedCount = selected?.length ?? 0;
+      if (selectedCount === 0) throw new Error("יש לבחור לפחות תמונה אחת לפני השליחה");
+      // Always enforced here regardless of guided/plain mode — the plain
+      // flow never lets her exceed the limit in the first place (see
+      // toggleNewbornProofByToken above), so this is a no-op there; in
+      // guided mode this is the actual enforcement point.
+      if (order.max_proof_selections != null && selectedCount > order.max_proof_selections) {
+        throw new Error(`נבחרו ${selectedCount} תמונות — יש להסיר עוד ${selectedCount - order.max_proof_selections} כדי להגיע ל-${order.max_proof_selections}`);
+      }
+      await (supabaseAdmin as any)
+        .from("newborn_package_orders")
+        .update({ proofs_selected_at: new Date().toISOString() })
+        .eq("id", order.id);
       try {
         const { sendGmail } = await import("@/integrations/google/gmail.server");
         const heart = await emailHeartImgTag(40);

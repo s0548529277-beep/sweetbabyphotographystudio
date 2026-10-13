@@ -1,14 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Heart, Check, Loader2 } from "lucide-react";
+import { Heart, Check, Download, FileArchive, Loader2, SendHorizonal, X } from "lucide-react";
 import {
   getNewbornGalleryByToken,
   toggleNewbornProofByToken,
   finishNewbornProofSelectionByToken,
 } from "@/lib/newborn-orders.functions";
+import { downloadPhotosAsZip } from "@/lib/photo-zip";
+import { PhotoLightbox, GuidedStepper } from "@/components/PhotoLightbox";
 import michalLogoWordmark from "@/assets/michal-logo-wordmark.png";
 
 // The client-facing gallery for Michal's own newborn-photography business —
@@ -16,7 +18,9 @@ import michalLogoWordmark from "@/assets/michal-logo-wordmark.png";
 // site's photo-client system: no login, no Sweetbaby branding, reachable
 // only via a private link (the token in the URL) mailed to the client.
 // Shows watermarked proofs to pick from, or — once she's uploaded them —
-// the final full-quality edited photos instead.
+// the final full-quality edited photos instead. Mirrors my-photos.tsx's
+// feature set (lightbox zoom, opt-in guided two-phase selection, ZIP
+// download) while keeping this page's own distinct look.
 export const Route = createFileRoute("/newborn/gallery/$token")({
   head: () => ({
     meta: [{ title: "התמונות שלך | מיכל סיבוני" }, { name: "robots", content: "noindex" }],
@@ -24,20 +28,261 @@ export const Route = createFileRoute("/newborn/gallery/$token")({
   component: NewbornGalleryPage,
 });
 
+type Img = { id: string; kind: "proof" | "edited"; image_url: string; original_image_url: string | null; selected: boolean };
+
+function ProofSection({
+  proofs,
+  token,
+  maxProofSelections,
+  guidedSelectionEnabled,
+  proofsSelectedAt,
+  onRefetch,
+}: {
+  proofs: Img[];
+  token: string;
+  maxProofSelections: number | null;
+  guidedSelectionEnabled: boolean;
+  proofsSelectedAt: string | null;
+  onRefetch: () => void;
+}) {
+  const toggleProof = useServerFn(toggleNewbornProofByToken);
+  const finishSelection = useServerFn(finishNewbornProofSelectionByToken);
+  const [finishing, setFinishing] = useState(false);
+  const [phase, setPhase] = useState<"browse" | "narrow">("browse");
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const submitted = !!proofsSelectedAt;
+  const limit = maxProofSelections;
+  const selectedImages = proofs.filter((i) => i.selected);
+  const selectedCount = selectedImages.length;
+  const overLimit = limit != null && selectedCount > limit;
+  const atLimit = limit != null && selectedCount >= limit;
+  const visibleImages = phase === "narrow" ? selectedImages : proofs;
+
+  useEffect(() => {
+    if (phase === "narrow" && selectedCount === 0) setPhase("browse");
+  }, [phase, selectedCount]);
+
+  const toggle = async (img: Img) => {
+    if (submitted) return;
+    if (!guidedSelectionEnabled && !img.selected && atLimit) {
+      toast.error(`אפשר לבחור עד ${limit} תמונות`);
+      return;
+    }
+    try {
+      await toggleProof({ data: { token, imageId: img.id, selected: !img.selected } });
+      onRefetch();
+    } catch (e: any) {
+      toast.error(e?.message ?? "העדכון נכשל, נסי שוב");
+    }
+  };
+
+  const finish = async () => {
+    if (selectedCount === 0) {
+      toast.error("נא לבחור לפחות תמונה אחת");
+      return;
+    }
+    setFinishing(true);
+    try {
+      await finishSelection({ data: { token } });
+      onRefetch();
+      toast.success("תודה! הבחירה שלך נשלחה אליי 💗");
+    } catch (e: any) {
+      toast.error(e?.message ?? "משהו השתבש, נסי שוב");
+    } finally {
+      setFinishing(false);
+    }
+  };
+
+  return (
+    <>
+      {guidedSelectionEnabled && !submitted && (
+        <div className="mb-4 space-y-1.5">
+          <GuidedStepper phase={phase} />
+          <p className="text-xs text-[#4a3221]/70">
+            {phase === "browse" ? "שלב 1: סמני לב על כל תמונה שאהבת — אין הגבלה בשלב הזה." : `שלב 2: הסירי תמונות אחת אחת עד שנשארות בדיוק ${limit ?? ""} התמונות שלך.`}
+          </p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+        {visibleImages.map((img, i) => (
+          <div key={img.id} className="relative aspect-square overflow-hidden rounded-2xl bg-[#f5d5cf] group">
+            <img src={img.image_url} alt="" loading="lazy" className="w-full h-full object-cover cursor-zoom-in" onClick={() => setLightboxIndex(i)} />
+            <button
+              type="button"
+              onClick={() => toggle(img)}
+              disabled={submitted}
+              className={`absolute top-2 left-2 h-10 w-10 rounded-full flex items-center justify-center transition disabled:opacity-60 ${
+                phase === "narrow" ? "bg-destructive text-white" : img.selected ? "bg-[#4a3221] text-white" : "bg-white/80 text-[#4a3221] hover:bg-white"
+              }`}
+            >
+              {phase === "narrow" ? <X className="h-4 w-4" /> : <Heart className={`h-4 w-4 ${img.selected ? "fill-current" : ""}`} />}
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {lightboxIndex != null && (
+        <PhotoLightbox
+          images={visibleImages.map((i) => ({ id: i.id, url: i.image_url }))}
+          startIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          renderActions={
+            submitted
+              ? undefined
+              : (lbImg) => {
+                  const full = proofs.find((i) => i.id === lbImg.id);
+                  if (!full) return null;
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => toggle(full)}
+                      className={`inline-flex items-center gap-1.5 h-10 px-5 rounded-full text-sm font-semibold ${
+                        phase === "narrow" ? "bg-destructive text-white" : full.selected ? "bg-[#4a3221] text-white" : "bg-white/15 text-white"
+                      }`}
+                    >
+                      {phase === "narrow" ? <X className="h-4 w-4" /> : <Heart className={`h-4 w-4 ${full.selected ? "fill-current" : ""}`} />}
+                      {phase === "narrow" ? "הסרה מהנבחרות" : full.selected ? "הוסרה מהמועדפות" : "הוספה למועדפות"}
+                    </button>
+                  );
+                }
+          }
+        />
+      )}
+
+      <p className="text-center text-sm font-medium text-[#4a3221] bg-[#d9b98a]/15 border border-[#d9b98a]/30 rounded-xl py-3 px-4 mt-6">קבלת כל התמונות מותנת בתוספת 150 ש"ח</p>
+
+      <div className="flex items-center justify-center gap-3 mt-6 flex-wrap">
+        {submitted ? (
+          <span className="text-[#4a3221] font-medium flex items-center gap-1.5">
+            <Check className="h-4 w-4" /> הבחירה נשלחה — {selectedCount} תמונות
+          </span>
+        ) : (
+          <>
+            <span className="text-sm text-[#4a3221]/70">
+              {overLimit ? (
+                <span className="text-destructive font-medium">
+                  יש להסיר עוד {selectedCount - (limit ?? 0)} כדי להגיע ל-{limit}
+                </span>
+              ) : (
+                <>
+                  {selectedCount}
+                  {limit != null ? ` / ${limit}` : ""} נבחרו
+                </>
+              )}
+            </span>
+            {guidedSelectionEnabled && phase === "narrow" && (
+              <button type="button" onClick={() => setPhase("browse")} className="text-xs text-[#4a3221]/70 hover:text-[#4a3221] underline">
+                ← חזרה לכל התמונות
+              </button>
+            )}
+            {guidedSelectionEnabled && phase === "browse" ? (
+              <button
+                type="button"
+                onClick={() => setPhase("narrow")}
+                disabled={selectedCount === 0}
+                className="inline-flex items-center gap-2 bg-[#4a3221] text-white px-6 py-3 rounded-full font-semibold disabled:opacity-60"
+              >
+                המשך לצמצום ←
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={finish}
+                disabled={finishing || overLimit}
+                className="inline-flex items-center gap-2 bg-[#4a3221] text-white px-8 py-3.5 rounded-full font-semibold disabled:opacity-60"
+              >
+                {finishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizonal className="h-4 w-4" />}
+                סיימתי לבחור ({selectedCount})
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+function EditedSection({ edited, contactName }: { edited: Img[]; contactName: string }) {
+  const [watermark, setWatermark] = useState(false);
+  const [zipping, setZipping] = useState<{ done: number; total: number } | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const onDownloadZip = async () => {
+    setZipping({ done: 0, total: edited.length });
+    try {
+      const photos = edited.map((img, i) => ({ url: img.original_image_url || img.image_url, name: `${String(i + 1).padStart(3, "0")}.jpg` }));
+      await downloadPhotosAsZip(photos, { watermark, zipName: `${contactName || "האלבום-שלי"}.zip`, onProgress: (done, total) => setZipping({ done, total }) });
+    } catch (e: any) {
+      toast.error(e?.message ?? "הורדת האלבום נכשלה");
+    } finally {
+      setZipping(null);
+    }
+  };
+
+  return (
+    <>
+      <div className="flex flex-wrap items-center gap-3 bg-[#d9b98a]/15 border border-[#d9b98a]/30 rounded-2xl px-4 py-3 mb-4">
+        <label className="flex items-center gap-1.5 text-sm cursor-pointer select-none text-[#4a3221]">
+          <input type="checkbox" checked={watermark} onChange={(e) => setWatermark(e.target.checked)} className="accent-[#4a3221] h-4 w-4" />
+          עם סימן מים
+        </label>
+        <button
+          type="button"
+          onClick={onDownloadZip}
+          disabled={!!zipping}
+          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#4a3221] text-white text-sm font-semibold disabled:opacity-50"
+        >
+          {zipping ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileArchive className="h-4 w-4" />}
+          {zipping ? `מכינה קובץ... ${zipping.done}/${zipping.total}` : "הורדת כל האלבום (ZIP, איכות מלאה)"}
+        </button>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+        {edited.map((img, i) => (
+          <div key={img.id} className="relative aspect-square overflow-hidden rounded-2xl bg-[#f5d5cf] group">
+            <img src={img.image_url} alt="" loading="lazy" className="w-full h-full object-cover cursor-zoom-in" onClick={() => setLightboxIndex(i)} />
+            <a
+              href={img.original_image_url || img.image_url}
+              download
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="absolute bottom-2 left-2 h-8 w-8 rounded-full bg-white/85 text-[#4a3221] flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+              aria-label="הורדה"
+            >
+              <Download className="h-4 w-4" />
+            </a>
+          </div>
+        ))}
+      </div>
+      {lightboxIndex != null && (
+        <PhotoLightbox
+          images={edited.map((i) => ({ id: i.id, url: i.original_image_url || i.image_url }))}
+          startIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          renderActions={(img) => (
+            <a href={img.url} download target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 h-10 px-5 rounded-full bg-white/15 text-white text-sm font-semibold">
+              <Download className="h-4 w-4" /> הורדה (איכות מלאה)
+            </a>
+          )}
+        />
+      )}
+    </>
+  );
+}
+
 function NewbornGalleryPage() {
   const { token } = Route.useParams();
   const qc = useQueryClient();
   const getGallery = useServerFn(getNewbornGalleryByToken);
-  const toggleProof = useServerFn(toggleNewbornProofByToken);
-  const finishSelection = useServerFn(finishNewbornProofSelectionByToken);
-  const [lightbox, setLightbox] = useState<string | null>(null);
-  const [finishing, setFinishing] = useState(false);
 
   const query = useQuery({
     queryKey: ["newborn-gallery-token", token],
     queryFn: () => getGallery({ data: { token } }),
     retry: false,
   });
+  const onRefetch = () => qc.invalidateQueries({ queryKey: ["newborn-gallery-token", token] });
 
   if (query.isLoading) {
     return (
@@ -60,41 +305,18 @@ function NewbornGalleryPage() {
     );
   }
 
-  const { contactName, packageName, images, proofsSelectedAt } = query.data;
+  const { contactName, packageName, images, proofsSelectedAt, maxProofSelections, guidedSelectionEnabled } = query.data as {
+    contactName: string;
+    packageName: string;
+    images: Img[];
+    proofsSelectedAt: string | null;
+    maxProofSelections: number | null;
+    guidedSelectionEnabled: boolean;
+  };
   const edited = images.filter((i) => i.kind === "edited");
   const proofs = images.filter((i) => i.kind === "proof");
   const showEdited = edited.length > 0;
-  const showing = showEdited ? edited : proofs;
-  const selectedCount = proofs.filter((i) => i.selected).length;
-
-  const toggle = async (imageId: string, selected: boolean) => {
-    qc.setQueryData(["newborn-gallery-token", token], (prev: typeof query.data) =>
-      prev ? { ...prev, images: prev.images.map((i) => (i.id === imageId ? { ...i, selected } : i)) } : prev,
-    );
-    try {
-      await toggleProof({ data: { token, imageId, selected } });
-    } catch {
-      toast.error("העדכון נכשל, נסי שוב");
-      qc.invalidateQueries({ queryKey: ["newborn-gallery-token", token] });
-    }
-  };
-
-  const finish = async () => {
-    if (selectedCount === 0) {
-      toast.error("נא לבחור לפחות תמונה אחת");
-      return;
-    }
-    setFinishing(true);
-    try {
-      await finishSelection({ data: { token } });
-      qc.invalidateQueries({ queryKey: ["newborn-gallery-token", token] });
-      toast.success("תודה! הבחירה שלך נשלחה אליי 💗");
-    } catch {
-      toast.error("משהו השתבש, נסי שוב");
-    } finally {
-      setFinishing(false);
-    }
-  };
+  const showingCount = showEdited ? edited.length : proofs.length;
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#fdf3ec] text-[#4a3221]" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
@@ -113,72 +335,27 @@ function NewbornGalleryPage() {
             {showEdited ? "התמונות המוכנות שלך 💗" : "בואי נבחר תמונות"}
           </h1>
           <p className="text-sm text-[#4a3221]/70">
-            {showEdited ? packageName : proofsSelectedAt ? "כבר שלחת לי את הבחירה שלך — תודה!" : `לוחצים על הלב לבחור — ${packageName}`}
+            {showEdited ? packageName : proofsSelectedAt ? "כבר שלחת לי את הבחירה שלך — תודה!" : `לוחצים על התמונה להגדלה, ועל הלב לבחור — ${packageName}`}
           </p>
         </div>
 
-        {showing.length === 0 ? (
+        {showingCount === 0 ? (
           <div className="rounded-2xl border border-dashed border-[#4a3221]/20 p-12 text-center text-sm text-[#4a3221]/70">
             עדיין לא הועלו תמונות — אעדכן אותך במייל ברגע שהן יהיו מוכנות 💗
           </div>
+        ) : showEdited ? (
+          <EditedSection edited={edited} contactName={contactName} />
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-            {showing.map((img) => (
-              <div key={img.id} className="relative aspect-square overflow-hidden rounded-2xl bg-[#f5d5cf] group">
-                <img
-                  src={img.image_url}
-                  alt=""
-                  loading="lazy"
-                  className="w-full h-full object-cover cursor-zoom-in"
-                  onClick={() => setLightbox(img.image_url)}
-                />
-                {!showEdited && (
-                  <button
-                    type="button"
-                    onClick={() => toggle(img.id, !img.selected)}
-                    disabled={!!proofsSelectedAt}
-                    className={`absolute top-2 left-2 h-10 w-10 rounded-full flex items-center justify-center transition disabled:opacity-60 ${
-                      img.selected ? "bg-[#4a3221] text-white" : "bg-white/80 text-[#4a3221] hover:bg-white"
-                    }`}
-                  >
-                    <Heart className={`h-4 w-4 ${img.selected ? "fill-current" : ""}`} />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {!showEdited && showing.length > 0 && (
-          <>
-            <p className="text-center text-sm font-medium text-[#4a3221] bg-[#d9b98a]/15 border border-[#d9b98a]/30 rounded-xl py-3 px-4 mt-6">
-              קבלת כל התמונות מותנת בתוספת 150 ש"ח
-            </p>
-            {!proofsSelectedAt && (
-              <div className="text-center mt-6">
-                <button
-                  type="button"
-                  onClick={finish}
-                  disabled={finishing}
-                  className="inline-flex items-center gap-2 bg-[#4a3221] text-white px-8 py-3.5 rounded-full font-semibold disabled:opacity-60"
-                >
-                  {finishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                  סיימתי לבחור ({selectedCount})
-                </button>
-              </div>
-            )}
-          </>
+          <ProofSection
+            proofs={proofs}
+            token={token}
+            maxProofSelections={maxProofSelections}
+            guidedSelectionEnabled={guidedSelectionEnabled}
+            proofsSelectedAt={proofsSelectedAt}
+            onRefetch={onRefetch}
+          />
         )}
       </div>
-
-      {lightbox && (
-        <div
-          className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4 cursor-zoom-out"
-          onClick={() => setLightbox(null)}
-        >
-          <img src={lightbox} alt="" className="max-w-full max-h-full rounded-2xl shadow-2xl" onClick={(e) => e.stopPropagation()} />
-        </div>
-      )}
     </div>
   );
 }
