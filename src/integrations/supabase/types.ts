@@ -1159,9 +1159,12 @@ export type Database = {
           id: string
           image_url: string
           kind: string
+          original_image_url: string | null
+          original_storage_path: string | null
           selected: boolean
           sort_order: number
           storage_path: string
+          watermarked: boolean
           workflow_id: string
         }
         Insert: {
@@ -1169,9 +1172,12 @@ export type Database = {
           id?: string
           image_url: string
           kind: string
+          original_image_url?: string | null
+          original_storage_path?: string | null
           selected?: boolean
           sort_order?: number
           storage_path: string
+          watermarked?: boolean
           workflow_id: string
         }
         Update: {
@@ -1179,9 +1185,12 @@ export type Database = {
           id?: string
           image_url?: string
           kind?: string
+          original_image_url?: string | null
+          original_storage_path?: string | null
           selected?: boolean
           sort_order?: number
           storage_path?: string
+          watermarked?: boolean
           workflow_id?: string
         }
         Relationships: [
@@ -1201,12 +1210,17 @@ export type Database = {
           balance: number | null
           booking_id: string | null
           created_at: string
+          drive_folder_url: string | null
+          drive_synced_at: string | null
+          guided_selection_enabled: boolean
           has_package: boolean
           id: string
           location: string | null
+          max_proof_selections: number | null
           package_type: string | null
           photos_to_edit: number | null
           proof_reminder_sent_at: string | null
+          proof_selection_submitted_at: string | null
           session_date: string | null
           session_time: string | null
           stage: string
@@ -1221,12 +1235,17 @@ export type Database = {
           balance?: number | null
           booking_id?: string | null
           created_at?: string
+          drive_folder_url?: string | null
+          drive_synced_at?: string | null
+          guided_selection_enabled?: boolean
           has_package?: boolean
           id?: string
           location?: string | null
+          max_proof_selections?: number | null
           package_type?: string | null
           photos_to_edit?: number | null
           proof_reminder_sent_at?: string | null
+          proof_selection_submitted_at?: string | null
           session_date?: string | null
           session_time?: string | null
           stage?: string
@@ -1241,12 +1260,17 @@ export type Database = {
           balance?: number | null
           booking_id?: string | null
           created_at?: string
+          drive_folder_url?: string | null
+          drive_synced_at?: string | null
+          guided_selection_enabled?: boolean
           has_package?: boolean
           id?: string
           location?: string | null
+          max_proof_selections?: number | null
           package_type?: string | null
           photos_to_edit?: number | null
           proof_reminder_sent_at?: string | null
+          proof_selection_submitted_at?: string | null
           session_date?: string | null
           session_time?: string | null
           stage?: string
