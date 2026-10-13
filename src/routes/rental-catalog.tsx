@@ -7,6 +7,7 @@ import { Footer } from "@/components/Footer";
 import { smartSearchItems } from "@/lib/ai.functions";
 import { checkItemsAvailability } from "@/lib/orders.functions";
 import { useCart } from "@/lib/cart";
+import { useWishlist } from "@/lib/wishlist";
 import { useAuth } from "@/lib/auth";
 import { EmailDatalist } from "@/components/EmailDatalist";
 import {
@@ -20,6 +21,7 @@ import {
   ZoomIn,
   CalendarDays,
   Download,
+  Heart,
 } from "lucide-react";
 import { downloadImage } from "@/lib/download-image";
 
@@ -64,6 +66,7 @@ function RentalCatalogPage() {
   // Live catalog — admin edits (name/price/category/image) show up here.
   const categories = useCatalogCategories();
   const { lines, add, remove, subtotal, count } = useCart();
+  const { has: isWished, toggle: toggleWishlist } = useWishlist();
   const { user } = useAuth();
   const nav = useNavigate();
   const inCart = useMemo(() => new Set(lines.map((l) => l.id)), [lines]);
@@ -523,6 +526,35 @@ function RentalCatalogPage() {
                             </span>
                           )}
                         </button>
+
+                        {!inspiration && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleWishlist({
+                                id: it.sku,
+                                sku: it.sku,
+                                name: it.name || it.alt,
+                                price: it.price,
+                                image_url: it.img || null,
+                              });
+                            }}
+                            className={
+                              "absolute top-2 left-2 h-8 w-8 rounded-full flex items-center justify-center transition-colors " +
+                              (isWished(it.sku)
+                                ? "bg-peach-deep text-primary"
+                                : "bg-white/80 text-primary/60 hover:text-primary")
+                            }
+                            aria-label={
+                              isWished(it.sku)
+                                ? `הסר מרשימת המשאלות: ${it.name}`
+                                : `הוסף לרשימת המשאלות: ${it.name}`
+                            }
+                          >
+                            <Heart className={"h-4 w-4" + (isWished(it.sku) ? " fill-current" : "")} />
+                          </button>
+                        )}
 
                         {!inspiration && (
                           <div className="p-3 flex items-center justify-between gap-2">

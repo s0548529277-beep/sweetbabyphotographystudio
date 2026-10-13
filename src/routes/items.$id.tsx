@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
 import { absoluteImageUrl, normalizeImageUrl } from "@/lib/images";
 import { toast } from "sonner";
-import { ChevronRight, ShoppingBag, Plus, Minus } from "lucide-react";
+import { ChevronRight, ShoppingBag, Plus, Minus, Heart } from "lucide-react";
 import { useMemo } from "react";
 import { InspirationStrip } from "@/components/InspirationStrip";
 import { inspirationFor } from "@/lib/inspiration";
+import { useWishlist } from "@/lib/wishlist";
 
 export const Route = createFileRoute("/items/$id")({
   component: ItemPage,
@@ -40,6 +41,7 @@ function ItemPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const { lines, add, remove, setQty } = useCart();
+  const { has: isWished, toggle: toggleWishlist } = useWishlist();
 
   const item = useQuery({
     queryKey: ["item", id],
@@ -188,6 +190,25 @@ function ItemPage() {
                 className="h-12 rounded-full px-8"
               >
                 לצפייה בעגלה
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() =>
+                  toggleWishlist({
+                    id: it.id,
+                    sku: it.sku,
+                    name: it.name,
+                    price: Number(it.price),
+                    image_url: normalizeImageUrl(it.image_url),
+                  })
+                }
+                className="h-12 w-12 rounded-full p-0 shrink-0"
+                aria-label={
+                  isWished(it.id) ? "הסר מרשימת המשאלות" : "הוסף לרשימת המשאלות"
+                }
+              >
+                <Heart className={"h-5 w-5" + (isWished(it.id) ? " fill-current text-[#eab5a4]" : "")} />
               </Button>
             </div>
 

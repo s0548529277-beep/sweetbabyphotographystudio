@@ -15,6 +15,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import defaultOgImage from "@/assets/home-hero-0.png.asset.json";
 import { AuthProvider } from "@/lib/auth";
 import { CartProvider } from "@/lib/cart";
+import { WishlistProvider } from "@/lib/wishlist";
 import { Toaster } from "@/components/ui/sonner";
 import { ChatBot } from "@/components/ChatBot";
 import { AccessibilityWidget } from "@/components/AccessibilityWidget";
@@ -186,16 +187,18 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <CartProvider>
-          <Outlet />
-          <Toaster position="top-center" richColors />
-          <ChatBot />
-          <AccessibilityWidget />
-          <Analytics />
-          <SiteTracking />
-          <NewsletterPopup />
-          <DynamicFavicon />
-          <SiteTexts />
-          <CookieConsent />
+          <WishlistProvider>
+            <Outlet />
+            <Toaster position="top-center" richColors />
+            <ChatBot />
+            <AccessibilityWidget />
+            <Analytics />
+            <SiteTracking />
+            <NewsletterPopup />
+            <DynamicFavicon />
+            <SiteTexts />
+            <CookieConsent />
+          </WishlistProvider>
         </CartProvider>
       </AuthProvider>
     </QueryClientProvider>

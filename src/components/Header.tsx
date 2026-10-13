@@ -1,7 +1,8 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { ShoppingBag, User as UserIcon, LogOut, Menu, X } from "lucide-react";
+import { ShoppingBag, Heart, User as UserIcon, LogOut, Menu, X } from "lucide-react";
 import { useEffect, useState, type MouseEvent } from "react";
 import { useCart } from "@/lib/cart";
+import { useWishlist } from "@/lib/wishlist";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo-green.png";
@@ -45,6 +46,7 @@ const BETA_BANNER_KEY = "sweetbaby-beta-banner-dismissed";
 
 export function Header() {
   const { count } = useCart();
+  const { count: wishlistCount } = useWishlist();
   const { user, isAdmin, signOut } = useAuth();
   const router = useRouter();
   const isHome = useRouterState({ select: (s) => s.location.pathname === "/" });
@@ -122,6 +124,21 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
+          <Link
+            to="/wishlist"
+            className="relative"
+            aria-label={`רשימת משאלות${wishlistCount > 0 ? ` (${wishlistCount} פריטים)` : ""}`}
+          >
+            <Button variant="ghost" size="icon" className="rounded-full h-12 w-12" aria-label="רשימת משאלות">
+              <Heart className="!h-6 !w-6" />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-peach-deep text-primary text-[11px] font-medium flex items-center justify-center">
+                  {wishlistCount}
+                </span>
+              )}
+            </Button>
+          </Link>
+
           <Link to="/cart" className="relative" aria-label={`עגלת קניות${count > 0 ? ` (${count} פריטים)` : ""}`}>
             <Button variant="ghost" size="icon" className="rounded-full h-12 w-12" aria-label="עגלת קניות">
               <ShoppingBag className="!h-6 !w-6" />

@@ -32,6 +32,7 @@ import { Route as StudioRentalRouteImport } from './routes/studio-rental'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ThankYouRouteImport } from './routes/thank-you'
 import { Route as TrackRouteImport } from './routes/track'
+import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedMyPhotosRouteImport } from './routes/_authenticated/my-photos'
@@ -199,6 +200,11 @@ const ThankYouRoute = ThankYouRouteImport.update({
 const TrackRoute = TrackRouteImport.update({
   id: '/track',
   path: '/track',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WishlistRoute = WishlistRouteImport.update({
+  id: '/wishlist',
+  path: '/wishlist',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
@@ -531,6 +537,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/thank-you': typeof ThankYouRoute
   '/track': typeof TrackRoute
+  '/wishlist': typeof WishlistRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/my-photos': typeof AuthenticatedMyPhotosRoute
@@ -609,6 +616,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/thank-you': typeof ThankYouRoute
   '/track': typeof TrackRoute
+  '/wishlist': typeof WishlistRoute
   '/account': typeof AuthenticatedAccountRoute
   '/my-photos': typeof AuthenticatedMyPhotosRoute
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
@@ -688,6 +696,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/thank-you': typeof ThankYouRoute
   '/track': typeof TrackRoute
+  '/wishlist': typeof WishlistRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/my-photos': typeof AuthenticatedMyPhotosRoute
@@ -768,6 +777,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/thank-you'
     | '/track'
+    | '/wishlist'
     | '/account'
     | '/admin'
     | '/my-photos'
@@ -846,6 +856,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/thank-you'
     | '/track'
+    | '/wishlist'
     | '/account'
     | '/my-photos'
     | '/api/send-booking-reminders'
@@ -924,6 +935,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/thank-you'
     | '/track'
+    | '/wishlist'
     | '/_authenticated/account'
     | '/_authenticated/admin'
     | '/_authenticated/my-photos'
@@ -1004,6 +1016,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   ThankYouRoute: typeof ThankYouRoute
   TrackRoute: typeof TrackRoute
+  WishlistRoute: typeof WishlistRoute
   ApiSendBookingRemindersRoute: typeof ApiSendBookingRemindersRoute
   BlogChalakahPhotoshootGuideRoute: typeof BlogChalakahPhotoshootGuideRoute
   BlogEssentialNewbornPropsRoute: typeof BlogEssentialNewbornPropsRoute
@@ -1181,6 +1194,13 @@ declare module '@tanstack/react-router' {
       path: '/track'
       fullPath: '/track'
       preLoaderRoute: typeof TrackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wishlist': {
+      id: '/wishlist'
+      path: '/wishlist'
+      fullPath: '/wishlist'
+      preLoaderRoute: typeof WishlistRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/account': {
@@ -1725,6 +1745,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   ThankYouRoute: ThankYouRoute,
   TrackRoute: TrackRoute,
+  WishlistRoute: WishlistRoute,
   ApiSendBookingRemindersRoute: ApiSendBookingRemindersRoute,
   BlogChalakahPhotoshootGuideRoute: BlogChalakahPhotoshootGuideRoute,
   BlogEssentialNewbornPropsRoute: BlogEssentialNewbornPropsRoute,
