@@ -1086,6 +1086,44 @@ export const syncNewbornAlbumToDrive = createServerFn({ method: "POST" })
   });
 
 /** Emails the already-synced Drive album link to the newborn client (and the studio). Refuses if syncNewbornAlbumToDrive hasn't run yet. */
+/**
+ * "שליחה ללקוחה" for the gallery link itself (not the Drive backup link
+ * below) — per direct report that there was no way to actually send the
+ * link to the client from here, only copy it manually. access_token is
+ * created automatically on order creation, so this is always available.
+ */
+export const sendNewbornGalleryLinkByEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ orderId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: order, error } = await (supabaseAdmin as any)
+      .from("newborn_package_orders")
+      .select("id, contact_name, contact_email, access_token")
+      .eq("id", data.orderId)
+      .single();
+    if (error || !order) throw new Error(error?.message ?? "הזמנה לא נמצאה");
+    if (!order.access_token) throw new Error("לא נמצא קישור לגלריה הזו");
+    if (!order.contact_email) throw new Error("לא נמצאה כתובת מייל ללקוחה הזו");
+
+    const link = `https://sweetbabyphoto.shop/newborn/gallery/${order.access_token}`;
+    const { sendGmail } = await import("@/integrations/google/gmail.server");
+    const heart = await emailHeartImgTag(40);
+    await sendGmail({
+      to: order.contact_email,
+      subject: "התמונות שלך מחכות לבחירה 📸 · מיכל סיבוני",
+      html: `<div dir="rtl" style="font-family:sans-serif">
+        <p>שלום${order.contact_name ? " " + order.contact_name : ""},</p>
+        <p>התמונות שלך מוכנות לצפייה ובחירה — אפשר להיכנס כאן, אין צורך בחשבון או סיסמה:</p>
+        <p><a href="${link}">${link}</a></p>
+        <p>מחכה לבחירה שלך ${heart}</p>
+      </div>`,
+    });
+    return { ok: true, sentTo: order.contact_email as string };
+  });
+
 export const sendNewbornDriveAlbumLinkToClient = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ orderId: z.string().uuid() }).parse(d))

@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/lib/image-compress";
 import { applyWatermark } from "@/lib/watermark";
 import { toast } from "sonner";
-import { ArrowRight, Check, Copy, Droplet, ImagePlus, Loader2, Mail, Trash2 } from "lucide-react";
+import { ArrowRight, Check, Copy, Droplet, Images, ImagePlus, Loader2, Mail, MessageCircle, Trash2 } from "lucide-react";
 import {
   listNewbornOrders,
   listNewbornOrderImages,
@@ -15,6 +15,7 @@ import {
   bulkDeleteNewbornOrderImages,
   adminToggleNewbornProofSelection,
   resendNewbornContract,
+  sendNewbornGalleryLinkByEmail,
   updateNewbornPhotoSettings,
   updateNewbornOrderClientStep,
   updateNewbornAlbumDetails,
@@ -416,6 +417,121 @@ function AlbumDetailsCard({ order, onSaved }: { order: any; onSaved: () => void 
   );
 }
 
+/** Numbered section heading — groups the page into a clear "what stage, what to do" narrative instead of one long undifferentiated stack of cards, per explicit request for a more understandable layout. */
+function SectionHeader({ step, title, hint }: { step: number; title: string; hint?: string }) {
+  return (
+    <div className="flex items-start gap-3 pt-2">
+      <span className="h-7 w-7 shrink-0 rounded-full bg-primary text-primary-foreground text-sm font-semibold flex items-center justify-center">{step}</span>
+      <div>
+        <h2 className="font-display text-lg text-primary leading-tight">{title}</h2>
+        {hint && <p className="text-xs text-muted-foreground mt-0.5">{hint}</p>}
+      </div>
+    </div>
+  );
+}
+
+/** "0" → "972" Israeli country code, digits only — wa.me takes no "+" and no leading zero. */
+function toWhatsAppDigits(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("972")) return digits;
+  if (digits.startsWith("0")) return `972${digits.slice(1)}`;
+  return digits;
+}
+
+/**
+ * The actual "send to client" action — per direct report, there was no
+ * button to send the gallery link, only a copyable text box she had to
+ * find and paste herself. Now offers WhatsApp (opens pre-filled, she hits
+ * send herself — no server round trip needed) and email (sendNewbornGalleryLinkByEmail)
+ * alongside the existing copy option, plus the contract status/resend that
+ * used to live in a separate card further up the page.
+ */
+function ShareLinkCard({
+  shareUrl,
+  contactName,
+  contactPhone,
+  contractSentAt,
+  contractConfirmedAt,
+  proofsSelectedAt,
+  orderId,
+  resending,
+  onResend,
+}: {
+  shareUrl: string | null;
+  contactName: string;
+  contactPhone: string;
+  contractSentAt: string | null;
+  contractConfirmedAt: string | null;
+  proofsSelectedAt: string | null;
+  orderId: string;
+  resending: boolean;
+  onResend: () => void;
+}) {
+  const sendEmailFn = useServerFn(sendNewbornGalleryLinkByEmail);
+  const [sendingEmail, setSendingEmail] = useState(false);
+
+  const copyLink = () => {
+    if (!shareUrl) return;
+    navigator.clipboard.writeText(shareUrl).then(
+      () => toast.success("הקישור הועתק"),
+      () => toast.error("ההעתקה נכשלה"),
+    );
+  };
+
+  const sendEmail = async () => {
+    setSendingEmail(true);
+    try {
+      const res = await sendEmailFn({ data: { orderId } });
+      toast.success(`הקישור נשלח ל-${res.sentTo}`);
+    } catch (e) {
+      toast.error(heError(e, "שליחת המייל נכשלה"));
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  const sendWhatsApp = () => {
+    if (!shareUrl) return;
+    const text = `היי ${contactName} 💗 התמונות שלך מוכנות לבחירה: ${shareUrl}`;
+    window.open(`https://wa.me/${toWhatsAppDigits(contactPhone)}?text=${encodeURIComponent(text)}`, "_blank");
+  };
+
+  return (
+    <div className="bg-card rounded-2xl border border-primary/15 p-5 space-y-3 shadow-sm">
+      <div className="flex items-center gap-2">
+        <Images className="h-4 w-4 text-primary shrink-0" />
+        <h3 className="font-display text-lg text-primary">שליחת הגלריה ללקוחה</h3>
+      </div>
+      <p className="text-xs text-muted-foreground">הקישור הזה — ולא כניסה לאתר — הוא מה שהלקוחה משתמשת בו כדי לראות ולבחור תמונות. אין צורך שיהיה לה חשבון.</p>
+      {shareUrl && (
+        <code dir="ltr" className="block text-xs bg-muted rounded-lg px-3 py-2 truncate">
+          {shareUrl}
+        </code>
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="button" size="sm" onClick={sendWhatsApp} disabled={!shareUrl} className="rounded-full gap-1.5 bg-[#25D366] hover:bg-[#1ebe5a] text-white">
+          <MessageCircle className="h-3.5 w-3.5" /> שליחה בוואטסאפ
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={sendEmail} disabled={sendingEmail || !shareUrl} className="rounded-full gap-1.5">
+          {sendingEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />} שליחה במייל
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={copyLink} disabled={!shareUrl} className="rounded-full gap-1.5">
+          <Copy className="h-3.5 w-3.5" /> העתקת קישור
+        </Button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border text-xs text-muted-foreground">
+        {contractSentAt ? <span>חוזה נשלח ✓</span> : <span>החוזה עוד לא נשלח</span>}
+        <button type="button" onClick={onResend} disabled={resending} className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 px-3 h-7 hover:bg-cream disabled:opacity-60">
+          {resending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />} שליחה מחדש
+        </button>
+        {contractConfirmedAt ? <span className="text-primary font-medium">אישרה שקראה את החוזה ✓</span> : <span>עדיין לא אישרה שקראה את החוזה</span>}
+        {proofsSelectedAt && <span className="text-primary font-medium">סיימה לבחור תמונות ✓</span>}
+      </div>
+    </div>
+  );
+}
+
 function NewbornOrderGallery() {
   const { orderId } = Route.useParams();
   const qc = useQueryClient();
@@ -462,14 +578,6 @@ function NewbornOrderGallery() {
   };
 
   const shareUrl = order?.access_token ? `https://sweetbabyphoto.shop/newborn/gallery/${order.access_token}` : null;
-
-  const copyLink = () => {
-    if (!shareUrl) return;
-    navigator.clipboard.writeText(shareUrl).then(
-      () => toast.success("הקישור הועתק"),
-      () => toast.error("ההעתקה נכשלה"),
-    );
-  };
 
   const onClientStepClick = async (step: number) => {
     try {
@@ -521,50 +629,31 @@ function NewbornOrderGallery() {
         <StepTracker theme="pink" steps={CLIENT_STEPS} current={order.client_step ?? 1} onStepClick={onClientStepClick} />
       </div>
 
-      <div className="bg-card rounded-2xl border border-primary/10 p-5 space-y-3">
-        <h3 className="font-display text-lg text-primary">קישור אישי ללקוחה</h3>
-        <p className="text-xs text-muted-foreground">הקישור הזה — ולא כניסה לאתר — הוא מה שהלקוחה משתמשת בו כדי לראות ולבחור תמונות. אין צורך שיהיה לה חשבון.</p>
-        {shareUrl && (
-          <div className="flex flex-wrap items-center gap-2">
-            <code dir="ltr" className="text-xs bg-muted rounded-lg px-3 py-2 flex-1 min-w-0 truncate">
-              {shareUrl}
-            </code>
-            <button type="button" onClick={copyLink} className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 px-4 h-9 text-sm hover:bg-cream">
-              <Copy className="h-3.5 w-3.5" /> העתקה
-            </button>
-          </div>
-        )}
-        <div className="flex items-center gap-2 pt-1 text-xs text-muted-foreground">
-          {order.contract_sent_at ? <span>חוזה נשלח ✓</span> : <span>החוזה עוד לא נשלח</span>}
-          <button type="button" onClick={handleResend} disabled={resending} className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 px-3 h-7 hover:bg-cream disabled:opacity-60">
-            {resending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />} שליחה מחדש
-          </button>
-        </div>
-        <p className="text-xs">
-          {order.contract_confirmed_at ? <span className="text-primary font-medium">היא קראה ואישרה את החוזה ✓</span> : <span className="text-muted-foreground">עדיין לא אישרה שקראה את החוזה</span>}
-        </p>
-        {order.proofs_selected_at && <p className="text-xs text-primary font-medium">היא כבר סיימה לבחור תמונות ✓</p>}
-      </div>
-
-      <PhotoSettingsCard order={order} onSaved={refreshOrder} />
-
-      <AlbumDetailsCard order={order} onSaved={refreshOrder} />
+      <SectionHeader step={1} title="תמונות לבחירה ללקוחה" hint="מעלים כאן, שולחים לה את הקישור, והיא בוחרת מועדפות." />
+      <ShareLinkCard
+        shareUrl={shareUrl}
+        contactName={order.contact_name}
+        contactPhone={order.contact_phone}
+        contractSentAt={order.contract_sent_at ?? null}
+        contractConfirmedAt={order.contract_confirmed_at ?? null}
+        proofsSelectedAt={order.proofs_selected_at ?? null}
+        orderId={orderId}
+        resending={resending}
+        onResend={handleResend}
+      />
 
       {imagesQuery.isLoading ? (
         <div className="text-sm text-muted-foreground">טוען תמונות...</div>
       ) : (
-        <div className="grid md:grid-cols-2 gap-5">
-          <UploadSection
-            title="תמונות לבחירה (עם סימן מים)"
-            hint='הלקוחה בוחרת מתוכן, או שמסמנים כאן בשמה (ה-✓) אם היא בחרה בעצמה בטלפון/בפגישה.'
-            kind="proof"
-            orderId={orderId}
-            images={proofImages}
-            onChanged={refresh}
-            onToggleSelect={onToggleSelect}
-          />
-          <UploadSection title="תמונות מעובדות (איכות סופית)" hint="ברגע שיש כאן תמונות, הלקוחה רואה אותן במקום תמונות הבחירה." kind="edited" orderId={orderId} images={editedImages} onChanged={refresh} />
-        </div>
+        <UploadSection
+          title="תמונות לבחירה (עם סימן מים)"
+          hint='הלקוחה בוחרת מתוכן, או שמסמנים כאן בשמה (ה-✓) אם היא בחרה בעצמה בטלפון/בפגישה.'
+          kind="proof"
+          orderId={orderId}
+          images={proofImages}
+          onChanged={refresh}
+          onToggleSelect={onToggleSelect}
+        />
       )}
 
       {/* Only before the client has ever submitted her selection — once
@@ -575,6 +664,8 @@ function NewbornOrderGallery() {
         <PhotoTriagePanel images={proofImages.map((i) => ({ id: i.id, url: i.image_url }))} onDeleteMany={onDeleteTrashedProofs} />
       )}
 
+      <PhotoSettingsCard order={order} onSaved={refreshOrder} />
+
       {proofImages.length > 0 && (
         <UnlockApprovalCard
           unlocked={order.all_photos_unlocked ?? false}
@@ -583,6 +674,16 @@ function NewbornOrderGallery() {
           onApprove={() => approveUnlock({ data: { orderId } }).then(() => {})}
           onApproved={refreshOrder}
         />
+      )}
+
+      <SectionHeader step={2} title="פרטים לעיצוב האלבום" hint="מתקבל אוטומטית אחרי שהיא בוחרת, או שממלאים כאן ידנית." />
+      <AlbumDetailsCard order={order} onSaved={refreshOrder} />
+
+      <SectionHeader step={3} title="אלבום סופי ומסירה" hint="מעלים את התמונות המעובדות — היא רואה אותן במקום תמונות הבחירה." />
+      {imagesQuery.isLoading ? (
+        <div className="text-sm text-muted-foreground">טוען תמונות...</div>
+      ) : (
+        <UploadSection title="תמונות מעובדות (איכות סופית)" hint="ברגע שיש כאן תמונות, הלקוחה רואה אותן במקום תמונות הבחירה." kind="edited" orderId={orderId} images={editedImages} onChanged={refresh} />
       )}
 
       <DriveSyncCard
