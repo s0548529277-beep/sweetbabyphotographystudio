@@ -17,6 +17,7 @@ import {
   resendNewbornContract,
   updateNewbornPhotoSettings,
   updateNewbornOrderClientStep,
+  updateNewbornAlbumDetails,
   syncNewbornAlbumToDrive,
   sendNewbornDriveAlbumLinkToClient,
   getNewbornUnlockReceiptUrl,
@@ -33,6 +34,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 
 // A dedicated gallery-management page per newborn order — its own table
 // (newborn_order_images), its own storage prefix, completely separate from
@@ -282,6 +284,138 @@ function PhotoSettingsCard({ order, onSaved }: { order: any; onSaved: () => void
   );
 }
 
+const CAPTION_LANGUAGE_LABEL: Record<string, string> = { hebrew: "עברי", latin: "לועזי" };
+
+/**
+ * "פרטים לעיצוב האלבום" — read-only view of what the client filled in on
+ * her own gallery page (submitNewbornAlbumDetailsByToken), with an edit
+ * mode for when she dictates the details over the phone instead — same
+ * "admin can act on the client's behalf" pattern as the proof-selection ✓
+ * button above.
+ */
+function AlbumDetailsCard({ order, onSaved }: { order: any; onSaved: () => void }) {
+  const save = useServerFn(updateNewbornAlbumDetails);
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({
+    childName: order.album_child_name ?? "",
+    birthWeight: order.album_birth_weight ?? "",
+    birthTime: order.album_birth_time ?? "",
+    birthDate: order.album_birth_date ?? "",
+    hospital: order.album_hospital ?? "",
+    captionLanguage: order.album_caption_language ?? "",
+    notes: order.album_notes ?? "",
+  });
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setForm({
+      childName: order.album_child_name ?? "",
+      birthWeight: order.album_birth_weight ?? "",
+      birthTime: order.album_birth_time ?? "",
+      birthDate: order.album_birth_date ?? "",
+      hospital: order.album_hospital ?? "",
+      captionLanguage: order.album_caption_language ?? "",
+      notes: order.album_notes ?? "",
+    });
+  }, [order.album_child_name, order.album_birth_weight, order.album_birth_time, order.album_birth_date, order.album_hospital, order.album_caption_language, order.album_notes]);
+
+  const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }));
+
+  const onSave = async () => {
+    setBusy(true);
+    try {
+      await save({ data: { id: order.id, ...form } });
+      toast.success("הפרטים נשמרו");
+      setEditing(false);
+      onSaved();
+    } catch (e) {
+      toast.error(heError(e, "השמירה נכשלה"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const hasAnyDetails = !!order.album_details_submitted_at;
+
+  return (
+    <div className="bg-card rounded-2xl border border-primary/10 p-5 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="font-display text-lg text-primary">פרטים לעיצוב האלבום</h3>
+        {!editing && (
+          <button type="button" onClick={() => setEditing(true)} className="text-xs text-primary hover:underline shrink-0">
+            {hasAnyDetails ? "עריכה" : "הזנה ידנית"}
+          </button>
+        )}
+      </div>
+
+      {!editing ? (
+        hasAnyDetails ? (
+          <div className="grid sm:grid-cols-2 gap-2 text-sm">
+            <p><span className="text-muted-foreground">שם הילד/ה:</span> {order.album_child_name || "—"}</p>
+            <p><span className="text-muted-foreground">משקל לידה:</span> {order.album_birth_weight || "—"}</p>
+            <p><span className="text-muted-foreground">שעת לידה:</span> {order.album_birth_time || "—"}</p>
+            <p><span className="text-muted-foreground">תאריך לידה:</span> {order.album_birth_date || "—"}</p>
+            <p><span className="text-muted-foreground">בית חולים:</span> {order.album_hospital || "—"}</p>
+            <p><span className="text-muted-foreground">כיתוב:</span> {CAPTION_LANGUAGE_LABEL[order.album_caption_language] ?? "—"}</p>
+            {order.album_notes && <p className="sm:col-span-2"><span className="text-muted-foreground">הערות:</span> {order.album_notes}</p>}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">הלקוחה עדיין לא שלחה פרטים — יתקבלו אוטומטית אחרי שתסיים לבחור תמונות, או אפשר למלא כאן בעצמך.</p>
+        )
+      ) : (
+        <>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs text-muted-foreground">שם הילד/ה</Label>
+              <Input value={form.childName} onChange={(e) => set("childName", e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">משקל לידה</Label>
+              <Input value={form.birthWeight} onChange={(e) => set("birthWeight", e.target.value)} placeholder='לדוגמה: 3.200 ק"ג' />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">שעת לידה</Label>
+              <Input value={form.birthTime} onChange={(e) => set("birthTime", e.target.value)} placeholder="לדוגמה: 14:30" />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">תאריך לידה</Label>
+              <Input type="date" value={form.birthDate} onChange={(e) => set("birthDate", e.target.value)} />
+            </div>
+            <div className="sm:col-span-2">
+              <Label className="text-xs text-muted-foreground">בית חולים</Label>
+              <Input value={form.hospital} onChange={(e) => set("hospital", e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">כיתוב</Label>
+              <Select value={form.captionLanguage || undefined} onValueChange={(v) => set("captionLanguage", v)}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="בחירה" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hebrew">עברי</SelectItem>
+                  <SelectItem value="latin">לועזי</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">הערות</Label>
+            <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} />
+          </div>
+          <div className="flex items-center gap-2">
+            <Button type="button" size="sm" onClick={onSave} disabled={busy} className="rounded-full">
+              {busy ? "שומר..." : "שמירה"}
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => setEditing(false)} className="rounded-full">
+              ביטול
+            </Button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function NewbornOrderGallery() {
   const { orderId } = Route.useParams();
   const qc = useQueryClient();
@@ -413,6 +547,8 @@ function NewbornOrderGallery() {
       </div>
 
       <PhotoSettingsCard order={order} onSaved={refreshOrder} />
+
+      <AlbumDetailsCard order={order} onSaved={refreshOrder} />
 
       {imagesQuery.isLoading ? (
         <div className="text-sm text-muted-foreground">טוען תמונות...</div>

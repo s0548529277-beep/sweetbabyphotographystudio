@@ -541,6 +541,52 @@ export const updateNewbornOrderClientStep = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const adminAlbumDetailsSchema = z.object({
+  id: z.string().uuid(),
+  childName: z.string().trim().max(120).optional().or(z.literal("")),
+  birthWeight: z.string().trim().max(40).optional().or(z.literal("")),
+  birthTime: z.string().trim().max(20).optional().or(z.literal("")),
+  birthDate: z.string().min(10).max(10).optional().or(z.literal("")),
+  hospital: z.string().trim().max(120).optional().or(z.literal("")),
+  captionLanguage: z.enum(["hebrew", "latin"]).optional().or(z.literal("")),
+  notes: z.string().trim().max(1000).optional().or(z.literal("")),
+});
+
+/**
+ * Admin-facing edit of the same "פרטים לעיצוב האלבום" fields the client
+ * fills in on her own gallery page (submitNewbornAlbumDetailsByToken) —
+ * for when she dictates the details over the phone instead, same
+ * "admin can act on the client's behalf" pattern as
+ * adminToggleNewbornProofSelection.
+ */
+export const updateNewbornAlbumDetails = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => adminAlbumDetailsSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await (context.supabase as any)
+      .from("newborn_package_orders")
+      .update({
+        album_child_name: data.childName?.trim() || null,
+        album_birth_weight: data.birthWeight?.trim() || null,
+        album_birth_time: data.birthTime?.trim() || null,
+        album_birth_date: data.birthDate || null,
+        album_hospital: data.hospital?.trim() || null,
+        album_caption_language: data.captionLanguage || null,
+        album_notes: data.notes?.trim() || null,
+        album_details_submitted_at: new Date().toISOString(),
+      })
+      .eq("id", data.id);
+    // Same brand-new-column caveat as submitNewbornAlbumDetailsByToken above.
+    if (error) {
+      if (/does not exist/i.test(error.message ?? "")) {
+        throw new Error("השדות החדשים האלה עדיין לא התעדכנו במסד הנתונים — נסי שוב בעוד כמה דקות.");
+      }
+      throw new Error(error.message);
+    }
+    return { ok: true };
+  });
+
 const updateContactSchema = z.object({
   id: z.string().uuid(),
   contact_name: z.string().trim().min(1).max(120).optional(),
@@ -1275,6 +1321,16 @@ export const getNewbornGalleryByToken = createServerFn({ method: "POST" })
       allPhotosUnlocked: !!order.all_photos_unlocked,
       unlockReceiptSubmittedAt: order.unlock_receipt_submitted_at as string | null,
       clientStep: ((order as any).client_step ?? 1) as number,
+      albumDetails: {
+        childName: (order as any).album_child_name as string | null,
+        birthWeight: (order as any).album_birth_weight as string | null,
+        birthTime: (order as any).album_birth_time as string | null,
+        birthDate: (order as any).album_birth_date as string | null,
+        hospital: (order as any).album_hospital as string | null,
+        captionLanguage: (order as any).album_caption_language as "hebrew" | "latin" | null,
+        notes: (order as any).album_notes as string | null,
+        submittedAt: (order as any).album_details_submitted_at as string | null,
+      },
       images: (images ?? []) as {
         id: string;
         kind: "proof" | "edited";
@@ -1283,6 +1339,93 @@ export const getNewbornGalleryByToken = createServerFn({ method: "POST" })
         selected: boolean;
       }[],
     };
+  });
+
+const albumDetailsSchema = z.object({
+  token: z.string().min(10),
+  childName: z.string().trim().max(120).optional().or(z.literal("")),
+  birthWeight: z.string().trim().max(40).optional().or(z.literal("")),
+  birthTime: z.string().trim().max(20).optional().or(z.literal("")),
+  birthDate: z.string().min(10).max(10).optional().or(z.literal("")), // "YYYY-MM-DD"
+  hospital: z.string().trim().max(120).optional().or(z.literal("")),
+  captionLanguage: z.enum(["hebrew", "latin"]).optional(),
+  notes: z.string().trim().max(1000).optional().or(z.literal("")),
+});
+
+/**
+ * "פרטים לעיצוב האלבום" — client-facing form on her own gallery page, shown
+ * right after she finishes picking her proof photos (maps onto CLIENT_STEPS
+ * step 3). Not locked after the first submit — she can come back and
+ * correct a typo (e.g. the baby's name) any time, unlike proof selection
+ * which locks for real business reasons. Advances client_step to 4 the
+ * first time this is submitted, same "only moves forward" reasoning as
+ * finishNewbornProofSelectionByToken.
+ */
+export const submitNewbornAlbumDetailsByToken = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => albumDetailsSchema.parse(d))
+  .handler(async ({ data }) => {
+    const order = await orderByToken(data.token);
+    if (!order) throw new Error("קישור לא תקין");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const firstSubmit = !(order as any).album_details_submitted_at;
+
+    const { error } = await (supabaseAdmin as any)
+      .from("newborn_package_orders")
+      .update({
+        album_child_name: data.childName?.trim() || null,
+        album_birth_weight: data.birthWeight?.trim() || null,
+        album_birth_time: data.birthTime?.trim() || null,
+        album_birth_date: data.birthDate || null,
+        album_hospital: data.hospital?.trim() || null,
+        album_caption_language: data.captionLanguage ?? null,
+        album_notes: data.notes?.trim() || null,
+        album_details_submitted_at: new Date().toISOString(),
+      })
+      .eq("id", order.id);
+    // These are brand-new columns — if the migration that adds them hasn't
+    // landed on the live database yet (the usual Lovable/Drizzle
+    // regeneration lag), surface a clear, friendly message instead of the
+    // raw "column ... does not exist" Postgres error straight to a client
+    // filling in this form.
+    if (error) {
+      if (/does not exist/i.test(error.message ?? "")) {
+        throw new Error("השדות החדשים האלה עדיין לא התעדכנו באתר — נסי שוב בעוד כמה דקות, או שלחי לי את הפרטים בהודעה בינתיים.");
+      }
+      throw new Error(error.message);
+    }
+
+    if (firstSubmit) {
+      const { error: stepErr } = await (supabaseAdmin as any)
+        .from("newborn_package_orders")
+        .update({ client_step: 4 })
+        .eq("id", order.id);
+      if (stepErr) console.error("[SWEETBABY] newborn client_step advance to 4 failed (column may not be live yet)", stepErr);
+
+      try {
+        const { sendGmail } = await import("@/integrations/google/gmail.server");
+        const captionLabel = data.captionLanguage === "latin" ? "לועזי" : data.captionLanguage === "hebrew" ? "עברי" : "—";
+        await sendGmail({
+          to: NEWBORN_STUDIO_EMAIL,
+          subject: `${order.contact_name} שלחה פרטים לעיצוב האלבום 💗`,
+          html: `<div dir="rtl" style="font-family:sans-serif">
+            <p><b>${order.contact_name}</b> שלחה פרטים לעיצוב האלבום:</p>
+            <ul>
+              <li>שם הילד/ה: ${data.childName || "—"}</li>
+              <li>משקל לידה: ${data.birthWeight || "—"}</li>
+              <li>שעת לידה: ${data.birthTime || "—"}</li>
+              <li>תאריך: ${data.birthDate || "—"}</li>
+              <li>בית חולים: ${data.hospital || "—"}</li>
+              <li>כיתוב: ${captionLabel}</li>
+              <li>הערות: ${data.notes || "—"}</li>
+            </ul>
+            <p><a href="https://sweetbabyphoto.shop/admin/newborn-packages">לצפייה בניהול</a></p>
+          </div>`,
+        });
+      } catch (e) {
+        console.error("[SWEETBABY] newborn album-details notify failed", e);
+      }
+    }
+    return { ok: true };
   });
 
 export const toggleNewbornProofByToken = createServerFn({ method: "POST" })

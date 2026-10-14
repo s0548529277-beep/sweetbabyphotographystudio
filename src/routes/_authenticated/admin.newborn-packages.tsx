@@ -850,7 +850,7 @@ function NewbornTableView({ rows }: { rows: OrderRow[] }) {
 
   return (
     <div className="bg-card rounded-2xl border border-primary/10 overflow-x-auto">
-      <table className="w-full text-sm min-w-[900px]">
+      <table className="w-full text-sm min-w-[1000px]">
         <thead>
           <tr className="border-b border-primary/10 text-right text-xs text-muted-foreground">
             <th className="px-3 py-3 font-medium">שם</th>
@@ -861,6 +861,7 @@ function NewbornTableView({ rows }: { rows: OrderRow[] }) {
             <th className="px-3 py-3 font-medium text-center">תמונות מעובדות</th>
             <th className="px-3 py-3 font-medium text-center">קולאז'</th>
             <th className="px-3 py-3 font-medium text-center">אלבום</th>
+            <th className="px-3 py-3 font-medium text-center">פרטי אלבום</th>
             <th className="px-3 py-3 font-medium text-center">שולם</th>
           </tr>
         </thead>
@@ -887,6 +888,7 @@ function NewbornTableView({ rows }: { rows: OrderRow[] }) {
                 <td className="px-3 py-2.5 text-center">{pkg?.photosToEdit ?? "—"}</td>
                 <td className="px-3 py-2.5 text-center"><YesNo yes={!!pkg?.hasCollage} /></td>
                 <td className="px-3 py-2.5 text-center"><YesNo yes={!!pkg?.hasAlbum} /></td>
+                <td className="px-3 py-2.5 text-center"><YesNo yes={!!o.album_details_submitted_at} /></td>
                 <td className="px-3 py-2.5 text-center"><YesNo yes={paid} /></td>
               </tr>
             );

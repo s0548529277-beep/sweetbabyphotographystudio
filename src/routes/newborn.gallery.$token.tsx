@@ -9,6 +9,7 @@ import {
   toggleNewbornProofByToken,
   finishNewbornProofSelectionByToken,
   submitNewbornUnlockReceiptByToken,
+  submitNewbornAlbumDetailsByToken,
 } from "@/lib/newborn-orders.functions";
 import { downloadPhotosAsZip } from "@/lib/photo-zip";
 import { PhotoLightbox, GuidedStepper } from "@/components/PhotoLightbox";
@@ -46,6 +47,157 @@ export const Route = createFileRoute("/newborn/gallery/$token")({
 });
 
 type Img = { id: string; kind: "proof" | "edited"; image_url: string; original_image_url: string | null; selected: boolean };
+
+type AlbumDetails = {
+  childName: string | null;
+  birthWeight: string | null;
+  birthTime: string | null;
+  birthDate: string | null;
+  hospital: string | null;
+  captionLanguage: "hebrew" | "latin" | null;
+  notes: string | null;
+  submittedAt: string | null;
+};
+
+/**
+ * "פרטים לעיצוב האלבום" — shown right after the client finishes picking her
+ * proof photos (CLIENT_STEPS step 3). Not locked after submitting — she can
+ * reopen and correct a detail (e.g. the baby's name) any time.
+ */
+function AlbumDetailsForm({ token, details, onSaved }: { token: string; details: AlbumDetails; onSaved: () => void }) {
+  const submitFn = useServerFn(submitNewbornAlbumDetailsByToken);
+  const [editing, setEditing] = useState(!details.submittedAt);
+  const [form, setForm] = useState({
+    childName: details.childName ?? "",
+    birthWeight: details.birthWeight ?? "",
+    birthTime: details.birthTime ?? "",
+    birthDate: details.birthDate ?? "",
+    hospital: details.hospital ?? "",
+    captionLanguage: details.captionLanguage ?? ("" as "" | "hebrew" | "latin"),
+    notes: details.notes ?? "",
+  });
+  const [saving, setSaving] = useState(false);
+
+  const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }));
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await submitFn({
+        data: {
+          token,
+          childName: form.childName,
+          birthWeight: form.birthWeight,
+          birthTime: form.birthTime,
+          birthDate: form.birthDate,
+          hospital: form.hospital,
+          ...(form.captionLanguage ? { captionLanguage: form.captionLanguage } : {}),
+          notes: form.notes,
+        },
+      });
+      toast.success("הפרטים נשלחו אליי — תודה! 💗");
+      setEditing(false);
+      onSaved();
+    } catch (e: any) {
+      toast.error(e?.message ?? "השליחה נכשלה, נסי שוב");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inputClass = "w-full rounded-xl border border-[#4a3221]/15 bg-white px-3.5 py-2.5 text-sm text-[#4a3221] placeholder:text-[#4a3221]/40 focus:outline-none focus:ring-2 focus:ring-[#4a3221]/25";
+  const labelClass = "text-xs font-medium text-[#4a3221]/70 mb-1 block";
+
+  if (!editing) {
+    return (
+      <div className="mt-6 rounded-2xl border border-[#4a3221]/10 bg-white/60 p-5">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <h3 className="text-lg" style={{ fontFamily: "'DM Serif Display', serif" }}>
+            פרטים לעיצוב האלבום
+          </h3>
+          <button type="button" onClick={() => setEditing(true)} className="text-xs text-[#4a3221]/70 hover:text-[#4a3221] underline shrink-0">
+            עריכת הפרטים
+          </button>
+        </div>
+        <p className="text-sm text-[#4a3221] flex items-center gap-1.5">
+          <Check className="h-4 w-4 shrink-0" /> תודה, קיבלנו את הפרטים — מתחילים לעצב 💗
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-6 rounded-2xl border border-[#4a3221]/10 bg-white/60 p-5 space-y-4">
+      <div>
+        <h3 className="text-lg" style={{ fontFamily: "'DM Serif Display', serif" }}>
+          פרטים לעיצוב האלבום
+        </h3>
+        <p className="text-xs text-[#4a3221]/70 mt-1">כמה פרטים קטנים שעוזרים לי לעצב לך אלבום מדויק ואישי.</p>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div>
+          <label className={labelClass}>שם הילד/ה</label>
+          <input className={inputClass} value={form.childName} onChange={(e) => set("childName", e.target.value)} />
+        </div>
+        <div>
+          <label className={labelClass}>משקל לידה</label>
+          <input className={inputClass} value={form.birthWeight} onChange={(e) => set("birthWeight", e.target.value)} placeholder='לדוגמה: 3.200 ק"ג' />
+        </div>
+        <div>
+          <label className={labelClass}>שעת לידה</label>
+          <input className={inputClass} value={form.birthTime} onChange={(e) => set("birthTime", e.target.value)} placeholder="לדוגמה: 14:30" />
+        </div>
+        <div>
+          <label className={labelClass}>תאריך לידה</label>
+          <input type="date" className={inputClass} value={form.birthDate} onChange={(e) => set("birthDate", e.target.value)} />
+        </div>
+        <div className="sm:col-span-2">
+          <label className={labelClass}>בית חולים</label>
+          <input className={inputClass} value={form.hospital} onChange={(e) => set("hospital", e.target.value)} />
+        </div>
+      </div>
+
+      <div>
+        <label className={labelClass}>העדפת כיתוב באלבום</label>
+        <div className="flex gap-2">
+          {(
+            [
+              { key: "hebrew", label: "עברי" },
+              { key: "latin", label: "לועזי" },
+            ] as const
+          ).map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => set("captionLanguage", opt.key)}
+              className={`flex-1 h-10 rounded-xl border text-sm font-medium transition-colors ${
+                form.captionLanguage === opt.key ? "border-[#4a3221] bg-[#4a3221] text-white" : "border-[#4a3221]/15 text-[#4a3221]/70 hover:border-[#4a3221]/40"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className={labelClass}>הערות</label>
+        <textarea className={inputClass} rows={3} value={form.notes} onChange={(e) => set("notes", e.target.value)} />
+      </div>
+
+      <button
+        type="button"
+        onClick={save}
+        disabled={saving}
+        className="inline-flex items-center gap-2 bg-[#4a3221] text-white px-6 py-3 rounded-full font-semibold disabled:opacity-60"
+      >
+        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizonal className="h-4 w-4" />}
+        שליחת הפרטים
+      </button>
+    </div>
+  );
+}
 
 function ProofSection({
   proofs,
@@ -344,7 +496,7 @@ function NewbornGalleryPage() {
     );
   }
 
-  const { contactName, packageName, images, proofsSelectedAt, maxProofSelections, guidedSelectionEnabled, allPhotosUnlocked, unlockReceiptSubmittedAt, clientStep } = query.data as {
+  const { contactName, packageName, images, proofsSelectedAt, maxProofSelections, guidedSelectionEnabled, allPhotosUnlocked, unlockReceiptSubmittedAt, clientStep, albumDetails } = query.data as {
     contactName: string;
     packageName: string;
     images: Img[];
@@ -354,6 +506,7 @@ function NewbornGalleryPage() {
     allPhotosUnlocked: boolean;
     unlockReceiptSubmittedAt: string | null;
     clientStep: number;
+    albumDetails: AlbumDetails;
   };
   const edited = images.filter((i) => i.kind === "edited");
   const proofs = images.filter((i) => i.kind === "proof");
@@ -404,6 +557,8 @@ function NewbornGalleryPage() {
             onRefetch={onRefetch}
           />
         )}
+
+        {proofsSelectedAt && <AlbumDetailsForm token={token} details={albumDetails} onSaved={onRefetch} />}
       </div>
     </div>
   );
