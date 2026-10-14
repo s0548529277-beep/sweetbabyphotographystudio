@@ -57,7 +57,8 @@ function formatHebrewDate(dateStr: string | null): string {
   }
 }
 
-const EXTRA_PHOTO_PRICE = 35;
+// Matches the "מחירון ניו-בורן 2025" price list's "תמונה נוספת" line.
+const EXTRA_PHOTO_PRICE = 40;
 
 /**
  * Reads the admin-editable template (app_settings, key

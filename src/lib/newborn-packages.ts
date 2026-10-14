@@ -37,14 +37,20 @@ export type NewbornPackage = {
   categories: NewbornPackageCategoryId[];
 };
 
+// Prices/sets/photo counts below match the "מחירון ניו-בורן 2025" price
+// list image sent directly — updated here, in the contract email
+// (buildNewbornContractHtml reads pkg.features/price via findNewbornPackage)
+// and in the admin's package picker (both read this same array), per
+// explicit request. birth_basket-only packages (basket_500/basket_1600)
+// aren't on that price list, so they're untouched.
 export const NEWBORN_PACKAGES: NewbornPackage[] = [
   {
     id: "mini",
     name: "חבילה מיני",
-    price: 900,
-    features: ["3 סטים", "8 תמונות מעובדות", "קולאז'"],
+    price: 970,
+    features: ["2 סטים", "8 תמונות מעובדות", "קולאז' מעוצב"],
     photosToEdit: 8,
-    sets: 3,
+    sets: 2,
     sessions: 1,
     hasCollage: true,
     hasAlbum: false,
@@ -53,10 +59,10 @@ export const NEWBORN_PACKAGES: NewbornPackage[] = [
   {
     id: "pampering",
     name: "חבילה מפנקת",
-    price: 1200,
-    features: ["4 סטים", "סט הורים/אחים", "12 תמונות מעובדות", "קולאז'", "אלבום"],
-    photosToEdit: 12,
-    sets: 4,
+    price: 1300,
+    features: ["3 סטים", "סט הורים/אחים", "10 תמונות מעובדות", "קולאז' מעוצב", "אלבום"],
+    photosToEdit: 10,
+    sets: 3,
     sessions: 1,
     hasCollage: true,
     hasAlbum: true,
@@ -68,9 +74,9 @@ export const NEWBORN_PACKAGES: NewbornPackage[] = [
     id: "dreamy",
     name: "חבילה חלומית",
     price: 1650,
-    features: ["5 סטים", "15 תמונות מעובדות", "קולאז'", "סט הורים", "סט אחים", "אלבום"],
+    features: ["4 סטים", "15 תמונות מעובדות", "קולאז' מעוצב", "סט הורים", "סט אחים", "אלבום"],
     photosToEdit: 15,
-    sets: 5,
+    sets: 4,
     sessions: 1,
     hasCollage: true,
     hasAlbum: true,
