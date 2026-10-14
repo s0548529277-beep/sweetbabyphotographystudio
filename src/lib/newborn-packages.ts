@@ -110,10 +110,16 @@ export const NEWBORN_PACKAGES: NewbornPackage[] = [
 
 export type NewbornAddon = { id: string; label: string; price: number };
 
+// album_upgrade and travel: price/label updated per the "מחירון ניו-בורן
+// 2025" price list ("תוספת אלבום" / "הגעה עד בית הלקוחה") — id kept as-is
+// so an already-placed order's own addon snapshot (stored at creation
+// time in newborn_package_orders.addons) is never affected by this.
+// siblings_photos: new, per explicit request.
 export const NEWBORN_ADDONS: NewbornAddon[] = [
   { id: "extra_set", label: "הוספת סט", price: 250 },
-  { id: "album_upgrade", label: "שדרוג אלבום", price: 150 },
-  { id: "travel", label: "תוספת נסיעות", price: 150 },
+  { id: "album_upgrade", label: "שדרוג אלבום", price: 280 },
+  { id: "travel", label: "הגעה עד בית הלקוחה", price: 200 },
+  { id: "siblings_photos", label: "תוספת צילומי אחים", price: 200 },
   { id: "food_retouch", label: "עיבוד תמונה נוספת (אוכל)", price: 40 },
 ];
 

@@ -94,6 +94,7 @@ type EditForm = {
   session_time: string;
   birth_basket_used: boolean;
   notes: string;
+  total_price: string;
 };
 
 function toEditForm(o: OrderRow): EditForm {
@@ -105,6 +106,7 @@ function toEditForm(o: OrderRow): EditForm {
     session_time: o.session_time ?? "",
     birth_basket_used: !!o.birth_basket_used,
     notes: o.notes ?? "",
+    total_price: o.total_price != null ? String(o.total_price) : "",
   };
 }
 
@@ -246,6 +248,7 @@ function NewbornPackagesAdmin() {
           session_time: editForm.session_time || null,
           birth_basket_used: editForm.birth_basket_used,
           notes: editForm.notes.trim() || null,
+          ...(editForm.total_price.trim() ? { total_price: Number(editForm.total_price) } : {}),
         },
       });
       if (result?._schemaFallback) {
@@ -497,6 +500,18 @@ function NewbornPackagesAdmin() {
                 <Input type="time" value={editForm.session_time} onChange={(e) => setEditForm((f) => f && { ...f, session_time: e.target.value })} />
               </div>
               <BirthBasketToggle value={editForm.birth_basket_used} onChange={(v) => setEditForm((f) => f && { ...f, birth_basket_used: v })} />
+              <div>
+                <Label>סכום כולל (₪)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  dir="ltr"
+                  value={editForm.total_price}
+                  onChange={(e) => setEditForm((f) => f && { ...f, total_price: e.target.value })}
+                  placeholder="לדוגמה אם סוכם מחיר שונה מהמחירון בטלפון"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">זה הסכום שיופיע בחוזה שנשלח — לא משנה את מה שכבר שולם.</p>
+              </div>
               <div>
                 <Label>הערות</Label>
                 <Textarea value={editForm.notes} onChange={(e) => setEditForm((f) => f && { ...f, notes: e.target.value })} />

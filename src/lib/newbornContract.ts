@@ -34,13 +34,19 @@ export type NewbornContractVars = {
   session_date_line: string;
   session_time_line: string;
   confirm_link: string;
+  // The chosen package's actual set count — used right below so the
+  // "ביגוד ואקססוריז" section never contradicts "## פרטי החבילה" further
+  // down (which already pulls the real count via package_line). Per a
+  // direct report of the two disagreeing (a stale hardcoded "3" here vs.
+  // the real package's count there).
+  sets_count: string;
 };
 
 export const DEFAULT_NEWBORN_CONTRACT_TEMPLATE = `היי {{contact_name}} היקרה,
 שמחה ומתרגשת שבחרת בי לקחת חלק ולתעד את המשפחה שלכם ברגעים מרגשים אלו.
 
 ## ביגוד ואקססוריז
-3 סטים לבייבי — האיבזור וההלבשה עליי :)
+{{sets_count}} סטים לבייבי — האיבזור וההלבשה עליי :)
 
 צילומי הורים:
 אמא — שמלה חלקה, בצבע אחיד.

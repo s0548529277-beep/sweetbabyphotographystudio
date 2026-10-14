@@ -116,6 +116,7 @@ async function buildNewbornContractHtml(
     session_date_line: `תאריך הצילומים: ${formatHebrewDate(order.session_date)}`,
     session_time_line: `שעה: ${order.session_time ?? "תיקבע בתיאום"}`,
     confirm_link: confirmLink,
+    sets_count: pkg ? String(pkg.sets) : "",
   });
   return renderNewbornContractHtml(filled);
 }
@@ -609,6 +610,11 @@ const updateContactSchema = z.object({
     .nullable(),
   birth_basket_used: z.boolean().optional(),
   notes: z.string().trim().max(1000).optional().nullable(),
+  // Normally set once at creation (package price + addons) — editable here
+  // for when the actual agreed price differs from the catalog (e.g. a
+  // verbal discount given on the phone) and the contract needs to go out
+  // with the real number. Editing this does NOT change amount_paid.
+  total_price: z.number().nonnegative().max(1000000).optional(),
 });
 
 // Fields that, if changed, mean the calendar event AND the availability-
