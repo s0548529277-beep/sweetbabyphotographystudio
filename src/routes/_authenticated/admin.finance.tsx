@@ -26,6 +26,7 @@ import {
   HandCoins,
   AlertCircle,
   FileSpreadsheet,
+  Repeat,
 } from "lucide-react";
 import { readXlsxFirstSheet, isReddishArgb, parseAmountCell, parseDateCell } from "@/lib/xlsx-read";
 import { toCSV, downloadCSV } from "@/lib/csv";
@@ -168,6 +169,18 @@ function FinanceAdmin() {
     is_personal: false,
   };
   const [debtForm, setDebtForm] = useState(emptyDebtForm);
+
+  // Recurring monthly expenses (e.g. rent ₪1200/month) — auto-inserted into
+  // `expenses` once a month by runDueRecurringExpenses (see
+  // recurring-expenses.functions.ts), so she never has to re-type the same
+  // expense. This is just the admin list/add/delete UI for defining them.
+  const [recurringForm, setRecurringForm] = useState({
+    title: "",
+    amount: "",
+    category: "שכירות",
+    day_of_month: "1",
+    is_personal: false,
+  });
 
   // Excel import ("הביאי אקסל מהבנק/מהאשראי, מה שאדום זה הוצאה, את בוחרת
   // הכנסה/הוצאה ואישי/עסק") — see src/lib/xlsx-read.ts for the actual .xlsx
@@ -387,6 +400,58 @@ function FinanceAdmin() {
       };
     },
   });
+
+  const recurringQuery = useQuery({
+    queryKey: ["admin-recurring-expenses"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("recurring_expenses")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as {
+        id: string;
+        title: string;
+        amount: number;
+        category: string;
+        day_of_month: number;
+        is_personal: boolean;
+        active: boolean;
+        last_generated_month: string | null;
+      }[];
+    },
+  });
+
+  const addRecurringExpense = async () => {
+    const amount = Number(recurringForm.amount);
+    const day = Number(recurringForm.day_of_month);
+    if (!recurringForm.title.trim() || !amount) return toast.error("נא למלא תיאור וסכום");
+    if (!day || day < 1 || day > 28) return toast.error("יום בחודש צריך להיות בין 1 ל-28");
+    const { error } = await (supabase as any).from("recurring_expenses").insert({
+      title: recurringForm.title.trim(),
+      amount,
+      category: recurringForm.category,
+      day_of_month: day,
+      is_personal: recurringForm.is_personal,
+    });
+    if (error) return toast.error(error.message);
+    toast.success("ההוצאה הקבועה נוספה — תיווצר אוטומטית כל חודש");
+    setRecurringForm({ ...recurringForm, title: "", amount: "" });
+    qc.invalidateQueries({ queryKey: ["admin-recurring-expenses"] });
+  };
+
+  const toggleRecurringActive = async (id: string, active: boolean) => {
+    const { error } = await (supabase as any).from("recurring_expenses").update({ active }).eq("id", id);
+    if (error) return toast.error(error.message);
+    qc.invalidateQueries({ queryKey: ["admin-recurring-expenses"] });
+  };
+
+  const deleteRecurringExpense = async (id: string) => {
+    if (!confirm("למחוק את ההוצאה הקבועה הזו? זה לא ישפיע על הוצאות שכבר נוצרו בעבר.")) return;
+    const { error } = await (supabase as any).from("recurring_expenses").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    qc.invalidateQueries({ queryKey: ["admin-recurring-expenses"] });
+  };
 
   /** Every income/expense line, normalised so it can be filtered and grouped. */
   const allTxns = useMemo<Txn[]>(() => {
@@ -1283,6 +1348,114 @@ function FinanceAdmin() {
         </div>
         <Button className="mt-3" onClick={addExpense}>
           הוסף הוצאה
+        </Button>
+      </div>
+
+      {/* Recurring monthly expenses — define once (e.g. rent ₪1200), and
+          runDueRecurringExpenses inserts the real expense row automatically
+          every month once its day arrives, so she never re-types it. */}
+      <div className="bg-card rounded-2xl border border-primary/5 p-5">
+        <div className="flex items-center gap-2 text-sm font-medium mb-4">
+          <Repeat className="h-4 w-4" /> הוצאות קבועות (כל חודש)
+        </div>
+        {recurringQuery.isLoading ? (
+          <p className="text-sm text-muted-foreground">טוען…</p>
+        ) : (recurringQuery.data ?? []).length === 0 ? (
+          <p className="text-sm text-muted-foreground mb-3">אין הוצאות קבועות מוגדרות עדיין.</p>
+        ) : (
+          <div className="divide-y divide-primary/5 mb-4">
+            {(recurringQuery.data ?? []).map((r) => (
+              <div key={r.id} className="flex items-center justify-between py-2.5 text-sm gap-3">
+                <div className="min-w-0">
+                  <div className="font-medium truncate flex items-center gap-2">
+                    {r.title}
+                    {!r.active && (
+                      <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                        מושבת
+                      </span>
+                    )}
+                    {r.is_personal && (
+                      <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                        אישי
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {r.category} · ה-{r.day_of_month} בכל חודש
+                    {r.last_generated_month && <> · נוצרה לאחרונה: {monthLabel(r.last_generated_month)}</>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-destructive">{ils(r.amount)}</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-2.5 text-xs"
+                    onClick={() => toggleRecurringActive(r.id, !r.active)}
+                  >
+                    {r.active ? "השבתה" : "הפעלה"}
+                  </Button>
+                  <Button size="icon" variant="ghost" onClick={() => deleteRecurringExpense(r.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="grid sm:grid-cols-5 gap-3">
+          <Input
+            placeholder="תיאור (למשל: שכירות)"
+            value={recurringForm.title}
+            onChange={(e) => setRecurringForm({ ...recurringForm, title: e.target.value })}
+            className="sm:col-span-2"
+          />
+          <Input
+            type="number"
+            placeholder="סכום"
+            value={recurringForm.amount}
+            onChange={(e) => setRecurringForm({ ...recurringForm, amount: e.target.value })}
+          />
+          <select
+            className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            value={recurringForm.category}
+            onChange={(e) => setRecurringForm({ ...recurringForm, category: e.target.value })}
+          >
+            {CATEGORIES.map((c) => (
+              <option key={c}>{c}</option>
+            ))}
+          </select>
+          <Input
+            type="number"
+            min={1}
+            max={28}
+            placeholder="יום בחודש"
+            value={recurringForm.day_of_month}
+            onChange={(e) => setRecurringForm({ ...recurringForm, day_of_month: e.target.value })}
+          />
+        </div>
+        <div className="flex items-center gap-1 mt-3">
+          <Button
+            type="button"
+            size="sm"
+            variant={!recurringForm.is_personal ? "default" : "outline"}
+            className="h-8 px-3 rounded-full text-xs"
+            onClick={() => setRecurringForm({ ...recurringForm, is_personal: false })}
+          >
+            עסק
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={recurringForm.is_personal ? "default" : "outline"}
+            className="h-8 px-3 rounded-full text-xs"
+            onClick={() => setRecurringForm({ ...recurringForm, is_personal: true })}
+          >
+            אישי (לבית)
+          </Button>
+        </div>
+        <Button className="mt-3" onClick={addRecurringExpense}>
+          הוספת הוצאה קבועה
         </Button>
       </div>
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { CalendarDays, Check, ChevronDown, Clock3, PackageSearch, Send } from "lucide-react";
+import { CalendarDays, Check, ChevronDown, Clock3, PackageSearch, Send, X } from "lucide-react";
 import { chatWithBot } from "@/lib/ai.functions";
 import { checkItemsAvailability } from "@/lib/orders.functions";
 import { useAuth } from "@/lib/auth";
@@ -302,9 +302,9 @@ export function ChatBot() {
                 aria-label="סגירת הצ׳אט"
                 variant="ghost"
                 size="icon"
-                className="shrink-0 rounded-full hover:bg-card/60"
+                className="shrink-0 rounded-full border border-border/50 bg-card/70 hover:bg-card"
               >
-                <ChevronDown />
+                <X className="size-4" />
               </Button>
             </div>
           </header>
