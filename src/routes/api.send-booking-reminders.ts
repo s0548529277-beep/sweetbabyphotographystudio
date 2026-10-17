@@ -5,6 +5,7 @@ import { runDueOrderReminders } from "@/lib/orders.functions";
 import { runDueProofSelectionReminders } from "@/lib/photo-clients.functions";
 import { runDuePendingPassApprovalNudges } from "@/lib/subscription-purchase.functions";
 import { runDataBackupIfDue } from "@/lib/data-backup.server";
+import { runDueRecurringExpenses } from "@/lib/recurring-expenses.functions";
 
 // Called periodically (every 15-30 min recommended) by an external
 // scheduler — e.g. a free cron service like cron-job.org, or Supabase
@@ -17,7 +18,10 @@ import { runDataBackupIfDue } from "@/lib/data-backup.server";
 // runDueProofSelectionReminders in photo-clients.functions.ts — and the
 // abandoned-cart-style "your spot is still held" email shortly before an
 // unpaid website booking's temporary hold silently expires, see
-// runDueAbandonedHoldReminders in bookings.functions.ts.
+// runDueAbandonedHoldReminders in bookings.functions.ts. Also runs
+// runDueRecurringExpenses (recurring-expenses.functions.ts), which
+// auto-inserts this month's row for any admin-defined recurring expense
+// (e.g. rent) once its day of the month has passed.
 //
 // Protected by a shared-secret query param so it can't be triggered by
 // randoms: set REMINDER_CRON_SECRET in the project's environment variables,
@@ -38,7 +42,7 @@ export const Route = createFileRoute("/api/send-booking-reminders")({
           });
         }
 
-        const [bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds, pendingPassApprovals, dataBackup] = await Promise.all([
+        const [bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds, pendingPassApprovals, dataBackup, recurringExpenses] = await Promise.all([
           runDueBookingReminders(),
           runDueOrderReminders(),
           notifyPendingPhoneBookingConfirmations(),
@@ -47,8 +51,9 @@ export const Route = createFileRoute("/api/send-booking-reminders")({
           runDueAbandonedHoldReminders(),
           runDuePendingPassApprovalNudges(),
           runDataBackupIfDue(),
+          runDueRecurringExpenses(),
         ]);
-        return new Response(JSON.stringify({ bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds, pendingPassApprovals, dataBackup }), {
+        return new Response(JSON.stringify({ bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds, pendingPassApprovals, dataBackup, recurringExpenses }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         });
