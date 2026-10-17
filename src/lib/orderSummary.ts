@@ -218,6 +218,15 @@ export type SummaryOrder = {
   notes?: string | null;
   /** How the customer paid: "transfer" | "bit" | "card" | "cash". */
   balance_method?: string | null;
+  /**
+   * 24h-rental multiplier applied to every line's price — 1 for a same-day
+   * rental, 2+ for a multi-day one (see computeDayMultiplier in
+   * orders.functions.ts). Per a direct report that a line's price looked
+   * like it had "gone up on its own" with no visible reason: when this is
+   * >1, each line below shows the actual "₪X ליום × N ימים = ₪Y" math
+   * instead of just the final multiplied number.
+   */
+  day_multiplier?: number;
   lines: SummaryOrderLine[];
 };
 
@@ -241,15 +250,23 @@ export function buildPropsOrderSummaryHtml(opts: {
   const doorCodeHtml = doorCode ? buildDoorCodeHtml(doorCode, PROPS_DOOR_CODE_NOTE) : "";
   const cashbackHtml = cashbackEarned ? buildCashbackEarnedHtml(cashbackEarned) : "";
 
+  const dayMultiplier = o.day_multiplier ?? 1;
   const itemsRows = o.lines
-    .map(
-      (l) =>
-        `<tr>${
-          l.image_url
-            ? `<td style="padding:6px 0 6px 8px;width:44px"><img src="${escapeHtml(l.image_url)}" alt="" width="40" height="40" style="width:40px;height:40px;object-fit:cover;border-radius:8px;display:block" /></td>`
-            : ""
-        }<td style="padding:6px 10px">${escapeHtml(l.item_name)} (${escapeHtml(l.item_sku)})</td><td style="padding:6px 10px;text-align:center">×${l.quantity}</td><td style="padding:6px 10px;text-align:left">₪${l.price.toFixed(0)}</td></tr>`,
-    )
+    .map((l) => {
+      // l.price is the line TOTAL (already ×quantity and ×day-multiplier)
+      // — derive the per-day base price back out for the breakdown so it
+      // always matches exactly, rather than re-deriving it independently.
+      const basePrice = dayMultiplier > 1 ? l.price / l.quantity / dayMultiplier : null;
+      const priceCell =
+        basePrice != null
+          ? `₪${basePrice.toFixed(0)} ליום × ${dayMultiplier} ימים${l.quantity > 1 ? ` × ${l.quantity}` : ""} = ₪${l.price.toFixed(0)}`
+          : `₪${l.price.toFixed(0)}`;
+      return `<tr>${
+        l.image_url
+          ? `<td style="padding:6px 0 6px 8px;width:44px"><img src="${escapeHtml(l.image_url)}" alt="" width="40" height="40" style="width:40px;height:40px;object-fit:cover;border-radius:8px;display:block" /></td>`
+          : ""
+      }<td style="padding:6px 10px">${escapeHtml(l.item_name)} (${escapeHtml(l.item_sku)})</td><td style="padding:6px 10px;text-align:center">×${l.quantity}</td><td style="padding:6px 10px;text-align:left;white-space:nowrap">${priceCell}</td></tr>`;
+    })
     .join("");
 
   return `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:600px;margin:auto">
