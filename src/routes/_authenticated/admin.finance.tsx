@@ -357,15 +357,25 @@ function FinanceAdmin() {
   const data = useQuery({
     queryKey: ["admin-finance"],
     queryFn: async () => {
-      const [ordersRes, bookingsRes, expensesRes, manualRes] = await Promise.all([
+      const [ordersRes, bookingsRes, expensesRes, manualRes, newbornRes] = await Promise.all([
         supabase
           .from("orders")
-          .select("id,total,status,created_at,scheduled_date,contact_name,deposit_status"),
-        supabase
-          .from("bookings")
-          .select("id,price,status,created_at,session_date,contact_name,package,deposit_status"),
+          .select("id,total,status,created_at,scheduled_date,contact_name,contact_phone,deposit_status"),
+        // "*" (not an explicit column list) because balance_paid is a
+        // brand-new column — see the schema-fallback comment on
+        // insertWithPersonalFallback above for why naming a not-yet-deployed
+        // column in a .select() breaks the WHOLE query, not just that field.
+        supabase.from("bookings").select("*"),
         supabase.from("expenses").select("*").order("spent_on", { ascending: false }),
         supabase.from("manual_income").select("*").order("received_on", { ascending: false }),
+        // Newborn-package orders aren't a public booking/order — they're
+        // Michal's own internal CRM rows (see newborn_package_orders'
+        // migration comment) — but a customer can still owe a balance on
+        // one (total_price - amount_paid), so it's pulled in here too for
+        // the combined "חובות לקוחות" view below.
+        (supabase as any)
+          .from("newborn_package_orders")
+          .select("id,contact_name,contact_phone,session_date,total_price,amount_paid,created_at"),
       ]);
       if (expensesRes.error) throw expensesRes.error;
       return {
@@ -373,6 +383,7 @@ function FinanceAdmin() {
         bookings: bookingsRes.data ?? [],
         expenses: expensesRes.data ?? [],
         manual: manualRes.data ?? [],
+        newborn: newbornRes.data ?? [],
       };
     },
   });
@@ -544,6 +555,105 @@ function FinanceAdmin() {
     const rows = txns.filter((t) => t.kind === "expense" && t.debt);
     return { count: rows.length, total: rows.reduce((s, t) => s + t.amount, 0) };
   }, [txns]);
+
+  /**
+   * Money owed TO the studio BY customers — the opposite direction from
+   * `debts` above (which is money the studio owes suppliers). Unifies three
+   * separate sources that each track payment completely differently:
+   *   - props orders: deposit_status === "pending" means the FULL amount is
+   *     unpaid (placeOrder takes full payment up front, no deposit split).
+   *   - studio bookings: balance_amount (price minus the deposit paid at
+   *     booking time) is normally collected in person at the session, but
+   *     nothing in this app ever wrote it back to 0 once that happened — so
+   *     a new balance_paid column (admin-marked, see markBalancePaid below)
+   *     is what distinguishes a real open balance from one already
+   *     collected. Reads as "still owed" until explicitly marked, including
+   *     on every pre-existing booking (safe default: never hides a real
+   *     debt, worst case she has to mark old ones off once).
+   *   - newborn-package orders: total_price minus amount_paid (see
+   *     newborn-orders.functions.ts's `amount_paid` field) — Michal's own
+   *     internal CRM, not a public order/booking, but still real money owed.
+   * Deliberately NOT filtered by the date/client/type filters above — an
+   * open balance from two months ago is still open, regardless of which
+   * month's transactions she's currently looking at.
+   */
+  const customerDebts = useMemo(() => {
+    type Row = {
+      id: string;
+      source: "props" | "studio" | "newborn";
+      name: string;
+      phone: string;
+      date: string | null;
+      amount: number;
+    };
+    const out: Row[] = [];
+    for (const o of data.data?.orders ?? []) {
+      const oAny = o as typeof o & { contact_phone?: string | null };
+      if (o.status === "cancelled") continue;
+      if (o.deposit_status !== "pending") continue;
+      const amount = Number(o.total ?? 0);
+      if (amount <= 0) continue;
+      out.push({
+        id: `o-${o.id}`,
+        source: "props",
+        name: o.contact_name ?? "—",
+        phone: oAny.contact_phone ?? "",
+        date: o.scheduled_date ?? o.created_at ?? null,
+        amount,
+      });
+    }
+    for (const b of data.data?.bookings ?? []) {
+      const bAny = b as typeof b & {
+        balance_amount?: number | null;
+        balance_paid?: boolean | null;
+        contact_phone?: string | null;
+      };
+      if (b.status === "cancelled") continue;
+      if (bAny.balance_paid) continue;
+      const amount = Number(bAny.balance_amount ?? 0);
+      if (amount <= 0) continue;
+      out.push({
+        id: `b-${b.id}`,
+        source: "studio",
+        name: b.contact_name ?? "—",
+        phone: bAny.contact_phone ?? "",
+        date: b.session_date ?? null,
+        amount,
+      });
+    }
+    for (const n of data.data?.newborn ?? []) {
+      const amount = Number(n.total_price ?? 0) - Number(n.amount_paid ?? 0);
+      if (amount <= 0) continue;
+      out.push({
+        id: `n-${n.id}`,
+        source: "newborn",
+        name: n.contact_name ?? "—",
+        phone: n.contact_phone ?? "",
+        date: n.session_date ?? n.created_at ?? null,
+        amount,
+      });
+    }
+    return out.sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
+  }, [data.data]);
+
+  const customerDebtsTotal = useMemo(
+    () => customerDebts.reduce((s, d) => s + d.amount, 0),
+    [customerDebts],
+  );
+
+  const markBalancePaid = async (bookingId: string) => {
+    const { error } = await (supabase as any).from("bookings").update({ balance_paid: true }).eq("id", bookingId);
+    if (error) {
+      if (/does not exist/i.test(error.message ?? "")) {
+        toast.error("העדכון עדיין לא נתמך בבסיס הנתונים — נסי שוב בעוד כמה דקות");
+      } else {
+        toast.error(error.message);
+      }
+      return;
+    }
+    toast.success("היתרה סומנה כשולמה");
+    qc.invalidateQueries({ queryKey: ["admin-finance"] });
+  };
 
   const expenseByCategory = useMemo(() => {
     const map = new Map<string, number>();
@@ -743,7 +853,7 @@ function FinanceAdmin() {
         )}
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-6 gap-4">
         {[
           {
             label: "סה״כ הכנסות",
@@ -778,11 +888,22 @@ function FinanceAdmin() {
             kind: null,
           },
           {
-            label: "חובות פתוחים",
+            label: "חובות לספקים",
             value: debts.total,
             icon: AlertCircle,
             cls: "text-amber-600",
             sub: debts.count > 0 ? `${debts.count} הוצאות שטרם שולמו לספק` : "אין חובות פתוחים 🎉",
+            kind: null,
+          },
+          {
+            label: "חובות לקוחות",
+            value: customerDebtsTotal,
+            icon: HandCoins,
+            cls: "text-amber-600",
+            sub:
+              customerDebts.length > 0
+                ? `${customerDebts.length} הזמנות/שריונים עם יתרה פתוחה`
+                : "אין יתרות פתוחות מלקוחות 🎉",
             kind: null,
           },
         ].map((c) => (
@@ -870,6 +991,54 @@ function FinanceAdmin() {
                     className="h-full bg-destructive rounded-full"
                     style={{ width: `${(e.amount / maxExpenseCategory) * 100}%` }}
                   />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Customer debts — unified view of every open balance a customer owes
+          the studio, across the 3 completely separate systems that track
+          it (props orders, studio bookings, newborn packages) — see the
+          customerDebts memo above for exactly how each source is read. */}
+      <div className="bg-card rounded-2xl border border-primary/5 p-5">
+        <div className="flex items-center gap-2 text-sm font-medium mb-4">
+          <HandCoins className="h-4 w-4" /> חובות לקוחות ({customerDebts.length})
+        </div>
+        {customerDebts.length === 0 ? (
+          <p className="text-sm text-muted-foreground">אין יתרות פתוחות מלקוחות 🎉</p>
+        ) : (
+          <div className="divide-y divide-primary/5 max-h-[400px] overflow-auto">
+            {customerDebts.map((d) => (
+              <div key={d.id} className="flex items-center justify-between py-2.5 text-sm gap-3">
+                <div className="min-w-0">
+                  <div className="font-medium truncate flex items-center gap-2">
+                    {d.name}
+                    <span
+                      className={`shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                        d.source === "props"
+                          ? "bg-blue-100 text-blue-700"
+                          : d.source === "studio"
+                            ? "bg-purple-100 text-purple-700"
+                            : "bg-pink-100 text-pink-700"
+                      }`}
+                    >
+                      {d.source === "props" ? "אביזרים" : d.source === "studio" ? "סטודיו" : "ניובורן"}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {d.phone && <span dir="ltr">{d.phone} · </span>}
+                    {d.date ? new Date(d.date).toLocaleDateString("he-IL") : "—"}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-amber-700 font-medium">{ils(d.amount)}</span>
+                  {d.source === "studio" && (
+                    <Button variant="outline" size="sm" onClick={() => markBalancePaid(d.id.slice(2))}>
+                      סמן יתרה כשולמה
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
