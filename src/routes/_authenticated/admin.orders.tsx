@@ -2,14 +2,21 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { adminDeleteRecord, adminSetStatus, PHOTO_WORKFLOW_LINKED_PREFIX } from "@/lib/admin-orders.functions";
+import {
+  adminDeleteRecord,
+  adminSetStatus,
+  adminPartialCancelOrderItem,
+  adminUpdateBookingHours,
+  PHOTO_WORKFLOW_LINKED_PREFIX,
+} from "@/lib/admin-orders.functions";
 import { heError } from "@/lib/he-errors";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Camera, Package, RefreshCw, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Camera, Package, RefreshCw, Trash2, Clock3 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/orders")({
   component: OrdersAdmin,
@@ -47,6 +54,14 @@ function OrdersAdmin() {
   const qc = useQueryClient();
   const [expanded, setExpanded] = useState<string | null>(null);
   const [tab, setTab] = useState<"all" | "booking" | "order">("all");
+  // Partial-cancel of a single props order_items line — how many units of
+  // that line to cancel, keyed by order_item id (defaults to 1 per row).
+  const [cancelQty, setCancelQty] = useState<Record<string, number>>({});
+  const [cancellingItemId, setCancellingItemId] = useState<string | null>(null);
+  // Inline "שינוי שעות" editor for a studio booking — keyed by booking id.
+  const [editingHoursId, setEditingHoursId] = useState<string | null>(null);
+  const [hoursForm, setHoursForm] = useState({ start_time: "", end_time: "" });
+  const [savingHours, setSavingHours] = useState(false);
 
   const q = useQuery({
     queryKey: ["admin-all-orders"],
@@ -143,6 +158,42 @@ function OrdersAdmin() {
         return;
       }
       toast.error(heError(e, "המחיקה נכשלה"));
+    }
+  };
+
+  const doPartialCancel = useServerFn(adminPartialCancelOrderItem);
+  const partialCancelItem = async (orderItemId: string, maxQty: number) => {
+    const qty = Math.min(Math.max(1, cancelQty[orderItemId] ?? 1), maxQty);
+    if (!confirm(`לבטל ${qty} מתוך ${maxQty} יחידות מפריט זה?`)) return;
+    setCancellingItemId(orderItemId);
+    try {
+      const res = await doPartialCancel({ data: { order_item_id: orderItemId, cancel_quantity: qty } });
+      toast.success(`בוטלו ${qty} יחידות · הוחזרו ₪${res.refundAmount} · סה״כ חדש להזמנה: ₪${res.newTotal}`);
+      qc.invalidateQueries({ queryKey: ["admin-all-orders"] });
+    } catch (e) {
+      toast.error(heError(e, "הביטול החלקי נכשל"));
+    } finally {
+      setCancellingItemId(null);
+    }
+  };
+
+  const doUpdateHours = useServerFn(adminUpdateBookingHours);
+  const startEditHours = (row: Row) => {
+    setEditingHoursId(row.id);
+    setHoursForm({ start_time: row.raw.start_time ?? "", end_time: row.raw.end_time ?? "" });
+  };
+  const saveHours = async (bookingId: string) => {
+    setSavingHours(true);
+    try {
+      await doUpdateHours({ data: { id: bookingId, start_time: hoursForm.start_time, end_time: hoursForm.end_time } });
+      toast.success("השעות עודכנו");
+      setEditingHoursId(null);
+      qc.invalidateQueries({ queryKey: ["admin-all-orders"] });
+      qc.invalidateQueries({ queryKey: ["calendar-entries"] });
+    } catch (e) {
+      toast.error(heError(e, "עדכון השעות נכשל"));
+    } finally {
+      setSavingHours(false);
     }
   };
 
@@ -250,7 +301,7 @@ function OrdersAdmin() {
                             <ul className="text-sm space-y-1.5">
                               {r.kind === "order"
                                 ? (o.order_items ?? []).map((oi: any) => (
-                                    <li key={oi.id} className="flex items-center justify-between gap-2">
+                                    <li key={oi.id} className="flex items-center justify-between gap-2 flex-wrap">
                                       <span className="flex items-center gap-2 min-w-0">
                                         {oi.items?.image_url ? (
                                           <img src={oi.items.image_url} alt="" className="h-8 w-8 rounded-md object-cover shrink-0" />
@@ -259,7 +310,32 @@ function OrdersAdmin() {
                                         )}
                                         <span className="truncate">{oi.item_name} <span className="text-muted-foreground">({oi.item_sku})</span> × {oi.quantity}</span>
                                       </span>
-                                      <span className="shrink-0">₪{(oi.price * oi.quantity).toFixed(0)}</span>
+                                      <span className="flex items-center gap-2 shrink-0">
+                                        <span>₪{(oi.price * oi.quantity).toFixed(0)}</span>
+                                        {r.status !== "cancelled" && (
+                                          <>
+                                            <Input
+                                              type="number"
+                                              min={1}
+                                              max={oi.quantity}
+                                              value={cancelQty[oi.id] ?? 1}
+                                              onChange={(e) =>
+                                                setCancelQty({ ...cancelQty, [oi.id]: Number(e.target.value) })
+                                              }
+                                              className="h-7 w-14 px-2 text-xs"
+                                            />
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                                              disabled={cancellingItemId === oi.id}
+                                              onClick={() => partialCancelItem(oi.id, oi.quantity)}
+                                            >
+                                              ביטול חלקי
+                                            </Button>
+                                          </>
+                                        )}
+                                      </span>
                                     </li>
                                   ))
                                 : (o.reserved_item_details ?? []).map((ri: any, i: number) => (
@@ -286,7 +362,43 @@ function OrdersAdmin() {
                               ) : (
                                 <>
                                   <div>חבילה: {o.package ?? "—"}</div>
-                                  <div>שעות: <span dir="ltr">{o.start_time}–{o.end_time}</span></div>
+                                  {editingHoursId === r.id ? (
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <Input
+                                        type="time"
+                                        value={hoursForm.start_time}
+                                        onChange={(e) => setHoursForm({ ...hoursForm, start_time: e.target.value })}
+                                        className="h-8 w-28"
+                                      />
+                                      <span>–</span>
+                                      <Input
+                                        type="time"
+                                        value={hoursForm.end_time}
+                                        onChange={(e) => setHoursForm({ ...hoursForm, end_time: e.target.value })}
+                                        className="h-8 w-28"
+                                      />
+                                      <Button size="sm" disabled={savingHours} onClick={() => saveHours(r.id)}>
+                                        שמירה
+                                      </Button>
+                                      <Button size="sm" variant="ghost" onClick={() => setEditingHoursId(null)}>
+                                        ביטול
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-2">
+                                      <span>שעות: <span dir="ltr">{o.start_time}–{o.end_time}</span></span>
+                                      {r.status !== "cancelled" && (
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-6 px-2 gap-1 text-xs"
+                                          onClick={() => startEditHours(r)}
+                                        >
+                                          <Clock3 className="h-3 w-3" /> שינוי שעות
+                                        </Button>
+                                      )}
+                                    </div>
+                                  )}
                                 </>
                               )}
                               <div>מקדמה: ₪{Number(o.deposit_amount ?? 0).toFixed(0)} ({o.deposit_status ?? "—"})</div>
