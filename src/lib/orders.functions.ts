@@ -336,6 +336,7 @@ export const placeOrder = createServerFn({ method: "POST" })
           return_time: returnTime,
           total,
           notes: data.notes,
+          day_multiplier: dayMultiplier,
           lines,
         },
       });
@@ -567,6 +568,7 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
           total: o.total,
           notes: o.notes,
           balance_method: o.balance_method,
+          day_multiplier: o.pickup_at && o.return_at ? computeDayMultiplier(String(o.pickup_at), String(o.return_at)) : 1,
           lines,
         },
         footerNote: receiptAttachment ? "קובץ האסמכתא שצירפת מופיע כקובץ מצורף למייל זה." : undefined,
@@ -749,6 +751,7 @@ export async function runDueOrderReminders(): Promise<{ checked: number; sent: n
           total: o.total,
           notes: o.notes,
           balance_method: o.balance_method,
+          day_multiplier: o.pickup_at && o.return_at ? computeDayMultiplier(String(o.pickup_at), String(o.return_at)) : 1,
           lines,
         },
       });

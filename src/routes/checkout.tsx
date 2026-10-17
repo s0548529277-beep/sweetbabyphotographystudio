@@ -295,12 +295,22 @@ function Checkout() {
             <div className="text-blush text-xs tracking-[0.3em] uppercase mb-2">Order</div>
             <h2 className="font-display text-3xl mb-6">ההזמנה שלי</h2>
             <div className="space-y-2 text-sm max-h-64 overflow-y-auto">
-              {lines.map((l) => (
-                <div key={l.id} className="flex justify-between text-primary-foreground/80">
-                  <span className="truncate ml-2">{l.name} × {l.quantity}</span>
-                  <span>₪{(l.price * l.quantity).toFixed(0)}</span>
-                </div>
-              ))}
+              {lines.map((l) => {
+                const lineTotal = l.price * l.quantity * dayMultiplier;
+                return (
+                  <div key={l.id} className="flex justify-between text-primary-foreground/80">
+                    <span className="truncate ml-2">{l.name} × {l.quantity}</span>
+                    <span className="text-left">
+                      {dayMultiplier > 1 && (
+                        <span className="block text-[10px] text-primary-foreground/50">
+                          ₪{l.price.toFixed(0)} ליום × {dayMultiplier} ימים{l.quantity > 1 ? ` × ${l.quantity}` : ""} =
+                        </span>
+                      )}
+                      ₪{lineTotal.toFixed(0)}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
             <div className="h-px bg-primary-foreground/20 my-4" />
             {coupon ? (

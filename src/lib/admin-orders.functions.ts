@@ -139,6 +139,179 @@ export const adminSetStatus = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/**
+ * Partial cancellation for a single line of a props order — e.g. the
+ * customer only wants to return/cancel 1 of the 3 lights she ordered,
+ * instead of the whole order. Reduces (or, if the full quantity is
+ * cancelled, removes) the order_items row, frees that many
+ * item_availability slot locks for the same item on this order so the
+ * freed units become bookable again, and recomputes the order's total
+ * (and deposit_amount, which for props orders always equals total — see
+ * placeOrder's "full payment up front, no deposit split" comment) down by
+ * the cancelled amount. Does NOT touch credit/cashback/coupon bookkeeping —
+ * those were calculated against the original full order and a partial
+ * cancellation refund is a manual decision the admin makes outside this
+ * flow; the returned refundAmount is just what the cancelled line itself
+ * was worth, for her reference.
+ */
+export const adminPartialCancelOrderItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        order_item_id: z.string().uuid(),
+        cancel_quantity: z.number().int().positive(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: item, error: itemErr } = await supabaseAdmin
+      .from("order_items")
+      .select("id, order_id, item_id, item_name, quantity, price")
+      .eq("id", data.order_item_id)
+      .maybeSingle();
+    if (itemErr || !item) throw new Error("פריט ההזמנה לא נמצא");
+
+    const { data: order, error: orderErr } = await supabaseAdmin
+      .from("orders")
+      .select("id, status, total, notes")
+      .eq("id", item.order_id)
+      .maybeSingle();
+    if (orderErr || !order) throw new Error("ההזמנה לא נמצאה");
+    if (order.status === "cancelled") throw new Error("ההזמנה כבר בוטלה כולה");
+
+    const cancelQty = Math.min(data.cancel_quantity, item.quantity);
+    if (cancelQty <= 0) throw new Error("כמות לא תקינה");
+
+    const refundAmount = Number(item.price) * cancelQty;
+    const remainingQty = item.quantity - cancelQty;
+
+    if (remainingQty > 0) {
+      const { error } = await supabaseAdmin.from("order_items").update({ quantity: remainingQty }).eq("id", item.id);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabaseAdmin.from("order_items").delete().eq("id", item.id);
+      if (error) throw new Error(error.message);
+    }
+
+    // Free that many availability slot locks for this item on this order —
+    // the rows are interchangeable (just item_id/order_id/slot_index), so any
+    // cancelQty of them freed makes exactly that many units bookable again.
+    const { data: slots } = await supabaseAdmin
+      .from("item_availability")
+      .select("id")
+      .eq("order_id", item.order_id)
+      .eq("item_id", item.item_id as string)
+      .limit(cancelQty);
+    const slotIds = (slots ?? []).map((s: { id: string }) => s.id);
+    if (slotIds.length > 0) {
+      await supabaseAdmin.from("item_availability").delete().in("id", slotIds);
+    }
+
+    const newTotal = Math.max(0, Number(order.total) - refundAmount);
+    const noteLine = `ביטול חלקי: ${item.item_name} ×${cancelQty} · -₪${refundAmount} (${new Date().toLocaleDateString("he-IL")})`;
+    const newNotes = [order.notes, noteLine].filter(Boolean).join("\n");
+    const { error: updErr } = await supabaseAdmin
+      .from("orders")
+      .update({ total: newTotal, deposit_amount: newTotal, notes: newNotes })
+      .eq("id", item.order_id);
+    if (updErr) throw new Error(updErr.message);
+
+    return { ok: true, refundAmount, newTotal };
+  });
+
+/**
+ * Admin-only edit of a studio booking's start/end time (e.g. the customer
+ * asked to shift a confirmed session an hour later, same day). Deliberately
+ * does NOT recompute price — the booking's price was already fixed at
+ * creation against that session's package/guidance/coupon/pass choices, and
+ * a pure time shift shouldn't silently change what she's being charged; the
+ * admin can edit the price separately if the new time actually changes the
+ * package. Re-runs the same overlap check placeBooking itself uses (against
+ * other non-cancelled bookings on the same date) so an edit can't silently
+ * create a double-booking, and best-effort re-syncs the Google Calendar
+ * event (delete + recreate, since calendar.server.ts has no update helper)
+ * if one already exists for this booking.
+ */
+export const adminUpdateBookingHours = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        start_time: z.string().regex(/^\d{2}:\d{2}$/),
+        end_time: z.string().regex(/^\d{2}:\d{2}$/),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: booking, error: fetchErr } = await supabaseAdmin
+      .from("bookings")
+      .select("id, session_date, start_time, end_time, status, contact_name, contact_phone, google_event_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (fetchErr || !booking) throw new Error("השריון לא נמצא");
+    if (booking.status === "cancelled") throw new Error("השריון בוטל — אי אפשר לערוך שעות");
+
+    const [sh, sm] = data.start_time.split(":").map(Number);
+    const [eh, em] = data.end_time.split(":").map(Number);
+    const startMin = sh * 60 + sm;
+    const endMin = eh * 60 + em;
+    if (endMin <= startMin) throw new Error("שעת הסיום צריכה להיות אחרי שעת ההתחלה");
+
+    const { data: existing, error: exErr } = await supabaseAdmin
+      .from("bookings")
+      .select("id, start_time, end_time, status, deposit_status, created_at, notes")
+      .eq("session_date", booking.session_date)
+      .neq("status", "cancelled")
+      .neq("id", data.id);
+    if (exErr) throw new Error(exErr.message);
+    const { bookingBlocksSlot } = await import("@/lib/availability.server");
+    for (const b of (existing ?? []).filter((b: any) => bookingBlocksSlot(b))) {
+      const [bh, bm] = String(b.start_time).split(":").map(Number);
+      const [beh, bem] = String(b.end_time).split(":").map(Number);
+      const bs = bh * 60 + bm;
+      const be = beh * 60 + bem;
+      if (startMin < be && endMin > bs) {
+        throw new Error("השעה החדשה מתנגשת עם שריון אחר באותו יום");
+      }
+    }
+
+    const { error: updErr } = await supabaseAdmin
+      .from("bookings")
+      .update({ start_time: data.start_time, end_time: data.end_time })
+      .eq("id", data.id);
+    if (updErr) throw new Error(updErr.message);
+
+    if (booking.google_event_id) {
+      try {
+        const { deleteGoogleCalendarEvent, createGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
+        await deleteGoogleCalendarEvent(booking.google_event_id);
+        const event = await createGoogleCalendarEvent({
+          summary: `סשן צילומים · ${booking.contact_name ?? ""}`,
+          description: `טלפון: ${booking.contact_phone ?? ""}`,
+          startISO: `${booking.session_date}T${data.start_time}:00`,
+          endISO: `${booking.session_date}T${data.end_time}:00`,
+          location: "תלמוד ירושלמי 24, בית שמש",
+          attendees: [],
+        });
+        if (event) {
+          await supabaseAdmin.from("bookings").update({ google_event_id: event.id }).eq("id", data.id);
+        }
+      } catch (e) {
+        console.error("[SWEETBABY] calendar re-sync on admin hour edit failed", e);
+      }
+    }
+
+    return { ok: true };
+  });
+
 // Prefix on the "linked photo workflow" error, so the client can tell it
 // apart from any other failure and offer the force-delete confirmation
 // instead of just showing it as a dead-end error toast.

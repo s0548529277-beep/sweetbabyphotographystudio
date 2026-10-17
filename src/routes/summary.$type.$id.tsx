@@ -15,6 +15,14 @@ function dateWithHebrew(isoDate: string | null | undefined): string {
   return heb ? `${isoDate} · ${heb}` : isoDate;
 }
 
+/** Same 24h-rental multiplier as computeDayMultiplier in orders.functions.ts — duplicated here since this is a client route, not server code. */
+function computeDayMultiplier(startISO: string | null | undefined, endISO: string | null | undefined): number {
+  if (!startISO || !endISO) return 1;
+  const ms = new Date(endISO).getTime() - new Date(startISO).getTime();
+  if (!isFinite(ms) || ms <= 0) return 1;
+  return Math.max(1, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+}
+
 export const Route = createFileRoute("/summary/$type/$id")({
   component: SummaryPage,
   head: () => ({ meta: [{ title: "סיכום ותשלום | Sweetbaby" }, { name: "robots", content: "noindex, nofollow" }] }),
@@ -64,6 +72,7 @@ function SummaryPage() {
   }
 
   const total = record.price ?? record.total ?? 0;
+  const dayMultiplier = type === "order" ? computeDayMultiplier(record.pickup_at, record.return_at) : 1;
   const couponDiscount = Number(record.coupon_discount ?? 0);
   const creditUsed = Number(record.credit_used ?? 0);
   const preDiscountTotal = total + couponDiscount + creditUsed;
@@ -129,15 +138,26 @@ function SummaryPage() {
                 <div className="glass-card rounded-3xl p-6">
                   <h3 className="font-display text-xl text-primary mb-4">פריטים בסל</h3>
                   <ul className="divide-y divide-border">
-                    {items.map((l) => (
-                      <li key={l.id} className="py-3 flex items-center justify-between text-sm">
-                        <div className="flex-1">
-                          <div className="text-primary">{l.item_name}</div>
-                          <div className="text-[11px] text-muted-foreground" dir="ltr">SKU {l.item_sku} · x{l.quantity}</div>
-                        </div>
-                        <div className="font-display text-lg text-primary" dir="ltr">₪{l.price * l.quantity}</div>
-                      </li>
-                    ))}
+                    {items.map((l) => {
+                      const lineTotal = l.price * l.quantity;
+                      const basePrice = dayMultiplier > 1 ? l.price / dayMultiplier : null;
+                      return (
+                        <li key={l.id} className="py-3 flex items-center justify-between text-sm">
+                          <div className="flex-1">
+                            <div className="text-primary">{l.item_name}</div>
+                            <div className="text-[11px] text-muted-foreground" dir="ltr">SKU {l.item_sku} · x{l.quantity}</div>
+                          </div>
+                          <div className="text-left" dir="ltr">
+                            {basePrice != null && (
+                              <div className="text-[11px] text-muted-foreground">
+                                ₪{basePrice.toFixed(0)}/יום × {dayMultiplier}{l.quantity > 1 ? ` × ${l.quantity}` : ""} =
+                              </div>
+                            )}
+                            <div className="font-display text-lg text-primary">₪{lineTotal}</div>
+                          </div>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               )}
