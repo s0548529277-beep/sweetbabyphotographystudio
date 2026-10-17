@@ -51,23 +51,24 @@ const monthLabel = (k: string) => {
 };
 
 /**
- * is_personal is a brand-new column — if its migration hasn't landed on the
- * live database yet (the usual Lovable/Drizzle regeneration lag), naming it
- * in an insert makes the WHOLE insert fail, which would break adding any
- * expense at all, not just personal ones. Retries once without it so the
- * expense itself always gets saved; schemaFallback tells the caller the
- * personal/business tag specifically didn't make it, so it can warn rather
- * than claim success silently.
+ * is_personal is a brand-new column on both expenses and manual_income — if
+ * its migration hasn't landed on the live database yet (the usual
+ * Lovable/Drizzle regeneration lag), naming it in an insert makes the WHOLE
+ * insert fail, which would break adding any row at all, not just personal
+ * ones. Retries once without it so the row itself always gets saved;
+ * schemaFallback tells the caller the personal/business tag specifically
+ * didn't make it, so it can warn rather than claim success silently.
  */
-async function insertExpensesWithFallback(
+async function insertWithPersonalFallback(
+  table: "expenses" | "manual_income",
   rows: Record<string, unknown>[],
 ): Promise<{ error: { message: string } | null; schemaFallback: boolean }> {
-  const first = await (supabase as any).from("expenses").insert(rows);
+  const first = await (supabase as any).from(table).insert(rows);
   if (!first.error || !/does not exist/i.test(first.error.message ?? "")) {
     return { error: first.error, schemaFallback: false };
   }
   const stripped = rows.map(({ is_personal: _ip, ...rest }) => rest);
-  const retry = await (supabase as any).from("expenses").insert(stripped);
+  const retry = await (supabase as any).from(table).insert(stripped);
   return { error: retry.error, schemaFallback: !retry.error };
 }
 
@@ -146,6 +147,7 @@ function FinanceAdmin() {
     client: "",
     category: TYPE_PHOTO,
     received_on: new Date().toISOString().slice(0, 10),
+    is_personal: false,
   });
 
   // Detailed "add expense / debt" dialog — separate from the quick inline
@@ -167,23 +169,32 @@ function FinanceAdmin() {
   };
   const [debtForm, setDebtForm] = useState(emptyDebtForm);
 
-  // Excel import ("הביאי אקסל, מה שאדום זה הוצאה, את בוחרת אישי/עסק") — see
-  // src/lib/xlsx-read.ts for the actual .xlsx parsing. Every row from the
-  // file is kept (not just the red ones) so a color-detection miss never
-  // hides a row she needs — "red" only pre-marks likely candidates; nothing
-  // is ever imported without her explicitly marking it "אישי" or "עסק"
-  // herself (kind stays "none" otherwise, same safety net as before
-  // personal expenses were trackable at all — a row she never touches is
-  // never imported, period).
+  // Excel import ("הביאי אקסל מהבנק/מהאשראי, מה שאדום זה הוצאה, את בוחרת
+  // הכנסה/הוצאה ואישי/עסק") — see src/lib/xlsx-read.ts for the actual .xlsx
+  // parsing. Every row from the file is kept (not just the red ones) so a
+  // color-detection miss never hides a row she needs — "red" only pre-flags
+  // likely expense candidates; nothing is ever imported without her
+  // explicitly marking it "אישי" or "עסק" herself (selection stays "none"
+  // otherwise, same safety net as before — a row she never touches is never
+  // imported, period). "direction" is a separate, orthogonal choice —
+  // a bank/credit-card file has both deposits and charges, so every row also
+  // needs to be classified as income or expense, independent of personal/
+  // business.
   const [importOpen, setImportOpen] = useState(false);
   const [importHeaders, setImportHeaders] = useState<string[]>([]);
   const [importRows, setImportRows] = useState<
-    { cells: string[]; isRed: boolean; kind: "none" | "personal" | "business" }[]
+    {
+      cells: string[];
+      isRed: boolean;
+      selection: "none" | "personal" | "business";
+      direction: "expense" | "income";
+    }[]
   >([]);
   const [importDateCol, setImportDateCol] = useState(0);
   const [importDescCol, setImportDescCol] = useState(1);
   const [importAmountCol, setImportAmountCol] = useState(2);
   const [importCategory, setImportCategory] = useState("אחר");
+  const [importIncomeCategory, setImportIncomeCategory] = useState(TYPE_PHOTO);
   const [importShowOnlyRed, setImportShowOnlyRed] = useState(true);
   const [importBusy, setImportBusy] = useState(false);
   const importFileRef = useRef<HTMLInputElement>(null);
@@ -215,7 +226,8 @@ function FinanceAdmin() {
         .map((r) => ({
           cells: r.cells.map((c) => c.value),
           isRed: r.cells.some((c) => isReddishArgb(c.fillArgb)),
-          kind: "none" as const,
+          selection: "none" as const,
+          direction: "expense" as const,
         }));
       setImportRows(parsedRows);
       // Some exports (e.g. a credit-card statement) never have red-colored
@@ -232,8 +244,14 @@ function FinanceAdmin() {
     }
   };
 
-  const setImportRowKind = (idx: number, kind: "none" | "personal" | "business") => {
-    setImportRows((rows) => rows.map((r, i) => (i === idx ? { ...r, kind: r.kind === kind ? "none" : kind } : r)));
+  const setImportRowSelection = (idx: number, selection: "none" | "personal" | "business") => {
+    setImportRows((rows) =>
+      rows.map((r, i) => (i === idx ? { ...r, selection: r.selection === selection ? "none" : selection } : r)),
+    );
+  };
+
+  const setImportRowDirection = (idx: number, direction: "expense" | "income") => {
+    setImportRows((rows) => rows.map((r, i) => (i === idx ? { ...r, direction } : r)));
   };
 
   // For a credit-card statement every line is a charge — there's nothing to
@@ -241,33 +259,73 @@ function FinanceAdmin() {
   // once (and drop the red-only filter so she can see and deselect any
   // exceptions), instead of trying to guess "this looks like a credit
   // file" from the data itself.
-  const markAllImportRows = (kind: "none" | "personal" | "business") => {
-    if (kind !== "none") setImportShowOnlyRed(false);
-    setImportRows((rows) => rows.map((r) => ({ ...r, kind })));
+  const markAllImportSelection = (selection: "none" | "personal" | "business") => {
+    if (selection !== "none") setImportShowOnlyRed(false);
+    setImportRows((rows) => rows.map((r) => ({ ...r, selection })));
+  };
+
+  const markAllImportDirection = (direction: "expense" | "income") => {
+    setImportRows((rows) => rows.map((r) => ({ ...r, direction })));
   };
 
   const submitImport = async () => {
-    const selected = importRows.filter((r) => r.kind !== "none");
-    if (selected.length === 0) return toast.error("לא נבחרו שורות לייבוא — סמני 'אישי' או 'עסק' על השורות הרצויות");
-    const toInsert = selected
+    const selected = importRows.filter((r) => r.selection !== "none");
+    if (selected.length === 0)
+      return toast.error("לא נבחרו שורות לייבוא — סמני 'אישי' או 'עסק' על השורות הרצויות");
+
+    const dateFor = (r: (typeof importRows)[number]) =>
+      parseDateCell(r.cells[importDateCol]) || new Date().toISOString().slice(0, 10);
+    const titleFor = (r: (typeof importRows)[number]) =>
+      (r.cells[importDescCol] || "").trim() || "יובא מאקסל";
+
+    const expenseRows = selected
+      .filter((r) => r.direction === "expense")
       .map((r) => ({
-        title: (r.cells[importDescCol] || "").trim() || "יובא מאקסל",
+        title: titleFor(r),
         amount: parseAmountCell(r.cells[importAmountCol]),
         category: importCategory,
-        spent_on: parseDateCell(r.cells[importDateCol]) || new Date().toISOString().slice(0, 10),
+        spent_on: dateFor(r),
         notes: "יובא מאקסל",
-        is_personal: r.kind === "personal",
+        is_personal: r.selection === "personal",
       }))
       .filter((r) => r.amount > 0);
-    if (toInsert.length === 0) return toast.error("לא נמצא סכום תקין באף שורה שנבחרה — בדקי את מיפוי העמודות");
+    const incomeRows = selected
+      .filter((r) => r.direction === "income")
+      .map((r) => ({
+        title: titleFor(r),
+        amount: parseAmountCell(r.cells[importAmountCol]),
+        category: importIncomeCategory,
+        received_on: dateFor(r),
+        notes: "יובא מאקסל",
+        is_personal: r.selection === "personal",
+      }))
+      .filter((r) => r.amount > 0);
+
+    if (expenseRows.length === 0 && incomeRows.length === 0)
+      return toast.error("לא נמצא סכום תקין באף שורה שנבחרה — בדקי את מיפוי העמודות");
+
     setImportBusy(true);
-    const { error, schemaFallback } = await insertExpensesWithFallback(toInsert);
+    const [expenseResult, incomeResult] = await Promise.all([
+      expenseRows.length > 0
+        ? insertWithPersonalFallback("expenses", expenseRows)
+        : Promise.resolve({ error: null as { message: string } | null, schemaFallback: false }),
+      incomeRows.length > 0
+        ? insertWithPersonalFallback("manual_income", incomeRows)
+        : Promise.resolve({ error: null as { message: string } | null, schemaFallback: false }),
+    ]);
     setImportBusy(false);
-    if (error) return toast.error(error.message);
-    if (schemaFallback) {
-      toast.warning(`${toInsert.length} הוצאות יובאו, אבל הסימון אישי/עסק עדיין לא נשמר — יש לעדכן שוב בעוד כמה דקות`);
+
+    if (expenseResult.error) return toast.error(expenseResult.error.message);
+    if (incomeResult.error) return toast.error(incomeResult.error.message);
+
+    const parts: string[] = [];
+    if (expenseRows.length > 0) parts.push(`${expenseRows.length} הוצאות`);
+    if (incomeRows.length > 0) parts.push(`${incomeRows.length} הכנסות`);
+    const summary = parts.join(" ו-");
+    if (expenseResult.schemaFallback || incomeResult.schemaFallback) {
+      toast.warning(`${summary} יובאו, אבל הסימון אישי/עסק עדיין לא נשמר בחלקן — יש לעדכן שוב בעוד כמה דקות`);
     } else {
-      toast.success(`${toInsert.length} הוצאות יובאו`);
+      toast.success(`${summary} יובאו`);
     }
     setImportOpen(false);
     resetImport();
@@ -356,6 +414,7 @@ function FinanceAdmin() {
       });
     }
     for (const mi of data.data?.manual ?? []) {
+      const miAny = mi as typeof mi & { is_personal?: boolean | null };
       out.push({
         id: `m-${mi.id}`,
         kind: "income",
@@ -367,7 +426,7 @@ function FinanceAdmin() {
         removable: "manual_income",
         depositStatus: null,
         debt: null,
-        isPersonal: false,
+        isPersonal: !!miAny.is_personal,
       });
     }
     for (const e of data.data?.expenses ?? []) {
@@ -504,7 +563,7 @@ function FinanceAdmin() {
   const addExpense = async () => {
     const amount = Number(form.amount);
     if (!form.title.trim() || !amount) return toast.error("נא למלא תיאור וסכום");
-    const { error, schemaFallback } = await insertExpensesWithFallback([
+    const { error, schemaFallback } = await insertWithPersonalFallback("expenses", [
       {
         title: form.title.trim(),
         amount,
@@ -526,7 +585,7 @@ function FinanceAdmin() {
   const addDebtExpense = async () => {
     const amount = Number(debtForm.amount);
     if (!debtForm.title.trim() || !amount) return toast.error("נא למלא תיאור וסכום");
-    const { error, schemaFallback } = await insertExpensesWithFallback([
+    const { error, schemaFallback } = await insertWithPersonalFallback("expenses", [
       {
         title: debtForm.title.trim(),
         amount,
@@ -555,15 +614,22 @@ function FinanceAdmin() {
   const addIncome = async () => {
     const amount = Number(income.amount);
     if (!income.title.trim() || !amount) return toast.error("נא למלא תיאור וסכום");
-    const { error } = await supabase.from("manual_income").insert({
-      title: income.title.trim(),
-      amount,
-      category: income.category,
-      notes: income.client.trim() || null,
-      received_on: income.received_on,
-    });
+    const { error, schemaFallback } = await insertWithPersonalFallback("manual_income", [
+      {
+        title: income.title.trim(),
+        amount,
+        category: income.category,
+        notes: income.client.trim() || null,
+        received_on: income.received_on,
+        is_personal: income.is_personal,
+      },
+    ]);
     if (error) return toast.error(error.message);
-    toast.success("ההכנסה נוספה");
+    if (schemaFallback) {
+      toast.warning("ההכנסה נוספה, אבל הסימון אישי/עסק עדיין לא נשמר — יש לעדכן שוב בעוד כמה דקות");
+    } else {
+      toast.success("ההכנסה נוספה");
+    }
     setIncome({ ...income, title: "", amount: "", client: "" });
     qc.invalidateQueries({ queryKey: ["admin-finance"] });
   };
@@ -937,6 +1003,26 @@ function FinanceAdmin() {
             className="sm:col-span-1"
           />
         </div>
+        <div className="flex items-center gap-1 mt-3">
+          <Button
+            type="button"
+            size="sm"
+            variant={!income.is_personal ? "default" : "outline"}
+            className="h-8 px-3 rounded-full text-xs"
+            onClick={() => setIncome({ ...income, is_personal: false })}
+          >
+            עסק
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={income.is_personal ? "default" : "outline"}
+            className="h-8 px-3 rounded-full text-xs"
+            onClick={() => setIncome({ ...income, is_personal: true })}
+          >
+            אישי (לבית)
+          </Button>
+        </div>
         <Button className="mt-3" onClick={addIncome}>
           הוסף הכנסה
         </Button>
@@ -963,7 +1049,7 @@ function FinanceAdmin() {
               className="gap-1.5"
               onClick={() => importFileRef.current?.click()}
             >
-              <FileSpreadsheet className="h-4 w-4" /> ייבוא מאקסל
+              <FileSpreadsheet className="h-4 w-4" /> ייבוא מבנק/אשראי
             </Button>
             <Button
               variant="outline"
@@ -1172,17 +1258,18 @@ function FinanceAdmin() {
           if (!o) resetImport();
         }}
       >
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto" dir="rtl">
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
-            <DialogTitle>ייבוא הוצאות מאקסל</DialogTitle>
+            <DialogTitle>ייבוא הכנסות והוצאות מבנק/אשראי</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-xs text-muted-foreground">
-              שורות שצבעת באדום בקובץ מסומנות כאן אוטומטית בנקודה אדומה — אבל זו רק המלצה. הייבוא
-              בפועל קורה רק לשורות שמסמנים עליהן "אישי" או "עסק" למטה — שורה שלא מסמנים עליה כלום לא
-              תיובא.
+              קובץ בנק/אשראי מכיל גם הפקדות וגם חיובים — לכן לכל שורה יש שתי בחירות נפרדות: "הכנסה" או
+              "הוצאה", וגם "אישי" או "עסק". שורות שצבעת באדום בקובץ מסומנות כאן אוטומטית בנקודה אדומה —
+              אבל זו רק המלצה (לרוב מתאימה ל"הוצאה"). הייבוא בפועל קורה רק לשורות שמסמנים עליהן "אישי"
+              או "עסק" למטה — שורה שלא מסמנים עליה כלום לא תיובא.
             </p>
-            <div className="grid sm:grid-cols-4 gap-3">
+            <div className="grid sm:grid-cols-5 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground">עמודת תאריך</label>
                 <select
@@ -1226,13 +1313,25 @@ function FinanceAdmin() {
                 </select>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground">קטגוריה לשורות שיובאו</label>
+                <label className="text-xs text-muted-foreground">קטגוריה לשורות הוצאה</label>
                 <select
                   className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                   value={importCategory}
                   onChange={(e) => setImportCategory(e.target.value)}
                 >
                   {CATEGORIES.map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">קטגוריה לשורות הכנסה</label>
+                <select
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={importIncomeCategory}
+                  onChange={(e) => setImportIncomeCategory(e.target.value)}
+                >
+                  {INCOME_CATEGORIES.map((c) => (
                     <option key={c}>{c}</option>
                   ))}
                 </select>
@@ -1246,15 +1345,24 @@ function FinanceAdmin() {
                 {importRows.length})
               </label>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-muted-foreground">סימון מהיר:</span>
-                <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => markAllImportRows("business")}>
+                <span className="text-xs text-muted-foreground">סימון מהיר — אישי/עסק:</span>
+                <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => markAllImportSelection("business")}>
                   סימון הכל כעסק
                 </Button>
-                <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => markAllImportRows("personal")}>
+                <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => markAllImportSelection("personal")}>
                   סימון הכל כאישי
                 </Button>
-                <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => markAllImportRows("none")}>
+                <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => markAllImportSelection("none")}>
                   ביטול הכל
+                </Button>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-muted-foreground">סימון מהיר — הכנסה/הוצאה:</span>
+                <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => markAllImportDirection("expense")}>
+                  סימון הכל כהוצאה
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => markAllImportDirection("income")}>
+                  סימון הכל כהכנסה
                 </Button>
               </div>
             </div>
@@ -1267,14 +1375,15 @@ function FinanceAdmin() {
                     <th className="p-2 font-medium">{importHeaders[importDateCol] || "תאריך"}</th>
                     <th className="p-2 font-medium">{importHeaders[importDescCol] || "תיאור"}</th>
                     <th className="p-2 font-medium">{importHeaders[importAmountCol] || "סכום"}</th>
-                    <th className="p-2 font-medium">בחירה</th>
+                    <th className="p-2 font-medium">הכנסה / הוצאה</th>
+                    <th className="p-2 font-medium">אישי / עסק</th>
                   </tr>
                 </thead>
                 <tbody>
                   {importRows.map((r, i) => {
                     if (importShowOnlyRed && !r.isRed) return null;
                     return (
-                      <tr key={i} className={`border-t border-primary/5 ${r.kind !== "none" ? "bg-primary/5" : ""}`}>
+                      <tr key={i} className={`border-t border-primary/5 ${r.selection !== "none" ? "bg-primary/5" : ""}`}>
                         <td className="p-2 text-center">
                           {r.isRed && <span className="inline-block h-2.5 w-2.5 rounded-full bg-destructive" />}
                         </td>
@@ -1285,17 +1394,37 @@ function FinanceAdmin() {
                           <div className="flex items-center gap-1">
                             <Button
                               size="sm"
-                              variant={r.kind === "personal" ? "default" : "outline"}
+                              variant={r.direction === "expense" ? "default" : "outline"}
                               className="h-7 px-2.5 rounded-full text-xs"
-                              onClick={() => setImportRowKind(i, "personal")}
+                              onClick={() => setImportRowDirection(i, "expense")}
+                            >
+                              הוצאה
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={r.direction === "income" ? "default" : "outline"}
+                              className="h-7 px-2.5 rounded-full text-xs"
+                              onClick={() => setImportRowDirection(i, "income")}
+                            >
+                              הכנסה
+                            </Button>
+                          </div>
+                        </td>
+                        <td className="p-2">
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="sm"
+                              variant={r.selection === "personal" ? "default" : "outline"}
+                              className="h-7 px-2.5 rounded-full text-xs"
+                              onClick={() => setImportRowSelection(i, "personal")}
                             >
                               אישי
                             </Button>
                             <Button
                               size="sm"
-                              variant={r.kind === "business" ? "default" : "outline"}
+                              variant={r.selection === "business" ? "default" : "outline"}
                               className="h-7 px-2.5 rounded-full text-xs"
-                              onClick={() => setImportRowKind(i, "business")}
+                              onClick={() => setImportRowSelection(i, "business")}
                             >
                               עסק
                             </Button>
@@ -1306,7 +1435,7 @@ function FinanceAdmin() {
                   })}
                   {importRows.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="p-6 text-center text-muted-foreground">
+                      <td colSpan={6} className="p-6 text-center text-muted-foreground">
                         אין שורות להצגה
                       </td>
                     </tr>
@@ -1322,7 +1451,7 @@ function FinanceAdmin() {
             <Button onClick={submitImport} disabled={importBusy}>
               {importBusy
                 ? "מייבא…"
-                : `ייבוא ${importRows.filter((r) => r.kind !== "none").length} הוצאות`}
+                : `ייבוא ${importRows.filter((r) => r.selection !== "none").length} שורות`}
             </Button>
           </DialogFooter>
         </DialogContent>
