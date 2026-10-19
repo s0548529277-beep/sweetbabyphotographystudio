@@ -4,10 +4,11 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Mail, Download, UserPlus } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Mail, Download, UserPlus, ClipboardPaste } from "lucide-react";
 import { toCSV, downloadCSV } from "@/lib/csv";
 import { toast } from "sonner";
-import { importSiteEmailsToNewsletter } from "@/lib/newsletter.functions";
+import { importSiteEmailsToNewsletter, importPastedLeadsToNewsletter } from "@/lib/newsletter.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/newsletter")({
   component: NewsletterAdmin,
@@ -18,7 +19,11 @@ type Signup = { id: string; email: string; source: string | null; created_at: st
 function NewsletterAdmin() {
   const qc = useQueryClient();
   const importFn = useServerFn(importSiteEmailsToNewsletter);
+  const importPastedFn = useServerFn(importPastedLeadsToNewsletter);
   const [importing, setImporting] = useState(false);
+  const [pastedText, setPastedText] = useState("");
+  const [pastedSource, setPastedSource] = useState("");
+  const [importingPasted, setImportingPasted] = useState(false);
 
   const signups = useQuery({
     queryKey: ["admin-newsletter-signups"],
@@ -59,6 +64,21 @@ function NewsletterAdmin() {
     }
   };
 
+  const importPasted = async () => {
+    if (!pastedText.trim()) return toast.error("הדביקי קודם רשימה");
+    setImportingPasted(true);
+    try {
+      const { scanned, added } = await importPastedFn({ data: { text: pastedText, source: pastedSource } });
+      toast.success(`נמצאו ${scanned} כתובות ברשימה שהדבקת — נוספו ${added} חדשות`);
+      setPastedText("");
+      qc.invalidateQueries({ queryKey: ["admin-newsletter-signups"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "הייבוא נכשל");
+    } finally {
+      setImportingPasted(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -80,6 +100,33 @@ function NewsletterAdmin() {
         הקופון שמוצג בטופס נקבע ב-<a href="/admin/coupons" className="underline hover:text-primary">קופונים</a> (עמודת "ניוזלטר").
         "איסוף כל המיילים מהאתר" סורקת חשבונות רשומים, טפסי יצירת קשר, בקשות הצטרפות למועדון, רשימת המתנה, ולקוחות ניו-בורן/צילומי חוץ — ומוסיפה לכאן כל כתובת שעוד לא ברשימה.
       </p>
+
+      <div className="bg-card rounded-2xl border border-primary/5 p-4 space-y-2">
+        <h3 className="font-medium text-forest flex items-center gap-2">
+          <ClipboardPaste className="h-4 w-4" /> ייבוא רשימה מודבקת
+        </h3>
+        <p className="text-xs text-forest/60">
+          מדביקים כאן כל טקסט שמכיל כתובות מייל (שורה לכל איש קשר, כל פורמט) — כל כתובת מייל שנמצאת בטקסט ועוד לא ברשימה תתווסף.
+        </p>
+        <Textarea
+          value={pastedText}
+          onChange={(e) => setPastedText(e.target.value)}
+          placeholder="שם, טלפון, מייל, סיבת פנייה..."
+          className="min-h-32 font-mono text-xs"
+          dir="ltr"
+        />
+        <div className="flex items-center gap-2 flex-wrap">
+          <input
+            value={pastedSource}
+            onChange={(e) => setPastedSource(e.target.value)}
+            placeholder="תיוג מקור (אופציונלי, למשל: אתר קודם)"
+            className="flex-1 min-w-48 rounded-md border border-input bg-background px-3 py-2 text-sm"
+          />
+          <Button onClick={importPasted} disabled={importingPasted} className="rounded-full gap-2">
+            <UserPlus className="h-4 w-4" /> {importingPasted ? "מייבאת…" : "ייבוא מהטקסט שהודבק"}
+          </Button>
+        </div>
+      </div>
 
       <div className="bg-card rounded-2xl border border-primary/5 overflow-x-auto">
         <table className="w-full text-sm">

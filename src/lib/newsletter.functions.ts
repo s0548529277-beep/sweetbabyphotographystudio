@@ -200,3 +200,50 @@ export const importSiteEmailsToNewsletter = createServerFn({ method: "POST" })
 
     return { scanned: collected.size, added };
   });
+
+// Generic "paste a list, get emails into the newsletter" tool — for leads
+// that live somewhere this app's own database can't reach (e.g. an old
+// website's contact-form notification emails, manually reviewed and
+// transcribed). Accepts plain text, one lead per line, pipe-separated:
+// name|phone|email|reason — only email is required, the rest are ignored
+// here (newsletter_signups has no columns for them) but tolerated so the
+// same pasted block used elsewhere (e.g. a spreadsheet export) can be
+// pasted as-is. Same idempotent upsert/ignoreDuplicates pattern as
+// importSiteEmailsToNewsletter above.
+const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+
+export const importPastedLeadsToNewsletter = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ text: z.string().max(200000), source: z.string().max(80).optional() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const source = data.source?.trim() || "ייבוא ידני";
+    const collected = new Map<string, string>();
+    for (const line of data.text.split("\n")) {
+      const match = line.match(EMAIL_RE);
+      if (!match) continue;
+      const email = match[0].trim().toLowerCase();
+      if (!collected.has(email)) collected.set(email, source);
+    }
+
+    const { data: existing } = await supabaseAdmin.from("newsletter_signups").select("email");
+    const already = new Set((existing ?? []).map((r: any) => String(r.email).toLowerCase()));
+    const toInsert = Array.from(collected.entries())
+      .filter(([email]) => !already.has(email))
+      .map(([email, src]) => ({ email, source: src }));
+
+    let added = 0;
+    for (let i = 0; i < toInsert.length; i += 500) {
+      const chunk = toInsert.slice(i, i + 500);
+      const { data: inserted, error } = await supabaseAdmin
+        .from("newsletter_signups")
+        .upsert(chunk, { onConflict: "email", ignoreDuplicates: true })
+        .select("email");
+      if (error) throw new Error(error.message);
+      added += inserted?.length ?? 0;
+    }
+
+    return { scanned: collected.size, added };
+  });
