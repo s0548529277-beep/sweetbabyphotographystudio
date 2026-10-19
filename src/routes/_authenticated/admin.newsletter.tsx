@@ -1,9 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Mail, Download } from "lucide-react";
+import { Mail, Download, UserPlus } from "lucide-react";
 import { toCSV, downloadCSV } from "@/lib/csv";
+import { toast } from "sonner";
+import { importSiteEmailsToNewsletter } from "@/lib/newsletter.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/newsletter")({
   component: NewsletterAdmin,
@@ -12,6 +16,10 @@ export const Route = createFileRoute("/_authenticated/admin/newsletter")({
 type Signup = { id: string; email: string; source: string | null; created_at: string };
 
 function NewsletterAdmin() {
+  const qc = useQueryClient();
+  const importFn = useServerFn(importSiteEmailsToNewsletter);
+  const [importing, setImporting] = useState(false);
+
   const signups = useQuery({
     queryKey: ["admin-newsletter-signups"],
     queryFn: async () => {
@@ -38,20 +46,39 @@ function NewsletterAdmin() {
     downloadCSV(`newsletter-signups-${new Date().toISOString().slice(0, 10)}.csv`, csv);
   };
 
+  const importSiteEmails = async () => {
+    setImporting(true);
+    try {
+      const { scanned, added } = await importFn();
+      toast.success(`נסרקו ${scanned} כתובות מהאתר — נוספו ${added} חדשות לרשימה`);
+      qc.invalidateQueries({ queryKey: ["admin-newsletter-signups"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "הייבוא נכשל");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h2 className="font-display text-2xl text-primary flex items-center gap-2">
           <Mail className="h-5 w-5" /> ניוזלטר
         </h2>
-        <Button variant="outline" className="rounded-full gap-2" onClick={exportCsv} disabled={!signups.data?.length}>
-          <Download className="h-4 w-4" /> ייצוא CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="rounded-full gap-2" onClick={importSiteEmails} disabled={importing}>
+            <UserPlus className="h-4 w-4" /> {importing ? "מייבאת…" : "איסוף כל המיילים מהאתר"}
+          </Button>
+          <Button variant="outline" className="rounded-full gap-2" onClick={exportCsv} disabled={!signups.data?.length}>
+            <Download className="h-4 w-4" /> ייצוא CSV
+          </Button>
+        </div>
       </div>
 
       <p className="text-sm text-forest/70">
         רשימת הנרשמים לטופס "קבלי הנחה" בתחתית האתר — סה"כ {signups.data?.length ?? 0} נרשמים.
         הקופון שמוצג בטופס נקבע ב-<a href="/admin/coupons" className="underline hover:text-primary">קופונים</a> (עמודת "ניוזלטר").
+        "איסוף כל המיילים מהאתר" סורקת חשבונות רשומים, טפסי יצירת קשר, בקשות הצטרפות למועדון, רשימת המתנה, ולקוחות ניו-בורן/צילומי חוץ — ומוסיפה לכאן כל כתובת שעוד לא ברשימה.
       </p>
 
       <div className="bg-card rounded-2xl border border-primary/5 overflow-x-auto">
