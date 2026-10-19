@@ -64,6 +64,7 @@ import { Route as AuthenticatedAdminNewbornPackagesRouteImport } from './routes/
 import { Route as AuthenticatedAdminNewsletterRouteImport } from './routes/_authenticated/admin.newsletter'
 import { Route as AuthenticatedAdminNotificationsRouteImport } from './routes/_authenticated/admin.notifications'
 import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenticated/admin.orders'
+import { Route as AuthenticatedAdminOutdoorPackagesRouteImport } from './routes/_authenticated/admin.outdoor-packages'
 import { Route as AuthenticatedAdminPhotoBatchRouteImport } from './routes/_authenticated/admin.photo-batch'
 import { Route as AuthenticatedAdminPhotoClientsRouteImport } from './routes/_authenticated/admin.photo-clients'
 import { Route as AuthenticatedAdminPhotoEditorRouteImport } from './routes/_authenticated/admin.photo-editor'
@@ -383,6 +384,12 @@ const AuthenticatedAdminOrdersRoute =
     path: '/orders',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminOutdoorPackagesRoute =
+  AuthenticatedAdminOutdoorPackagesRouteImport.update({
+    id: '/outdoor-packages',
+    path: '/outdoor-packages',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminPhotoBatchRoute =
   AuthenticatedAdminPhotoBatchRouteImport.update({
     id: '/photo-batch',
@@ -575,6 +582,7 @@ export interface FileRoutesByFullPath {
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
+  '/admin/outdoor-packages': typeof AuthenticatedAdminOutdoorPackagesRoute
   '/admin/photo-batch': typeof AuthenticatedAdminPhotoBatchRoute
   '/admin/photo-clients': typeof AuthenticatedAdminPhotoClientsRouteWithChildren
   '/admin/photo-editor': typeof AuthenticatedAdminPhotoEditorRoute
@@ -654,6 +662,7 @@ export interface FileRoutesByTo {
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
+  '/admin/outdoor-packages': typeof AuthenticatedAdminOutdoorPackagesRoute
   '/admin/photo-batch': typeof AuthenticatedAdminPhotoBatchRoute
   '/admin/photo-clients': typeof AuthenticatedAdminPhotoClientsRouteWithChildren
   '/admin/photo-editor': typeof AuthenticatedAdminPhotoEditorRoute
@@ -736,6 +745,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/_authenticated/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/_authenticated/admin/orders': typeof AuthenticatedAdminOrdersRoute
+  '/_authenticated/admin/outdoor-packages': typeof AuthenticatedAdminOutdoorPackagesRoute
   '/_authenticated/admin/photo-batch': typeof AuthenticatedAdminPhotoBatchRoute
   '/_authenticated/admin/photo-clients': typeof AuthenticatedAdminPhotoClientsRouteWithChildren
   '/_authenticated/admin/photo-editor': typeof AuthenticatedAdminPhotoEditorRoute
@@ -818,6 +828,7 @@ export interface FileRouteTypes {
     | '/admin/newsletter'
     | '/admin/notifications'
     | '/admin/orders'
+    | '/admin/outdoor-packages'
     | '/admin/photo-batch'
     | '/admin/photo-clients'
     | '/admin/photo-editor'
@@ -897,6 +908,7 @@ export interface FileRouteTypes {
     | '/admin/newsletter'
     | '/admin/notifications'
     | '/admin/orders'
+    | '/admin/outdoor-packages'
     | '/admin/photo-batch'
     | '/admin/photo-clients'
     | '/admin/photo-editor'
@@ -978,6 +990,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/newsletter'
     | '/_authenticated/admin/notifications'
     | '/_authenticated/admin/orders'
+    | '/_authenticated/admin/outdoor-packages'
     | '/_authenticated/admin/photo-batch'
     | '/_authenticated/admin/photo-clients'
     | '/_authenticated/admin/photo-editor'
@@ -1434,6 +1447,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminOrdersRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/outdoor-packages': {
+      id: '/_authenticated/admin/outdoor-packages'
+      path: '/outdoor-packages'
+      fullPath: '/admin/outdoor-packages'
+      preLoaderRoute: typeof AuthenticatedAdminOutdoorPackagesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/photo-batch': {
       id: '/_authenticated/admin/photo-batch'
       path: '/photo-batch'
@@ -1654,6 +1674,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminNewsletterRoute: typeof AuthenticatedAdminNewsletterRoute
   AuthenticatedAdminNotificationsRoute: typeof AuthenticatedAdminNotificationsRoute
   AuthenticatedAdminOrdersRoute: typeof AuthenticatedAdminOrdersRoute
+  AuthenticatedAdminOutdoorPackagesRoute: typeof AuthenticatedAdminOutdoorPackagesRoute
   AuthenticatedAdminPhotoBatchRoute: typeof AuthenticatedAdminPhotoBatchRoute
   AuthenticatedAdminPhotoClientsRoute: typeof AuthenticatedAdminPhotoClientsRouteWithChildren
   AuthenticatedAdminPhotoEditorRoute: typeof AuthenticatedAdminPhotoEditorRoute
@@ -1692,6 +1713,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminNewsletterRoute: AuthenticatedAdminNewsletterRoute,
   AuthenticatedAdminNotificationsRoute: AuthenticatedAdminNotificationsRoute,
   AuthenticatedAdminOrdersRoute: AuthenticatedAdminOrdersRoute,
+  AuthenticatedAdminOutdoorPackagesRoute:
+    AuthenticatedAdminOutdoorPackagesRoute,
   AuthenticatedAdminPhotoBatchRoute: AuthenticatedAdminPhotoBatchRoute,
   AuthenticatedAdminPhotoClientsRoute:
     AuthenticatedAdminPhotoClientsRouteWithChildren,

@@ -6,6 +6,7 @@ import { runDueProofSelectionReminders } from "@/lib/photo-clients.functions";
 import { runDuePendingPassApprovalNudges } from "@/lib/subscription-purchase.functions";
 import { runDataBackupIfDue } from "@/lib/data-backup.server";
 import { runDueRecurringExpenses } from "@/lib/recurring-expenses.functions";
+import { runDueOutdoorStylingCallReminders } from "@/lib/outdoor-packages.functions";
 
 // Called periodically (every 15-30 min recommended) by an external
 // scheduler — e.g. a free cron service like cron-job.org, or Supabase
@@ -42,7 +43,7 @@ export const Route = createFileRoute("/api/send-booking-reminders")({
           });
         }
 
-        const [bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds, pendingPassApprovals, dataBackup, recurringExpenses] = await Promise.all([
+        const [bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds, pendingPassApprovals, dataBackup, recurringExpenses, outdoorStylingCallReminders] = await Promise.all([
           runDueBookingReminders(),
           runDueOrderReminders(),
           notifyPendingPhoneBookingConfirmations(),
@@ -52,8 +53,9 @@ export const Route = createFileRoute("/api/send-booking-reminders")({
           runDuePendingPassApprovalNudges(),
           runDataBackupIfDue(),
           runDueRecurringExpenses(),
+          runDueOutdoorStylingCallReminders(),
         ]);
-        return new Response(JSON.stringify({ bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds, pendingPassApprovals, dataBackup, recurringExpenses }), {
+        return new Response(JSON.stringify({ bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds, pendingPassApprovals, dataBackup, recurringExpenses, outdoorStylingCallReminders }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         });
