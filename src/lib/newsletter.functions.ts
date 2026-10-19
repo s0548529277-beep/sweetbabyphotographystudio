@@ -1,5 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+async function assertAdmin(supabase: any, userId: string) {
+  const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+  if (!data?.some((r: any) => r.role === "admin")) throw new Error("אין הרשאת ניהול");
+}
 
 const inputSchema = z.object({
   email: z.string().min(3).max(200).email(),
@@ -118,4 +124,79 @@ export const subscribeNewsletter = createServerFn({ method: "POST" })
     // resubmit of the same address.
     if (upserted && upserted.length > 0) await sendWelcomeEmail(email, coupon);
     return { ok: true, coupon };
+  });
+
+// One-click "gather every email address that ever came through the site"
+// for /admin/newsletter — per explicit request. Scans every place a real
+// (not vendor/internal) email address is collected: registered accounts
+// (auth.users — same paginated listUsers pattern as listClientEmails in
+// admin-clients.functions.ts), the old intake/contact form (leads), the
+// pre-self-serve club signup (subscription_requests), the waitlist, and
+// the two admin-entered lead trackers (newborn/outdoor package orders).
+// Deliberately excludes expenses.vendor_email (a supplier, not a client)
+// and retouch_allowed_clients.email (an admin-curated access allowlist for
+// other photographers, not an inbound site signup). Idempotent — safe to
+// run again later as new clients come in; newsletter_signups.email is
+// UNIQUE, and ignoreDuplicates on the upsert skips anyone already there
+// (including the ones it added last time).
+const IMPORT_SOURCE = {
+  account: "חשבון רשום באתר",
+  lead: "טופס יצירת קשר",
+  subscriptionRequest: "בקשת הצטרפות למועדון",
+  newborn: "לקוחת ניו-בורן",
+  outdoor: "לקוחת צילומי חוץ",
+  waitlist: "רשימת המתנה",
+} as const;
+
+export const importSiteEmailsToNewsletter = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const collected = new Map<string, string>(); // lowercased email -> source label
+    const add = (raw: string | null | undefined, source: string) => {
+      const email = raw?.trim().toLowerCase();
+      if (!email || !email.includes("@")) return;
+      if (!collected.has(email)) collected.set(email, source);
+    };
+
+    for (let page = 1; page <= 10; page++) {
+      const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+      if (error) throw new Error(error.message);
+      for (const u of data.users) add(u.email, IMPORT_SOURCE.account);
+      if (data.users.length < 200) break;
+    }
+
+    const [leads, subReqs, newborn, outdoor, waitlist] = await Promise.all([
+      supabaseAdmin.from("leads").select("email"),
+      supabaseAdmin.from("subscription_requests").select("email"),
+      (supabaseAdmin as any).from("newborn_package_orders").select("contact_email"),
+      (supabaseAdmin as any).from("outdoor_package_orders").select("contact_email"),
+      supabaseAdmin.from("waitlist_entries").select("email"),
+    ]);
+    (leads.data ?? []).forEach((r: any) => add(r.email, IMPORT_SOURCE.lead));
+    (subReqs.data ?? []).forEach((r: any) => add(r.email, IMPORT_SOURCE.subscriptionRequest));
+    (newborn.data ?? []).forEach((r: any) => add(r.contact_email, IMPORT_SOURCE.newborn));
+    (outdoor.data ?? []).forEach((r: any) => add(r.contact_email, IMPORT_SOURCE.outdoor));
+    (waitlist.data ?? []).forEach((r: any) => add(r.email, IMPORT_SOURCE.waitlist));
+
+    const { data: existing } = await supabaseAdmin.from("newsletter_signups").select("email");
+    const already = new Set((existing ?? []).map((r: any) => String(r.email).toLowerCase()));
+    const toInsert = Array.from(collected.entries())
+      .filter(([email]) => !already.has(email))
+      .map(([email, source]) => ({ email, source }));
+
+    let added = 0;
+    for (let i = 0; i < toInsert.length; i += 500) {
+      const chunk = toInsert.slice(i, i + 500);
+      const { data: inserted, error } = await supabaseAdmin
+        .from("newsletter_signups")
+        .upsert(chunk, { onConflict: "email", ignoreDuplicates: true })
+        .select("email");
+      if (error) throw new Error(error.message);
+      added += inserted?.length ?? 0;
+    }
+
+    return { scanned: collected.size, added };
   });
