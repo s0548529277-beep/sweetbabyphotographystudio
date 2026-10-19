@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
-import { Camera, Home as HomeIcon, Sparkles, ArrowLeft, MapPin, Star, Heart, LayoutGrid } from "lucide-react";
+import { Camera, Home as HomeIcon, Sparkles, ArrowLeft, MapPin, Star, Heart, LayoutGrid, IdCard } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CountUp } from "@/components/CountUp";
@@ -208,6 +208,45 @@ function Home() {
               </div>
             </Link>
           </motion.div>
+        </div>
+      </section>
+
+      {/* ENTRY PASSES — the 5/10-visit punch cards (subscription_plans,
+          purchased self-serve from /account#pass-purchase, admin-approved
+          after payment — see subscription-purchase.functions.ts). Shown
+          right on the homepage per explicit request, not buried inside the
+          logged-in account page where it lived until now. */}
+      <section className="container-page pb-16 md:pb-24" dir="rtl">
+        <div className="rounded-[2rem] bg-[#2d3d2b] text-[#f8ede4] p-8 md:p-12 flex flex-col md:flex-row items-center gap-8 md:gap-12">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 text-[11px] tracking-[0.28em] uppercase text-[#a8c4a2] mb-3">
+              <IdCard className="h-4 w-4" /> כרטיסיית כניסות
+            </div>
+            <h2 className="text-3xl md:text-4xl mb-3" style={{ fontFamily: "'DM Serif Display', serif" }}>
+              מגיעה שוב ושוב? שווה לך כרטיסייה
+            </h2>
+            <p className="text-sm text-[#f8ede4]/80 leading-relaxed max-w-md">
+              כרטיסיית כניסות לסטודיו — משלמת מראש ונכנסת בכל פעם שמתאים לך, בלי לשלם שוב בכל סשן.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+            <div className="flex-1 sm:w-44 rounded-2xl bg-[#f8ede4]/10 border border-[#f8ede4]/15 p-5 text-center">
+              <div className="text-4xl" style={{ fontFamily: "'DM Serif Display', serif" }}>5</div>
+              <div className="text-xs text-[#f8ede4]/70 mb-2">כניסות</div>
+              <div className="text-xl">₪750</div>
+            </div>
+            <div className="flex-1 sm:w-44 rounded-2xl bg-[#f8ede4]/10 border border-[#f8ede4]/15 p-5 text-center">
+              <div className="text-4xl" style={{ fontFamily: "'DM Serif Display', serif" }}>10</div>
+              <div className="text-xs text-[#f8ede4]/70 mb-2">כניסות</div>
+              <div className="text-xl">₪1,300</div>
+            </div>
+          </div>
+          <a
+            href="/account#pass-purchase"
+            className="shrink-0 h-12 px-7 rounded-full bg-[#f8ede4] text-[#2d3d2b] font-medium flex items-center gap-2 hover:bg-white transition-colors"
+          >
+            רכישת כרטיסייה <ArrowLeft className="h-4 w-4" />
+          </a>
         </div>
       </section>
 
