@@ -177,6 +177,17 @@ function Account() {
 
   const selectedPlan = (plansQ.data as any[] | undefined)?.find((p) => p.id === selectedPlanId);
 
+  // Arriving from the homepage's "כרטיסיית כניסות" promo via #pass-purchase
+  // — scroll straight to the purchase card instead of landing at the top.
+  useEffect(() => {
+    if (window.location.hash === "#pass-purchase") {
+      const t = setTimeout(() => {
+        document.getElementById("pass-purchase")?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+      return () => clearTimeout(t);
+    }
+  }, []);
+
   const submitPurchase = async () => {
     if (!selectedPlanId) return toast.error("נא לבחור חבילה");
     if (!paidConfirmed) return toast.error("נא לאשר שהתשלום בוצע");
@@ -314,7 +325,7 @@ function Account() {
                 tagged for the admin to reconcile against her Takbull
                 dashboard — see purchaseSubscriptionPass's own comment. */}
             {(plansQ.data?.length ?? 0) > 0 && (
-              <div className="bg-card rounded-3xl p-7 border border-primary/5">
+              <div id="pass-purchase" className="bg-card rounded-3xl p-7 border border-primary/5 scroll-mt-28">
                 <div className="flex items-center gap-2 mb-4">
                   <IdCard className="h-5 w-5 text-peach-deep" />
                   <h2 className="font-display text-xl text-primary">רכישת כרטיסייה</h2>
