@@ -61,7 +61,10 @@ async function stampWatermark(source: ImageBitmap): Promise<Blob | null> {
 
 export async function applyWatermark(file: File): Promise<File> {
   try {
-    const bitmap = await createImageBitmap(file);
+    // See image-compress.ts's matching comment — without an explicit
+    // imageOrientation, a canvas-processed phone photo can come out
+    // sideways with no EXIF tag left for anything downstream to fix.
+    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
     const blob = await stampWatermark(bitmap);
     bitmap.close?.();
     if (!blob) return file;
@@ -76,7 +79,7 @@ export async function applyWatermark(file: File): Promise<File> {
 /** Same stamp, but for an already-downloaded blob (e.g. a full-quality original being zipped up) rather than a fresh upload — used by photo-zip.ts. Returns the original blob untouched if anything goes wrong, same fallback spirit as applyWatermark. */
 export async function watermarkBlob(blob: Blob): Promise<Blob> {
   try {
-    const bitmap = await createImageBitmap(blob);
+    const bitmap = await createImageBitmap(blob, { imageOrientation: "from-image" });
     const stamped = await stampWatermark(bitmap);
     bitmap.close?.();
     return stamped ?? blob;
