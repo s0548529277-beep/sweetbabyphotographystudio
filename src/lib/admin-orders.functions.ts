@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { computeDayMultiplier } from "@/lib/orders.functions";
 
 async function assertAdmin(supabase: any, userId: string) {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
@@ -310,6 +311,315 @@ export const adminUpdateBookingHours = createServerFn({ method: "POST" })
     }
 
     return { ok: true };
+  });
+
+// Shared by adminUpdateOrderDates/adminAddOrderItem below — the exact same
+// "try slot_index from the current count upward, retry past a unique-
+// conflict, give up once stock is exhausted" loop placeOrder itself uses
+// (orders.functions.ts), just not exported from there since this is the
+// only other place that needs to grab fresh slots one item at a time.
+async function insertAvailabilitySlots(
+  supabaseAdmin: any,
+  orderId: string,
+  itemId: string,
+  itemName: string,
+  startDate: string,
+  endDate: string,
+  quantity: number,
+  stock: number,
+  startFrom: number,
+): Promise<void> {
+  let next = startFrom;
+  for (let i = 0; i < quantity; i++) {
+    let placed = false;
+    for (let attempt = next; attempt < stock + 8; attempt++) {
+      const { error } = await supabaseAdmin.from("item_availability").insert({
+        item_id: itemId,
+        order_id: orderId,
+        date: startDate,
+        start_date: startDate,
+        end_date: endDate,
+        slot_index: attempt,
+      });
+      if (!error) {
+        next = attempt + 1;
+        placed = true;
+        break;
+      }
+      const isConflict = (error as { code?: string }).code === "23505" || /duplicate|unique/i.test(error.message ?? "");
+      if (!isConflict) throw new Error(error.message);
+      if (attempt + 1 >= stock) break;
+    }
+    if (!placed) throw new Error(`הפריט "${itemName}" לא זמין בתאריכים שנבחרו`);
+  }
+}
+
+/**
+ * Admin-only edit of a props/equipment order's rental window — the date
+ * range (and, same action, the pickup/return time-of-day baked into
+ * pickup_at/return_at) — for when a customer asks to move her rental to a
+ * different day or shift the pickup/return hour. Deliberately does NOT
+ * recompute price (same philosophy as adminUpdateBookingHours above) —
+ * each order_items.price already has that order's original day-multiplier
+ * frozen into it at checkout time, and silently re-pricing on an admin
+ * date tweak would risk charging/crediting the customer for something she
+ * never saw or agreed to; if the new range genuinely needs a different
+ * price, that's a manual decision via the existing partial-cancel /
+ * contact-the-customer tools, not an automatic side effect here.
+ *
+ * Re-validates stock for every order_items line against the NEW range
+ * (excluding this order's own current reservation, which this function
+ * itself relocates) using the same count_item_reservations overlap check
+ * placeOrder uses, and moves every item_availability row for this order
+ * to the new dates — delete-then-reinsert, with a same-transaction-ish
+ * rollback (reinsert at the OLD dates) if any item can't find a free slot
+ * at the new ones, so a failed move never leaves the order's lock missing.
+ * Best-effort re-syncs the Google Calendar event, same delete+recreate
+ * pattern as every other calendar re-sync in this app (no update primitive
+ * exists in calendar.server.ts).
+ */
+export const adminUpdateOrderDates = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        session_date: z.string().min(10).max(10),
+        return_date: z.string().min(10).max(10),
+        start_time: z.string().regex(/^\d{2}:\d{2}$/),
+        end_time: z.string().regex(/^\d{2}:\d{2}$/),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    if (data.return_date < data.session_date) throw new Error("תאריך ההחזרה צריך להיות אחרי תאריך האיסוף");
+
+    const { data: order, error: orderErr } = await supabaseAdmin
+      .from("orders")
+      .select("id, status, session_date, return_date, notes, contact_name, contact_phone, camera_model, total, google_event_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (orderErr || !order) throw new Error("ההזמנה לא נמצאה");
+    if (order.status === "cancelled") throw new Error("ההזמנה בוטלה — אי אפשר לערוך תאריכים");
+
+    const { data: lines, error: linesErr } = await supabaseAdmin
+      .from("order_items")
+      .select("item_id, item_name, quantity")
+      .eq("order_id", data.id);
+    if (linesErr) throw new Error(linesErr.message);
+    if (!lines || lines.length === 0) throw new Error("אין פריטים בהזמנה הזו");
+    if (lines.some((l: any) => !l.item_id)) {
+      throw new Error("אחד הפריטים בהזמנה נמחק מהקטלוג — אי אפשר להעביר תאריכים אוטומטית, יש לפנות לתמיכה");
+    }
+    const typedLines = lines as { item_id: string; item_name: string | null; quantity: number }[];
+
+    const itemIds = typedLines.map((l) => l.item_id);
+    const { data: itemRows, error: itemsErr } = await supabaseAdmin
+      .from("items")
+      .select("id, stock_quantity")
+      .in("id", itemIds);
+    if (itemsErr) throw new Error(itemsErr.message);
+    const stockById = new Map((itemRows ?? []).map((i: any) => [i.id, Number(i.stock_quantity ?? 1)]));
+
+    const oldSession = order.session_date as string;
+    const oldReturn = order.return_date as string;
+
+    // Remember exactly which rows existed (so a rollback restores the real
+    // count per item, not just a guess from order_items.quantity).
+    const { data: oldSlots } = await supabaseAdmin
+      .from("item_availability")
+      .select("item_id")
+      .eq("order_id", data.id);
+    const oldCountByItem = new Map<string, number>();
+    for (const s of oldSlots ?? []) oldCountByItem.set(s.item_id, (oldCountByItem.get(s.item_id) ?? 0) + 1);
+
+    const { error: delErr } = await supabaseAdmin.from("item_availability").delete().eq("order_id", data.id);
+    if (delErr) throw new Error(delErr.message);
+
+    const rollback = async () => {
+      for (const l of typedLines) {
+        const count = oldCountByItem.get(l.item_id) ?? l.quantity;
+        if (count > 0) {
+          await insertAvailabilitySlots(
+            supabaseAdmin, data.id, l.item_id, l.item_name ?? "", oldSession, oldReturn, count,
+            (stockById.get(l.item_id) as number | undefined) ?? count, 0,
+          );
+        }
+      }
+    };
+
+    try {
+      for (const l of typedLines) {
+        const stock = (stockById.get(l.item_id) as number | undefined) ?? l.quantity;
+        const { data: taken, error: countErr } = await supabaseAdmin.rpc("count_item_reservations", {
+          _item_id: l.item_id,
+          _from: data.session_date,
+          _to: data.return_date,
+        });
+        if (countErr) throw new Error(countErr.message);
+        if ((taken ?? 0) + l.quantity > stock) {
+          throw new Error(`הפריט "${l.item_name}" לא זמין בתאריכים החדשים`);
+        }
+        await insertAvailabilitySlots(
+          supabaseAdmin, data.id, l.item_id, l.item_name ?? "", data.session_date, data.return_date, l.quantity, stock, taken ?? 0,
+        );
+      }
+    } catch (e) {
+      await supabaseAdmin.from("item_availability").delete().eq("order_id", data.id);
+      await rollback();
+      throw e instanceof Error ? e : new Error("המעבר לתאריכים החדשים נכשל");
+    }
+
+    const pickupAt = `${data.session_date}T${data.start_time}:00`;
+    const returnAt = `${data.return_date}T${data.end_time}:00`;
+    const dayMultiplier = computeDayMultiplier(pickupAt, returnAt);
+
+    // Refresh the human-readable "שעות השכרה" line baked into notes at
+    // checkout (see placeOrder) instead of leaving a stale date/time behind
+    // it — same spirit as adminPartialCancelOrderItem appending its own
+    // note line, just replacing this specific one rather than appending.
+    const hoursLineRe = /^שעות השכרה:.*$/m;
+    const newHoursLine = `שעות השכרה: ${data.start_time}–${data.end_time} · ${dayMultiplier} יח׳ של 24ש (מכפיל x${dayMultiplier})`;
+    const newNotes = hoursLineRe.test(order.notes ?? "")
+      ? (order.notes as string).replace(hoursLineRe, newHoursLine)
+      : [order.notes, newHoursLine].filter(Boolean).join("\n");
+
+    const { error: updErr } = await supabaseAdmin
+      .from("orders")
+      .update({
+        session_date: data.session_date,
+        scheduled_date: data.session_date,
+        return_date: data.return_date,
+        pickup_at: pickupAt,
+        return_at: returnAt,
+        notes: newNotes,
+      })
+      .eq("id", data.id);
+    if (updErr) throw new Error(updErr.message);
+
+    if (order.google_event_id) {
+      try {
+        const { deleteGoogleCalendarEvent, createGoogleCalendarEvent } = await import("@/integrations/google/calendar.server");
+        await deleteGoogleCalendarEvent(order.google_event_id);
+        const { data: itemRows2 } = await supabaseAdmin.from("order_items").select("item_name, item_sku, quantity").eq("order_id", data.id);
+        const event = await createGoogleCalendarEvent({
+          summary: `איסוף אביזרים · ${order.contact_name ?? ""}`,
+          description: [
+            `טלפון: ${order.contact_phone ?? ""}`,
+            `איסוף: ${data.session_date} ${data.start_time} · החזרה: ${data.return_date} ${data.end_time}`,
+            `סה״כ: ₪${order.total}`,
+            order.camera_model ? `מצלמה: ${order.camera_model}` : null,
+            (itemRows2 ?? []).length
+              ? `אביזרים: ${(itemRows2 ?? []).map((l: any) => `${l.item_sku} ${l.item_name} ×${l.quantity}`).join(", ")}`
+              : null,
+          ].filter(Boolean).join("\n"),
+          startISO: pickupAt,
+          endISO: returnAt,
+          location: "תלמוד ירושלמי 24, בית שמש",
+          attendees: [],
+          transparent: true,
+        });
+        if (event) await supabaseAdmin.from("orders").update({ google_event_id: event.id }).eq("id", data.id);
+      } catch (e) {
+        console.error("[SWEETBABY] props order calendar re-sync on date edit failed", e);
+      }
+    }
+
+    return { ok: true };
+  });
+
+/**
+ * Admin-only "add an item" to an existing, still-open props/equipment
+ * order — the counterpart to the existing adminPartialCancelOrderItem
+ * (which only ever reduces/removes a line). Prices the new line at the
+ * SAME day-multiplier this order's other lines already carry (derived
+ * fresh from the order's own pickup_at/return_at via computeDayMultiplier,
+ * orders.functions.ts — the exported helper placeOrder itself uses), so a
+ * line added mid-rental is priced consistently with the rest of the order
+ * rather than needing a second manual adjustment. Stock-checks the new
+ * line against the order's existing date range exactly like placeOrder
+ * does for a brand-new order.
+ */
+export const adminAddOrderItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        order_id: z.string().uuid(),
+        sku: z.string().min(1),
+        quantity: z.number().int().positive().max(50),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: order, error: orderErr } = await supabaseAdmin
+      .from("orders")
+      .select("id, status, session_date, return_date, pickup_at, return_at, total, deposit_amount")
+      .eq("id", data.order_id)
+      .maybeSingle();
+    if (orderErr || !order) throw new Error("ההזמנה לא נמצאה");
+    if (order.status === "cancelled") throw new Error("ההזמנה בוטלה — אי אפשר להוסיף אביזרים");
+
+    const { data: item, error: itemErr } = await supabaseAdmin
+      .from("items")
+      .select("id, name, sku, price, active, stock_quantity")
+      .eq("sku", data.sku.trim())
+      .maybeSingle();
+    if (itemErr || !item || !item.active) throw new Error("פריט לא נמצא או לא פעיל — ודאי שה-SKU נכון");
+
+    const stock = Number(item.stock_quantity ?? 1);
+    const { data: taken, error: countErr } = await supabaseAdmin.rpc("count_item_reservations", {
+      _item_id: item.id,
+      _from: order.session_date as string,
+      _to: order.return_date as string,
+    });
+    if (countErr) throw new Error(countErr.message);
+    if ((taken ?? 0) + data.quantity > stock) throw new Error(`הפריט "${item.name}" לא זמין בתאריכי ההזמנה`);
+
+    const pickupAt = order.pickup_at ?? `${order.session_date}T09:00:00`;
+    const returnAt = order.return_at ?? `${order.return_date}T18:00:00`;
+    const dayMultiplier = computeDayMultiplier(pickupAt, returnAt);
+    const price = Number(item.price) * dayMultiplier;
+
+    const { data: created, error: insErr } = await supabaseAdmin
+      .from("order_items")
+      .insert({
+        order_id: data.order_id,
+        item_id: item.id,
+        item_name: item.name,
+        item_sku: item.sku,
+        quantity: data.quantity,
+        price,
+      })
+      .select("id")
+      .single();
+    if (insErr || !created) throw new Error(insErr?.message ?? "הוספת הפריט נכשלה");
+
+    try {
+      await insertAvailabilitySlots(
+        supabaseAdmin, data.order_id, item.id, item.name, order.session_date as string, order.return_date as string,
+        data.quantity, stock, taken ?? 0,
+      );
+    } catch (e) {
+      await supabaseAdmin.from("order_items").delete().eq("id", created.id);
+      throw e;
+    }
+
+    const addedTotal = price * data.quantity;
+    const newTotal = Number(order.total) + addedTotal;
+    const { error: updErr } = await supabaseAdmin
+      .from("orders")
+      .update({ total: newTotal, deposit_amount: newTotal })
+      .eq("id", data.order_id);
+    if (updErr) throw new Error(updErr.message);
+
+    return { ok: true, addedTotal, newTotal };
   });
 
 // Prefix on the "linked photo workflow" error, so the client can tell it
