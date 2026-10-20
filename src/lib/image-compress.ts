@@ -13,7 +13,12 @@
 export async function compressImage(file: File, maxDim = 2400, quality = 0.85): Promise<File> {
   if (file.size < 400 * 1024) return file;
   try {
-    const bitmap = await createImageBitmap(file);
+    // imageOrientation defaults inconsistently across browser versions — be
+    // explicit so a phone photo taken in portrait (EXIF-rotated) always
+    // comes out of the canvas right-side-up instead of however the device
+    // happened to hold the camera. Without this, the re-encoded JPEG this
+    // function outputs has no EXIF tag left to self-correct from later.
+    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
     let { width, height } = bitmap;
     if (width > maxDim || height > maxDim) {
       const scale = maxDim / Math.max(width, height);
