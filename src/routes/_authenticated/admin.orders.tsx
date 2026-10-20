@@ -7,6 +7,8 @@ import {
   adminSetStatus,
   adminPartialCancelOrderItem,
   adminUpdateBookingHours,
+  adminUpdateOrderDates,
+  adminAddOrderItem,
   PHOTO_WORKFLOW_LINKED_PREFIX,
 } from "@/lib/admin-orders.functions";
 import { heError } from "@/lib/he-errors";
@@ -16,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Camera, Package, RefreshCw, Trash2, Clock3 } from "lucide-react";
+import { ChevronDown, ChevronUp, Camera, Package, RefreshCw, Trash2, Clock3, CalendarCog, PackagePlus } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/orders")({
   component: OrdersAdmin,
@@ -62,6 +64,14 @@ function OrdersAdmin() {
   const [editingHoursId, setEditingHoursId] = useState<string | null>(null);
   const [hoursForm, setHoursForm] = useState({ start_time: "", end_time: "" });
   const [savingHours, setSavingHours] = useState(false);
+  // Inline "שינוי תאריכים ושעות" editor for a props order — keyed by order id.
+  const [editingDatesId, setEditingDatesId] = useState<string | null>(null);
+  const [datesForm, setDatesForm] = useState({ session_date: "", return_date: "", start_time: "", end_time: "" });
+  const [savingDates, setSavingDates] = useState(false);
+  // Inline "הוספת אביזר" form for a props order — keyed by order id.
+  const [addingItemId, setAddingItemId] = useState<string | null>(null);
+  const [addItemForm, setAddItemForm] = useState({ sku: "", quantity: 1 });
+  const [savingAddItem, setSavingAddItem] = useState(false);
 
   const q = useQuery({
     queryKey: ["admin-all-orders"],
@@ -194,6 +204,51 @@ function OrdersAdmin() {
       toast.error(heError(e, "עדכון השעות נכשל"));
     } finally {
       setSavingHours(false);
+    }
+  };
+
+  const doUpdateOrderDates = useServerFn(adminUpdateOrderDates);
+  const startEditDates = (row: Row) => {
+    setEditingDatesId(row.id);
+    const pickup = row.raw.pickup_at ? String(row.raw.pickup_at).slice(11, 16) : "09:00";
+    const ret = row.raw.return_at ? String(row.raw.return_at).slice(11, 16) : "18:00";
+    setDatesForm({
+      session_date: row.raw.session_date ?? "",
+      return_date: row.raw.return_date ?? row.raw.session_date ?? "",
+      start_time: pickup,
+      end_time: ret,
+    });
+  };
+  const saveDates = async (orderId: string) => {
+    setSavingDates(true);
+    try {
+      await doUpdateOrderDates({ data: { id: orderId, ...datesForm } });
+      toast.success("התאריכים והשעות עודכנו");
+      setEditingDatesId(null);
+      qc.invalidateQueries({ queryKey: ["admin-all-orders"] });
+      qc.invalidateQueries({ queryKey: ["calendar-entries"] });
+    } catch (e) {
+      toast.error(heError(e, "עדכון התאריכים נכשל"));
+    } finally {
+      setSavingDates(false);
+    }
+  };
+
+  const doAddOrderItem = useServerFn(adminAddOrderItem);
+  const saveAddItem = async (orderId: string) => {
+    const sku = addItemForm.sku.trim();
+    if (!sku) return toast.error("יש להזין SKU");
+    setSavingAddItem(true);
+    try {
+      const res = await doAddOrderItem({ data: { order_id: orderId, sku, quantity: addItemForm.quantity } });
+      toast.success(`הפריט נוסף · +₪${res.addedTotal} · סה״כ חדש: ₪${res.newTotal}`);
+      setAddingItemId(null);
+      setAddItemForm({ sku: "", quantity: 1 });
+      qc.invalidateQueries({ queryKey: ["admin-all-orders"] });
+    } catch (e) {
+      toast.error(heError(e, "הוספת הפריט נכשלה"));
+    } finally {
+      setSavingAddItem(false);
     }
   };
 
@@ -353,12 +408,102 @@ function OrdersAdmin() {
                                 <li className="text-muted-foreground">אין אביזרים משוריינים</li>
                               )}
                             </ul>
+                            {r.kind === "order" && r.status !== "cancelled" && (
+                              addingItemId === r.id ? (
+                                <div className="flex items-center gap-2 flex-wrap mt-2">
+                                  <Input
+                                    placeholder="SKU"
+                                    value={addItemForm.sku}
+                                    onChange={(e) => setAddItemForm({ ...addItemForm, sku: e.target.value })}
+                                    className="h-8 w-28"
+                                  />
+                                  <Input
+                                    type="number"
+                                    min={1}
+                                    value={addItemForm.quantity}
+                                    onChange={(e) => setAddItemForm({ ...addItemForm, quantity: Number(e.target.value) })}
+                                    className="h-8 w-16"
+                                  />
+                                  <Button size="sm" disabled={savingAddItem} onClick={() => saveAddItem(r.id)}>
+                                    הוספה
+                                  </Button>
+                                  <Button size="sm" variant="ghost" onClick={() => setAddingItemId(null)}>
+                                    ביטול
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 px-2 gap-1 text-xs mt-2"
+                                  onClick={() => {
+                                    setAddingItemId(r.id);
+                                    setAddItemForm({ sku: "", quantity: 1 });
+                                  }}
+                                >
+                                  <PackagePlus className="h-3 w-3" /> הוספת אביזר
+                                </Button>
+                              )
+                            )}
                           </div>
                           <div>
                             <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">פרטים</div>
                             <div className="text-sm space-y-1">
                               {r.kind === "order" ? (
-                                <div>החזרה: {o.return_date ? new Date(o.return_date).toLocaleDateString("he-IL") : "—"}</div>
+                                editingDatesId === r.id ? (
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <Input
+                                      type="date"
+                                      value={datesForm.session_date}
+                                      onChange={(e) => setDatesForm({ ...datesForm, session_date: e.target.value })}
+                                      className="h-8 w-36"
+                                    />
+                                    <span>–</span>
+                                    <Input
+                                      type="date"
+                                      value={datesForm.return_date}
+                                      onChange={(e) => setDatesForm({ ...datesForm, return_date: e.target.value })}
+                                      className="h-8 w-36"
+                                    />
+                                    <Input
+                                      type="time"
+                                      value={datesForm.start_time}
+                                      onChange={(e) => setDatesForm({ ...datesForm, start_time: e.target.value })}
+                                      className="h-8 w-28"
+                                    />
+                                    <span>–</span>
+                                    <Input
+                                      type="time"
+                                      value={datesForm.end_time}
+                                      onChange={(e) => setDatesForm({ ...datesForm, end_time: e.target.value })}
+                                      className="h-8 w-28"
+                                    />
+                                    <Button size="sm" disabled={savingDates} onClick={() => saveDates(r.id)}>
+                                      שמירה
+                                    </Button>
+                                    <Button size="sm" variant="ghost" onClick={() => setEditingDatesId(null)}>
+                                      ביטול
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span>
+                                      איסוף: {o.session_date ? new Date(o.session_date).toLocaleDateString("he-IL") : "—"}
+                                      {" · "}
+                                      החזרה: {o.return_date ? new Date(o.return_date).toLocaleDateString("he-IL") : "—"}
+                                    </span>
+                                    {r.status !== "cancelled" && (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 px-2 gap-1 text-xs"
+                                        onClick={() => startEditDates(r)}
+                                      >
+                                        <CalendarCog className="h-3 w-3" /> שינוי תאריכים ושעות
+                                      </Button>
+                                    )}
+                                  </div>
+                                )
                               ) : (
                                 <>
                                   <div>חבילה: {o.package ?? "—"}</div>

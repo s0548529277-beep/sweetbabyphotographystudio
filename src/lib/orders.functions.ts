@@ -33,8 +33,10 @@ const inputSchema = z.object({
   terms_accepted: z.literal(true),
 });
 
-// Round up rental duration (in hours) to whole 24h units; min 1.
-function computeDayMultiplier(startISO: string, endISO: string): number {
+// Round up rental duration (in hours) to whole 24h units; min 1. Exported
+// so admin-orders.functions.ts's adminAddOrderItem can price a newly-added
+// line against the SAME multiplier this order's existing lines already use.
+export function computeDayMultiplier(startISO: string, endISO: string): number {
   const ms = new Date(endISO).getTime() - new Date(startISO).getTime();
   if (!isFinite(ms) || ms <= 0) return 1;
   const hours = ms / (1000 * 60 * 60);
