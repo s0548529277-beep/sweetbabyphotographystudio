@@ -279,31 +279,21 @@ export function HeroLightArch({ slide, setSlide, slides, logo, aspect }: HeroPro
               className={`relative ${heroAspect} overflow-hidden border border-[#2d3d2b]/10 bg-[#f5d5cf]`}
               style={{ borderRadius: "999px 999px 1.5rem 1.5rem" }}
             >
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.img
-                  key={slide}
-                  src={slides[slide % slides.length]}
-                  alt="רגעים מהסטודיו"
-                  fetchPriority={slide === 0 ? "high" : "auto"}
-                  loading="eager"
-                  decoding="async"
-                  initial={{ opacity: 0, scale: 1.06 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 1.02 }}
-                  transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              </AnimatePresence>
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-                {slides.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setSlide(i)}
-                    aria-label={`תמונה ${i + 1}`}
-                    className={`h-1.5 rounded-full transition-all ${i === slide ? "w-6 bg-white" : "w-1.5 bg-white/60"}`}
-                  />
-                ))}
-              </div>
+              {/* A short edited highlight reel (studio + real client photos,
+                  see public/videos/studio-reel.mp4) replaces the old photo
+                  slideshow in this exact spot — per explicit request to put
+                  the video "here", in the hero arch. autoPlay/muted/loop so
+                  it behaves like a moving photo; no pagination dots since
+                  there's only the one clip now. */}
+              <video
+                src="/videos/studio-reel.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
             </div>
             <div className="mt-4 w-full flex items-center justify-between gap-4 rounded-2xl border border-[#2d3d2b]/10 bg-white/70 px-5 py-3.5 text-right">
               <button

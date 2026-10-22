@@ -314,30 +314,6 @@ function Home() {
         </div>
       </section>
 
-      {/* STUDIO REEL — a short highlight edit of the studio + real client
-          photos (public/videos/studio-reel.mp4), autoplay/muted/loop so it
-          behaves like a moving photo rather than something the visitor has
-          to press play on. No controls — it's decorative, not a tutorial. */}
-      <section className="container-page pb-16 md:pb-24" dir="rtl">
-        <div className="text-center mb-8">
-          <div className="text-[11px] tracking-[0.28em] uppercase text-[#6b8a63] mb-3">רגע מהסטודיו</div>
-          <h2 className="text-3xl md:text-4xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
-            הצצה לסטודיו ולתוצאות
-          </h2>
-        </div>
-        <div className="max-w-sm mx-auto rounded-[2rem] overflow-hidden border border-[#2d3d2b]/10 shadow-xl bg-black">
-          <video
-            src="/videos/studio-reel.mp4"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
-            className="w-full aspect-[9/16] object-cover"
-          />
-        </div>
-      </section>
-
       {/* TESTIMONIALS */}
       <section id="testimonials" className="container-page pb-16 md:pb-24 scroll-mt-28" dir="rtl">
         <div className="text-center mb-12">
