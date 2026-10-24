@@ -52,6 +52,7 @@ import { Route as AuthenticatedAdminBirthBasketTextRouteImport } from './routes/
 import { Route as AuthenticatedAdminBotKnowledgeRouteImport } from './routes/_authenticated/admin.bot-knowledge'
 import { Route as AuthenticatedAdminCalendarRouteImport } from './routes/_authenticated/admin.calendar'
 import { Route as AuthenticatedAdminChatLogsRouteImport } from './routes/_authenticated/admin.chat-logs'
+import { Route as AuthenticatedAdminClientManagementRouteImport } from './routes/_authenticated/admin.client-management'
 import { Route as AuthenticatedAdminClientsRouteImport } from './routes/_authenticated/admin.clients'
 import { Route as AuthenticatedAdminCouponsRouteImport } from './routes/_authenticated/admin.coupons'
 import { Route as AuthenticatedAdminEmailAssistantRouteImport } from './routes/_authenticated/admin.email-assistant'
@@ -313,6 +314,12 @@ const AuthenticatedAdminChatLogsRoute =
     path: '/chat-logs',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminClientManagementRoute =
+  AuthenticatedAdminClientManagementRouteImport.update({
+    id: '/client-management',
+    path: '/client-management',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminClientsRoute =
   AuthenticatedAdminClientsRouteImport.update({
     id: '/clients',
@@ -570,6 +577,7 @@ export interface FileRoutesByFullPath {
   '/admin/bot-knowledge': typeof AuthenticatedAdminBotKnowledgeRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/chat-logs': typeof AuthenticatedAdminChatLogsRoute
+  '/admin/client-management': typeof AuthenticatedAdminClientManagementRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/admin/coupons': typeof AuthenticatedAdminCouponsRoute
   '/admin/email-assistant': typeof AuthenticatedAdminEmailAssistantRoute
@@ -650,6 +658,7 @@ export interface FileRoutesByTo {
   '/admin/bot-knowledge': typeof AuthenticatedAdminBotKnowledgeRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/chat-logs': typeof AuthenticatedAdminChatLogsRoute
+  '/admin/client-management': typeof AuthenticatedAdminClientManagementRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/admin/coupons': typeof AuthenticatedAdminCouponsRoute
   '/admin/email-assistant': typeof AuthenticatedAdminEmailAssistantRoute
@@ -733,6 +742,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/bot-knowledge': typeof AuthenticatedAdminBotKnowledgeRoute
   '/_authenticated/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/_authenticated/admin/chat-logs': typeof AuthenticatedAdminChatLogsRoute
+  '/_authenticated/admin/client-management': typeof AuthenticatedAdminClientManagementRoute
   '/_authenticated/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/_authenticated/admin/coupons': typeof AuthenticatedAdminCouponsRoute
   '/_authenticated/admin/email-assistant': typeof AuthenticatedAdminEmailAssistantRoute
@@ -816,6 +826,7 @@ export interface FileRouteTypes {
     | '/admin/bot-knowledge'
     | '/admin/calendar'
     | '/admin/chat-logs'
+    | '/admin/client-management'
     | '/admin/clients'
     | '/admin/coupons'
     | '/admin/email-assistant'
@@ -896,6 +907,7 @@ export interface FileRouteTypes {
     | '/admin/bot-knowledge'
     | '/admin/calendar'
     | '/admin/chat-logs'
+    | '/admin/client-management'
     | '/admin/clients'
     | '/admin/coupons'
     | '/admin/email-assistant'
@@ -978,6 +990,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/bot-knowledge'
     | '/_authenticated/admin/calendar'
     | '/_authenticated/admin/chat-logs'
+    | '/_authenticated/admin/client-management'
     | '/_authenticated/admin/clients'
     | '/_authenticated/admin/coupons'
     | '/_authenticated/admin/email-assistant'
@@ -1363,6 +1376,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminChatLogsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/client-management': {
+      id: '/_authenticated/admin/client-management'
+      path: '/client-management'
+      fullPath: '/admin/client-management'
+      preLoaderRoute: typeof AuthenticatedAdminClientManagementRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/clients': {
       id: '/_authenticated/admin/clients'
       path: '/clients'
@@ -1662,6 +1682,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminBotKnowledgeRoute: typeof AuthenticatedAdminBotKnowledgeRoute
   AuthenticatedAdminCalendarRoute: typeof AuthenticatedAdminCalendarRoute
   AuthenticatedAdminChatLogsRoute: typeof AuthenticatedAdminChatLogsRoute
+  AuthenticatedAdminClientManagementRoute: typeof AuthenticatedAdminClientManagementRoute
   AuthenticatedAdminClientsRoute: typeof AuthenticatedAdminClientsRoute
   AuthenticatedAdminCouponsRoute: typeof AuthenticatedAdminCouponsRoute
   AuthenticatedAdminEmailAssistantRoute: typeof AuthenticatedAdminEmailAssistantRoute
@@ -1699,6 +1720,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminBotKnowledgeRoute: AuthenticatedAdminBotKnowledgeRoute,
   AuthenticatedAdminCalendarRoute: AuthenticatedAdminCalendarRoute,
   AuthenticatedAdminChatLogsRoute: AuthenticatedAdminChatLogsRoute,
+  AuthenticatedAdminClientManagementRoute:
+    AuthenticatedAdminClientManagementRoute,
   AuthenticatedAdminClientsRoute: AuthenticatedAdminClientsRoute,
   AuthenticatedAdminCouponsRoute: AuthenticatedAdminCouponsRoute,
   AuthenticatedAdminEmailAssistantRoute: AuthenticatedAdminEmailAssistantRoute,

@@ -44,6 +44,7 @@ import {
   BellRing,
   Disc3,
   Trees,
+  ContactRound,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -77,6 +78,7 @@ const links: NavEntry[] = [
   { to: "/admin/items", label: "אביזרים", icon: Package },
   { to: "/admin/orders", label: "הזמנות", icon: ShoppingBag },
   { to: "/admin/calendar", label: "יומן", icon: CalendarDays },
+  { to: "/admin/client-management", label: "ניהול לקוחות", icon: ContactRound },
   { to: "/admin/clients", label: "לקוחות", icon: Users },
   { to: "/admin/whatsapp", label: "וואטסאפ", icon: MessageSquare },
   { to: "/admin/newborn-packages", label: "חבילות ניו-בורן", icon: Baby },
