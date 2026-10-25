@@ -34,6 +34,9 @@ export function isPhoneAfterHours(now: Date = new Date()): boolean {
  */
 export function afterHoursNotice(now: Date = new Date()): string {
   if (!isPhoneAfterHours(now)) return "";
-  const when = jerusalemHour(now) >= AFTER_HOURS_START ? "מחר מ-8:00 בבוקר" : "מ-8:00 בבוקר";
-  return `כרגע אין מענה. איסוף והחזרת אביזרים אינם מתאפשרים אחרי 22:00 — אפשר לתאם ${when}. בינתיים אפשר להמשיך כאן כרגיל.`;
+  // Times are written as words, not "22:00"/"8:00" — TTS reads digit
+  // times awkwardly. No niqqud on purpose (see voice-chat.server.ts: guessed
+  // niqqud made pronunciation worse; unverifiable from here).
+  const when = jerusalemHour(now) >= AFTER_HOURS_START ? "מחר משמונה בבוקר" : "משמונה בבוקר";
+  return `כרגע אין מענה. איסוף והחזרת אביזרים אינם מתאפשרים אחרי עשר בלילה, אפשר לתאם ${when}. בינתיים אפשר להמשיך כאן כרגיל.`;
 }
