@@ -9,6 +9,52 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 
+## Work log — every Claude session MUST add an entry here
+
+Standing request from the owner (2026-10-25): **whatever a Claude session
+changes in this project — code, database, settings — it records here, in
+the same commit/push**, so the next Claude (chat, Claude Code, any surface)
+knows what was done and why. Newest first. One short entry per session:
+date, what changed, where, anything left open. Write the owner-facing
+summary in Hebrew if useful, technical detail in English.
+
+### Database migrations — read before touching the schema
+
+Lovable's migration runner only knows `drizzle/migrations/` +
+`drizzle/migrations/meta/_journal.json`, tracked in the live DB table
+`drizzle.__drizzle_migrations` (hash = sha256 of the .sql file). **Files
+added only to `supabase/migrations/` never run** — that is exactly how the
+Oct 15–21 migrations below silently went missing while the code relying on
+them shipped. If you add a migration outside Lovable: put it in
+`drizzle/migrations/NNNN_name.sql`, add the journal entry, and either let
+Lovable run it or apply it and insert its hash + `when` into
+`drizzle.__drizzle_migrations` so Lovable won't re-run it.
+
+### Log
+
+- **2026-10-25 — Claude (chat), at the owner's request**
+  - **DB:** found that 8 migration files in `supabase/migrations/`
+    (20261015…–20261021…) had never been applied: `client_step`/
+    `production_step`, `newborn_package_types`, album-details columns,
+    `expenses.is_personal`, `manual_income.is_personal`,
+    `bookings.balance_paid`, `outdoor_package_types`/`_orders`,
+    `recurring_expenses`. Effect before the fix: the אישי/עסק tag on
+    expenses/income was silently dropped (insertWithPersonalFallback),
+    recurring expenses, "סמן יתרה כשולמה", outdoor packages etc. all
+    errored. Bundled them verbatim as
+    `drizzle/migrations/0020_apply_pending_oct15_oct21.sql` (+ explicit
+    `GRANT … TO authenticated` on the 4 new tables; RLS still admin-only),
+    ran it in one transaction directly on the live DB, registered it in
+    the journal and in `drizzle.__drizzle_migrations` (21 rows now).
+    Nothing dropped; row counts unchanged.
+  - **Code:** `/admin/finance` — new "הכנסות לפי תחום" block under the
+    summary cards: income split into צילומים בסטודיו / השכרת סטודיו /
+    השכרת אביזרים (+ "אחר (ידני)" when non-zero), with % of total; follows
+    all filters; clicking a card sets the "סוג" filter. Expenses are not
+    split (their categories don't map to a business line).
+  - **Open:** 4 old PRs still open on GitHub (#35, #43, #58, #72) — not
+    touched.
+
 ## Phone voice bot — TWO separate channels, TWO separate voices
 
 **Update 2026-09-02, superseding the note below from 2026-08-25**: that

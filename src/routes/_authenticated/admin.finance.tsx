@@ -603,6 +603,24 @@ function FinanceAdmin() {
     [txns],
   );
 
+  // Income split by the studio's three business lines — per explicit request
+  // (2026-10-25) to see in the summary how much each line brings in. Follows
+  // every active filter, same as `totals` above, so the three figures (plus
+  // "אחר" for manual income outside the three) always add up to "סה״כ הכנסות".
+  // Expenses aren't split here: their categories (ציוד, שכירות, פרסום…) don't
+  // map onto a business line.
+  const incomeBySegment = useMemo(() => {
+    const seg = { photo: 0, studio: 0, props: 0, other: 0 };
+    for (const t of txns) {
+      if (t.kind !== "income") continue;
+      if (t.type === TYPE_PHOTO) seg.photo += t.amount;
+      else if (t.type === TYPE_STUDIO) seg.studio += t.amount;
+      else if (t.type === TYPE_PROPS) seg.props += t.amount;
+      else seg.other += t.amount;
+    }
+    return seg;
+  }, [txns]);
+
   // Orders/bookings whose deposit was never actually paid — these still
   // count toward "סה״כ הכנסות" above (that total reflects the value of
   // active, non-cancelled orders regardless of payment), so this is a
@@ -986,6 +1004,41 @@ function FinanceAdmin() {
             {c.sub && <div className="text-xs text-muted-foreground mt-1">{c.sub}</div>}
           </div>
         ))}
+      </div>
+
+      {/* Income by business line — clicking a card filters the whole page
+          to that line (same "סוג" filter as above); clicking again clears. */}
+      <div className="bg-card rounded-2xl border border-primary/5 p-5">
+        <h3 className="font-display text-lg mb-4">הכנסות לפי תחום</h3>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { label: TYPE_PHOTO, value: incomeBySegment.photo, filter: TYPE_PHOTO },
+            { label: TYPE_STUDIO, value: incomeBySegment.studio, filter: TYPE_STUDIO },
+            { label: TYPE_PROPS, value: incomeBySegment.props, filter: TYPE_PROPS },
+            { label: "אחר (ידני)", value: incomeBySegment.other, filter: null as string | null },
+          ]
+            .filter((s) => s.filter !== null || s.value > 0)
+            .map((s) => {
+              const pct = totals.income > 0 ? Math.round((s.value / totals.income) * 100) : 0;
+              const active = s.filter !== null && type === s.filter;
+              return (
+                <div
+                  key={s.label}
+                  onClick={s.filter ? () => setType(active ? "all" : s.filter!) : undefined}
+                  className={`rounded-xl p-4 bg-cream/50 border transition-colors ${
+                    s.filter ? "cursor-pointer hover:border-primary/30" : ""
+                  } ${active ? "border-primary/40 ring-1 ring-primary/20" : "border-transparent"}`}
+                >
+                  <div className="text-xs text-muted-foreground mb-1">{s.label}</div>
+                  <div className="font-display text-2xl text-forest">{ils(s.value)}</div>
+                  <div className="mt-2 h-2 rounded-full bg-forest/15 overflow-hidden">
+                    <div className="h-full bg-forest rounded-full" style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">{pct}% מסך ההכנסות</div>
+                </div>
+              );
+            })}
+        </div>
       </div>
 
       <div className="bg-card rounded-2xl border border-primary/5 p-5">
