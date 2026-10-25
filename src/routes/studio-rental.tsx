@@ -126,6 +126,7 @@ function StudioRentalPage() {
   const [form, setForm] = useState<IntakeForm>(emptyForm);
  const [submitting, setSubmitting] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [showReel, setShowReel] = useState(false);
   const nav = useNavigate();
   const { user } = useAuth();
   const profile = useProfilePrefill();
@@ -238,6 +239,15 @@ function StudioRentalPage() {
               className="inline-flex items-center gap-2 h-11 px-5 rounded-full bg-[#2d3d2b] text-[#f8ede4] text-sm font-semibold hover:bg-[#2d3d2b]/90 transition-colors"
             >
               <PlayCircle className="h-4 w-4" /> הדרכה לשימוש בסטודיו
+            </button>
+            {/* Same reel as the homepage hero (public/videos/studio-reel.mp4),
+                behind a small button so it doesn't weigh on page load. */}
+            <button
+              type="button"
+              onClick={() => setShowReel(true)}
+              className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-white/80 border border-[#2d3d2b]/15 text-[#2d3d2b] text-xs font-semibold hover:bg-white transition-colors self-center"
+            >
+              <PlayCircle className="h-3.5 w-3.5" /> סרטון הסטודיו
             </button>
           </div>
           <motion.div initial="hidden" animate="show" variants={fadeUp} className="max-w-3xl">
@@ -432,6 +442,33 @@ function StudioRentalPage() {
 
 
     <StudioGuideModal open={showGuide} onClose={() => setShowGuide(false)} />
+    {showReel && (
+      <div
+        className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-label="סרטון הסטודיו"
+        onClick={() => setShowReel(false)}
+      >
+        <div className="relative w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => setShowReel(false)}
+            aria-label="סגירה"
+            className="absolute -top-11 left-0 h-9 w-9 rounded-full bg-white/90 text-[#2d3d2b] flex items-center justify-center"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <video
+            src="/videos/studio-reel.mp4"
+            controls
+            autoPlay
+            playsInline
+            className="w-full max-h-[80vh] rounded-2xl bg-black"
+          />
+        </div>
+      </div>
+    )}
       <Footer />
 
       {/* INTAKE MODAL — includes the full studio rules */}

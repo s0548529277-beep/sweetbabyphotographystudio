@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
-import { parseTwilioForm, twimlSayAndGather, verifyTwilioSignature } from "@/lib/twilio.server";
+import { parseTwilioForm, twimlSayAndGather, twimlSayAndHangup, verifyTwilioSignature } from "@/lib/twilio.server";
+import { AFTER_HOURS_MESSAGE, isPhoneAfterHours } from "@/lib/voice-after-hours.server";
 import { getVoiceBotSayAttrs } from "@/lib/voice-settings.server";
 import { getPhraseMap } from "@/lib/voice-phrases.server";
 import { personalizedGreeting } from "@/lib/voice-caller.server";
@@ -20,8 +21,10 @@ export const Route = createFileRoute("/api/voice/incoming")({
         const fromNumber = params.From ?? "";
         if (!callSid) return new Response("Bad Request", { status: 400 });
 
-        const phrases = await getPhraseMap();
         const sayAttrs = await getVoiceBotSayAttrs();
+        // Quiet hours 22:00–08:00 — see voice-after-hours.server.ts.
+        if (isPhoneAfterHours()) return twimlSayAndHangup(AFTER_HOURS_MESSAGE, sayAttrs);
+        const phrases = await getPhraseMap();
         // If there's a message waiting for this number (a booking
         // confirmation/reminder), play it once before the normal greeting —
         // see the matching comment in api.yemot.ivr.ts.
