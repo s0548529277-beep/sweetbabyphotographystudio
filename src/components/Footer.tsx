@@ -21,7 +21,7 @@ export function Footer() {
           </div>
           <div className="md:col-span-4 text-sm space-y-2">
             <h4 className="text-[10px] tracking-[0.35em] uppercase text-sand mb-4">Hours</h4>
-            <p className="text-background/85">איסוף והחזרה תוך 24 שעות</p>
+            <p className="text-background/85">איסוף והחזרה תוך 24 שעות · עד השעה 22:00</p>
             <p className="text-background/85">מינימום הזמנה 50 ש״ח</p>
           </div>
         </div>

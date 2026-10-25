@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { PROPS_HANDOFF_NOTE, PROPS_LATEST_HANDOFF } from "@/lib/props-hours";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -319,6 +320,7 @@ function RentalCatalogPage() {
                     שעת איסוף
                     <input
                       type="time"
+                      max={PROPS_LATEST_HANDOFF}
                       value={timeFrom}
                       onChange={(e) => setTimeFrom(e.target.value)}
                       className="mt-1 w-[110px] h-11 px-3 rounded-full bg-white border border-primary/15 text-sm"
@@ -340,6 +342,7 @@ function RentalCatalogPage() {
                     שעת החזרה
                     <input
                       type="time"
+                      max={PROPS_LATEST_HANDOFF}
                       value={timeTo}
                       onChange={(e) => setTimeTo(e.target.value)}
                       className="mt-1 w-[110px] h-11 px-3 rounded-full bg-white border border-primary/15 text-sm"
@@ -361,7 +364,7 @@ function RentalCatalogPage() {
                 </button>
               )}
               <p className="text-[11px] text-primary/70 mt-2">
-                💡 חישוב מחיר לפי 24 שעות מרגע האיסוף · חובה לעדכן לפני איחור בהחזרה.
+                💡 חישוב מחיר לפי 24 שעות מרגע האיסוף · {PROPS_HANDOFF_NOTE} · חובה לעדכן לפני איחור בהחזרה.
                 {availLoading && " · בודקת זמינות…"}
                 {availability &&
                   !availLoading &&
@@ -896,6 +899,7 @@ function RentalCatalogPage() {
                 <ul className="list-disc pr-5 mt-3 space-y-1">
                   <li>מינימום להזמנה: 50 ₪.</li>
                   <li>איסוף והחזרה תוך 24 שעות — כל יום נוסף מחויב בעלות השכרה נוספת.</li>
+                  <li>{PROPS_HANDOFF_NOTE}.</li>
                   <li>האביזרים באחריות מלאה של השוכר — נזק יחויב לפי מחיר מלא.</li>
                   <li>יש להחזיר נקי ובמצב טוב.</li>
                 </ul>
@@ -1074,6 +1078,7 @@ function RentalCatalogPage() {
             <ul className="list-disc pr-5 mt-2 space-y-1">
               <li>מינימום להזמנה: 50 ₪.</li>
               <li>איסוף והחזרה תוך 24 שעות — כל יום נוסף מחויב בעלות השכרה נוספת.</li>
+                  <li>{PROPS_HANDOFF_NOTE}.</li>
               <li>האביזרים באחריות מלאה של השוכר — נזק יחויב לפי מחיר מלא.</li>
               <li>יש להחזיר נקי ובמצב טוב.</li>
             </ul>
