@@ -22,6 +22,9 @@ export function AllPhotosUnlockPanel({
   unlocked,
   receiptSubmittedAt,
   onSubmitReceipt,
+  fetchPhotos,
+  downloadsLeft,
+  downloadLimit,
 }: {
   displayPhotos: ZipPhoto[];
   originalPhotos: ZipPhoto[];
@@ -29,7 +32,14 @@ export function AllPhotosUnlockPanel({
   unlocked: boolean;
   receiptSubmittedAt: string | null;
   onSubmitReceipt: (file: File) => Promise<void>;
+  /** When given, the photo list is fetched (and counted) on the server at click time instead of using the arrays above. */
+  fetchPhotos?: (which: "display" | "originals") => Promise<ZipPhoto[]>;
+  /** Shown to the client: how many ZIP downloads are left out of downloadLimit. */
+  downloadsLeft?: number | null;
+  downloadLimit?: number;
 }) {
+  const limited = downloadsLeft != null;
+  const noneLeft = limited && downloadsLeft! <= 0;
   const [zippingWatermarked, setZippingWatermarked] = useState<{ done: number; total: number } | null>(null);
   const [zippingOriginals, setZippingOriginals] = useState<{ done: number; total: number } | null>(null);
   const [submittingReceipt, setSubmittingReceipt] = useState(false);
@@ -37,7 +47,8 @@ export function AllPhotosUnlockPanel({
   const downloadWatermarked = async () => {
     setZippingWatermarked({ done: 0, total: displayPhotos.length });
     try {
-      await downloadPhotosAsZip(displayPhotos, { watermark: false, zipName: `${zipBaseName}-עם-סימן-מים.zip`, onProgress: (done, total) => setZippingWatermarked({ done, total }) });
+      const photos = fetchPhotos ? await fetchPhotos("display") : displayPhotos;
+      await downloadPhotosAsZip(photos, { watermark: false, zipName: `${zipBaseName}-עם-סימן-מים.zip`, onProgress: (done, total) => setZippingWatermarked({ done, total }) });
     } catch (e: any) {
       toast.error(e?.message ?? "ההורדה נכשלה");
     } finally {
@@ -48,7 +59,8 @@ export function AllPhotosUnlockPanel({
   const downloadOriginals = async () => {
     setZippingOriginals({ done: 0, total: originalPhotos.length });
     try {
-      await downloadPhotosAsZip(originalPhotos, { watermark: false, zipName: `${zipBaseName}-איכות-מלאה.zip`, onProgress: (done, total) => setZippingOriginals({ done, total }) });
+      const photos = fetchPhotos ? await fetchPhotos("originals") : originalPhotos;
+      await downloadPhotosAsZip(photos, { watermark: false, zipName: `${zipBaseName}-איכות-מלאה.zip`, onProgress: (done, total) => setZippingOriginals({ done, total }) });
     } catch (e: any) {
       toast.error(e?.message ?? "ההורדה נכשלה");
     } finally {
@@ -71,10 +83,17 @@ export function AllPhotosUnlockPanel({
 
   return (
     <div className="bg-primary/5 border border-primary/15 rounded-2xl p-4 space-y-3">
+      {limited && (
+        <p className={`text-center text-xs ${noneLeft ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+          {noneLeft
+            ? `ניצלת את ${downloadLimit} ההורדות של קובץ ה-ZIP. לפתיחה מחדש אפשר לפנות אליי.`
+            : `שימי לב: אפשר להוריד את קובץ התמונות (ZIP) עד ${downloadLimit} פעמים בלבד · נותרו ${downloadsLeft}`}
+        </p>
+      )}
       <button
         type="button"
         onClick={downloadWatermarked}
-        disabled={!!zippingWatermarked || displayPhotos.length === 0}
+        disabled={!!zippingWatermarked || displayPhotos.length === 0 || noneLeft}
         className="w-full inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-full bg-card border border-primary/20 text-sm font-semibold disabled:opacity-50"
       >
         {zippingWatermarked ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileArchive className="h-4 w-4" />}
@@ -85,7 +104,7 @@ export function AllPhotosUnlockPanel({
         <button
           type="button"
           onClick={downloadOriginals}
-          disabled={!!zippingOriginals || originalPhotos.length === 0}
+          disabled={!!zippingOriginals || originalPhotos.length === 0 || noneLeft}
           className="w-full inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-full bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
         >
           {zippingOriginals ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileArchive className="h-4 w-4" />}

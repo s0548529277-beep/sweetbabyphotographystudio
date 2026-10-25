@@ -19,6 +19,41 @@ import {
 } from "@/lib/newborn-packages";
 import { emailHeartImgTag } from "@/lib/page-images";
 import {
+  CM_SETTINGS_KEY,
+  NEWBORN_ZIP_DOWNLOAD_LIMIT,
+  fillEmailTemplate,
+  parseCmSettings,
+  textToEmailHtml,
+} from "@/lib/client-management";
+
+/** Editable email texts etc. (/admin/newborn-packages → הגדרות). Never throws. */
+async function loadCmSettings(db: any) {
+  try {
+    const { data } = await db.from("app_settings").select("value").eq("key", CM_SETTINGS_KEY).maybeSingle();
+    return parseCmSettings(data?.value);
+  } catch {
+    return parseCmSettings(null);
+  }
+}
+
+/**
+ * Auto-ticks a NEWBORN_TIMELINE_STEPS checkbox (`${key}_at`) the first time
+ * the matching thing really happens (photos uploaded, link sent…), so she
+ * doesn't have to tick it by hand. Never un-ticks, never overwrites a date
+ * she set herself, never throws.
+ */
+async function autoTickStep(db: any, orderId: string, key: string) {
+  try {
+    await db
+      .from("newborn_package_orders")
+      .update({ [`${key}_at`]: new Date().toISOString() })
+      .eq("id", orderId)
+      .is(`${key}_at`, null);
+  } catch (e) {
+    console.error("[SWEETBABY] auto-tick step failed", key, e);
+  }
+}
+import {
   DEFAULT_NEWBORN_CONTRACT_TEMPLATE,
   NEWBORN_CONTRACT_TEMPLATE_KEY,
   fillNewbornContractPlaceholders,
@@ -940,6 +975,8 @@ const addImageSchema = z.object({
   originalUrl: z.string().min(1).optional(),
   originalStoragePath: z.string().nullable().optional(),
   watermarked: z.boolean().optional(),
+  /** The photographer's own file name (e.g. "IMG_4821.jpg") — sent back to her in the selection email. */
+  fileName: z.string().max(255).optional(),
 });
 
 export const addNewbornOrderImage = createServerFn({ method: "POST" })
@@ -959,6 +996,17 @@ export const addNewbornOrderImage = createServerFn({ method: "POST" })
       }),
     );
     if (error) throw new Error(error.message);
+    if (data.fileName) {
+      // Separate, best-effort: file_name comes from drizzle 0022.
+      await (context.supabase as any)
+        .from("newborn_order_images")
+        .update({ file_name: data.fileName })
+        .eq("order_id", data.orderId)
+        .eq("image_url", data.url);
+    }
+    // Uploading proofs means the shoot happened; uploading edited photos means editing is done.
+    if (data.kind === "proof") await autoTickStep(context.supabase, data.orderId, "shoot_done");
+    else await autoTickStep(context.supabase, data.orderId, "editing_done");
     return { ok: true };
   });
 
@@ -1161,17 +1209,22 @@ export const sendNewbornGalleryLinkByEmail = createServerFn({ method: "POST" })
 
     const link = `https://sweetbabyphoto.shop/newborn/gallery/${order.access_token}`;
     const { sendGmail } = await import("@/integrations/google/gmail.server");
-    const heart = await emailHeartImgTag(40);
-    await sendGmail({
+    const settings = await loadCmSettings(supabaseAdmin);
+    const text = fillEmailTemplate(settings.galleryEmailText, { שם: order.contact_name ?? "", קישור: link });
+    const ok = await sendGmail({
       to: order.contact_email,
       subject: "התמונות שלך מחכות לבחירה 📸 · מיכל סיבוני",
-      html: `<div dir="rtl" style="font-family:sans-serif">
-        <p>שלום${order.contact_name ? " " + order.contact_name : ""},</p>
-        <p>התמונות שלך מוכנות לצפייה ובחירה — אפשר להיכנס כאן, אין צורך בחשבון או סיסמה:</p>
-        <p><a href="${link}">${link}</a></p>
-        <p>מחכה לבחירה שלך ${heart}</p>
-      </div>`,
+      html: `<div dir="rtl" style="font-family:sans-serif;font-size:15px;line-height:1.7">${textToEmailHtml(text)}${
+        text.includes(link) ? "" : `<p><a href="${link}">${link}</a></p>`
+      }</div>`,
     });
+    if (!ok) throw new Error("שליחת המייל נכשלה — בדקי את חיבור ה-Gmail של האתר");
+    // Remembered for the "didn't open the gallery after 3 days" nudge; best-effort (drizzle 0022).
+    await (supabaseAdmin as any)
+      .from("newborn_package_orders")
+      .update({ gallery_sent_at: new Date().toISOString() })
+      .eq("id", order.id);
+    await autoTickStep(supabaseAdmin, order.id, "photos_sent");
     return { ok: true, sentTo: order.contact_email as string };
   });
 
@@ -1410,13 +1463,42 @@ export const getNewbornGalleryByToken = createServerFn({ method: "POST" })
     const { data: images } = await withSchemaCacheRetry(supabaseAdmin, () =>
       (supabaseAdmin as any)
         .from("newborn_order_images")
-        .select("id, kind, image_url, original_image_url, selected, sort_order")
+        .select("*")
         .eq("order_id", order.id)
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: true }),
     );
     const pkg = findNewbornPackage(order.package_id);
+
+    // First time she opens the gallery: stamp it and tell Michal (once).
+    if (!order.client_viewed_at) {
+      const { error: vErr } = await (supabaseAdmin as any)
+        .from("newborn_package_orders")
+        .update({ client_viewed_at: new Date().toISOString() })
+        .eq("id", order.id)
+        .is("client_viewed_at", null);
+      if (!vErr && (images ?? []).length > 0) {
+        try {
+          const { sendGmail } = await import("@/integrations/google/gmail.server");
+          await sendGmail({
+            to: NEWBORN_STUDIO_EMAIL,
+            subject: `👀 ${order.contact_name} פתחה את הגלריה`,
+            html: `<div dir="rtl" style="font-family:sans-serif"><p><b>${order.contact_name}</b> נכנסה עכשיו לראשונה לגלריה שלה.</p><p><a href="https://sweetbabyphoto.shop/admin/newborn-packages/${order.id}">לכרטיס הלקוחה</a></p></div>`,
+          });
+        } catch (e) {
+          console.error("[SWEETBABY] newborn first-view notify failed", e);
+        }
+      }
+    }
+
     return {
+      // Full-quality originals are NEVER sent with the page — only through
+      // claimNewbornZipDownload below, which checks payment + the download limit.
+      downloadLimit: NEWBORN_ZIP_DOWNLOAD_LIMIT,
+      proofsDownloadsLeft: Math.max(0, NEWBORN_ZIP_DOWNLOAD_LIMIT - Number(order.proofs_zip_downloads ?? 0)),
+      editedDownloadsLeft: Math.max(0, NEWBORN_ZIP_DOWNLOAD_LIMIT - Number(order.edited_zip_downloads ?? 0)),
+      extraPhotoPrice: EXTRA_PHOTO_PRICE,
+      extraPhotosCount: Number(order.extra_photos_count ?? 0),
       contactName: order.contact_name as string,
       sessionDate: order.session_date as string | null,
       packageName: pkg?.name ?? order.package_id,
@@ -1436,14 +1518,89 @@ export const getNewbornGalleryByToken = createServerFn({ method: "POST" })
         notes: (order as any).album_notes as string | null,
         submittedAt: (order as any).album_details_submitted_at as string | null,
       },
-      images: (images ?? []) as {
-        id: string;
-        kind: "proof" | "edited";
-        image_url: string;
-        original_image_url: string | null;
-        selected: boolean;
-      }[],
+      images: ((images ?? []) as any[]).map((img) => ({
+        id: img.id as string,
+        kind: img.kind as "proof" | "edited",
+        image_url: img.image_url as string,
+        selected: !!img.selected,
+        client_note: (img.client_note ?? null) as string | null,
+      })),
     };
+  });
+
+/**
+ * The only way a client gets full ZIP downloads. Counts each one against
+ * NEWBORN_ZIP_DOWNLOAD_LIMIT (per section: proofs / final album) because
+ * storage traffic costs money, and only hands out the watermark-free
+ * originals of the proofs after the 150₪ unlock was approved.
+ */
+export const claimNewbornZipDownload = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z.object({ token: z.string().min(10), kind: z.enum(["proof_display", "proof_original", "edited"]) }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const order = await orderByToken(data.token);
+    if (!order) throw new Error("קישור לא תקין");
+    if (data.kind === "proof_original" && !order.all_photos_unlocked) {
+      throw new Error("ההורדה ללא סימן מים נפתחת אחרי אישור התשלום");
+    }
+    const counter = data.kind === "edited" ? "edited_zip_downloads" : "proofs_zip_downloads";
+    const used = Number(order[counter] ?? 0);
+    if (used >= NEWBORN_ZIP_DOWNLOAD_LIMIT) {
+      throw new Error(`ניצלת את ${NEWBORN_ZIP_DOWNLOAD_LIMIT} ההורדות. לפתיחה מחדש אפשר לפנות אליי.`);
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: images, error } = await (supabaseAdmin as any)
+      .from("newborn_order_images")
+      .select("*")
+      .eq("order_id", order.id)
+      .eq("kind", data.kind === "edited" ? "edited" : "proof")
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    const { error: upErr } = await (supabaseAdmin as any)
+      .from("newborn_package_orders")
+      .update({ [counter]: used + 1 })
+      .eq("id", order.id);
+    if (upErr) throw new Error("ההורדה לא זמינה כרגע — נסי שוב בעוד כמה דקות");
+    const photos = ((images ?? []) as any[]).map((img, i) => ({
+      url: (data.kind === "proof_display" ? img.image_url : img.original_image_url || img.image_url) as string,
+      name: (img.file_name as string | null) || `${String(i + 1).padStart(3, "0")}.jpg`,
+    }));
+    return { photos, left: NEWBORN_ZIP_DOWNLOAD_LIMIT - used - 1 };
+  });
+
+/** A short note from the client on one of her picked photos ("לקולאז'", "להבהיר"…). */
+export const setNewbornImageNoteByToken = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z.object({ token: z.string().min(10), imageId: z.string().uuid(), note: z.string().max(300) }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const order = await orderByToken(data.token);
+    if (!order) throw new Error("קישור לא תקין");
+    if (order.proofs_selected_at) throw new Error("הבחירה כבר נשלחה — אפשר לכתוב לי הערות בוואטסאפ");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await (supabaseAdmin as any)
+      .from("newborn_order_images")
+      .update({ client_note: data.note.trim() || null })
+      .eq("id", data.imageId)
+      .eq("order_id", order.id);
+    if (error) throw new Error("שמירת ההערה נכשלה — נסי שוב בעוד כמה דקות");
+    return { ok: true };
+  });
+
+/** Admin: give a client her ZIP downloads back. */
+export const resetNewbornZipDownloads = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ orderId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await (context.supabase as any)
+      .from("newborn_package_orders")
+      .update({ proofs_zip_downloads: 0, edited_zip_downloads: 0 })
+      .eq("id", data.orderId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 const albumDetailsSchema = z.object({
@@ -1561,18 +1718,8 @@ export const toggleNewbornProofByToken = createServerFn({ method: "POST" })
     // — the limit is only enforced once she submits (finishNewbornProof
     // SelectionByToken below) — same split as toggleProofSelection in the
     // general photo-clients flow.
-    if (data.selected && order.max_proof_selections != null && !order.guided_selection_enabled) {
-      const { count } = await (supabaseAdmin as any)
-        .from("newborn_order_images")
-        .select("id", { count: "exact", head: true })
-        .eq("order_id", order.id)
-        .eq("kind", "proof")
-        .eq("selected", true);
-      if ((count ?? 0) >= order.max_proof_selections) {
-        throw new Error(`אפשר לבחור עד ${order.max_proof_selections} תמונות`);
-      }
-    }
-
+    // Over-selecting is allowed in both modes now: extra photos are offered
+    // for EXTRA_PHOTO_PRICE each and confirmed at finish (acceptExtra).
     // Scope the update to this order's own images so one token can never touch another order's rows.
     const { error } = await withSchemaCacheRetry(supabaseAdmin, () =>
       (supabaseAdmin as any)
@@ -1587,7 +1734,9 @@ export const toggleNewbornProofByToken = createServerFn({ method: "POST" })
 
 /** Marks the client's selection done and notifies Michal (styled email) — per explicit request. Idempotent: a second click just re-sends nothing new, the stamp only happens once. */
 export const finishNewbornProofSelectionByToken = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({ token: z.string().min(10) }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ token: z.string().min(10), acceptExtra: z.boolean().optional() }).parse(d),
+  )
   .handler(async ({ data }) => {
     const order = await orderByToken(data.token);
     if (!order) throw new Error("קישור לא תקין");
@@ -1597,10 +1746,12 @@ export const finishNewbornProofSelectionByToken = createServerFn({ method: "POST
       const { data: selected } = await withSchemaCacheRetry(supabaseAdmin, () =>
         (supabaseAdmin as any)
           .from("newborn_order_images")
-          .select("id")
+          .select("*")
           .eq("order_id", order.id)
           .eq("kind", "proof")
-          .eq("selected", true),
+          .eq("selected", true)
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: true }),
       );
       const selectedCount = selected?.length ?? 0;
       if (selectedCount === 0) throw new Error("יש לבחור לפחות תמונה אחת לפני השליחה");
@@ -1608,10 +1759,23 @@ export const finishNewbornProofSelectionByToken = createServerFn({ method: "POST
       // flow never lets her exceed the limit in the first place (see
       // toggleNewbornProofByToken above), so this is a no-op there; in
       // guided mode this is the actual enforcement point.
-      if (order.max_proof_selections != null && selectedCount > order.max_proof_selections) {
+      const extra =
+        order.max_proof_selections != null ? Math.max(0, selectedCount - order.max_proof_selections) : 0;
+      if (extra > 0 && !data.acceptExtra) {
         throw new Error(
-          `נבחרו ${selectedCount} תמונות — יש להסיר עוד ${selectedCount - order.max_proof_selections} כדי להגיע ל-${order.max_proof_selections}`,
+          `נבחרו ${selectedCount} תמונות — ${extra} מעבר לחבילה (₪${EXTRA_PHOTO_PRICE} לתמונה). אפשר להסיר או לאשר את התוספת.`,
         );
+      }
+      if (extra > 0) {
+        // Best-effort (extra_photos_count is drizzle 0022): the extra photos go on her bill.
+        const { error: exErr } = await (supabaseAdmin as any)
+          .from("newborn_package_orders")
+          .update({
+            extra_photos_count: extra,
+            total_price: Number(order.total_price ?? 0) + extra * EXTRA_PHOTO_PRICE,
+          })
+          .eq("id", order.id);
+        if (exErr) console.error("[SWEETBABY] newborn extra photos save failed", exErr);
       }
       // The real, load-bearing stamp (proofs_selected_at) is kept SEPARATE
       // from the client_step write below — client_step is a brand-new
@@ -1647,7 +1811,24 @@ export const finishNewbornProofSelectionByToken = createServerFn({ method: "POST
             <div style="background:linear-gradient(135deg,#f5d5cf,#a8c4a2);border-radius:20px;padding:28px 20px">
               <div style="font-size:40px;margin-bottom:8px">📸 ${heart}</div>
               <h2 style="margin:0 0 6px">${order.contact_name} סיימה לבחור!</h2>
-              <p style="margin:0;color:#2d3d2b/80">${selected?.length ?? 0} תמונות נבחרו</p>
+              <p style="margin:0;color:#2d3d2b/80">${selected?.length ?? 0} תמונות נבחרו${
+                extra > 0 ? ` · כולל ${extra} תוספת (₪${extra * EXTRA_PHOTO_PRICE}, נוסף לחשבון)` : ""
+              }</p>
+            </div>
+            <div style="text-align:right;background:#faf6f1;border-radius:14px;padding:14px 18px;margin-top:16px">
+              <b>שמות הקבצים שנבחרו:</b>
+              <ol style="margin:8px 0 0;padding-right:20px;line-height:1.8">${((selected ?? []) as any[])
+                .map(
+                  (img: any) =>
+                    `<li>${String(img.file_name ?? "ללא שם (הועלתה לפני השינוי)").replace(/</g, "&lt;")}${
+                      img.client_note ? ` — <i>${String(img.client_note).replace(/</g, "&lt;")}</i>` : ""
+                    }</li>`,
+                )
+                .join("")}</ol>
+              <p style="margin:10px 0 0;font-size:12px;color:#6b6b60">להעתקה לחיפוש בתוכנת העריכה:<br><code>${((selected ?? []) as any[])
+                .map((img: any) => String(img.file_name ?? "").replace(/</g, "&lt;"))
+                .filter(Boolean)
+                .join(" ")}</code></p>
             </div>
             <p style="margin-top:20px"><a href="https://sweetbabyphoto.shop/admin/newborn-packages" style="color:#2d3d2b;font-weight:600">לצפייה בניהול</a></p>
           </div>`,

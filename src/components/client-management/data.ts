@@ -30,6 +30,17 @@ export function isMissingTableError(e: unknown) {
   );
 }
 
+export type NewbornLite = {
+  id: string;
+  contact_name: string;
+  contact_phone: string | null;
+  contact_email: string | null;
+  session_date: string | null;
+  session_time: string | null;
+  total_price: number | null;
+  amount_paid: number | null;
+};
+
 export function useCmData() {
   const clients = useQuery({
     queryKey: CM_KEYS.clients,
@@ -84,11 +95,24 @@ export function useCmData() {
     },
   });
 
+  // Newborn-package orders (/admin/newborn-packages) — shown alongside, read-only, so both systems are seen in one place.
+  const newborn = useQuery({
+    queryKey: ["cm-newborn-orders"],
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("newborn_package_orders")
+        .select("id, contact_name, contact_phone, contact_email, session_date, session_time, total_price, amount_paid")
+        .order("session_date", { ascending: true });
+      if (error) return [] as NewbornLite[];
+      return (data ?? []) as NewbornLite[];
+    },
+  });
   const clientById = new Map((clients.data ?? []).map((c) => [c.id, c]));
   const error = clients.error ?? sessions.error ?? accounts.error;
 
   return {
     clients: clients.data ?? [],
+    newborn: newborn.data ?? [],
     sessions: sessions.data ?? [],
     accounts: accounts.data ?? [],
     settings: settings.data ?? parseCmSettings(null),

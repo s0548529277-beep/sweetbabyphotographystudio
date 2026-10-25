@@ -77,6 +77,10 @@ export type CmSettings = {
   paymentCopyEmail: string;
   bankDetails: string;
   paymentLinks: string;
+  /** Editable email wording — placeholders: {שם} {קישור} {תאריך} {שעה}. */
+  galleryEmailText: string;
+  reminderEmailText: string;
+  galleryNudgeText: string;
 };
 
 export const DEFAULT_CM_SETTINGS: CmSettings = {
@@ -99,7 +103,26 @@ export const DEFAULT_CM_SETTINGS: CmSettings = {
   paymentCopyEmail: "s0548529277@gmail.com",
   bankDetails: "",
   paymentLinks: "",
+  galleryEmailText: "שלום {שם},\nהתמונות שלך מוכנות לצפייה ובחירה — אפשר להיכנס בקישור, אין צורך בחשבון או סיסמה:\n{קישור}\nמחכה לבחירה שלך 💗",
+  reminderEmailText: "היי {שם},\nרק מזכירה שנפגשות לצילום ב-{תאריך} בשעה {שעה}.\nכתובת: תלמוד ירושלמי 24, בית שמש.\nמחכה לכן 💗\nמיכל",
+  galleryNudgeText: "היי {שם},\nשלחתי לך לפני כמה ימים את התמונות לבחירה ועוד לא הספקת להציץ 😊\nהן מחכות לך כאן:\n{קישור}\nמיכל",
 };
+
+/** Download limit for full ZIP downloads from a newborn gallery (storage traffic costs money). */
+export const NEWBORN_ZIP_DOWNLOAD_LIMIT = 2;
+
+/** Fills {שם} {קישור} {תאריך} {שעה} placeholders in an admin-editable email text. */
+export function fillEmailTemplate(text: string, vars: Partial<Record<"שם" | "קישור" | "תאריך" | "שעה", string>>) {
+  return text.replace(/\{(שם|קישור|תאריך|שעה)\}/g, (_, k: string) => vars[k as keyof typeof vars] ?? "");
+}
+
+/** Plain text → safe email HTML (escaped, line breaks, links clickable). */
+export function textToEmailHtml(text: string) {
+  const esc = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return esc
+    .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:#2d3d2b;font-weight:600">$1</a>')
+    .replace(/\n/g, "<br>");
+}
 
 export const CM_SETTINGS_KEY = "client_management_settings";
 

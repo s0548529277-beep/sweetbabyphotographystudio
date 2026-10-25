@@ -155,6 +155,13 @@
       "when": 1792910521441,
       "tag": "0021_client_management_newborn_reminders",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792911271427,
+      "tag": "0022_newborn_gallery_upgrades",
+      "breakpoints": true
     }
   ]
 }

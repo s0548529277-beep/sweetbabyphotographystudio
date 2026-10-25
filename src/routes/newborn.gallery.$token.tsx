@@ -10,6 +10,8 @@ import {
   finishNewbornProofSelectionByToken,
   submitNewbornUnlockReceiptByToken,
   submitNewbornAlbumDetailsByToken,
+  claimNewbornZipDownload,
+  setNewbornImageNoteByToken,
 } from "@/lib/newborn-orders.functions";
 import { downloadPhotosAsZip } from "@/lib/photo-zip";
 import { PhotoLightbox, GuidedStepper } from "@/components/PhotoLightbox";
@@ -46,7 +48,43 @@ export const Route = createFileRoute("/newborn/gallery/$token")({
   component: NewbornGalleryPage,
 });
 
-type Img = { id: string; kind: "proof" | "edited"; image_url: string; original_image_url: string | null; selected: boolean };
+// Full-quality originals are never part of this payload — only via claimNewbornZipDownload (counted, max 2).
+type Img = { id: string; kind: "proof" | "edited"; image_url: string; selected: boolean; client_note: string | null };
+
+type DownloadInfo = { downloadLimit: number; proofsDownloadsLeft: number; editedDownloadsLeft: number };
+
+/** One-line note on a picked photo — saved when the field loses focus. */
+function PhotoNote({ token, img, onSaved }: { token: string; img: Img; onSaved: () => void }) {
+  const save = useServerFn(setNewbornImageNoteByToken);
+  const [value, setValue] = useState(img.client_note ?? "");
+  const [saving, setSaving] = useState(false);
+  const commit = async () => {
+    if ((img.client_note ?? "") === value.trim()) return;
+    setSaving(true);
+    try {
+      await save({ data: { token, imageId: img.id, note: value } });
+      onSaved();
+    } catch (e: any) {
+      toast.error(e?.message ?? "שמירת ההערה נכשלה");
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <div className="flex items-center gap-2 rounded-xl bg-white/70 border border-[#4a3221]/10 p-1.5">
+      <img src={img.image_url} alt="" className="h-12 w-12 rounded-lg object-cover shrink-0" />
+      <input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={commit}
+        maxLength={300}
+        placeholder="הערה לתמונה (לא חובה) — למשל: לקולאז', להבהיר"
+        className="flex-1 min-w-0 bg-transparent text-sm outline-none placeholder:text-[#4a3221]/40"
+      />
+      {saving && <Loader2 className="h-3.5 w-3.5 animate-spin text-[#8a6338]" />}
+    </div>
+  );
+}
 
 type AlbumDetails = {
   childName: string | null;
@@ -209,7 +247,11 @@ function ProofSection({
   unlockReceiptSubmittedAt,
   contactName,
   onRefetch,
+  downloads,
+  extraPhotoPrice,
 }: {
+  downloads: DownloadInfo;
+  extraPhotoPrice: number;
   proofs: Img[];
   token: string;
   maxProofSelections: number | null;
@@ -223,6 +265,7 @@ function ProofSection({
   const toggleProof = useServerFn(toggleNewbornProofByToken);
   const finishSelection = useServerFn(finishNewbornProofSelectionByToken);
   const submitUnlockReceipt = useServerFn(submitNewbornUnlockReceiptByToken);
+  const claimZip = useServerFn(claimNewbornZipDownload);
   const [finishing, setFinishing] = useState(false);
   const [phase, setPhase] = useState<"browse" | "narrow">("browse");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -232,7 +275,7 @@ function ProofSection({
   const selectedImages = proofs.filter((i) => i.selected);
   const selectedCount = selectedImages.length;
   const overLimit = limit != null && selectedCount > limit;
-  const atLimit = limit != null && selectedCount >= limit;
+  const extraCount = overLimit ? selectedCount - (limit ?? 0) : 0;
   const visibleImages = phase === "narrow" ? selectedImages : proofs;
 
   useEffect(() => {
@@ -241,10 +284,6 @@ function ProofSection({
 
   const toggle = async (img: Img) => {
     if (submitted) return;
-    if (!guidedSelectionEnabled && !img.selected && atLimit) {
-      toast.error(`אפשר לבחור עד ${limit} תמונות`);
-      return;
-    }
     try {
       await toggleProof({ data: { token, imageId: img.id, selected: !img.selected } });
       onRefetch();
@@ -258,9 +297,15 @@ function ProofSection({
       toast.error("נא לבחור לפחות תמונה אחת");
       return;
     }
+    if (extraCount > 0) {
+      const ok = confirm(
+        `בחרת ${selectedCount} תמונות — ${extraCount} מעבר לחבילה.\nכל תמונה נוספת ₪${extraPhotoPrice}, סה״כ ₪${extraCount * extraPhotoPrice} שיתווספו לתשלום.\n\nלאשר? (אפשר גם לבטל ולהסיר תמונות)`,
+      );
+      if (!ok) return;
+    }
     setFinishing(true);
     try {
-      await finishSelection({ data: { token } });
+      await finishSelection({ data: { token, acceptExtra: extraCount > 0 } });
       onRefetch();
       toast.success("תודה! הבחירה שלך נשלחה אליי 💗");
     } catch (e: any) {
@@ -333,10 +378,28 @@ function ProofSection({
         />
       )}
 
+      {!submitted && selectedImages.length > 0 && (
+        <div className="mt-6 space-y-2">
+          <p className="text-sm font-medium">התמונות שבחרת — אפשר להוסיף הערה לכל תמונה</p>
+          <div className="grid gap-2 md:grid-cols-2">
+            {selectedImages.map((img) => (
+              <PhotoNote key={img.id} token={token} img={img} onSaved={onRefetch} />
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mt-6">
         <AllPhotosUnlockPanel
           displayPhotos={proofs.map((img, i) => ({ url: img.image_url, name: `${String(i + 1).padStart(3, "0")}.jpg` }))}
-          originalPhotos={proofs.map((img, i) => ({ url: img.original_image_url || img.image_url, name: `${String(i + 1).padStart(3, "0")}.jpg` }))}
+          originalPhotos={proofs.map((img, i) => ({ url: img.image_url, name: `${String(i + 1).padStart(3, "0")}.jpg` }))}
+          fetchPhotos={async (which) => {
+            const res = await claimZip({ data: { token, kind: which === "originals" ? "proof_original" : "proof_display" } });
+            onRefetch();
+            return res.photos;
+          }}
+          downloadsLeft={downloads.proofsDownloadsLeft}
+          downloadLimit={downloads.downloadLimit}
           zipBaseName={contactName || "תמונות"}
           unlocked={allPhotosUnlocked}
           receiptSubmittedAt={unlockReceiptSubmittedAt}
@@ -353,8 +416,8 @@ function ProofSection({
           <>
             <span className="text-sm text-[#4a3221]/70">
               {overLimit ? (
-                <span className="text-destructive font-medium">
-                  יש להסיר עוד {selectedCount - (limit ?? 0)} כדי להגיע ל-{limit}
+                <span className="font-medium text-[#8a6338]">
+                  {selectedCount} נבחרו · {extraCount} מעבר לחבילה (₪{extraPhotoPrice} לתמונה, סה״כ ₪{extraCount * extraPhotoPrice}) — אפשר להסיר או לאשר בסיום
                 </span>
               ) : (
                 <>
@@ -381,7 +444,7 @@ function ProofSection({
               <button
                 type="button"
                 onClick={finish}
-                disabled={finishing || overLimit}
+                disabled={finishing}
                 className="inline-flex items-center gap-2 bg-[#4a3221] text-white px-8 py-3.5 rounded-full font-semibold disabled:opacity-60"
               >
                 {finishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizonal className="h-4 w-4" />}
@@ -395,7 +458,21 @@ function ProofSection({
   );
 }
 
-function EditedSection({ edited, contactName }: { edited: Img[]; contactName: string }) {
+function EditedSection({
+  edited,
+  contactName,
+  token,
+  downloads,
+  onRefetch,
+}: {
+  edited: Img[];
+  contactName: string;
+  token: string;
+  downloads: DownloadInfo;
+  onRefetch: () => void;
+}) {
+  const claimZip = useServerFn(claimNewbornZipDownload);
+  const left = downloads.editedDownloadsLeft;
   const [watermark, setWatermark] = useState(false);
   const [zipping, setZipping] = useState<{ done: number; total: number } | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -403,7 +480,8 @@ function EditedSection({ edited, contactName }: { edited: Img[]; contactName: st
   const onDownloadZip = async () => {
     setZipping({ done: 0, total: edited.length });
     try {
-      const photos = edited.map((img, i) => ({ url: img.original_image_url || img.image_url, name: `${String(i + 1).padStart(3, "0")}.jpg` }));
+      const { photos } = await claimZip({ data: { token, kind: "edited" } });
+      onRefetch();
       await downloadPhotosAsZip(photos, { watermark, zipName: `${contactName || "האלבום-שלי"}.zip`, onProgress: (done, total) => setZipping({ done, total }) });
     } catch (e: any) {
       toast.error(e?.message ?? "הורדת האלבום נכשלה");
@@ -422,19 +500,24 @@ function EditedSection({ edited, contactName }: { edited: Img[]; contactName: st
         <button
           type="button"
           onClick={onDownloadZip}
-          disabled={!!zipping}
+          disabled={!!zipping || left <= 0}
           className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#4a3221] text-white text-sm font-semibold disabled:opacity-50"
         >
           {zipping ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileArchive className="h-4 w-4" />}
           {zipping ? `מכינה קובץ... ${zipping.done}/${zipping.total}` : "הורדת כל האלבום (ZIP, איכות מלאה)"}
         </button>
+        <span className={`w-full text-xs ${left <= 0 ? "text-destructive font-medium" : "text-[#4a3221]/70"}`}>
+          {left <= 0
+            ? `ניצלת את ${downloads.downloadLimit} ההורדות באיכות מלאה. לפתיחה מחדש אפשר לפנות אליי.`
+            : `שימי לב: ההורדה באיכות מלאה אפשרית עד ${downloads.downloadLimit} פעמים בלבד · נותרו ${left}. מומלץ לשמור את הקובץ במחשב ובגיבוי.`}
+        </span>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
         {edited.map((img, i) => (
           <div key={img.id} className="relative aspect-square overflow-hidden rounded-2xl bg-[#f5d5cf] group">
             <img src={img.image_url} alt="" loading="lazy" className="w-full h-full object-cover cursor-zoom-in" onClick={() => setLightboxIndex(i)} />
             <a
-              href={img.original_image_url || img.image_url}
+              href={img.image_url}
               download
               target="_blank"
               rel="noreferrer"
@@ -449,12 +532,12 @@ function EditedSection({ edited, contactName }: { edited: Img[]; contactName: st
       </div>
       {lightboxIndex != null && (
         <PhotoLightbox
-          images={edited.map((i) => ({ id: i.id, url: i.original_image_url || i.image_url }))}
+          images={edited.map((i) => ({ id: i.id, url: i.image_url }))}
           startIndex={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
           renderActions={(img) => (
             <a href={img.url} download target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 h-10 px-5 rounded-full bg-white/15 text-white text-sm font-semibold">
-              <Download className="h-4 w-4" /> הורדה (איכות מלאה)
+              <Download className="h-4 w-4" /> הורדה (לצפייה)
             </a>
           )}
         />
@@ -496,7 +579,8 @@ function NewbornGalleryPage() {
     );
   }
 
-  const { contactName, packageName, images, proofsSelectedAt, maxProofSelections, guidedSelectionEnabled, allPhotosUnlocked, unlockReceiptSubmittedAt, clientStep, albumDetails } = query.data as {
+  const { contactName, packageName, images, proofsSelectedAt, maxProofSelections, guidedSelectionEnabled, allPhotosUnlocked, unlockReceiptSubmittedAt, clientStep, albumDetails, downloadLimit, proofsDownloadsLeft, editedDownloadsLeft, extraPhotoPrice } = query.data as DownloadInfo & {
+    extraPhotoPrice: number;
     contactName: string;
     packageName: string;
     images: Img[];
@@ -512,6 +596,7 @@ function NewbornGalleryPage() {
   const proofs = images.filter((i) => i.kind === "proof");
   const showEdited = edited.length > 0;
   const showingCount = showEdited ? edited.length : proofs.length;
+  const downloads: DownloadInfo = { downloadLimit, proofsDownloadsLeft, editedDownloadsLeft };
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#fdf3ec] text-[#4a3221]" style={{ fontFamily: "'Fira Sans', sans-serif" }}>
@@ -543,7 +628,7 @@ function NewbornGalleryPage() {
             עדיין לא הועלו תמונות — אעדכן אותך במייל ברגע שהן יהיו מוכנות 💗
           </div>
         ) : showEdited ? (
-          <EditedSection edited={edited} contactName={contactName} />
+          <EditedSection edited={edited} contactName={contactName} token={token} downloads={downloads} onRefetch={onRefetch} />
         ) : (
           <ProofSection
             proofs={proofs}
@@ -555,6 +640,8 @@ function NewbornGalleryPage() {
             unlockReceiptSubmittedAt={unlockReceiptSubmittedAt}
             contactName={contactName}
             onRefetch={onRefetch}
+            downloads={downloads}
+            extraPhotoPrice={extraPhotoPrice}
           />
         )}
 

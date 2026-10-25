@@ -509,6 +509,11 @@ function NewbornPackagesAdmin() {
             <Plus className="h-4 w-4" /> הזמנה חדשה
           </Button>
         </div>
+        <div className="mx-auto -mt-1 max-w-7xl px-4 pb-1 text-left">
+          <Link to="/admin/client-management" className="text-xs text-newborn-ink/60 underline-offset-2 hover:underline">
+            לכל הלקוחות והתשלומים — ניהול לקוחות ›
+          </Link>
+        </div>
         <nav className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 pb-2">
           {TABS.map((t) => (
             <button

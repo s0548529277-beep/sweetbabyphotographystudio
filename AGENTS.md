@@ -32,6 +32,9 @@ Lovable run it or apply it and insert its hash + `when` into
 
 ### Log
 
+- **2026-10-25 — Claude (chat) — IN PROGRESS on branch `claude/newborn-gallery-upgrades` (not merged/published yet)**
+  - Newborn gallery: originals never sent in the page payload, ZIP downloads only via `claimNewbornZipDownload` (limit 2 per section, shown to client, admin reset), file names + client notes per photo in the selection email, auto-tick timeline steps, one-click email+WhatsApp send, editable email texts (settings), first-view notify + 3-day unopened nudge, extra photos sold at selection (+total_price), newborn orders shown in ניהול לקוחות.
+  - **DB already applied live:** `drizzle/migrations/0022_newborn_gallery_upgrades.sql` (registered, 23 rows). Code builds + tsc clean; still to do: merge to main, publish, quick check in browser.
 - **2026-10-25 — Claude (chat): sleep-consultant page hidden from customers**
   - Owner asked that `/sleep-consultant` not be shown to customers. Removed
     its footer link (`Footer.tsx`) — that was the only link to it anywhere —

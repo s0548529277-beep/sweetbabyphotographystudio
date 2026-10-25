@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -241,8 +242,29 @@ export function CalendarTab({
             tone: statusMeta(s.status).tone,
             title: `${s.start_time} ${c?.full_name ?? ""} · ${s.session_type}`,
           };
-        }),
-    [data.sessions, data.clientById],
+        })
+        .concat(
+          data.newborn
+            .filter((o) => o.session_date)
+            .map((o) => ({
+              id: `nb:${o.id}`,
+              date: o.session_date as string,
+              time: (o.session_time ?? "").slice(0, 5),
+              label: `👶 ${o.contact_name}`,
+              tone: "bg-amber-100 text-amber-900",
+              title: `ניו בורן · ${o.contact_name} — לחיצה פותחת את הכרטיס`,
+            })),
+        ),
+    [data.sessions, data.clientById, data.newborn],
   );
-  return <HebrewCalendar items={items} onPickDay={onPickDay} />;
+  const navigate = useNavigate();
+  return (
+    <HebrewCalendar
+      items={items}
+      onPickDay={onPickDay}
+      onPickItem={(id) => {
+        if (id.startsWith("nb:")) navigate({ to: "/admin/newborn-packages/$orderId", params: { orderId: id.slice(3) } });
+      }}
+    />
+  );
 }

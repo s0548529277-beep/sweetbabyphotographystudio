@@ -108,10 +108,16 @@ export function JournalTab({
   const restDay = dateObj ? isRestDay(dateObj) : false;
   const sameDay = useMemo(
     () =>
-      data.sessions.filter(
-        (s) => s.session_date === form.date && s.id !== form.id && s.status !== "cancelled",
-      ),
-    [data.sessions, form.date, form.id],
+      [
+        ...data.sessions.filter(
+          (s) => s.session_date === form.date && s.id !== form.id && s.status !== "cancelled",
+        ),
+        // Newborn-package shoots on the same day count too.
+        ...data.newborn
+          .filter((o) => o.session_date === form.date)
+          .map((o) => ({ start_time: (o.session_time ?? "").slice(0, 5) || "ניו בורן" })),
+      ],
+    [data.sessions, data.newborn, form.date, form.id],
   );
 
   const startEdit = (s: CmSession) => {

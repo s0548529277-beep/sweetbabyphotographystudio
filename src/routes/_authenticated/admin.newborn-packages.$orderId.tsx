@@ -6,7 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/lib/image-compress";
 import { applyWatermark } from "@/lib/watermark";
 import { toast } from "sonner";
-import { ArrowRight, Check, Copy, Droplet, Images, ImagePlus, Loader2, Mail, MessageCircle, Trash2 } from "lucide-react";
+import { ArrowRight, Check, Copy, Droplet, Eye, Images, ImagePlus, Loader2, Mail, MessageCircle, MessageSquareText, RotateCcw, Send, Trash2 } from "lucide-react";
+import { NEWBORN_ZIP_DOWNLOAD_LIMIT, formatDateIL } from "@/lib/client-management";
 import {
   listNewbornOrders,
   listNewbornOrderImages,
@@ -16,6 +17,7 @@ import {
   adminToggleNewbornProofSelection,
   resendNewbornContract,
   sendNewbornGalleryLinkByEmail,
+  resetNewbornZipDownloads,
   updateNewbornPhotoSettings,
   updateNewbornOrderClientStep,
   updateNewbornAlbumDetails,
@@ -47,7 +49,7 @@ export const Route = createFileRoute("/_authenticated/admin/newborn-packages/$or
   component: NewbornOrderGallery,
 });
 
-type ImageRow = { id: string; kind: "proof" | "edited"; image_url: string; selected: boolean; watermarked?: boolean };
+type ImageRow = { id: string; kind: "proof" | "edited"; image_url: string; selected: boolean; watermarked?: boolean; file_name?: string | null; client_note?: string | null };
 
 // Same compression presets as admin.photo-clients.$bookingId.tsx — kept
 // identical on purpose so the two upload UIs feel like one system.
@@ -115,7 +117,7 @@ function UploadSection({
         const { url, path } = await uploadToStorage(orderId, displayFile);
 
         await addImage({
-          data: { orderId, kind, url, storagePath: path, originalUrl, originalStoragePath: originalPath, watermarked: watermark },
+          data: { orderId, kind, url, storagePath: path, originalUrl, originalStoragePath: originalPath, watermarked: watermark, fileName: file.name },
         });
         setUploadProgress((p) => (p ? { done: p.done + 1, total: p.total } : p));
       }
@@ -203,7 +205,14 @@ function UploadSection({
           {images.map((img, i) => (
             <div key={img.id} className="relative group aspect-square">
               <img src={img.image_url} alt="" className="w-full h-full object-cover rounded-lg border border-primary/10" />
-              <span className="absolute bottom-1 right-1 bg-background/85 text-foreground text-[10px] font-mono px-1.5 py-0.5 rounded">{String(i + 1).padStart(3, "0")}</span>
+              <span className="absolute bottom-1 right-1 max-w-[85%] truncate bg-background/85 text-foreground text-[10px] font-mono px-1.5 py-0.5 rounded" title={img.file_name ?? undefined}>
+                {img.file_name ?? String(i + 1).padStart(3, "0")}
+              </span>
+              {img.client_note && (
+                <span className="absolute inset-x-1 top-7 rounded bg-[#4a3221]/85 px-1.5 py-0.5 text-[10px] text-white" title={img.client_note}>
+                  <MessageSquareText className="inline h-3 w-3" /> {img.client_note}
+                </span>
+              )}
               {img.watermarked && (
                 <span className="absolute top-1 left-1 bg-background/85 text-primary rounded-full p-1" title="כולל סימן מים">
                   <Droplet className="h-3 w-3" />
@@ -456,7 +465,11 @@ function ShareLinkCard({
   orderId,
   resending,
   onResend,
+  order,
+  onChanged,
 }: {
+  order: any;
+  onChanged: () => void;
   shareUrl: string | null;
   contactName: string;
   contactPhone: string;
@@ -468,7 +481,26 @@ function ShareLinkCard({
   onResend: () => void;
 }) {
   const sendEmailFn = useServerFn(sendNewbornGalleryLinkByEmail);
+  const resetDownloads = useServerFn(resetNewbornZipDownloads);
   const [sendingEmail, setSendingEmail] = useState(false);
+
+  // One click: WhatsApp opens first (must be synchronous, or the browser blocks the popup), then the email goes out.
+  const sendBoth = async () => {
+    sendWhatsApp();
+    if (order.contact_email) await sendEmail();
+    else toast.message("נפתח וואטסאפ — ללקוחה אין מייל, אז לא נשלח מייל");
+    onChanged();
+  };
+
+  const onResetDownloads = async () => {
+    try {
+      await resetDownloads({ data: { orderId } });
+      toast.success("ההורדות נפתחו מחדש ללקוחה");
+      onChanged();
+    } catch (e) {
+      toast.error(heError(e, "העדכון נכשל"));
+    }
+  };
 
   const copyLink = () => {
     if (!shareUrl) return;
@@ -508,6 +540,9 @@ function ShareLinkCard({
           {shareUrl}
         </code>
       )}
+      <Button type="button" onClick={sendBoth} disabled={!shareUrl || sendingEmail} className="w-full rounded-full gap-1.5">
+        {sendingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} שליחה בלחיצה אחת — מייל + וואטסאפ
+      </Button>
       <div className="flex flex-wrap items-center gap-2">
         <Button type="button" size="sm" onClick={sendWhatsApp} disabled={!shareUrl} className="rounded-full gap-1.5 bg-[#25D366] hover:bg-[#1ebe5a] text-white">
           <MessageCircle className="h-3.5 w-3.5" /> שליחה בוואטסאפ
@@ -527,6 +562,22 @@ function ShareLinkCard({
         </button>
         {contractConfirmedAt ? <span className="text-primary font-medium">אישרה שקראה את החוזה ✓</span> : <span>עדיין לא אישרה שקראה את החוזה</span>}
         {proofsSelectedAt && <span className="text-primary font-medium">סיימה לבחור תמונות ✓</span>}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        <span>{order.gallery_sent_at ? `הגלריה נשלחה במייל ${formatDateIL(String(order.gallery_sent_at).slice(0, 10))}` : "הגלריה עוד לא נשלחה במייל"}</span>
+        <span className={order.client_viewed_at ? "text-primary font-medium" : ""}>
+          <Eye className="inline h-3 w-3" /> {order.client_viewed_at ? "הלקוחה פתחה את הגלריה ✓" : "עוד לא פתחה את הגלריה"}
+        </span>
+        {Number(order.extra_photos_count ?? 0) > 0 && <span className="text-primary font-medium">נבחרו {order.extra_photos_count} תמונות נוספות (נוסף לחשבון)</span>}
+        <span>
+          הורדות ZIP: בחירה {order.proofs_zip_downloads ?? 0}/{NEWBORN_ZIP_DOWNLOAD_LIMIT} · אלבום {order.edited_zip_downloads ?? 0}/{NEWBORN_ZIP_DOWNLOAD_LIMIT}
+        </span>
+        {(Number(order.proofs_zip_downloads ?? 0) > 0 || Number(order.edited_zip_downloads ?? 0) > 0) && (
+          <button type="button" onClick={onResetDownloads} className="inline-flex items-center gap-1 rounded-full border border-primary/15 px-2.5 h-6 hover:bg-cream">
+            <RotateCcw className="h-3 w-3" /> פתיחת הורדות מחדש
+          </button>
+        )}
       </div>
     </div>
   );
@@ -640,6 +691,8 @@ function NewbornOrderGallery() {
         orderId={orderId}
         resending={resending}
         onResend={handleResend}
+        order={order}
+        onChanged={refreshOrder}
       />
 
       {imagesQuery.isLoading ? (

@@ -16,6 +16,8 @@ import {
   parseCmSettings,
   shekel,
   type CmSettings,
+  fillEmailTemplate,
+  textToEmailHtml,
 } from "@/lib/client-management";
 import { hebrewDate } from "@/lib/hebrew-date";
 
@@ -115,14 +117,17 @@ function reminderHtml(opts: {
     opts.settings.includeNotesInReminder && opts.notes
       ? `<p style="background:#fbf1ee;border-radius:12px;padding:10px 14px">${nl2br(opts.notes)}</p>`
       : "";
+  // Wording is admin-editable (הגדרות → נוסחי מיילים); date block and notes stay automatic.
+  const text = fillEmailTemplate(opts.settings.reminderEmailText, {
+    שם: opts.name,
+    תאריך: formatDateIL(opts.date),
+    שעה: opts.time,
+  });
   return emailShell(
-    "תזכורת לצילום 📸",
-    `<p>היי ${esc(opts.name)},</p>
-<p>רק מזכירה שנפגשות לצילום <b>${esc(opts.type)}</b>:</p>
-<p style="font-size:17px"><b>${esc(formatDateIL(opts.date))}</b>${heb ? ` · ${esc(heb)}` : ""}<br>בשעה <b>${esc(opts.time)}</b></p>
-${notes}
-<p>כתובת: תלמוד ירושלמי 24, בית שמש.<br>לכל שאלה אפשר לענות למייל הזה או להתקשר 054-8529277.</p>
-<p>מחכה לכן 💗<br>מיכל</p>`,
+    `תזכורת לצילום ${opts.type} 📸`,
+    `<p style="font-size:17px;background:#f2f5f0;border-radius:12px;padding:10px 14px"><b>${esc(formatDateIL(opts.date))}</b>${heb ? ` · ${esc(heb)}` : ""} · בשעה <b>${esc(opts.time)}</b></p>
+<p>${textToEmailHtml(text)}</p>
+${notes}`,
   );
 }
 
@@ -319,6 +324,7 @@ export const sendCmScheduleNow = createServerFn({ method: "POST" })
 export async function runDueClientManagementReminders(): Promise<{
   reminders: number;
   dailySchedule: boolean;
+  galleryNudges?: number;
   skipped?: string;
 }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -421,6 +427,38 @@ export async function runDueClientManagementReminders(): Promise<{
     }
   }
 
+  // Newborn gallery sent 3+ days ago and never opened → one gentle nudge to the client.
+  let galleryNudges = 0;
+  {
+    const cutoff = new Date(now.getTime() - 3 * 86400_000).toISOString();
+    const { data: idle, error: idleErr } = await db
+      .from("newborn_package_orders")
+      .select("id, contact_name, contact_email, access_token")
+      .not("gallery_sent_at", "is", null)
+      .lte("gallery_sent_at", cutoff)
+      .is("client_viewed_at", null)
+      .is("view_nudge_sent_at", null)
+      .is("proofs_selected_at", null)
+      .not("contact_email", "is", null)
+      .not("access_token", "is", null);
+    if (idleErr) {
+      console.error("[SWEETBABY] newborn gallery-nudge scan failed", idleErr);
+    } else {
+      for (const o of idle ?? []) {
+        const link = `https://sweetbabyphoto.shop/newborn/gallery/${o.access_token}`;
+        const text = fillEmailTemplate(settings.galleryNudgeText, { שם: o.contact_name ?? "", קישור: link });
+        const ok = await sendGmail({
+          to: o.contact_email,
+          subject: "התמונות שלך מחכות לך 📸 · מיכל סיבוני",
+          html: emailShell("התמונות מחכות לך 💗", `<p>${textToEmailHtml(text)}</p>${text.includes(link) ? "" : `<p><a href="${link}">${link}</a></p>`}`),
+        });
+        // Stamped even on failure, so a broken address can't be retried every 15 minutes.
+        await db.from("newborn_package_orders").update({ view_nudge_sent_at: new Date().toISOString() }).eq("id", o.id);
+        if (ok) galleryNudges++;
+      }
+    }
+  }
+
   let dailySchedule = false;
   if (settings.dailyScheduleEnabled) {
     const p = israelParts(now);
@@ -452,5 +490,5 @@ export async function runDueClientManagementReminders(): Promise<{
     }
   }
 
-  return { reminders, dailySchedule };
+  return { reminders, dailySchedule, galleryNudges };
 }

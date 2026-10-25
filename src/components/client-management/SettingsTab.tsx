@@ -165,6 +165,26 @@ export function SettingsTab({ data }: { data: { settings: CmSettings } }) {
         </Button>
       </Panel>
 
+      <Panel title="✉️ נוסחי מיילים ללקוחות" className="lg:col-span-2">
+        <p className="mb-3 text-xs text-newborn-ink/55">
+          אפשר לכתוב בחופשיות. המילים בסוגריים מתמלאות לבד: {"{שם}"} שם הלקוחה · {"{קישור}"} קישור לגלריה · {"{תאריך}"} ו-{"{שעה}"} של הצילום.
+        </p>
+        <div className="grid gap-3 lg:grid-cols-3">
+          <div>
+            <Label>שליחת הגלריה לבחירה</Label>
+            <Textarea rows={6} value={s.galleryEmailText} onChange={(e) => set({ galleryEmailText: e.target.value })} />
+          </div>
+          <div>
+            <Label>תזכורת לפני צילום</Label>
+            <Textarea rows={6} value={s.reminderEmailText} onChange={(e) => set({ reminderEmailText: e.target.value })} />
+          </div>
+          <div>
+            <Label>תזכורת למי שלא פתחה את הגלריה (אחרי 3 ימים)</Label>
+            <Textarea rows={6} value={s.galleryNudgeText} onChange={(e) => set({ galleryNudgeText: e.target.value })} />
+          </div>
+        </div>
+      </Panel>
+
       <Panel title="🏦 תשלומי לקוחות">
         <Row label="מייל אוטומטי בפתיחת חשבון">
           <Switch
