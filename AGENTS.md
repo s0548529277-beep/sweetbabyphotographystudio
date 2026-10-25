@@ -32,6 +32,19 @@ Lovable run it or apply it and insert its hash + `when` into
 
 ### Log
 
+- **2026-10-25 (later same session) — Claude (chat): open PRs review**
+  - **PR #72 (sleep-consultant page for שולמית בן נעים) — merged by hand.**
+    GitHub couldn't merge it (conflict, branch from Aug 25); copied
+    `src/routes/sleep-consultant.tsx` + `src/components/SleepConsultantMark.tsx`
+    verbatim, re-added its footer link, regenerated `routeTree.gen.ts` via
+    build. PR closed with a note.
+  - **Not merged, left open for the owner to decide (all site-bot, Aug 23–24):**
+    #58 adds a red "מחיקת הזמנות לא רלוונטיות (Admin)" link with `to="#"` to the
+    *public* `/track` page — does nothing and is visible to customers;
+    #43 is an August restyle of `index.tsx` that conflicts with the current
+    homepage and would roll back newer design; #35 replaces "משפחות" with
+    "לקוחות" in `index.tsx` — the word no longer appears there, already moot.
+
 - **2026-10-25 — Claude (chat), at the owner's request**
   - **DB:** found that 8 migration files in `supabase/migrations/`
     (20261015…–20261021…) had never been applied: `client_step`/

@@ -26,6 +26,7 @@ import { Route as PhotoRetouchRouteImport } from './routes/photo-retouch'
 import { Route as RentalCatalogRouteImport } from './routes/rental-catalog'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SleepConsultantRouteImport } from './routes/sleep-consultant'
 import { Route as StartRouteImport } from './routes/start'
 import { Route as StudioPhotographyRouteImport } from './routes/studio-photography'
 import { Route as StudioRentalRouteImport } from './routes/studio-rental'
@@ -173,6 +174,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SleepConsultantRoute = SleepConsultantRouteImport.update({
+  id: '/sleep-consultant',
+  path: '/sleep-consultant',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StartRoute = StartRouteImport.update({
@@ -552,6 +558,7 @@ export interface FileRoutesByFullPath {
   '/rental-catalog': typeof RentalCatalogRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/sleep-consultant': typeof SleepConsultantRoute
   '/start': typeof StartRoute
   '/studio-photography': typeof StudioPhotographyRoute
   '/studio-rental': typeof StudioRentalRoute
@@ -634,6 +641,7 @@ export interface FileRoutesByTo {
   '/rental-catalog': typeof RentalCatalogRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/sleep-consultant': typeof SleepConsultantRoute
   '/start': typeof StartRoute
   '/studio-photography': typeof StudioPhotographyRoute
   '/studio-rental': typeof StudioRentalRoute
@@ -717,6 +725,7 @@ export interface FileRoutesById {
   '/rental-catalog': typeof RentalCatalogRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/sleep-consultant': typeof SleepConsultantRoute
   '/start': typeof StartRoute
   '/studio-photography': typeof StudioPhotographyRoute
   '/studio-rental': typeof StudioRentalRoute
@@ -801,6 +810,7 @@ export interface FileRouteTypes {
     | '/rental-catalog'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/sleep-consultant'
     | '/start'
     | '/studio-photography'
     | '/studio-rental'
@@ -883,6 +893,7 @@ export interface FileRouteTypes {
     | '/rental-catalog'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/sleep-consultant'
     | '/start'
     | '/studio-photography'
     | '/studio-rental'
@@ -965,6 +976,7 @@ export interface FileRouteTypes {
     | '/rental-catalog'
     | '/reset-password'
     | '/sitemap.xml'
+    | '/sleep-consultant'
     | '/start'
     | '/studio-photography'
     | '/studio-rental'
@@ -1049,6 +1061,7 @@ export interface RootRouteChildren {
   RentalCatalogRoute: typeof RentalCatalogRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  SleepConsultantRoute: typeof SleepConsultantRoute
   StartRoute: typeof StartRoute
   StudioPhotographyRoute: typeof StudioPhotographyRoute
   StudioRentalRoute: typeof StudioRentalRoute
@@ -1192,6 +1205,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sleep-consultant': {
+      id: '/sleep-consultant'
+      path: '/sleep-consultant'
+      fullPath: '/sleep-consultant'
+      preLoaderRoute: typeof SleepConsultantRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/start': {
@@ -1806,6 +1826,7 @@ const rootRouteChildren: RootRouteChildren = {
   RentalCatalogRoute: RentalCatalogRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  SleepConsultantRoute: SleepConsultantRoute,
   StartRoute: StartRoute,
   StudioPhotographyRoute: StudioPhotographyRoute,
   StudioRentalRoute: StudioRentalRoute,
