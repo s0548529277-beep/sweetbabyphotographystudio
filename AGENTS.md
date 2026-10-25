@@ -32,7 +32,7 @@ Lovable run it or apply it and insert its hash + `when` into
 
 ### Log
 
-- **2026-10-25 (23:40) — Claude (chat):** owner: the studio's Canon 5D Mark III camera is included in the studio rental price. Updated FAQ answer #7 + the intake-form camera hint in `studio-rental.tsx`, and added a "מצלמה" line to the site-bot knowledge in `ai.functions.ts`.
+- **2026-10-25 (23:40) — Claude (chat):** owner: the studio's Canon 5D Mark III camera is included in the studio rental price. Camera is now its own FAQ question (professional camera, included, suits experienced photographers or with a guidance package; old #7 split into camera + guidance questions, 12 Q&A total) + the intake-form camera hint in `studio-rental.tsx`, and added a "מצלמה" line to the site-bot knowledge in `ai.functions.ts`.
 
 - **2026-10-25 (late night, cont.) — Claude (chat) — שאלות נפוצות בהשכרת סטודיו + SEO**
   - `/studio-rental`: new FAQ section "לפני שמשריינים" (`STUDIO_FAQS`, 11 Q&A, native `<details>`), placed above ArrivalDirections, plus `FAQPage` JSON-LD in the route head. Every answer reuses facts already on the page (rulesBlocks / quickFacts / intake form) or in `ai.functions.ts` — keep them in sync if prices/rules change. Props policy deliberately omitted (owner still deciding "עד 20 אביזרים").
