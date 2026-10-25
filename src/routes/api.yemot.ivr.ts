@@ -335,6 +335,19 @@ async function handle(request: Request): Promise<Response> {
     const save = (messages: VoiceMessage[], newStage: string, draft?: DraftBooking | null) =>
       upsertVoiceSession(supabaseAdmin, { call_sid: callSid, from_number: phone, messages, stage: newStage, draft_booking: draft ?? null });
 
+    // Yemot sends its OWN error text in the `speech` field when the account
+    // has no speech-recognition units left ("אין מספיק יחידות לשימוש בזיהוי
+    // דיבור") — seen live on calls after pressing 9 (free AI chat). Never
+    // feed that to the AI as if the caller said it: tell her free speech is
+    // unavailable right now and put her back on the keypad menu, which needs
+    // no speech recognition. The real fix is topping up units in Yemot.
+    if (speech.includes("יחידות") && speech.includes("זיהוי דיבור")) {
+      console.error(`[SWEETBABY] yemot speech-recognition units exhausted — callSid=${callSid}`);
+      const text = `שִׂיחָה חָפְשִׁית לֹא זְמִינָה כָּרֶגַע. ${phrases.menu_prompt_dtmf}`;
+      await save([...priorMessages, { role: "assistant", content: text }], "menu_dtmf");
+      return yemotSayAndListenTap(text, MENU_DTMF_TAP);
+    }
+
     // The OTHER half of the thinking-filler resume (see the `!hasAnswer`
     // branch's own "ai_pending" check above for the normal case). This one
     // covers the less common case: she said something DURING the filler's
