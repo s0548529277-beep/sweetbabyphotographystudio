@@ -1,4 +1,5 @@
 import { heError } from "@/lib/he-errors";
+import { isWithinPropsHandoffHours, PROPS_HANDOFF_NOTE, PROPS_LATEST_HANDOFF } from "@/lib/props-hours";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
@@ -166,6 +167,10 @@ function Checkout() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (disabled || !form.terms_accepted || !form.session_date || !form.return_date || anyUnavailable) return;
+    if (!isWithinPropsHandoffHours(form.start_time) || !isWithinPropsHandoffHours(form.end_time)) {
+      toast.error(PROPS_HANDOFF_NOTE);
+      return;
+    }
     setBusy(true);
     try {
       const res = await place({
@@ -220,7 +225,7 @@ function Checkout() {
                 </div>
                 <div>
                   <Label>שעת איסוף *</Label>
-                  <Input required type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} className="mt-1" />
+                  <Input required type="time" max={PROPS_LATEST_HANDOFF} value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} className="mt-1" />
                 </div>
                 <div>
                   <Label className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> תאריך החזרה *</Label>
@@ -228,13 +233,13 @@ function Checkout() {
                 </div>
                 <div>
                   <Label>שעת החזרה *</Label>
-                  <Input required type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} className="mt-1" />
+                  <Input required type="time" max={PROPS_LATEST_HANDOFF} value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} className="mt-1" />
                 </div>
                 <div className="md:col-span-2 -mt-2 flex flex-wrap items-center gap-2 text-[11px]">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blush/40 text-primary font-medium">
                     <AlertTriangle className="h-3 w-3" /> תמחור לפי 24 שעות · מכפיל נוכחי: ×{dayMultiplier}
                   </span>
-                  <span className="text-muted-foreground">חובה לעדכן מראש אם צפוי איחור — כל 24ש נוספות = תשלום כפול.</span>
+                  <span className="text-muted-foreground">{PROPS_HANDOFF_NOTE} · חובה לעדכן מראש אם צפוי איחור — כל 24ש נוספות = תשלום כפול.</span>
                 </div>
                 <div className="md:col-span-2">
                   <Label className="flex items-center gap-1"><Camera className="h-3 w-3" /> דגם המצלמה (אופציונלי)</Label>

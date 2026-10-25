@@ -32,6 +32,12 @@ Lovable run it or apply it and insert its hash + `when` into
 
 ### Log
 
+- **2026-10-25 (late night) — Claude (chat) — PENDING OWNER APPROVAL, branch `claude/pending-cashback-props-hours` (NOT merged to main)**
+  - בעלת האתר ביקשה לראות תוכנית מפורטת ולאשר לפני שמשהו עולה. הענף הזה לא מחובר ל-Lovable ולא פורסם.
+  - Cashback minimum 150 → 100 ₪: `loyalty.ts` (`CASHBACK_MIN_AMOUNT`, the real logic) + texts in `studio-rental.tsx`, `ai.functions.ts`, `voice-phrases.server.ts`, `admin.bot-knowledge.tsx`.
+  - Props pickup/return only until 22:00 (owner said "עד 10:00"; read as 22:00 — confirm): new `src/lib/props-hours.ts`; `max` on time inputs + client check in `checkout.tsx` / `rental-catalog.tsx`; zod refine on `start_time`/`end_time` in `orders.functions.ts`; note added in catalog/cart rules and `Footer.tsx`.
+  - Open, waiting on owner: replacement text for "עד 20 אביזרים שריון חינם" (studio-rental.tsx ×3, booking.tsx, ai.functions.ts); after-hours auto-reply from 22:00 for the site chatbot and/or the phone bot (no hours logic exists in either yet).
+
 - **2026-10-25 (night) — Claude (chat) — לידים ופניות + "כמה נכנס" בסקירה**
   - **New `/admin/leads` ("לידים ופניות", in the admin nav under ניהול לקוחות):** table `public.inquiry_leads` (NOT the older `public.leads` = newsletter sign-ups). Status (חדשה/נענתה/נשלח מעקב/סגרה/לא רלוונטי), topic, source, WhatsApp/mail links, inline notes, summary cards + conversion %, manual add.
   - **Filled automatically** by the owner's hourly scheduled email-assistant task (Claude, outside this repo) through `public.upsert_lead_from_assistant(p_token, p jsonb)` — SECURITY DEFINER, callable with the anon key, guarded by a secret token whose sha256 is hard-coded in the function (the token itself lives only in the scheduled task's prompt). It also logs referrals mailed to שולמית בן נעים (`referred_to_shulamit`, source `shulamit`). To rotate the token: `CREATE OR REPLACE` the function with a new hash and update the task.

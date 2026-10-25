@@ -9,6 +9,7 @@ import {
   PROPS_HOLD_MINUTES,
   PENDING_HOLD_MINUTES,
 } from "@/lib/availability.server";
+import { isWithinPropsHandoffHours, PROPS_HANDOFF_NOTE } from "@/lib/props-hours";
 
 const lineSchema = z.object({
   id: z.string().min(1),
@@ -22,8 +23,16 @@ const inputSchema = z.object({
   lines: z.array(lineSchema).min(1),
   session_date: z.string().min(10), // rental start date (יום הצילום)
   return_date: z.string().min(10), // rental end date (חובה — לפחות אותו יום)
-  start_time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
-  end_time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  start_time: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .refine(isWithinPropsHandoffHours, PROPS_HANDOFF_NOTE)
+    .optional(),
+  end_time: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .refine(isWithinPropsHandoffHours, PROPS_HANDOFF_NOTE)
+    .optional(),
   contact_name: z.string().min(1).max(120),
   contact_phone: z.string().min(5).max(40),
   camera_model: z.string().min(1).max(120).optional().nullable(),

@@ -19,7 +19,7 @@ const DEFAULT_CASHBACK_PERCENT = 10;
  * customer, including one with a personal admin-set rate. Below this,
  * awardCashback is a no-op regardless of percent.
  */
-const CASHBACK_MIN_AMOUNT = 150;
+const CASHBACK_MIN_AMOUNT = 100;
 
 /**
  * Credits `amount * cashback_percent / 100` to the customer's balance —
