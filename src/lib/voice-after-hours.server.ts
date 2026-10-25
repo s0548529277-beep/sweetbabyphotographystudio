@@ -1,17 +1,16 @@
 /**
- * Phone-bot quiet hours (owner request 2026-10-25): from 22:00 until 08:00
- * Israel time, a NEW incoming call hears one fixed message and is hung up —
- * no menu, no AI, no booking. Applies to both phone channels (Yemot IVR and
- * Twilio). A call that already started before 22:00 is NOT cut off: the Yemot
- * route only applies this when no voice_call_sessions row exists yet for the
- * call, and Twilio's /api/voice/incoming is by definition a new call.
- * The website chatbot is NOT affected (owner chose the phone bot only).
+ * Phone-bot night hours (owner request 2026-10-25, revised same night):
+ * from 22:00 until 08:00 Israel time the bot keeps working NORMALLY (menu,
+ * AI, bookings, messages) — it only adds a short spoken notice to the start
+ * of a NEW call, after the regular greeting and before the menu: no one
+ * answers now, and props pickup/return is not possible after 22:00 — from
+ * 8:00 in the morning. (An earlier version that same night hung up instead;
+ * the owner asked for the bot to stay on.) Applies to both phone channels:
+ * Yemot (`api.yemot.ivr.ts`, first-hit branch only) and Twilio
+ * (`api.voice.incoming.ts`). The website chatbot is not affected.
  */
 export const AFTER_HOURS_START = 22; // inclusive, 22:00
 export const AFTER_HOURS_END = 8; // exclusive, 08:00
-
-export const AFTER_HOURS_MESSAGE =
-  "שלום, הגעת לסטודיו סוויט בייבי. כרגע אין מענה. אפשר לחזור אלינו מחר מ-8:00 בבוקר.";
 
 /** Current hour (0–23) in Asia/Jerusalem, independent of the server's TZ. */
 function jerusalemHour(now: Date): number {
@@ -26,4 +25,15 @@ function jerusalemHour(now: Date): number {
 export function isPhoneAfterHours(now: Date = new Date()): boolean {
   const h = jerusalemHour(now);
   return h >= AFTER_HOURS_START || h < AFTER_HOURS_END;
+}
+
+/**
+ * The notice to speak at the start of a call during night hours, or "" in
+ * the daytime. Says "מחר" only before midnight — after midnight 8:00 is
+ * the same day.
+ */
+export function afterHoursNotice(now: Date = new Date()): string {
+  if (!isPhoneAfterHours(now)) return "";
+  const when = jerusalemHour(now) >= AFTER_HOURS_START ? "מחר מ-8:00 בבוקר" : "מ-8:00 בבוקר";
+  return `כרגע אין מענה. איסוף והחזרת אביזרים אינם מתאפשרים אחרי 22:00 — אפשר לתאם ${when}. בינתיים אפשר להמשיך כאן כרגיל.`;
 }

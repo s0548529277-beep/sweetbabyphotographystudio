@@ -5,7 +5,7 @@ import { runVoiceTurn, type VoiceMessage, type VoiceTurnResult } from "@/lib/voi
 import { sendMessageToStudio } from "@/lib/voice-message.server";
 import { detectMenuIntent, wantsFullGuide, wantsToBookNow } from "@/lib/voice-menu.server";
 import { getVoiceBotConfig } from "@/lib/voice-phrases.server";
-import { AFTER_HOURS_MESSAGE, isPhoneAfterHours } from "@/lib/voice-after-hours.server";
+import { afterHoursNotice } from "@/lib/voice-after-hours.server";
 import { personalizedGreeting } from "@/lib/voice-caller.server";
 import { consumePendingVoiceNotification } from "@/lib/voice-pending-notification.server";
 import { startNoAiBooking, continueNoAiBooking, currentNbQuestion, isNbStage, NB_TAP_STAGES, type DraftBooking, type NbInputMode } from "@/lib/voice-noai-booking.server";
@@ -141,20 +141,6 @@ async function handle(request: Request): Promise<Response> {
 
   if (params.hangup === "yes") return yemotAck();
 
-  // Quiet hours 22:00–08:00 (voice-after-hours.server.ts): a NEW call hears
-  // the fixed "אין מענה" message and is hung up. A call already in progress
-  // (has a session row) is left alone so nobody is cut off mid-call at 22:00.
-  if (isPhoneAfterHours()) {
-    let inProgress = false;
-    try {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data } = await supabaseAdmin.from("voice_call_sessions").select("call_sid").eq("call_sid", callSid).maybeSingle();
-      inProgress = !!data;
-    } catch (e) {
-      console.error("[SWEETBABY] after-hours session check failed", e);
-    }
-    if (!inProgress) return yemotSayAndHangup(AFTER_HOURS_MESSAGE);
-  }
 
   const rawSpeech = (params.speech ?? "").trim();
   // A 0-1 character "answer" is almost always speech-recognition noise (a
@@ -253,7 +239,13 @@ async function handle(request: Request): Promise<Response> {
         // If the caller's number matches a real site account, personalize
         // with her name — best-effort, falls back to the plain greeting.
         const menuText = menuMode === "dtmf" ? phrases.menu_prompt_dtmf : phrases.menu_prompt;
-        const greetingWithMenu = await personalizedGreeting(`${phrases.greeting} ${menuText}`, callerPhone);
+        // Night hours (22:00–08:00): a short notice between greeting and menu —
+        // the call itself continues normally (voice-after-hours.server.ts).
+        const nightNotice = afterHoursNotice();
+        const greetingWithMenu = await personalizedGreeting(
+          nightNotice ? `${phrases.greeting} ${nightNotice} ${menuText}` : `${phrases.greeting} ${menuText}`,
+          callerPhone,
+        );
         const fullGreeting = pending ? `${pending} ${greetingWithMenu}` : greetingWithMenu;
         const stage = menuMode === "dtmf" ? "menu_dtmf" : "menu";
         await supabaseAdmin.from("voice_call_sessions").upsert(

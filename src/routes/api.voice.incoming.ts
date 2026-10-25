@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
-import { parseTwilioForm, twimlSayAndGather, twimlSayAndHangup, verifyTwilioSignature } from "@/lib/twilio.server";
-import { AFTER_HOURS_MESSAGE, isPhoneAfterHours } from "@/lib/voice-after-hours.server";
+import { parseTwilioForm, twimlSayAndGather, verifyTwilioSignature } from "@/lib/twilio.server";
+import { afterHoursNotice } from "@/lib/voice-after-hours.server";
 import { getVoiceBotSayAttrs } from "@/lib/voice-settings.server";
 import { getPhraseMap } from "@/lib/voice-phrases.server";
 import { personalizedGreeting } from "@/lib/voice-caller.server";
@@ -22,14 +22,17 @@ export const Route = createFileRoute("/api/voice/incoming")({
         if (!callSid) return new Response("Bad Request", { status: 400 });
 
         const sayAttrs = await getVoiceBotSayAttrs();
-        // Quiet hours 22:00–08:00 — see voice-after-hours.server.ts.
-        if (isPhoneAfterHours()) return twimlSayAndHangup(AFTER_HOURS_MESSAGE, sayAttrs);
         const phrases = await getPhraseMap();
         // If there's a message waiting for this number (a booking
         // confirmation/reminder), play it once before the normal greeting —
         // see the matching comment in api.yemot.ivr.ts.
         const pending = await consumePendingVoiceNotification(fromNumber);
-        const greetingWithMenu = await personalizedGreeting(`${phrases.greeting} ${phrases.menu_prompt}`, fromNumber);
+        // Night hours notice (22:00–08:00) — call continues normally.
+        const nightNotice = afterHoursNotice();
+        const greetingWithMenu = await personalizedGreeting(
+          nightNotice ? `${phrases.greeting} ${nightNotice} ${phrases.menu_prompt}` : `${phrases.greeting} ${phrases.menu_prompt}`,
+          fromNumber,
+        );
         const fullGreeting = pending ? `${pending} ${greetingWithMenu}` : greetingWithMenu;
         try {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
