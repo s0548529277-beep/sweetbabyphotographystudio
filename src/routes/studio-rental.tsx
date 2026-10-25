@@ -20,13 +20,14 @@ import { ArrivalDirections } from "@/components/ArrivalDirections";
 export const Route = createFileRoute("/studio-rental")({
   head: () => ({
     meta: [
-      { title: "השכרת סטודיו | Sweetbaby" },
-      { name: "description", content: "השכרת סטודיו בוטיק בבית שמש לצילומי ניו-בורן, סמאש קיק , חלאקה , משפחה . מחירון שקוף וקביעת תור אונליין." },
-      { property: "og:title", content: "השכרת סטודיו | Sweetbaby" },
+      { title: "השכרת סטודיו לצילום בבית שמש | סוויט בייבי" },
+      { name: "description", content: "השכרת סטודיו בוטיק לצילום בבית שמש — לצילומי ניו-בורן, סמאש קייק, חלאקה ומשפחה. 180 ₪ לשעה ראשונה, מחירון שקוף וקביעת תור אונליין." },
+      { property: "og:title", content: "השכרת סטודיו לצילום בבית שמש | סוויט בייבי" },
       { property: "og:description", content: "חלל בוטיק מאובזר, תאורה מקצועית ואווירה שקטה — לצלמות שמחפשות סטודיו איכותי בבית שמש." },
       { property: "og:url", content: "https://sweetbabyphoto.shop/studio-rental" },
     ],
     links: [{ rel: "canonical", href: "https://sweetbabyphoto.shop/studio-rental" }],
+    scripts: [{ type: "application/ld+json", children: JSON.stringify(STUDIO_FAQ_JSONLD) }],
   }),
   component: StudioRentalPage,
 });
@@ -115,6 +116,35 @@ const quickFacts = [
   { icon: CalendarDays, label: "מקדמה 90 ₪ לשריון" },
   { icon: Sparkles, label: "Godox AD200 PRO" },
 ];
+
+
+// FAQ — every answer is taken from facts already stated elsewhere on this
+// page (rulesBlocks / quickFacts / the intake form) or in the bot knowledge;
+// nothing new is promised here. Props/"עד 20 אביזרים" deliberately left out
+// until the owner decides that policy. Also emitted as FAQPage JSON-LD.
+const STUDIO_FAQS: { q: string; a: string }[] = [
+  { q: "כמה עולה השכרת הסטודיו?", a: "שעה ראשונה 180 ₪, וכל שעה נוספת 100 ₪. חצי שעה מחושבת באופן יחסי, ומינימום ההזמנה הוא שעה." },
+  { q: "יש מחיר מיוחד לצילומי ניו-בורן?", a: "כן — מבצע ניו-בורן של 3 שעות ב-320 ₪, בבוקר (8:00–14:00) או בערב אחרי 19:00 (עד 23:00)." },
+  { q: "איך משריינים מועד?", a: "ממלאים את השאלון ובוחרים מועד פנוי ביומן. השריון נעשה במקדמה של 90 ₪ שאינה מוחזרת; הזמנה לאותו היום משולמת במלואה מראש. את היתרה אפשר לשלם בסיום באשראי, בפייבוקס, בהעברה או במזומן." },
+  { q: "מה מדיניות הביטולים?", a: "בביטול או שינוי עד יום האירוע המקדמה אינה מוחזרת. ביטול ביום האירוע עצמו מחויב בתשלום מלא." },
+  { q: "מה שעות הפעילות?", a: "א׳–ה׳ 8:00–23:00. בימי שישי וערבי חג עד שעתיים לפני כניסת השבת, ובמוצאי שבת משעה אחרי צאת השבת." },
+  { q: "איזה ציוד תאורה יש בסטודיו?", a: "פלאש Godox AD200 PRO עם סוללה נטענת, משדרים ל-Canon ול-Sony וסופטבוקס בקוטר 1.65 מטר. השימוש בפלאש דורש ידע מוקדם." },
+  { q: "אין לי מצלמה או ניסיון עם פלאש — אפשר להסתדר?", a: "כן. בשאלון אפשר לבקש מצלמת Canon 5D Mark III מהסטודיו, ולהוסיף חבילת הדרכה — מהכוונה קצרה ועד ליווי מלא בהכנת הסטים." },
+  { q: "הסטודיו מתאים לתינוקות?", a: "כן. יש מיזוג ומפזר חום ייעודי לניו-בורן, ושידת החתלה חדשה עם עיטופים ובדים." },
+  { q: "אילו רקעים ורצפות יש?", a: "רקעי נייר בירוק, לבן, כחול, חום בהיר, חום כהה וצהוב, ורצפות פורמייקה, עץ, פרקט וקורות עץ ללא תוספת. שימוש ברקע נייר גם כרצפה בתוספת 50 ₪, בתיאום מראש." },
+  { q: "איפה הסטודיו נמצא?", a: "ברחוב תלמוד ירושלמי 24, בית שמש. דרכי הגעה מפורטות מופיעות בעמוד הזה." },
+  { q: "יש הטבה ללקוחות חוזרות?", a: "כל לקוחה רשומה צוברת אוטומטית 10% קרדיט מכל הזמנה של 100 ₪ ומעלה, לניצול בהזמנה הבאה." },
+];
+
+const STUDIO_FAQ_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: STUDIO_FAQS.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
 
 const INTAKE_DRAFT_KEY = "sb_studio_intake_draft";
 
@@ -428,7 +458,28 @@ function StudioRentalPage() {
         </div>
 
       </section>
-<section className="container-page pb-4" dir="rtl">
+      <section id="studio-faq" className="container-page pb-12 scroll-mt-24" dir="rtl">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-6">
+            <div className="text-xs tracking-[0.3em] uppercase text-[#6b8a63] font-medium mb-2">שאלות נפוצות</div>
+            <h2 className="text-3xl md:text-4xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
+              לפני שמשריינים
+            </h2>
+          </div>
+          <div className="space-y-3">
+            {STUDIO_FAQS.map((f) => (
+              <details key={f.q} className="group rounded-2xl border border-[#2d3d2b]/10 bg-white/80 overflow-hidden">
+                <summary className="cursor-pointer list-none flex items-center justify-between gap-3 px-5 py-4 text-right text-sm font-semibold text-[#2d3d2b]">
+                  {f.q}
+                  <span aria-hidden className="shrink-0 text-[#6b8a63] transition-transform group-open:rotate-45 text-lg leading-none">+</span>
+                </summary>
+                <p className="px-5 pb-4 text-sm leading-relaxed text-[#2d3d2b]/80">{f.a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+      <section className="container-page pb-4" dir="rtl">
         <ArrivalDirections className="max-w-4xl mx-auto" variant="colorful" />
       </section>
       <section id="studio-inspiration" className="container-page pb-12 scroll-mt-24">

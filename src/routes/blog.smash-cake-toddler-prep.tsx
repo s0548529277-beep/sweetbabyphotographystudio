@@ -193,6 +193,11 @@ function SmashCakeTodlerPrep() {
               </Button>
             </Link>
           </div>
+          <p className="mt-5 text-sm">
+            <Link to="/studio-rental" className="text-primary underline underline-offset-4 hover:opacity-80">
+              השכרת הסטודיו בבית שמש — מחירון, ציוד ושאלות נפוצות
+            </Link>
+          </p>
         </section>
       </article>
 

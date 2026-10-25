@@ -32,6 +32,11 @@ Lovable run it or apply it and insert its hash + `when` into
 
 ### Log
 
+- **2026-10-25 (late night, cont.) — Claude (chat) — שאלות נפוצות בהשכרת סטודיו + SEO**
+  - `/studio-rental`: new FAQ section "לפני שמשריינים" (`STUDIO_FAQS`, 11 Q&A, native `<details>`), placed above ArrivalDirections, plus `FAQPage` JSON-LD in the route head. Every answer reuses facts already on the page (rulesBlocks / quickFacts / intake form) or in `ai.functions.ts` — keep them in sync if prices/rules change. Props policy deliberately omitted (owner still deciding "עד 20 אביזרים").
+  - SEO: `/studio-rental` title + og:title → "השכרת סטודיו לצילום בבית שמש | סוויט בייבי", description rewritten (fixed "סמאש קיק , חלאקה ," spacing). Site-wide description in `__root.tsx` + `index.tsx` (6 meta tags) fixed: missing commas, "-הצלמת", "קיק"→"קייק".
+  - Blog posts (חלאקה, אביזרי ניו-בורן, סמאש קייק): text link to `/studio-rental` under the CTA buttons.
+
 - **2026-10-25 (late night) — Claude (chat) — צבירה מ-100, איסוף/החזרה עד 22:00, סרטון בהשכרה, בוט טלפון שקט מ-22:00 (owner approved, merged to main)**
   - Cashback minimum 150 → 100 ₪: `loyalty.ts` (`CASHBACK_MIN_AMOUNT`, the real logic) + texts in `studio-rental.tsx`, `ai.functions.ts`, `voice-phrases.server.ts` DEFAULT_PHRASES, `admin.bot-knowledge.tsx`. If an admin-edited row in `voice_bot_phrases` / bot-knowledge DB still says 150, it overrides the default — check `/admin/voice-bot-text` and `/admin/bot-knowledge`.
   - Props pickup/return only until 22:00 (owner confirmed 22:00): new `src/lib/props-hours.ts`; `max` on time inputs + client check in `checkout.tsx` / `rental-catalog.tsx`; zod refine on `start_time`/`end_time` in `orders.functions.ts`; note in catalog/cart rules and `Footer.tsx`.
