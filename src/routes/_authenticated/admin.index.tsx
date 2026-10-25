@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { listAdminNotifications } from "@/lib/admin-notifications.functions";
 import { TYPE_LABELS, TYPE_ICONS } from "@/routes/_authenticated/admin.notifications";
-import { Package, ShoppingBag, CalendarDays, TrendingUp, Bell, Sun, PackageOpen, PackageCheck } from "lucide-react";
+import { Package, ShoppingBag, CalendarDays, TrendingUp, Bell, Sun, PackageOpen, PackageCheck, Wallet, Baby, Home } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   component: Overview,
@@ -132,6 +133,7 @@ function Overview() {
 
   return (
     <div className="space-y-8">
+      <IncomeSummary />
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {cards.map((c) => (
           <Link key={c.label} to={c.to} className="bg-card rounded-2xl p-6 border border-primary/5 hover:shadow-[var(--shadow-card)] transition-shadow">
@@ -293,6 +295,129 @@ function Overview() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Income summary (top of the main admin page) ─────────────────────────────
+// Requested 2026-10-25: one big "how much came in" figure + small figures for
+// newborn / props / studio. Same sources and rules as /admin/finance
+// (non-cancelled orders/bookings, by session date), plus newborn-package
+// orders (total_price, by session date) and manual income. The big total is
+// everything; the three small ones are the business lines she asked to see.
+type Period = "month" | "year" | "all";
+
+const ils = (n: number) => `₪${Math.round(n).toLocaleString("he-IL")}`;
+
+function inPeriod(dateStr: string | null | undefined, period: Period): boolean {
+  if (period === "all") return true;
+  if (!dateStr) return false;
+  const d = String(dateStr).slice(0, 10);
+  const now = new Date();
+  const y = String(now.getFullYear());
+  if (period === "year") return d.startsWith(y);
+  const m = `${y}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  return d.startsWith(m);
+}
+
+function IncomeSummary() {
+  const [period, setPeriod] = useState<Period>("month");
+  const q = useQuery({
+    queryKey: ["admin-income-summary"],
+    queryFn: async () => {
+      const [ordersRes, bookingsRes, newbornRes, manualRes] = await Promise.all([
+        supabase.from("orders").select("total,status,created_at,scheduled_date"),
+        supabase.from("bookings").select("price,status,package,session_date,created_at"),
+        (supabase as any).from("newborn_package_orders").select("total_price,session_date,created_at"),
+        supabase.from("manual_income").select("amount,received_on"),
+      ]);
+      return {
+        orders: (ordersRes.data ?? []) as any[],
+        bookings: (bookingsRes.data ?? []) as any[],
+        newborn: (newbornRes.data ?? []) as any[],
+        manual: (manualRes.data ?? []) as any[],
+      };
+    },
+    refetchInterval: 60000,
+  });
+
+  const d = q.data;
+  let props = 0,
+    studio = 0,
+    newborn = 0,
+    other = 0;
+  if (d) {
+    for (const o of d.orders) {
+      if (o.status === "cancelled") continue;
+      if (inPeriod(o.scheduled_date ?? o.created_at, period)) props += Number(o.total ?? 0);
+    }
+    for (const b of d.bookings) {
+      if (b.status === "cancelled") continue;
+      if (!inPeriod(b.session_date ?? b.created_at, period)) continue;
+      // package "newborn" rows are the studio-blocking mirror of a
+      // newborn_package_orders row (syncNewbornBookingBlock, price =
+      // total_price) — already counted below from the order itself.
+      if (b.package === "newborn") continue;
+      if (b.package === "photography") other += Number(b.price ?? 0);
+      else studio += Number(b.price ?? 0);
+    }
+    for (const n of d.newborn) {
+      if (inPeriod(n.session_date ?? n.created_at, period)) newborn += Number(n.total_price ?? 0);
+    }
+    for (const m of d.manual) {
+      if (inPeriod(m.received_on, period)) other += Number(m.amount ?? 0);
+    }
+  }
+  const total = props + studio + newborn + other;
+  const periodLabel = period === "month" ? "החודש" : period === "year" ? "השנה" : "מאז ומעולם";
+
+  return (
+    <div className="bg-card rounded-2xl p-6 border border-primary/5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Wallet className="h-4 w-4" /> כמה נכנס {periodLabel}
+        </div>
+        <div className="flex gap-1 bg-cream/60 rounded-full p-1 text-xs">
+          {(
+            [
+              ["month", "החודש"],
+              ["year", "השנה"],
+              ["all", "הכל"],
+            ] as [Period, string][]
+          ).map(([k, label]) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setPeriod(k)}
+              className={`px-3 py-1 rounded-full transition-colors ${period === k ? "bg-primary text-primary-foreground" : "hover:bg-primary/10"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <Link to="/admin/finance" className="block font-display text-5xl text-primary mt-3 hover:opacity-80">
+        {q.isLoading ? "…" : ils(total)}
+      </Link>
+      <div className="grid grid-cols-3 gap-3 mt-5">
+        {[
+          { icon: Baby, label: "ניו בורן", value: newborn, to: "/admin/newborn-packages" },
+          { icon: Package, label: "אביזרים", value: props, to: "/admin/orders" },
+          { icon: Home, label: "סטודיו", value: studio, to: "/admin/calendar" },
+        ].map((s) => (
+          <Link key={s.label} to={s.to} className="rounded-xl bg-cream/50 p-3 hover:bg-cream transition-colors">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <s.icon className="h-3.5 w-3.5" /> {s.label}
+            </div>
+            <div className="font-display text-lg text-forest mt-1">{q.isLoading ? "…" : ils(s.value)}</div>
+          </Link>
+        ))}
+      </div>
+      {other > 0 && (
+        <div className="text-[11px] text-muted-foreground mt-3">
+          הסכום הגדול כולל גם {ils(other)} מצילומים אחרים והכנסות ידניות.
+        </div>
+      )}
     </div>
   );
 }

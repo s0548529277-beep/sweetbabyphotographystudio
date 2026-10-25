@@ -162,6 +162,13 @@
       "when": 1792911271427,
       "tag": "0022_newborn_gallery_upgrades",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1792963061692,
+      "tag": "0023_inquiry_leads",
+      "breakpoints": true
     }
   ]
 }
