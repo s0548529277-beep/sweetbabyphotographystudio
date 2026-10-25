@@ -32,6 +32,12 @@ Lovable run it or apply it and insert its hash + `when` into
 
 ### Log
 
+- **2026-10-25 — Claude (chat): sleep-consultant page hidden from customers**
+  - Owner asked that `/sleep-consultant` not be shown to customers. Removed
+    its footer link (`Footer.tsx`) — that was the only link to it anywhere —
+    and added `robots: noindex, nofollow` to its head. The route itself still
+    exists and opens by direct URL (not in `public/sitemap.xml`). If it ever
+    needs to be fully blocked, gate it or delete the route.
 - **2026-10-25 — Claude (chat), at the owner's request — ChikTime features into newborn packages**
   - בעלת האתר ביקשה: להעתיק את אפשרויות ChikTime (שכבר נבנו ב"ניהול לקוחות") לתוך מערכת הניו-בורן הקיימת, בעיצוב של עמוד עצמאי, **בלי למחוק כלום**.
   - **`/admin/newborn-packages`** is now a full-screen page (own sticky header + back button; `FULLSCREEN_PATHS` in `admin.tsx` skips the site header/sidebar/footer for it and for `/admin/client-management`). New tabs: "לוח שנה" (Hebrew dates + holidays, week/month, click day → new order on that date, click order → edit), "הגדרות" (same `client_management_settings` as ניהול לקוחות). Existing tabs kept (old calendar renamed "יומן יומי"). List/table got search + CSV export; OrderCard got a WhatsApp button; create/edit show Hebrew date, holiday/Shabbat + same-day warnings and confirm before booking on a rest day; dashboard lists upcoming orders with no email.
@@ -74,8 +80,7 @@ Lovable run it or apply it and insert its hash + `when` into
     השכרת אביזרים (+ "אחר (ידני)" when non-zero), with % of total; follows
     all filters; clicking a card sets the "סוג" filter. Expenses are not
     split (their categories don't map to a business line).
-  - **Open:** 4 old PRs still open on GitHub (#35, #43, #58, #72) — not
-    touched.
+  - **Open:** old PRs on GitHub — see the "open PRs review" entry above.
 
 ## Phone voice bot — TWO separate channels, TWO separate voices
 

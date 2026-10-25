@@ -32,6 +32,10 @@ export const Route = createFileRoute("/sleep-consultant")({
   head: () => ({
     meta: [
       { title: "שולמית בן נעים — יעוץ שינה לתינוקות | מתנה לרגל הלידה" },
+      // Hidden from customers per owner's request (2026-10-25): no link to it
+      // anywhere on the site, and kept out of search engines. Still opens by
+      // direct URL.
+      { name: "robots", content: "noindex, nofollow" },
       {
         name: "description",
         content:
