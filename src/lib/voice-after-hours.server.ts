@@ -38,5 +38,7 @@ export function afterHoursNotice(now: Date = new Date()): string {
   // times awkwardly. No niqqud on purpose (see voice-chat.server.ts: guessed
   // niqqud made pronunciation worse; unverifiable from here).
   const when = jerusalemHour(now) >= AFTER_HOURS_START ? "מחר משמונה בבוקר" : "משמונה בבוקר";
-  return `כרגע אין מענה. איסוף והחזרת אביזרים אינם מתאפשרים אחרי עשר בלילה, אפשר לתאם ${when}. בינתיים אפשר להמשיך כאן כרגיל.`;
+  // No "אין מענה" here — the greeting it follows already says that
+  // (owner heard it twice on a live call, 2026-10-26).
+  return `איסוף והחזרת אביזרים אינם מתאפשרים אחרי עשר בלילה, אפשר לתאם ${when}. בינתיים אפשר להמשיך כאן כרגיל.`;
 }
