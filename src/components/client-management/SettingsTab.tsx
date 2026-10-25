@@ -17,7 +17,7 @@ import {
 import { heError } from "@/lib/he-errors";
 import { REMINDER_HOUR_OPTIONS, ymd, type CmSettings } from "@/lib/client-management";
 import { sendCmScheduleNow } from "@/lib/client-management.functions";
-import { saveCmSettings, useCmInvalidate, type CmData } from "./data";
+import { saveCmSettings, useCmInvalidate } from "./data";
 import { Panel } from "./ui";
 
 function Row({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
@@ -32,7 +32,8 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
   );
 }
 
-export function SettingsTab({ data }: { data: CmData }) {
+/** Takes only the settings, so any page (client management, newborn packages) can show it. */
+export function SettingsTab({ data }: { data: { settings: CmSettings } }) {
   const invalidate = useCmInvalidate();
   const sendSchedule = useServerFn(sendCmScheduleNow);
   const [s, setS] = useState<CmSettings>(data.settings);

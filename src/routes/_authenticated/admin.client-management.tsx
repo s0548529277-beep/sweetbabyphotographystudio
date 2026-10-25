@@ -57,72 +57,85 @@ function ClientManagementPage() {
   return (
     <div
       dir="rtl"
-      className="-m-2 rounded-[2rem] bg-gradient-to-b from-newborn-canvas via-white to-newborn-blush/30 p-3 sm:-m-4 sm:p-6"
+      className="min-h-screen bg-gradient-to-b from-newborn-canvas via-white to-newborn-blush/30"
     >
-      <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs tracking-[0.25em] text-newborn-gold">SWEETBABY · CLIENT STUDIO</p>
-          <h1 className="font-display text-3xl text-newborn-ink">ניהול לקוחות</h1>
-          <p className="text-sm text-newborn-ink/60">{fullHebrewDate(new Date())}</p>
-        </div>
-        <Button
-          className="rounded-full bg-newborn-rose text-white shadow-lg shadow-newborn-rose/20 hover:bg-newborn-rose/90"
-          onClick={() => book({ date: ymd(new Date()) })}
-        >
-          <CalendarPlus className="h-4 w-4" /> צילום חדש
-        </Button>
-      </header>
-
-      <nav className="mb-6 flex gap-1 overflow-x-auto rounded-full border border-newborn-rose/15 bg-white/80 p-1 shadow-sm">
-        {TABS.map((t) => {
-          const Icon = t.icon;
-          const active = tab === t.key;
-          return (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm transition ${
-                active
-                  ? "bg-newborn-ink text-white shadow"
-                  : "text-newborn-ink/70 hover:bg-newborn-blush/50"
-              }`}
+      <div className="mx-auto max-w-7xl px-4 py-6">
+        <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Link
+              to="/admin"
+              title="חזרה לניהול"
+              className="grid h-9 w-9 place-items-center rounded-full border border-newborn-rose/20 text-newborn-ink hover:bg-newborn-blush/50"
             >
-              <Icon className="h-4 w-4" /> {t.label}
-            </button>
-          );
-        })}
-      </nav>
-
-      {data.missingTables ? (
-        <Panel>
-          <div className="space-y-2 text-sm text-newborn-ink">
-            <p className="font-medium">כמעט מוכן — צריך להפעיל את טבלאות המערכת במסד הנתונים.</p>
-            <p className="text-newborn-ink/70">
-              ב-Lovable יופיע עדכון מסד נתונים ממתין (client_management). אשרי אותו פעם אחת, ורענני
-              את הדף.
-            </p>
+              →
+            </Link>
+            <div>
+              <p className="text-xs tracking-[0.25em] text-newborn-gold">
+                SWEETBABY · CLIENT STUDIO
+              </p>
+              <h1 className="font-display text-3xl text-newborn-ink">ניהול לקוחות</h1>
+              <p className="text-sm text-newborn-ink/60">{fullHebrewDate(new Date())}</p>
+            </div>
           </div>
-        </Panel>
-      ) : data.error ? (
-        <Panel>
-          <p className="text-sm text-destructive">
-            שגיאה בטעינת הנתונים: {String((data.error as any)?.message ?? data.error)}
-          </p>
-        </Panel>
-      ) : data.loading ? (
-        <EmptyState>טוענת יומן ולקוחות…</EmptyState>
-      ) : (
-        <>
-          {tab === "overview" && <Overview data={data} onTab={setTab} onBook={book} />}
-          {tab === "journal" && (
-            <JournalTab data={data} preset={preset} onPresetUsed={() => setPreset(null)} />
-          )}
-          {tab === "calendar" && <CalendarTab data={data} onPickDay={(date) => book({ date })} />}
-          {tab === "clients" && <ClientsTab data={data} onBook={book} />}
-          {tab === "payments" && <PaymentsTab data={data} />}
-          {tab === "settings" && <SettingsTab data={data} />}
-        </>
-      )}
+          <Button
+            className="rounded-full bg-newborn-rose text-white shadow-lg shadow-newborn-rose/20 hover:bg-newborn-rose/90"
+            onClick={() => book({ date: ymd(new Date()) })}
+          >
+            <CalendarPlus className="h-4 w-4" /> צילום חדש
+          </Button>
+        </header>
+
+        <nav className="mb-6 flex gap-1 overflow-x-auto rounded-full border border-newborn-rose/15 bg-white/80 p-1 shadow-sm">
+          {TABS.map((t) => {
+            const Icon = t.icon;
+            const active = tab === t.key;
+            return (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm transition ${
+                  active
+                    ? "bg-newborn-ink text-white shadow"
+                    : "text-newborn-ink/70 hover:bg-newborn-blush/50"
+                }`}
+              >
+                <Icon className="h-4 w-4" /> {t.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        {data.missingTables ? (
+          <Panel>
+            <div className="space-y-2 text-sm text-newborn-ink">
+              <p className="font-medium">כמעט מוכן — צריך להפעיל את טבלאות המערכת במסד הנתונים.</p>
+              <p className="text-newborn-ink/70">
+                ב-Lovable יופיע עדכון מסד נתונים ממתין (client_management). אשרי אותו פעם אחת,
+                ורענני את הדף.
+              </p>
+            </div>
+          </Panel>
+        ) : data.error ? (
+          <Panel>
+            <p className="text-sm text-destructive">
+              שגיאה בטעינת הנתונים: {String((data.error as any)?.message ?? data.error)}
+            </p>
+          </Panel>
+        ) : data.loading ? (
+          <EmptyState>טוענת יומן ולקוחות…</EmptyState>
+        ) : (
+          <>
+            {tab === "overview" && <Overview data={data} onTab={setTab} onBook={book} />}
+            {tab === "journal" && (
+              <JournalTab data={data} preset={preset} onPresetUsed={() => setPreset(null)} />
+            )}
+            {tab === "calendar" && <CalendarTab data={data} onPickDay={(date) => book({ date })} />}
+            {tab === "clients" && <ClientsTab data={data} onBook={book} />}
+            {tab === "payments" && <PaymentsTab data={data} />}
+            {tab === "settings" && <SettingsTab data={data} />}
+          </>
+        )}
+      </div>
     </div>
   );
 }

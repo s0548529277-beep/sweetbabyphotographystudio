@@ -129,6 +129,8 @@ const links: NavEntry[] = [
   },
 ];
 
+const FULLSCREEN_PATHS = ["/admin/newborn-packages", "/admin/client-management"];
+
 function isLinkActive(path: string, l: NavLink) {
   return l.exact ? path === l.to : path === l.to || path.startsWith(`${l.to}/`);
 }
@@ -248,6 +250,12 @@ function AdminLayout() {
   // screen and a page like "לקוחות" never had room to actually show.
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const closeMobileNav = () => setMobileNavOpen(false);
+
+  // Pages designed as a standalone screen (their own header + back button):
+  // rendered full-width, without the site header, sidebar or footer.
+  if (FULLSCREEN_PATHS.includes(path.replace(/\/$/, ""))) {
+    return <Outlet />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-cream/40">

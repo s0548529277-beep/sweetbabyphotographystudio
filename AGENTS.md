@@ -32,6 +32,15 @@ Lovable run it or apply it and insert its hash + `when` into
 
 ### Log
 
+- **2026-10-25 — Claude (chat), at the owner's request — ChikTime features into newborn packages**
+  - בעלת האתר ביקשה: להעתיק את אפשרויות ChikTime (שכבר נבנו ב"ניהול לקוחות") לתוך מערכת הניו-בורן הקיימת, בעיצוב של עמוד עצמאי, **בלי למחוק כלום**.
+  - **`/admin/newborn-packages`** is now a full-screen page (own sticky header + back button; `FULLSCREEN_PATHS` in `admin.tsx` skips the site header/sidebar/footer for it and for `/admin/client-management`). New tabs: "לוח שנה" (Hebrew dates + holidays, week/month, click day → new order on that date, click order → edit), "הגדרות" (same `client_management_settings` as ניהול לקוחות). Existing tabs kept (old calendar renamed "יומן יומי"). List/table got search + CSV export; OrderCard got a WhatsApp button; create/edit show Hebrew date, holiday/Shabbat + same-day warnings and confirm before booking on a rest day; dashboard lists upcoming orders with no email.
+  - Shared pieces: `HebrewCalendar` (`components/client-management/CalendarTab.tsx`), `DateHints`/`confirmRestDay` (`DateHints.tsx`); `SettingsTab` now takes `{ settings }` only.
+  - **Reminders:** `runDueClientManagementReminders` now also emails newborn-order clients before the session (same hours-before / no-Shabbat settings) and includes newborn orders in the daily schedule email. `updateNewbornOrderContact` clears `reminder_sent_at` when date/time changes.
+  - **DB:** `drizzle/migrations/0021_client_management_newborn_reminders.sql` = the cm_* tables (applied by hand on 2026-10-24 from `supabase/migrations/20261024000000_client_management.sql`, idempotent) + `newborn_package_orders.reminder_sent_at`. Applied live and registered in the journal and `drizzle.__drizzle_migrations` (22 rows).
+  - Note: prettier reformatted `admin.newborn-packages.tsx` / `newborn-orders.functions.ts`, so the diff is larger than the logic change.
+- **2026-10-24 — Claude (chat) — new "ניהול לקוחות" (`/admin/client-management`)**
+  - ChikTime-style area on its own `cm_clients` / `cm_sessions` / `cm_payment_accounts` tables (admin-only RLS): dashboard, session journal, Hebrew calendar, client cards, payment accounts with summary emails, reminders + daily schedule (`client-management.functions.ts`, run from `/api/send-booking-reminders`). Not connected to newborn orders / bookings / finance — sessions there do NOT block the studio.
 - **2026-10-25 (later same session) — Claude (chat): open PRs review**
   - **PR #72 (sleep-consultant page for שולמית בן נעים) — merged by hand.**
     GitHub couldn't merge it (conflict, branch from Aug 25); copied

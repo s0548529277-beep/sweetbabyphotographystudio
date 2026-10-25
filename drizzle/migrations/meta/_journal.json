@@ -148,6 +148,13 @@
       "when": 1792909798382,
       "tag": "0020_apply_pending_oct15_oct21",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792910521441,
+      "tag": "0021_client_management_newborn_reminders",
+      "breakpoints": true
     }
   ]
 }

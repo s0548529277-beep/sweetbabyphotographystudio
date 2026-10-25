@@ -8,7 +8,6 @@ import {
   isRestDay,
   statusMeta,
   ymd,
-  type CmSession,
 } from "@/lib/client-management";
 import type { CmData } from "./data";
 import { Panel } from "./ui";
@@ -29,27 +28,44 @@ const MONTHS = [
   "דצמבר",
 ];
 
-export function CalendarTab({
-  data,
+/** One entry on the calendar — any source (cm_sessions, newborn orders…). */
+export type CalendarItem = {
+  id: string;
+  date: string;
+  time: string;
+  label: string;
+  tone: string;
+  title?: string;
+};
+
+/**
+ * Week/month calendar with Hebrew dates and holidays (ChikTime-style). Shared
+ * by /admin/client-management and /admin/newborn-packages — each page maps
+ * its own rows to CalendarItem.
+ */
+export function HebrewCalendar({
+  items,
   onPickDay,
+  onPickItem,
 }: {
-  data: CmData;
+  items: CalendarItem[];
   onPickDay: (date: string) => void;
+  onPickItem?: (id: string) => void;
 }) {
   const [view, setView] = useState<"month" | "week">("month");
   const [cursor, setCursor] = useState(() => new Date());
   const todayStr = ymd(new Date());
 
   const byDate = useMemo(() => {
-    const m = new Map<string, CmSession[]>();
-    for (const s of data.sessions) {
-      if (s.status === "cancelled") continue;
-      const arr = m.get(s.session_date) ?? [];
-      arr.push(s);
-      m.set(s.session_date, arr);
+    const m = new Map<string, CalendarItem[]>();
+    for (const it of items) {
+      const arr = m.get(it.date) ?? [];
+      arr.push(it);
+      m.set(it.date, arr);
     }
+    for (const arr of m.values()) arr.sort((a, b) => a.time.localeCompare(b.time));
     return m;
-  }, [data.sessions]);
+  }, [items]);
 
   const days: (Date | null)[] = useMemo(() => {
     if (view === "week") {
@@ -72,22 +88,18 @@ export function CalendarTab({
     return cells;
   }, [view, cursor]);
 
-  const move = (dir: 1 | -1) => {
+  const move = (dir: 1 | -1) =>
     setCursor((c) =>
       view === "week"
         ? new Date(c.getFullYear(), c.getMonth(), c.getDate() + 7 * dir)
         : new Date(c.getFullYear(), c.getMonth() + dir, 1),
     );
-  };
 
   const title =
     view === "month"
       ? `${MONTHS[cursor.getMonth()]} ${cursor.getFullYear()}`
-      : (() => {
-          const s = days[0]!;
-          const e = days[6]!;
-          return `${s.getDate()}.${s.getMonth() + 1} – ${e.getDate()}.${e.getMonth() + 1}.${e.getFullYear()}`;
-        })();
+      : `${days[0]!.getDate()}.${days[0]!.getMonth() + 1} – ${days[6]!.getDate()}.${days[6]!.getMonth() + 1}.${days[6]!.getFullYear()}`;
+  const max = view === "week" ? 8 : 3;
 
   return (
     <Panel>
@@ -133,7 +145,9 @@ export function CalendarTab({
           ))}
         </div>
       </div>
-      <p className="mb-3 text-xs text-newborn-ink/50">לחיצה על יום פותחת קביעת צילום לתאריך הזה</p>
+      <p className="mb-3 text-xs text-newborn-ink/50">
+        לחיצה על יום פנוי פותחת קביעה לתאריך הזה{onPickItem ? " · לחיצה על צילום פותחת אותו" : ""}
+      </p>
 
       <div className="grid grid-cols-7 gap-1.5 text-center text-xs text-newborn-ink/50">
         {WEEKDAYS.map((w) => (
@@ -151,10 +165,13 @@ export function CalendarTab({
           const rest = isRestDay(d);
           const isToday = key === todayStr;
           return (
-            <button
+            <div
               key={key}
+              role="button"
+              tabIndex={0}
               onClick={() => onPickDay(key)}
-              className={`group flex flex-col rounded-2xl border p-1.5 text-right transition hover:border-newborn-rose/50 hover:shadow-sm ${
+              onKeyDown={(e) => e.key === "Enter" && onPickDay(key)}
+              className={`flex cursor-pointer flex-col rounded-2xl border p-1.5 text-right transition hover:border-newborn-rose/50 hover:shadow-sm ${
                 view === "week" ? "min-h-[180px]" : "min-h-[92px]"
               } ${isToday ? "border-newborn-rose bg-newborn-blush/40" : rest ? "border-transparent bg-stone-50" : "border-newborn-rose/10 bg-white"}`}
             >
@@ -176,28 +193,56 @@ export function CalendarTab({
                 </div>
               )}
               <div className="mt-1 space-y-0.5">
-                {list.slice(0, view === "week" ? 8 : 3).map((s) => {
-                  const c = data.clientById.get(s.client_id);
-                  return (
-                    <div
-                      key={s.id}
-                      className={`truncate rounded-md px-1 py-0.5 text-[10px] ${statusMeta(s.status).tone}`}
-                      title={`${s.start_time} ${c?.full_name ?? ""} · ${s.session_type}`}
-                    >
-                      {s.start_time} {c?.full_name ?? ""}
-                    </div>
-                  );
-                })}
-                {list.length > (view === "week" ? 8 : 3) && (
-                  <div className="text-[10px] text-newborn-ink/50">
-                    +{list.length - (view === "week" ? 8 : 3)}
-                  </div>
+                {list.slice(0, max).map((it) => (
+                  <button
+                    key={it.id}
+                    type="button"
+                    onClick={(e) => {
+                      if (!onPickItem) return;
+                      e.stopPropagation();
+                      onPickItem(it.id);
+                    }}
+                    className={`block w-full truncate rounded-md px-1 py-0.5 text-right text-[10px] ${it.tone}`}
+                    title={it.title ?? `${it.time} ${it.label}`}
+                  >
+                    {it.time} {it.label}
+                  </button>
+                ))}
+                {list.length > max && (
+                  <div className="text-[10px] text-newborn-ink/50">+{list.length - max}</div>
                 )}
               </div>
-            </button>
+            </div>
           );
         })}
       </div>
     </Panel>
   );
+}
+
+export function CalendarTab({
+  data,
+  onPickDay,
+}: {
+  data: CmData;
+  onPickDay: (date: string) => void;
+}) {
+  const items = useMemo<CalendarItem[]>(
+    () =>
+      data.sessions
+        .filter((s) => s.status !== "cancelled")
+        .map((s) => {
+          const c = data.clientById.get(s.client_id);
+          return {
+            id: s.id,
+            date: s.session_date,
+            time: s.start_time,
+            label: c?.full_name ?? "",
+            tone: statusMeta(s.status).tone,
+            title: `${s.start_time} ${c?.full_name ?? ""} · ${s.session_type}`,
+          };
+        }),
+    [data.sessions, data.clientById],
+  );
+  return <HebrewCalendar items={items} onPickDay={onPickDay} />;
 }

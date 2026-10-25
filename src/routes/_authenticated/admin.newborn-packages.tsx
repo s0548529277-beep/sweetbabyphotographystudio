@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -9,7 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -22,9 +28,30 @@ import {
   deleteNewbornOrder,
   sendNewbornPaymentReminderEmails,
 } from "@/lib/newborn-orders.functions";
-import { listNewbornPackageTypes, saveNewbornPackageType, deleteNewbornPackageType } from "@/lib/newborn-package-types.functions";
-import { NEWBORN_PACKAGES, NEWBORN_PACKAGE_CATEGORIES, NEWBORN_ADDONS, NEWBORN_TIMELINE_STEPS, findNewbornPackage } from "@/lib/newborn-packages";
+import {
+  listNewbornPackageTypes,
+  saveNewbornPackageType,
+  deleteNewbornPackageType,
+} from "@/lib/newborn-package-types.functions";
+import {
+  NEWBORN_PACKAGES,
+  NEWBORN_PACKAGE_CATEGORIES,
+  NEWBORN_ADDONS,
+  NEWBORN_TIMELINE_STEPS,
+  findNewbornPackage,
+} from "@/lib/newborn-packages";
 import { heError } from "@/lib/he-errors";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  CM_SETTINGS_KEY,
+  parseCmSettings,
+  whatsappLink,
+  ymd,
+  formatDateIL,
+} from "@/lib/client-management";
+import { HebrewCalendar, type CalendarItem } from "@/components/client-management/CalendarTab";
+import { SettingsTab } from "@/components/client-management/SettingsTab";
+import { DateHints, confirmRestDay } from "@/components/client-management/DateHints";
 import {
   Baby,
   Plus,
@@ -47,6 +74,11 @@ import {
   Table2,
   Gift,
   X as XIcon,
+  Settings as SettingsIcon,
+  Search,
+  Download,
+  MessageCircle,
+  ArrowRight,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/newborn-packages")({
@@ -130,10 +162,29 @@ function NewbornPackagesAdmin() {
   const runUpdatePayment = useServerFn(updateNewbornOrderPayment);
   const runMarkGalleryOpened = useServerFn(markNewbornGalleryOpened);
 
-  const orders = useQuery({ queryKey: ["newborn-orders"], queryFn: () => fetchOrders({}), enabled: !isDetail });
+  const orders = useQuery({
+    queryKey: ["newborn-orders"],
+    queryFn: () => fetchOrders({}),
+    enabled: !isDetail,
+  });
   const rows = (orders.data ?? []) as OrderRow[];
 
-  const [view, setView] = useState<"dashboard" | "list" | "table" | "calendar" | "payments" | "packages">("dashboard");
+  const [view, setView] = useState<
+    "dashboard" | "list" | "table" | "hebcal" | "calendar" | "payments" | "packages" | "settings"
+  >("dashboard");
+  const [search, setSearch] = useState("");
+  const cmSettings = useQuery({
+    queryKey: ["cm-settings"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("app_settings")
+        .select("value")
+        .eq("key", CM_SETTINGS_KEY)
+        .maybeSingle();
+      return parseCmSettings(data?.value);
+    },
+    enabled: !isDetail,
+  });
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState(emptyCreateForm);
   const [saving, setSaving] = useState(false);
@@ -149,15 +200,25 @@ function NewbornPackagesAdmin() {
   }
 
   const selectedPackage = findNewbornPackage(createForm.package_id);
-  const addonsTotal = NEWBORN_ADDONS.filter((a) => createForm.addon_ids.includes(a.id)).reduce((s, a) => s + a.price, 0);
+  const addonsTotal = NEWBORN_ADDONS.filter((a) => createForm.addon_ids.includes(a.id)).reduce(
+    (s, a) => s + a.price,
+    0,
+  );
   const total = (selectedPackage?.price ?? 0) + addonsTotal;
 
   const toggleAddon = (id: string) =>
-    setCreateForm((f) => ({ ...f, addon_ids: f.addon_ids.includes(id) ? f.addon_ids.filter((a) => a !== id) : [...f.addon_ids, id] }));
+    setCreateForm((f) => ({
+      ...f,
+      addon_ids: f.addon_ids.includes(id)
+        ? f.addon_ids.filter((a) => a !== id)
+        : [...f.addon_ids, id],
+    }));
 
   const submitCreate = async () => {
     if (!createForm.package_id) return toast.error("יש לבחור חבילה");
-    if (!createForm.contact_name.trim() || !createForm.contact_phone.trim()) return toast.error("שם וטלפון הם שדות חובה");
+    if (!createForm.contact_name.trim() || !createForm.contact_phone.trim())
+      return toast.error("שם וטלפון הם שדות חובה");
+    if (!confirmRestDay(createForm.session_date)) return;
     setSaving(true);
     try {
       const created: any = await runCreate({
@@ -181,24 +242,32 @@ function NewbornPackagesAdmin() {
         // doesn't read as "the time was saved" when it wasn't (this is also
         // why the calendar event can land on the default 10:00 instead of
         // the real chosen time).
-        toast.warning("ההזמנה נוצרה, אבל שעת הצילום/סל לידה עדיין לא נשמרו — יש לעדכן את מסד הנתונים ולנסות שוב");
+        toast.warning(
+          "ההזמנה נוצרה, אבל שעת הצילום/סל לידה עדיין לא נשמרו — יש לעדכן את מסד הנתונים ולנסות שוב",
+        );
       } else if (created?._bookingBlockError) {
         // This is the important one: it means the slot is NOT actually
         // blocked, so a customer could still rent the studio at the same
         // time. Shown ahead of a calendar-only failure since it's the real
         // double-booking risk, not just a missing visual mirror.
-        toast.warning(`ההזמנה נוצרה, אבל חסימת השעות ביומן הסטודיו נכשלה — יתכן שהשעות עדיין פתוחות להזמנה: ${created._bookingBlockError}`);
+        toast.warning(
+          `ההזמנה נוצרה, אבל חסימת השעות ביומן הסטודיו נכשלה — יתכן שהשעות עדיין פתוחות להזמנה: ${created._bookingBlockError}`,
+        );
       } else if (created?._calendarError) {
         // Secondary — Google Calendar is a visual mirror only; the studio's
         // own availability is already protected via the booking block above.
-        toast.warning(`ההזמנה נוצרה והשעות חסומות באתר, אבל השריון ביומן Google נכשל: ${created._calendarError}`);
+        toast.warning(
+          `ההזמנה נוצרה והשעות חסומות באתר, אבל השריון ביומן Google נכשל: ${created._calendarError}`,
+        );
       } else if (created?._bookingBlockConfirmed) {
         // Real proof — a fresh, independent read-back right after the
         // insert, not just "the insert didn't error". Shows the exact
         // date/time so it's obvious whether it matches what was actually
         // typed.
         const c = created._bookingBlockConfirmed;
-        toast.success(`ההזמנה נוצרה, והשעות נחסמו ביומן הסטודיו: ${c.date} ${c.start}–${c.end} — הכרטיסייה מוכנה למטה`);
+        toast.success(
+          `ההזמנה נוצרה, והשעות נחסמו ביומן הסטודיו: ${c.date} ${c.start}–${c.end} — הכרטיסייה מוכנה למטה`,
+        );
       } else {
         toast.success("ההזמנה נוצרה — הכרטיסייה מוכנה למטה");
       }
@@ -216,7 +285,9 @@ function NewbornPackagesAdmin() {
     setBusyStep(`${order.id}:${stepKey}`);
     // Optimistic — the checklist should feel instant; rolled back via a refetch if the save actually fails.
     qc.setQueryData(["newborn-orders"], (prev: OrderRow[] | undefined) =>
-      prev?.map((o) => (o.id === order.id ? { ...o, [`${stepKey}_at`]: done ? new Date().toISOString() : null } : o)),
+      prev?.map((o) =>
+        o.id === order.id ? { ...o, [`${stepKey}_at`]: done ? new Date().toISOString() : null } : o,
+      ),
     );
     try {
       await runToggle({ data: { id: order.id, step_key: stepKey, done } });
@@ -235,7 +306,13 @@ function NewbornPackagesAdmin() {
 
   const submitEdit = async () => {
     if (!editTarget || !editForm) return;
-    if (!editForm.contact_name.trim() || !editForm.contact_phone.trim()) return toast.error("שם וטלפון הם שדות חובה");
+    if (!editForm.contact_name.trim() || !editForm.contact_phone.trim())
+      return toast.error("שם וטלפון הם שדות חובה");
+    if (
+      editForm.session_date !== (editTarget.session_date ?? "") &&
+      !confirmRestDay(editForm.session_date)
+    )
+      return;
     setEditSaving(true);
     try {
       const result: any = await runUpdateContact({
@@ -253,11 +330,17 @@ function NewbornPackagesAdmin() {
       });
       if (result?._schemaFallback) {
         // See submitCreate's matching comment.
-        toast.warning("שאר הפרטים עודכנו, אבל שעת הצילום/סל לידה עדיין לא נשמרו — יש לעדכן את מסד הנתונים ולנסות שוב");
+        toast.warning(
+          "שאר הפרטים עודכנו, אבל שעת הצילום/סל לידה עדיין לא נשמרו — יש לעדכן את מסד הנתונים ולנסות שוב",
+        );
       } else if (result?._bookingBlockError) {
-        toast.warning(`הפרטים עודכנו, אבל חסימת השעות ביומן הסטודיו נכשלה — יתכן שהשעות עדיין פתוחות להזמנה: ${result._bookingBlockError}`);
+        toast.warning(
+          `הפרטים עודכנו, אבל חסימת השעות ביומן הסטודיו נכשלה — יתכן שהשעות עדיין פתוחות להזמנה: ${result._bookingBlockError}`,
+        );
       } else if (result?._calendarError) {
-        toast.warning(`הפרטים עודכנו והשעות חסומות באתר, אבל השריון ביומן Google נכשל: ${result._calendarError}`);
+        toast.warning(
+          `הפרטים עודכנו והשעות חסומות באתר, אבל השריון ביומן Google נכשל: ${result._calendarError}`,
+        );
       } else if (result?._bookingBlockConfirmed) {
         const c = result._bookingBlockConfirmed;
         toast.success(`הפרטים עודכנו, והשעות נחסמו ביומן הסטודיו: ${c.date} ${c.start}–${c.end}`);
@@ -299,86 +382,263 @@ function NewbornPackagesAdmin() {
     nav({ to: "/admin/newborn-packages/$orderId", params: { orderId: order.id } });
   };
 
+  // ---- ChikTime-style helpers (search, Hebrew calendar, same-day warning, CSV) ----
+  const sameDayTimes = (date: string | null | undefined, excludeId?: string) =>
+    date
+      ? rows
+          .filter((o) => o.session_date === date && o.id !== excludeId)
+          .map((o) => o.session_time?.slice(0, 5) || "?")
+      : [];
+
+  const term = search.trim().toLowerCase();
+  const shownRows = term
+    ? rows.filter((o) =>
+        [
+          o.contact_name,
+          o.contact_phone,
+          o.contact_email,
+          o.notes,
+          findNewbornPackage(o.package_id)?.name,
+        ].some((v) => (v ?? "").toLowerCase().includes(term)),
+      )
+    : rows;
+
+  const calendarItems: CalendarItem[] = rows
+    .filter((o) => o.session_date)
+    .map((o) => {
+      const paid = Number(o.amount_paid || 0) >= Number(o.total_price || 0);
+      return {
+        id: o.id,
+        date: o.session_date as string,
+        time: o.session_time?.slice(0, 5) || "",
+        label: o.contact_name,
+        tone: paid ? "bg-emerald-100 text-emerald-800" : "bg-newborn-blush text-newborn-ink",
+        title: `${o.session_time?.slice(0, 5) ?? ""} ${o.contact_name} · ${findNewbornPackage(o.package_id)?.name ?? ""}`,
+      };
+    });
+
+  const openCreateFor = (date?: string) => {
+    setCreateForm({ ...emptyCreateForm, session_date: date ?? "" });
+    setCreateOpen(true);
+  };
+
+  const exportCsv = () => {
+    const header = [
+      "שם",
+      "טלפון",
+      "מייל",
+      "חבילה",
+      "תאריך צילום",
+      "שעה",
+      "סל לידה",
+      "סה״כ",
+      "שולם",
+      "יתרה",
+      "הערות",
+    ];
+    const lines = rows.map((o) => [
+      o.contact_name,
+      o.contact_phone,
+      o.contact_email ?? "",
+      findNewbornPackage(o.package_id)?.name ?? o.package_id,
+      o.session_date ?? "",
+      o.session_time?.slice(0, 5) ?? "",
+      o.birth_basket_used ? "כן" : "",
+      String(o.total_price ?? 0),
+      String(o.amount_paid ?? 0),
+      String(Math.max(0, Number(o.total_price || 0) - Number(o.amount_paid || 0))),
+      o.notes ?? "",
+    ]);
+    const csv =
+      "\uFEFF" +
+      [header, ...lines]
+        .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+        .join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `לקוחות-ניו-בורן-${ymd(new Date())}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const missingEmail = rows.filter(
+    (o) => o.session_date && o.session_date >= ymd(new Date()) && !o.contact_email,
+  );
+
+  const TABS = [
+    { key: "dashboard", label: "מסך ראשי", icon: LayoutDashboard },
+    { key: "list", label: "לקוחות", icon: List },
+    { key: "hebcal", label: "לוח שנה", icon: CalendarRange },
+    { key: "calendar", label: "יומן יומי", icon: CalendarDays },
+    { key: "table", label: "טבלה", icon: Table2 },
+    { key: "payments", label: "תשלומים", icon: Wallet },
+    { key: "packages", label: "חבילות", icon: Baby },
+    { key: "settings", label: "הגדרות", icon: SettingsIcon },
+  ] as const;
+
   return (
-    <div className="space-y-6 max-w-4xl">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h2 className="font-display text-xl text-primary mb-1 flex items-center gap-2">
-            <Baby className="h-5 w-5" /> חבילות ניו-בורן
-          </h2>
-          <p className="text-sm text-muted-foreground">מעקב פנימי בלבד — מרגע סגירת החבילה ועד הגעת האלבום ללקוחה. לא מוצג לאתר או ללקוחות.</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="inline-flex bg-card rounded-full border border-primary/10 p-1">
-            {(
-              [
-                { key: "dashboard", label: "מסך ראשי", icon: LayoutDashboard },
-                { key: "list", label: "רשימה", icon: List },
-                { key: "table", label: "טבלה", icon: Table2 },
-                { key: "calendar", label: "לוח", icon: CalendarRange },
-                { key: "payments", label: "תשלומים", icon: Wallet },
-                { key: "packages", label: "חבילות (גרסה 2)", icon: Baby },
-              ] as const
-            ).map((t) => (
-              <button
-                key={t.key}
-                type="button"
-                onClick={() => setView(t.key)}
-                className={`h-8 px-3 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors ${
-                  view === t.key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-cream"
-                }`}
-              >
-                <t.icon className="h-3.5 w-3.5" /> {t.label}
-              </button>
-            ))}
+    <div
+      dir="rtl"
+      className="min-h-screen bg-gradient-to-b from-newborn-canvas via-white to-newborn-blush/30"
+    >
+      {/* Standalone header — this page fills the whole screen (see admin.tsx FULLSCREEN_PATHS) */}
+      <header className="sticky top-0 z-30 border-b border-newborn-rose/15 bg-white/85 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Link
+              to="/admin"
+              className="grid h-9 w-9 place-items-center rounded-full border border-newborn-rose/20 text-newborn-ink hover:bg-newborn-blush/50"
+              title="חזרה לניהול"
+            >
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <div>
+              <p className="text-[10px] tracking-[0.3em] text-newborn-gold">
+                MICHAL SIBONI · NEWBORN
+              </p>
+              <h1 className="font-display text-2xl leading-tight text-newborn-ink">
+                לקוחות ניו-בורן
+              </h1>
+            </div>
           </div>
           <Button
-            onClick={() => {
-              setCreateForm(emptyCreateForm);
-              setCreateOpen(true);
-            }}
-            className="rounded-full gap-2"
+            onClick={() => openCreateFor()}
+            className="rounded-full bg-newborn-rose text-white shadow-lg shadow-newborn-rose/20 hover:bg-newborn-rose/90 gap-2"
           >
             <Plus className="h-4 w-4" /> הזמנה חדשה
           </Button>
         </div>
-      </div>
-
-      {orders.isLoading && <p className="text-sm text-muted-foreground">טוען…</p>}
-      {!orders.isLoading && rows.length === 0 && (
-        <div className="bg-card rounded-2xl border border-primary/10 p-8 text-center text-sm text-muted-foreground">
-          עדיין אין הזמנות חבילת ניו-בורן. אפשר להתחיל למעלה.
-        </div>
-      )}
-
-      {view === "dashboard" && <NewbornDashboardView rows={rows} onGoToCalendar={() => setView("calendar")} />}
-
-      {view === "calendar" && (
-        <NewbornCalendarView rows={rows} onEdit={openEdit} onOpenGallery={openGallery} openingGalleryId={openingGalleryId} />
-      )}
-
-      {view === "table" && <NewbornTableView rows={rows} />}
-
-      {view === "payments" && <NewbornPaymentsView rows={rows} runUpdatePayment={runUpdatePayment} onSaved={() => qc.invalidateQueries({ queryKey: ["newborn-orders"] })} />}
-
-      {view === "packages" && <PackageTypesSection />}
-
-      {view === "list" && (
-        <div className="space-y-4">
-          {rows.map((order) => (
-            <OrderCard
-              key={order.id}
-              order={order}
-              busyStep={busyStep}
-              openingGallery={openingGalleryId === order.id}
-              onToggleStep={(stepKey, done) => toggleStep(order, stepKey, done)}
-              onEdit={() => openEdit(order)}
-              onDelete={() => remove(order)}
-              onOpenGallery={() => openGallery(order)}
-            />
+        <nav className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 pb-2">
+          {TABS.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setView(t.key)}
+              className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm transition ${
+                view === t.key
+                  ? "bg-newborn-ink text-white shadow"
+                  : "text-newborn-ink/70 hover:bg-newborn-blush/50"
+              }`}
+            >
+              <t.icon className="h-4 w-4" /> {t.label}
+            </button>
           ))}
-        </div>
-      )}
+        </nav>
+      </header>
+
+      <main className="mx-auto max-w-7xl space-y-6 px-4 py-6">
+        {orders.isLoading && <p className="text-sm text-muted-foreground">טוען…</p>}
+        {!orders.isLoading && rows.length === 0 && view !== "settings" && view !== "packages" && (
+          <div className="rounded-3xl border border-newborn-rose/20 bg-white p-8 text-center text-sm text-muted-foreground">
+            עדיין אין הזמנות חבילת ניו-בורן. אפשר להתחיל בכפתור "הזמנה חדשה".
+          </div>
+        )}
+
+        {view === "dashboard" && (
+          <>
+            <NewbornDashboardView rows={rows} onGoToCalendar={() => setView("hebcal")} />
+            {missingEmail.length > 0 && (
+              <div className="rounded-3xl border border-amber-200 bg-amber-50/70 p-4 text-sm">
+                <div className="mb-2 font-medium text-amber-900">
+                  ⚠️ לא יקבלו תזכורת אוטומטית (אין מייל)
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {missingEmail.map((o) => (
+                    <button
+                      key={o.id}
+                      type="button"
+                      onClick={() => openEdit(o)}
+                      className="rounded-full bg-white px-3 py-1 text-xs text-amber-900 shadow-sm hover:bg-amber-100"
+                    >
+                      {o.contact_name} · {formatDateIL(o.session_date)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {view === "hebcal" && (
+          <HebrewCalendar
+            items={calendarItems}
+            onPickDay={(date) => openCreateFor(date)}
+            onPickItem={(id) => {
+              const o = rows.find((r) => r.id === id);
+              if (o) openEdit(o);
+            }}
+          />
+        )}
+
+        {view === "calendar" && (
+          <NewbornCalendarView
+            rows={rows}
+            onEdit={openEdit}
+            onOpenGallery={openGallery}
+            openingGalleryId={openingGalleryId}
+          />
+        )}
+
+        {(view === "list" || view === "table") && rows.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative min-w-[220px] flex-1">
+              <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="חיפוש לפי שם, טלפון, מייל, חבילה…"
+                className="rounded-full bg-white pr-9"
+              />
+            </div>
+            <span className="text-sm text-muted-foreground">{shownRows.length} לקוחות</span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full gap-1.5"
+              onClick={exportCsv}
+            >
+              <Download className="h-4 w-4" /> ייצוא לאקסל
+            </Button>
+          </div>
+        )}
+
+        {view === "table" && <NewbornTableView rows={shownRows} />}
+
+        {view === "payments" && (
+          <NewbornPaymentsView
+            rows={rows}
+            runUpdatePayment={runUpdatePayment}
+            onSaved={() => qc.invalidateQueries({ queryKey: ["newborn-orders"] })}
+          />
+        )}
+
+        {view === "packages" && <PackageTypesSection />}
+
+        {view === "settings" &&
+          (cmSettings.data ? (
+            <SettingsTab data={{ settings: cmSettings.data }} />
+          ) : (
+            <p className="text-sm text-muted-foreground">טוען…</p>
+          ))}
+
+        {view === "list" && (
+          <div className="grid gap-4 lg:grid-cols-2">
+            {shownRows.map((order) => (
+              <OrderCard
+                key={order.id}
+                order={order}
+                busyStep={busyStep}
+                openingGallery={openingGalleryId === order.id}
+                onToggleStep={(stepKey, done) => toggleStep(order, stepKey, done)}
+                onEdit={() => openEdit(order)}
+                onDelete={() => remove(order)}
+                onOpenGallery={() => openGallery(order)}
+              />
+            ))}
+          </div>
+        )}
+      </main>
 
       {/* New order */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -401,14 +661,18 @@ function NewbornPackagesAdmin() {
                         type="button"
                         onClick={() => setCreateForm((f) => ({ ...f, package_id: p.id }))}
                         className={`w-full text-right rounded-xl border p-3 transition-colors ${
-                          createForm.package_id === p.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                          createForm.package_id === p.id
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-primary/50"
                         }`}
                       >
                         <div className="flex items-center justify-between">
                           <span className="font-medium text-primary">{p.name}</span>
                           <span className="font-display text-lg text-primary">₪{p.price}</span>
                         </div>
-                        <div className="text-xs text-muted-foreground mt-1">{p.features.join(" · ")}</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {p.features.join(" · ")}
+                        </div>
                       </button>
                     ))}
                   </div>
@@ -420,8 +684,14 @@ function NewbornPackagesAdmin() {
               <Label className="mb-2 block">תוספות</Label>
               <div className="grid grid-cols-2 gap-2">
                 {NEWBORN_ADDONS.map((a) => (
-                  <label key={a.id} className="flex items-center gap-2 text-sm rounded-lg border border-border p-2 cursor-pointer">
-                    <Checkbox checked={createForm.addon_ids.includes(a.id)} onCheckedChange={() => toggleAddon(a.id)} />
+                  <label
+                    key={a.id}
+                    className="flex items-center gap-2 text-sm rounded-lg border border-border p-2 cursor-pointer"
+                  >
+                    <Checkbox
+                      checked={createForm.addon_ids.includes(a.id)}
+                      onCheckedChange={() => toggleAddon(a.id)}
+                    />
                     <span className="flex-1">{a.label}</span>
                     <span className="text-muted-foreground">+₪{a.price}</span>
                   </label>
@@ -437,29 +707,59 @@ function NewbornPackagesAdmin() {
             <div className="grid sm:grid-cols-2 gap-3">
               <div>
                 <Label>שם הלקוחה *</Label>
-                <Input value={createForm.contact_name} onChange={(e) => setCreateForm((f) => ({ ...f, contact_name: e.target.value }))} />
+                <Input
+                  value={createForm.contact_name}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, contact_name: e.target.value }))}
+                />
               </div>
               <div>
                 <Label>טלפון *</Label>
-                <Input dir="ltr" value={createForm.contact_phone} onChange={(e) => setCreateForm((f) => ({ ...f, contact_phone: e.target.value }))} />
+                <Input
+                  dir="ltr"
+                  value={createForm.contact_phone}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, contact_phone: e.target.value }))}
+                />
               </div>
               <div>
                 <Label>מייל</Label>
-                <Input dir="ltr" type="email" value={createForm.contact_email} onChange={(e) => setCreateForm((f) => ({ ...f, contact_email: e.target.value }))} />
+                <Input
+                  dir="ltr"
+                  type="email"
+                  value={createForm.contact_email}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, contact_email: e.target.value }))}
+                />
               </div>
               <div>
                 <Label>תאריך צילום (אם ידוע)</Label>
-                <Input type="date" value={createForm.session_date} onChange={(e) => setCreateForm((f) => ({ ...f, session_date: e.target.value }))} />
+                <Input
+                  type="date"
+                  value={createForm.session_date}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, session_date: e.target.value }))}
+                />
+                <DateHints
+                  date={createForm.session_date}
+                  sameDayTimes={sameDayTimes(createForm.session_date)}
+                />
               </div>
               <div>
                 <Label>שעת צילום</Label>
-                <Input type="time" value={createForm.session_time} onChange={(e) => setCreateForm((f) => ({ ...f, session_time: e.target.value }))} />
+                <Input
+                  type="time"
+                  value={createForm.session_time}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, session_time: e.target.value }))}
+                />
               </div>
             </div>
-            <BirthBasketToggle value={createForm.birth_basket_used} onChange={(v) => setCreateForm((f) => ({ ...f, birth_basket_used: v }))} />
+            <BirthBasketToggle
+              value={createForm.birth_basket_used}
+              onChange={(v) => setCreateForm((f) => ({ ...f, birth_basket_used: v }))}
+            />
             <div>
               <Label>הערות</Label>
-              <Textarea value={createForm.notes} onChange={(e) => setCreateForm((f) => ({ ...f, notes: e.target.value }))} />
+              <Textarea
+                value={createForm.notes}
+                onChange={(e) => setCreateForm((f) => ({ ...f, notes: e.target.value }))}
+              />
             </div>
           </div>
           <DialogFooter>
@@ -481,25 +781,52 @@ function NewbornPackagesAdmin() {
             <div className="space-y-3 py-2">
               <div>
                 <Label>שם הלקוחה *</Label>
-                <Input value={editForm.contact_name} onChange={(e) => setEditForm((f) => f && { ...f, contact_name: e.target.value })} />
+                <Input
+                  value={editForm.contact_name}
+                  onChange={(e) => setEditForm((f) => f && { ...f, contact_name: e.target.value })}
+                />
               </div>
               <div>
                 <Label>טלפון *</Label>
-                <Input dir="ltr" value={editForm.contact_phone} onChange={(e) => setEditForm((f) => f && { ...f, contact_phone: e.target.value })} />
+                <Input
+                  dir="ltr"
+                  value={editForm.contact_phone}
+                  onChange={(e) => setEditForm((f) => f && { ...f, contact_phone: e.target.value })}
+                />
               </div>
               <div>
                 <Label>מייל</Label>
-                <Input dir="ltr" type="email" value={editForm.contact_email} onChange={(e) => setEditForm((f) => f && { ...f, contact_email: e.target.value })} />
+                <Input
+                  dir="ltr"
+                  type="email"
+                  value={editForm.contact_email}
+                  onChange={(e) => setEditForm((f) => f && { ...f, contact_email: e.target.value })}
+                />
               </div>
               <div>
                 <Label>תאריך צילום</Label>
-                <Input type="date" value={editForm.session_date} onChange={(e) => setEditForm((f) => f && { ...f, session_date: e.target.value })} />
+                <Input
+                  type="date"
+                  value={editForm.session_date}
+                  onChange={(e) => setEditForm((f) => f && { ...f, session_date: e.target.value })}
+                />
+                <DateHints
+                  date={editForm.session_date}
+                  sameDayTimes={sameDayTimes(editForm.session_date, editTarget?.id)}
+                />
               </div>
               <div>
                 <Label>שעת צילום</Label>
-                <Input type="time" value={editForm.session_time} onChange={(e) => setEditForm((f) => f && { ...f, session_time: e.target.value })} />
+                <Input
+                  type="time"
+                  value={editForm.session_time}
+                  onChange={(e) => setEditForm((f) => f && { ...f, session_time: e.target.value })}
+                />
               </div>
-              <BirthBasketToggle value={editForm.birth_basket_used} onChange={(v) => setEditForm((f) => f && { ...f, birth_basket_used: v })} />
+              <BirthBasketToggle
+                value={editForm.birth_basket_used}
+                onChange={(v) => setEditForm((f) => f && { ...f, birth_basket_used: v })}
+              />
               <div>
                 <Label>סכום כולל (₪)</Label>
                 <Input
@@ -510,11 +837,16 @@ function NewbornPackagesAdmin() {
                   onChange={(e) => setEditForm((f) => f && { ...f, total_price: e.target.value })}
                   placeholder="לדוגמה אם סוכם מחיר שונה מהמחירון בטלפון"
                 />
-                <p className="text-[11px] text-muted-foreground mt-1">זה הסכום שיופיע בחוזה שנשלח — לא משנה את מה שכבר שולם.</p>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  זה הסכום שיופיע בחוזה שנשלח — לא משנה את מה שכבר שולם.
+                </p>
               </div>
               <div>
                 <Label>הערות</Label>
-                <Textarea value={editForm.notes} onChange={(e) => setEditForm((f) => f && { ...f, notes: e.target.value })} />
+                <Textarea
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm((f) => f && { ...f, notes: e.target.value })}
+                />
               </div>
             </div>
           )}
@@ -531,13 +863,21 @@ function NewbornPackagesAdmin() {
 }
 
 /** A single toggle button (not a checkbox — requested specifically as "כפתור") for whether the קופת חולים "סל לידה" birth-basket benefit was used for this order — see photography-options.ts's own doc comment on how the benefit works. Purely informational bookkeeping; doesn't affect pricing anywhere in this page. */
-function BirthBasketToggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+function BirthBasketToggle({
+  value,
+  onChange,
+}: {
+  value: boolean;
+  onChange: (v: boolean) => void;
+}) {
   return (
     <button
       type="button"
       onClick={() => onChange(!value)}
       className={`w-full flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm transition-colors ${
-        value ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:border-primary/50"
+        value
+          ? "border-primary bg-primary/5 text-primary"
+          : "border-border text-muted-foreground hover:border-primary/50"
       }`}
     >
       <span className="flex items-center gap-2">
@@ -594,10 +934,34 @@ function OrderCard({
         </div>
         <div className="flex items-center gap-1">
           <span className="font-display text-xl text-primary ml-1">₪{order.total_price}</span>
-          <button type="button" onClick={onEdit} className="h-8 w-8 rounded-full hover:bg-primary/10 text-primary flex items-center justify-center">
+          {whatsappLink(order.contact_phone) && (
+            <a
+              href={whatsappLink(
+                order.contact_phone,
+                order.session_date
+                  ? `היי ${order.contact_name}, תזכורת לצילום ב-${formatDateIL(order.session_date)}${order.session_time ? ` בשעה ${order.session_time.slice(0, 5)}` : ""} 💗`
+                  : undefined,
+              )!}
+              target="_blank"
+              rel="noreferrer"
+              title="וואטסאפ"
+              className="h-8 w-8 rounded-full hover:bg-emerald-50 text-emerald-600 flex items-center justify-center"
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+            </a>
+          )}
+          <button
+            type="button"
+            onClick={onEdit}
+            className="h-8 w-8 rounded-full hover:bg-primary/10 text-primary flex items-center justify-center"
+          >
             <Pencil className="h-3.5 w-3.5" />
           </button>
-          <button type="button" onClick={onDelete} className="h-8 w-8 rounded-full hover:bg-destructive/10 text-destructive flex items-center justify-center">
+          <button
+            type="button"
+            onClick={onDelete}
+            className="h-8 w-8 rounded-full hover:bg-destructive/10 text-destructive flex items-center justify-center"
+          >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -610,15 +974,26 @@ function OrderCard({
         title={order.contact_email ? undefined : "יש להוסיף מייל ללקוחה קודם"}
         className="w-full mb-3 h-9 rounded-xl border border-primary/15 hover:bg-primary/5 text-sm text-primary flex items-center justify-center gap-1.5 transition-colors disabled:opacity-60"
       >
-        {openingGallery ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Images className="h-3.5 w-3.5" />}
+        {openingGallery ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Images className="h-3.5 w-3.5" />
+        )}
         פתיחת גלריה ללקוחה
       </button>
 
-      {order.notes && <p className="text-xs text-muted-foreground bg-blush/30 rounded-lg p-2 mb-3 whitespace-pre-line">{order.notes}</p>}
+      {order.notes && (
+        <p className="text-xs text-muted-foreground bg-blush/30 rounded-lg p-2 mb-3 whitespace-pre-line">
+          {order.notes}
+        </p>
+      )}
 
       <div className="mb-2 flex items-center gap-2">
         <div className="flex-1 h-1.5 rounded-full bg-border overflow-hidden">
-          <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${(doneCount / NEWBORN_TIMELINE_STEPS.length) * 100}%` }} />
+          <div
+            className="h-full bg-primary rounded-full transition-all"
+            style={{ width: `${(doneCount / NEWBORN_TIMELINE_STEPS.length) * 100}%` }}
+          />
         </div>
         <span className="text-[11px] text-muted-foreground whitespace-nowrap">
           {doneCount}/{NEWBORN_TIMELINE_STEPS.length}
@@ -636,7 +1011,9 @@ function OrderCard({
               disabled={busy}
               onClick={() => onToggleStep(step.key, !doneAt)}
               className={`flex items-center gap-2 text-sm rounded-lg px-3 py-2 text-right transition-colors ${
-                doneAt ? "bg-forest/10 text-forest" : "bg-cream/60 text-muted-foreground hover:bg-cream"
+                doneAt
+                  ? "bg-forest/10 text-forest"
+                  : "bg-cream/60 text-muted-foreground hover:bg-cream"
               }`}
             >
               {busy ? (
@@ -688,7 +1065,8 @@ function NewbornCalendarView({
     };
   }, [rows]);
 
-  const toLocalKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const toLocalKey = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const key = selected ? toLocalKey(selected) : "";
   const dayOrders = byDate.get(key) ?? [];
   const withoutDate = rows.filter((o) => !o.session_date);
@@ -712,14 +1090,26 @@ function NewbornCalendarView({
       <div className="space-y-4">
         <div className="bg-card rounded-2xl p-5 border border-primary/10">
           <h3 className="font-display text-xl text-primary mb-3">
-            {selected?.toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "long" })}
+            {selected?.toLocaleDateString("he-IL", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+            })}
           </h3>
           {dayOrders.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8 border border-dashed border-primary/15 rounded-xl">אין צילומים ליום זה</p>
+            <p className="text-sm text-muted-foreground text-center py-8 border border-dashed border-primary/15 rounded-xl">
+              אין צילומים ליום זה
+            </p>
           ) : (
             <div className="space-y-2">
               {dayOrders.map((o) => (
-                <MiniOrderRow key={o.id} order={o} openingGallery={openingGalleryId === o.id} onEdit={() => onEdit(o)} onOpenGallery={() => onOpenGallery(o)} />
+                <MiniOrderRow
+                  key={o.id}
+                  order={o}
+                  openingGallery={openingGalleryId === o.id}
+                  onEdit={() => onEdit(o)}
+                  onOpenGallery={() => onOpenGallery(o)}
+                />
               ))}
             </div>
           )}
@@ -727,10 +1117,18 @@ function NewbornCalendarView({
 
         {withoutDate.length > 0 && (
           <div className="bg-card rounded-2xl p-5 border border-primary/10">
-            <h3 className="text-sm font-semibold text-primary mb-3">בלי תאריך צילום עדיין ({withoutDate.length})</h3>
+            <h3 className="text-sm font-semibold text-primary mb-3">
+              בלי תאריך צילום עדיין ({withoutDate.length})
+            </h3>
             <div className="space-y-2">
               {withoutDate.map((o) => (
-                <MiniOrderRow key={o.id} order={o} openingGallery={openingGalleryId === o.id} onEdit={() => onEdit(o)} onOpenGallery={() => onOpenGallery(o)} />
+                <MiniOrderRow
+                  key={o.id}
+                  order={o}
+                  openingGallery={openingGalleryId === o.id}
+                  onEdit={() => onEdit(o)}
+                  onOpenGallery={() => onOpenGallery(o)}
+                />
               ))}
             </div>
           </div>
@@ -757,12 +1155,20 @@ function MiniOrderRow({
       <div className="min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-medium text-primary">{order.contact_name}</span>
-          <Badge variant="secondary" className="text-[10px]">{pkg?.name ?? order.package_id}</Badge>
+          <Badge variant="secondary" className="text-[10px]">
+            {pkg?.name ?? order.package_id}
+          </Badge>
         </div>
-        <div className="text-xs text-muted-foreground" dir="ltr">{order.contact_phone}</div>
+        <div className="text-xs text-muted-foreground" dir="ltr">
+          {order.contact_phone}
+        </div>
       </div>
       <div className="flex items-center gap-1 shrink-0">
-        <button type="button" onClick={onEdit} className="h-8 w-8 rounded-full hover:bg-primary/10 text-primary flex items-center justify-center">
+        <button
+          type="button"
+          onClick={onEdit}
+          className="h-8 w-8 rounded-full hover:bg-primary/10 text-primary flex items-center justify-center"
+        >
           <Pencil className="h-3.5 w-3.5" />
         </button>
         <button
@@ -772,7 +1178,11 @@ function MiniOrderRow({
           title={order.contact_email ? undefined : "יש להוסיף מייל ללקוחה קודם"}
           className="h-8 px-3 rounded-full border border-primary/15 hover:bg-primary/5 text-xs text-primary flex items-center gap-1.5 disabled:opacity-60"
         >
-          {openingGallery ? <Loader2 className="h-3 w-3 animate-spin" /> : <Images className="h-3 w-3" />}
+          {openingGallery ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <Images className="h-3 w-3" />
+          )}
           גלריה
         </button>
       </div>
@@ -785,10 +1195,24 @@ function todayKey(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function StatCard({ icon: Icon, value, label, tone }: { icon: typeof Wallet; value: string; label: string; tone?: "warn" }) {
+function StatCard({
+  icon: Icon,
+  value,
+  label,
+  tone,
+}: {
+  icon: typeof Wallet;
+  value: string;
+  label: string;
+  tone?: "warn";
+}) {
   return (
     <div className="bg-card rounded-2xl border border-primary/10 p-4">
-      <div className={`font-display text-2xl mb-1 ${tone === "warn" ? "text-destructive" : "text-primary"}`}>{value}</div>
+      <div
+        className={`font-display text-2xl mb-1 ${tone === "warn" ? "text-destructive" : "text-primary"}`}
+      >
+        {value}
+      </div>
       <div className="text-xs text-muted-foreground flex items-center gap-1.5">
         <Icon className="h-3.5 w-3.5" /> {label}
       </div>
@@ -804,24 +1228,42 @@ function StatCard({ icon: Icon, value, label, tone }: { icon: typeof Wallet; val
  * per-payment ledger, only a running amount_paid total per order, stamped
  * with when it was last touched.
  */
-function NewbornDashboardView({ rows, onGoToCalendar }: { rows: OrderRow[]; onGoToCalendar: () => void }) {
+function NewbornDashboardView({
+  rows,
+  onGoToCalendar,
+}: {
+  rows: OrderRow[];
+  onGoToCalendar: () => void;
+}) {
   const today = todayKey();
   const now = new Date();
 
-  const openBalance = rows.reduce((sum, o) => sum + Math.max(0, Number(o.total_price) - Number(o.amount_paid)), 0);
+  const openBalance = rows.reduce(
+    (sum, o) => sum + Math.max(0, Number(o.total_price) - Number(o.amount_paid)),
+    0,
+  );
   const paidThisMonth = rows.reduce((sum, o) => {
     if (!o.last_payment_at) return sum;
     const d = new Date(o.last_payment_at);
-    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() ? sum + Number(o.amount_paid) : sum;
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
+      ? sum + Number(o.amount_paid)
+      : sum;
   }, 0);
   const galleriesCount = rows.filter((o) => o.gallery_opened_at).length;
-  const upcoming = rows.filter((o) => o.session_date && o.session_date >= today).sort((a, b) => (a.session_date! < b.session_date! ? -1 : 1));
+  const upcoming = rows
+    .filter((o) => o.session_date && o.session_date >= today)
+    .sort((a, b) => (a.session_date! < b.session_date! ? -1 : 1));
   const todayCount = rows.filter((o) => o.session_date === today).length;
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <StatCard icon={Wallet2} value={`₪${openBalance.toFixed(0)}`} label="יתרה פתוחה" tone={openBalance > 0 ? "warn" : undefined} />
+        <StatCard
+          icon={Wallet2}
+          value={`₪${openBalance.toFixed(0)}`}
+          label="יתרה פתוחה"
+          tone={openBalance > 0 ? "warn" : undefined}
+        />
         <StatCard icon={Wallet} value={`₪${paidThisMonth.toFixed(0)}`} label="שולם החודש" />
         <StatCard icon={Images} value={String(galleriesCount)} label="גלריות" />
         <StatCard icon={Clock} value={String(upcoming.length)} label="צילומים קרובים" />
@@ -831,21 +1273,32 @@ function NewbornDashboardView({ rows, onGoToCalendar }: { rows: OrderRow[]; onGo
       <div className="bg-card rounded-2xl border border-primary/10 p-5">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-display text-lg text-primary">צילומים קרובים</h3>
-          <button type="button" onClick={onGoToCalendar} className="text-xs text-primary hover:underline">
+          <button
+            type="button"
+            onClick={onGoToCalendar}
+            className="text-xs text-primary hover:underline"
+          >
             ללוח המלא ←
           </button>
         </div>
         {upcoming.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-6">אין צילומים עתידיים עם תאריך קבוע.</p>
+          <p className="text-sm text-muted-foreground text-center py-6">
+            אין צילומים עתידיים עם תאריך קבוע.
+          </p>
         ) : (
           <div className="space-y-2">
             {upcoming.slice(0, 6).map((o) => {
               const pkg = findNewbornPackage(o.package_id);
               return (
-                <div key={o.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-blush/25">
+                <div
+                  key={o.id}
+                  className="flex items-center justify-between gap-3 p-3 rounded-xl bg-blush/25"
+                >
                   <div className="flex items-center gap-2 flex-wrap min-w-0">
                     <span className="font-medium text-primary">{o.contact_name}</span>
-                    <Badge variant="secondary" className="text-[10px]">{pkg?.name ?? o.package_id}</Badge>
+                    <Badge variant="secondary" className="text-[10px]">
+                      {pkg?.name ?? o.package_id}
+                    </Badge>
                   </div>
                   <span className="text-xs text-muted-foreground shrink-0">{o.session_date}</span>
                 </div>
@@ -861,7 +1314,11 @@ function NewbornDashboardView({ rows, onGoToCalendar }: { rows: OrderRow[]; onGo
 /** "טבלה" — one row per order, all the at-a-glance fields Michal asked for in a single scan: contact info, date+time, how many sets/edited photos the package includes, whether it has a collage/album, and whether it's fully paid. Read-only (editing happens via the pencil icon → the same edit dialog every other view uses). */
 function NewbornTableView({ rows }: { rows: OrderRow[] }) {
   const YesNo = ({ yes }: { yes: boolean }) =>
-    yes ? <Check className="h-4 w-4 text-forest inline" /> : <XIcon className="h-4 w-4 text-destructive/70 inline" />;
+    yes ? (
+      <Check className="h-4 w-4 text-forest inline" />
+    ) : (
+      <XIcon className="h-4 w-4 text-destructive/70 inline" />
+    );
 
   return (
     <div className="bg-card rounded-2xl border border-primary/10 overflow-x-auto">
@@ -883,34 +1340,59 @@ function NewbornTableView({ rows }: { rows: OrderRow[] }) {
         <tbody>
           {rows.map((o) => {
             const pkg = findNewbornPackage(o.package_id);
-            const paid = Number(o.amount_paid) >= Number(o.total_price) && Number(o.total_price) > 0;
+            const paid =
+              Number(o.amount_paid) >= Number(o.total_price) && Number(o.total_price) > 0;
             return (
               <tr key={o.id} className="border-b border-primary/5 last:border-0 hover:bg-cream/40">
-                <td className="px-3 py-2.5 font-medium text-primary whitespace-nowrap">{o.contact_name}</td>
-                <td className="px-3 py-2.5 whitespace-nowrap" dir="ltr">{o.contact_phone}</td>
-                <td className="px-3 py-2.5 whitespace-nowrap" dir="ltr">{o.contact_email || "—"}</td>
+                <td className="px-3 py-2.5 font-medium text-primary whitespace-nowrap">
+                  {o.contact_name}
+                </td>
+                <td className="px-3 py-2.5 whitespace-nowrap" dir="ltr">
+                  {o.contact_phone}
+                </td>
+                <td className="px-3 py-2.5 whitespace-nowrap" dir="ltr">
+                  {o.contact_email || "—"}
+                </td>
                 <td className="px-3 py-2.5 whitespace-nowrap">
                   {o.session_date ? (
                     <>
                       {o.session_date}
-                      {o.session_time ? <span className="text-muted-foreground"> · {o.session_time}</span> : null}
+                      {o.session_time ? (
+                        <span className="text-muted-foreground"> · {o.session_time}</span>
+                      ) : null}
                     </>
                   ) : (
                     <span className="text-muted-foreground">טרם נקבע</span>
                   )}
                 </td>
-                <td className="px-3 py-2.5 text-center">{pkg ? (pkg.sessions > 1 ? `${pkg.sets} · ${pkg.sessions} סשנים` : pkg.sets) : "—"}</td>
+                <td className="px-3 py-2.5 text-center">
+                  {pkg
+                    ? pkg.sessions > 1
+                      ? `${pkg.sets} · ${pkg.sessions} סשנים`
+                      : pkg.sets
+                    : "—"}
+                </td>
                 <td className="px-3 py-2.5 text-center">{pkg?.photosToEdit ?? "—"}</td>
-                <td className="px-3 py-2.5 text-center"><YesNo yes={!!pkg?.hasCollage} /></td>
-                <td className="px-3 py-2.5 text-center"><YesNo yes={!!pkg?.hasAlbum} /></td>
-                <td className="px-3 py-2.5 text-center"><YesNo yes={!!o.album_details_submitted_at} /></td>
-                <td className="px-3 py-2.5 text-center"><YesNo yes={paid} /></td>
+                <td className="px-3 py-2.5 text-center">
+                  <YesNo yes={!!pkg?.hasCollage} />
+                </td>
+                <td className="px-3 py-2.5 text-center">
+                  <YesNo yes={!!pkg?.hasAlbum} />
+                </td>
+                <td className="px-3 py-2.5 text-center">
+                  <YesNo yes={!!o.album_details_submitted_at} />
+                </td>
+                <td className="px-3 py-2.5 text-center">
+                  <YesNo yes={paid} />
+                </td>
               </tr>
             );
           })}
         </tbody>
       </table>
-      {rows.length === 0 && <p className="text-sm text-muted-foreground text-center py-10">אין עדיין הזמנות.</p>}
+      {rows.length === 0 && (
+        <p className="text-sm text-muted-foreground text-center py-10">אין עדיין הזמנות.</p>
+      )}
     </div>
   );
 }
@@ -935,7 +1417,13 @@ function PackageTypesSection() {
   const add = async () => {
     if (!newPkg.name.trim()) return;
     try {
-      await runSave({ data: { name: newPkg.name, price: Number(newPkg.price) || 0, description: newPkg.description } });
+      await runSave({
+        data: {
+          name: newPkg.name,
+          price: Number(newPkg.price) || 0,
+          description: newPkg.description,
+        },
+      });
       setNewPkg({ name: "", price: "", description: "" });
       qc.invalidateQueries({ queryKey: ["newborn_package_types"] });
     } catch (e) {
@@ -954,16 +1442,24 @@ function PackageTypesSection() {
       <h2 className="text-lg font-semibold">חבילות</h2>
       <div className="bg-card border border-primary/10 rounded-2xl p-5 space-y-4 max-w-2xl">
         <div className="divide-y divide-border">
-          {(packages.data ?? []).length === 0 && <p className="text-sm text-muted-foreground py-2">אין עדיין חבילות.</p>}
+          {(packages.data ?? []).length === 0 && (
+            <p className="text-sm text-muted-foreground py-2">אין עדיין חבילות.</p>
+          )}
           {(packages.data ?? []).map((p: any) => (
             <div key={p.id} className="py-3 flex items-center justify-between gap-3">
               <div>
                 <div className="font-medium">
                   {p.name} — ₪{p.price}
                 </div>
-                {p.description && <div className="text-xs text-muted-foreground">{p.description}</div>}
+                {p.description && (
+                  <div className="text-xs text-muted-foreground">{p.description}</div>
+                )}
               </div>
-              <button type="button" onClick={() => remove(p.id)} className="h-8 w-8 rounded-full hover:bg-destructive/10 text-destructive flex items-center justify-center">
+              <button
+                type="button"
+                onClick={() => remove(p.id)}
+                className="h-8 w-8 rounded-full hover:bg-destructive/10 text-destructive flex items-center justify-center"
+              >
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
@@ -971,9 +1467,22 @@ function PackageTypesSection() {
         </div>
 
         <div className="grid sm:grid-cols-[1fr_120px_1fr_auto] gap-2 pt-2 border-t border-border">
-          <Input placeholder="שם החבילה" value={newPkg.name} onChange={(e) => setNewPkg({ ...newPkg, name: e.target.value })} />
-          <Input placeholder="מחיר" type="number" value={newPkg.price} onChange={(e) => setNewPkg({ ...newPkg, price: e.target.value })} />
-          <Input placeholder="תיאור (אופציונלי)" value={newPkg.description} onChange={(e) => setNewPkg({ ...newPkg, description: e.target.value })} />
+          <Input
+            placeholder="שם החבילה"
+            value={newPkg.name}
+            onChange={(e) => setNewPkg({ ...newPkg, name: e.target.value })}
+          />
+          <Input
+            placeholder="מחיר"
+            type="number"
+            value={newPkg.price}
+            onChange={(e) => setNewPkg({ ...newPkg, price: e.target.value })}
+          />
+          <Input
+            placeholder="תיאור (אופציונלי)"
+            value={newPkg.description}
+            onChange={(e) => setNewPkg({ ...newPkg, description: e.target.value })}
+          />
           <Button onClick={add} className="gap-1.5">
             <Plus className="h-4 w-4" /> הוספה
           </Button>
@@ -1005,7 +1514,10 @@ function NewbornPaymentsView({
   const sendReminders = useServerFn(sendNewbornPaymentReminderEmails);
 
   const paidTotal = rows.reduce((s, o) => s + Number(o.amount_paid), 0);
-  const openTotal = rows.reduce((s, o) => s + Math.max(0, Number(o.total_price) - Number(o.amount_paid)), 0);
+  const openTotal = rows.reduce(
+    (s, o) => s + Math.max(0, Number(o.total_price) - Number(o.amount_paid)),
+    0,
+  );
 
   const toggleSelected = (id: string) =>
     setSelected((s) => {
@@ -1023,7 +1535,9 @@ function NewbornPaymentsView({
       const skipped = results.filter((r) => !r.sent);
       if (sentCount > 0) toast.success(`נשלחו ${sentCount} מיילים`);
       if (skipped.length > 0) {
-        toast.error(`${skipped.length} לא נשלחו: ${skipped.map((s) => s.reason).join(", ")}`, { duration: 8000 });
+        toast.error(`${skipped.length} לא נשלחו: ${skipped.map((s) => s.reason).join(", ")}`, {
+          duration: 8000,
+        });
       }
       setSelected(new Set());
     } catch (e) {
@@ -1039,7 +1553,9 @@ function NewbornPaymentsView({
     if (Number.isNaN(amount) || amount < 0) return toast.error("סכום לא תקין");
     setSavingId(order.id);
     try {
-      await runUpdatePayment({ data: { id: order.id, amount_paid: Math.min(amount, order.total_price) } });
+      await runUpdatePayment({
+        data: { id: order.id, amount_paid: Math.min(amount, order.total_price) },
+      });
       setDrafts((d) => {
         const next = { ...d };
         delete next[order.id];
@@ -1057,12 +1573,25 @@ function NewbornPaymentsView({
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <StatCard icon={Wallet} value={`₪${paidTotal.toFixed(0)}`} label="שולם סה״כ" />
-        <StatCard icon={Wallet2} value={`₪${openTotal.toFixed(0)}`} label="יתרה פתוחה סה״כ" tone={openTotal > 0 ? "warn" : undefined} />
+        <StatCard
+          icon={Wallet2}
+          value={`₪${openTotal.toFixed(0)}`}
+          label="יתרה פתוחה סה״כ"
+          tone={openTotal > 0 ? "warn" : undefined}
+        />
       </div>
 
       <div className="flex items-center justify-end">
-        <Button type="button" size="sm" variant="outline" className="rounded-full gap-1.5" disabled={sendingReminders || selected.size === 0} onClick={sendToSelected}>
-          <Mail className="h-3.5 w-3.5" /> {sendingReminders ? "שולח..." : `מייל תשלום ללקוחות (${selected.size})`}
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="rounded-full gap-1.5"
+          disabled={sendingReminders || selected.size === 0}
+          onClick={sendToSelected}
+        >
+          <Mail className="h-3.5 w-3.5" />{" "}
+          {sendingReminders ? "שולח..." : `מייל תשלום ללקוחות (${selected.size})`}
         </Button>
       </div>
 
@@ -1070,20 +1599,30 @@ function NewbornPaymentsView({
         {rows.map((order) => {
           const draft = drafts[order.id];
           const shown = draft ?? String(order.amount_paid);
-          const pct = order.total_price > 0 ? Math.min(100, (Number(order.amount_paid) / order.total_price) * 100) : 0;
+          const pct =
+            order.total_price > 0
+              ? Math.min(100, (Number(order.amount_paid) / order.total_price) * 100)
+              : 0;
           const balance = Math.max(0, order.total_price - Number(order.amount_paid));
           const paidInFull = balance <= 0;
           return (
             <div key={order.id} className="bg-card rounded-2xl border border-primary/10 p-4">
               <div className="flex items-center gap-3 flex-wrap mb-2">
-                <Checkbox checked={selected.has(order.id)} onCheckedChange={() => toggleSelected(order.id)} disabled={paidInFull} />
+                <Checkbox
+                  checked={selected.has(order.id)}
+                  onCheckedChange={() => toggleSelected(order.id)}
+                  disabled={paidInFull}
+                />
                 <span className="font-medium text-primary">{order.contact_name}</span>
                 <span className="text-sm text-muted-foreground mr-auto">
                   מתוך <span className="font-display text-primary">₪{order.total_price}</span>
                 </span>
               </div>
               <div className="h-1.5 rounded-full bg-border overflow-hidden mb-3">
-                <div className="h-full bg-forest rounded-full transition-all" style={{ width: `${pct}%` }} />
+                <div
+                  className="h-full bg-forest rounded-full transition-all"
+                  style={{ width: `${pct}%` }}
+                />
               </div>
               <div className="flex items-center gap-2">
                 <Input
@@ -1095,17 +1634,30 @@ function NewbornPaymentsView({
                   className="h-9 max-w-[120px]"
                   dir="ltr"
                 />
-                <Button size="sm" onClick={() => save(order)} disabled={savingId === order.id} className="rounded-full h-9">
-                  {savingId === order.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "שמירה"}
+                <Button
+                  size="sm"
+                  onClick={() => save(order)}
+                  disabled={savingId === order.id}
+                  className="rounded-full h-9"
+                >
+                  {savingId === order.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    "שמירה"
+                  )}
                 </Button>
-                <span className={`text-xs mr-auto ${balance > 0 ? "text-destructive" : "text-forest"}`}>
+                <span
+                  className={`text-xs mr-auto ${balance > 0 ? "text-destructive" : "text-forest"}`}
+                >
                   {balance > 0 ? `יתרה ₪${balance}` : "שולם במלואו"}
                 </span>
               </div>
             </div>
           );
         })}
-        {rows.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">אין עדיין הזמנות.</p>}
+        {rows.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-8">אין עדיין הזמנות.</p>
+        )}
       </div>
     </div>
   );

@@ -171,7 +171,22 @@ async function scheduleHtmlFor(db: any, date: string) {
     .eq("session_date", date)
     .neq("status", "cancelled")
     .order("start_time");
-  const rows = (sessions ?? []) as any[];
+  // Newborn-package orders (/admin/newborn-packages) share the same daily schedule.
+  const { data: newborn } = await db
+    .from("newborn_package_orders")
+    .select("id, session_time, contact_name, contact_phone, notes")
+    .eq("session_date", date);
+  const rows = [
+    ...((sessions ?? []) as any[]),
+    ...((newborn ?? []) as any[]).map((o) => ({
+      id: o.id,
+      start_time: (o.session_time ?? "").slice(0, 5) || "—",
+      session_type: "ניו בורן",
+      part_label: null,
+      notes: o.notes,
+      client: { full_name: o.contact_name, phone: o.contact_phone },
+    })),
+  ].sort((x, y) => String(x.start_time).localeCompare(String(y.start_time)));
   const list = rows.length
     ? rows
         .map(
@@ -363,6 +378,47 @@ export async function runDueClientManagementReminders(): Promise<{
         }
       }
     }
+
+    // Same reminder for newborn-package orders (needs newborn_package_orders.reminder_sent_at, drizzle 0021).
+    const { data: nb, error: nbErr } = await db
+      .from("newborn_package_orders")
+      .select("id, session_date, session_time, contact_name, contact_email, notes")
+      .is("reminder_sent_at", null)
+      .not("contact_email", "is", null)
+      .gte("session_date", todayIL)
+      .lte("session_date", horizonIL);
+    if (nbErr) {
+      console.error("[SWEETBABY] newborn reminder scan failed", nbErr);
+    } else {
+      for (const o of nb ?? []) {
+        const time = (o.session_time ?? "10:00").slice(0, 5);
+        const startMs = israelLocalToUtcMs(o.session_date, time);
+        if (
+          now.getTime() < startMs - settings.reminderHoursBefore * 3600_000 ||
+          now.getTime() >= startMs
+        )
+          continue;
+        const ok = await sendGmail({
+          to: o.contact_email,
+          subject: `תזכורת לצילום ניו בורן · ${formatDateIL(o.session_date)} בשעה ${time}`,
+          html: reminderHtml({
+            name: o.contact_name,
+            date: o.session_date,
+            time,
+            type: "ניו בורן",
+            notes: o.notes,
+            settings,
+          }),
+        });
+        if (ok) {
+          reminders++;
+          await db
+            .from("newborn_package_orders")
+            .update({ reminder_sent_at: new Date().toISOString() })
+            .eq("id", o.id);
+        }
+      }
+    }
   }
 
   let dailySchedule = false;
@@ -380,13 +436,11 @@ export async function runDueClientManagementReminders(): Promise<{
         const tomorrow = t.toISOString().slice(0, 10);
         const { html, count } = await scheduleHtmlFor(db, tomorrow);
         // Mark first so a slow/failed send can't fire twice in one evening.
-        await db
-          .from("app_settings")
-          .upsert({
-            key: DAILY_LAST_SENT_KEY,
-            value: p.date,
-            updated_at: new Date().toISOString(),
-          });
+        await db.from("app_settings").upsert({
+          key: DAILY_LAST_SENT_KEY,
+          value: p.date,
+          updated_at: new Date().toISOString(),
+        });
         if (count > 0) {
           dailySchedule = await sendGmail({
             to: settings.scheduleEmail || "s0548529277@gmail.com",

@@ -520,7 +520,10 @@ export const toggleNewbornOrderStep = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-const updateClientStepSchema = z.object({ id: z.string().uuid(), clientStep: z.number().int().min(1).max(4) });
+const updateClientStepSchema = z.object({
+  id: z.string().uuid(),
+  clientStep: z.number().int().min(1).max(4),
+});
 
 /**
  * Admin-only — moves the client-facing pink progress breadcrumb
@@ -639,6 +642,11 @@ export const updateNewbornOrderContact = createServerFn({ method: "POST" })
       if (v !== undefined) patch[k] = k === "contact_email" && v === "" ? null : v;
     }
     if (Object.keys(patch).length === 0) return { ok: true };
+    const { data: prevSchedule } = await (context.supabase as any)
+      .from("newborn_package_orders")
+      .select("session_date, session_time")
+      .eq("id", id)
+      .maybeSingle();
     let { error } = await (context.supabase as any)
       .from("newborn_package_orders")
       .update(patch)
@@ -666,6 +674,21 @@ export const updateNewbornOrderContact = createServerFn({ method: "POST" })
       schemaFallback = !error;
     }
     if (error) throw new Error(error.message);
+
+    // A moved session gets a fresh pre-session reminder (runDueClientManagementReminders).
+    // Separate, best-effort update: the column comes from drizzle 0021 and must never break the save.
+    if (
+      prevSchedule &&
+      (("session_date" in patch && patch.session_date !== prevSchedule.session_date) ||
+        ("session_time" in patch &&
+          String(patch.session_time ?? "").slice(0, 5) !==
+            String(prevSchedule.session_time ?? "").slice(0, 5)))
+    ) {
+      await (context.supabase as any)
+        .from("newborn_package_orders")
+        .update({ reminder_sent_at: null })
+        .eq("id", id);
+    }
 
     let calendarError: string | null = null;
     let bookingBlock: BookingBlockResult = { error: null };
@@ -790,7 +813,9 @@ export const updateNewbornOrderPayment = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-const newbornPaymentReminderSchema = z.object({ orderIds: z.array(z.string().uuid()).min(1).max(200) });
+const newbornPaymentReminderSchema = z.object({
+  orderIds: z.array(z.string().uuid()).min(1).max(200),
+});
 
 /**
  * Bulk "מייל תשלום ללקוחות" for newborn orders — same capability/shape as
@@ -815,7 +840,8 @@ export const sendNewbornPaymentReminderEmails = createServerFn({ method: "POST" 
     const results = await Promise.all(
       (orders ?? []).map(async (o: any) => {
         if (!o.contact_email) return { orderId: o.id, sent: false, reason: "אין אימייל ללקוחה" };
-        if (o.total_price == null) return { orderId: o.id, sent: false, reason: "לא הוגדר סכום כולל" };
+        if (o.total_price == null)
+          return { orderId: o.id, sent: false, reason: "לא הוגדר סכום כולל" };
         const balance = Number(o.total_price) - Number(o.amount_paid ?? 0);
         if (balance <= 0) return { orderId: o.id, sent: false, reason: "אין יתרה פתוחה" };
         try {
@@ -951,7 +977,10 @@ export const adminToggleNewbornProofSelection = createServerFn({ method: "POST" 
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { error } = await withSchemaCacheRetry(context.supabase, () =>
-      (context.supabase as any).from("newborn_order_images").update({ selected: data.selected }).eq("id", data.imageId),
+      (context.supabase as any)
+        .from("newborn_order_images")
+        .update({ selected: data.selected })
+        .eq("id", data.imageId),
     );
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -971,7 +1000,9 @@ export const deleteNewbornOrderImage = createServerFn({ method: "POST" })
       (context.supabase as any).from("newborn_order_images").delete().eq("id", data.id),
     );
     if (error) throw new Error(error.message);
-    const paths = Array.from(new Set([row?.storage_path, row?.original_storage_path].filter(Boolean))) as string[];
+    const paths = Array.from(
+      new Set([row?.storage_path, row?.original_storage_path].filter(Boolean)),
+    ) as string[];
     if (paths.length) {
       (context.supabase as any).storage
         .from("items")
@@ -984,14 +1015,20 @@ export const deleteNewbornOrderImage = createServerFn({ method: "POST" })
 /** Bulk version of deleteNewbornOrderImage — used by PhotoTriagePanel's "מחיקת המסומנות" button. */
 export const bulkDeleteNewbornOrderImages = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ ids: z.array(z.string().uuid()).min(1).max(500) }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ ids: z.array(z.string().uuid()).min(1).max(500) }).parse(d),
+  )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { data: rows } = await (context.supabase as any)
       .from("newborn_order_images")
       .select("storage_path, original_storage_path")
       .in("id", data.ids);
-    const paths = Array.from(new Set((rows ?? []).flatMap((r: any) => [r.storage_path, r.original_storage_path]).filter(Boolean))) as string[];
+    const paths = Array.from(
+      new Set(
+        (rows ?? []).flatMap((r: any) => [r.storage_path, r.original_storage_path]).filter(Boolean),
+      ),
+    ) as string[];
     const { error } = await withSchemaCacheRetry(context.supabase, () =>
       (context.supabase as any).from("newborn_order_images").delete().in("id", data.ids),
     );
@@ -1019,9 +1056,13 @@ export const updateNewbornPhotoSettings = createServerFn({ method: "POST" })
     await assertAdmin(context.supabase, context.userId);
     const patch: Record<string, unknown> = {};
     if (data.maxProofSelections !== undefined) patch.max_proof_selections = data.maxProofSelections;
-    if (data.guidedSelectionEnabled !== undefined) patch.guided_selection_enabled = data.guidedSelectionEnabled;
+    if (data.guidedSelectionEnabled !== undefined)
+      patch.guided_selection_enabled = data.guidedSelectionEnabled;
     if (Object.keys(patch).length === 0) return { ok: true };
-    const { error } = await (context.supabase as any).from("newborn_package_orders").update(patch).eq("id", data.id);
+    const { error } = await (context.supabase as any)
+      .from("newborn_package_orders")
+      .update(patch)
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -1041,7 +1082,8 @@ export const syncNewbornAlbumToDrive = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { uploadImageToDrive, getShareableAlbumFolderLink } = await import("@/integrations/google/drive.server");
+    const { uploadImageToDrive, getShareableAlbumFolderLink } =
+      await import("@/integrations/google/drive.server");
 
     const { data: order, error: oErr } = await (supabaseAdmin as any)
       .from("newborn_package_orders")
@@ -1071,7 +1113,13 @@ export const syncNewbornAlbumToDrive = createServerFn({ method: "POST" })
         const bytes = await res.arrayBuffer();
         const contentType = res.headers.get("content-type") || "image/jpeg";
         const ext = contentType.includes("png") ? "png" : "jpg";
-        await uploadImageToDrive(`${String(i + 1).padStart(3, "0")}.${ext}`, bytes, contentType, DRIVE_NEWBORN_PARENT_FOLDER, subFolderName);
+        await uploadImageToDrive(
+          `${String(i + 1).padStart(3, "0")}.${ext}`,
+          bytes,
+          contentType,
+          DRIVE_NEWBORN_PARENT_FOLDER,
+          subFolderName,
+        );
         uploaded += 1;
       } catch (e) {
         console.error(`[SWEETBABY] newborn Drive album sync: image ${i + 1} failed`, e);
@@ -1080,7 +1128,10 @@ export const syncNewbornAlbumToDrive = createServerFn({ method: "POST" })
 
     const link = await getShareableAlbumFolderLink(DRIVE_NEWBORN_PARENT_FOLDER, subFolderName);
     const now = new Date().toISOString();
-    await (supabaseAdmin as any).from("newborn_package_orders").update({ drive_folder_url: link, drive_synced_at: now }).eq("id", data.orderId);
+    await (supabaseAdmin as any)
+      .from("newborn_package_orders")
+      .update({ drive_folder_url: link, drive_synced_at: now })
+      .eq("id", data.orderId);
 
     return { ok: true, uploaded, total: images.length, link };
   });
@@ -1175,9 +1226,15 @@ export const getNewbornUnlockReceiptUrl = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: order } = await (supabaseAdmin as any).from("newborn_package_orders").select("unlock_receipt_path").eq("id", data.orderId).maybeSingle();
+    const { data: order } = await (supabaseAdmin as any)
+      .from("newborn_package_orders")
+      .select("unlock_receipt_path")
+      .eq("id", data.orderId)
+      .maybeSingle();
     if (!order?.unlock_receipt_path) return { url: null };
-    const { data: signed } = await supabaseAdmin.storage.from("receipts").createSignedUrl(order.unlock_receipt_path, 60 * 60);
+    const { data: signed } = await supabaseAdmin.storage
+      .from("receipts")
+      .createSignedUrl(order.unlock_receipt_path, 60 * 60);
     return { url: signed?.signedUrl ?? null };
   });
 
@@ -1187,7 +1244,10 @@ export const approveNewbornAllPhotosUnlock = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await (supabaseAdmin as any).from("newborn_package_orders").update({ all_photos_unlocked: true }).eq("id", data.orderId);
+    const { error } = await (supabaseAdmin as any)
+      .from("newborn_package_orders")
+      .update({ all_photos_unlocked: true })
+      .eq("id", data.orderId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -1434,7 +1494,9 @@ export const submitNewbornAlbumDetailsByToken = createServerFn({ method: "POST" 
     // filling in this form.
     if (error) {
       if (/does not exist/i.test(error.message ?? "")) {
-        throw new Error("השדות החדשים האלה עדיין לא התעדכנו באתר — נסי שוב בעוד כמה דקות, או שלחי לי את הפרטים בהודעה בינתיים.");
+        throw new Error(
+          "השדות החדשים האלה עדיין לא התעדכנו באתר — נסי שוב בעוד כמה דקות, או שלחי לי את הפרטים בהודעה בינתיים.",
+        );
       }
       throw new Error(error.message);
     }
@@ -1444,11 +1506,20 @@ export const submitNewbornAlbumDetailsByToken = createServerFn({ method: "POST" 
         .from("newborn_package_orders")
         .update({ client_step: 4 })
         .eq("id", order.id);
-      if (stepErr) console.error("[SWEETBABY] newborn client_step advance to 4 failed (column may not be live yet)", stepErr);
+      if (stepErr)
+        console.error(
+          "[SWEETBABY] newborn client_step advance to 4 failed (column may not be live yet)",
+          stepErr,
+        );
 
       try {
         const { sendGmail } = await import("@/integrations/google/gmail.server");
-        const captionLabel = data.captionLanguage === "latin" ? "לועזי" : data.captionLanguage === "hebrew" ? "עברי" : "—";
+        const captionLabel =
+          data.captionLanguage === "latin"
+            ? "לועזי"
+            : data.captionLanguage === "hebrew"
+              ? "עברי"
+              : "—";
         await sendGmail({
           to: NEWBORN_STUDIO_EMAIL,
           subject: `${order.contact_name} שלחה פרטים לעיצוב האלבום 💗`,
@@ -1538,7 +1609,9 @@ export const finishNewbornProofSelectionByToken = createServerFn({ method: "POST
       // toggleNewbornProofByToken above), so this is a no-op there; in
       // guided mode this is the actual enforcement point.
       if (order.max_proof_selections != null && selectedCount > order.max_proof_selections) {
-        throw new Error(`נבחרו ${selectedCount} תמונות — יש להסיר עוד ${selectedCount - order.max_proof_selections} כדי להגיע ל-${order.max_proof_selections}`);
+        throw new Error(
+          `נבחרו ${selectedCount} תמונות — יש להסיר עוד ${selectedCount - order.max_proof_selections} כדי להגיע ל-${order.max_proof_selections}`,
+        );
       }
       // The real, load-bearing stamp (proofs_selected_at) is kept SEPARATE
       // from the client_step write below — client_step is a brand-new
@@ -1555,8 +1628,15 @@ export const finishNewbornProofSelectionByToken = createServerFn({ method: "POST
       // client_step: advance to 3 ("בחירת כיתובים, תמונות לקולאז' וכריכה")
       // — step 2 ("בחירת תמונות") is exactly what she just finished.
       // Best-effort, same reasoning as the split above.
-      const { error: stepErr } = await (supabaseAdmin as any).from("newborn_package_orders").update({ client_step: 3 }).eq("id", order.id);
-      if (stepErr) console.error("[SWEETBABY] newborn client_step advance failed (column may not be live yet)", stepErr);
+      const { error: stepErr } = await (supabaseAdmin as any)
+        .from("newborn_package_orders")
+        .update({ client_step: 3 })
+        .eq("id", order.id);
+      if (stepErr)
+        console.error(
+          "[SWEETBABY] newborn client_step advance failed (column may not be live yet)",
+          stepErr,
+        );
       try {
         const { sendGmail } = await import("@/integrations/google/gmail.server");
         const heart = await emailHeartImgTag(40);
@@ -1592,7 +1672,12 @@ const MAX_RECEIPT_BASE64_LEN = 8_000_000; // ~6MB decoded — plenty for a phone
 export const submitNewbornUnlockReceiptByToken = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z
-      .object({ token: z.string().min(10), fileBase64: z.string().min(1).max(MAX_RECEIPT_BASE64_LEN), fileName: z.string().min(1).max(200), contentType: z.string().min(1).max(100) })
+      .object({
+        token: z.string().min(10),
+        fileBase64: z.string().min(1).max(MAX_RECEIPT_BASE64_LEN),
+        fileName: z.string().min(1).max(200),
+        contentType: z.string().min(1).max(100),
+      })
       .parse(d),
   )
   .handler(async ({ data }) => {
@@ -1601,14 +1686,24 @@ export const submitNewbornUnlockReceiptByToken = createServerFn({ method: "POST"
     if (order.all_photos_unlocked) return { ok: true };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const ext = data.fileName.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "bin";
+    const ext =
+      data.fileName
+        .split(".")
+        .pop()
+        ?.toLowerCase()
+        .replace(/[^a-z0-9]/g, "") || "bin";
     const path = `newborn-orders/${order.id}/unlock-receipt-${Date.now()}.${ext}`;
     const bytes = Buffer.from(data.fileBase64, "base64");
-    const { error: upErr } = await supabaseAdmin.storage.from("receipts").upload(path, bytes, { contentType: data.contentType, upsert: false });
+    const { error: upErr } = await supabaseAdmin.storage
+      .from("receipts")
+      .upload(path, bytes, { contentType: data.contentType, upsert: false });
     if (upErr) throw new Error(upErr.message);
 
     const now = new Date().toISOString();
-    const { error } = await (supabaseAdmin as any).from("newborn_package_orders").update({ unlock_receipt_path: path, unlock_receipt_submitted_at: now }).eq("id", order.id);
+    const { error } = await (supabaseAdmin as any)
+      .from("newborn_package_orders")
+      .update({ unlock_receipt_path: path, unlock_receipt_submitted_at: now })
+      .eq("id", order.id);
     if (error) throw new Error(error.message);
 
     try {
