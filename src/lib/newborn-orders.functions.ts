@@ -58,6 +58,7 @@ import {
   NEWBORN_CONTRACT_TEMPLATE_KEY,
   fillNewbornContractPlaceholders,
   renderNewbornContractHtml,
+  newbornContractSigningSections,
 } from "@/lib/newbornContract";
 import {
   DEFAULT_BIRTH_BASKET_TEMPLATE,
@@ -123,23 +124,27 @@ async function getNewbornContractTemplate(supabase: any): Promise<string> {
  * (NEWBORN_STUDIO_EMAIL), since sendStudioAndCustomer's built-in recipient
  * is the general studio address, not this one.
  */
-async function buildNewbornContractHtml(
-  supabase: any,
-  order: {
-    contact_name: string;
-    session_date: string | null;
-    session_time: string | null;
-    package_id: string;
-    total_price: number;
-    access_token: string | null;
-  },
-): Promise<string> {
+type NewbornContractOrder = {
+  contact_name: string;
+  session_date: string | null;
+  session_time: string | null;
+  package_id: string;
+  total_price: number;
+  access_token: string | null;
+};
+
+async function buildNewbornContractHtml(supabase: any, order: NewbornContractOrder): Promise<string> {
+  return renderNewbornContractHtml(await buildNewbornContractFilled(supabase, order));
+}
+
+/** The contract template with this order's details filled in — shared by the email and the /contract/newborn/$token signing page. */
+async function buildNewbornContractFilled(supabase: any, order: NewbornContractOrder): Promise<string> {
   const pkg: NewbornPackage | null = findNewbornPackage(order.package_id);
   const pkgLine = pkg
     ? `חבילה: ${pkg.name} — ${pkg.features.join(", ")}`
     : `חבילה: ${order.package_id}`;
   const confirmLink = order.access_token
-    ? `https://sweetbabyphoto.shop/newborn/confirm/${order.access_token}`
+    ? `https://sweetbabyphoto.shop/contract/newborn/${order.access_token}`
     : "(קישור אישור יתעדכן בקרוב)";
 
   const template = await getNewbornContractTemplate(supabase);
@@ -153,7 +158,7 @@ async function buildNewbornContractHtml(
     confirm_link: confirmLink,
     sets_count: pkg ? String(pkg.sets) : "",
   });
-  return renderNewbornContractHtml(filled);
+  return filled;
 }
 
 /** Best-effort contract email on order creation — never blocks the order itself, matching every other post-create sync in this file. */
@@ -1415,18 +1420,28 @@ export const getNewbornContractStatusByToken = createServerFn({ method: "POST" }
   .handler(async ({ data }) => {
     const order = await orderByToken(data.token);
     if (!order) throw new Error("קישור לא תקין");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const sections = newbornContractSigningSections(await buildNewbornContractFilled(supabaseAdmin, order));
     return {
       contactName: order.contact_name as string,
       confirmedAt: order.contract_confirmed_at as string | null,
+      sections,
     };
   });
 
+// Owner request 2026-10-26: the client ticks "קראתי" on EVERY section on
+// /contract/newborn/$token before she can send — readCount is checked
+// against the real section count server-side too, not just in the page.
 export const confirmNewbornContractByToken = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({ token: z.string().min(10) }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ token: z.string().min(10), readCount: z.number().int().min(0) }).parse(d),
+  )
   .handler(async ({ data }) => {
     const order = await orderByToken(data.token);
     if (!order) throw new Error("קישור לא תקין");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const sections = newbornContractSigningSections(await buildNewbornContractFilled(supabaseAdmin, order));
+    if (data.readCount < sections.length) throw new Error("יש לסמן ״קראתי״ בכל הסעיפים לפני השליחה");
     const alreadyConfirmed = !!order.contract_confirmed_at;
     if (!alreadyConfirmed) {
       await (supabaseAdmin as any)
@@ -1443,7 +1458,9 @@ export const confirmNewbornContractByToken = createServerFn({ method: "POST" })
             <div style="background:linear-gradient(135deg,#f5d5cf,#a8c4a2);border-radius:20px;padding:28px 20px">
               <div style="font-size:40px;margin-bottom:8px">✍️ ${heart}</div>
               <h2 style="margin:0 0 6px">${order.contact_name} קראה ואישרה את החוזה</h2>
+              <p style="margin:0;font-size:13px">סימנה ״קראתי״ בכל ${sections.length} הסעיפים</p>
             </div>
+            <ul style="text-align:right;margin:16px 0 0;padding-inline-start:20px;font-size:13px;line-height:1.8">${sections.map((x) => `<li>✓ ${x.title}</li>`).join("")}</ul>
             <p style="margin-top:20px"><a href="https://sweetbabyphoto.shop/admin/newborn-packages" style="color:#2d3d2b;font-weight:600">לצפייה בניהול</a></p>
           </div>`,
         });

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { newContractToken } from "@/lib/contract-token";
 
 export const WORKFLOW_STAGES = ["booked", "date_confirmed", "proofs_ready", "edited_uploaded", "album_published"] as const;
 export type WorkflowStage = (typeof WORKFLOW_STAGES)[number];
@@ -464,7 +465,7 @@ export const sendPhotoClientContract = createServerFn({ method: "POST" })
 
     const { data: workflow, error: wErr } = await supabaseAdmin
       .from("photo_client_workflows")
-      .select("id, user_id, booking_id, session_date, session_time, photos_to_edit, album_upgrades, total_price")
+      .select("*")
       .eq("id", data.workflowId)
       .single();
     if (wErr || !workflow) throw new Error(wErr?.message ?? "לקוחה לא נמצאה");
@@ -490,8 +491,17 @@ export const sendPhotoClientContract = createServerFn({ method: "POST" })
     const contactEmail = userErr ? null : userRes?.user?.email ?? null;
     if (!contactEmail) throw new Error("לא נמצאה כתובת מייל ללקוחה הזו — אי אפשר לשלוח חוזה.");
 
+    // Token for the section-by-section signing page (/contract/photo/$token),
+    // created once and reused on a resend so an older email's link still works.
+    let contractToken = (workflow as any).contract_token as string | null;
+    if (!contractToken) {
+      contractToken = newContractToken();
+      await (supabaseAdmin as any).from("photo_client_workflows").update({ contract_token: contractToken }).eq("id", workflow.id);
+    }
+
     const { buildPhotoContractHtml } = await import("@/lib/photoContract");
     const html = buildPhotoContractHtml({
+      confirmLink: `https://sweetbabyphoto.shop/contract/photo/${contractToken}`,
       contactName,
       sessionDate,
       sessionTime: (workflow.session_time as string | null)?.slice(0, 5) ?? null,
@@ -506,6 +516,10 @@ export const sendPhotoClientContract = createServerFn({ method: "POST" })
       subject: `חוזה והסכם צילומים · Sweetbaby${contactName ? ` — ${contactName}` : ""}`,
       html,
     });
+    await (supabaseAdmin as any)
+      .from("photo_client_workflows")
+      .update({ contract_sent_at: new Date().toISOString() })
+      .eq("id", workflow.id);
 
     return { ok: true, sentTo: contactEmail };
   });

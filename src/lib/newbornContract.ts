@@ -71,7 +71,7 @@ export const DEFAULT_NEWBORN_CONTRACT_TEMPLATE = `היי {{contact_name}} היק
 משך הצילומים: 2.5–4 שעות.
 
 ## קריאת ההסכם למטה — חובה!
-נא לקרוא את כל ההסכם בעיון לפני הגעה לצילומים, ולאשר בקישור בסוף המייל.
+נא לקרוא את כל ההסכם בעיון לפני הגעה לצילומים, ולאשר בקישור בסוף המייל — בקישור מסמנים ״קראתי״ ליד כל סעיף ושולחים.
 
 ## הסכם התקשרות
 היי יקרה, שמחה ומתרגשת שבחרת בי לקחת חלק ולתעד את המשפחה שלכם ברגעים מרגשים אלו.
@@ -93,6 +93,7 @@ export const DEFAULT_NEWBORN_CONTRACT_TEMPLATE = `היי {{contact_name}} היק
 ## מקדמה
 לשריון התאריך יש להעביר מקדמה על סך 300 ש"ח.
 פרטי חשבון להעברה: בנק 12, סניף 533, חשבון 648912, על שם מיכל סיבוני.
+את אסמכתת ההעברה יש לשלוח למייל m0548529277@gmail.com.
 במקרה של ביטול הצילומים על ידי הלקוחה — הביטול אינו מזכה בהחזר המקדמה.
 
 ## אופן התשלום
@@ -116,7 +117,7 @@ export const DEFAULT_NEWBORN_CONTRACT_TEMPLATE = `היי {{contact_name}} היק
 תמונות לבחירה יישלחו ביום שלאחר הצילומים, דרך גלריה מקוונת — תוקף הצפייה שבוע מיום קבלת הקישור. זמן בחירת התמונות הוא שבוע מיום קבלתן. האלבום יהיה מוכן תוך 60 ימי עסקים לאחר בחירת התמונות, בתנאי שהבחירה בוצעה בזמן (שבוע מהצילומים, לא כולל שבתות וחגים).
 
 ## איחורים בבחירת התמונות
-יש לבחור תמונות תוך שבוע מיום שליחתן. לקוחות שמתעכבות בבחירת התמונות מעל לשבועיים — אין לי מחויבות להשלים ולתת את האלבום בזמנים המקוריים. לאחר חודש מיום קבלת התמונות הן מועברות לגיבוי בלבד, ולא תהיה עליי אחריות עליהן.
+יש לבחור תמונות תוך שבוע מיום שליחתן. לקוחות שמתעכבות בבחירת התמונות מעל לשבועיים — אין לי מחויבות להשלים ולתת את האלבום בזמנים המקוריים. לאחר חודש מיום קבלת התמונות הן מועברות לגיבוי בלבד, ולא תהיה עליי אחריות עליהן. בחירת תמונות חצי שנה ומעלה מיום הצילומים תחויב לפי המחירון העדכני באותו זמן.
 
 ## עריכות, תיקונים ושינויים
 לאחר העריכה אין אפשרות להחליף תמונות. עריכת התמונות נועדה להוסיף אווירה וקסם — אין בעריכה שינויי מציאות (הארכת חצאית, סידור בגד וכו'). תיקון מציאות הוא עריכה גרפית — במידה והלקוחה רוצה, הוא נשלח לגרפיקאית מקצועית, בעלות נוספת של 15 ש"ח. תמונה שתבוטל לאחר העריכה תחויב בתשלום מלא.
@@ -124,11 +125,14 @@ export const DEFAULT_NEWBORN_CONTRACT_TEMPLATE = `היי {{contact_name}} היק
 ## תיקונים בעיצוב האלבום
 ניתן לשלוח פעם אחת עד 4 תיקונים בעיצוב. כל תיקון נוסף — בעלות של 60 ש"ח. במידה ויש צורך בתמונה מעובדת מוקדם לצורך הדפסה לאירוע, יש להודיע מראש — התמונה הנבחרת תעובד תוך 5 ימי עסקים.
 
+## עוד כמה דברים שחשוב לדעת
+אין אחריות על פריטי לבוש, צעצועים וחפצים אישיים שנשכחו בסטודיו או אצל הצלמת. קנסות והוצאות בלתי צפויות ביום הצילומים (חניה, כניסה בתשלום וכו') הם על חשבון הלקוחה.
+
 ## זכויות שימוש
 התמונות נשמרות בתיקיית העבודות שלי ובקטלוג — אם אינכם מעוניינים בכך, יש להודיע על כך מראש. זכויות היוצרים על התמונות שייכות לצלמת. ללקוח יש זכות שימוש אישית, ולא למטרות מסחריות.
 
 ## אישור
-לחיצה על הקישור למטה מהווה אישור שקראת את ההסכם במלואו ומסכימה לתנאיו — זו החתימה הדיגיטלית שלך:
+בקישור למטה יש לסמן ״קראתי״ ליד כל סעיף ובסוף ללחוץ על שליחה — זו החתימה הדיגיטלית שלך:
 {{confirm_link}}
 
 מחכה ממש לתעד לכם רגעים מרגשים :)
@@ -180,7 +184,7 @@ export function fillNewbornContractPlaceholders(
  * only, system font stack — no external fonts/stylesheets, which most
  * email clients strip anyway).
  */
-export function renderNewbornContractHtml(filledTemplate: string): string {
+function splitNewbornSections(filledTemplate: string) {
   const rawSections = filledTemplate.split(/\n##\s+/);
   const intro = rawSections[0]?.trim() ?? "";
   const sections = rawSections.slice(1).map((raw) => {
@@ -189,6 +193,23 @@ export function renderNewbornContractHtml(filledTemplate: string): string {
     const body = newlineIdx === -1 ? "" : raw.slice(newlineIdx + 1).trim();
     return { title, body };
   });
+  return { intro, sections };
+}
+
+/**
+ * Sections the client ticks "קראתי" on, on /contract/newborn/$token (owner
+ * request 2026-10-26). Skips the ones that are about the confirming itself
+ * ("אישור", "קריאת ההסכם…") and the greeting-only "הסכם התקשרות".
+ */
+export function newbornContractSigningSections(filledTemplate: string): { title: string; html: string }[] {
+  const skip = (t: string) => t === "אישור" || t.startsWith("קריאת ההסכם") || t === "הסכם התקשרות";
+  return splitNewbornSections(filledTemplate)
+    .sections.filter((x) => !skip(x.title) && x.body.trim())
+    .map((x) => ({ title: x.title, html: renderBody(x.body) }));
+}
+
+export function renderNewbornContractHtml(filledTemplate: string): string {
+  const { intro, sections } = splitNewbornSections(filledTemplate);
 
   const sectionHtml = sections
     .map(
@@ -216,7 +237,7 @@ export function renderNewbornContractHtml(filledTemplate: string): string {
             <h2 style="margin:0 0 10px;color:${ROSE};font-size:22px;text-align:center">הכנה ליום הצילומים</h2>
             <div style="color:${BROWN};font-size:14px;line-height:1.9">${renderBody(intro)}</div>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${sectionHtml}</table>
-            <p style="margin-top:20px;color:${BROWN_SOFT};font-size:13px;text-align:center">כתובת הסטודיו: תלמוד ירושלמי 24, בית שמש</p>
+            <p style="margin-top:20px;color:${BROWN_SOFT};font-size:13px;text-align:center">כתובת הסטודיו: תלמוד ירושלמי 24, ד׳3, בית שמש</p>
           </td></tr>
         </table>
       </td></tr>

@@ -39,6 +39,8 @@ export type PhotoContractInput = {
   albumUpgrades: string | null;
   /** Price for one additional edited photo beyond the package — same studio-wide rate unless told otherwise for this client. */
   extraPhotoPrice?: number;
+  /** Link to the section-by-section signing page (/contract/photo/<token>). */
+  confirmLink: string;
 };
 
 function heDateLine(iso: string): string {
@@ -61,8 +63,16 @@ function section(title: string, bodyHtml: string): string {
     </td></tr>`;
 }
 
-/** Builds the full contract email HTML, filled in for one specific client/booking. */
-export function buildPhotoContractHtml(input: PhotoContractInput): string {
+
+export type ContractSection = { title: string; html: string };
+
+/**
+ * The contract's clauses as separate sections — used both for the email
+ * (rendered one after another) and for the /contract/$kind/$token signing
+ * page, where the client ticks "קראתי" on each one before sending (owner
+ * request 2026-10-26). Approval itself is not a section.
+ */
+export function buildPhotoContractSections(input: PhotoContractInput): ContractSection[] {
   const {
     contactName,
     sessionDate,
@@ -83,6 +93,103 @@ export function buildPhotoContractHtml(input: PhotoContractInput): string {
   const packageLine = packageParts.length > 0 ? packageParts.join(" · ") : "פרטי החבילה יימסרו בנפרד";
   const priceLine = totalPrice != null ? `בסך ${totalPrice} ש״ח` : "";
 
+
+  return [
+    {
+      title: "מועד ושעת הצילום",
+      html: `<p style="margin:4px 0">הצילומים יתקיימו בעז״ה ב${heDateLine(sessionDate)}</p>
+               ${timeLine}
+               <p style="margin:4px 0">יש להגיע 10 דקות קודם לפני הזמן שקבענו</p>`,
+    },
+    {
+      title: "אופן התשלום",
+      html: `<p style="margin:4px 0">נא לשלוח לי אסמכתא שהעברה שולמה לשולמית בן נאים.</p>
+               <p style="margin:4px 0">במקרה של ביטול הצילומים ע״י הלקוחה — הביטול אינו מזכה בהחזר המקדמה (300 ש״ח).</p>`,
+    },
+    {
+      title: "סטיילינג",
+      html: `<p style="margin:4px 0">כדי שהתמונות והסטיילינג יהיו מדויקים ויפים, חשוב לי שהבגדים יהיו תואמים לאופי הסשן — ולכן אשמח לקחת חלק בבחירת הבגדים. לפני בחירה או קנייה, ניתן לשלוח תמונה ולהתייעץ.</p>
+               <p style="margin:4px 0">לביבי — כל הביגוד והעיטופים עליי 🙂</p>`,
+    },
+    {
+      title: "הכנות ליום הצילום",
+      html: `<p style="margin:4px 0">על מנת שיהיה נוח יותר לנו ולביבי:</p>
+               <p style="margin:4px 0">נדאג לקלח את הביבי בבוקר לפני היציאה לסטודיו.</p>
+               <p style="margin:4px 0">אמא, בבקשה תדאגי לשמור על ערנות הביבי עד שמגיעים אליי.</p>
+               <p style="margin:4px 0">נדאג להאכיל את הביבי שיגיע אליי שבע.</p>
+               <p style="margin:4px 0">נא לדאוג מראש ל-2 בקבוקים של תמ״ל או חלב שאוב · מוצץ · שמיכה חמה · טיטולים · מגבונים.</p>`,
+    },
+    {
+      title: "צילומים עם אחים",
+      html: `<p style="margin:4px 0">יש להגיע מוכנים ולהצטייד ביום הצילום ב: מים, אוכל לא מלכלך, ממתקים מתגמלים למצולמים, מברשת שיער, גומיות, מגבונים.</p>
+               <p style="margin:4px 0">מומלץ להגיע ערניים ורגועים על מנת שיהיו תוצאות מדויקות.</p>`,
+    },
+    {
+      title: "הגעה ליום הצילומים",
+      html: `<p style="margin:4px 0">את הסט המשפחתי נעשה ראשון, ולאחר מכן הילדים והאבא ישאירו אותנו עם הבייבי להמשך הצילומים.</p>
+               <p style="margin:4px 0">זמן הצילומים משתנה בין תינוק לתינוק ובין ילד לילד — כל סט אורך בין 20–60 דקות, ולכן יש להיערך לכך לפי החבילה ומספר הסטים שנקבעו.</p>
+               <p style="margin:4px 0">בחלל הסטודיו קיים ציוד בשווי עשרות אלפי שקלים — יש לנהוג בזהירות ולשמור על הילדים כדי שחלילה לא ייגרם נזק.</p>`,
+    },
+    {
+      title: "בטיחות ואחריות",
+      html: `<p style="margin:4px 0">יש לציין שאחריות ובטיחות הילדים מוטלת על ההורים בלבד!</p>`,
+    },
+    {
+      title: "דיוק בזמנים ואיחורים",
+      html: `<p style="margin:4px 0">למען הצלחת הצילומים, למענך ולמעני, יש לדייק ולהגיע בזמן. איחור עשוי לקצר את משך זמן הצילום ולהביא לפחות תוצרים.</p>
+               <p style="margin:4px 0">במידת הצורך (איחור משמעותי שיגרום לחוסר הספקה), הצלמת תציע ללקוחה יום צילומים נוסף בעלות של 600 ש״ח.</p>`,
+    },
+    {
+      title: "שיתוף פעולה",
+      html: `<p style="margin:4px 0">שיתוף הפעולה שלכם, ההורים, חשוב מאוד! מומלץ להביא ממתקים שהילדים אוהבים ולשים אצלי מאחורי, תוך כדי הצילומים.</p>`,
+    },
+    {
+      title: "אחרי הצילומים — זמני הספקה ותהליך בחירה",
+      html: `<p style="margin:4px 0">תמונות לבחירה יישלחו ביום שלאחר הצילומים, דרך גלריה מקוונת — תוקף הצפייה שבוע מיום קבלת הקישור.</p>
+               <p style="margin:4px 0">זמן בחירת התמונות הוא שבוע מיום קבלתן.</p>
+               <p style="margin:4px 0">האלבום יהיה מוכן תוך 60 ימי עסקים לאחר בחירת התמונות, בתנאי שהבחירה בוצעה בזמן (שבוע מהצילומים, לא כולל שבתות וחגים).</p>`,
+    },
+    {
+      title: "איחורים בבחירת התמונות",
+      html: `<p style="margin:4px 0">יש לבחור תמונות תוך שבוע מיום שליחתן. לקוחות שמתעכבות בבחירת התמונות מעל לשבועיים — אין לי מחויבות להשלים ולתת את האלבום בזמנים המקוריים.</p>
+               <p style="margin:4px 0">לאחר חודש מיום קבלת התמונות הן מועברות לגיבוי בלבד, ולא תהיה עליי אחריות עליהן.</p>
+               <p style="margin:4px 0">בחירת תמונות חצי שנה ומעלה מיום הצילומים תחויב לפי המחירון העדכני באותו זמן.</p>`,
+    },
+    {
+      title: "פרטי החבילה",
+      html: `<p style="margin:4px 0">סגרנו על חבילה מפנקת שכוללת: ${packageLine}${priceLine ? `, ${priceLine}` : ""}.</p>
+               <p style="margin:4px 0">עיבוד תמונה נוספת מעבר לחבילה — בתשלום של ${extraPhotoPrice} ש״ח.</p>`,
+    },
+    {
+      title: "עריכות, תיקונים ושינויים",
+      html: `<p style="margin:4px 0">לאחר העריכה אין אפשרות להחליף תמונות. עריכת התמונות נועדה להוסיף אווירה וקסם — אין בעריכה שינויי מציאות (הארכת חצאית, סידור בגד וכו׳).</p>
+               <p style="margin:4px 0">תיקון מציאות הוא עריכה גרפית — במידה והלקוחה רוצה, הוא נשלח לגרפיקאית מקצועית. כל תיקון כזה בעלות נוספת של 15 ש״ח.</p>
+               <p style="margin:4px 0">תמונה שתבוטל לאחר העריכה תחויב בתשלום מלא.</p>`,
+    },
+    {
+      title: "תיקונים בעיצוב האלבום",
+      html: `<p style="margin:4px 0">ניתן לשלוח פעם אחת עד 4 תיקונים בעיצוב. כל תיקון נוסף — בעלות של 60 ש״ח.</p>
+               <p style="margin:4px 0">במידה ויש צורך בתמונה מעובדת מוקדם לצורך הדפסה לאירוע, יש להודיע מראש. התמונה הנבחרת תעובד תוך 5 ימי עסקים.</p>`,
+    },
+    {
+      title: "עוד כמה דברים שחשוב לדעת",
+      html: `<p style="margin:4px 0">אין אחריות על פריטי לבוש, צעצועים וחפצים אישיים שנשכחו בסטודיו או אצל הצלמת.</p>
+               <p style="margin:4px 0">קנסות והוצאות בלתי צפויות ביום הצילומים (חניה, כניסה בתשלום וכו׳) הם על חשבון הלקוחה.</p>`,
+    },
+    {
+      title: "זכויות שימוש",
+      html: `<p style="margin:4px 0">התמונות נשמרות בתיקיית העבודות שלי ובקטלוג — אם אינכם מעוניינים בכך, יש להודיע על כך מראש.</p>
+               <p style="margin:4px 0">זכויות היוצרים על התמונות שייכות לצלמת. ללקוח יש זכות שימוש אישית, ולא למטרות מסחריות.</p>`,
+    },
+  ];
+}
+
+/** Builds the full contract email HTML, filled in for one specific client/booking. */
+export function buildPhotoContractHtml(input: PhotoContractInput): string {
+  const { contactName } = input;
+  const sections = buildPhotoContractSections(input);
+  const { confirmLink } = input;
+
   const body = `
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BORDER};padding:14px 0">
     <tr><td align="center">
@@ -99,106 +206,13 @@ export function buildPhotoContractHtml(input: PhotoContractInput): string {
           </p>
 
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-            ${section(
-              "מועד ושעת הצילום",
-              `<p style="margin:4px 0">הצילומים יתקיימו בעז״ה ב${heDateLine(sessionDate)}</p>
-               ${timeLine}
-               <p style="margin:4px 0">יש להגיע 10 דקות קודם לפני הזמן שקבענו</p>`,
-            )}
-
-            ${section(
-              "אופן התשלום",
-              `<p style="margin:4px 0">נא לשלוח לי אסמכתא שהעברה שולמה לשולמית בן נאים.</p>
-               <p style="margin:4px 0">במקרה של ביטול הצילומים ע״י הלקוחה — הביטול אינו מזכה בהחזר המקדמה (300 ש״ח).</p>`,
-            )}
-
-            ${section(
-              "סטיילינג",
-              `<p style="margin:4px 0">כדי שהתמונות והסטיילינג יהיו מדויקים ויפים, חשוב לי שהבגדים יהיו תואמים לאופי הסשן — ולכן אשמח לקחת חלק בבחירת הבגדים. לפני בחירה או קנייה, ניתן לשלוח תמונה ולהתייעץ.</p>
-               <p style="margin:4px 0">לביבי — כל הביגוד והעיטופים עליי 🙂</p>`,
-            )}
-
-            ${section(
-              "הכנות ליום הצילום",
-              `<p style="margin:4px 0">על מנת שיהיה נוח יותר לנו ולביבי:</p>
-               <p style="margin:4px 0">נדאג לקלח את הביבי בבוקר לפני היציאה לסטודיו.</p>
-               <p style="margin:4px 0">אמא, בבקשה תדאגי לשמור על ערנות הביבי עד שמגיעים אליי.</p>
-               <p style="margin:4px 0">נדאג להאכיל את הביבי שיגיע אליי שבע.</p>
-               <p style="margin:4px 0">נא לדאוג מראש ל-2 בקבוקים של תמ״ל או חלב שאוב · מוצץ · שמיכה חמה · טיטולים · מגבונים.</p>`,
-            )}
-
-            ${section(
-              "צילומים עם אחים",
-              `<p style="margin:4px 0">יש להגיע מוכנים ולהצטייד ביום הצילום ב: מים, אוכל לא מלכלך, ממתקים מתגמלים למצולמים, מברשת שיער, גומיות, מגבונים.</p>
-               <p style="margin:4px 0">מומלץ להגיע ערניים ורגועים על מנת שיהיו תוצאות מדויקות.</p>`,
-            )}
-
-            ${section(
-              "הגעה ליום הצילומים",
-              `<p style="margin:4px 0">את הסט המשפחתי נעשה ראשון, ולאחר מכן הילדים והאבא ישאירו אותנו עם הבייבי להמשך הצילומים.</p>
-               <p style="margin:4px 0">זמן הצילומים משתנה בין תינוק לתינוק ובין ילד לילד — כל סט אורך בין 20–60 דקות, ולכן יש להיערך לכך לפי החבילה ומספר הסטים שנקבעו.</p>
-               <p style="margin:4px 0">בחלל הסטודיו קיים ציוד בשווי עשרות אלפי שקלים — יש לנהוג בזהירות ולשמור על הילדים כדי שחלילה לא ייגרם נזק.</p>`,
-            )}
-
-            ${section(
-              "בטיחות ואחריות",
-              `<p style="margin:4px 0">יש לציין שאחריות ובטיחות הילדים מוטלת על ההורים בלבד!</p>`,
-            )}
-
-            ${section(
-              "דיוק בזמנים ואיחורים",
-              `<p style="margin:4px 0">למען הצלחת הצילומים, למענך ולמעני, יש לדייק ולהגיע בזמן. איחור עשוי לקצר את משך זמן הצילום ולהביא לפחות תוצרים.</p>
-               <p style="margin:4px 0">במידת הצורך (איחור משמעותי שיגרום לחוסר הספקה), הצלמת תציע ללקוחה יום צילומים נוסף בעלות של 600 ש״ח.</p>`,
-            )}
-
-            ${section(
-              "שיתוף פעולה",
-              `<p style="margin:4px 0">שיתוף הפעולה שלכם, ההורים, חשוב מאוד! מומלץ להביא ממתקים שהילדים אוהבים ולשים אצלי מאחורי, תוך כדי הצילומים.</p>`,
-            )}
-
-            ${section(
-              "אחרי הצילומים — זמני הספקה ותהליך בחירה",
-              `<p style="margin:4px 0">תמונות לבחירה יישלחו ביום שלאחר הצילומים, דרך גלריה מקוונת — תוקף הצפייה שבוע מיום קבלת הקישור.</p>
-               <p style="margin:4px 0">זמן בחירת התמונות הוא שבוע מיום קבלתן.</p>
-               <p style="margin:4px 0">האלבום יהיה מוכן תוך 60 ימי עסקים לאחר בחירת התמונות, בתנאי שהבחירה בוצעה בזמן (שבוע מהצילומים, לא כולל שבתות וחגים).</p>`,
-            )}
-
-            ${section(
-              "איחורים בבחירת התמונות",
-              `<p style="margin:4px 0">יש לבחור תמונות תוך שבוע מיום שליחתן. לקוחות שמתעכבות בבחירת התמונות מעל לשבועיים — אין לי מחויבות להשלים ולתת את האלבום בזמנים המקוריים.</p>
-               <p style="margin:4px 0">לאחר חודש מיום קבלת התמונות הן מועברות לגיבוי בלבד, ולא תהיה עליי אחריות עליהן.</p>`,
-            )}
-
-            ${section(
-              "פרטי החבילה",
-              `<p style="margin:4px 0">סגרנו על חבילה מפנקת שכוללת: ${packageLine}${priceLine ? `, ${priceLine}` : ""}.</p>
-               <p style="margin:4px 0">עיבוד תמונה נוספת מעבר לחבילה — בתשלום של ${extraPhotoPrice} ש״ח.</p>`,
-            )}
-
-            ${section(
-              "עריכות, תיקונים ושינויים",
-              `<p style="margin:4px 0">לאחר העריכה אין אפשרות להחליף תמונות. עריכת התמונות נועדה להוסיף אווירה וקסם — אין בעריכה שינויי מציאות (הארכת חצאית, סידור בגד וכו׳).</p>
-               <p style="margin:4px 0">תיקון מציאות הוא עריכה גרפית — במידה והלקוחה רוצה, הוא נשלח לגרפיקאית מקצועית. כל תיקון כזה בעלות נוספת של 15 ש״ח.</p>
-               <p style="margin:4px 0">תמונה שתבוטל לאחר העריכה תחויב בתשלום מלא.</p>`,
-            )}
-
-            ${section(
-              "תיקונים בעיצוב האלבום",
-              `<p style="margin:4px 0">ניתן לשלוח פעם אחת עד 4 תיקונים בעיצוב. כל תיקון נוסף — בעלות של 60 ש״ח.</p>
-               <p style="margin:4px 0">במידה ויש צורך בתמונה מעובדת מוקדם לצורך הדפסה לאירוע, יש להודיע מראש. התמונה הנבחרת תעובד תוך 5 ימי עסקים.</p>`,
-            )}
-
-            ${section(
-              "זכויות שימוש",
-              `<p style="margin:4px 0">התמונות נשמרות בתיקיית העבודות שלי ובקטלוג — אם אינכם מעוניינים בכך, יש להודיע על כך מראש.</p>
-               <p style="margin:4px 0">זכויות היוצרים על התמונות שייכות לצלמת. ללקוח יש זכות שימוש אישית, ולא למטרות מסחריות.</p>`,
-            )}
+            ${sections.map((x) => section(x.title, x.html)).join("")}
 
             <tr><td style="padding:22px 0 0">
               <h3 style="margin:0 0 8px;color:${ROSE};font-size:17px;font-weight:bold">אישור</h3>
               <div style="color:${BROWN};font-size:14px;line-height:1.9">
-                <p style="margin:4px 0">יש להשיב למייל זה (<a href="mailto:${STUDIO_EMAIL}" style="color:${ROSE}">${STUDIO_EMAIL}</a>) עם המשפט:</p>
-                <p style="margin:4px 0">״שמי (${contactName || "___"}) קראתי את הכתוב בהסכם זה, ואני מאשר/ת את הדברים״ — וחתימה (דיגיטלית).</p>
+                <p style="margin:4px 0">כדי לאשר — יש להיכנס לקישור, לסמן ״קראתי״ ליד כל סעיף, ובסוף ללחוץ על שליחה. זו החתימה הדיגיטלית שלך:</p>
+                <p style="margin:12px 0;text-align:center"><a href="${confirmLink}" style="display:inline-block;background:${ROSE};color:#fff;text-decoration:none;padding:12px 26px;border-radius:999px;font-weight:bold">לקריאה ואישור ההסכם</a></p>
               </div>
             </td></tr>
 

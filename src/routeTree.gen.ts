@@ -84,6 +84,7 @@ import { Route as AuthenticatedAdminWhatsappRouteImport } from './routes/_authen
 import { Route as ApiVoiceIncomingRouteImport } from './routes/api.voice.incoming'
 import { Route as ApiVoiceRespondRouteImport } from './routes/api.voice.respond'
 import { Route as ApiYemotIvrRouteImport } from './routes/api.yemot.ivr'
+import { Route as ContractKindTokenRouteImport } from './routes/contract.$kind.$token'
 import { Route as DepositTypeIdRouteImport } from './routes/deposit.$type.$id'
 import { Route as NewbornConfirmTokenRouteImport } from './routes/newborn.confirm.$token'
 import { Route as NewbornGalleryTokenRouteImport } from './routes/newborn.gallery.$token'
@@ -502,6 +503,11 @@ const ApiYemotIvrRoute = ApiYemotIvrRouteImport.update({
   path: '/api/yemot/ivr',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContractKindTokenRoute = ContractKindTokenRouteImport.update({
+  id: '/contract/$kind/$token',
+  path: '/contract/$kind/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DepositTypeIdRoute = DepositTypeIdRouteImport.update({
   id: '/deposit/$type/$id',
   path: '/deposit/$type/$id',
@@ -621,6 +627,7 @@ export interface FileRoutesByFullPath {
   '/api/voice/incoming': typeof ApiVoiceIncomingRoute
   '/api/voice/respond': typeof ApiVoiceRespondRoute
   '/api/yemot/ivr': typeof ApiYemotIvrRoute
+  '/contract/$kind/$token': typeof ContractKindTokenRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/newborn/confirm/$token': typeof NewbornConfirmTokenRoute
   '/newborn/gallery/$token': typeof NewbornGalleryTokenRoute
@@ -704,6 +711,7 @@ export interface FileRoutesByTo {
   '/api/voice/incoming': typeof ApiVoiceIncomingRoute
   '/api/voice/respond': typeof ApiVoiceRespondRoute
   '/api/yemot/ivr': typeof ApiYemotIvrRoute
+  '/contract/$kind/$token': typeof ContractKindTokenRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/newborn/confirm/$token': typeof NewbornConfirmTokenRoute
   '/newborn/gallery/$token': typeof NewbornGalleryTokenRoute
@@ -790,6 +798,7 @@ export interface FileRoutesById {
   '/api/voice/incoming': typeof ApiVoiceIncomingRoute
   '/api/voice/respond': typeof ApiVoiceRespondRoute
   '/api/yemot/ivr': typeof ApiYemotIvrRoute
+  '/contract/$kind/$token': typeof ContractKindTokenRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/newborn/confirm/$token': typeof NewbornConfirmTokenRoute
   '/newborn/gallery/$token': typeof NewbornGalleryTokenRoute
@@ -876,6 +885,7 @@ export interface FileRouteTypes {
     | '/api/voice/incoming'
     | '/api/voice/respond'
     | '/api/yemot/ivr'
+    | '/contract/$kind/$token'
     | '/deposit/$type/$id'
     | '/newborn/confirm/$token'
     | '/newborn/gallery/$token'
@@ -959,6 +969,7 @@ export interface FileRouteTypes {
     | '/api/voice/incoming'
     | '/api/voice/respond'
     | '/api/yemot/ivr'
+    | '/contract/$kind/$token'
     | '/deposit/$type/$id'
     | '/newborn/confirm/$token'
     | '/newborn/gallery/$token'
@@ -1044,6 +1055,7 @@ export interface FileRouteTypes {
     | '/api/voice/incoming'
     | '/api/voice/respond'
     | '/api/yemot/ivr'
+    | '/contract/$kind/$token'
     | '/deposit/$type/$id'
     | '/newborn/confirm/$token'
     | '/newborn/gallery/$token'
@@ -1093,6 +1105,7 @@ export interface RootRouteChildren {
   ApiVoiceIncomingRoute: typeof ApiVoiceIncomingRoute
   ApiVoiceRespondRoute: typeof ApiVoiceRespondRoute
   ApiYemotIvrRoute: typeof ApiYemotIvrRoute
+  ContractKindTokenRoute: typeof ContractKindTokenRoute
   DepositTypeIdRoute: typeof DepositTypeIdRoute
   SummaryTypeIdRoute: typeof SummaryTypeIdRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
@@ -1625,6 +1638,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiYemotIvrRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contract/$kind/$token': {
+      id: '/contract/$kind/$token'
+      path: '/contract/$kind/$token'
+      fullPath: '/contract/$kind/$token'
+      preLoaderRoute: typeof ContractKindTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/deposit/$type/$id': {
       id: '/deposit/$type/$id'
       path: '/deposit/$type/$id'
@@ -1867,6 +1887,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiVoiceIncomingRoute: ApiVoiceIncomingRoute,
   ApiVoiceRespondRoute: ApiVoiceRespondRoute,
   ApiYemotIvrRoute: ApiYemotIvrRoute,
+  ContractKindTokenRoute: ContractKindTokenRoute,
   DepositTypeIdRoute: DepositTypeIdRoute,
   SummaryTypeIdRoute: SummaryTypeIdRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,

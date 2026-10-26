@@ -8,6 +8,7 @@
 // what genuinely needs the server (sending a Gmail email) lives here.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { newContractToken } from "@/lib/contract-token";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { buildOutdoorContractHtml } from "@/lib/outdoorContract";
 
@@ -26,14 +27,21 @@ export const sendOutdoorContract = createServerFn({ method: "POST" })
     await assertAdmin(context.supabase, context.userId);
     const { data: order, error } = await (context.supabase as any)
       .from("outdoor_package_orders")
-      .select("id, contact_name, contact_email, package_name, package_description, total_price, session_date, session_time")
+      .select("id, contact_name, contact_email, package_name, package_description, total_price, session_date, session_time, contract_token")
       .eq("id", data.id)
       .single();
     if (error || !order) throw new Error(error?.message ?? "הזמנה לא נמצאה");
     if (!order.contact_email) throw new Error("לא נמצאה כתובת מייל ללקוחה הזו");
     if (!order.session_date) throw new Error("יש להגדיר תאריך צילום לפני שליחת החוזה");
 
+    let contractToken = (order.contract_token as string | null) ?? null;
+    if (!contractToken) {
+      contractToken = newContractToken();
+      await (context.supabase as any).from("outdoor_package_orders").update({ contract_token: contractToken }).eq("id", data.id);
+    }
+
     const html = buildOutdoorContractHtml({
+      confirmLink: `https://sweetbabyphoto.shop/contract/outdoor/${contractToken}`,
       contactName: order.contact_name,
       sessionDate: order.session_date,
       sessionTime: order.session_time ?? null,

@@ -169,6 +169,13 @@
       "when": 1792963061692,
       "tag": "0023_inquiry_leads",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793035521661,
+      "tag": "0024_contract_signing",
+      "breakpoints": true
     }
   ]
 }
