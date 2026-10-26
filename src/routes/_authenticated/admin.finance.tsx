@@ -27,6 +27,7 @@ import {
   AlertCircle,
   FileSpreadsheet,
   Repeat,
+  CreditCard,
 } from "lucide-react";
 import { readXlsxFirstSheet, isReddishArgb, parseAmountCell, parseDateCell } from "@/lib/xlsx-read";
 import { toCSV, downloadCSV } from "@/lib/csv";
@@ -101,6 +102,9 @@ type Txn = {
   // ones, but kept filterable so the main totals can still reflect the
   // business's own financial picture.
   isPersonal: boolean;
+  // How the customer paid (orders/bookings.balance_method: cash/card/transfer/bit).
+  // null for newborn packages, manual income and expenses.
+  paymentMethod?: string | null;
 };
 
 /** Exports exactly the rows currently visible (respects every active filter — date range, type, client search, paid/pending) as a CSV that opens straight into Excel — same toCSV/downloadCSV pattern as the catalog's own export. */
@@ -373,7 +377,7 @@ function FinanceAdmin() {
       const [ordersRes, bookingsRes, expensesRes, manualRes, newbornRes] = await Promise.all([
         supabase
           .from("orders")
-          .select("id,total,status,created_at,scheduled_date,contact_name,contact_phone,deposit_status"),
+          .select("id,total,status,created_at,scheduled_date,contact_name,contact_phone,deposit_status,balance_method"),
         // "*" (not an explicit column list) because balance_paid is a
         // brand-new column — see the schema-fallback comment on
         // insertWithPersonalFallback above for why naming a not-yet-deployed
@@ -470,6 +474,7 @@ function FinanceAdmin() {
         depositStatus: (o as { deposit_status?: string | null }).deposit_status ?? null,
         debt: null,
         isPersonal: false,
+        paymentMethod: (o as { balance_method?: string | null }).balance_method ?? null,
       });
     }
     for (const b of data.data?.bookings ?? []) {
@@ -492,6 +497,7 @@ function FinanceAdmin() {
         depositStatus: (b as { deposit_status?: string | null }).deposit_status ?? null,
         debt: null,
         isPersonal: false,
+        paymentMethod: (b as { balance_method?: string | null }).balance_method ?? null,
       });
     }
     // Newborn packages are Michal's own photography work → "צילומים בסטודיו"
@@ -631,6 +637,22 @@ function FinanceAdmin() {
   // "אחר" for manual income outside the three) always add up to "סה״כ הכנסות".
   // Expenses aren't split here: their categories (ציוד, שכירות, פרסום…) don't
   // map onto a business line.
+  // Income by how the customer paid (ported 2026-10-26 from the Aug branch
+  // feature/finance-by-payment-method). Follows every active filter, same as
+  // the totals. Newborn packages + manual income have no method → "לא צוין".
+  const byPaymentMethod = useMemo(() => {
+    const LABELS: Record<string, string> = { card: "אשראי", cash: "מזומן", transfer: "העברה בנקאית", bit: "ביט / פייבוקס" };
+    const acc: Record<string, number> = {};
+    for (const t of txns) {
+      if (t.kind !== "income") continue;
+      const k = t.paymentMethod && LABELS[t.paymentMethod] ? t.paymentMethod : "other";
+      acc[k] = (acc[k] ?? 0) + t.amount;
+    }
+    return (["card", "cash", "transfer", "bit", "other"] as const)
+      .map((k) => ({ key: k, label: k === "other" ? "לא צוין / ידני / ניו בורן" : LABELS[k], value: acc[k] ?? 0 }))
+      .filter((r) => r.value > 0);
+  }, [txns]);
+
   const incomeBySegment = useMemo(() => {
     const seg = { photo: 0, studio: 0, props: 0, other: 0 };
     for (const t of txns) {
@@ -1063,6 +1085,27 @@ function FinanceAdmin() {
             })}
         </div>
       </div>
+
+      {byPaymentMethod.length > 0 && (
+        <div className="bg-card rounded-2xl border border-primary/5 p-5">
+          <h3 className="font-display text-lg mb-1 flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-muted-foreground" /> הכנסות לפי אמצעי תשלום
+          </h3>
+          <p className="text-xs text-muted-foreground mb-4">מתעדכן לפי אותו סינון תאריכים / לקוח / סוג שבחרת למעלה.</p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {byPaymentMethod.map((r) => {
+              const pct = totals.income > 0 ? Math.round((r.value / totals.income) * 100) : 0;
+              return (
+                <div key={r.key} className="rounded-xl p-4 bg-cream/50">
+                  <div className="text-xs text-muted-foreground mb-1">{r.label}</div>
+                  <div className="font-display text-xl text-forest">{ils(r.value)}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{pct}%</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="bg-card rounded-2xl border border-primary/5 p-5">
         <h3 className="font-display text-lg mb-4">פירוט לפי חודשים</h3>
