@@ -474,6 +474,11 @@ function FinanceAdmin() {
     }
     for (const b of data.data?.bookings ?? []) {
       if (b.status === "cancelled") continue;
+      // package "newborn" rows are only the studio-blocking mirror of a
+      // newborn_package_orders row (syncNewbornBookingBlock, same price) —
+      // they used to land here as "השכרת סטודיו". Counted from the newborn
+      // orders themselves below instead (owner, 2026-10-26).
+      if (b.package === "newborn") continue;
       const isPhoto = b.package === "photography";
       out.push({
         id: `b-${b.id}`,
@@ -485,6 +490,23 @@ function FinanceAdmin() {
         amount: Number(b.price ?? 0),
         removable: null,
         depositStatus: (b as { deposit_status?: string | null }).deposit_status ?? null,
+        debt: null,
+        isPersonal: false,
+      });
+    }
+    // Newborn packages are Michal's own photography work → "צילומים בסטודיו"
+    // (owner, 2026-10-26). Same source /admin's "כמה נכנס" block uses.
+    for (const n of (data.data?.newborn ?? []) as any[]) {
+      out.push({
+        id: `n-${n.id}`,
+        kind: "income",
+        type: TYPE_PHOTO,
+        title: "חבילת ניו בורן",
+        client: n.contact_name ?? "",
+        date: String(n.session_date ?? n.created_at).slice(0, 10),
+        amount: Number(n.total_price ?? 0),
+        removable: null,
+        depositStatus: null,
         debt: null,
         isPersonal: false,
       });
@@ -692,6 +714,7 @@ function FinanceAdmin() {
         contact_phone?: string | null;
       };
       if (b.status === "cancelled") continue;
+      if (b.package === "newborn") continue; // mirror of a newborn order — its debt is listed from newborn_package_orders
       if (bAny.balance_paid) continue;
       const amount = Number(bAny.balance_amount ?? 0);
       if (amount <= 0) continue;
