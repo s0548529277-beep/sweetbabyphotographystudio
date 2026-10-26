@@ -32,6 +32,8 @@ Lovable run it or apply it and insert its hash + `when` into
 
 ### Log
 
+- **2026-10-26 (09:00) — Claude (chat) — props policy replaces "עד 20 אביזרים שריון חינם"** (owner chose option A): all props in the studio are free during the rental + "at least 90% of the catalog is in the studio at any time (a small part may be out on external rental)"; reserving a specific prop is optional (booking step). Changed: `studio-rental.tsx` (step 02 text, the add-on box — the old "כ-80%" line replaced by 90%, new FAQ "האביזרים כלולים בהשכרה?" → 13 Q&A), `booking.tsx` (prop-picker subtitle; the technical 20-item cap of the picker itself is unchanged), `ai.functions.ts` bot knowledge (no number promise). Published.
+
 - **2026-10-26 (09:00) — Claude (chat) — bot silence at start + "דיבור לא ברור" after 9 + night order.**
   - **Silence before speaking:** `yemot.server.ts` `textSegment()` sent the whole greeting+menu as ONE `t-` segment (sanitize() turns "." into spaces). Now split into sentence segments joined by "." (Yemot's segment separator) so TTS can start after the first sentence. Same words/order. Applies to every Yemot message.
   - **Extension 9 / free AI chat, Yemot kept saying "דיבור לא ברור" and no speech reached us** (call 2026-10-26 06:50Z): `read` used `speech,no,voice,he,,,4` = quiet_max WITHOUT the records engine, a combination yemot-router2 explicitly rejects (`makeSttModeRead`: "quiet_max option is only available when use_records_recognition_engine is true"). Now `SPEECH_READ_OPTS = "speech,no,voice,he,,,4,,record"` (records/long-text engine). **Needs a real test call**; rollback = drop `,,record`. Speech recognition still needs Yemot units.

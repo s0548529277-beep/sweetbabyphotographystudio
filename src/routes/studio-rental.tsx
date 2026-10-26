@@ -120,10 +120,12 @@ const quickFacts = [
 
 // FAQ — every answer is taken from facts already stated elsewhere on this
 // page (rulesBlocks / quickFacts / the intake form) or in the bot knowledge;
-// nothing new is promised here. Props/"עד 20 אביזרים" deliberately left out
-// until the owner decides that policy. Also emitted as FAQPage JSON-LD.
+// nothing new is promised here. Props answer = owner's policy of 2026-10-26
+// (all props in the studio free, at least 90% of the catalog on site). Also
+// emitted as FAQPage JSON-LD.
 const STUDIO_FAQS: { q: string; a: string }[] = [
   { q: "כמה עולה השכרת הסטודיו?", a: "שעה ראשונה 180 ₪, וכל שעה נוספת 100 ₪. חצי שעה מחושבת באופן יחסי, ומינימום ההזמנה הוא שעה." },
+  { q: "האביזרים כלולים בהשכרה?", a: "כן. כל האביזרים שבסטודיו עומדים לרשותך בזמן ההשכרה ללא תוספת תשלום, ולפחות 90% מאביזרי הקטלוג נמצאים בסטודיו בכל רגע (חלק קטן עשוי להיות בהשכרה חיצונית). רוצה לוודא שאביזר מסוים יחכה לך? אפשר לשריין אותו מראש בשלב בחירת המועד." },
   { q: "יש מחיר מיוחד לצילומי ניו-בורן?", a: "כן — מבצע ניו-בורן של 3 שעות ב-320 ₪, בבוקר (8:00–14:00) או בערב אחרי 19:00 (עד 23:00)." },
   { q: "איך משריינים מועד?", a: "ממלאים את השאלון ובוחרים מועד פנוי ביומן. השריון נעשה במקדמה של 90 ₪ שאינה מוחזרת; הזמנה לאותו היום משולמת במלואה מראש. את היתרה אפשר לשלם בסיום באשראי, בפייבוקס, בהעברה או במזומן." },
   { q: "מה מדיניות הביטולים?", a: "בביטול או שינוי עד יום האירוע המקדמה אינה מוחזרת. ביטול ביום האירוע עצמו מחויב בתשלום מלא." },
@@ -383,7 +385,7 @@ function StudioRentalPage() {
             <div className="mt-7 grid md:grid-cols-3 gap-3 md:gap-4">
               {[
                 { n: "01", title: "שאלון והסכם", desc: "ממלאים את הסכם תיאום הציפיות — פרטים, סוג הצילום ואישור כללי הסטודיו.", bg: "from-[#f8ede4] to-[#f5d5cf]/70" },
-                { n: "02", title: "קביעת יומן", desc: "בוחרים תאריך ושעה פנויים ביומן החי, משך שהות ואביזרים לשריון (עד 20 חינם).", bg: "from-[#dce8d5] to-[#eef4ea]" },
+                { n: "02", title: "קביעת יומן", desc: "בוחרים תאריך ושעה פנויים ביומן החי, משך שהות, ואם רוצים — אביזרים מסוימים לשריון.", bg: "from-[#dce8d5] to-[#eef4ea]" },
                 { n: "03", title: "תשלום מקדמה", desc: "מקדמה 90 ₪ לשריון המועד (ביום ההגעה — תשלום מלא). ואז הכל נסגר.", bg: "from-[#f5d5cf] to-[#f8c4c0]/70" },
               ].map((s) => (
                 <div key={s.n} className={`rounded-2xl border border-[#2d3d2b]/10 bg-gradient-to-br ${s.bg} p-5`}>
@@ -432,11 +434,11 @@ function StudioRentalPage() {
               <div className="text-[15px] tracking-[0.18em] uppercase text-[#6b8a63] mb-1">Add-on · חינם</div>
               <h4 className="text-xl" style={{ fontFamily: "'DM Serif Display', serif" }}>צריכה גם אביזרים?</h4>
               <p className="text-sm text-[#2d3d2b]/80 mt-1 leading-relaxed">
-                <strong>עד 20 אביזרים שריון חינם</strong> לשעות ההשכרה בסטודיו — ללא תוספת תשלום.
-                אנו מתחייבים שכ-80% מהקטלוג יהיה בהישג יד בזמן הצילום (בכפוף לזמינות).
+                <strong>כל האביזרים שבסטודיו עומדים לרשותך בזמן ההשכרה, ללא תוספת תשלום</strong> 💗
+                לפחות 90% מאביזרי הקטלוג נמצאים בסטודיו בכל רגע (חלק קטן עשוי להיות בהשכרה חיצונית).
               </p>
               <p className="text-[15px] text-[#2d3d2b]/60 mt-2">
-                רוצה לשריין אביזרים ספציפיים? ציין/י אותם בהערות בטופס תיאום הציפיות.
+                רוצה לוודא שאביזר מסוים יחכה לך? אפשר לשריין אותו מראש בשלב בחירת המועד, או לציין אותו בהערות בטופס תיאום הציפיות.
               </p>
             </div>
             <div className="flex flex-col items-stretch gap-2">
