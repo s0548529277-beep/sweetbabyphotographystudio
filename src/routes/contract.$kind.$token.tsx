@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Check, Loader2, Send } from "lucide-react";
 import { confirmNewbornContractByToken, getNewbornContractStatusByToken } from "@/lib/newborn-orders.functions";
 import { getContractForSigning, submitContractSigning } from "@/lib/contract-signing.functions";
+import { PAYMENT_OPTIONS, PUBLISH_OPTIONS } from "@/lib/contract-answers";
 import michalLogoWordmark from "@/assets/michal-logo-wordmark.png";
 
 // Section-by-section contract signing — owner request 2026-10-26: the client
@@ -39,6 +40,11 @@ function ContractSigningPage() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [children, setChildren] = useState("");
+  const [publish, setPublish] = useState<string>("");
+  const [publishOther, setPublishOther] = useState("");
+  const [payment, setPayment] = useState<string>("");
+  const [notes, setNotes] = useState("");
 
   const query = useQuery({
     queryKey: ["contract-signing", kind, token],
@@ -96,6 +102,9 @@ function ContractSigningPage() {
   }
 
   const allRead = sections.length > 0 && read.size === sections.length;
+  const answersDone =
+    children.trim().length >= 2 && !!publish && (publish !== "אחר" || publishOther.trim().length > 0) && !!payment;
+  const canSend = allRead && answersDone;
 
   const toggle = (i: number) =>
     setRead((prev) => {
@@ -106,12 +115,19 @@ function ContractSigningPage() {
     });
 
   const send = async () => {
-    if (!allRead) return;
+    if (!canSend) return;
+    const answers = {
+      children: children.trim(),
+      publish: publish as (typeof PUBLISH_OPTIONS)[number],
+      publishOther: publishOther.trim(),
+      payment: payment as (typeof PAYMENT_OPTIONS)[number],
+      notes: notes.trim(),
+    };
     setSending(true);
     setError(null);
     try {
-      if (isNewborn) await confirmNewborn({ data: { token, readCount: read.size } });
-      else await submitOther({ data: { kind: kind as "photo" | "outdoor", token, readCount: read.size } });
+      if (isNewborn) await confirmNewborn({ data: { token, readCount: read.size, answers } });
+      else await submitOther({ data: { kind: kind as "photo" | "outdoor", token, readCount: read.size, answers } });
       setSent(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "השליחה לא הצליחה, אפשר לנסות שוב");
@@ -126,7 +142,7 @@ function ContractSigningPage() {
         היי {contactName || "יקרה"},
       </h1>
       <p className="text-sm text-center text-[#4a3221]/80 mb-8 leading-relaxed">
-        נא לקרוא כל סעיף ולסמן ״קראתי״. בסוף, כשכל הסעיפים מסומנים, לוחצים על שליחה — זו החתימה הדיגיטלית שלך.
+        נא לקרוא כל סעיף ולסמן ״קראתי״, ולמלא בסוף כמה פרטים. כשהכול מסומן ומלא, לוחצים על שליחה — זו החתימה הדיגיטלית שלך.
       </p>
 
       <div className="space-y-4">
@@ -160,14 +176,86 @@ function ContractSigningPage() {
         })}
       </div>
 
+      <section className="mt-6 rounded-2xl bg-white/85 border border-[#d9b98a]/40 p-5 space-y-5">
+        <h2 className="font-semibold" style={{ color: ROSE }}>
+          כמה פרטים ממך
+        </h2>
+
+        <label className="block">
+          <span className="text-sm font-semibold">מספר ילדים, גילאים ושמות *</span>
+          <textarea
+            value={children}
+            onChange={(e) => setChildren(e.target.value)}
+            rows={3}
+            placeholder="לדוגמה: 3 ילדים — יוסי (5), שירה (3), הבייבי (שבועיים)"
+            className="mt-1 w-full rounded-xl border border-[#d9b98a]/60 bg-white px-3 py-2 text-sm"
+          />
+        </label>
+
+        <fieldset>
+          <legend className="text-sm font-semibold mb-2">אישור פרסום על התמונות *</legend>
+          <div className="space-y-2">
+            {PUBLISH_OPTIONS.map((opt) => (
+              <label key={opt} className="flex items-center gap-2 cursor-pointer text-sm">
+                <input
+                  type="radio"
+                  name="publish"
+                  checked={publish === opt}
+                  onChange={() => setPublish(opt)}
+                  className="h-4 w-4 accent-[#4a3221]"
+                />
+                {opt}
+              </label>
+            ))}
+          </div>
+          {publish === "אחר" && (
+            <input
+              value={publishOther}
+              onChange={(e) => setPublishOther(e.target.value)}
+              placeholder="פרטי כאן"
+              className="mt-2 w-full rounded-xl border border-[#d9b98a]/60 bg-white px-3 py-2 text-sm"
+            />
+          )}
+        </fieldset>
+
+        <fieldset>
+          <legend className="text-sm font-semibold mb-2">יתרת התשלום *</legend>
+          <div className="space-y-2">
+            {PAYMENT_OPTIONS.map((opt) => (
+              <label key={opt} className="flex items-center gap-2 cursor-pointer text-sm">
+                <input
+                  type="radio"
+                  name="payment"
+                  checked={payment === opt}
+                  onChange={() => setPayment(opt)}
+                  className="h-4 w-4 accent-[#4a3221]"
+                />
+                {opt}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <label className="block">
+          <span className="text-sm font-semibold">עוד משהו שרציתי להוסיף</span>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={2}
+            className="mt-1 w-full rounded-xl border border-[#d9b98a]/60 bg-white px-3 py-2 text-sm"
+          />
+        </label>
+      </section>
+
       <div className="sticky bottom-0 mt-8 bg-[#fdf3ec]/95 backdrop-blur py-4 text-center">
         <p className="text-xs text-[#4a3221]/70 mb-3">
           סומנו {read.size} מתוך {sections.length} סעיפים
+          {allRead && !answersDone ? " · נשאר למלא את הפרטים למעלה" : ""}
         </p>
         <button
           type="button"
           onClick={send}
-          disabled={!allRead || sending}
+          disabled={!canSend || sending}
           className="inline-flex items-center gap-2 bg-[#4a3221] text-white px-8 py-3.5 rounded-full font-semibold disabled:opacity-40"
         >
           {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}

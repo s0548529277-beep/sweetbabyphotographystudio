@@ -18,6 +18,7 @@ import {
   type NewbornPackage,
 } from "@/lib/newborn-packages";
 import { emailHeartImgTag } from "@/lib/page-images";
+import { contractAnswersEmailHtml, contractAnswersSchema } from "@/lib/contract-answers";
 import {
   CM_SETTINGS_KEY,
   NEWBORN_ZIP_DOWNLOAD_LIMIT,
@@ -1434,7 +1435,7 @@ export const getNewbornContractStatusByToken = createServerFn({ method: "POST" }
 // against the real section count server-side too, not just in the page.
 export const confirmNewbornContractByToken = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
-    z.object({ token: z.string().min(10), readCount: z.number().int().min(0) }).parse(d),
+    z.object({ token: z.string().min(10), readCount: z.number().int().min(0), answers: contractAnswersSchema }).parse(d),
   )
   .handler(async ({ data }) => {
     const order = await orderByToken(data.token);
@@ -1446,7 +1447,7 @@ export const confirmNewbornContractByToken = createServerFn({ method: "POST" })
     if (!alreadyConfirmed) {
       await (supabaseAdmin as any)
         .from("newborn_package_orders")
-        .update({ contract_confirmed_at: new Date().toISOString() })
+        .update({ contract_confirmed_at: new Date().toISOString(), contract_answers: data.answers })
         .eq("id", order.id);
       try {
         const { sendGmail } = await import("@/integrations/google/gmail.server");
@@ -1461,6 +1462,7 @@ export const confirmNewbornContractByToken = createServerFn({ method: "POST" })
               <p style="margin:0;font-size:13px">סימנה ״קראתי״ בכל ${sections.length} הסעיפים</p>
             </div>
             <ul style="text-align:right;margin:16px 0 0;padding-inline-start:20px;font-size:13px;line-height:1.8">${sections.map((x) => `<li>✓ ${x.title}</li>`).join("")}</ul>
+            ${contractAnswersEmailHtml(data.answers)}
             <p style="margin-top:20px"><a href="https://sweetbabyphoto.shop/admin/newborn-packages" style="color:#2d3d2b;font-weight:600">לצפייה בניהול</a></p>
           </div>`,
         });

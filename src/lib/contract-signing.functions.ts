@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { ContractSection } from "@/lib/photoContract";
+import { contractAnswersEmailHtml, contractAnswersSchema } from "@/lib/contract-answers";
 
 /**
  * Public, token-only signing surface for the photo-session (photo_client_workflows)
@@ -92,7 +93,7 @@ export const getContractForSigning = createServerFn({ method: "POST" })
 
 export const submitContractSigning = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
-    z.object({ kind: kindSchema, token: tokenSchema, readCount: z.number().int().min(0) }).parse(d),
+    z.object({ kind: kindSchema, token: tokenSchema, readCount: z.number().int().min(0), answers: contractAnswersSchema }).parse(d),
   )
   .handler(async ({ data }) => {
     const row = await loadByToken(data.kind, data.token);
@@ -103,7 +104,7 @@ export const submitContractSigning = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await (supabaseAdmin as any)
       .from(row.table)
-      .update({ contract_confirmed_at: new Date().toISOString() })
+      .update({ contract_confirmed_at: new Date().toISOString(), contract_answers: data.answers })
       .eq("id", row.id);
 
     try {
@@ -121,6 +122,7 @@ export const submitContractSigning = createServerFn({ method: "POST" })
           <ul style="margin:16px 0 0;padding-inline-start:20px;font-size:13px;line-height:1.8">${row.sections
             .map((x) => `<li>✓ ${x.title}</li>`)
             .join("")}</ul>
+          ${contractAnswersEmailHtml(data.answers)}
           <p style="margin-top:18px;text-align:center"><a href="https://sweetbabyphoto.shop${adminPath}" style="color:#2d3d2b;font-weight:600">לצפייה בניהול</a></p>
         </div>`,
       });

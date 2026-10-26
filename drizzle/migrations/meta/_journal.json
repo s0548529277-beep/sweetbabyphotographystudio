@@ -176,6 +176,13 @@
       "when": 1793035521661,
       "tag": "0024_contract_signing",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793037212275,
+      "tag": "0025_contract_answers",
+      "breakpoints": true
     }
   ]
 }
