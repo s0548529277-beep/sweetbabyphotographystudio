@@ -32,6 +32,11 @@ Lovable run it or apply it and insert its hash + `when` into
 
 ### Log
 
+- **2026-10-26 (09:00) — Claude (chat) — bot silence at start + "דיבור לא ברור" after 9 + night order.**
+  - **Silence before speaking:** `yemot.server.ts` `textSegment()` sent the whole greeting+menu as ONE `t-` segment (sanitize() turns "." into spaces). Now split into sentence segments joined by "." (Yemot's segment separator) so TTS can start after the first sentence. Same words/order. Applies to every Yemot message.
+  - **Extension 9 / free AI chat, Yemot kept saying "דיבור לא ברור" and no speech reached us** (call 2026-10-26 06:50Z): `read` used `speech,no,voice,he,,,4` = quiet_max WITHOUT the records engine, a combination yemot-router2 explicitly rejects (`makeSttModeRead`: "quiet_max option is only available when use_records_recognition_engine is true"). Now `SPEECH_READ_OPTS = "speech,no,voice,he,,,4,,record"` (records/long-text engine). **Needs a real test call**; rollback = drop `,,record`. Speech recognition still needs Yemot units.
+  - **Night opening order** (owner): greeting's first sentence ("הייי אני סוויט בוט…") first, then "אחרי עשר בלילה אין מענה. איסוף והחזרת אביזרים אפשר לתאם (מחר) משמונה בבוקר.", then the rest of the greeting without its "מענה" sentence (`nightOpening()` in `voice-after-hours.server.ts`). "בינתיים אפשר להמשיך כאן כרגיל" removed.
+
 - **2026-10-26 (08:50) — Claude (chat):** owner: "אין מענה" must not be heard twice at night. New `greetingForNight()` in `voice-after-hours.server.ts` drops any greeting sentence containing "מענה" (niqqud-insensitive) — used only together with the night notice (Yemot + Twilio). Daytime greeting unchanged; DB greeting text unchanged.
 
 - **2026-10-26 (04:20) — Claude (chat):** owner wants "אין מענה" to be the first thing heard at night. Night notice (`afterHoursNotice`) is now spoken BEFORE the greeting (Yemot + Twilio) and reads "אחרי עשר בלילה אין מענה. איסוף והחזרת אביזרים אפשר לתאם מחר משמונה בבוקר. בינתיים אפשר להמשיך כאן כרגיל." (personalized name, if any, still comes first). The admin greeting still also says "לא היה מענה כרגע" — left as is, owner's own text.

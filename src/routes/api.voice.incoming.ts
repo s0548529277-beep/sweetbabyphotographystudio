@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 import { parseTwilioForm, twimlSayAndGather, verifyTwilioSignature } from "@/lib/twilio.server";
-import { afterHoursNotice, greetingForNight } from "@/lib/voice-after-hours.server";
+import { afterHoursNotice, nightOpening } from "@/lib/voice-after-hours.server";
 import { getVoiceBotSayAttrs } from "@/lib/voice-settings.server";
 import { getPhraseMap } from "@/lib/voice-phrases.server";
 import { personalizedGreeting } from "@/lib/voice-caller.server";
@@ -30,7 +30,7 @@ export const Route = createFileRoute("/api/voice/incoming")({
         // Night hours notice (22:00–08:00) — call continues normally.
         const nightNotice = afterHoursNotice();
         const greetingWithMenu = await personalizedGreeting(
-          nightNotice ? `${nightNotice} ${greetingForNight(phrases.greeting)} ${phrases.menu_prompt}` : `${phrases.greeting} ${phrases.menu_prompt}`,
+          nightNotice ? `${nightOpening(phrases.greeting, nightNotice)} ${phrases.menu_prompt}` : `${phrases.greeting} ${phrases.menu_prompt}`,
           fromNumber,
         );
         const fullGreeting = pending ? `${pending} ${greetingWithMenu}` : greetingWithMenu;

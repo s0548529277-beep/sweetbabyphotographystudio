@@ -40,7 +40,8 @@ export function afterHoursNotice(now: Date = new Date()): string {
   const when = jerusalemHour(now) >= AFTER_HOURS_START ? "מחר משמונה בבוקר" : "משמונה בבוקר";
   // Owner (2026-10-26 04:17): at night "אין מענה" must be the FIRST thing
   // the caller hears — so this notice is spoken BEFORE the greeting now.
-  return `אחרי עשר בלילה אין מענה. איסוף והחזרת אביזרים אפשר לתאם ${when}. בינתיים אפשר להמשיך כאן כרגיל.`;
+  // Owner (2026-10-26 08:53): dropped "בינתיים אפשר להמשיך כאן כרגיל".
+  return `אחרי עשר בלילה אין מענה. איסוף והחזרת אביזרים אפשר לתאם ${when}.`;
 }
 
 /**
@@ -58,4 +59,15 @@ export function greetingForNight(greeting: string): string {
     .join("")
     .replace(/\s{2,}/g, " ")
     .trim();
+}
+
+/**
+ * Full night opening (owner, 2026-10-26 08:53): the greeting's FIRST sentence
+ * ("הייי אני סוויט בוט, הגעתם לסטודיו…") stays first, then the night notice,
+ * then the rest of the greeting minus its own "מענה" sentence.
+ */
+export function nightOpening(greeting: string, notice: string): string {
+  const sentences = greetingForNight(greeting).split(/(?<=\.)\s*/).filter((x) => x.trim());
+  const [first = "", ...rest] = sentences;
+  return [first, notice, ...rest].filter(Boolean).join(" ").replace(/\s{2,}/g, " ").trim();
 }

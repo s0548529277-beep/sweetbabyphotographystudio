@@ -54,10 +54,38 @@ function sanitize(text: string): string {
   return text.replace(YEMOT_UNSAFE_CHARS, " ").replace(/\s+/g, " ").trim();
 }
 
-/** One `t-<text>` message segment for id_list_message/read, sanitized for the protocol's delimiter characters. */
+/**
+ * The text as `t-<sentence>` message segments joined by "." (Yemot's own
+ * segment separator — same join makeMessagesData uses in yemot-router2).
+ *
+ * 2026-10-26: this used to send the WHOLE text (greeting + menu, 500+ chars)
+ * as ONE segment, because sanitize() turns every "." into a space. Owner
+ * reported several seconds of silence before the bot starts talking —
+ * Yemot's TTS has to render a segment before playing it, so one huge
+ * segment means a long wait. Splitting at sentence ends lets it start
+ * after the first short sentence. Same words, same order.
+ */
 function textSegment(text: string): string {
-  return `t-${sanitize(text)}`;
+  const sentences = text
+    .split(/(?<=[.!?:])\s+|\n+/)
+    .map(sanitize)
+    .filter(Boolean);
+  if (sentences.length === 0) return `t-${sanitize(text)}`;
+  return sentences.map((t) => `t-${t}`).join(".");
 }
+
+// Speech-listen options for every `read=…=speech,…` in this file.
+// Field order per yemot-router2 makeSttModeRead: valName, re_enter, "voice",
+// lang, block_typing, max_digits, quiet_max, max_length, engine.
+// 2026-10-26: the earlier `speech,no,voice,he,,,4` set quiet_max WITHOUT the
+// records engine — yemot-router2 explicitly rejects that combination
+// ("quiet_max option is only available when use_records_recognition_engine
+// is true"). Owner reported Yemot saying "דיבור לא ברור" on every turn after
+// pressing 9, with no speech ever reaching us. Now uses the records ("long
+// text") engine, the one quiet_max belongs to: records until 4s of silence,
+// then recognizes. block_typing must stay blank with this engine (typing is
+// always blocked there). Rollback: back to `speech,no,voice,he,,,4`.
+const SPEECH_READ_OPTS = "speech,no,voice,he,,,4,,record";
 
 function yemotResponse(body: string): Response {
   return new Response(body, { status: 200, headers: { "Content-Type": "text/plain; charset=utf-8" } });
@@ -92,7 +120,7 @@ export function yemotSayAndListen(text: string): Response {
   // speech" can also be genuine low STT confidence on Yemot's own engine
   // (background noise, a soft reply) that no parameter here controls —
   // worth confirming against a real call.
-  return yemotResponse(`read=${textSegment(text)}=speech,no,voice,he,,,4`);
+  return yemotResponse(`read=${textSegment(text)}=${SPEECH_READ_OPTS}`);
 }
 
 /** Speaks `text` in Hebrew and ends the call. */
@@ -174,7 +202,7 @@ export function yemotSayThenResume(text: string, musicOnHoldId?: string | null):
   // (more patience before giving up, never less) and 4 full seconds is well
   // above the 1-second value already confirmed too tight, so this cannot
   // reproduce the earlier "wrong fallthrough" failure either.
-  return yemotResponse(`read=${holdSegment}${textSegment(text)}=speech,no,voice,he,,,4`);
+  return yemotResponse(`read=${holdSegment}${textSegment(text)}=${SPEECH_READ_OPTS}`);
 }
 
 // Yemot's own built-in typing_playback_mode presets that ALSO fix the
