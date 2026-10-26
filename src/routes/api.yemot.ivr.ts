@@ -239,11 +239,11 @@ async function handle(request: Request): Promise<Response> {
         // If the caller's number matches a real site account, personalize
         // with her name — best-effort, falls back to the plain greeting.
         const menuText = menuMode === "dtmf" ? phrases.menu_prompt_dtmf : phrases.menu_prompt;
-        // Night hours (22:00–08:00): a short notice between greeting and menu —
+        // Night hours (22:00–08:00): a short notice BEFORE the greeting —
         // the call itself continues normally (voice-after-hours.server.ts).
         const nightNotice = afterHoursNotice();
         const greetingWithMenu = await personalizedGreeting(
-          nightNotice ? `${phrases.greeting} ${nightNotice} ${menuText}` : `${phrases.greeting} ${menuText}`,
+          nightNotice ? `${nightNotice} ${phrases.greeting} ${menuText}` : `${phrases.greeting} ${menuText}`,
           callerPhone,
         );
         const fullGreeting = pending ? `${pending} ${greetingWithMenu}` : greetingWithMenu;

@@ -30,7 +30,7 @@ export const Route = createFileRoute("/api/voice/incoming")({
         // Night hours notice (22:00–08:00) — call continues normally.
         const nightNotice = afterHoursNotice();
         const greetingWithMenu = await personalizedGreeting(
-          nightNotice ? `${phrases.greeting} ${nightNotice} ${phrases.menu_prompt}` : `${phrases.greeting} ${phrases.menu_prompt}`,
+          nightNotice ? `${nightNotice} ${phrases.greeting} ${phrases.menu_prompt}` : `${phrases.greeting} ${phrases.menu_prompt}`,
           fromNumber,
         );
         const fullGreeting = pending ? `${pending} ${greetingWithMenu}` : greetingWithMenu;

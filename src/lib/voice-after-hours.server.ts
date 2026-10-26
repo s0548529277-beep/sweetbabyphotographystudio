@@ -2,7 +2,7 @@
  * Phone-bot night hours (owner request 2026-10-25, revised same night):
  * from 22:00 until 08:00 Israel time the bot keeps working NORMALLY (menu,
  * AI, bookings, messages) — it only adds a short spoken notice to the start
- * of a NEW call, after the regular greeting and before the menu: no one
+ * of a NEW call, BEFORE the regular greeting (owner, 2026-10-26): no one
  * answers now, and props pickup/return is not possible after 22:00 — from
  * 8:00 in the morning. (An earlier version that same night hung up instead;
  * the owner asked for the bot to stay on.) Applies to both phone channels:
@@ -38,7 +38,7 @@ export function afterHoursNotice(now: Date = new Date()): string {
   // times awkwardly. No niqqud on purpose (see voice-chat.server.ts: guessed
   // niqqud made pronunciation worse; unverifiable from here).
   const when = jerusalemHour(now) >= AFTER_HOURS_START ? "מחר משמונה בבוקר" : "משמונה בבוקר";
-  // No "אין מענה" here — the greeting it follows already says that
-  // (owner heard it twice on a live call, 2026-10-26).
-  return `איסוף והחזרת אביזרים אינם מתאפשרים אחרי עשר בלילה, אפשר לתאם ${when}. בינתיים אפשר להמשיך כאן כרגיל.`;
+  // Owner (2026-10-26 04:17): at night "אין מענה" must be the FIRST thing
+  // the caller hears — so this notice is spoken BEFORE the greeting now.
+  return `אחרי עשר בלילה אין מענה. איסוף והחזרת אביזרים אפשר לתאם ${when}. בינתיים אפשר להמשיך כאן כרגיל.`;
 }
