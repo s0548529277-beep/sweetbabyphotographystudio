@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { ContractSection } from "@/lib/photoContract";
 import { contractAnswersEmailHtml, contractAnswersSchema } from "@/lib/contract-answers";
+import { groupContractSections } from "@/lib/contract-groups";
 
 /**
  * Public, token-only signing surface for the photo-session (photo_client_workflows)
@@ -23,6 +24,7 @@ type Loaded = {
   contactName: string;
   confirmedAt: string | null;
   sections: ContractSection[];
+  prefillChildren: string;
 };
 
 async function loadByToken(kind: "photo" | "outdoor", token: string): Promise<Loaded | null> {
@@ -42,6 +44,10 @@ async function loadByToken(kind: "photo" | "outdoor", token: string): Promise<Lo
       id: order.id,
       contactName: order.contact_name ?? "",
       confirmedAt: order.contract_confirmed_at ?? null,
+      // Already on the order (admin-entered) — prefilled on the signing page.
+      prefillChildren: [order.children_count ? `${order.children_count} ילדים` : "", order.children_names ?? ""]
+        .filter(Boolean)
+        .join(" — "),
       sections: buildOutdoorContractSections({
         contactName: order.contact_name ?? "",
         sessionDate: order.session_date,
@@ -71,6 +77,7 @@ async function loadByToken(kind: "photo" | "outdoor", token: string): Promise<Lo
     id: wf.id,
     contactName,
     confirmedAt: wf.contract_confirmed_at ?? null,
+    prefillChildren: "",
     sections: buildPhotoContractSections({
       contactName,
       sessionDate: wf.session_date,
@@ -88,7 +95,12 @@ export const getContractForSigning = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const row = await loadByToken(data.kind, data.token);
     if (!row) throw new Error("קישור לא תקין");
-    return { contactName: row.contactName, confirmedAt: row.confirmedAt, sections: row.sections };
+    return {
+      contactName: row.contactName,
+      confirmedAt: row.confirmedAt,
+      groups: groupContractSections(row.sections),
+      prefillChildren: row.prefillChildren,
+    };
   });
 
 export const submitContractSigning = createServerFn({ method: "POST" })
@@ -98,7 +110,8 @@ export const submitContractSigning = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const row = await loadByToken(data.kind, data.token);
     if (!row) throw new Error("קישור לא תקין");
-    if (data.readCount < row.sections.length) throw new Error("יש לסמן ״קראתי״ בכל הסעיפים לפני השליחה");
+    const groups = groupContractSections(row.sections);
+    if (data.readCount < groups.length) throw new Error("יש לסמן ״קראתי״ בכל הסעיפים לפני השליחה");
     if (row.confirmedAt) return { ok: true };
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -117,10 +130,10 @@ export const submitContractSigning = createServerFn({ method: "POST" })
         html: `<div dir="rtl" style="font-family:sans-serif;color:#2d3d2b;max-width:480px;margin:0 auto">
           <div style="background:linear-gradient(135deg,#f5d5cf,#a8c4a2);border-radius:20px;padding:24px 20px;text-align:center">
             <h2 style="margin:0 0 6px">${row.contactName || "הלקוחה"} קראה ואישרה את החוזה</h2>
-            <p style="margin:0;font-size:13px">סימנה ״קראתי״ בכל ${row.sections.length} הסעיפים</p>
+            <p style="margin:0;font-size:13px">סימנה ״קראתי״ בכל ${groups.length} חלקי ההסכם</p>
           </div>
-          <ul style="margin:16px 0 0;padding-inline-start:20px;font-size:13px;line-height:1.8">${row.sections
-            .map((x) => `<li>✓ ${x.title}</li>`)
+          <ul style="margin:16px 0 0;padding-inline-start:20px;font-size:13px;line-height:1.8">${groups
+            .map((g) => `<li>✓ ${g.title} (${g.sections.map((x) => x.title).join(", ")})</li>`)
             .join("")}</ul>
           ${contractAnswersEmailHtml(data.answers)}
           <p style="margin-top:18px;text-align:center"><a href="https://sweetbabyphoto.shop${adminPath}" style="color:#2d3d2b;font-weight:600">לצפייה בניהול</a></p>

@@ -22,7 +22,8 @@ export const Route = createFileRoute("/contract/$kind/$token")({
 });
 
 type Section = { title: string; html: string };
-type Loaded = { contactName: string; confirmedAt: string | null; sections: Section[] };
+type Group = { title: string; sections: Section[] };
+type Loaded = { contactName: string; confirmedAt: string | null; groups: Group[]; prefillChildren?: string };
 
 const ROSE = "#c23b6d";
 
@@ -41,6 +42,7 @@ function ContractSigningPage() {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [children, setChildren] = useState("");
+  const [childrenTouched, setChildrenTouched] = useState(false);
   const [publish, setPublish] = useState<string>("");
   const [publishOther, setPublishOther] = useState("");
   const [payment, setPayment] = useState<string>("");
@@ -85,7 +87,8 @@ function ContractSigningPage() {
     );
   }
 
-  const { contactName, confirmedAt, sections } = query.data;
+  const { contactName, confirmedAt, groups } = query.data;
+  const childrenValue = childrenTouched ? children : children || query.data.prefillChildren || "";
 
   if (sent || confirmedAt) {
     return shell(
@@ -101,9 +104,9 @@ function ContractSigningPage() {
     );
   }
 
-  const allRead = sections.length > 0 && read.size === sections.length;
+  const allRead = groups.length > 0 && read.size === groups.length;
   const answersDone =
-    children.trim().length >= 2 && !!publish && (publish !== "אחר" || publishOther.trim().length > 0) && !!payment;
+    childrenValue.trim().length >= 2 && !!publish && (publish !== "אחר" || publishOther.trim().length > 0) && !!payment;
   const canSend = allRead && answersDone;
 
   const toggle = (i: number) =>
@@ -117,7 +120,7 @@ function ContractSigningPage() {
   const send = async () => {
     if (!canSend) return;
     const answers = {
-      children: children.trim(),
+      children: childrenValue.trim(),
       publish: publish as (typeof PUBLISH_OPTIONS)[number],
       publishOther: publishOther.trim(),
       payment: payment as (typeof PAYMENT_OPTIONS)[number],
@@ -142,26 +145,33 @@ function ContractSigningPage() {
         היי {contactName || "יקרה"},
       </h1>
       <p className="text-sm text-center text-[#4a3221]/80 mb-8 leading-relaxed">
-        נא לקרוא כל סעיף ולסמן ״קראתי״, ולמלא בסוף כמה פרטים. כשהכול מסומן ומלא, לוחצים על שליחה — זו החתימה הדיגיטלית שלך.
+        ההסכם מחולק לכמה חלקים — נא לקרוא כל חלק ולסמן ״קראתי״, ולמלא בסוף כמה פרטים. כשהכול מסומן ומלא, לוחצים על שליחה — זו החתימה הדיגיטלית שלך.
       </p>
 
       <div className="space-y-4">
-        {sections.map((s, i) => {
+        {groups.map((g, i) => {
           const isRead = read.has(i);
           return (
             <section
-              key={`${i}-${s.title}`}
+              key={`${i}-${g.title}`}
               className={`rounded-2xl bg-white/85 border p-5 transition-colors ${
                 isRead ? "border-[#4a3221]/40" : "border-[#d9b98a]/40"
               }`}
             >
-              <h2 className="font-semibold mb-2" style={{ color: ROSE }}>
-                {s.title}
+              <h2 className="text-lg font-semibold mb-3" style={{ color: ROSE, fontFamily: "'DM Serif Display', serif" }}>
+                {g.title}
               </h2>
-              <div
-                className="text-sm leading-relaxed text-[#4a3221] [&_p]:my-1 [&_ul]:list-disc [&_ul]:ps-5"
-                dangerouslySetInnerHTML={{ __html: s.html }}
-              />
+              <div className="space-y-4">
+                {g.sections.map((s) => (
+                  <div key={s.title}>
+                    <h3 className="text-sm font-semibold mb-1">{s.title}</h3>
+                    <div
+                      className="text-sm leading-relaxed text-[#4a3221] [&_p]:my-1 [&_ul]:list-disc [&_ul]:ps-5"
+                      dangerouslySetInnerHTML={{ __html: s.html }}
+                    />
+                  </div>
+                ))}
+              </div>
               <label className="mt-4 flex items-center gap-2 cursor-pointer select-none w-fit">
                 <input
                   type="checkbox"
@@ -184,8 +194,11 @@ function ContractSigningPage() {
         <label className="block">
           <span className="text-sm font-semibold">מספר ילדים, גילאים ושמות *</span>
           <textarea
-            value={children}
-            onChange={(e) => setChildren(e.target.value)}
+            value={childrenValue}
+            onChange={(e) => {
+              setChildrenTouched(true);
+              setChildren(e.target.value);
+            }}
             rows={3}
             placeholder="לדוגמה: 3 ילדים — יוסי (5), שירה (3), הבייבי (שבועיים)"
             className="mt-1 w-full rounded-xl border border-[#d9b98a]/60 bg-white px-3 py-2 text-sm"
@@ -249,7 +262,7 @@ function ContractSigningPage() {
 
       <div className="sticky bottom-0 mt-8 bg-[#fdf3ec]/95 backdrop-blur py-4 text-center">
         <p className="text-xs text-[#4a3221]/70 mb-3">
-          סומנו {read.size} מתוך {sections.length} סעיפים
+          סומנו {read.size} מתוך {groups.length} חלקים
           {allRead && !answersDone ? " · נשאר למלא את הפרטים למעלה" : ""}
         </p>
         <button

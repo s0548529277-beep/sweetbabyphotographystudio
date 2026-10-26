@@ -19,6 +19,7 @@ import {
 } from "@/lib/newborn-packages";
 import { emailHeartImgTag } from "@/lib/page-images";
 import { contractAnswersEmailHtml, contractAnswersSchema } from "@/lib/contract-answers";
+import { groupContractSections } from "@/lib/contract-groups";
 import {
   CM_SETTINGS_KEY,
   NEWBORN_ZIP_DOWNLOAD_LIMIT,
@@ -1426,7 +1427,8 @@ export const getNewbornContractStatusByToken = createServerFn({ method: "POST" }
     return {
       contactName: order.contact_name as string,
       confirmedAt: order.contract_confirmed_at as string | null,
-      sections,
+      groups: groupContractSections(sections),
+      prefillChildren: "",
     };
   });
 
@@ -1442,7 +1444,8 @@ export const confirmNewbornContractByToken = createServerFn({ method: "POST" })
     if (!order) throw new Error("קישור לא תקין");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const sections = newbornContractSigningSections(await buildNewbornContractFilled(supabaseAdmin, order));
-    if (data.readCount < sections.length) throw new Error("יש לסמן ״קראתי״ בכל הסעיפים לפני השליחה");
+    const groups = groupContractSections(sections);
+    if (data.readCount < groups.length) throw new Error("יש לסמן ״קראתי״ בכל הסעיפים לפני השליחה");
     const alreadyConfirmed = !!order.contract_confirmed_at;
     if (!alreadyConfirmed) {
       await (supabaseAdmin as any)
@@ -1459,9 +1462,9 @@ export const confirmNewbornContractByToken = createServerFn({ method: "POST" })
             <div style="background:linear-gradient(135deg,#f5d5cf,#a8c4a2);border-radius:20px;padding:28px 20px">
               <div style="font-size:40px;margin-bottom:8px">✍️ ${heart}</div>
               <h2 style="margin:0 0 6px">${order.contact_name} קראה ואישרה את החוזה</h2>
-              <p style="margin:0;font-size:13px">סימנה ״קראתי״ בכל ${sections.length} הסעיפים</p>
+              <p style="margin:0;font-size:13px">סימנה ״קראתי״ בכל ${groups.length} חלקי ההסכם</p>
             </div>
-            <ul style="text-align:right;margin:16px 0 0;padding-inline-start:20px;font-size:13px;line-height:1.8">${sections.map((x) => `<li>✓ ${x.title}</li>`).join("")}</ul>
+            <ul style="text-align:right;margin:16px 0 0;padding-inline-start:20px;font-size:13px;line-height:1.8">${groups.map((g) => `<li>✓ ${g.title} (${g.sections.map((x) => x.title).join(", ")})</li>`).join("")}</ul>
             ${contractAnswersEmailHtml(data.answers)}
             <p style="margin-top:20px"><a href="https://sweetbabyphoto.shop/admin/newborn-packages" style="color:#2d3d2b;font-weight:600">לצפייה בניהול</a></p>
           </div>`,
