@@ -220,6 +220,8 @@ export function buildOutdoorContractHtml(input: OutdoorContractInput): string {
               <div style="color:${BROWN};font-size:14px;line-height:1.9">
                 <p style="margin:4px 0">כדי לאשר — יש להיכנס לקישור, לסמן ״קראתי״ ליד כל סעיף, ובסוף ללחוץ על שליחה. זו החתימה הדיגיטלית שלך:</p>
                 <p style="margin:12px 0;text-align:center"><a href="${confirmLink}" style="display:inline-block;background:${ROSE};color:#fff;text-decoration:none;padding:12px 26px;border-radius:999px;font-weight:bold">לקריאה ואישור ההסכם</a></p>
+                <p style="margin:8px 0 0;font-size:13px;text-align:center">אם הכפתור לא מופיע — אפשר להעתיק את הקישור הזה לדפדפן:</p>
+                <p style="margin:4px 0;font-size:13px;text-align:center;direction:ltr;word-break:break-all">${confirmLink}</p>
               </div>
             </td></tr>
 
