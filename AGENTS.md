@@ -32,6 +32,8 @@ Lovable run it or apply it and insert its hash + `when` into
 
 ### Log
 
+- **2026-10-26 (08:50) — Claude (chat):** owner: "אין מענה" must not be heard twice at night. New `greetingForNight()` in `voice-after-hours.server.ts` drops any greeting sentence containing "מענה" (niqqud-insensitive) — used only together with the night notice (Yemot + Twilio). Daytime greeting unchanged; DB greeting text unchanged.
+
 - **2026-10-26 (04:20) — Claude (chat):** owner wants "אין מענה" to be the first thing heard at night. Night notice (`afterHoursNotice`) is now spoken BEFORE the greeting (Yemot + Twilio) and reads "אחרי עשר בלילה אין מענה. איסוף והחזרת אביזרים אפשר לתאם מחר משמונה בבוקר. בינתיים אפשר להמשיך כאן כרגיל." (personalized name, if any, still comes first). The admin greeting still also says "לא היה מענה כרגע" — left as is, owner's own text.
 
 - **2026-10-26 (00:10) — Claude (chat) — "ב-9 לא עובד בינה".** Pressing 9 (dtmf menu → free AI chat) depends on Yemot speech recognition, which costs Yemot units. Call logs show Yemot sending its own error "אין מספיק יחידות לשימוש בזיהוי דיבור" as the caller's `speech` (it was fed to the AI as if she said it), and later 9-calls ending with no speech at all after the intro. Root cause is on Yemot's side (units / speech-recognition) — owner told to top up. Code: `api.yemot.ivr.ts` now detects that error text and returns the caller to the keypad menu with "שיחה חופשית לא זמינה כרגע" instead of running an AI turn. (That fixed opening phrase uses niqqud only on common words.)

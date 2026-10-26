@@ -42,3 +42,20 @@ export function afterHoursNotice(now: Date = new Date()): string {
   // the caller hears — so this notice is spoken BEFORE the greeting now.
   return `אחרי עשר בלילה אין מענה. איסוף והחזרת אביזרים אפשר לתאם ${when}. בינתיים אפשר להמשיך כאן כרגיל.`;
 }
+
+/**
+ * At night the notice above already opens with "אין מענה", so the admin
+ * greeting's own "לא היה מענה כרגע" sentence would be heard twice. This drops
+ * any sentence of the greeting that mentions "מענה" (niqqud ignored), and is
+ * applied ONLY when the night notice is spoken — the daytime greeting is
+ * untouched. Owner request 2026-10-26 ("שלא ישמע פעמיים").
+ */
+export function greetingForNight(greeting: string): string {
+  const bare = (t: string) => t.replace(/[\u0591-\u05C7]/g, "");
+  return greeting
+    .split(/(?<=\.)/)
+    .filter((sentence) => !bare(sentence).includes("מענה"))
+    .join("")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
