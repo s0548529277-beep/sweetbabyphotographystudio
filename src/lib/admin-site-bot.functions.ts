@@ -329,18 +329,8 @@ export const revertSiteChange = createServerFn({ method: "POST" })
     return { ok: true, id: logRow.id, pr_url: revertPr.html_url };
   });
 
-type ChatTurn = { question: string; answer: string };
-
-function historyBlock(history: ChatTurn[]): string {
-  if (!history.length) return "";
-  return `\n\nהיסטוריית השיחה עד כה (לצורך הקשר בלבד — אם השאלה הנוכחית היא המשך/מתייחסת ל"זה", "אותו דבר", "וגם", "ומה לגבי" וכו', הכוונה להקשר הזה):\n${history
-    .map((h, i) => `${i + 1}. ש: ${h.question}\n   ת: ${h.answer}`)
-    .join("\n")}`;
-}
-
-/** Asks Claude to write a single read-only SELECT that answers the question, given a fixed summary of the schema and the recent conversation for context. */
-async function askClaudeForSql(question: string, history: ChatTurn[]): Promise<string | null> {
-  const schema = `טבלאות רלוונטיות (סכמה ציבורית, PostgreSQL) — הרשימה המלאה, אל תניחי עמודות שלא מפורטות כאן:
+/** Schema summary for read-only SQL written by an AI — shared with the site chat's admin mode (ai-admin-tools.server.ts). */
+export const ADMIN_DB_SCHEMA_HE = `טבלאות רלוונטיות (סכמה ציבורית, PostgreSQL) — הרשימה המלאה, אל תניחי עמודות שלא מפורטות כאן:
 
 - orders — הזמנות אביזרים (props). id, user_id, track, status ('pending'/'confirmed'/'active'/'returned'/'cancelled'), total, deposit_amount, balance_amount, deposit_status, balance_method ('cash'/'card'/'transfer'/'bit'), coupon_code, coupon_discount, credit_used_cashback, credit_used_manual, contact_name, contact_phone, camera_model, session_date, scheduled_date, return_date, pickup_at, return_at, notes, google_event_id, terms_accepted_at, created_at, updated_at.
 - order_items — שורות פריטים בתוך הזמנת אביזרים. id, order_id, item_id, item_name, item_sku, quantity, price, created_at.
@@ -358,13 +348,28 @@ async function askClaudeForSql(question: string, history: ChatTurn[]): Promise<s
 - user_roles — הרשאות. user_id, role ('admin' וכו').
 - leads — פניות מטופס יצירת קשר/עניין באתר. id, user_id, email, full_name, phone, referral_source (איך שמעו עלינו), created_at.
 - subscription_requests — בקשות עניין ישנות במנוי (לפני שהיה ניהול כרטיסיות מלא). id, user_id, full_name, phone, email, plan, notes, status ('pending' וכו'), created_at.
+- newborn_package_orders — הזמנות חבילות ניו-בורן (צילומים של מיכל). id, contact_name, contact_phone, contact_email, session_date, session_time, total_price, amount_paid, package_id, notes, created_at, delivered_at, contract_confirmed_at.
+- inquiry_leads — לידים ופניות (מיילים/וואטסאפ). id, name, email, phone, source, topic, message, status ('new'/'replied'/'follow_up'/'booked'/'not_relevant'), notes, first_contact_at, last_contact_at, created_at.
 - studio_closures — ימים סגורים/שעות מיוחדות בסטודיו. id, date, closed (בוליאני), open_time, close_time, note.
 
 הערות חשובות:
-- הכנסה בפועל = orders.total + bookings.price של רשומות עם status != 'cancelled'.
+- הכנסה בפועל = orders.total + bookings.price של רשומות עם status != 'cancelled' + newborn_package_orders.total_price. שורות bookings עם package='newborn' הן רק חסימת יומן של הזמנת ניו-בורן — אל תספרי אותן כהכנסה (אחרת זה כפול).
 - "לקוחות" = טבלת profiles (JOIN לפי id = user_id בטבלאות אחרות).
 - תאריכים מסוג date/timestamptz — להשתמש ב-date_trunc / >= / < לטווחי זמן ('חודש שעבר' וכו').
 - אם השאלה דורשת אימייל של לקוח/ה — אין לך גישה לזה, ציין זאת בתשובה במקום להמציא עמודה.`;
+
+type ChatTurn = { question: string; answer: string };
+
+function historyBlock(history: ChatTurn[]): string {
+  if (!history.length) return "";
+  return `\n\nהיסטוריית השיחה עד כה (לצורך הקשר בלבד — אם השאלה הנוכחית היא המשך/מתייחסת ל"זה", "אותו דבר", "וגם", "ומה לגבי" וכו', הכוונה להקשר הזה):\n${history
+    .map((h, i) => `${i + 1}. ש: ${h.question}\n   ת: ${h.answer}`)
+    .join("\n")}`;
+}
+
+/** Asks Claude to write a single read-only SELECT that answers the question, given a fixed summary of the schema and the recent conversation for context. */
+async function askClaudeForSql(question: string, history: ChatTurn[]): Promise<string | null> {
+  const schema = ADMIN_DB_SCHEMA_HE;
 
   const system = `אתה כותב שאילתות SQL קריאה-בלבד (SELECT/WITH) עבור מסד נתונים PostgreSQL של אתר סטודיו צילום, לפי שאלה בעברית מהמנהלת. ${schema}
 

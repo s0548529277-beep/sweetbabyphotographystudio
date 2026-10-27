@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { stepCountIs } from "ai";
 import { z } from "zod";
 import { generateTextResilient } from "./ai-gateway.server";
-import { buildAssistantTools } from "./ai-tools.server";
+import { buildAssistantTools, buildWebChatTools, CHAT_BUTTON_PATHS } from "./ai-tools.server";
 import catalogData from "@/data/studio-catalog.json";
 
 /**
@@ -121,12 +121,93 @@ export function buildToolRules(now: { date: string; time: string }): string {
 - יצירת שריון בפועל בשם הלקוחה — רק עם create_studio_booking, ורק אחרי שמתקיימים כל התנאים בתיאור הכלי (זמינות אמיתית, פרטי קשר, אישור מפורש על תנאים ומקדמה). לעולם אל תגידי ללקוחה "שריינתי לך" בלי לקרוא לכלי הזה בפועל.`;
 }
 
+
+// Web-chat only additions (buttons, cards, personal area) — 2026-10-27.
+const WEB_CHAT_RULES = `
+
+ממשק האתר (צ׳אט):
+- אביזרים שמצאת ב-search_catalog / check_prop_availability מוצגים ללקוחה אוטומטית ככרטיסים עם תמונה, מחיר וכפתור "הוספה לעגלה" — אל תכתבי קישורי תמונה בעצמך, ואל תחזרי על כל הפרטים בטקסט; משפט קצר מספיק.
+- כשיש צעד הבא ברור (להזמין, לשריין, לעבור לעגלה, להתחבר, לאזור האישי) — קראי ל-show_buttons עם עד 3 כפתורים.
+- "האזור האישי / ההזמנות שלי / כמה קרדיט יש לי" — get_my_account. לא מחוברת → כפתור התחברות (/auth).
+- הזמנת אביזרים: מוסיפים לעגלה מהכרטיסים ואז כפתור /cart לסיום. שריון סטודיו: כמו קודם (create_studio_booking או כפתור /booking).
+- "תשלחי הודעה למיכל/לסטודיו" — נסחי איתה את ההודעה, קבלי שם + טלפון/אימייל, ואז send_message_to_studio.`;
+
+type ChatUi = {
+  products: Array<{ sku: string; name: string; price: number; img: string | null; available?: boolean }>;
+  buttons: Array<{ label: string; href: string }>;
+  actions: Array<{ kind: "order_status" | "booking_status" | "lead_status"; id: string; status: string; summary: string }>;
+};
+
+const CATALOG_IMG = new Map<string, string>(
+  (catalogData as Array<{ items: Array<{ sku: string; img?: string }> }>).flatMap((c) =>
+    c.items.filter((i) => i.img).map((i) => [i.sku, i.img as string] as [string, string]),
+  ),
+);
+
+/** Turns the tool calls/results of one turn into UI blocks for the chat widget. */
+export async function buildChatUi(steps: any[]): Promise<ChatUi> {
+  const ui: ChatUi = { products: [], buttons: [], actions: [] };
+  const seen = new Set<string>();
+  for (const st of steps) {
+    for (const call of st.toolCalls ?? []) {
+      const input = call.input ?? call.args ?? {};
+      if (call.toolName === "show_buttons") {
+        for (const b of input.buttons ?? []) {
+          const path = String(b.href ?? "").split(/[?#]/)[0];
+          if ((CHAT_BUTTON_PATHS as readonly string[]).includes(path) && ui.buttons.length < 3)
+            ui.buttons.push({ label: String(b.label).slice(0, 30), href: String(b.href) });
+        }
+      } else if (call.toolName === "propose_admin_action" && ui.actions.length < 3) {
+        ui.actions.push({ kind: input.kind, id: input.id, status: input.status, summary: String(input.summary ?? "") });
+      }
+    }
+    for (const r of st.toolResults ?? []) {
+      if (r.toolName !== "search_catalog" && r.toolName !== "check_prop_availability") continue;
+      const out = r.output ?? r.result ?? {};
+      for (const it of out.items ?? []) {
+        if (!it?.sku || seen.has(it.sku) || ui.products.length >= 6) continue;
+        seen.add(it.sku);
+        const cat = (catalogData as Array<{ items: Array<{ sku: string; name?: string; alt?: string; price: number }> }>)
+          .flatMap((c) => c.items)
+          .find((x) => x.sku === it.sku);
+        ui.products.push({
+          sku: it.sku,
+          name: it.name || cat?.name || cat?.alt || it.sku,
+          price: Number(it.price ?? cat?.price ?? 0),
+          img: CATALOG_IMG.get(it.sku) ?? null,
+          ...(typeof it.available === "boolean" ? { available: it.available } : {}),
+        });
+      }
+    }
+  }
+  // Admin-uploaded images in the items table override the bundled catalog image.
+  if (ui.products.length) {
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data } = await supabaseAdmin
+        .from("items")
+        .select("sku, image_url, price, active")
+        .in("sku", ui.products.map((p) => p.sku));
+      for (const row of data ?? []) {
+        const p = ui.products.find((x) => x.sku === row.sku);
+        if (!p) continue;
+        if (row.image_url) p.img = row.image_url;
+        if (row.price != null) p.price = Number(row.price);
+      }
+      ui.products = ui.products.filter((p) => !(data ?? []).some((r: any) => r.sku === p.sku && r.active === false));
+    } catch {
+      // keep catalog images
+    }
+  }
+  return ui;
+}
+
 const ChatInput = z.object({
   messages: z
     .array(
       z.object({
         role: z.enum(["user", "assistant"]),
-        content: z.string().min(1).max(2000),
+        content: z.string().min(1).max(6000),
       }),
     )
     .min(1)
@@ -155,17 +236,40 @@ export const chatWithBot = createServerFn({ method: "POST" })
     const extraKnowledge = await getBotKnowledgeText();
 
     const toolRules = buildToolRules(now);
-    const { text, toolCalls } = await generateTextResilient({
-      system: SYSTEM + personalized + toolRules + extraKnowledge,
+
+    // Admin mode (2026-10-27): decided from the real token + user_roles,
+    // never from anything the client sends.
+    let isAdmin = false;
+    if (realUserId && isRealAccount) {
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: roles } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", realUserId);
+        isAdmin = !!roles?.some((r: any) => r.role === "admin");
+      } catch (e) {
+        console.error("[SWEETBABY] chat admin check failed", e);
+      }
+    }
+    const adminPart = isAdmin ? (await import("./ai-admin-tools.server")).ADMIN_CHAT_RULES : "";
+    const adminTools = isAdmin ? (await import("./ai-admin-tools.server")).buildAdminChatTools() : {};
+
+    const result = await generateTextResilient({
+      system: SYSTEM + personalized + toolRules + WEB_CHAT_RULES + adminPart + extraKnowledge,
       messages: data.messages,
-      tools: buildAssistantTools({ isAuthenticated: isRealAccount }),
-      stopWhen: stepCountIs(8),
+      tools: {
+        ...buildAssistantTools({ isAuthenticated: isRealAccount }),
+        ...buildWebChatTools({ userId: realUserId, isRealAccount }),
+        ...adminTools,
+      },
+      stopWhen: stepCountIs(isAdmin ? 10 : 8),
     });
+    const text = result.text;
+    const toolCalls = (result.steps ?? []).flatMap((st: any) => st.toolCalls ?? []);
+    const ui = await buildChatUi(result.steps ?? []);
 
     // Log the whole conversation so far (every visit, not just ones that
     // book something) — one upserted row per browser session, not one
     // insert per message.
-    if (data.sessionId) {
+    if (data.sessionId && !isAdmin) {
       try {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         await supabaseAdmin.from("customer_chat_logs").upsert(
@@ -216,7 +320,7 @@ export const chatWithBot = createServerFn({ method: "POST" })
       }
     }
 
-    return { reply: text };
+    return { reply: text, ui, isAdmin };
   });
 
 const SearchInput = z.object({ query: z.string().min(1).max(200) });

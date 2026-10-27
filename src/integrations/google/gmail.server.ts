@@ -125,9 +125,9 @@ export async function sendGmail(message: GmailMessage): Promise<boolean> {
   }
 }
 
-function requiredGmailKeys(): { lovableKey: string; connKey: string } | null {
+function requiredGmailKeys(connKeyOverride?: string): { lovableKey: string; connKey: string } | null {
   const lovableKey = process.env.LOVABLE_API_KEY;
-  const connKey = process.env.GOOGLE_MAIL_API_KEY;
+  const connKey = connKeyOverride || process.env.GOOGLE_MAIL_API_KEY;
   if (!lovableKey || !connKey) return null;
   return { lovableKey, connKey };
 }
@@ -247,8 +247,8 @@ export async function searchGmailByEmail(email: string, maxResults = 5): Promise
  * an admin-only page that already has its own error handling. Free-text
  * query — only for trusted (admin) callers, unlike searchGmailByEmail.
  */
-export async function searchGmail(query: string, maxResults = 10): Promise<GmailSummary[]> {
-  const keys = requiredGmailKeys();
+export async function searchGmail(query: string, maxResults = 10, connKey?: string): Promise<GmailSummary[]> {
+  const keys = requiredGmailKeys(connKey);
   if (!keys) {
     console.error("[SWEETBABY] gmail search skipped — missing LOVABLE_API_KEY/GOOGLE_MAIL_API_KEY");
     return [];
@@ -290,8 +290,8 @@ export async function searchGmail(query: string, maxResults = 10): Promise<Gmail
 }
 
 /** Full plain-text body of one email, by id (from searchGmail's results). Returns null on failure or a not-found id. */
-export async function getGmailMessageBody(id: string): Promise<string | null> {
-  const keys = requiredGmailKeys();
+export async function getGmailMessageBody(id: string, connKey?: string): Promise<string | null> {
+  const keys = requiredGmailKeys(connKey);
   if (!keys) {
     console.error("[SWEETBABY] gmail read skipped — missing LOVABLE_API_KEY/GOOGLE_MAIL_API_KEY");
     return null;
@@ -329,5 +329,101 @@ export async function sendStudioAndCustomer(opts: {
   }
   for (const to of recipients) {
     await sendGmail({ to, subject: opts.subject, html: opts.html, attachments: opts.attachments });
+  }
+}
+
+/**
+ * Every Gmail account linked to this project through the Lovable connector.
+ * The studio account is GOOGLE_MAIL_API_KEY; a second linked Gmail (e.g. the
+ * owner's personal m0548529277) gets its own GOOGLE_MAIL_API_KEY_* secret —
+ * we don't hard-code that name, we scan for any env var starting with
+ * GOOGLE_MAIL_API_KEY and ask Gmail which address each one belongs to.
+ * Cached per server instance. Added 2026-10-27 for the admin site bot.
+ */
+let gmailAccountsCache: { at: number; list: Array<{ email: string; connKey: string }> } | null = null;
+
+export async function listGmailAccounts(): Promise<Array<{ email: string; connKey: string }>> {
+  if (gmailAccountsCache && Date.now() - gmailAccountsCache.at < 10 * 60_000) return gmailAccountsCache.list;
+  const lovableKey = process.env.LOVABLE_API_KEY;
+  if (!lovableKey) return [];
+  const keys = Object.entries(process.env)
+    .filter(([k, v]) => k.startsWith("GOOGLE_MAIL_API_KEY") && !!v)
+    .map(([, v]) => v as string);
+  const list: Array<{ email: string; connKey: string }> = [];
+  for (const connKey of [...new Set(keys)]) {
+    try {
+      const res = await fetch(`${GATEWAY_URL}/users/me/profile`, {
+        headers: { Authorization: `Bearer ${lovableKey}`, "X-Connection-Api-Key": connKey },
+      });
+      if (!res.ok) continue;
+      const p = (await res.json()) as { emailAddress?: string };
+      if (p.emailAddress) list.push({ email: p.emailAddress.toLowerCase(), connKey });
+    } catch (e) {
+      console.error("[SWEETBABY] gmail profile lookup failed", e);
+    }
+  }
+  gmailAccountsCache = { at: Date.now(), list };
+  return list;
+}
+
+/** Picks a linked account by (partial) address; defaults to the studio account. */
+export async function resolveGmailAccount(account?: string): Promise<{ email: string; connKey: string } | null> {
+  const list = await listGmailAccounts();
+  if (!list.length) return null;
+  const want = (account ?? "").trim().toLowerCase();
+  if (want) {
+    const hit = list.find((a) => a.email === want || a.email.startsWith(want.split("@")[0]));
+    if (hit) return hit;
+    return null;
+  }
+  return list.find((a) => a.email === "s0548529277@gmail.com") ?? list[0];
+}
+
+/**
+ * Creates a Gmail DRAFT (never sends). Plain-text body. When threadId is
+ * given the draft is attached to that conversation as a reply.
+ */
+export async function createGmailDraft(opts: {
+  connKey: string;
+  fromEmail: string;
+  to: string;
+  subject: string;
+  text: string;
+  threadId?: string;
+}): Promise<{ ok: true; draftId: string } | { ok: false; error: string }> {
+  const keys = requiredGmailKeys(opts.connKey);
+  if (!keys) return { ok: false, error: "חיבור הג׳ימייל לא מוגדר" };
+  const html = `<div dir="rtl" style="font-family:sans-serif;white-space:pre-wrap">${opts.text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")}</div>`;
+  const bodyB64 = chunk76(Buffer.from(html, "utf-8").toString("base64"));
+  const mime = [
+    `From: ${opts.fromEmail}`,
+    `To: ${opts.to}`,
+    `Subject: ${encodeHeader(opts.subject)}`,
+    "MIME-Version: 1.0",
+    'Content-Type: text/html; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    bodyB64,
+  ].join("\r\n");
+  const raw = toBase64Url(new TextEncoder().encode(mime));
+  try {
+    const res = await fetch(`${GATEWAY_URL}/users/me/drafts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...gmailAuthHeaders(keys) },
+      body: JSON.stringify({ message: opts.threadId ? { raw, threadId: opts.threadId } : { raw } }),
+    });
+    if (!res.ok) {
+      const t = await res.text();
+      console.error("[SWEETBABY] gmail draft error", res.status, t);
+      return { ok: false, error: `Gmail ${res.status}` };
+    }
+    const j = (await res.json()) as { id?: string };
+    return { ok: true, draftId: j.id ?? "" };
+  } catch (e) {
+    console.error("[SWEETBABY] gmail draft failed", e);
+    return { ok: false, error: "שגיאת רשת" };
   }
 }

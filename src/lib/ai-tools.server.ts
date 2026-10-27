@@ -23,6 +23,130 @@ const GUIDANCE = { basic: 0, mini: 50, plus: 100, premium: 300 } as const;
  * a studio booking through the exact same placeBooking used by /booking, so
  * a customer stuck on the page can still get booked instead of giving up.
  */
+/** Site paths the chat may render as buttons (show_buttons). Anything else is dropped. */
+export const CHAT_BUTTON_PATHS = [
+  "/booking",
+  "/studio-rental",
+  "/rental-catalog",
+  "/cart",
+  "/checkout",
+  "/account",
+  "/auth",
+  "/contact",
+  "/studio-photography",
+  "/collage-maker",
+  "/track",
+] as const;
+
+/**
+ * Web-chat-only tools (site bot, 2026-10-27): buttons, the customer's own
+ * personal-area data, and leaving a message for the studio. Not given to the
+ * phone/WhatsApp bots — buttons mean nothing there and they'd only add tokens.
+ */
+export function buildWebChatTools(opts: { userId: string | null; isRealAccount: boolean }) {
+  return {
+    show_buttons: tool({
+      description:
+        "מציג ללקוחה כפתורים לחיצים מתחת לתשובה (מעבר לעמוד באתר). השתמשי כשיש צעד הבא ברור. עד 3 כפתורים. href רק מהרשימה: " +
+        CHAT_BUTTON_PATHS.join(" "),
+      inputSchema: z.object({
+        buttons: z
+          .array(z.object({ label: z.string().max(30), href: z.string().max(60) }))
+          .max(3),
+      }),
+      execute: async ({ buttons }) => ({ shown: buttons.length }),
+    }),
+
+    get_my_account: tool({
+      description:
+        "האזור האישי של הלקוחה המחוברת: השריונים שלה, הזמנות האביזרים שלה ויתרת הקרדיט/קאשבק. רק כשהיא שואלת על ההזמנות/החשבון שלה.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        if (!opts.userId || !opts.isRealAccount)
+          return { loggedIn: false, message: "הלקוחה לא מחוברת — הציעי כפתור התחברות (/auth)." };
+        try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const db = supabaseAdmin as any;
+          const [b, o, l] = await Promise.all([
+            db
+              .from("bookings")
+              .select("session_date, start_time, end_time, status, deposit_status, price")
+              .eq("user_id", opts.userId)
+              .neq("package", "newborn")
+              .order("session_date", { ascending: false })
+              .limit(5),
+            db
+              .from("orders")
+              .select("track, session_date, return_date, status, deposit_status, total")
+              .eq("user_id", opts.userId)
+              .order("created_at", { ascending: false })
+              .limit(5),
+            db.from("customer_loyalty").select("credit_balance").eq("user_id", opts.userId).maybeSingle(),
+          ]);
+          return {
+            loggedIn: true,
+            studioBookings: (b.data ?? []).map((x: any) => ({
+              date: x.session_date,
+              from: String(x.start_time ?? "").slice(0, 5),
+              to: String(x.end_time ?? "").slice(0, 5),
+              status: x.status,
+              deposit: x.deposit_status,
+              price: x.price,
+            })),
+            propOrders: (o.data ?? []).map((x: any) => ({
+              track: x.track,
+              from: x.session_date,
+              to: x.return_date,
+              status: x.status,
+              deposit: x.deposit_status,
+              total: x.total,
+            })),
+            creditBalance: Number(l.data?.credit_balance ?? 0),
+            note: "קבלות, תשלום מקדמה ופרטים מלאים — בעמוד /account",
+          };
+        } catch (e) {
+          console.error("[SWEETBABY] get_my_account failed", e);
+          return { error: true, message: "לא הצלחתי לקרוא את החשבון כרגע — הפני ל-/account." };
+        }
+      },
+    }),
+
+    send_message_to_studio: tool({
+      description:
+        "שולח הודעה למייל של הסטודיו (למיכל) בשם הלקוחה. רק אחרי שהלקוחה ביקשה ואישרה את נוסח ההודעה, ויש שם + טלפון או אימייל לחזרה.",
+      inputSchema: z.object({
+        name: z.string().min(2).max(80),
+        phone: z.string().max(30).optional(),
+        email: z.string().max(120).optional(),
+        message: z.string().min(3).max(1500),
+      }),
+      execute: async ({ name, phone, email, message }) => {
+        if (!phone && !email) return { ok: false, message: "חסר טלפון או אימייל לחזרה — בקשי מהלקוחה." };
+        const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        try {
+          const { sendGmail } = await import("@/integrations/google/gmail.server");
+          const ok = await sendGmail({
+            to: "s0548529277@gmail.com",
+            subject: `הודעה מהצ׳אט באתר — ${name}`,
+            html: `<div dir="rtl" style="font-family:sans-serif;color:#2d3d2b">
+              <h3 style="margin:0 0 8px">הודעה חדשה מהצ׳אט באתר</h3>
+              <p style="margin:2px 0"><b>שם:</b> ${esc(name)}</p>
+              ${phone ? `<p style="margin:2px 0"><b>טלפון:</b> ${esc(phone)}</p>` : ""}
+              ${email ? `<p style="margin:2px 0"><b>אימייל:</b> ${esc(email)}</p>` : ""}
+              <p style="margin:10px 0 0;white-space:pre-wrap">${esc(message)}</p>
+            </div>`,
+          });
+          if (!ok) return { ok: false, message: "השליחה נכשלה — תני את הטלפון 054-8529277 כחלופה." };
+          return { ok: true };
+        } catch (e) {
+          console.error("[SWEETBABY] send_message_to_studio failed", e);
+          return { ok: false, message: "השליחה נכשלה — תני את הטלפון 054-8529277 כחלופה." };
+        }
+      },
+    }),
+  };
+}
+
 export function buildAssistantTools(opts?: { isAuthenticated?: boolean }) {
   return {
     check_studio_availability: tool({
@@ -118,7 +242,7 @@ export function buildAssistantTools(opts?: { isAuthenticated?: boolean }) {
     }),
 
     search_catalog: tool({
-      description: "מחפש אביזרים בקטלוג לפי תיאור בעברית ומחזיר מק״טים, שמות ומחירים (בלי בדיקת זמינות).",
+      description: "מחפש אביזרים בקטלוג לפי תיאור בעברית ומחזיר מק״טים, שמות ומחירים (בלי בדיקת זמינות). באתר — הפריטים מוצגים ללקוחה אוטומטית ככרטיסים עם תמונה וכפתור הוספה לעגלה.",
       inputSchema: z.object({ query: z.string() }),
       execute: async ({ query }) => {
         const items = findSkusByText(query, 8);

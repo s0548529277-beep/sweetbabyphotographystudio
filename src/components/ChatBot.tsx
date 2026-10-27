@@ -1,7 +1,24 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { CalendarDays, Check, ChevronDown, Clock3, PackageSearch, Send, X } from "lucide-react";
+import {
+  CalendarDays,
+  Check,
+  ChevronDown,
+  Clock3,
+  Mail,
+  PackageSearch,
+  Plus,
+  Send,
+  ShoppingBag,
+  UserRound,
+  X,
+} from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { chatWithBot } from "@/lib/ai.functions";
+import { adminSetStatus } from "@/lib/admin-orders.functions";
+import { supabase } from "@/integrations/supabase/client";
+import { useCart } from "@/lib/cart";
 import { checkItemsAvailability } from "@/lib/orders.functions";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -23,7 +40,18 @@ import { useSiteIcon } from "@/lib/page-images";
 import botAntennaHeart from "@/assets/bot-antenna-heart.png";
 import heartIcon from "@/assets/heart-gradient.png";
 
-type Msg = { role: "user" | "assistant"; content: string };
+type ChatUi = {
+  products: Array<{ sku: string; name: string; price: number; img: string | null; available?: boolean }>;
+  buttons: Array<{ label: string; href: string }>;
+  actions: Array<{ kind: "order_status" | "booking_status" | "lead_status"; id: string; status: string; summary: string }>;
+};
+type Msg = { role: "user" | "assistant"; content: string; ui?: ChatUi };
+
+/** Only our own images (site paths / storage) are rendered from bot markdown. */
+function isSafeImg(src?: string): boolean {
+  if (!src) return false;
+  return src.startsWith("/") || /^https:\/\/[a-z0-9-]+\.supabase\.co\//.test(src);
+}
 
 /** Small inline heart, sized to sit in a line of text — used to render the
  * 💗 in bot messages as the studio's own heart image instead of a plain
@@ -43,12 +71,24 @@ function withHeartImage(text: string, heartSrc: string): string {
 const QUICK_QUESTIONS = [
   { label: "מתי הסטודיו פנוי?", icon: CalendarDays },
   { label: "מצאי לי אביזרים", icon: PackageSearch },
+  { label: "האזור האישי שלי", icon: UserRound },
   { label: "כמה עולה השכרה?", icon: Clock3 },
+  { label: "הודעה למיכל", icon: Mail },
+];
+
+const ADMIN_QUICK = [
+  { label: "מה יש היום ומחר?", icon: CalendarDays },
+  { label: "מיילים מלקוחות שעוד לא עניתי עליהם", icon: Mail },
+  { label: "כמה נכנס החודש?", icon: Clock3 },
+  { label: "לידים חדשים", icon: UserRound },
 ];
 
 export function ChatBot() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const isAuth = !!user;
+  const cart = useCart();
+  const setStatus = useServerFn(adminSetStatus);
+  const [doneActions, setDoneActions] = useState<Set<string>>(new Set());
   // Fixed permanently to her chosen artwork (bot-antenna-heart.png) — this
   // used to be admin-replaceable from /admin/gallery, but that async
   // lookup could flash the old bundled avatar before the custom one
@@ -63,7 +103,9 @@ export function ChatBot() {
     (user?.user_metadata as { full_name?: string; name?: string } | null)?.name ||
     user?.email?.split("@")[0] ||
     undefined;
-  const greeting = isAuth
+  const greeting = isAdmin
+    ? `היי מיכל 💗\nמצב ניהול: אפשר לשאול אותי על הזמנות, הכנסות, לידים ולקוחות, לבקש שאחפש במיילים ושאכין טיוטות תשובה (אני לא שולחת — רק טיוטה), ולבקש שינויי סטטוס עם כפתור אישור.`
+    : isAuth
     ? `היי ${userName || ""}, אני נועה 💗\nאני כאן כדי לבדוק זמינות אמיתית, למצוא אביזרים, לחשב מחיר וגם לעזור לך לסגור הזמנה.`
     : "היי, אני נועה 💗\nהעוזרת של Sweetbaby. אפשר לבדוק איתי זמינות אמיתית, למצוא אביזרים, לחשב מחיר ולקבל עזרה בהזמנה.";
 
@@ -76,6 +118,11 @@ export function ChatBot() {
   const [dateTo, setDateTo] = useState("");
   const [skuInput, setSkuInput] = useState("");
   const [availLoading, setAvailLoading] = useState(false);
+  // Auth/admin state resolves after first render — refresh the greeting
+  // while the conversation hasn't started yet.
+  useEffect(() => {
+    setMessages((m) => (m.length === 1 && m[0].role === "assistant" ? [{ role: "assistant", content: greeting }] : m));
+  }, [greeting]);
   const chat = useServerFn(chatWithBot);
   const checkAvail = useServerFn(checkItemsAvailability);
 
@@ -160,10 +207,15 @@ export function ChatBot() {
     setMessages(next);
     setLoading(true);
     try {
-      const { reply } = await chat({
-        data: { messages: next, userName, isAuthenticated: isAuth, sessionId },
+      const res = await chat({
+        data: {
+          messages: next.map(({ role, content }) => ({ role, content: content.slice(0, 6000) })).slice(-20),
+          userName,
+          isAuthenticated: isAuth,
+          sessionId,
+        },
       });
-      setMessages([...next, { role: "assistant", content: reply }]);
+      setMessages([...next, { role: "assistant", content: res.reply || "…", ui: res.ui }]);
     } catch (error) {
       console.error("[SWEETBABY] chat bot request failed", error);
       setMessages([
@@ -176,6 +228,30 @@ export function ChatBot() {
       ]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const addToCart = (p: ChatUi["products"][number]) => {
+    cart.add({ id: p.sku, sku: p.sku, name: p.name, price: p.price, image_url: p.img });
+    toast.success(`${p.name} נוסף לעגלה`);
+  };
+
+  const runAction = async (a: ChatUi["actions"][number]) => {
+    const key = `${a.kind}:${a.id}:${a.status}`;
+    try {
+      if (a.kind === "lead_status") {
+        const { error } = await (supabase as any)
+          .from("inquiry_leads")
+          .update({ status: a.status, updated_at: new Date().toISOString() })
+          .eq("id", a.id);
+        if (error) throw error;
+      } else {
+        await setStatus({ data: { kind: a.kind === "order_status" ? "order" : "booking", id: a.id, status: a.status } });
+      }
+      setDoneActions((s) => new Set(s).add(key));
+      toast.success("עודכן ✓");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "העדכון נכשל");
     }
   };
 
@@ -339,11 +415,95 @@ export function ChatBot() {
                   >
                     <MessageResponse
                       className="text-sm leading-6"
-                      components={{ img: () => <InlineHeartImg src={heartSrc} /> }}
+                      components={{
+                        img: (props: any) =>
+                          props.src === heartSrc || !isSafeImg(props.src) ? (
+                            <InlineHeartImg src={heartSrc} />
+                          ) : (
+                            <img
+                              src={props.src}
+                              alt={props.alt || ""}
+                              loading="lazy"
+                              className="my-2 max-h-56 rounded-xl object-cover"
+                            />
+                          ),
+                      }}
                     >
                       {withHeartImage(message.content, heartSrc)}
                     </MessageResponse>
                   </MessageContent>
+                  {message.ui && message.ui.products.length > 0 && (
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      {message.ui.products.map((p) => {
+                        const inCart = cart.lines.some((l) => l.sku === p.sku);
+                        return (
+                          <div key={p.sku} className="overflow-hidden rounded-xl border border-secondary bg-card shadow-sm">
+                            {p.img ? (
+                              <img src={p.img} alt={p.name} loading="lazy" className="aspect-square w-full object-cover" />
+                            ) : (
+                              <div className="flex aspect-square w-full items-center justify-center bg-secondary/40 text-muted-foreground">
+                                <PackageSearch className="size-6" />
+                              </div>
+                            )}
+                            <div className="p-2">
+                              <p className="line-clamp-2 text-xs font-semibold leading-snug">{p.name}</p>
+                              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                                מק״ט {p.sku} · {p.price}₪
+                                {p.available === false ? " · תפוס בתאריכים" : p.available ? " · פנוי ✓" : ""}
+                              </p>
+                              <Button
+                                size="sm"
+                                variant={inCart ? "secondary" : "default"}
+                                disabled={inCart || p.available === false}
+                                onClick={() => addToCart(p)}
+                                className="mt-1.5 h-7 w-full rounded-full text-[11px]"
+                              >
+                                {inCart ? (
+                                  <>
+                                    <Check className="size-3" /> בעגלה
+                                  </>
+                                ) : (
+                                  <>
+                                    <Plus className="size-3" /> הוספה לעגלה
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {message.ui && (message.ui.buttons.length > 0 || message.ui.products.length > 0) && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {message.ui.buttons.map((b) => (
+                        <Button key={b.href + b.label} asChild size="sm" variant="outline" className="h-8 rounded-full border-primary/40 text-xs">
+                          <Link to={b.href} onClick={() => setOpen(false)}>
+                            {b.label}
+                          </Link>
+                        </Button>
+                      ))}
+                      {message.ui.products.length > 0 && !message.ui.buttons.some((b) => b.href === "/cart") && cart.count > 0 && (
+                        <Button asChild size="sm" variant="outline" className="h-8 rounded-full border-primary/40 text-xs">
+                          <Link to="/cart" onClick={() => setOpen(false)}>
+                            <ShoppingBag className="size-3.5" /> לעגלה ({cart.count})
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                  {message.ui?.actions?.map((a) => {
+                    const key = `${a.kind}:${a.id}:${a.status}`;
+                    const done = doneActions.has(key);
+                    return (
+                      <div key={key} className="mt-2 rounded-xl border border-accent/50 bg-accent/10 p-2.5 text-xs">
+                        <p className="mb-2 font-medium">{a.summary || `שינוי סטטוס ל-${a.status}`}</p>
+                        <Button size="sm" disabled={done} onClick={() => runAction(a)} className="h-7 rounded-full text-[11px]">
+                          {done ? "בוצע ✓" : "אישור וביצוע"}
+                        </Button>
+                      </div>
+                    );
+                  })}
                 </Message>
               ))}
               {loading && (
@@ -368,7 +528,7 @@ export function ChatBot() {
           <div className="border-t border-secondary/70 bg-card px-3 pt-3">
             {messages.length <= 1 && !loading && (
               <div className="mb-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
-                {QUICK_QUESTIONS.map(({ label, icon: Icon }) => (
+                {(isAdmin ? ADMIN_QUICK : QUICK_QUESTIONS).map(({ label, icon: Icon }) => (
                   <Button
                     key={label}
                     onClick={() => send(label)}

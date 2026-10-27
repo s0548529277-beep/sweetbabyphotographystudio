@@ -511,3 +511,10 @@ survivors?"
   syntax. Also added, per direct request: menu option 1 now speaks
   studio_blurb (already admin-editable) before the booking questions
   start, so a caller who goes straight to option 1 still hears pricing.
+- **2026-10-27**: Site chat upgrade (cards/buttons/personal area/admin
+  mode). Kept lean on purpose: product images are NOT in tool output (the
+  model never sees image paths) — `buildChatUi` maps SKUs from the tool
+  results to images after the turn; web-only tools (`buildWebChatTools`)
+  are not given to voice/WhatsApp; the ~12 admin tools + `ADMIN_CHAT_RULES`
+  are spread in only for a verified admin, and the DB schema text is behind
+  `admin_db_schema` instead of in the prompt.
