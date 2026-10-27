@@ -11,6 +11,7 @@ import { STUDIO_GUIDE_HE } from "./studio-guide.server";
 import { ARRIVAL_TEXT_HE } from "./arrival";
 import { PHOTOGRAPHY_SERVICE_TEXT_HE } from "./photography-options";
 import { computeStudioPrice } from "./bookings.functions";
+import { publicChatPhotos } from "./chat-gallery";
 
 // Must match GUIDANCE_FEES in bookings.functions.ts exactly — this used to
 // say premium: 150 here while the real charge (and placeBooking) used 300,
@@ -57,12 +58,7 @@ export function buildWebChatTools(opts: { userId: string | null; isRealAccount: 
           .select("url, caption, page, source, hidden")
           .in("page", pages).order("sort_order").order("created_at");
         if (error) throw new Error("לא הצלחתי לקרוא את הגלריה הציבורית כרגע.");
-        const seen = new Set<string>();
-        const photos = (data ?? []).filter((row) => {
-          if (row.hidden || row.source === "config" || !row.url || seen.has(row.url)) return false;
-          seen.add(row.url);
-          return true;
-        }).slice(0, 4).map((row) => ({ url: row.url, caption: row.caption || "" }));
+        const photos = publicChatPhotos(data ?? []);
         return { photos, href: "/studio-photography", found: photos.length > 0 };
       },
     }),

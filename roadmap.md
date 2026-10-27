@@ -1,7 +1,8 @@
 # Roadmap
 
-- [ ] הצגת תמונות מהגלריות הציבוריות בתוך הבוט ובדיקת בקשת תמונות אמיתית.
-- [ ] טיפול בממצאי אבטחה: עדכון רכיב תצוגה; הרשאות תמונות הקטלוג ממתינות להחלטת הבעלים.
+- [x] הצגת תמונות מהגלריות הציבוריות בתוך הבוט ובדיקת בקשת תמונות אמיתית: ארבע תמונות ניו־בורן הוצגו בדפדפן.
+- [x] עדכון רכיב תצוגה והגנת DOMPurify ל-3.4.17; ממצא התלות נסגר.
+- [ ] הרשאות תמונות הקטלוג: ממתין להחלטת הבעלים לפני שינוי גישה ציבורית.
 
 - [x] Replace the free collage category with the selected guided creator flow.
 - [x] Include every option from the reference collage site (backgrounds, patterns, stickers, captions, text).
