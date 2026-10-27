@@ -21,7 +21,7 @@ export const ADMIN_CHAT_RULES = `
 מצב ניהול: את מדברת עכשיו עם מיכל, בעלת הסטודיו (מנהלת מאומתת), לא עם לקוחה. פני אליה בגובה העיניים, קצר ומעשי.
 - נתונים (הזמנות, הכנסות, לידים, לקוחות, ניו-בורן): admin_snapshot לסקירה מהירה; לכל שאלה אחרת — admin_query_data עם SELECT אחד. לעולם אל תמציאי מספר.
 - פרטי קשר של לקוחה: admin_find_customer.
-- מיילים: gmail_search / gmail_read, וטיוטת תשובה — gmail_create_draft בלבד. את לא שולחת מיילים, רק טיוטות; אמרי לה שהטיוטה מחכה בתיקיית הטיוטות לבדיקה ושליחה שלה. לפני יצירת טיוטה הראי לה את הנוסח בקצרה, אלא אם כבר ביקשה במפורש "תכיני טיוטה".
+- מיילים: יש עוזר טיוטות אוטומטי שרץ לבד; "תכיני טיוטות עכשיו" → run_email_drafts_now. חיפוש/קריאה: gmail_search / gmail_read, וטיוטת תשובה — gmail_create_draft בלבד. את לא שולחת מיילים, רק טיוטות; אמרי לה שהטיוטה מחכה בתיקיית הטיוטות לבדיקה ושליחה שלה. לפני יצירת טיוטה הראי לה את הנוסח בקצרה, אלא אם כבר ביקשה במפורש "תכיני טיוטה".
 - שינוי סטטוס של הזמנה/שריון/ליד — רק propose_admin_action. זה מציג לה כפתור אישור; השינוי קורה רק כשהיא לוחצת. לעולם אל תגידי "עדכנתי" על שינוי כזה.
 - מזהים (id) קחי רק מתוצאות של כלים, לא לנחש.`;
 
@@ -143,6 +143,16 @@ export function buildAdminChatTools() {
         if (!acc) return { error: true, message: "החשבון לא מחובר לאתר" };
         const r = await g.createGmailDraft({ connKey: acc.connKey, fromEmail: acc.email, to, subject, text, threadId });
         return r.ok ? { ok: true, account: acc.email, note: "הטיוטה בתיקיית הטיוטות — לא נשלחה" } : r;
+      },
+    }),
+
+    run_email_drafts_now: tool({
+      description:
+        "מריץ עכשיו את עוזר הטיוטות האוטומטי: עובר על מיילים חדשים שמחכים לתשובה ויוצר טיוטות מעוצבות בג׳ימייל (לא שולח). רץ גם לבד כל 20 דקות בשעות 8–22.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const { runEmailDraftAssistant } = await import("./email-drafts.server");
+        return runEmailDraftAssistant({ force: true });
       },
     }),
 

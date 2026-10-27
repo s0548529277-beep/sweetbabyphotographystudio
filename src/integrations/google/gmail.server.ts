@@ -427,3 +427,76 @@ export async function createGmailDraft(opts: {
     return { ok: false, error: "שגיאת רשת" };
   }
 }
+
+/** Low-level Gmail REST call through the connector gateway for a specific linked account. Returns parsed JSON or null (logged) on failure. */
+export async function gmailApi<T = any>(connKey: string, path: string, init?: { method?: string; body?: unknown }): Promise<T | null> {
+  const keys = requiredGmailKeys(connKey);
+  if (!keys) return null;
+  try {
+    const res = await fetch(`${GATEWAY_URL}${path}`, {
+      method: init?.method ?? "GET",
+      headers: { ...gmailAuthHeaders(keys), ...(init?.body ? { "Content-Type": "application/json" } : {}) },
+      body: init?.body ? JSON.stringify(init.body) : undefined,
+    });
+    if (!res.ok) {
+      console.error("[SWEETBABY] gmailApi error", path.split("?")[0], res.status, (await res.text()).slice(0, 300));
+      return null;
+    }
+    const text = await res.text();
+    return (text ? JSON.parse(text) : {}) as T;
+  } catch (e) {
+    console.error("[SWEETBABY] gmailApi failed", path.split("?")[0], e);
+    return null;
+  }
+}
+
+export { decodeGmailBase64Url, extractGmailPlainText, gmailHeaderValue, encodeHeader as encodeGmailHeader, toBase64Url as gmailToBase64Url };
+
+/**
+ * Creates a designed (HTML + plain-text) draft, threaded as a reply when
+ * threadId + inReplyTo are given. Never sends.
+ */
+export async function createGmailHtmlDraft(opts: {
+  connKey: string;
+  fromEmail: string;
+  fromName?: string;
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+  threadId?: string;
+  inReplyTo?: string;
+  references?: string;
+}): Promise<string | null> {
+  const b64 = (s: string) => chunk76(Buffer.from(s, "utf-8").toString("base64"));
+  const boundary = `sb_alt_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  const headers = [
+    `From: ${opts.fromName ? `${encodeHeader(opts.fromName)} ` : ""}<${opts.fromEmail}>`,
+    `To: ${opts.to}`,
+    `Subject: ${encodeHeader(opts.subject)}`,
+    ...(opts.inReplyTo ? [`In-Reply-To: ${opts.inReplyTo}`, `References: ${opts.references || opts.inReplyTo}`] : []),
+    "MIME-Version: 1.0",
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+  ];
+  const mime = [
+    ...headers,
+    "",
+    `--${boundary}`,
+    'Content-Type: text/plain; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    b64(opts.text),
+    `--${boundary}`,
+    'Content-Type: text/html; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    b64(opts.html),
+    `--${boundary}--`,
+  ].join("\r\n");
+  const raw = toBase64Url(new TextEncoder().encode(mime));
+  const res = await gmailApi<{ id?: string }>(opts.connKey, "/users/me/drafts", {
+    method: "POST",
+    body: { message: opts.threadId ? { raw, threadId: opts.threadId } : { raw } },
+  });
+  return res?.id ?? null;
+}
