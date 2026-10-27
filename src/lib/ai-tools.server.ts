@@ -11,6 +11,7 @@ import { STUDIO_GUIDE_HE } from "./studio-guide.server";
 import { ARRIVAL_TEXT_HE } from "./arrival";
 import { PHOTOGRAPHY_SERVICE_TEXT_HE } from "./photography-options";
 import { computeStudioPrice } from "./bookings.functions";
+import { publicChatPhotos } from "./chat-gallery";
 
 // Must match GUIDANCE_FEES in bookings.functions.ts exactly — this used to
 // say premium: 150 here while the real charge (and placeBooking) used 300,
@@ -45,6 +46,22 @@ export const CHAT_BUTTON_PATHS = [
  */
 export function buildWebChatTools(opts: { userId: string | null; isRealAccount: boolean }) {
   return {
+    show_gallery_photos: tool({
+      description: "מציגה תמונות אמיתיות מהגלריה הציבורית בתוך הצ׳אט. חובה כשמבקשים תמונות, דוגמאות או השראה לצילומים; לא לשלוח רק קישור. לא תמונות פרטיות של לקוחות.",
+      inputSchema: z.object({
+        category: z.enum(["newborn", "cake-smash", "upsherin", "family", "studio-outdoor", "bat-mitzvah", "albums"]),
+      }),
+      execute: async ({ category }) => {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const pages = category === "newborn" ? ["portfolio-newborn", "newborn"] : [`portfolio-${category}`];
+        const { data, error } = await supabase.from("page_images")
+          .select("url, caption, page, source, hidden")
+          .in("page", pages).order("sort_order").order("created_at");
+        if (error) throw new Error("לא הצלחתי לקרוא את הגלריה הציבורית כרגע.");
+        const photos = publicChatPhotos(data ?? []);
+        return { photos, href: "/studio-photography", found: photos.length > 0 };
+      },
+    }),
     show_buttons: tool({
       description:
         "מציג ללקוחה כפתורים לחיצים מתחת לתשובה (מעבר לעמוד באתר). השתמשי כשיש צעד הבא ברור. עד 3 כפתורים. href רק מהרשימה: " +
