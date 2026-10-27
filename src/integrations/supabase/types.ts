@@ -62,6 +62,258 @@ export type Database = {
         }
         Relationships: []
       }
+      album_examples: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          note: string | null
+          sort_order: number
+          title: string
+          url: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          sort_order?: number
+          title: string
+          url: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          sort_order?: number
+          title?: string
+          url?: string
+        }
+        Relationships: []
+      }
+      album_orders: {
+        Row: {
+          admin_notes: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          customer_notes: string | null
+          design_json: Json
+          id: string
+          newborn_order_id: string | null
+          pages: number
+          price: number
+          shape_id: string | null
+          size_id: string | null
+          status: string
+          summary: string | null
+          template_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          customer_notes?: string | null
+          design_json: Json
+          id?: string
+          newborn_order_id?: string | null
+          pages: number
+          price?: number
+          shape_id?: string | null
+          size_id?: string | null
+          status?: string
+          summary?: string | null
+          template_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          customer_notes?: string | null
+          design_json?: Json
+          id?: string
+          newborn_order_id?: string | null
+          pages?: number
+          price?: number
+          shape_id?: string | null
+          size_id?: string | null
+          status?: string
+          summary?: string | null
+          template_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "album_orders_newborn_order_id_fkey"
+            columns: ["newborn_order_id"]
+            isOneToOne: false
+            referencedRelation: "newborn_package_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "album_orders_shape_id_fkey"
+            columns: ["shape_id"]
+            isOneToOne: false
+            referencedRelation: "album_shapes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "album_orders_size_id_fkey"
+            columns: ["size_id"]
+            isOneToOne: false
+            referencedRelation: "album_sizes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "album_orders_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "album_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      album_shapes: {
+        Row: {
+          id: string
+          is_active: boolean
+          name_en: string
+          name_he: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          id?: string
+          is_active?: boolean
+          name_en: string
+          name_he: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          id?: string
+          is_active?: boolean
+          name_en?: string
+          name_he?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      album_sizes: {
+        Row: {
+          base_price: number
+          height_cm: number
+          id: string
+          is_active: boolean
+          label_he: string
+          max_pages: number
+          min_pages: number
+          price_per_extra_page: number
+          shape_id: string
+          sort_order: number
+          width_cm: number
+        }
+        Insert: {
+          base_price?: number
+          height_cm: number
+          id?: string
+          is_active?: boolean
+          label_he: string
+          max_pages?: number
+          min_pages?: number
+          price_per_extra_page?: number
+          shape_id: string
+          sort_order?: number
+          width_cm: number
+        }
+        Update: {
+          base_price?: number
+          height_cm?: number
+          id?: string
+          is_active?: boolean
+          label_he?: string
+          max_pages?: number
+          min_pages?: number
+          price_per_extra_page?: number
+          shape_id?: string
+          sort_order?: number
+          width_cm?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "album_sizes_shape_id_fkey"
+            columns: ["shape_id"]
+            isOneToOne: false
+            referencedRelation: "album_shapes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      album_templates: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          max_pages: number | null
+          min_pages: number | null
+          name: string
+          shape_id: string
+          sort_order: number
+          template_data: Json
+          thumbnail_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_pages?: number | null
+          min_pages?: number | null
+          name: string
+          shape_id: string
+          sort_order?: number
+          template_data: Json
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_pages?: number | null
+          min_pages?: number | null
+          name?: string
+          shape_id?: string
+          sort_order?: number
+          template_data?: Json
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "album_templates_shape_id_fkey"
+            columns: ["shape_id"]
+            isOneToOne: false
+            referencedRelation: "album_shapes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analytics_events: {
         Row: {
           created_at: string
@@ -153,6 +405,7 @@ export type Database = {
           abandoned_hold_reminder_sent_at: string | null
           balance_amount: number | null
           balance_method: string | null
+          balance_paid: boolean
           cancellation_charge: number | null
           cashback_awarded: number
           contact_name: string | null
@@ -197,6 +450,7 @@ export type Database = {
           abandoned_hold_reminder_sent_at?: string | null
           balance_amount?: number | null
           balance_method?: string | null
+          balance_paid?: boolean
           cancellation_charge?: number | null
           cashback_awarded?: number
           contact_name?: string | null
@@ -241,6 +495,7 @@ export type Database = {
           abandoned_hold_reminder_sent_at?: string | null
           balance_amount?: number | null
           balance_method?: string | null
+          balance_paid?: boolean
           cancellation_charge?: number | null
           cashback_awarded?: number
           contact_name?: string | null
@@ -332,6 +587,152 @@ export type Database = {
           sort_order?: number
         }
         Relationships: []
+      }
+      cm_clients: {
+        Row: {
+          baby_name: string | null
+          birth_date: string | null
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          notes: string | null
+          phone: string | null
+          source: string | null
+          updated_at: string
+        }
+        Insert: {
+          baby_name?: string | null
+          birth_date?: string | null
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          baby_name?: string | null
+          birth_date?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cm_payment_accounts: {
+        Row: {
+          client_id: string
+          created_at: string
+          due_date: string | null
+          id: string
+          notes: string | null
+          paid_amount: number
+          session_id: string | null
+          title: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          paid_amount?: number
+          session_id?: string | null
+          title?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          paid_amount?: number
+          session_id?: string | null
+          title?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cm_payment_accounts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "cm_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cm_payment_accounts_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "cm_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cm_sessions: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          part_label: string | null
+          reminder_sent_at: string | null
+          session_date: string
+          session_type: string
+          start_time: string
+          status: string
+          time_slot: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          part_label?: string | null
+          reminder_sent_at?: string | null
+          session_date: string
+          session_type?: string
+          start_time?: string
+          status?: string
+          time_slot?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          part_label?: string | null
+          reminder_sent_at?: string | null
+          session_date?: string
+          session_type?: string
+          start_time?: string
+          status?: string
+          time_slot?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cm_sessions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "cm_clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       collage_creations: {
         Row: {
@@ -488,6 +889,7 @@ export type Database = {
           due_date: string | null
           id: string
           is_paid: boolean
+          is_personal: boolean
           notes: string | null
           spent_on: string
           title: string
@@ -503,6 +905,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           is_paid?: boolean
+          is_personal?: boolean
           notes?: string | null
           spent_on?: string
           title: string
@@ -518,6 +921,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           is_paid?: boolean
+          is_personal?: boolean
           notes?: string | null
           spent_on?: string
           title?: string
@@ -525,6 +929,63 @@ export type Database = {
           vendor_email?: string | null
           vendor_name?: string | null
           vendor_phone?: string | null
+        }
+        Relationships: []
+      }
+      inquiry_leads: {
+        Row: {
+          created_at: string
+          email: string | null
+          first_contact_at: string
+          follow_up_sent_at: string | null
+          gmail_thread_id: string | null
+          id: string
+          last_contact_at: string | null
+          message: string | null
+          name: string | null
+          notes: string | null
+          phone: string | null
+          referred_to_shulamit: boolean
+          source: string
+          status: string
+          topic: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          first_contact_at?: string
+          follow_up_sent_at?: string | null
+          gmail_thread_id?: string | null
+          id?: string
+          last_contact_at?: string | null
+          message?: string | null
+          name?: string | null
+          notes?: string | null
+          phone?: string | null
+          referred_to_shulamit?: boolean
+          source?: string
+          status?: string
+          topic?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          first_contact_at?: string
+          follow_up_sent_at?: string | null
+          gmail_thread_id?: string | null
+          id?: string
+          last_contact_at?: string | null
+          message?: string | null
+          name?: string | null
+          notes?: string | null
+          phone?: string | null
+          referred_to_shulamit?: boolean
+          source?: string
+          status?: string
+          topic?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -717,6 +1178,7 @@ export type Database = {
           category: string
           created_at: string
           id: string
+          is_personal: boolean
           notes: string | null
           received_on: string
           title: string
@@ -727,6 +1189,7 @@ export type Database = {
           category?: string
           created_at?: string
           id?: string
+          is_personal?: boolean
           notes?: string | null
           received_on?: string
           title: string
@@ -737,6 +1200,7 @@ export type Database = {
           category?: string
           created_at?: string
           id?: string
+          is_personal?: boolean
           notes?: string | null
           received_on?: string
           title?: string
@@ -746,7 +1210,9 @@ export type Database = {
       }
       newborn_order_images: {
         Row: {
+          client_note: string | null
           created_at: string
+          file_name: string | null
           id: string
           image_url: string
           kind: string
@@ -759,7 +1225,9 @@ export type Database = {
           watermarked: boolean
         }
         Insert: {
+          client_note?: string | null
           created_at?: string
+          file_name?: string | null
           id?: string
           image_url: string
           kind: string
@@ -772,7 +1240,9 @@ export type Database = {
           watermarked?: boolean
         }
         Update: {
+          client_note?: string | null
           created_at?: string
+          file_name?: string | null
           id?: string
           image_url?: string
           kind?: string
@@ -799,15 +1269,26 @@ export type Database = {
           access_token: string | null
           addons: Json
           addons_price: number
+          album_birth_date: string | null
+          album_birth_time: string | null
+          album_birth_weight: string | null
+          album_caption_language: string | null
+          album_child_name: string | null
           album_design_done_at: string | null
+          album_details_submitted_at: string | null
+          album_hospital: string | null
+          album_notes: string | null
           all_photos_unlocked: boolean
           amount_paid: number
           base_price: number
           birth_basket_used: boolean
           blocking_booking_id: string | null
+          client_step: number
+          client_viewed_at: string | null
           contact_email: string | null
           contact_name: string
           contact_phone: string
+          contract_answers: Json | null
           contract_confirmed_at: string | null
           contract_sent_at: string | null
           created_at: string
@@ -815,8 +1296,11 @@ export type Database = {
           delivered_at: string | null
           drive_folder_url: string | null
           drive_synced_at: string | null
+          edited_zip_downloads: number
           editing_done_at: string | null
+          extra_photos_count: number
           gallery_opened_at: string | null
+          gallery_sent_at: string | null
           google_event_id: string | null
           guided_selection_enabled: boolean
           id: string
@@ -827,27 +1311,42 @@ export type Database = {
           payment_done_at: string | null
           photos_sent_at: string | null
           printing_done_at: string | null
+          production_step: number
           proofs_selected_at: string | null
+          proofs_zip_downloads: number
+          reminder_sent_at: string | null
           session_date: string | null
           session_time: string | null
           shoot_done_at: string | null
           total_price: number
           unlock_receipt_path: string | null
           unlock_receipt_submitted_at: string | null
+          view_nudge_sent_at: string | null
         }
         Insert: {
           access_token?: string | null
           addons?: Json
           addons_price?: number
+          album_birth_date?: string | null
+          album_birth_time?: string | null
+          album_birth_weight?: string | null
+          album_caption_language?: string | null
+          album_child_name?: string | null
           album_design_done_at?: string | null
+          album_details_submitted_at?: string | null
+          album_hospital?: string | null
+          album_notes?: string | null
           all_photos_unlocked?: boolean
           amount_paid?: number
           base_price?: number
           birth_basket_used?: boolean
           blocking_booking_id?: string | null
+          client_step?: number
+          client_viewed_at?: string | null
           contact_email?: string | null
           contact_name: string
           contact_phone: string
+          contract_answers?: Json | null
           contract_confirmed_at?: string | null
           contract_sent_at?: string | null
           created_at?: string
@@ -855,8 +1354,11 @@ export type Database = {
           delivered_at?: string | null
           drive_folder_url?: string | null
           drive_synced_at?: string | null
+          edited_zip_downloads?: number
           editing_done_at?: string | null
+          extra_photos_count?: number
           gallery_opened_at?: string | null
+          gallery_sent_at?: string | null
           google_event_id?: string | null
           guided_selection_enabled?: boolean
           id?: string
@@ -867,27 +1369,42 @@ export type Database = {
           payment_done_at?: string | null
           photos_sent_at?: string | null
           printing_done_at?: string | null
+          production_step?: number
           proofs_selected_at?: string | null
+          proofs_zip_downloads?: number
+          reminder_sent_at?: string | null
           session_date?: string | null
           session_time?: string | null
           shoot_done_at?: string | null
           total_price?: number
           unlock_receipt_path?: string | null
           unlock_receipt_submitted_at?: string | null
+          view_nudge_sent_at?: string | null
         }
         Update: {
           access_token?: string | null
           addons?: Json
           addons_price?: number
+          album_birth_date?: string | null
+          album_birth_time?: string | null
+          album_birth_weight?: string | null
+          album_caption_language?: string | null
+          album_child_name?: string | null
           album_design_done_at?: string | null
+          album_details_submitted_at?: string | null
+          album_hospital?: string | null
+          album_notes?: string | null
           all_photos_unlocked?: boolean
           amount_paid?: number
           base_price?: number
           birth_basket_used?: boolean
           blocking_booking_id?: string | null
+          client_step?: number
+          client_viewed_at?: string | null
           contact_email?: string | null
           contact_name?: string
           contact_phone?: string
+          contract_answers?: Json | null
           contract_confirmed_at?: string | null
           contract_sent_at?: string | null
           created_at?: string
@@ -895,8 +1412,11 @@ export type Database = {
           delivered_at?: string | null
           drive_folder_url?: string | null
           drive_synced_at?: string | null
+          edited_zip_downloads?: number
           editing_done_at?: string | null
+          extra_photos_count?: number
           gallery_opened_at?: string | null
+          gallery_sent_at?: string | null
           google_event_id?: string | null
           guided_selection_enabled?: boolean
           id?: string
@@ -907,13 +1427,17 @@ export type Database = {
           payment_done_at?: string | null
           photos_sent_at?: string | null
           printing_done_at?: string | null
+          production_step?: number
           proofs_selected_at?: string | null
+          proofs_zip_downloads?: number
+          reminder_sent_at?: string | null
           session_date?: string | null
           session_time?: string | null
           shoot_done_at?: string | null
           total_price?: number
           unlock_receipt_path?: string | null
           unlock_receipt_submitted_at?: string | null
+          view_nudge_sent_at?: string | null
         }
         Relationships: [
           {
@@ -924,6 +1448,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      newborn_package_types: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string
+          id: string
+          name: string
+          price: number
+          sort_order: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string
+          id?: string
+          name: string
+          price?: number
+          sort_order?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string
+          id?: string
+          name?: string
+          price?: number
+          sort_order?: number
+        }
+        Relationships: []
       }
       newsletter_signups: {
         Row: {
@@ -1129,6 +1683,116 @@ export type Database = {
         }
         Relationships: []
       }
+      outdoor_package_orders: {
+        Row: {
+          children_count: number | null
+          children_names: string | null
+          contact_email: string | null
+          contact_name: string
+          contact_phone: string
+          contract_answers: Json | null
+          contract_confirmed_at: string | null
+          contract_sent_at: string | null
+          contract_token: string | null
+          created_at: string
+          deposit_paid: boolean
+          id: string
+          notes: string | null
+          package_description: string | null
+          package_name: string | null
+          package_type_id: string | null
+          session_date: string | null
+          session_time: string | null
+          styling_call_date: string | null
+          styling_call_reminder_sent_at: string | null
+          total_price: number | null
+        }
+        Insert: {
+          children_count?: number | null
+          children_names?: string | null
+          contact_email?: string | null
+          contact_name: string
+          contact_phone: string
+          contract_answers?: Json | null
+          contract_confirmed_at?: string | null
+          contract_sent_at?: string | null
+          contract_token?: string | null
+          created_at?: string
+          deposit_paid?: boolean
+          id?: string
+          notes?: string | null
+          package_description?: string | null
+          package_name?: string | null
+          package_type_id?: string | null
+          session_date?: string | null
+          session_time?: string | null
+          styling_call_date?: string | null
+          styling_call_reminder_sent_at?: string | null
+          total_price?: number | null
+        }
+        Update: {
+          children_count?: number | null
+          children_names?: string | null
+          contact_email?: string | null
+          contact_name?: string
+          contact_phone?: string
+          contract_answers?: Json | null
+          contract_confirmed_at?: string | null
+          contract_sent_at?: string | null
+          contract_token?: string | null
+          created_at?: string
+          deposit_paid?: boolean
+          id?: string
+          notes?: string | null
+          package_description?: string | null
+          package_name?: string | null
+          package_type_id?: string | null
+          session_date?: string | null
+          session_time?: string | null
+          styling_call_date?: string | null
+          styling_call_reminder_sent_at?: string | null
+          total_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outdoor_package_orders_package_type_id_fkey"
+            columns: ["package_type_id"]
+            isOneToOne: false
+            referencedRelation: "outdoor_package_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outdoor_package_types: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string
+          id: string
+          name: string
+          price: number
+          sort_order: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string
+          id?: string
+          name: string
+          price?: number
+          sort_order?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string
+          id?: string
+          name?: string
+          price?: number
+          sort_order?: number
+        }
+        Relationships: []
+      }
       page_images: {
         Row: {
           caption: string | null
@@ -1240,6 +1904,11 @@ export type Database = {
           amount_paid: number
           balance: number | null
           booking_id: string | null
+          client_step: number
+          contract_answers: Json | null
+          contract_confirmed_at: string | null
+          contract_sent_at: string | null
+          contract_token: string | null
           created_at: string
           drive_folder_url: string | null
           drive_synced_at: string | null
@@ -1250,6 +1919,7 @@ export type Database = {
           max_proof_selections: number | null
           package_type: string | null
           photos_to_edit: number | null
+          production_step: number
           proof_reminder_sent_at: string | null
           proof_selection_submitted_at: string | null
           session_date: string | null
@@ -1268,6 +1938,11 @@ export type Database = {
           amount_paid?: number
           balance?: number | null
           booking_id?: string | null
+          client_step?: number
+          contract_answers?: Json | null
+          contract_confirmed_at?: string | null
+          contract_sent_at?: string | null
+          contract_token?: string | null
           created_at?: string
           drive_folder_url?: string | null
           drive_synced_at?: string | null
@@ -1278,6 +1953,7 @@ export type Database = {
           max_proof_selections?: number | null
           package_type?: string | null
           photos_to_edit?: number | null
+          production_step?: number
           proof_reminder_sent_at?: string | null
           proof_selection_submitted_at?: string | null
           session_date?: string | null
@@ -1296,6 +1972,11 @@ export type Database = {
           amount_paid?: number
           balance?: number | null
           booking_id?: string | null
+          client_step?: number
+          contract_answers?: Json | null
+          contract_confirmed_at?: string | null
+          contract_sent_at?: string | null
+          contract_token?: string | null
           created_at?: string
           drive_folder_url?: string | null
           drive_synced_at?: string | null
@@ -1306,6 +1987,7 @@ export type Database = {
           max_proof_selections?: number | null
           package_type?: string | null
           photos_to_edit?: number | null
+          production_step?: number
           proof_reminder_sent_at?: string | null
           proof_selection_submitted_at?: string | null
           session_date?: string | null
@@ -1403,6 +2085,42 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      recurring_expenses: {
+        Row: {
+          active: boolean
+          amount: number
+          category: string
+          created_at: string
+          day_of_month: number
+          id: string
+          is_personal: boolean
+          last_generated_month: string | null
+          title: string
+        }
+        Insert: {
+          active?: boolean
+          amount: number
+          category?: string
+          created_at?: string
+          day_of_month?: number
+          id?: string
+          is_personal?: boolean
+          last_generated_month?: string | null
+          title: string
+        }
+        Update: {
+          active?: boolean
+          amount?: number
+          category?: string
+          created_at?: string
+          day_of_month?: number
+          id?: string
+          is_personal?: boolean
+          last_generated_month?: string | null
+          title?: string
         }
         Relationships: []
       }
@@ -2082,6 +2800,10 @@ export type Database = {
           spent_cashback: number
           spent_manual: number
         }[]
+      }
+      upsert_lead_from_assistant: {
+        Args: { p: Json; p_token: string }
+        Returns: string
       }
     }
     Enums: {
