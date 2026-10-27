@@ -141,8 +141,10 @@ export function buildBookingSummaryHtml(opts: {
   doorCode?: string | null;
   /** Cashback this specific booking earned (see awardCashback) — shown only when > 0. */
   cashbackEarned?: number;
+  /** Request-received emails only: direct link back to the page where the customer finishes the order/payment. */
+  continueUrl?: string;
 }): string {
-  const { heading, intro, booking, intakePayload, includeArrival = true, includeIntake = true, footerNote, paymentAmount, doorCode, cashbackEarned } = opts;
+  const { heading, intro, booking, intakePayload, includeArrival = true, includeIntake = true, footerNote, paymentAmount, doorCode, cashbackEarned, continueUrl } = opts;
   const b = booking;
   const balance = b.balance_amount ?? Math.max(0, (b.price ?? 0) - (b.deposit_amount ?? 0));
 
@@ -191,8 +193,24 @@ export function buildBookingSummaryHtml(opts: {
     ${includeIntake ? buildIntakeHtml(intakePayload) : ""}
     ${includeArrival ? buildArrivalHtml() : ""}
     ${footerNote ? `<p style="color:#6b8a63;font-size:13px;margin-top:16px">${footerNote}</p>` : ""}
+    ${continueUrl ? buildContinueOrderHtml(continueUrl) : ""}
     <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: תלמוד ירושלמי 24, בית שמש · לשאלות: s0548529277@gmail.com / 054-8529277</p>
   </div>`;
+}
+
+/**
+ * "Continue to finish the order" button for request-received emails (before
+ * payment), so the customer doesn't have to hunt for the page on the site.
+ * The URL is also printed as plain text under it, because some mail clients
+ * (the owner's included) strip links/buttons.
+ */
+export function buildContinueOrderHtml(url: string): string {
+  const safe = escapeHtml(url);
+  return `<div style="text-align:center;margin:28px 0 8px">
+      <a href="${safe}" style="background:#2d3d2b;color:#f8ede4;padding:14px 32px;border-radius:999px;text-decoration:none;display:inline-block;font-weight:700;font-size:17px">להמשך ההזמנה והתשלום ←</a>
+      <p style="color:#6b8a63;font-size:12px;margin:12px 0 0">אם הכפתור לא מופיע — אפשר להעתיק את הקישור לדפדפן:</p>
+      <p dir="ltr" style="font-size:12px;margin:4px 0 0;word-break:break-all;color:#2d3d2b">${safe}</p>
+    </div>`;
 }
 
 // ---------- Props/equipment-rental order summary ----------
@@ -245,8 +263,10 @@ export function buildPropsOrderSummaryHtml(opts: {
   doorCode?: string | null;
   /** Cashback this specific order earned (see awardCashback) — shown only when > 0. */
   cashbackEarned?: number;
+  /** Request-received emails only: direct link back to the page where the customer finishes the order/payment. */
+  continueUrl?: string;
 }): string {
-  const { heading, intro, order: o, includeArrival = true, footerNote, doorCode, cashbackEarned } = opts;
+  const { heading, intro, order: o, includeArrival = true, footerNote, doorCode, cashbackEarned, continueUrl } = opts;
   const doorCodeHtml = doorCode ? buildDoorCodeHtml(doorCode, PROPS_DOOR_CODE_NOTE) : "";
   const cashbackHtml = cashbackEarned ? buildCashbackEarnedHtml(cashbackEarned) : "";
 
@@ -289,6 +309,7 @@ export function buildPropsOrderSummaryHtml(opts: {
     ${doorCodeHtml}
     ${includeArrival ? buildArrivalHtml() : ""}
     ${footerNote ? `<p style="color:#6b8a63;font-size:13px;margin-top:16px">${footerNote}</p>` : ""}
+    ${continueUrl ? buildContinueOrderHtml(continueUrl) : ""}
     <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: תלמוד ירושלמי 24, בית שמש · לשאלות: s0548529277@gmail.com / 054-8529277</p>
   </div>`;
 }

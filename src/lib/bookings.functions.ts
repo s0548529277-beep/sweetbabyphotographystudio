@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import { buildBookingSummaryHtml } from "@/lib/orderSummary";
+import { buildBookingSummaryHtml, buildContinueOrderHtml } from "@/lib/orderSummary";
 import { bookingBlocksSlot, PENDING_HOLD_MINUTES, PHONE_BOOKING_NOTES_MARKER } from "@/lib/availability.server";
 import { PROPS_REQUEST_CONTEXT_MARKER } from "@/lib/voice-message.server";
 import { isPlaceholderEmail } from "@/lib/auth.functions";
@@ -467,6 +467,7 @@ export const placeBooking = createServerFn({ method: "POST" })
           reserved_item_details: reservedItemDetails,
         },
         intakePayload,
+        continueUrl: `https://sweetbabyphoto.shop/deposit/booking/${booking.id}`,
       });
       const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
       await sendStudioAndCustomer({
@@ -658,6 +659,7 @@ export const placeRecurringBooking = createServerFn({ method: "POST" })
         <p>נקבעו ${created.length} מפגשים שבועיים, ₪${price} כל אחד. <strong>עדיין לא מאושרים</strong> — יש לשלם מקדמה של ₪90 לכל מפגש (או את מלוא הסכום למפגש שהוא היום) כדי לאשר אותו סופית, דרך "השריונים שלי" בעמוד /account.</p>
         <ul>${dateLines}</ul>
         ${skippedLines}
+        ${buildContinueOrderHtml("https://sweetbabyphoto.shop/account")}
       </div>`;
       const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
       await sendStudioAndCustomer({ customerEmail, subject: `סדרת שריונים שבועית · Sweetbaby`, html });
@@ -1466,7 +1468,7 @@ export async function runDueAbandonedHoldReminders(): Promise<{ checked: number;
           <h2>המקום שלך עדיין שמור! ⏳</h2>
           <p>שלום ${b.contact_name || ""},</p>
           <p>בחרת תור בסטודיו Sweetbaby ל-${new Date(`${b.session_date}T00:00:00`).toLocaleDateString("he-IL", { day: "numeric", month: "long" })} בשעה ${String(b.start_time).slice(0, 5)} — המקום עדיין שמור לך, אבל רק לעוד כ-${Math.max(1, Math.round(minutesLeft))} דקות לפני שהוא משתחרר.</p>
-          <p style="margin:18px 0"><a href="https://sweetbabyphoto.shop/deposit/booking/${b.id}" style="background:#2d3d2b;color:#f8ede4;padding:10px 22px;border-radius:999px;text-decoration:none;display:inline-block">סיום התשלום ואישור השריון</a></p>
+          ${buildContinueOrderHtml(`https://sweetbabyphoto.shop/deposit/booking/${b.id}`)}
         </div>`;
         const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
         await sendStudioAndCustomer({ customerEmail, subject: "המקום שלך בסטודיו עדיין שמור — רק לכמה דקות ⏳", html });

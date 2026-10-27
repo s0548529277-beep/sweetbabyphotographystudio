@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Header } from "@/components/Header";
@@ -53,8 +53,16 @@ function CopyRow({ label, value }: { label: string; value: string }) {
 }
 
 function Deposit() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { type, id } = Route.useParams();
+  const nav = useNavigate();
+  // Customers arrive here straight from the "request received" email's
+  // button — if they're signed out, send them to log in and right back here.
+  useEffect(() => {
+    if (!authLoading && !user) {
+      nav({ to: "/auth", search: { redirect: `/deposit/${type}/${id}` } as any });
+    }
+  }, [authLoading, user, type, id, nav]);
   const isStudio = type === "booking";
   const [record, setRecord] = useState<any>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -80,7 +88,7 @@ function Deposit() {
       .eq("id", id)
       .maybeSingle()
       .then(({ data }: any) => setRecord(data));
-  }, [type, id]);
+  }, [type, id, user?.id]);
 
   useEffect(() => {
     if (isStudio) fetchWheelEnabled({}).then((r) => setWheelEnabled(r.enabled));

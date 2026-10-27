@@ -350,6 +350,7 @@ export const placeOrder = createServerFn({ method: "POST" })
           day_multiplier: dayMultiplier,
           lines,
         },
+        continueUrl: `https://sweetbabyphoto.shop/deposit/order/${order.id}`,
       });
       const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
       await sendStudioAndCustomer({
