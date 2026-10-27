@@ -1,5 +1,8 @@
 # Roadmap
 
+- [ ] הצגת תמונות מהגלריות הציבוריות בתוך הבוט ובדיקת בקשת תמונות אמיתית.
+- [ ] טיפול בממצאי אבטחה: עדכון רכיב תצוגה; הרשאות תמונות הקטלוג ממתינות להחלטת הבעלים.
+
 - [x] Replace the free collage category with the selected guided creator flow.
 - [x] Include every option from the reference collage site (backgrounds, patterns, stickers, captions, text).
 - [x] Show real proportional size examples in step 1.

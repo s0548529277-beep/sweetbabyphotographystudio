@@ -41,6 +41,7 @@ import botAntennaHeart from "@/assets/bot-antenna-heart.png";
 import heartIcon from "@/assets/heart-gradient.png";
 
 type ChatUi = {
+  photos?: Array<{ url: string; caption: string }>;
   products: Array<{ sku: string; name: string; price: number; img: string | null; available?: boolean }>;
   buttons: Array<{ label: string; href: string }>;
   actions: Array<{ kind: "order_status" | "booking_status" | "lead_status"; id: string; status: string; summary: string }>;
@@ -50,7 +51,7 @@ type Msg = { role: "user" | "assistant"; content: string; ui?: ChatUi };
 /** Only our own images (site paths / storage) are rendered from bot markdown. */
 function isSafeImg(src?: string): boolean {
   if (!src) return false;
-  return src.startsWith("/") || /^https:\/\/[a-z0-9-]+\.supabase\.co\//.test(src);
+  return (src.startsWith("/") && !src.startsWith("//")) || /^https:\/\/[a-z0-9-]+\.supabase\.co\//.test(src) || /^https:\/\/(www\.)?(sweetbabyphoto\.shop|michalsiboni\.co\.il)\//.test(src);
 }
 
 /** Small inline heart, sized to sit in a line of text — used to render the
@@ -417,21 +418,30 @@ export function ChatBot() {
                       className="text-sm leading-6"
                       components={{
                         img: (props: any) =>
-                          props.src === heartSrc || !isSafeImg(props.src) ? (
+                          props.src === heartSrc ? (
                             <InlineHeartImg src={heartSrc} />
-                          ) : (
+                          ) : isSafeImg(props.src) ? (
                             <img
                               src={props.src}
                               alt={props.alt || ""}
                               loading="lazy"
                               className="my-2 max-h-56 rounded-xl object-cover"
                             />
-                          ),
+                          ) : null,
                       }}
                     >
                       {withHeartImage(message.content, heartSrc)}
                     </MessageResponse>
                   </MessageContent>
+                  {!!message.ui?.photos?.length && (
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      {message.ui.photos.map((photo) => (
+                        <a key={photo.url} href={photo.url} target="_blank" rel="noopener noreferrer" aria-label={photo.caption || "פתיחת תמונה מהגלריה"}>
+                          <img src={photo.url} alt={photo.caption || "צילום מהגלריה של מיכל"} loading="lazy" className="aspect-[3/4] w-full rounded-lg object-cover" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                   {message.ui && message.ui.products.length > 0 && (
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       {message.ui.products.map((p) => {

@@ -45,6 +45,27 @@ export const CHAT_BUTTON_PATHS = [
  */
 export function buildWebChatTools(opts: { userId: string | null; isRealAccount: boolean }) {
   return {
+    show_gallery_photos: tool({
+      description: "מציגה תמונות אמיתיות מהגלריה הציבורית בתוך הצ׳אט. חובה כשמבקשים תמונות, דוגמאות או השראה לצילומים; לא לשלוח רק קישור. לא תמונות פרטיות של לקוחות.",
+      inputSchema: z.object({
+        category: z.enum(["newborn", "cake-smash", "upsherin", "family", "studio-outdoor", "bat-mitzvah", "albums"]),
+      }),
+      execute: async ({ category }) => {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const pages = category === "newborn" ? ["portfolio-newborn", "newborn"] : [`portfolio-${category}`];
+        const { data, error } = await supabase.from("page_images")
+          .select("url, caption, page, source, hidden")
+          .in("page", pages).order("sort_order").order("created_at");
+        if (error) throw new Error("לא הצלחתי לקרוא את הגלריה הציבורית כרגע.");
+        const seen = new Set<string>();
+        const photos = (data ?? []).filter((row) => {
+          if (row.hidden || row.source === "config" || !row.url || seen.has(row.url)) return false;
+          seen.add(row.url);
+          return true;
+        }).slice(0, 4).map((row) => ({ url: row.url, caption: row.caption || "" }));
+        return { photos, href: "/studio-photography", found: photos.length > 0 };
+      },
+    }),
     show_buttons: tool({
       description:
         "מציג ללקוחה כפתורים לחיצים מתחת לתשובה (מעבר לעמוד באתר). השתמשי כשיש צעד הבא ברור. עד 3 כפתורים. href רק מהרשימה: " +

@@ -127,12 +127,14 @@ const WEB_CHAT_RULES = `
 
 ממשק האתר (צ׳אט):
 - אביזרים שמצאת ב-search_catalog / check_prop_availability מוצגים ללקוחה אוטומטית ככרטיסים עם תמונה, מחיר וכפתור "הוספה לעגלה" — אל תכתבי קישורי תמונה בעצמך, ואל תחזרי על כל הפרטים בטקסט; משפט קצר מספיק.
+- בקשת תמונות/השראה/דוגמאות לצילומים — חובה show_gallery_photos עם הקטגוריה המתאימה, גם במצב ניהול. התמונות מוצגות בתוך השיחה. אם אין תמונות בקטגוריה, אמרי זאת והציעי את הגלריה; לעולם אל תמציאי קישורי תמונות. בקשת תמונת אביזר — search_catalog גם במצב ניהול, לא admin_query_data.
 - כשיש צעד הבא ברור (להזמין, לשריין, לעבור לעגלה, להתחבר, לאזור האישי) — קראי ל-show_buttons עם עד 3 כפתורים.
 - "האזור האישי / ההזמנות שלי / כמה קרדיט יש לי" — get_my_account. לא מחוברת → כפתור התחברות (/auth).
 - הזמנת אביזרים: מוסיפים לעגלה מהכרטיסים ואז כפתור /cart לסיום. שריון סטודיו: כמו קודם (create_studio_booking או כפתור /booking).
 - "תשלחי הודעה למיכל/לסטודיו" — נסחי איתה את ההודעה, קבלי שם + טלפון/אימייל, ואז send_message_to_studio.`;
 
 type ChatUi = {
+  photos: Array<{ url: string; caption: string }>;
   products: Array<{ sku: string; name: string; price: number; img: string | null; available?: boolean }>;
   buttons: Array<{ label: string; href: string }>;
   actions: Array<{ kind: "order_status" | "booking_status" | "lead_status"; id: string; status: string; summary: string }>;
@@ -146,7 +148,7 @@ const CATALOG_IMG = new Map<string, string>(
 
 /** Turns the tool calls/results of one turn into UI blocks for the chat widget. */
 export async function buildChatUi(steps: any[]): Promise<ChatUi> {
-  const ui: ChatUi = { products: [], buttons: [], actions: [] };
+  const ui: ChatUi = { products: [], buttons: [], actions: [], photos: [] };
   const seen = new Set<string>();
   for (const st of steps) {
     for (const call of st.toolCalls ?? []) {
@@ -162,6 +164,15 @@ export async function buildChatUi(steps: any[]): Promise<ChatUi> {
       }
     }
     for (const r of st.toolResults ?? []) {
+      if (r.toolName === "show_gallery_photos") {
+        const out = r.output ?? r.result ?? {};
+        for (const photo of out.photos ?? []) {
+          if (photo.url && !ui.photos.some((p) => p.url === photo.url) && ui.photos.length < 4)
+            ui.photos.push({ url: photo.url, caption: String(photo.caption ?? "") });
+        }
+        if (!ui.buttons.some((b) => b.href === "/studio-photography"))
+          ui.buttons.push({ label: "לגלריה המלאה", href: "/studio-photography" });
+      }
       if (r.toolName !== "search_catalog" && r.toolName !== "check_prop_availability") continue;
       const out = r.output ?? r.result ?? {};
       for (const it of out.items ?? []) {
