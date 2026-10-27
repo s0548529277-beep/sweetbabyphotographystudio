@@ -46,6 +46,7 @@ import {
   Trees,
   ContactRound,
   Target,
+  BookHeart,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -126,6 +127,7 @@ const links: NavEntry[] = [
       { to: "/admin/photo-batch", label: "כיוונון תמונות (כמות גדולה)", icon: Sliders },
       { to: "/admin/photo-resize", label: "הקטנת תמונות וסימן מים", icon: Droplets },
       { to: "/admin/photo-clients", label: "לקוחות צילום", icon: GalleryVerticalEnd },
+      { to: "/admin/albums", label: "אלבומים מותאמים אישית", icon: BookHeart },
       { to: "/admin/retouch-presets", label: "עיבוד AI ללקוחות (פריסטים)", icon: Sparkles },
     ],
   },

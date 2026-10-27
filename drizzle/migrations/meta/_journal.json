@@ -183,6 +183,13 @@
       "when": 1793037212275,
       "tag": "0025_contract_answers",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1793060529135,
+      "tag": "0026_album_builder",
+      "breakpoints": true
     }
   ]
 }

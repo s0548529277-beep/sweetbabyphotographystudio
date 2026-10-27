@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as AlbumBuilderRouteImport } from './routes/album-builder'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BookingRouteImport } from './routes/booking'
 import { Route as CartRouteImport } from './routes/cart'
@@ -47,6 +48,7 @@ import { Route as CollageStudioTemplateIdRouteImport } from './routes/collage-st
 import { Route as ItemsIdRouteImport } from './routes/items.$id'
 import { Route as PhotoThanksIdRouteImport } from './routes/photo-thanks.$id'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as AuthenticatedAdminAlbumsRouteImport } from './routes/_authenticated/admin.albums'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin.analytics'
 import { Route as AuthenticatedAdminBackupRouteImport } from './routes/_authenticated/admin.backup'
 import { Route as AuthenticatedAdminBirthBasketTextRouteImport } from './routes/_authenticated/admin.birth-basket-text'
@@ -106,6 +108,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AlbumBuilderRoute = AlbumBuilderRouteImport.update({
+  id: '/album-builder',
+  path: '/album-builder',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -286,6 +293,12 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminAlbumsRoute =
+  AuthenticatedAdminAlbumsRouteImport.update({
+    id: '/albums',
+    path: '/albums',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminAnalyticsRoute =
   AuthenticatedAdminAnalyticsRouteImport.update({
     id: '/analytics',
@@ -556,6 +569,7 @@ const ApiPublicWhatsappWebhookRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/album-builder': typeof AlbumBuilderRoute
   '/auth': typeof AuthRoute
   '/booking': typeof BookingRoute
   '/cart': typeof CartRoute
@@ -590,6 +604,7 @@ export interface FileRoutesByFullPath {
   '/photo-thanks/$id': typeof PhotoThanksIdRoute
   '/blog/': typeof BlogIndexRoute
   '/collage-studio/': typeof CollageStudioIndexRoute
+  '/admin/albums': typeof AuthenticatedAdminAlbumsRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/backup': typeof AuthenticatedAdminBackupRoute
   '/admin/birth-basket-text': typeof AuthenticatedAdminBirthBasketTextRoute
@@ -641,6 +656,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/album-builder': typeof AlbumBuilderRoute
   '/auth': typeof AuthRoute
   '/booking': typeof BookingRoute
   '/cart': typeof CartRoute
@@ -674,6 +690,7 @@ export interface FileRoutesByTo {
   '/photo-thanks/$id': typeof PhotoThanksIdRoute
   '/blog': typeof BlogIndexRoute
   '/collage-studio': typeof CollageStudioIndexRoute
+  '/admin/albums': typeof AuthenticatedAdminAlbumsRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/backup': typeof AuthenticatedAdminBackupRoute
   '/admin/birth-basket-text': typeof AuthenticatedAdminBirthBasketTextRoute
@@ -727,6 +744,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
+  '/album-builder': typeof AlbumBuilderRoute
   '/auth': typeof AuthRoute
   '/booking': typeof BookingRoute
   '/cart': typeof CartRoute
@@ -761,6 +779,7 @@ export interface FileRoutesById {
   '/photo-thanks/$id': typeof PhotoThanksIdRoute
   '/blog/': typeof BlogIndexRoute
   '/collage-studio/': typeof CollageStudioIndexRoute
+  '/_authenticated/admin/albums': typeof AuthenticatedAdminAlbumsRoute
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/_authenticated/admin/backup': typeof AuthenticatedAdminBackupRoute
   '/_authenticated/admin/birth-basket-text': typeof AuthenticatedAdminBirthBasketTextRoute
@@ -814,6 +833,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/album-builder'
     | '/auth'
     | '/booking'
     | '/cart'
@@ -848,6 +868,7 @@ export interface FileRouteTypes {
     | '/photo-thanks/$id'
     | '/blog/'
     | '/collage-studio/'
+    | '/admin/albums'
     | '/admin/analytics'
     | '/admin/backup'
     | '/admin/birth-basket-text'
@@ -899,6 +920,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/album-builder'
     | '/auth'
     | '/booking'
     | '/cart'
@@ -932,6 +954,7 @@ export interface FileRouteTypes {
     | '/photo-thanks/$id'
     | '/blog'
     | '/collage-studio'
+    | '/admin/albums'
     | '/admin/analytics'
     | '/admin/backup'
     | '/admin/birth-basket-text'
@@ -984,6 +1007,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/about'
+    | '/album-builder'
     | '/auth'
     | '/booking'
     | '/cart'
@@ -1018,6 +1042,7 @@ export interface FileRouteTypes {
     | '/photo-thanks/$id'
     | '/blog/'
     | '/collage-studio/'
+    | '/_authenticated/admin/albums'
     | '/_authenticated/admin/analytics'
     | '/_authenticated/admin/backup'
     | '/_authenticated/admin/birth-basket-text'
@@ -1071,6 +1096,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
+  AlbumBuilderRoute: typeof AlbumBuilderRoute
   AuthRoute: typeof AuthRoute
   BookingRoute: typeof BookingRoute
   CartRoute: typeof CartRoute
@@ -1132,6 +1158,13 @@ declare module '@tanstack/react-router' {
       path: '/about'
       fullPath: '/about'
       preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/album-builder': {
+      id: '/album-builder'
+      path: '/album-builder'
+      fullPath: '/album-builder'
+      preLoaderRoute: typeof AlbumBuilderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -1377,6 +1410,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/albums': {
+      id: '/_authenticated/admin/albums'
+      path: '/albums'
+      fullPath: '/admin/albums'
+      preLoaderRoute: typeof AuthenticatedAdminAlbumsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/analytics': {
@@ -1735,6 +1775,7 @@ const AuthenticatedAdminPhotoClientsRouteWithChildren =
   )
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminAlbumsRoute: typeof AuthenticatedAdminAlbumsRoute
   AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
   AuthenticatedAdminBackupRoute: typeof AuthenticatedAdminBackupRoute
   AuthenticatedAdminBirthBasketTextRoute: typeof AuthenticatedAdminBirthBasketTextRoute
@@ -1773,6 +1814,7 @@ interface AuthenticatedAdminRouteChildren {
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminAlbumsRoute: AuthenticatedAdminAlbumsRoute,
   AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
   AuthenticatedAdminBackupRoute: AuthenticatedAdminBackupRoute,
   AuthenticatedAdminBirthBasketTextRoute:
@@ -1853,6 +1895,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
+  AlbumBuilderRoute: AlbumBuilderRoute,
   AuthRoute: AuthRoute,
   BookingRoute: BookingRoute,
   CartRoute: CartRoute,
