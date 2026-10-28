@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-10-28 (09:25 UTC) — Lovable:** chat bubble shows "מצב מנהלת 👑" badge and a "שיחה חדשה" reset button; bare site paths in bot replies become pill buttons (`linkifyPaths` in `ChatBot.tsx`); bot told to always write Markdown links; admin rules answer "am I in admin mode" explicitly. Published.
+
 - **2026-10-28 — Lovable:** chat bubble now also sends its verified access token so admin mode activates; Markdown links in chat render as pill buttons (internal links navigate in-app); stronger email-draft writing rules in `email-drafts.server.ts`. Published.
 
 - **2026-10-27 — Owner clarification:** all catalog-storage images are intentionally public. Preserved existing access; proposed dismissing the exposure alert with owner approval rather than restricting catalog photos. No database changes.
