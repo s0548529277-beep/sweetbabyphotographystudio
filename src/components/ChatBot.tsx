@@ -13,7 +13,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { chatWithBot } from "@/lib/ai.functions";
 import { adminSetStatus } from "@/lib/admin-orders.functions";
@@ -86,6 +86,7 @@ const ADMIN_QUICK = [
 
 export function ChatBot() {
   const { user, isAdmin } = useAuth();
+  const navigate = useNavigate();
   const isAuth = !!user;
   const cart = useCart();
   const setStatus = useServerFn(adminSetStatus);

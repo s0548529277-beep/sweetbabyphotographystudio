@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-10-28 — Lovable:** chat bubble now also sends its verified access token so admin mode activates; Markdown links in chat render as pill buttons (internal links navigate in-app); stronger email-draft writing rules in `email-drafts.server.ts`. Published.
+
 - **2026-10-27 — Owner clarification:** all catalog-storage images are intentionally public. Preserved existing access; proposed dismissing the exposure alert with owner approval rather than restricting catalog photos. No database changes.
 
 - **2026-10-27 (21:16 UTC) — Lovable:** added web-only `show_gallery_photos` in `ai-tools.server.ts`, structured photos in `ai.functions.ts`, and photo grid in `ChatBot.tsx`. Inspiration requests previously received only a gallery link; verified real newborn request renders four images. Rejected Markdown images no longer become hearts. Added public-photo filtering regression tests. Updated Mermaid and DOMPurify (3.4.17); dependency finding closed. Catalog storage permissions unchanged, awaiting owner decision. Historical AGENTS content preserved verbatim in the archive to meet the root instruction size limit.
