@@ -395,24 +395,45 @@ export function ChatBot() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <h2 className="font-display text-xl leading-none text-foreground">נועה</h2>
-                    <span className="rounded-full bg-card/70 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                      העוזרת של Sweetbaby
-                    </span>
+                    {isAdmin ? (
+                      <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+                        מצב מנהלת 👑
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-card/70 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                        העוזרת של Sweetbaby
+                      </span>
+                    )}
                   </div>
                   <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                    <Check className="size-3 text-accent" /> בודקת יומן ומלאי בזמן אמת
+                    <Check className="size-3 text-accent" /> {isAdmin ? "מחוברת כמנהלת — כלי ניהול פעילים" : "בודקת יומן ומלאי בזמן אמת"}
                   </p>
                 </div>
               </div>
-              <Button
-                onClick={() => setOpen(false)}
-                aria-label="סגירת הצ׳אט"
-                variant="ghost"
-                size="icon"
-                className="shrink-0 rounded-full border border-border/50 bg-card/70 hover:bg-card"
-              >
-                <X className="size-4" />
-              </Button>
+              <div className="flex shrink-0 items-center gap-1">
+                <Button
+                  onClick={() => {
+                    setMessages([{ role: "assistant", content: greeting }]);
+                    setDoneActions(new Set());
+                  }}
+                  aria-label="שיחה חדשה"
+                  title="שיחה חדשה"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 rounded-full border border-border/50 bg-card/70 px-2 text-[11px] hover:bg-card"
+                >
+                  שיחה חדשה
+                </Button>
+                <Button
+                  onClick={() => setOpen(false)}
+                  aria-label="סגירת הצ׳אט"
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 rounded-full border border-border/50 bg-card/70 hover:bg-card"
+                >
+                  <X className="size-4" />
+                </Button>
+              </div>
             </div>
           </header>
 
