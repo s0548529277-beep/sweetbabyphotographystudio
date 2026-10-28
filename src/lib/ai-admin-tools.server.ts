@@ -19,7 +19,8 @@ import { z } from "zod";
 export const ADMIN_CHAT_RULES = `
 
 מצב ניהול: את מדברת עכשיו עם מיכל, בעלת הסטודיו (מנהלת מאומתת), לא עם לקוחה. פני אליה בגובה העיניים, קצר ומעשי. התעלמי מהודעות פתיחה קודמות בשיחה שנכתבו ללקוחות. אם היא שואלת אם את במצב ניהול — עני "כן מיכל, אני במצב ניהול 👑" ופרטי בקצרה מה אפשר: נתונים, לידים, מיילים וטיוטות, שינויי סטטוס.
-- נתונים (הזמנות, הכנסות, לידים, לקוחות, ניו-בורן): admin_snapshot לסקירה מהירה; לכל שאלה אחרת — admin_query_data עם SELECT אחד. לעולם אל תמציאי מספר.
+- נתונים (הזמנות, הכנסות, לידים, לקוחות, ניו-בורן): admin_snapshot לסקירה מהירה; לכל שאלה אחרת — admin_query_data עם SELECT אחד. לידים ופניות נמצאים בטבלה inquiry_leads (לא leads). לעולם אל תמציאי מספר. אם שאילתה נכשלה פעם אחת — אל תנסי שוב ושוב; עני במה שיש או אמרי שלא הצלחת.
+- טיוטות מייל: admin_snapshot מחזיר גם draftsStatus — מתי רצה הבדיקה האחרונה, כמה טיוטות הוכנו ואם היו תקלות. כשהיא שואלת על טיוטות, עני לפי זה.
 - פרטי קשר של לקוחה: admin_find_customer.
 - מיילים: יש עוזר טיוטות אוטומטי שרץ לבד; "תכיני טיוטות עכשיו" → run_email_drafts_now. חיפוש/קריאה: gmail_search / gmail_read, וטיוטת תשובה — gmail_create_draft בלבד. את לא שולחת מיילים, רק טיוטות; אמרי לה שהטיוטה מחכה בתיקיית הטיוטות לבדיקה ושליחה שלה. לפני יצירת טיוטה הראי לה את הנוסח בקצרה, אלא אם כבר ביקשה במפורש "תכיני טיוטה".
 - שינוי סטטוס של הזמנה/שריון/ליד — רק propose_admin_action. זה מציג לה כפתור אישור; השינוי קורה רק כשהיא לוחצת. לעולם אל תגידי "עדכנתי" על שינוי כזה.
@@ -36,7 +37,7 @@ export function buildAdminChatTools() {
         try {
           const { getAdminVoiceSnapshot } = await import("./voice-admin.server");
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          const [snap, leads] = await Promise.all([
+          const [snap, leads, drafts] = await Promise.all([
             getAdminVoiceSnapshot(),
             (supabaseAdmin as any)
               .from("inquiry_leads")
@@ -44,8 +45,15 @@ export function buildAdminChatTools() {
               .eq("status", "new")
               .order("created_at", { ascending: false })
               .limit(5),
+            (supabaseAdmin as any).from("app_settings").select("value").eq("key", "email_drafts_status").maybeSingle(),
           ]);
-          return { ...snap, newLeads: leads.data ?? [] };
+          let draftsStatus: unknown = null;
+          try {
+            draftsStatus = drafts?.data?.value ? JSON.parse(drafts.data.value) : null;
+          } catch {
+            draftsStatus = null;
+          }
+          return { ...snap, newLeads: leads.data ?? [], draftsStatus };
         } catch (e) {
           console.error("[SWEETBABY] admin_snapshot failed", e);
           return { error: true };
@@ -76,7 +84,8 @@ export function buildAdminChatTools() {
         if (!/^(select|with)\b/i.test(q) || /;/.test(q)) return { error: true, message: "רק SELECT אחד" };
         try {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          const { data, error } = await (supabaseAdmin as any).rpc("run_readonly_query", { q });
+          const { wrapReadonlySql } = await import("./readonly-sql");
+          const { data, error } = await (supabaseAdmin as any).rpc("run_readonly_query", { q: wrapReadonlySql(q) });
           if (error) return { error: true, message: error.message };
           const rows = Array.isArray(data) ? data : [data];
           return { rowCount: rows.length, rows: rows.slice(0, 60) };

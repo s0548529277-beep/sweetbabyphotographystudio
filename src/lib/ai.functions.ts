@@ -275,7 +275,9 @@ export const chatWithBot = createServerFn({ method: "POST" })
         ...buildWebChatTools({ userId: realUserId, isRealAccount }),
         ...adminTools,
       },
-      stopWhen: stepCountIs(isAdmin ? 10 : 8),
+      // Admin: short loop so a failing query can't retry until the request
+      // times out (2026-10-28, 499s). Customers unchanged.
+      stopWhen: stepCountIs(isAdmin ? 4 : 8),
     });
     const text = result.text;
     const toolCalls = (result.steps ?? []).flatMap((st: any) => st.toolCalls ?? []);

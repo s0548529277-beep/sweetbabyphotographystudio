@@ -30,6 +30,7 @@ const LABEL_READY = "טיוטה מוכנה ✍️";
 const LABEL_SENT = "נשלח ✓";
 const LABEL_FOLLOW = "מעקב נשלח 🔁";
 const SITE_FORM_SENDER = "sitemailerservice.com";
+export const DRAFT_READY_NOTE = "✍️ הוכנה טיוטה (לא נשלחה)";
 
 const CTA_URLS: Record<string, string> = {
   gallery: "https://michalsiboni.co.il",
@@ -455,6 +456,9 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
           message: a.question || a.summary,
           status: "new",
           gmail_thread_id: threadId,
+          // Marks "draft ready, not sent yet" for /admin/leads (status stays
+          // "new" until she actually answers).
+          notes: `${DRAFT_READY_NOTE} ${new Date().toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem" })}`,
         });
       }
     }

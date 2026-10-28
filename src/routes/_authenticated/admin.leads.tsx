@@ -62,6 +62,19 @@ const SOURCE: Record<string, string> = {
   other: "אחר",
 };
 
+// Written into notes by email-drafts.server.ts (DRAFT_READY_NOTE) when the
+// assistant prepared a Gmail draft that she hasn't sent yet.
+const DRAFT_READY_NOTE = "✍️ הוכנה טיוטה (לא נשלחה)";
+
+type DraftsStatus = {
+  at?: string;
+  account?: string;
+  created?: number;
+  skipped?: number;
+  errors?: string[];
+  reason?: string;
+};
+
 const fmt = (d: string | null) => (d ? new Date(d).toLocaleDateString("he-IL") : "—");
 
 function waLink(phone: string) {
@@ -88,6 +101,23 @@ function LeadsAdmin() {
         .limit(1000);
       if (error) throw error;
       return (data ?? []) as unknown as Lead[];
+    },
+    refetchInterval: 60000,
+  });
+
+  const draftsStatus = useQuery({
+    queryKey: ["admin-email-drafts-status"],
+    queryFn: async (): Promise<DraftsStatus | null> => {
+      const { data } = await (supabase as any)
+        .from("app_settings")
+        .select("value")
+        .eq("key", "email_drafts_status")
+        .maybeSingle();
+      try {
+        return data?.value ? (JSON.parse(data.value) as DraftsStatus) : null;
+      } catch {
+        return null;
+      }
     },
     refetchInterval: 60000,
   });
@@ -155,6 +185,37 @@ function LeadsAdmin() {
         כל פנייה שמגיעה במייל, בטופס באתר או דרך שולמית נרשמת כאן אוטומטית (בדיקה כל שעה) ומתעדכנת כשעונים / שולחים מעקב.
         אפשר לשנות סטטוס ולהוסיף הערות ידנית.
       </p>
+
+      {/* Email drafts assistant — last run */}
+      {draftsStatus.data && (
+        <div
+          className={`rounded-2xl border p-3 text-sm flex flex-wrap items-center gap-x-4 gap-y-1 ${
+            draftsStatus.data.errors?.length || draftsStatus.data.reason === "no_gmail"
+              ? "border-rose-200 bg-rose-50 text-rose-900"
+              : "border-primary/10 bg-card text-forest/80"
+          }`}
+        >
+          <span className="font-medium">✍️ עוזר הטיוטות</span>
+          <span>
+            בדיקה אחרונה:{" "}
+            {draftsStatus.data.at
+              ? new Date(draftsStatus.data.at).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short" })
+              : "—"}
+          </span>
+          {draftsStatus.data.reason === "no_gmail" ? (
+            <span>אין חשבון ג׳ימייל מחובר לאתר</span>
+          ) : (
+            <>
+              <span>הוכנו בבדיקה הזו: {draftsStatus.data.created ?? 0}</span>
+              {draftsStatus.data.errors?.length ? (
+                <span title={draftsStatus.data.errors.join("\n")}>תקלות: {draftsStatus.data.errors.length}</span>
+              ) : (
+                <span>בלי תקלות</span>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {/* Summary */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -279,6 +340,9 @@ function LeadsAdmin() {
                       <option key={k} value={k}>{v.label}</option>
                     ))}
                   </select>
+                  {l.status === "new" && l.notes?.includes(DRAFT_READY_NOTE) && (
+                    <div className="text-[11px] text-amber-700 mt-1">טיוטה מחכה בג׳ימייל – עוד לא נשלחה</div>
+                  )}
                 </td>
                 <td className="p-3 text-xs text-forest/70 whitespace-nowrap">
                   <div>{fmt(l.last_contact_at)}</div>

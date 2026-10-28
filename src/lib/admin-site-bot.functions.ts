@@ -447,7 +447,8 @@ export const askSiteData = createServerFn({ method: "POST" })
         answer = await askClaudeSmallTalk(data.question, history);
       } else {
         sql = generatedSql;
-        const { data: rows, error } = await supabaseAdmin.rpc("run_readonly_query", { q: sql });
+        const { wrapReadonlySql } = await import("./readonly-sql");
+        const { data: rows, error } = await supabaseAdmin.rpc("run_readonly_query", { q: wrapReadonlySql(sql) });
         if (error) throw new Error(error.message);
         answer = await askClaudeToSummarize(data.question, rows, history);
       }

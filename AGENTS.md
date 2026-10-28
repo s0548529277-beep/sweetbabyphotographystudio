@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-10-28 (evening) — Claude (via GitHub, owner request to save Lovable credits):** admin chat stuck/timeouts fixed — `run_readonly_query` appends `LIMIT 200`, so a model-written LIMIT caused a syntax error and retry loop; queries are now wrapped as a subquery (`src/lib/readonly-sql.ts`, used by `ai-admin-tools.server.ts` and `admin-site-bot.functions.ts`). Admin chat step limit 10 → 4 (customers unchanged at 8). Admin rules name `inquiry_leads` and forbid repeated retries. `admin_snapshot` now returns `draftsStatus` (last run of the email-draft assistant). `/admin/leads` shows a last-run card for the draft assistant (time, drafts created, errors) and a "טיוטה מחכה בג׳ימייל – עוד לא נשלחה" note on new leads whose draft was prepared (marker written into notes by `email-drafts.server.ts`, `DRAFT_READY_NOTE`). No migrations, no security changes, catalog images untouched. Not yet published — publish from Lovable.
+
 - **2026-10-28 (09:25 UTC) — Lovable:** chat bubble shows "מצב מנהלת 👑" badge and a "שיחה חדשה" reset button; bare site paths in bot replies become pill buttons (`linkifyPaths` in `ChatBot.tsx`); bot told to always write Markdown links; admin rules answer "am I in admin mode" explicitly. Published.
 
 - **2026-10-28 — Lovable:** chat bubble now also sends its verified access token so admin mode activates; Markdown links in chat render as pill buttons (internal links navigate in-app); stronger email-draft writing rules in `email-drafts.server.ts`. Published.
