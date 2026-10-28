@@ -66,7 +66,34 @@ function InlineHeartImg(props: { src?: string }) {
  * — MessageResponse (Streamdown) renders that as a real <img>, styled small
  * via the `img` component override passed alongside it. */
 function withHeartImage(text: string, heartSrc: string): string {
-  return text.split("💗").join(`![](${heartSrc})`);
+  return linkifyPaths(text).split("💗").join(`![](${heartSrc})`);
+}
+
+const PATH_LABELS: Record<string, string> = {
+  "/rental-catalog": "לקטלוג האביזרים",
+  "/studio-rental": "להשכרת הסטודיו",
+  "/booking": "לבחירת מועד",
+  "/studio-photography": "לצילומים עם מיכל",
+  "/collage-maker": "ליצירת קולאז׳",
+  "/account": "לאזור האישי",
+  "/contact": "ליצירת קשר",
+  "/cart": "לעגלה",
+  "/auth": "להתחברות",
+  "/admin/leads": "ללידים",
+  "/admin": "לניהול",
+};
+
+/** Turns bare site paths the bot wrote as plain text (e.g. "/rental-catalog")
+ * into Markdown links, so they render as pill buttons. Skips paths already
+ * inside Markdown link syntax. */
+export function linkifyPaths(text: string): string {
+  return text.replace(/(^|[\s:(])(\/(?:[a-z0-9-]+)(?:\/[a-z0-9-]+)*)(?=$|[\s.,!?)])/gi, (m, pre, path, offset, full) => {
+    const before = full[offset - 1];
+    if (pre === "(" && before === "]") return m;
+    const label = PATH_LABELS[path];
+    if (!label) return m;
+    return `${pre === "(" ? "(" : pre}[${label}](${path})`;
+  });
 }
 
 const QUICK_QUESTIONS = [
