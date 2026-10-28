@@ -13,7 +13,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { chatWithBot } from "@/lib/ai.functions";
 import { adminSetStatus } from "@/lib/admin-orders.functions";
@@ -86,6 +86,7 @@ const ADMIN_QUICK = [
 
 export function ChatBot() {
   const { user, isAdmin } = useAuth();
+  const navigate = useNavigate();
   const isAuth = !!user;
   const cart = useCart();
   const setStatus = useServerFn(adminSetStatus);
@@ -208,8 +209,10 @@ export function ChatBot() {
     setMessages(next);
     setLoading(true);
     try {
+      const { data: sess } = await supabase.auth.getSession();
       const res = await chat({
         data: {
+          accessToken: sess.session?.access_token,
           messages: next.map(({ role, content }) => ({ role, content: content.slice(0, 6000) })).slice(-20),
           userName,
           isAuthenticated: isAuth,
@@ -417,6 +420,17 @@ export function ChatBot() {
                     <MessageResponse
                       className="text-sm leading-6"
                       components={{
+                        a: ({ href, children }: any) => {
+                          const h = String(href || "");
+                          const internal = h.startsWith("/") || /^https?:\/\/(www\.)?sweetbabyphoto\.shop/.test(h);
+                          const path = internal ? h.replace(/^https?:\/\/(www\.)?sweetbabyphoto\.shop/, "") || "/" : h;
+                          const cls = "my-1 inline-flex items-center gap-1 rounded-full border border-primary/40 bg-secondary/60 px-3 py-1 text-xs font-medium text-primary no-underline shadow-sm transition hover:bg-primary hover:text-primary-foreground";
+                          return internal ? (
+                            <a href={path} className={cls} onClick={(e) => { e.preventDefault(); setOpen(false); navigate({ to: path as any }); }}>{children} ←</a>
+                          ) : (
+                            <a href={h} target="_blank" rel="noopener noreferrer" className={cls}>{children} ↗</a>
+                          );
+                        },
                         img: (props: any) =>
                           props.src === heartSrc ? (
                             <InlineHeartImg src={heartSrc} />
