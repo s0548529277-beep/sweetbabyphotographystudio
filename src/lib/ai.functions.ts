@@ -17,12 +17,14 @@ import catalogData from "@/data/studio-catalog.json";
  * for an identity that isn't a real account is a real risk the normal
  * /booking guest flow doesn't have (a human fills the form there herself).
  */
-async function getRealAuthState(): Promise<{ userId: string | null; isRealAccount: boolean }> {
+async function getRealAuthState(fallbackToken?: string): Promise<{ userId: string | null; isRealAccount: boolean }> {
   try {
     const { getRequest } = await import("@tanstack/react-start/server");
     const authHeader = getRequest()?.headers?.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) return { userId: null, isRealAccount: false };
-    const token = authHeader.slice("Bearer ".length);
+    // Fallback: the chat bubble also sends its access token in the body, and
+    // it's verified below exactly like the header (signature via getClaims).
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : fallbackToken;
+    if (!token) return { userId: null, isRealAccount: false };
     if (token.split(".").length !== 3) return { userId: null, isRealAccount: false };
 
     const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -229,6 +231,7 @@ const ChatInput = z.object({
   // whole conversation logs as one growing row instead of one per message —
   // see customer_chat_logs / listChatLogs.
   sessionId: z.string().max(80).optional(),
+  accessToken: z.string().max(4000).optional(),
 });
 
 export const chatWithBot = createServerFn({ method: "POST" })
@@ -237,7 +240,7 @@ export const chatWithBot = createServerFn({ method: "POST" })
     // The client's `isAuthenticated` flag is only used for tone/wording —
     // it's untrusted. Whether create_studio_booking is actually allowed to
     // run is decided below from the real, server-verified token.
-    const { userId: realUserId, isRealAccount } = await getRealAuthState();
+    const { userId: realUserId, isRealAccount } = await getRealAuthState(data.accessToken);
     const personalized = data.isAuthenticated
       ? `\n\nהמשתמשת מחוברת לחשבון${data.userName ? ` בשם ${data.userName}` : ""}. את יכולה לפנות אליה בשמה.`
       : `\n\nהמשתמשת לא מחוברת. לביצוע הזמנה בפועל הציעי לה להתחבר בעמוד /auth — אבל בדיקת זמינות אפשר לעשות גם בלי התחברות.`;
