@@ -146,6 +146,90 @@ async function ensureLabels(g: typeof import("@/integrations/google/gmail.server
   return byName;
 }
 
+type DraftRef = { id: string; message?: { id?: string; threadId?: string } };
+
+/** Every draft in the mailbox (paged — the mailbox can hold 200+). null = Gmail call failed. */
+async function listAllDrafts(g: typeof import("@/integrations/google/gmail.server"), connKey: string): Promise<DraftRef[] | null> {
+  const out: DraftRef[] = [];
+  let pageToken = "";
+  for (let i = 0; i < 6; i++) {
+    const r = await g.gmailApi<{ drafts?: DraftRef[]; nextPageToken?: string }>(
+      connKey,
+      `/users/me/drafts?maxResults=100${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ""}`,
+    );
+    if (!r) return i === 0 ? null : out;
+    out.push(...(r.drafts ?? []));
+    if (!r.nextPageToken) break;
+    pageToken = r.nextPageToken;
+  }
+  return out;
+}
+
+/**
+ * Owner request 2026-10-30: once she has answered a thread marked
+ * "טיוטה מוכנה ✍️", the leftover prepared draft is deleted and the label is
+ * removed (swapped to "נשלח ✓" when her reply is the newest message).
+ * Covers drafts made by this assistant AND by Claude chat (both label the
+ * thread). Only drafts OLDER than her latest sent message are deleted — a
+ * newer draft (a follow-up, or one she started after sending) is kept, and
+ * then the label stays too.
+ */
+async function cleanupAnsweredThreads(
+  g: typeof import("@/integrations/google/gmail.server"),
+  connKey: string,
+  readyId: string,
+  sentLabelId: string | undefined,
+  drafts: DraftRef[],
+): Promise<{ threads: number; deletedDraftIds: Set<string> }> {
+  const deletedDraftIds = new Set<string>();
+  let threads = 0;
+  const draftByMsg = new Map(drafts.filter((d) => d.message?.id).map((d) => [d.message!.id!, d.id]));
+  const list = await g.gmailApi<{ threads?: Array<{ id: string }> }>(
+    connKey,
+    `/users/me/threads?labelIds=${encodeURIComponent(readyId)}&maxResults=50`,
+  );
+  for (const t of list?.threads ?? []) {
+    const th = await g.gmailApi<{ messages?: Array<{ id: string; labelIds?: string[]; internalDate?: string }> }>(
+      connKey,
+      `/users/me/threads/${t.id}?format=minimal`,
+    );
+    const msgs = th?.messages ?? [];
+    if (!msgs.length) continue;
+    const isDraft = (m: (typeof msgs)[number]) => !!m.labelIds?.includes("DRAFT");
+    const at = (m: (typeof msgs)[number]) => Number(m.internalDate || 0);
+    const real = msgs.filter((m) => !isDraft(m));
+    const lastSent = Math.max(0, ...real.filter((m) => m.labelIds?.includes("SENT")).map(at));
+    if (!lastSent) continue; // she hasn't answered in this thread yet
+    const lastIncoming = Math.max(0, ...real.filter((m) => !m.labelIds?.includes("SENT")).map(at));
+
+    const threadDrafts = msgs.filter(isDraft);
+    let failed = false;
+    let removed = 0;
+    for (const m of threadDrafts.filter((d) => at(d) < lastSent)) {
+      const draftId = draftByMsg.get(m.id);
+      if (!draftId) {
+        failed = true;
+        continue;
+      }
+      const r = await g.gmailApi(connKey, `/users/me/drafts/${draftId}`, { method: "DELETE" });
+      if (r === null) {
+        failed = true;
+        continue;
+      }
+      deletedDraftIds.add(draftId);
+      removed++;
+    }
+    if (failed || threadDrafts.length - removed > 0) continue; // a newer draft is still open → keep the label
+    const answered = lastSent >= lastIncoming;
+    await g.gmailApi(connKey, `/users/me/threads/${t.id}/modify`, {
+      method: "POST",
+      body: { removeLabelIds: [readyId], ...(answered && sentLabelId ? { addLabelIds: [sentLabelId] } : {}) },
+    });
+    threads++;
+  }
+  return { threads, deletedDraftIds };
+}
+
 async function upsertLead(db: any, p: Record<string, unknown>) {
   try {
     let existing: any = null;
@@ -307,6 +391,8 @@ export type EmailDraftRunResult = {
   account?: string;
   created: Array<{ to: string; summary: string; brand: DraftBrand; kind: "new" | "followup"; flags?: string[] }>;
   skipped: number;
+  /** Answered threads whose leftover draft/label was cleaned up this run. */
+  cleaned?: number;
   errors: string[];
 };
 
@@ -355,8 +441,22 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
   try {
     const labels = await ensureLabels(g, k);
     const readyId = labels.get(LABEL_READY);
-    const drafts = await g.gmailApi<{ drafts?: Array<{ message?: { threadId?: string } }> }>(k, "/users/me/drafts?maxResults=100");
-    const draftThreads = new Set((drafts?.drafts ?? []).map((d) => d.message?.threadId).filter(Boolean) as string[]);
+    const allDrafts = await listAllDrafts(g, k);
+    if (!allDrafts) throw new Error("רשימת הטיוטות בג׳ימייל לא נטענה");
+    // ---------- cleanup: threads she already answered ----------
+    let liveDrafts = allDrafts;
+    if (readyId) {
+      try {
+        const c = await cleanupAnsweredThreads(g, k, readyId, labels.get(LABEL_SENT), allDrafts);
+        result.cleaned = c.threads;
+        liveDrafts = allDrafts.filter((d) => !c.deletedDraftIds.has(d.id));
+      } catch (e: any) {
+        result.errors.push(`ניקוי: ${String(e?.message ?? e).slice(0, 120)}`);
+      }
+    }
+    // Any open draft in a thread — made here, by Claude chat or by her — means
+    // "someone is already on it": never add a second draft to that thread.
+    const draftThreads = new Set(liveDrafts.map((d) => d.message?.threadId).filter(Boolean) as string[]);
 
     // ---------- new inquiries ----------
     // Seen = the newest message id per thread, so a client writing again in
@@ -588,6 +688,7 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
       account: acc.email,
       accounts,
       created: result.created.length,
+      cleaned: result.cleaned ?? 0,
       skipped: result.skipped,
       errors: result.errors,
     }),
