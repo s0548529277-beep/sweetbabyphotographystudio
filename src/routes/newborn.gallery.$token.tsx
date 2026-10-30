@@ -12,6 +12,8 @@ import {
   submitNewbornAlbumDetailsByToken,
   claimNewbornZipDownload,
   setNewbornImageNoteByToken,
+  requestNewbornGalleryCode,
+  verifyNewbornGalleryCode,
 } from "@/lib/newborn-orders.functions";
 import { downloadPhotosAsZip } from "@/lib/photo-zip";
 import { PhotoLightbox, GuidedStepper } from "@/components/PhotoLightbox";
@@ -54,6 +56,116 @@ type Img = { id: string; kind: "proof" | "edited"; image_url: string; selected: 
 type DownloadInfo = { downloadLimit: number; proofsDownloadsLeft: number; editedDownloadsLeft: number };
 
 /** One-line note on a picked photo — saved when the field loses focus. */
+// Device key from the email-code check (see galleryOrderByToken in
+// newborn-orders.functions.ts). Kept per gallery link in localStorage; any
+// storage error just means she is asked for a code again.
+const deviceStorageKey = (token: string) => `sb-gallery-device:${token}`;
+function getGalleryDeviceKey(token: string): string | undefined {
+  try {
+    return (typeof window !== "undefined" && window.localStorage.getItem(deviceStorageKey(token))) || undefined;
+  } catch {
+    return undefined;
+  }
+}
+function setGalleryDeviceKey(token: string, key: string) {
+  try {
+    window.localStorage.setItem(deviceStorageKey(token), key);
+  } catch {
+    /* private mode etc. — she'll just be asked again next visit */
+  }
+}
+
+function GalleryCodeGate({ token, onVerified }: { token: string; onVerified: () => void }) {
+  const requestCode = useServerFn(requestNewbornGalleryCode);
+  const verifyCode = useServerFn(verifyNewbornGalleryCode);
+  const [maskedEmail, setMaskedEmail] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const send = async () => {
+    setBusy(true);
+    try {
+      const res = await requestCode({ data: { token } });
+      if (!res.sent) {
+        onVerified();
+        return;
+      }
+      setMaskedEmail(res.maskedEmail);
+      toast.success("הקוד נשלח למייל");
+    } catch (e: any) {
+      toast.error(e?.message ?? "שליחת הקוד נכשלה");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const verify = async () => {
+    setBusy(true);
+    try {
+      const res = await verifyCode({ data: { token, code: code.trim() } });
+      if (res.deviceKey) setGalleryDeviceKey(token, res.deviceKey);
+      onVerified();
+    } catch (e: any) {
+      toast.error(e?.message ?? "האימות נכשל");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div dir="rtl" className="min-h-screen bg-[#fdf3ec] flex items-center justify-center px-6">
+      <div className="w-full max-w-sm text-center">
+        <img src={michalLogoWordmark} alt="michal" className="h-10 mx-auto mb-6" />
+        <div className="bg-white/80 border border-[#e8d3bf] rounded-2xl p-6 shadow-sm">
+          <h1 className="text-lg font-semibold text-[#4a3221] mb-2">הגלריה שלך מוגנת 🔒</h1>
+          {!maskedEmail ? (
+            <>
+              <p className="text-sm text-[#6b4a31] mb-5">
+                כדי שרק את והמשפחה שלך תראו את התמונות, נשלח קוד קצר למייל שרשום אצלי. במכשיר הזה תתבקשי לעשות את זה רק פעם אחת.
+              </p>
+              <button
+                onClick={send}
+                disabled={busy}
+                className="w-full rounded-full bg-[#8a6338] text-white py-2.5 text-sm font-medium disabled:opacity-60"
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "שלחי לי קוד למייל"}
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-[#6b4a31] mb-4">
+                שלחתי קוד בן 6 ספרות אל <span dir="ltr" className="font-medium">{maskedEmail}</span>
+              </p>
+              <input
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                onKeyDown={(e) => e.key === "Enter" && code.length === 6 && verify()}
+                className="w-full text-center text-2xl tracking-[0.5em] rounded-xl border border-[#e8d3bf] py-2 mb-4 bg-white"
+                dir="ltr"
+                placeholder="------"
+              />
+              <button
+                onClick={verify}
+                disabled={busy || code.length !== 6}
+                className="w-full rounded-full bg-[#8a6338] text-white py-2.5 text-sm font-medium disabled:opacity-60"
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "כניסה לגלריה"}
+              </button>
+              <button onClick={send} disabled={busy} className="mt-3 text-xs text-[#8a6338] underline">
+                לא קיבלתי — שלחי שוב
+              </button>
+            </>
+          )}
+        </div>
+        <p className="text-xs text-[#8a6338] mt-4">המייל לא נכון? אפשר לפנות אליי ואעדכן.</p>
+      </div>
+    </div>
+  );
+}
+
 function PhotoNote({ token, img, onSaved }: { token: string; img: Img; onSaved: () => void }) {
   const save = useServerFn(setNewbornImageNoteByToken);
   const [value, setValue] = useState(img.client_note ?? "");
@@ -62,7 +174,7 @@ function PhotoNote({ token, img, onSaved }: { token: string; img: Img; onSaved: 
     if ((img.client_note ?? "") === value.trim()) return;
     setSaving(true);
     try {
-      await save({ data: { token, imageId: img.id, note: value } });
+      await save({ data: { token, deviceKey: getGalleryDeviceKey(token), imageId: img.id, note: value } });
       onSaved();
     } catch (e: any) {
       toast.error(e?.message ?? "שמירת ההערה נכשלה");
@@ -285,7 +397,7 @@ function ProofSection({
   const toggle = async (img: Img) => {
     if (submitted) return;
     try {
-      await toggleProof({ data: { token, imageId: img.id, selected: !img.selected } });
+      await toggleProof({ data: { token, deviceKey: getGalleryDeviceKey(token), imageId: img.id, selected: !img.selected } });
       onRefetch();
     } catch (e: any) {
       toast.error(e?.message ?? "העדכון נכשל, נסי שוב");
@@ -305,7 +417,7 @@ function ProofSection({
     }
     setFinishing(true);
     try {
-      await finishSelection({ data: { token, acceptExtra: extraCount > 0 } });
+      await finishSelection({ data: { token, deviceKey: getGalleryDeviceKey(token), acceptExtra: extraCount > 0 } });
       onRefetch();
       toast.success("תודה! הבחירה שלך נשלחה אליי 💗");
     } catch (e: any) {
@@ -317,7 +429,7 @@ function ProofSection({
 
   const onSubmitUnlockReceipt = async (file: File) => {
     const fileBase64 = await fileToBase64(file);
-    await submitUnlockReceipt({ data: { token, fileBase64, fileName: file.name, contentType: file.type || "application/octet-stream" } });
+    await submitUnlockReceipt({ data: { token, deviceKey: getGalleryDeviceKey(token), fileBase64, fileName: file.name, contentType: file.type || "application/octet-stream" } });
     onRefetch();
   };
 
@@ -394,7 +506,7 @@ function ProofSection({
           displayPhotos={proofs.map((img, i) => ({ url: img.image_url, name: `${String(i + 1).padStart(3, "0")}.jpg` }))}
           originalPhotos={proofs.map((img, i) => ({ url: img.image_url, name: `${String(i + 1).padStart(3, "0")}.jpg` }))}
           fetchPhotos={async (which) => {
-            const res = await claimZip({ data: { token, kind: which === "originals" ? "proof_original" : "proof_display" } });
+            const res = await claimZip({ data: { token, deviceKey: getGalleryDeviceKey(token), kind: which === "originals" ? "proof_original" : "proof_display" } });
             onRefetch();
             return res.photos;
           }}
@@ -480,7 +592,7 @@ function EditedSection({
   const onDownloadZip = async () => {
     setZipping({ done: 0, total: edited.length });
     try {
-      const { photos } = await claimZip({ data: { token, kind: "edited" } });
+      const { photos } = await claimZip({ data: { token, deviceKey: getGalleryDeviceKey(token), kind: "edited" } });
       onRefetch();
       await downloadPhotosAsZip(photos, { watermark, zipName: `${contactName || "האלבום-שלי"}.zip`, onProgress: (done, total) => setZipping({ done, total }) });
     } catch (e: any) {
@@ -550,15 +662,37 @@ function NewbornGalleryPage() {
   const { token } = Route.useParams();
   const qc = useQueryClient();
   const getGallery = useServerFn(getNewbornGalleryByToken);
+  const [deviceReady, setDeviceReady] = useState(false);
+  useEffect(() => {
+    // Admin preview link (?dk=...) from the admin order page: store the key
+    // and strip it from the address bar.
+    try {
+      const url = new URL(window.location.href);
+      const dk = url.searchParams.get("dk");
+      if (dk) {
+        setGalleryDeviceKey(token, dk);
+        url.searchParams.delete("dk");
+        window.history.replaceState(null, "", url.toString());
+      }
+    } catch {
+      /* ignore */
+    }
+    setDeviceReady(true);
+  }, [token]);
 
   const query = useQuery({
     queryKey: ["newborn-gallery-token", token],
-    queryFn: () => getGallery({ data: { token } }),
+    queryFn: () => getGallery({ data: { token, deviceKey: getGalleryDeviceKey(token) } }),
     retry: false,
+    enabled: deviceReady,
   });
   const onRefetch = () => qc.invalidateQueries({ queryKey: ["newborn-gallery-token", token] });
 
-  if (query.isLoading) {
+  if (query.isError && String((query.error as any)?.message ?? "").includes("VERIFY_REQUIRED")) {
+    return <GalleryCodeGate token={token} onVerified={onRefetch} />;
+  }
+
+  if (!deviceReady || query.isLoading) {
     return (
       <div dir="rtl" className="min-h-screen bg-[#fdf3ec] flex items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-[#8a6338]" />

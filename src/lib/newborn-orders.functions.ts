@@ -1412,6 +1412,174 @@ async function orderByToken(token: string) {
   return data as any;
 }
 
+// ── Gallery access check (owner request 2026-10-30) ──────────────────────
+// Like ChikTime: the private link alone is not enough. A device must first
+// confirm a one-time code mailed to the client's address on file; it then
+// gets a random device key (kept in the browser's localStorage) and is not
+// asked again. Orders with no email on file keep the old link-only access so
+// nobody is locked out. Codes/keys are stored hashed (table
+// newborn_gallery_access, service-role only).
+const GALLERY_CODE_TTL_MIN = 15;
+const GALLERY_CODE_MAX_ATTEMPTS = 5;
+
+async function sha256Hex(text: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function maskEmail(email: string): string {
+  const [user, domain] = email.split("@");
+  if (!domain) return "***";
+  const shown = user.length <= 2 ? user[0] ?? "" : user.slice(0, 2);
+  return `${shown}${"•".repeat(Math.max(2, user.length - shown.length))}@${domain}`;
+}
+
+function galleryNeedsCode(order: any): boolean {
+  return !!(order?.contact_email && String(order.contact_email).includes("@"));
+}
+
+async function isGalleryDeviceVerified(order: any, deviceKey: string | undefined): Promise<boolean> {
+  if (!galleryNeedsCode(order)) return true;
+  if (!deviceKey || deviceKey.length < 20) return false;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const hash = await sha256Hex(`device:${order.id}:${deviceKey}`);
+  const { data } = await (supabaseAdmin as any)
+    .from("newborn_gallery_access")
+    .select("id")
+    .eq("order_id", order.id)
+    .eq("kind", "device")
+    .eq("secret_hash", hash)
+    .maybeSingle();
+  if (!data) return false;
+  (supabaseAdmin as any)
+    .from("newborn_gallery_access")
+    .update({ last_used_at: new Date().toISOString() })
+    .eq("id", data.id)
+    .then(() => {}, () => {});
+  return true;
+}
+
+async function newGalleryDeviceKey(orderId: string, label: string): Promise<string> {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  const key = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { error } = await (supabaseAdmin as any).from("newborn_gallery_access").insert({
+    order_id: orderId,
+    kind: "device",
+    secret_hash: await sha256Hex(`device:${orderId}:${key}`),
+    label,
+  });
+  if (error) throw new Error("האימות לא נשמר — נסי שוב");
+  return key;
+}
+
+/** orderByToken + the device check, for every client-gallery function. */
+async function galleryOrderByToken(token: string, deviceKey: string | undefined) {
+  const order = await orderByToken(token);
+  if (!order) return null;
+  if (!(await isGalleryDeviceVerified(order, deviceKey))) {
+    throw new Error("VERIFY_REQUIRED");
+  }
+  return order;
+}
+
+/** Step 1 on a new device: mail a 6-digit code to the client's address on file. */
+export const requestNewbornGalleryCode = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ token: z.string().min(10) }).parse(d))
+  .handler(async ({ data }) => {
+    const order = await orderByToken(data.token);
+    if (!order) throw new Error("קישור לא תקין");
+    if (!galleryNeedsCode(order)) return { sent: false, maskedEmail: null as string | null };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { data: recent } = await (supabaseAdmin as any)
+      .from("newborn_gallery_access")
+      .select("created_at")
+      .eq("order_id", order.id)
+      .eq("kind", "code")
+      .gte("created_at", since)
+      .order("created_at", { ascending: false });
+    const list = (recent ?? []) as { created_at: string }[];
+    if (list.length && Date.now() - new Date(list[0].created_at).getTime() < 60 * 1000) {
+      throw new Error("קוד כבר נשלח עכשיו — אפשר לבקש שוב בעוד דקה");
+    }
+    if (list.length >= 5) throw new Error("נשלחו יותר מדי קודים. נסי שוב בעוד שעה או פני אליי.");
+
+    const code = String(100000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 900000));
+    const { error } = await (supabaseAdmin as any).from("newborn_gallery_access").insert({
+      order_id: order.id,
+      kind: "code",
+      secret_hash: await sha256Hex(`code:${order.id}:${code}`),
+      expires_at: new Date(Date.now() + GALLERY_CODE_TTL_MIN * 60 * 1000).toISOString(),
+    });
+    if (error) throw new Error("לא הצלחתי ליצור קוד — נסי שוב");
+
+    const { sendGmail } = await import("@/integrations/google/gmail.server");
+    await sendGmail({
+      to: order.contact_email,
+      subject: `קוד הכניסה לגלריה שלך: ${code} · מיכל סיבוני`,
+      html: `<div dir="rtl" style="font-family:sans-serif;color:#4a3221;max-width:440px;margin:0 auto;text-align:center">
+        <div style="background:#fdf3ec;border:1px solid #e8d3bf;border-radius:18px;padding:26px 20px">
+          <p style="margin:0 0 6px;font-size:15px">שלום ${order.contact_name ?? ""},</p>
+          <p style="margin:0 0 14px;font-size:14px">זה הקוד לכניסה לגלריית התמונות שלך:</p>
+          <div style="font-size:34px;letter-spacing:8px;font-weight:700;color:#8a6338">${code}</div>
+          <p style="margin:14px 0 0;font-size:12px;color:#8a6338">הקוד בתוקף ל-${GALLERY_CODE_TTL_MIN} דקות. אם לא ביקשת קוד, אפשר להתעלם מהמייל.</p>
+        </div>
+      </div>`,
+    });
+    return { sent: true, maskedEmail: maskEmail(order.contact_email) };
+  });
+
+/** Step 2: check the code; on success the device gets a long-lived key. */
+export const verifyNewbornGalleryCode = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z.object({ token: z.string().min(10), code: z.string().trim().regex(/^\d{6}$/, "קוד של 6 ספרות") }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const order = await orderByToken(data.token);
+    if (!order) throw new Error("קישור לא תקין");
+    if (!galleryNeedsCode(order)) return { deviceKey: null as string | null };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row } = await (supabaseAdmin as any)
+      .from("newborn_gallery_access")
+      .select("id, secret_hash, attempts, expires_at")
+      .eq("order_id", order.id)
+      .eq("kind", "code")
+      .is("used_at", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!row || new Date(row.expires_at).getTime() < Date.now()) {
+      throw new Error("הקוד פג תוקף — בקשי קוד חדש");
+    }
+    if (Number(row.attempts) >= GALLERY_CODE_MAX_ATTEMPTS) {
+      throw new Error("יותר מדי ניסיונות — בקשי קוד חדש");
+    }
+    const ok = row.secret_hash === (await sha256Hex(`code:${order.id}:${data.code}`));
+    if (!ok) {
+      await (supabaseAdmin as any)
+        .from("newborn_gallery_access")
+        .update({ attempts: Number(row.attempts) + 1 })
+        .eq("id", row.id);
+      throw new Error("הקוד שגוי — נסי שוב");
+    }
+    await (supabaseAdmin as any)
+      .from("newborn_gallery_access")
+      .update({ used_at: new Date().toISOString() })
+      .eq("id", row.id);
+    return { deviceKey: await newGalleryDeviceKey(order.id, "client") };
+  });
+
+/** Admin preview: lets Michal open a client's gallery without mailing the client a code. */
+export const createNewbornGalleryPreviewKey = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ orderId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    return { deviceKey: await newGalleryDeviceKey(data.orderId, "admin-preview") };
+  });
+
 /**
  * The "קראתי ואני מאשרת" one-click confirmation — /newborn/confirm/$token.
  * Idempotent (a second click/visit is a no-op, same pattern as
@@ -1478,9 +1646,9 @@ export const confirmNewbornContractByToken = createServerFn({ method: "POST" })
   });
 
 export const getNewbornGalleryByToken = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({ token: z.string().min(10) }).parse(d))
+  .inputValidator((d: unknown) => z.object({ token: z.string().min(10), deviceKey: z.string().max(200).optional() }).parse(d))
   .handler(async ({ data }) => {
-    const order = await orderByToken(data.token);
+    const order = await galleryOrderByToken(data.token, data.deviceKey);
     if (!order) throw new Error("קישור לא תקין");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: images } = await withSchemaCacheRetry(supabaseAdmin, () =>
@@ -1559,10 +1727,10 @@ export const getNewbornGalleryByToken = createServerFn({ method: "POST" })
  */
 export const claimNewbornZipDownload = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
-    z.object({ token: z.string().min(10), kind: z.enum(["proof_display", "proof_original", "edited"]) }).parse(d),
+    z.object({ token: z.string().min(10), deviceKey: z.string().max(200).optional(), kind: z.enum(["proof_display", "proof_original", "edited"]) }).parse(d),
   )
   .handler(async ({ data }) => {
-    const order = await orderByToken(data.token);
+    const order = await galleryOrderByToken(data.token, data.deviceKey);
     if (!order) throw new Error("קישור לא תקין");
     if (data.kind === "proof_original" && !order.all_photos_unlocked) {
       throw new Error("ההורדה ללא סימן מים נפתחת אחרי אישור התשלום");
@@ -1596,10 +1764,10 @@ export const claimNewbornZipDownload = createServerFn({ method: "POST" })
 /** A short note from the client on one of her picked photos ("לקולאז'", "להבהיר"…). */
 export const setNewbornImageNoteByToken = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
-    z.object({ token: z.string().min(10), imageId: z.string().uuid(), note: z.string().max(300) }).parse(d),
+    z.object({ token: z.string().min(10), deviceKey: z.string().max(200).optional(), imageId: z.string().uuid(), note: z.string().max(300) }).parse(d),
   )
   .handler(async ({ data }) => {
-    const order = await orderByToken(data.token);
+    const order = await galleryOrderByToken(data.token, data.deviceKey);
     if (!order) throw new Error("קישור לא תקין");
     if (order.proofs_selected_at) throw new Error("הבחירה כבר נשלחה — אפשר לכתוב לי הערות בוואטסאפ");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -1628,6 +1796,7 @@ export const resetNewbornZipDownloads = createServerFn({ method: "POST" })
 
 const albumDetailsSchema = z.object({
   token: z.string().min(10),
+  deviceKey: z.string().max(200).optional(),
   childName: z.string().trim().max(120).optional().or(z.literal("")),
   birthWeight: z.string().trim().max(40).optional().or(z.literal("")),
   birthTime: z.string().trim().max(20).optional().or(z.literal("")),
@@ -1649,7 +1818,7 @@ const albumDetailsSchema = z.object({
 export const submitNewbornAlbumDetailsByToken = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => albumDetailsSchema.parse(d))
   .handler(async ({ data }) => {
-    const order = await orderByToken(data.token);
+    const order = await galleryOrderByToken(data.token, data.deviceKey);
     if (!order) throw new Error("קישור לא תקין");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const firstSubmit = !(order as any).album_details_submitted_at;
@@ -1727,11 +1896,11 @@ export const submitNewbornAlbumDetailsByToken = createServerFn({ method: "POST" 
 export const toggleNewbornProofByToken = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z
-      .object({ token: z.string().min(10), imageId: z.string().uuid(), selected: z.boolean() })
+      .object({ token: z.string().min(10), deviceKey: z.string().max(200).optional(), imageId: z.string().uuid(), selected: z.boolean() })
       .parse(d),
   )
   .handler(async ({ data }) => {
-    const order = await orderByToken(data.token);
+    const order = await galleryOrderByToken(data.token, data.deviceKey);
     if (!order) throw new Error("קישור לא תקין");
     if (order.proofs_selected_at) throw new Error("הבחירה כבר נשלחה — אי אפשר לשנות אותה יותר");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -1758,10 +1927,10 @@ export const toggleNewbornProofByToken = createServerFn({ method: "POST" })
 /** Marks the client's selection done and notifies Michal (styled email) — per explicit request. Idempotent: a second click just re-sends nothing new, the stamp only happens once. */
 export const finishNewbornProofSelectionByToken = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
-    z.object({ token: z.string().min(10), acceptExtra: z.boolean().optional() }).parse(d),
+    z.object({ token: z.string().min(10), deviceKey: z.string().max(200).optional(), acceptExtra: z.boolean().optional() }).parse(d),
   )
   .handler(async ({ data }) => {
-    const order = await orderByToken(data.token);
+    const order = await galleryOrderByToken(data.token, data.deviceKey);
     if (!order) throw new Error("קישור לא תקין");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const alreadyDone = !!order.proofs_selected_at;
@@ -1878,6 +2047,7 @@ export const submitNewbornUnlockReceiptByToken = createServerFn({ method: "POST"
     z
       .object({
         token: z.string().min(10),
+        deviceKey: z.string().max(200).optional(),
         fileBase64: z.string().min(1).max(MAX_RECEIPT_BASE64_LEN),
         fileName: z.string().min(1).max(200),
         contentType: z.string().min(1).max(100),
@@ -1885,7 +2055,7 @@ export const submitNewbornUnlockReceiptByToken = createServerFn({ method: "POST"
       .parse(d),
   )
   .handler(async ({ data }) => {
-    const order = await orderByToken(data.token);
+    const order = await galleryOrderByToken(data.token, data.deviceKey);
     if (!order) throw new Error("קישור לא תקין");
     if (order.all_photos_unlocked) return { ok: true };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

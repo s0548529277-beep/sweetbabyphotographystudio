@@ -25,6 +25,7 @@ import {
   sendNewbornDriveAlbumLinkToClient,
   getNewbornUnlockReceiptUrl,
   approveNewbornAllPhotosUnlock,
+  createNewbornGalleryPreviewKey,
 } from "@/lib/newborn-orders.functions";
 import { findNewbornPackage } from "@/lib/newborn-packages";
 import { heError } from "@/lib/he-errors";
@@ -481,6 +482,22 @@ function ShareLinkCard({
   onResend: () => void;
 }) {
   const sendEmailFn = useServerFn(sendNewbornGalleryLinkByEmail);
+  const createPreviewKey = useServerFn(createNewbornGalleryPreviewKey);
+  // The client gallery asks new devices for an email code; this opens it for
+  // Michal without mailing the client (window opened first so popups aren't blocked).
+  const openPreview = async () => {
+    if (!shareUrl) return;
+    const win = window.open("about:blank", "_blank");
+    try {
+      const { deviceKey } = await createPreviewKey({ data: { orderId } });
+      const url = `${shareUrl}?dk=${encodeURIComponent(deviceKey)}`;
+      if (win) win.location.href = url;
+      else window.location.href = url;
+    } catch (e) {
+      win?.close();
+      toast.error(heError(e, "פתיחת התצוגה נכשלה"));
+    }
+  };
   const resetDownloads = useServerFn(resetNewbornZipDownloads);
   const [sendingEmail, setSendingEmail] = useState(false);
 
@@ -534,7 +551,7 @@ function ShareLinkCard({
         <Images className="h-4 w-4 text-primary shrink-0" />
         <h3 className="font-display text-lg text-primary">שליחת הגלריה ללקוחה</h3>
       </div>
-      <p className="text-xs text-muted-foreground">הקישור הזה — ולא כניסה לאתר — הוא מה שהלקוחה משתמשת בו כדי לראות ולבחור תמונות. אין צורך שיהיה לה חשבון.</p>
+      <p className="text-xs text-muted-foreground">הקישור הזה — ולא כניסה לאתר — הוא מה שהלקוחה משתמשת בו כדי לראות ולבחור תמונות. אין צורך שיהיה לה חשבון. בכניסה ממכשיר חדש נשלח אליה קוד אימות למייל{order?.contact_email ? "" : " — ללקוחה הזו אין מייל, אז הגלריה נפתחת בקישור בלבד"}.</p>
       {shareUrl && (
         <code dir="ltr" className="block text-xs bg-muted rounded-lg px-3 py-2 truncate">
           {shareUrl}
@@ -552,6 +569,9 @@ function ShareLinkCard({
         </Button>
         <Button type="button" size="sm" variant="outline" onClick={copyLink} disabled={!shareUrl} className="rounded-full gap-1.5">
           <Copy className="h-3.5 w-3.5" /> העתקת קישור
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={openPreview} disabled={!shareUrl} className="rounded-full gap-1.5">
+          <Eye className="h-3.5 w-3.5" /> צפייה כמו הלקוחה
         </Button>
       </div>
 
