@@ -7,6 +7,14 @@
  * is built here, so every draft looks the same and nothing is invented.
  */
 
+import michalWordmark from "@/assets/michal-logo-wordmark.png";
+import sweetbabyLogo from "@/assets/logo-green-hero.png";
+
+// Absolute URLs — email clients can't resolve relative/build-hashed paths
+// (same approach as the contract emails, photoContract.ts).
+const MICHAL_LOGO_URL = `https://sweetbabyphoto.shop${michalWordmark}`;
+const STUDIO_LOGO_URL = `https://sweetbabyphoto.shop${sweetbabyLogo}`;
+
 export type DraftBrand = "photographer" | "studio" | "general";
 export type PriceList = "newborn" | "outdoor" | "both" | "none";
 
@@ -23,11 +31,12 @@ type Theme = {
 };
 
 const THEMES: Record<DraftBrand, Theme> = {
+  // Same palette as the contract emails (owner liked them, 2026-10-30).
   photographer: {
-    pageBg: "#f6f0e4",
-    cardBg: "#ffffff",
-    border: "#e8d9c4",
-    headerBg: "#f6f0e4",
+    pageBg: "#a9784f",
+    cardBg: "#f6f0e4",
+    border: "#e2cfb6",
+    headerBg: "",
     wordmark: "#c23b6d",
     accent: "#c23b6d",
     text: "#5a4433",
@@ -35,15 +44,15 @@ const THEMES: Record<DraftBrand, Theme> = {
     highlight: "#fbeef2",
   },
   studio: {
-    pageBg: "#f8ede4",
-    cardBg: "#ffffff",
-    border: "#e9d8cc",
-    headerBg: "#2d3d2b",
-    wordmark: "#f8ede4",
+    pageBg: "#2d3d2b",
+    cardBg: "#f8ede4",
+    border: "#e3cfc0",
+    headerBg: "",
+    wordmark: "#1c3a2e",
     accent: "#2d3d2b",
     text: "#2d3d2b",
-    soft: "#5e6b5c",
-    highlight: "#f5d5cf",
+    soft: "#6b5a4c",
+    highlight: "#f3ddd2",
   },
   general: {
     pageBg: "#f7f7f7",
@@ -208,18 +217,23 @@ export function buildDraftHtml(opts: {
 }): string {
   const t = THEMES[opts.brand];
   const sig = SIGNATURES[opts.brand];
-  const header =
+  const logo = (h: number) =>
     opts.brand === "photographer"
-      ? `<tr><td style="background:${t.headerBg};padding:26px 28px 18px;text-align:center;border-bottom:1px solid ${t.border}">
-          <div style="font-family:Georgia,'Times New Roman',serif;font-size:30px;letter-spacing:3px;color:${t.wordmark}">Michal Siboni</div>
-          <div style="font-size:12px;letter-spacing:2px;color:${t.soft};margin-top:4px">צילומי ניו בורן ומשפחה</div>
-        </td></tr>`
+      ? `<img src="${MICHAL_LOGO_URL}" alt="Michal Siboni" height="${h}" style="height:${h}px;width:auto;border:0">`
       : opts.brand === "studio"
-        ? `<tr><td style="background:${t.headerBg};padding:24px 28px;text-align:center">
-          <div style="font-family:Georgia,'Times New Roman',serif;font-size:30px;letter-spacing:1px;color:${t.wordmark}">Sweetbaby</div>
-          <div style="font-size:12px;letter-spacing:1px;color:#a8c4a2;margin-top:4px">סטודיו בוטיק לצילום · בית שמש</div>
-        </td></tr>`
+        ? `<img src="${STUDIO_LOGO_URL}" alt="Sweetbaby" height="${h}" style="height:${h}px;width:auto;border:0">`
         : "";
+  const header =
+    opts.brand === "general"
+      ? ""
+      : `<tr><td align="center" style="padding:30px 28px 6px">${logo(opts.brand === "studio" ? 52 : 46)}
+          <div style="font-size:12px;letter-spacing:2px;color:${t.soft};margin-top:8px">${
+            opts.brand === "studio" ? "סטודיו בוטיק לצילום · בית שמש" : "צילומי ניו בורן ומשפחה"
+          }</div></td></tr>`;
+  const heart =
+    opts.brand === "general"
+      ? ""
+      : `<tr><td style="padding:6px 28px 0"><div style="border-top:1px solid ${t.soft}55;text-align:center;line-height:0"><span style="position:relative;top:-1px;background:${t.cardBg};padding:0 10px;color:${t.accent};font-size:12px;line-height:1">♥</span></div></td></tr>`;
   const lists =
     opts.brand === "photographer" && opts.priceList && opts.priceList !== "none"
       ? (opts.priceList === "newborn" || opts.priceList === "both" ? priceBlock(NEWBORN, t) : "") +
@@ -229,19 +243,24 @@ export function buildDraftHtml(opts: {
     ? `<div style="text-align:center;margin:20px 0 6px"><a href="${esc(opts.cta.url)}" style="display:inline-block;background:${t.accent};color:#ffffff;padding:11px 26px;border-radius:24px;text-decoration:none;font-weight:bold">${esc(opts.cta.label)}</a></div>`
     : "";
   const photos = opts.brand === "photographer" ? photoStrip(opts.photos ?? [], !!opts.bigPhotos) : "";
-  return `<div dir="rtl" style="background:${t.pageBg};padding:24px 8px">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:${t.cardBg};border:1px solid ${t.border};border-radius:16px;overflow:hidden;font-family:${FONT};color:${t.text};direction:rtl;text-align:right">
+  const branded = opts.brand !== "general";
+  return `<div dir="rtl" style="background:${t.pageBg};padding:${branded ? "14px 0" : "24px 8px"}">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:${t.cardBg};${
+    branded ? "border-radius:4px" : `border:1px solid ${t.border};border-radius:16px`
+  };overflow:hidden;font-family:${FONT};color:${t.text};direction:rtl;text-align:right">
     ${header}
-    <tr><td style="padding:24px 28px 8px;font-size:15px;line-height:1.75">
+    <tr><td style="padding:${branded ? "18px 34px 10px" : "24px 28px 8px"};font-size:15px;line-height:1.8">
       ${photos}
       ${bodyToHtml(opts.body, t)}
       ${lists}
       ${cta}
     </td></tr>
-    <tr><td style="padding:16px 28px 20px;border-top:1px solid ${t.border};font-size:13px;color:${t.soft};text-align:center;line-height:1.6">
+    ${heart}
+    <tr><td style="padding:${branded ? "14px 28px 26px" : "16px 28px 20px"};${branded ? "" : `border-top:1px solid ${t.border};`}font-size:13px;color:${t.soft};text-align:center;line-height:1.6">
       <div style="font-weight:bold;color:${t.accent}">${esc(sig.name)}</div>
       ${sig.lines.map((l) => `<div>${esc(l)}</div>`).join("")}
       ${sig.site ? `<div><a href="${sig.site.url}" style="color:${t.soft}">${esc(sig.site.label)}</a></div>` : ""}
+      ${branded ? `<div style="margin-top:12px">${logo(26)}</div>` : ""}
     </td></tr>
   </table>
 </div>`;
