@@ -9,6 +9,7 @@
 // customer-facing routes (/newborn/gallery/$token), reachable without a
 // site account — just a private link mailed to her.
 import { createServerFn } from "@tanstack/react-start";
+import { toSiteMediaUrl } from "@/lib/media-url";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
@@ -1543,7 +1544,7 @@ export const getNewbornGalleryByToken = createServerFn({ method: "POST" })
       images: ((images ?? []) as any[]).map((img) => ({
         id: img.id as string,
         kind: img.kind as "proof" | "edited",
-        image_url: img.image_url as string,
+        image_url: toSiteMediaUrl(img.image_url as string),
         selected: !!img.selected,
         client_note: (img.client_note ?? null) as string | null,
       })),
@@ -1586,7 +1587,7 @@ export const claimNewbornZipDownload = createServerFn({ method: "POST" })
       .eq("id", order.id);
     if (upErr) throw new Error("ההורדה לא זמינה כרגע — נסי שוב בעוד כמה דקות");
     const photos = ((images ?? []) as any[]).map((img, i) => ({
-      url: (data.kind === "proof_display" ? img.image_url : img.original_image_url || img.image_url) as string,
+      url: toSiteMediaUrl((data.kind === "proof_display" ? img.image_url : img.original_image_url || img.image_url) as string),
       name: (img.file_name as string | null) || `${String(i + 1).padStart(3, "0")}.jpg`,
     }));
     return { photos, left: NEWBORN_ZIP_DOWNLOAD_LIMIT - used - 1 };

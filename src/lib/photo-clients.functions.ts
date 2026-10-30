@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { toSiteMediaUrl } from "@/lib/media-url";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { newContractToken } from "@/lib/contract-token";
@@ -1064,7 +1065,11 @@ export const getMyPhotoGalleries = createServerFn({ method: "POST" })
             .eq("workflow_id", w.id)
             .eq("kind", kind)
             .order("sort_order", { ascending: true });
-          images = imgs ?? [];
+          images = (imgs ?? []).map((im: any) => ({
+            ...im,
+            image_url: toSiteMediaUrl(im.image_url),
+            original_image_url: toSiteMediaUrl(im.original_image_url),
+          }));
         }
         return {
           id: w.id as string,

@@ -46,6 +46,7 @@ import { Route as BlogSmashCakeToddlerPrepRouteImport } from './routes/blog.smas
 import { Route as CollageStudioIndexRouteImport } from './routes/collage-studio.index'
 import { Route as CollageStudioTemplateIdRouteImport } from './routes/collage-studio.$templateId'
 import { Route as ItemsIdRouteImport } from './routes/items.$id'
+import { Route as MediaSplatRouteImport } from './routes/media.$'
 import { Route as PhotoThanksIdRouteImport } from './routes/photo-thanks.$id'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminAlbumsRouteImport } from './routes/_authenticated/admin.albums'
@@ -281,6 +282,11 @@ const CollageStudioTemplateIdRoute = CollageStudioTemplateIdRouteImport.update({
 const ItemsIdRoute = ItemsIdRouteImport.update({
   id: '/items/$id',
   path: '/items/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MediaSplatRoute = MediaSplatRouteImport.update({
+  id: '/media/$',
+  path: '/media/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PhotoThanksIdRoute = PhotoThanksIdRouteImport.update({
@@ -601,6 +607,7 @@ export interface FileRoutesByFullPath {
   '/blog/smash-cake-toddler-prep': typeof BlogSmashCakeToddlerPrepRoute
   '/collage-studio/$templateId': typeof CollageStudioTemplateIdRoute
   '/items/$id': typeof ItemsIdRoute
+  '/media/$': typeof MediaSplatRoute
   '/photo-thanks/$id': typeof PhotoThanksIdRoute
   '/blog/': typeof BlogIndexRoute
   '/collage-studio/': typeof CollageStudioIndexRoute
@@ -687,6 +694,7 @@ export interface FileRoutesByTo {
   '/blog/smash-cake-toddler-prep': typeof BlogSmashCakeToddlerPrepRoute
   '/collage-studio/$templateId': typeof CollageStudioTemplateIdRoute
   '/items/$id': typeof ItemsIdRoute
+  '/media/$': typeof MediaSplatRoute
   '/photo-thanks/$id': typeof PhotoThanksIdRoute
   '/blog': typeof BlogIndexRoute
   '/collage-studio': typeof CollageStudioIndexRoute
@@ -776,6 +784,7 @@ export interface FileRoutesById {
   '/blog/smash-cake-toddler-prep': typeof BlogSmashCakeToddlerPrepRoute
   '/collage-studio/$templateId': typeof CollageStudioTemplateIdRoute
   '/items/$id': typeof ItemsIdRoute
+  '/media/$': typeof MediaSplatRoute
   '/photo-thanks/$id': typeof PhotoThanksIdRoute
   '/blog/': typeof BlogIndexRoute
   '/collage-studio/': typeof CollageStudioIndexRoute
@@ -865,6 +874,7 @@ export interface FileRouteTypes {
     | '/blog/smash-cake-toddler-prep'
     | '/collage-studio/$templateId'
     | '/items/$id'
+    | '/media/$'
     | '/photo-thanks/$id'
     | '/blog/'
     | '/collage-studio/'
@@ -951,6 +961,7 @@ export interface FileRouteTypes {
     | '/blog/smash-cake-toddler-prep'
     | '/collage-studio/$templateId'
     | '/items/$id'
+    | '/media/$'
     | '/photo-thanks/$id'
     | '/blog'
     | '/collage-studio'
@@ -1039,6 +1050,7 @@ export interface FileRouteTypes {
     | '/blog/smash-cake-toddler-prep'
     | '/collage-studio/$templateId'
     | '/items/$id'
+    | '/media/$'
     | '/photo-thanks/$id'
     | '/blog/'
     | '/collage-studio/'
@@ -1125,6 +1137,7 @@ export interface RootRouteChildren {
   BlogSmashCakeToddlerPrepRoute: typeof BlogSmashCakeToddlerPrepRoute
   CollageStudioTemplateIdRoute: typeof CollageStudioTemplateIdRoute
   ItemsIdRoute: typeof ItemsIdRoute
+  MediaSplatRoute: typeof MediaSplatRoute
   PhotoThanksIdRoute: typeof PhotoThanksIdRoute
   BlogIndexRoute: typeof BlogIndexRoute
   CollageStudioIndexRoute: typeof CollageStudioIndexRoute
@@ -1396,6 +1409,13 @@ declare module '@tanstack/react-router' {
       path: '/items/$id'
       fullPath: '/items/$id'
       preLoaderRoute: typeof ItemsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/media/$': {
+      id: '/media/$'
+      path: '/media/$'
+      fullPath: '/media/$'
+      preLoaderRoute: typeof MediaSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/photo-thanks/$id': {
@@ -1924,6 +1944,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogSmashCakeToddlerPrepRoute: BlogSmashCakeToddlerPrepRoute,
   CollageStudioTemplateIdRoute: CollageStudioTemplateIdRoute,
   ItemsIdRoute: ItemsIdRoute,
+  MediaSplatRoute: MediaSplatRoute,
   PhotoThanksIdRoute: PhotoThanksIdRoute,
   BlogIndexRoute: BlogIndexRoute,
   CollageStudioIndexRoute: CollageStudioIndexRoute,
