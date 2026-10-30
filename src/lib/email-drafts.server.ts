@@ -31,6 +31,7 @@ const LABEL_SENT = "נשלח ✓";
 const LABEL_FOLLOW = "מעקב נשלח 🔁";
 const SITE_FORM_SENDER = "sitemailerservice.com";
 export const DRAFT_READY_NOTE = "✍️ הוכנה טיוטה (לא נשלחה)";
+export const FOLLOWUP_DRAFT_NOTE = "🔁 הוכנה טיוטת מעקב (לא נשלחה)";
 
 const CTA_URLS: Record<string, string> = {
   gallery: "https://michalsiboni.co.il",
@@ -179,6 +180,46 @@ async function upsertLead(db: any, p: Record<string, unknown>) {
     }
   } catch (e) {
     console.error("[SWEETBABY] email-drafts lead upsert failed", e);
+  }
+}
+
+async function findLead(db: any, threadId: string, email: string): Promise<any | null> {
+  try {
+    const { data: byThread } = await db.from("inquiry_leads").select("*").eq("gmail_thread_id", threadId).maybeSingle();
+    if (byThread) return byThread;
+    if (!email) return null;
+    const { data } = await db
+      .from("inquiry_leads")
+      .select("*")
+      .ilike("email", email)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    return data?.[0] ?? null;
+  } catch (e) {
+    console.error("[SWEETBABY] email-drafts lead lookup failed", e);
+    return null;
+  }
+}
+
+/** Follow-up draft prepared → lead shows "נשלח מעקב" in /admin/leads. */
+async function markFollowUpDraft(db: any, lead: any | null, threadId: string, email: string) {
+  if (!lead) return;
+  try {
+    const now = new Date();
+    const note = `${FOLLOWUP_DRAFT_NOTE} ${now.toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem" })}`;
+    await db
+      .from("inquiry_leads")
+      .update({
+        status: "follow_up",
+        follow_up_sent_at: now.toISOString(),
+        updated_at: now.toISOString(),
+        gmail_thread_id: lead.gmail_thread_id || threadId,
+        email: lead.email || email,
+        notes: [lead.notes, note].filter(Boolean).join("\n"),
+      })
+      .eq("id", lead.id);
+  } catch (e) {
+    console.error("[SWEETBABY] email-drafts follow-up lead update failed", e);
   }
 }
 
@@ -495,6 +536,12 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
           remember(`fu:${threadId}`);
           continue;
         }
+        // Don't nudge a client who already booked or was marked not relevant.
+        const lead = await findLead(db, threadId, clientAddr);
+        if (lead && ["booked", "not_relevant"].includes(lead.status)) {
+          remember(`fu:${threadId}`);
+          continue;
+        }
         let w: Awaited<ReturnType<typeof writeFollowUp>> = null;
         try {
           w = await writeFollowUp(threadText(g, msgs));
@@ -523,6 +570,7 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
         if (readyId) await g.gmailApi(k, `/users/me/threads/${threadId}/modify`, { method: "POST", body: { addLabelIds: [readyId] } });
         fu++;
         result.created.push({ to: clientAddr, summary: w.summary, brand, kind: "followup" });
+        await markFollowUpDraft(db, lead, threadId, clientAddr);
       }
     }
   } catch (e: any) {

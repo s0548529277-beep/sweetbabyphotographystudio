@@ -133,6 +133,26 @@ function LeadsAdmin() {
     return { ...c, total: all.length, conversion: all.length ? Math.round((c.booked / all.length) * 100) : 0 };
   }, [all]);
 
+  // "למי לחזור היום": new inquiries unanswered for over a day, and answered
+  // ones that went quiet 3+ days with no follow-up yet.
+  const callBack = useMemo(() => {
+    const now = Date.now();
+    const DAY = 86_400_000;
+    const since = (d: string | null) => (d ? now - Date.parse(d) : 0);
+    const unanswered = all
+      .filter((l) => l.status === "new" && since(l.first_contact_at) > DAY)
+      .sort((a, b) => Date.parse(a.first_contact_at) - Date.parse(b.first_contact_at));
+    const quiet = all
+      .filter(
+        (l) => l.status === "replied" && !l.follow_up_sent_at && since(l.last_contact_at ?? l.first_contact_at) > 3 * DAY,
+      )
+      .sort(
+        (a, b) =>
+          Date.parse(a.last_contact_at ?? a.first_contact_at) - Date.parse(b.last_contact_at ?? b.first_contact_at),
+      );
+    return { unanswered, quiet };
+  }, [all]);
+
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
     return all.filter((l) => {
@@ -182,7 +202,7 @@ function LeadsAdmin() {
         </Button>
       </div>
       <p className="text-sm text-forest/70">
-        כל פנייה שמגיעה במייל, בטופס באתר או דרך שולמית נרשמת כאן אוטומטית (בדיקה כל שעה) ומתעדכנת כשעונים / שולחים מעקב.
+        כל פנייה שמגיעה במייל, בטופס באתר או דרך שולמית נרשמת כאן אוטומטית (בדיקה כל 20 דקות) ומתעדכנת כשעונים / שולחים מעקב.
         אפשר לשנות סטטוס ולהוסיף הערות ידנית.
       </p>
 
@@ -214,6 +234,44 @@ function LeadsAdmin() {
               )}
             </>
           )}
+        </div>
+      )}
+
+      {/* Who to get back to today */}
+      {(callBack.unanswered.length > 0 || callBack.quiet.length > 0) && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 space-y-3">
+          <div className="font-medium text-forest">📞 למי לחזור היום</div>
+          {[
+            { title: "לא נענו יותר מיום", list: callBack.unanswered, date: (l: Lead) => l.first_contact_at },
+            { title: "נענו ושקטות 3+ ימים, בלי מעקב", list: callBack.quiet, date: (l: Lead) => l.last_contact_at ?? l.first_contact_at },
+          ]
+            .filter((g) => g.list.length)
+            .map((g) => (
+              <div key={g.title}>
+                <div className="text-xs text-forest/70 mb-1">
+                  {g.title} ({g.list.length})
+                </div>
+                <ul className="flex flex-wrap gap-2">
+                  {g.list.slice(0, 8).map((l) => (
+                    <li key={l.id} className="bg-card rounded-full border border-primary/10 px-3 py-1 text-xs flex items-center gap-2">
+                      <span className="font-medium">{l.name || l.email || l.phone || "ללא שם"}</span>
+                      <span className="text-forest/60">{TOPIC[l.topic] ?? l.topic} · {fmt(g.date(l))}</span>
+                      {l.phone && (
+                        <a href={waLink(l.phone)} target="_blank" rel="noreferrer" className="text-emerald-700" aria-label="וואטסאפ">
+                          <MessageCircle className="h-3.5 w-3.5" />
+                        </a>
+                      )}
+                      {l.email && (
+                        <a href={`mailto:${l.email}`} className="text-sky-700" aria-label="מייל">
+                          <Mail className="h-3.5 w-3.5" />
+                        </a>
+                      )}
+                    </li>
+                  ))}
+                  {g.list.length > 8 && <li className="text-xs text-forest/60 self-center">ועוד {g.list.length - 8}</li>}
+                </ul>
+              </div>
+            ))}
         </div>
       )}
 
