@@ -15,7 +15,7 @@ import { downloadPhotosAsZip } from "@/lib/photo-zip";
 import { PhotoLightbox, GuidedStepper } from "@/components/PhotoLightbox";
 import { AllPhotosUnlockPanel } from "@/components/AllPhotosUnlockPanel";
 import { StepTracker } from "@/components/StepTracker";
-import { CLIENT_STEPS } from "@/lib/gallery-steps";
+import { CLIENT_STEPS, CLIENT_STEP_HINTS } from "@/lib/gallery-steps";
 import { uploadReceiptFile } from "@/lib/receipt-upload";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
@@ -343,8 +343,8 @@ function MyPhotosPage() {
                 </span>
               )}
             </div>
-            <div className="bg-card border border-primary/10 rounded-2xl p-4">
-              <StepTracker theme="pink" steps={CLIENT_STEPS} current={g.client_step ?? 1} />
+            <div className="bg-card border border-primary/10 rounded-3xl px-5 py-6 sm:px-10 sm:py-8 shadow-sm">
+              <StepTracker theme="pink" steps={CLIENT_STEPS} current={g.client_step ?? 1} hint={CLIENT_STEP_HINTS[(g.client_step ?? 1) - 1]} />
             </div>
             <p className="text-sm text-muted-foreground">{STAGE_MESSAGE[g.stage]}</p>
             {g.stage === "proofs_ready" && g.images.length > 0 && (

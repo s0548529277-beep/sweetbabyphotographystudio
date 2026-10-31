@@ -19,7 +19,7 @@ import { downloadPhotosAsZip } from "@/lib/photo-zip";
 import { PhotoLightbox, GuidedStepper } from "@/components/PhotoLightbox";
 import { AllPhotosUnlockPanel } from "@/components/AllPhotosUnlockPanel";
 import { StepTracker } from "@/components/StepTracker";
-import { CLIENT_STEPS } from "@/lib/gallery-steps";
+import { CLIENT_STEPS, CLIENT_STEP_HINTS } from "@/lib/gallery-steps";
 import michalLogoWordmark from "@/assets/michal-logo-wordmark.png";
 
 /** Reads a File as base64 (no data: prefix) — needed because submitNewbornUnlockReceiptByToken has to carry the file over as a plain server-fn argument (a newborn visitor has no Supabase session for a direct authenticated Storage upload, see that function's own doc comment). */
@@ -744,8 +744,8 @@ function NewbornGalleryPage() {
       </header>
 
       <div className="max-w-5xl mx-auto px-6 py-10">
-        <div className="bg-white/60 border border-[#4a3221]/10 rounded-2xl p-4 mb-8">
-          <StepTracker theme="pink" steps={CLIENT_STEPS} current={clientStep ?? 1} />
+        <div className="bg-white/70 border border-[#4a3221]/10 rounded-3xl px-5 py-6 sm:px-10 sm:py-8 mb-10 shadow-sm">
+          <StepTracker theme="pink" steps={CLIENT_STEPS} current={clientStep ?? 1} hint={CLIENT_STEP_HINTS[(clientStep ?? 1) - 1]} />
         </div>
 
         <div className="text-center mb-8">
