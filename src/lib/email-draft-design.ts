@@ -9,10 +9,15 @@
 
 import michalWordmark from "@/assets/michal-logo-wordmark.png";
 import sweetbabyLogo from "@/assets/logo-green-hero.png";
+import michalAnimatedAsset from "@/assets/michal-logo-animated-v2.gif.asset.json";
 
 // Absolute URLs — email clients can't resolve relative/build-hashed paths
 // (same approach as the contract emails, photoContract.ts).
 const MICHAL_LOGO_URL = `https://sweetbabyphoto.shop${michalWordmark}`;
+// The new animated Michal logo shown on the site (/newborn header + footer).
+const MICHAL_ANIMATED_LOGO_URL = `https://sweetbabyphoto.shop${michalAnimatedAsset.url}`;
+const SITE_PHONE = "053-418-1051";
+const SITE_MAIL = "s0548529277@gmail.com";
 const STUDIO_LOGO_URL = `https://sweetbabyphoto.shop${sweetbabyLogo}`;
 
 export type DraftBrand = "photographer" | "studio" | "general";
@@ -216,19 +221,21 @@ export function buildDraftHtml(opts: {
   cta?: { label: string; url: string } | null;
   /** More buttons next to the main one (e.g. gallery + details + chat in the automatic first reply). */
   extraCtas?: Array<{ label: string; url: string }>;
+  /** Photographer brand only: close with the signature block shown in the site's footer (animated logo, tagline, phone, mail). */
+  siteSignature?: boolean;
 }): string {
   const t = THEMES[opts.brand];
   const sig = SIGNATURES[opts.brand];
-  const logo = (h: number) =>
+  const logo = (h: number, animated = false) =>
     opts.brand === "photographer"
-      ? `<img src="${MICHAL_LOGO_URL}" alt="Michal Siboni" height="${h}" style="height:${h}px;width:auto;border:0">`
+      ? `<img src="${animated ? MICHAL_ANIMATED_LOGO_URL : MICHAL_LOGO_URL}" alt="מיכל סיבוני" height="${h}" style="height:${h}px;width:auto;border:0">`
       : opts.brand === "studio"
         ? `<img src="${STUDIO_LOGO_URL}" alt="Sweetbaby" height="${h}" style="height:${h}px;width:auto;border:0">`
         : "";
   const header =
     opts.brand === "general"
       ? ""
-      : `<tr><td align="center" style="padding:30px 28px 6px">${logo(opts.brand === "studio" ? 52 : 46)}
+      : `<tr><td align="center" style="padding:30px 28px 6px">${logo(opts.brand === "studio" ? 52 : 84, true)}
           <div style="font-size:12px;letter-spacing:2px;color:${t.soft};margin-top:8px">${
             opts.brand === "studio" ? "סטודיו בוטיק לצילום · בית שמש" : "צילומי ניו בורן ומשפחה"
           }</div></td></tr>`;
@@ -265,10 +272,18 @@ export function buildDraftHtml(opts: {
     </td></tr>
     ${heart}
     <tr><td style="padding:${branded ? "14px 28px 26px" : "16px 28px 20px"};${branded ? "" : `border-top:1px solid ${t.border};`}font-size:13px;color:${t.soft};text-align:center;line-height:1.6">
-      <div style="font-weight:bold;color:${t.accent}">${esc(sig.name)}</div>
+      ${
+        opts.siteSignature && opts.brand === "photographer"
+          ? `<div>${logo(96, true)}</div>
+      <div style="margin-top:4px">צילומי ניו-בורן ומשפחה</div>
+      <div style="margin-top:6px"><span dir="ltr"><a href="tel:${SITE_PHONE.replace(/-/g, "")}" style="color:${t.soft};text-decoration:none">${SITE_PHONE}</a></span> · <a href="mailto:${SITE_MAIL}" style="color:${t.soft}">${SITE_MAIL}</a></div>
+      <div><a href="https://michalsiboni.co.il" style="color:${t.soft}">michalsiboni.co.il</a></div>
+      <div style="font-size:11px;margin-top:8px;opacity:.8">© מיכל סיבוני — כל הזכויות שמורות</div>`
+          : `<div style="font-weight:bold;color:${t.accent}">${esc(sig.name)}</div>
       ${sig.lines.map((l) => `<div>${esc(l)}</div>`).join("")}
       ${sig.site ? `<div><a href="${sig.site.url}" style="color:${t.soft}">${esc(sig.site.label)}</a></div>` : ""}
-      ${branded ? `<div style="margin-top:12px">${logo(26)}</div>` : ""}
+      ${branded ? `<div style="margin-top:12px">${logo(26)}</div>` : ""}`
+      }
     </td></tr>
   </table>
 </div>`;
@@ -281,6 +296,7 @@ export function buildDraftText(opts: {
   priceList?: PriceList;
   cta?: { label: string; url: string } | null;
   extraCtas?: Array<{ label: string; url: string }>;
+  siteSignature?: boolean;
 }): string {
   const sig = SIGNATURES[opts.brand];
   const listText = (l: typeof NEWBORN) =>
@@ -291,5 +307,9 @@ export function buildDraftText(opts: {
         (opts.priceList === "outdoor" || opts.priceList === "both" ? listText(OUTDOOR) : "")
       : "";
   const body = opts.body.replace(/^##\s+/gm, "").replace(/^>\s?/gm, "").replace(/\*\*/g, "");
-  return `${body}\n${lists}${[...(opts.cta ? [opts.cta] : []), ...(opts.extraCtas ?? [])].map((c) => `\n${c.label}: ${c.url}`).join("")}${opts.cta || opts.extraCtas?.length ? "\n" : ""}\n--\n${sig.name}\n${sig.lines.join(" · ")}${sig.site ? `\n${sig.site.label}` : ""}\n`;
+  return `${body}\n${lists}${[...(opts.cta ? [opts.cta] : []), ...(opts.extraCtas ?? [])].map((c) => `\n${c.label}: ${c.url}`).join("")}${opts.cta || opts.extraCtas?.length ? "\n" : ""}\n--\n${
+    opts.siteSignature && opts.brand === "photographer"
+      ? `מיכל סיבוני\nצילומי ניו-בורן ומשפחה\n${SITE_PHONE} · ${SITE_MAIL}\nmichalsiboni.co.il`
+      : `${sig.name}\n${sig.lines.join(" · ")}${sig.site ? `\n${sig.site.label}` : ""}`
+  }\n`;
 }

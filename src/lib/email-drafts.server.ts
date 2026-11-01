@@ -439,6 +439,7 @@ async function sendAutoReply(
     ? {
         cta: { label: "לגלריה של מיכל", url: CTA_URLS.gallery },
         extraCtas: [{ label: "לפרטים על הצילומים", url: CTA_URLS.photography }, AUTO_CHAT_CTA],
+        siteSignature: true,
       }
     : { cta: AUTO_CHAT_CTA };
   const draftId = await g.createGmailHtmlDraft({
