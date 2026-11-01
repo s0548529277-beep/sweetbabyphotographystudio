@@ -9,6 +9,7 @@ import { runDueRecurringExpenses } from "@/lib/recurring-expenses.functions";
 import { runDueOutdoorStylingCallReminders } from "@/lib/outdoor-packages.functions";
 import { runDueClientManagementReminders } from "@/lib/client-management.functions";
 import { runEmailDraftAssistant } from "@/lib/email-drafts.server";
+import { runDuePostSessionThanks, runDueUnfinishedBookingFollowUps } from "@/lib/booking-followups.server";
 
 // Called periodically (every 15-30 min recommended) by an external
 // scheduler — e.g. a free cron service like cron-job.org, or Supabase
@@ -45,7 +46,7 @@ export const Route = createFileRoute("/api/send-booking-reminders")({
           });
         }
 
-        const [bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds, pendingPassApprovals, dataBackup, recurringExpenses, outdoorStylingCallReminders, clientManagement, emailDrafts] = await Promise.all([
+        const [bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds, pendingPassApprovals, dataBackup, recurringExpenses, outdoorStylingCallReminders, clientManagement, emailDrafts, postSessionThanks, unfinishedBookings] = await Promise.all([
           runDueBookingReminders(),
           runDueOrderReminders(),
           notifyPendingPhoneBookingConfirmations(),
@@ -60,8 +61,11 @@ export const Route = createFileRoute("/api/send-booking-reminders")({
           runDueClientManagementReminders().catch((e) => ({ reminders: 0, dailySchedule: false, skipped: String(e?.message ?? e) })),
           // Automatic designed reply drafts in Gmail (never sends) — see email-drafts.server.ts.
           runEmailDraftAssistant().catch((e) => ({ ran: false, error: String(e?.message ?? e) })),
+          // Thank-you after the session + gentle nudge for an unfinished booking — see booking-followups.server.ts.
+          runDuePostSessionThanks().catch((e) => ({ checked: 0, sent: 0, error: String(e?.message ?? e) })),
+          runDueUnfinishedBookingFollowUps().catch((e) => ({ checked: 0, sent: 0, error: String(e?.message ?? e) })),
         ]);
-        return new Response(JSON.stringify({ bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds, pendingPassApprovals, dataBackup, recurringExpenses, outdoorStylingCallReminders, clientManagement, emailDrafts }), {
+        return new Response(JSON.stringify({ bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds, pendingPassApprovals, dataBackup, recurringExpenses, outdoorStylingCallReminders, clientManagement, emailDrafts, postSessionThanks, unfinishedBookings }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         });

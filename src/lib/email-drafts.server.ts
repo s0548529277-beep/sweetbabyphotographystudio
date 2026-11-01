@@ -22,6 +22,7 @@
  */
 import { generateTextResilient } from "./ai-gateway.server";
 import { buildDraftHtml, buildDraftText, type DraftBrand, type PriceList } from "./email-draft-design";
+import { chatLinkUrl } from "./orderSummary";
 
 const MAX_NEW = 3;
 const MAX_FOLLOWUPS = 2;
@@ -45,7 +46,9 @@ const AUTO_DISCLAIMER = [
   "> **🤖 זהו מענה ראשוני אוטומטי של סוויטבוט — העוזר הדיגיטלי של מיכל.**",
   "> מיכל תעבור על הפנייה בהקדם, תבדוק שעניתי נכון ותחזור אלייך באופן אישי, חם ואנושי.",
   "> סליחה מראש אם נפלה טעות במענה האוטומטי — אני עלול לטעות 💗",
+  "> עד שמיכל תתפנה אפשר להמשיך לשוחח איתי ולבצע פעולות (לבדוק זמינות, לשריין, להוסיף אביזרים) בכפתור למטה.",
 ].join("\n");
+const AUTO_CHAT_CTA = { label: "להמשיך בצ׳אט עם סוויטבוט 💬", url: chatLinkUrl("help") };
 const SITE_FORM_SENDER = "sitemailerservice.com";
 export const DRAFT_READY_NOTE = "✍️ הוכנה טיוטה (לא נשלחה)";
 export const FOLLOWUP_DRAFT_NOTE = "🔁 הוכנה טיוטת מעקב (לא נשלחה)";
@@ -430,8 +433,8 @@ async function sendAutoReply(
     fromName: "סטודיו Sweetbaby",
     to: p.to,
     subject: p.subject,
-    html: buildDraftHtml({ brand: p.brand, body }),
-    text: buildDraftText({ brand: p.brand, body }),
+    html: buildDraftHtml({ brand: p.brand, body, cta: AUTO_CHAT_CTA }),
+    text: buildDraftText({ brand: p.brand, body, cta: AUTO_CHAT_CTA }),
     ...p.headers,
   });
   if (!draftId) return false;
@@ -444,11 +447,35 @@ async function sendAutoReply(
   return true;
 }
 
-async function analyze(subject: string, text: string, past: string, isSiteForm: boolean): Promise<Analysis | null> {
+/**
+ * Real free studio dates (from the same availability data the site and the
+ * bot use), handed to the writer so a studio inquiry gets 2-3 concrete dates
+ * and a booking link instead of "what date suits you?". Fetched at most once
+ * per run, and only when the email is about the studio / a date.
+ */
+const STUDIO_DATE_HINT = /סטודיו|שריון|לשריין|פנוי|זמינ|תאריך|מועד|להשכיר|השכרה|studio/i;
+async function freeDatesBlock(): Promise<string> {
+  try {
+    const { nextAvailableDays } = await import("./availability.server");
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
+    const days = await nextAvailableDays(today, 2, 21, 4);
+    if (!days.length) return "";
+    const lines = days.map((d) => {
+      const day = new Date(`${d.date}T12:00:00`).toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "numeric" });
+      return `- ${day}: פנוי החל מ-${d.firstStart} (לפחות שעתיים רצופות)`;
+    });
+    return lines.join("\n");
+  } catch (e) {
+    console.error("[SWEETBABY] free dates for drafts failed", e);
+    return "";
+  }
+}
+
+async function analyze(subject: string, text: string, past: string, isSiteForm: boolean, freeDates = ""): Promise<Analysis | null> {
   const { text: out } = await generateTextResilient(
     {
       system: WRITER_RULES,
-      prompt: `${isSiteForm ? "זו הודעה מטופס יצירת הקשר באתר של מיכל — פרטי הלקוחה (שם/טלפון/אימייל/שאלה) בגוף ההודעה. התשובה תישלח כמייל חדש לכתובת של הלקוחה. אם יש רק שם ואימייל בלי שאלה — טיוטה קצרה וחמה של 'תודה, איך אפשר לעזור' + מידע עיקרי, במותג photographer.\n\n" : ""}נושא: ${subject}\n\nהשרשור (ההודעה האחרונה בסוף):\n${text}\n\n${past ? `תשובות קודמות של מיכל בנושא דומה (להעדיף את הניסוח והעובדות שלה):\n${past}\n\n` : ""}החזירי JSON בלבד (בלי טקסט נוסף):
+      prompt: `${isSiteForm ? "זו הודעה מטופס יצירת הקשר באתר של מיכל — פרטי הלקוחה (שם/טלפון/אימייל/שאלה) בגוף ההודעה. התשובה תישלח כמייל חדש לכתובת של הלקוחה. אם יש רק שם ואימייל בלי שאלה — טיוטה קצרה וחמה של 'תודה, איך אפשר לעזור' + מידע עיקרי, במותג photographer.\n\n" : ""}נושא: ${subject}\n\nהשרשור (ההודעה האחרונה בסוף):\n${text}\n\n${past ? `תשובות קודמות של מיכל בנושא דומה (להעדיף את הניסוח והעובדות שלה):\n${past}\n\n` : ""}${freeDates ? `מועדים פנויים אמיתיים בסטודיו כרגע (מהיומן): \n${freeDates}\nכשהפונה שואלת על השכרת הסטודיו / תאריך / זמינות ואין לה תאריך מדויק, או שהתאריך שביקשה לא מתאים — הציעי בגוף המייל 2–3 מהמועדים האלה (בניסוח "נכון לעכשיו פנוי", בלי להבטיח — השריון נקבע בהזמנה) והציבי cta="booking" כדי שיופיע קישור לשריון. אם היא ביקשה תאריך מסוים — ענו על התאריך שלה קודם. אל תציעי מועדים כשהשאלה לא קשורה לסטודיו.\n\n` : ""}החזירי JSON בלבד (בלי טקסט נוסף):
 {"needsReply": true/false — false לניוזלטר/פרסומת/קבוצה/הודעה אוטומטית/קבלה/משהו שלא מחכה לתשובה של מיכל. false גם כשההודעה האחרונה סוגרת את השיחה ולא שואלת כלום (\"תודה\", \"לא רלוונטי לי, תודה בכל אופן\", \"אוקיי\", \"מעולה\", 👍),
 "brand": "photographer" (צילומים של מיכל, סל לידה, חבילות, גלריה, אלבומים) | "studio" (השכרת סטודיו, אביזרים, קולאז׳, חוקי הסטודיו) | "general" (ספקים, שותפים, כל השאר),
 "topic": "newborn"|"birth_basket"|"upsherin"|"family"|"outdoor"|"studio"|"props"|"other",
@@ -577,6 +604,7 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
 
     let made = 0;
     let autoRun = 0;
+    let freeDates: string | null = null;
     const autoDay = await loadAutoDay(db);
     const autoLabelId = labels.get(LABEL_AUTO);
     for (const threadId of threadIds) {
@@ -604,7 +632,8 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
       const text = threadText(g, msgs);
       let a: Analysis | null = null;
       try {
-        a = await analyze(subject, text, await pastAnswers(g, k, `${subject}\n${text}`), isSiteForm);
+        if (freeDates === null && STUDIO_DATE_HINT.test(`${subject}\n${text}`)) freeDates = await freeDatesBlock();
+        a = await analyze(subject, text, await pastAnswers(g, k, `${subject}\n${text}`), isSiteForm, STUDIO_DATE_HINT.test(`${subject}\n${text}`) ? freeDates ?? "" : "");
       } catch (e: any) {
         result.errors.push(`AI: ${String(e?.message ?? e).slice(0, 120)}`);
         break; // AI down — try again next run, don't mark as seen

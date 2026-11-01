@@ -1361,6 +1361,7 @@ export async function runDueBookingReminders(): Promise<{ checked: number; sent:
       const reservedItemDetails = await resolveReservedItemDetails(supabaseAdmin, b.reserved_items as string[] | null);
       const html = buildBookingSummaryHtml({
         heading: "תזכורת: הצילומים שלך מתקרבים ⏰",
+        reminderActions: true,
         intro: `רק תזכורת חמה — הצילומים שלך בסטודיו Sweetbaby מתקיימים בעוד כ-${hoursBefore} שעות. למטה סיכום ההזמנה ופרטי ההגעה, שיהיה קל להתארגן.`,
         booking: {
           id: b.id,

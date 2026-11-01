@@ -143,6 +143,8 @@ export function buildBookingSummaryHtml(opts: {
   cashbackEarned?: number;
   /** Request-received emails only: direct link back to the page where the customer finishes the order/payment. */
   continueUrl?: string;
+  /** Reminder emails: add-props / arrival-directions / change-date buttons. */
+  reminderActions?: boolean;
 }): string {
   const { heading, intro, booking, intakePayload, includeArrival = true, includeIntake = true, footerNote, paymentAmount, doorCode, cashbackEarned, continueUrl } = opts;
   const b = booking;
@@ -194,8 +196,51 @@ export function buildBookingSummaryHtml(opts: {
     ${includeArrival ? buildArrivalHtml() : ""}
     ${footerNote ? `<p style="color:#6b8a63;font-size:13px;margin-top:16px">${footerNote}</p>` : ""}
     ${continueUrl ? buildContinueOrderHtml(continueUrl) : ""}
+    ${opts.reminderActions ? buildReminderActionsHtml(b.id, b.session_date) : ""}
+    ${buildChatButtonHtml({ kind: "booking", id: b.id, date: b.session_date })}
     <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: תלמוד ירושלמי 24, בית שמש · לשאלות: s0548529277@gmail.com / 054-8529277</p>
   </div>`;
+}
+
+// ---------- "continue in the chat" buttons (owner request 2026-11-02) ----------
+
+const SITE = "https://sweetbabyphoto.shop";
+
+export type ChatLinkKind = "booking" | "order" | "arrival" | "reschedule" | "props" | "help";
+
+/**
+ * Link that opens the site with the bot already open and a first message
+ * about this order. Only a short id + date travel in the URL (the ChatBot
+ * validates both and builds the sentence itself — nothing free-text).
+ */
+export function chatLinkUrl(kind: ChatLinkKind, id?: string | null, date?: string | null): string {
+  const parts = [kind, (id ?? "").slice(0, 8), (date ?? "").slice(0, 10)];
+  return `${SITE}/?chat=${encodeURIComponent(parts.join("."))}`;
+}
+
+export function pillButton(href: string, label: string, primary = false): string {
+  const bg = primary ? "#2d3d2b" : "#f8ede4";
+  const fg = primary ? "#f8ede4" : "#2d3d2b";
+  return `<a href="${escapeHtml(href)}" style="background:${bg};color:${fg};border:1px solid #2d3d2b;padding:10px 20px;border-radius:999px;text-decoration:none;display:inline-block;font-weight:700;font-size:15px;margin:4px">${label}</a>`;
+}
+
+/** "להמשיך בצ'אט" — opens the bot with this order's context. */
+export function buildChatButtonHtml(opts: { kind: ChatLinkKind; id?: string | null; date?: string | null }): string {
+  const url = chatLinkUrl(opts.kind, opts.id, opts.date);
+  return `<div style="text-align:center;margin:22px 0 6px">
+      <p style="margin:0 0 8px;color:#2d3d2b;font-size:15px">צריכה לשנות, להוסיף או לשאול משהו? נועה, הבוט של הסטודיו, עוזרת בכל שלב 💗</p>
+      ${pillButton(url, "להמשיך בצ׳אט 💬", true)}
+    </div>`;
+}
+
+/** Reminder-email actions: add props · arrival directions · change the date. */
+export function buildReminderActionsHtml(id: string, date: string): string {
+  return `<div style="text-align:center;margin:22px 0 6px">
+      <p style="margin:0 0 8px;color:#2d3d2b;font-size:15px;font-weight:700">מה אפשר לעשות עכשיו, בלחיצה:</p>
+      ${pillButton(`${SITE}/rental-catalog`, "הוספת אביזרים")}
+      ${pillButton(chatLinkUrl("arrival", id, date), "הוראות הגעה")}
+      ${pillButton(chatLinkUrl("reschedule", id, date), "שינוי מועד")}
+    </div>`;
 }
 
 /**
@@ -310,6 +355,7 @@ export function buildPropsOrderSummaryHtml(opts: {
     ${includeArrival ? buildArrivalHtml() : ""}
     ${footerNote ? `<p style="color:#6b8a63;font-size:13px;margin-top:16px">${footerNote}</p>` : ""}
     ${continueUrl ? buildContinueOrderHtml(continueUrl) : ""}
+    ${buildChatButtonHtml({ kind: "order", id: o.id, date: o.session_date })}
     <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: תלמוד ירושלמי 24, בית שמש · לשאלות: s0548529277@gmail.com / 054-8529277</p>
   </div>`;
 }

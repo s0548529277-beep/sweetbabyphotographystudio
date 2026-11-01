@@ -387,6 +387,47 @@ export function ChatBot() {
     }
   };
 
+  // "להמשיך בצ'אט" buttons in the emails land here as /?chat=<kind>.<id8>.<date>:
+  // open the bot with a first message about that order. Only a validated
+  // short id and date are used — the sentence is built here, never taken
+  // from the URL.
+  const chatParamHandled = useRef(false);
+  useEffect(() => {
+    if (chatParamHandled.current || isAdmin) return;
+    let raw: string | null = null;
+    try {
+      raw = new URLSearchParams(window.location.search).get("chat");
+    } catch {
+      return;
+    }
+    if (!raw) return;
+    chatParamHandled.current = true;
+    const [kind, id = "", date = ""] = raw.split(".");
+    const ref = /^[0-9a-f]{8}$/i.test(id) ? ` #${id}` : "";
+    const when = /^\d{4}-\d{2}-\d{2}$/.test(date) ? ` לתאריך ${date.split("-").reverse().join("/")}` : "";
+    const texts: Record<string, string> = {
+      booking: `היי, אני כותבת בקשר להזמנת הסטודיו${ref}${when}. אשמח לעזרה.`,
+      order: `היי, אני כותבת בקשר להזמנת האביזרים${ref}${when}. אשמח לעזרה.`,
+      arrival: `אפשר הוראות הגעה לסטודיו? זה בקשר להזמנה${ref}${when}.`,
+      reschedule: `אני רוצה לשנות את המועד של ההזמנה${ref}${when}.`,
+      props: `אני רוצה להוסיף אביזרים להזמנה${ref}${when}.`,
+      help: "היי, אשמח לעזרה בהזמנה.",
+    };
+    const text = texts[kind];
+    if (!text) return;
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.delete("chat");
+      window.history.replaceState(null, "", u.toString());
+    } catch {
+      // The param just stays in the address bar; harmless.
+    }
+    setOpen(true);
+    setShowNudge(false);
+    void send(text);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin]);
+
   const addToCart = (p: ChatUi["products"][number]) => {
     cart.add({ id: p.sku, sku: p.sku, name: p.name, price: p.price, image_url: p.img });
     toast.success(`${p.name} נוסף לעגלה`);
