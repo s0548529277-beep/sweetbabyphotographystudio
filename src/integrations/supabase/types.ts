@@ -1208,6 +1208,53 @@ export type Database = {
         }
         Relationships: []
       }
+      newborn_gallery_access: {
+        Row: {
+          attempts: number
+          created_at: string
+          expires_at: string | null
+          id: string
+          kind: string
+          label: string | null
+          last_used_at: string | null
+          order_id: string
+          secret_hash: string
+          used_at: string | null
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          kind: string
+          label?: string | null
+          last_used_at?: string | null
+          order_id: string
+          secret_hash: string
+          used_at?: string | null
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          kind?: string
+          label?: string | null
+          last_used_at?: string | null
+          order_id?: string
+          secret_hash?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newborn_gallery_access_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "newborn_package_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       newborn_order_images: {
         Row: {
           client_note: string | null
