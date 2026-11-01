@@ -37,6 +37,12 @@ const SYNONYMS: Record<string, string[]> = {
 function wordVariants(word: string): string[] {
   const n = norm(word);
   const out = new Set([n, stem(word)]);
+  const raw = word.replace(/[ךםןףץ]/g, (c) => FINALS[c]);
+  // plural endings on the raw word (before yod is dropped): עצים→עצ, שמלות→שמל
+  for (const suf of ["ימ", "ות"]) if (raw.length > 3 && raw.endsWith(suf)) out.add(norm(raw.slice(0, -2)));
+  // construct state: מיטה ↔ מיטת
+  if (n.endsWith("ה")) out.add(n.slice(0, -1) + "ת");
+  if (n.endsWith("ת")) out.add(n.slice(0, -1) + "ה");
   // attached one-letter prefixes: מ/ל/ב/ה/ו/ש/כ
   if (n.length > 3 && "מלבהושכ".includes(n[0])) {
     out.add(n.slice(1));
