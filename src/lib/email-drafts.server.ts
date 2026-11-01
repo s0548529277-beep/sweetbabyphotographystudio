@@ -550,7 +550,9 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
   const { weekday, hour } = israelParts();
   if (!opts.force) {
     if (weekday === "Sat" || (weekday === "Fri" && hour >= 14)) return { ...result, reason: "shabbat" };
-    if (hour < 8 || hour >= 22) return { ...result, reason: "night" };
+    // Owner request 2026-11-02: runs around the clock (no more 8:00–22:00 limit) so
+    // urgent / confused customers get the automatic first reply at night too.
+    // Shabbat (Fri 14:00 → Sat night) stays off.
     const last = await getSetting(db, LAST_RUN_KEY);
     if (last && Date.now() - Date.parse(last) < MIN_GAP_MS) return { ...result, reason: "too_soon" };
   }
