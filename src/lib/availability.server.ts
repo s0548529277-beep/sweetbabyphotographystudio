@@ -1,5 +1,6 @@
 // Server-only availability helpers shared by AI tools and server functions.
 import catalogData from "@/data/studio-catalog.json";
+import { makeHebrewMatcher } from "@/lib/hebrew-search";
 
 type CatItem = { sku: string; name: string; alt: string; price: number };
 type Cat = { title: string; items: CatItem[] };

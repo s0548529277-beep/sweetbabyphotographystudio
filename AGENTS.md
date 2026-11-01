@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-02 (01:10 Israel) — Claude (chat, via GitHub, from a Lovable "chatbot crashes on prop search" alert):** `findSkusByText` in `src/lib/availability.server.ts` called `makeHebrewMatcher` but the import from `@/lib/hebrew-search` was never added (Lovable's 2026-11-01 change), so every bot prop search / availability check ("יש כיסא עץ פנוי ב-5/11?") threw. Added the missing import. No other changes, no DB changes.
+
 - **2026-11-01 (21:45 Israel) — Lovable:** forgiving Hebrew catalog search (`src/lib/hebrew-search.ts`): construct/plural forms, missing yod, prefixes, multi-word any order, category name, synonyms for חלאקה/סמאש קייק/בגדים. Used in `/rental-catalog` and the bot (`findSkusByText`). No DB changes.
 
 - **2026-10-31 (19:10 Israel) — Claude (chat, via GitHub, owner request "more spacious, with a progress line"):** `StepTracker.tsx` redesigned — one continuous track that fills to the current step (RTL), ✓ on completed steps, ring on the current one, "שלב X מתוך Y" chip + current-step title, roomier grid labels, optional `hint`. New `CLIENT_STEP_HINTS` in `gallery-steps.ts` shown on the client pages (`newborn.gallery.$token.tsx`, `my-photos.tsx`, roomier card). Step 3 label shortened to "כיתובים, קולאז' וכריכה". Admin trackers use the same component (no hint). vite build OK.
