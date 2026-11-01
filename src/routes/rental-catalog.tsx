@@ -48,6 +48,7 @@ import { PropInspirationImage } from "@/components/PropInspirationImage";
 import { mergedInspiration, useItemInspiration } from "@/lib/item-inspiration";
 import { PAGE_IMAGE_KEYS, usePageGalleryWithAspect } from "@/lib/page-images";
 import { useCatalogCategories, type CatalogCategory, type CatalogItem } from "@/lib/catalog";
+import { makeHebrewMatcher } from "@/lib/hebrew-search";
 
 type Item = CatalogItem;
 type Category = CatalogCategory;
@@ -170,6 +171,7 @@ function RentalCatalogPage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const searching = !!aiSkus || !!q;
+    const matches = makeHebrewMatcher(q);
     return (
       categories
         // While searching we look across every category, otherwise the result
@@ -187,8 +189,8 @@ function RentalCatalogPage() {
             if (aiSkus?.has(it.sku)) return true;
             if (aiSkus && !q) return false;
             if (!q) return true;
-            const hay = `${it.sku} ${it.name} ${it.alt}`.toLowerCase();
-            return hay.includes(q);
+            if (it.sku.toLowerCase().includes(q)) return true;
+            return matches(`${it.name} ${it.alt} ${c.title}`);
           }),
         }))
         .filter((c) => c.items.length > 0)

@@ -130,11 +130,9 @@ export function findSkusByText(query: string, limit = 8): CatItem[] {
   if (!q) return [];
   const direct = CATALOG_ITEMS.filter((i) => i.sku === q);
   if (direct.length) return direct;
+  const matches = makeHebrewMatcher(q);
   return CATALOG_ITEMS.filter(
-    (i) =>
-      i.sku.includes(q) ||
-      (i.name || "").toLowerCase().includes(q) ||
-      (i.alt || "").toLowerCase().includes(q),
+    (i) => i.sku.includes(q) || matches(`${i.name || ""} ${i.alt || ""}`),
   ).slice(0, limit);
 }
 
