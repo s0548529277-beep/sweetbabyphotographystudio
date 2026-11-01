@@ -352,3 +352,16 @@ query error resolves as `{ data, error }`, it never rejects the promise
 over an ordinary query failure) or check `.then()`'s own result instead.
 This is different from a real `Promise`-returning function like
 `deleteGoogleCalendarEvent`, which genuinely does support `.catch()`.
+
+
+## Moved from AGENTS.md (2026-11-01)
+
+- **2026-10-28 (evening) — Claude (via GitHub, owner request to save Lovable credits):** admin chat stuck/timeouts fixed — `run_readonly_query` appends `LIMIT 200`, so a model-written LIMIT caused a syntax error and retry loop; queries are now wrapped as a subquery (`src/lib/readonly-sql.ts`, used by `ai-admin-tools.server.ts` and `admin-site-bot.functions.ts`). Admin chat step limit 10 → 4 (customers unchanged at 8). Admin rules name `inquiry_leads` and forbid repeated retries. `admin_snapshot` now returns `draftsStatus` (last run of the email-draft assistant). `/admin/leads` shows a last-run card for the draft assistant (time, drafts created, errors) and a "טיוטה מחכה בג׳ימייל – עוד לא נשלחה" note on new leads whose draft was prepared (marker written into notes by `email-drafts.server.ts`, `DRAFT_READY_NOTE`). No migrations, no security changes, catalog images untouched. Not yet published — publish from Lovable.
+
+- **2026-10-28 (09:25 UTC) — Lovable:** chat bubble shows "מצב מנהלת 👑" badge and a "שיחה חדשה" reset button; bare site paths in bot replies become pill buttons (`linkifyPaths` in `ChatBot.tsx`); bot told to always write Markdown links; admin rules answer "am I in admin mode" explicitly. Published.
+
+- **2026-10-28 — Lovable:** chat bubble now also sends its verified access token so admin mode activates; Markdown links in chat render as pill buttons (internal links navigate in-app); stronger email-draft writing rules in `email-drafts.server.ts`. Published.
+
+- **2026-10-27 — Owner clarification:** all catalog-storage images are intentionally public. Preserved existing access; proposed dismissing the exposure alert with owner approval rather than restricting catalog photos. No database changes.
+
+- **2026-10-27 (21:16 UTC) — Lovable:** added web-only `show_gallery_photos` in `ai-tools.server.ts`, structured photos in `ai.functions.ts`, and photo grid in `ChatBot.tsx`. Inspiration requests previously received only a gallery link; verified real newborn request renders four images. Rejected Markdown images no longer become hearts. Added public-photo filtering regression tests. Updated Mermaid and DOMPurify (3.4.17); dependency finding closed. Catalog storage permissions unchanged, awaiting owner decision. Historical AGENTS content preserved verbatim in the archive to meet the root instruction size limit.
