@@ -214,6 +214,8 @@ export function buildDraftHtml(opts: {
   photos?: string[];
   bigPhotos?: boolean;
   cta?: { label: string; url: string } | null;
+  /** More buttons next to the main one (e.g. gallery + details + chat in the automatic first reply). */
+  extraCtas?: Array<{ label: string; url: string }>;
 }): string {
   const t = THEMES[opts.brand];
   const sig = SIGNATURES[opts.brand];
@@ -239,8 +241,14 @@ export function buildDraftHtml(opts: {
       ? (opts.priceList === "newborn" || opts.priceList === "both" ? priceBlock(NEWBORN, t) : "") +
         (opts.priceList === "outdoor" || opts.priceList === "both" ? priceBlock(OUTDOOR, t) : "")
       : "";
-  const cta = opts.cta
-    ? `<div style="text-align:center;margin:20px 0 6px"><a href="${esc(opts.cta.url)}" style="display:inline-block;background:${t.accent};color:#ffffff;padding:11px 26px;border-radius:24px;text-decoration:none;font-weight:bold">${esc(opts.cta.label)}</a></div>`
+  const ctaButtons = [...(opts.cta ? [opts.cta] : []), ...(opts.extraCtas ?? [])];
+  const cta = ctaButtons.length
+    ? `<div style="text-align:center;margin:20px 0 6px">${ctaButtons
+        .map(
+          (c) =>
+            `<a href="${esc(c.url)}" style="display:inline-block;background:${t.accent};color:#ffffff;padding:11px 26px;border-radius:24px;text-decoration:none;font-weight:bold;margin:4px">${esc(c.label)}</a>`,
+        )
+        .join("")}</div>`
     : "";
   const photos = opts.brand === "photographer" ? photoStrip(opts.photos ?? [], !!opts.bigPhotos) : "";
   const branded = opts.brand !== "general";
@@ -267,7 +275,13 @@ export function buildDraftHtml(opts: {
 }
 
 /** Plain-text twin of the draft (for the text/plain part). */
-export function buildDraftText(opts: { brand: DraftBrand; body: string; priceList?: PriceList; cta?: { label: string; url: string } | null }): string {
+export function buildDraftText(opts: {
+  brand: DraftBrand;
+  body: string;
+  priceList?: PriceList;
+  cta?: { label: string; url: string } | null;
+  extraCtas?: Array<{ label: string; url: string }>;
+}): string {
   const sig = SIGNATURES[opts.brand];
   const listText = (l: typeof NEWBORN) =>
     `\n${l.title}\n${l.pkgs.map((p) => `• ${p.name} — ${p.price}: ${p.lines.join(", ")}`).join("\n")}\n${l.addons}\n`;
@@ -277,5 +291,5 @@ export function buildDraftText(opts: { brand: DraftBrand; body: string; priceLis
         (opts.priceList === "outdoor" || opts.priceList === "both" ? listText(OUTDOOR) : "")
       : "";
   const body = opts.body.replace(/^##\s+/gm, "").replace(/^>\s?/gm, "").replace(/\*\*/g, "");
-  return `${body}\n${lists}${opts.cta ? `\n${opts.cta.label}: ${opts.cta.url}\n` : ""}\n--\n${sig.name}\n${sig.lines.join(" · ")}${sig.site ? `\n${sig.site.label}` : ""}\n`;
+  return `${body}\n${lists}${[...(opts.cta ? [opts.cta] : []), ...(opts.extraCtas ?? [])].map((c) => `\n${c.label}: ${c.url}`).join("")}${opts.cta || opts.extraCtas?.length ? "\n" : ""}\n--\n${sig.name}\n${sig.lines.join(" · ")}${sig.site ? `\n${sig.site.label}` : ""}\n`;
 }
