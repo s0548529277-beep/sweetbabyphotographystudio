@@ -9,6 +9,12 @@
  * after her answer, leads into inquiry_leads, and a short summary email to
  * her when drafts were created.
  *
+ * Exception (owner request 2026-11-02): URGENT emails from clients about a
+ * studio booking or prop rental get a short first-response that IS sent
+ * automatically (clearly labelled as an automatic first reply by the
+ * SweetBot, with an apology in advance), and a normal draft is still left
+ * for her to review and answer personally. See shouldAutoSend().
+ *
  * Cheap by design: a Gmail search every run, AI only for real new threads
  * (max MAX_NEW + MAX_FOLLOWUPS per run), runs at most every 20 minutes,
  * 8:00–22:00 Israel time, never on Shabbat. Threads already looked at are
@@ -29,6 +35,17 @@ const OWNER_NOTIFY = "m0548529277@gmail.com";
 const LABEL_READY = "טיוטה מוכנה ✍️";
 const LABEL_SENT = "נשלח ✓";
 const LABEL_FOLLOW = "מעקב נשלח 🔁";
+const LABEL_AUTO = "מענה ראשוני אוטומטי 🤖";
+const AUTO_MAX_PER_RUN = 2;
+const AUTO_MAX_PER_DAY = 10;
+const AUTO_DAY_KEY = "email_auto_replies_day";
+export const AUTO_REPLY_NOTE = "🤖 נשלח מענה ראשוני אוטומטי — ממתין למענה אנושי ממיכל";
+/** Shown as a highlighted box at the top of every automatic first reply. */
+const AUTO_DISCLAIMER = [
+  "> **🤖 זהו מענה ראשוני אוטומטי של סוויטבוט — העוזר הדיגיטלי של מיכל.**",
+  "> מיכל תעבור על הפנייה בהקדם, תבדוק שעניתי נכון ותחזור אלייך באופן אישי, חם ואנושי.",
+  "> סליחה מראש אם נפלה טעות במענה האוטומטי — אני עלול לטעות 💗",
+].join("\n");
 const SITE_FORM_SENDER = "sitemailerservice.com";
 export const DRAFT_READY_NOTE = "✍️ הוכנה טיוטה (לא נשלחה)";
 export const FOLLOWUP_DRAFT_NOTE = "🔁 הוכנה טיוטת מעקב (לא נשלחה)";
@@ -91,6 +108,10 @@ type Analysis = {
   body: string;
   summary: string;
   flags?: string[];
+  /** Client, studio/props topic, time-sensitive — eligible for the automatic first reply. */
+  urgent?: boolean;
+  /** Short, fact-safe first reply used only when the automatic reply is sent. */
+  autoBody?: string;
 };
 
 function israelParts(d = new Date()) {
@@ -137,7 +158,7 @@ async function setSetting(db: any, key: string, value: string) {
 async function ensureLabels(g: typeof import("@/integrations/google/gmail.server"), connKey: string) {
   const list = await g.gmailApi<{ labels?: Array<{ id: string; name: string }> }>(connKey, "/users/me/labels");
   const byName = new Map((list?.labels ?? []).map((l) => [l.name, l.id]));
-  for (const name of [LABEL_READY, LABEL_SENT, LABEL_FOLLOW]) {
+  for (const name of [LABEL_READY, LABEL_SENT, LABEL_FOLLOW, LABEL_AUTO]) {
     if (byName.has(name)) continue;
     const made = await g.gmailApi<{ id: string }>(connKey, "/users/me/labels", {
       method: "POST",
@@ -346,6 +367,83 @@ function threadText(g: typeof import("@/integrations/google/gmail.server"), mess
     .join("\n\n=====\n\n");
 }
 
+async function loadAutoDay(db: any): Promise<{ date: string; count: number }> {
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
+  try {
+    const v = JSON.parse((await getSetting(db, AUTO_DAY_KEY)) || "{}");
+    if (v?.date === today && Number.isFinite(v.count)) return { date: today, count: v.count };
+  } catch {
+    /* start a fresh day */
+  }
+  return { date: today, count: 0 };
+}
+
+/**
+ * Automatic first reply — only for a real client, studio/props topic, urgent,
+ * studio brand, nobody (Michal included) has answered the thread yet, no
+ * earlier automatic reply, a valid external address, and within the per-run
+ * and per-day caps. Everything else stays a draft for her to send.
+ */
+function shouldAutoSend(p: {
+  a: Analysis;
+  brand: DraftBrand;
+  toAddr: string;
+  answeredBefore: boolean;
+  alreadyAuto: boolean;
+  runCount: number;
+  dayCount: number;
+}): boolean {
+  const { a } = p;
+  return (
+    a.urgent === true &&
+    a.isClient === true &&
+    (a.topic === "studio" || a.topic === "props") &&
+    p.brand === "studio" &&
+    !!a.autoBody?.trim() &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.toAddr) &&
+    !isOwner(p.toAddr) &&
+    !/no-?reply|mailer-daemon|notification|newsletter|bounce/i.test(p.toAddr) &&
+    !p.answeredBefore &&
+    !p.alreadyAuto &&
+    p.runCount < AUTO_MAX_PER_RUN &&
+    p.dayCount < AUTO_MAX_PER_DAY
+  );
+}
+
+/** Creates the labelled reply as a draft and sends it right away. true = sent. */
+async function sendAutoReply(
+  g: typeof import("@/integrations/google/gmail.server"),
+  k: string,
+  fromEmail: string,
+  p: {
+    to: string;
+    subject: string;
+    body: string;
+    brand: DraftBrand;
+    headers: { threadId?: string; inReplyTo?: string; references?: string };
+  },
+): Promise<boolean> {
+  const body = `${AUTO_DISCLAIMER}\n\n${p.body.trim()}`;
+  const draftId = await g.createGmailHtmlDraft({
+    connKey: k,
+    fromEmail,
+    fromName: "סטודיו Sweetbaby",
+    to: p.to,
+    subject: p.subject,
+    html: buildDraftHtml({ brand: p.brand, body }),
+    text: buildDraftText({ brand: p.brand, body }),
+    ...p.headers,
+  });
+  if (!draftId) return false;
+  const sent = await g.gmailApi(k, "/users/me/drafts/send", { method: "POST", body: { id: draftId } });
+  if (!sent) {
+    // Not sent — don't leave a second, duplicate draft behind.
+    await g.gmailApi(k, `/users/me/drafts/${draftId}`, { method: "DELETE" });
+    return false;
+  }
+  return true;
+}
+
 async function analyze(subject: string, text: string, past: string, isSiteForm: boolean): Promise<Analysis | null> {
   const { text: out } = await generateTextResilient(
     {
@@ -364,7 +462,9 @@ async function analyze(subject: string, text: string, past: string, isSiteForm: 
 "subject": "נושא למייל חדש (רק לטופס מהאתר)",
 "body": "גוף הטיוטה לפי כללי העיצוב",
 "summary": "שורה אחת למיכל: מי ומה",
-"flags": ["דברים שמיכל צריכה לבדוק/להשלים"]}`,
+"flags": ["דברים שמיכל צריכה לבדוק/להשלים"],
+"urgent": true/false — true רק כשזו לקוחה (isClient) שפונה בנושא הזמנת סטודיו או השכרת אביזרים (topic studio/props) והעניין דחוף בזמן: מועד ההשכרה/הצילום היום או בתוך 48 שעות, בעיה ביום ההשכרה (הגעה, כניסה לסטודיו, תשלום, ציוד), שינוי/ביטול/אישור של הזמנה קיימת, או שביקשה במפורש תשובה מהירה. false לכל השאר — שאלות כלליות או על מחירים, צילומים של מיכל, סל לידה, ספקים, עמיתות, ובכל ספק,
+"autoBody": "רק כש-urgent=true: מענה ראשוני קצר של 2–5 שורות ללקוחה: חמה, מאשרת שהפנייה התקבלה ושמטפלים בה. אסור להבטיח זמינות, מחיר או אישור שלא ידועים, ואסור להמציא עובדות. מותר עובדה אחת רלוונטית מהידע ושלב אחד ברור (למשל להזמין ב-/booking, איסוף אביזרים עד 22:00). לסיים במשפט שמיכל תחזור אליה אישית בהקדם. בלי הצהרת בוט ובלי הסתייגות (מתווספות אוטומטית), בלי חתימה."}`,
     },
     45_000,
   );
@@ -391,7 +491,7 @@ export type EmailDraftRunResult = {
   ran: boolean;
   reason?: string;
   account?: string;
-  created: Array<{ to: string; summary: string; brand: DraftBrand; kind: "new" | "followup"; flags?: string[] }>;
+  created: Array<{ to: string; summary: string; brand: DraftBrand; kind: "new" | "followup"; flags?: string[]; autoSent?: boolean }>;
   skipped: number;
   /** Answered threads whose leftover draft/label was cleaned up this run. */
   cleaned?: number;
@@ -476,6 +576,9 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
       .map(([t]) => t);
 
     let made = 0;
+    let autoRun = 0;
+    const autoDay = await loadAutoDay(db);
+    const autoLabelId = labels.get(LABEL_AUTO);
     for (const threadId of threadIds) {
       if (made >= MAX_NEW) break;
       const th = await g.gmailApi<{ messages?: any[] }>(k, `/users/me/threads/${threadId}?format=full`);
@@ -544,6 +647,45 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
       }
 
       const brand: DraftBrand = ["photographer", "studio", "general"].includes(a.brand) ? a.brand : "general";
+
+      // ---------- urgent studio/props inquiry → automatic first reply ----------
+      let autoSent = false;
+      const answeredBefore = msgs.some((m) => isOwner(addrOf(g.gmailHeaderValue(m.payload?.headers, "From"))));
+      const alreadyAuto = !!autoLabelId && msgs.some((m) => (m.labelIds ?? []).includes(autoLabelId));
+      if (
+        shouldAutoSend({
+          a,
+          brand,
+          toAddr: addrOf(to),
+          answeredBefore,
+          alreadyAuto,
+          runCount: autoRun,
+          dayCount: autoDay.count,
+        })
+      ) {
+        try {
+          autoSent = await sendAutoReply(g, k, acc.email, {
+            to,
+            subject: draftSubject,
+            body: a.autoBody as string,
+            brand,
+            headers: replyHeaders,
+          });
+        } catch (e: any) {
+          result.errors.push(`מענה אוטומטי: ${String(e?.message ?? e).slice(0, 120)}`);
+        }
+        if (autoSent) {
+          autoRun++;
+          autoDay.count++;
+          await setSetting(db, AUTO_DAY_KEY, JSON.stringify(autoDay));
+          if (autoLabelId) {
+            await g.gmailApi(k, `/users/me/threads/${threadId}/modify`, { method: "POST", body: { addLabelIds: [autoLabelId] } });
+          }
+          a.flags = ["נשלח מענה ראשוני אוטומטי — לעבור, לבדוק שהוא נכון ולענות בצורה אישית", ...(a.flags ?? [])];
+        } else {
+          a.flags = ["ניסיון מענה אוטומטי נכשל — הפנייה דחופה, לענות ידנית", ...(a.flags ?? [])];
+        }
+      }
       const ctaKey = a.cta && CTA_URLS[a.cta] ? a.cta : null;
       const cta = ctaKey
         ? {
@@ -588,7 +730,7 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
       }
       remember(seenId);
       made++;
-      result.created.push({ to: addrOf(to), summary: a.summary, brand, kind: "new", flags: a.flags });
+      result.created.push({ to: addrOf(to), summary: a.summary, brand, kind: "new", flags: a.flags, autoSent });
       if (a.isClient) {
         await upsertLead(db, {
           name: a.clientName || nameOf(from) || null,
@@ -601,7 +743,7 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
           gmail_thread_id: threadId,
           // Marks "draft ready, not sent yet" for /admin/leads (status stays
           // "new" until she actually answers).
-          notes: `${DRAFT_READY_NOTE} ${new Date().toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem" })}`,
+          notes: `${autoSent ? `${AUTO_REPLY_NOTE}. ` : ""}${DRAFT_READY_NOTE} ${new Date().toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem" })}`,
         });
       }
     }
@@ -690,6 +832,7 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
       account: acc.email,
       accounts,
       created: result.created.length,
+      autoSent: result.created.filter((c) => c.autoSent).length,
       cleaned: result.cleaned ?? 0,
       skipped: result.skipped,
       errors: result.errors,
@@ -701,15 +844,23 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
       `<li style="margin:6px 0"><b>${c.to}</b> — ${c.summary} <span style="color:#8a6a52">(${
         c.brand === "photographer" ? "מותג צלמת" : c.brand === "studio" ? "מותג סטודיו" : "כללי"
       })</span>${c.flags?.length ? `<br><span style="color:#c23b6d">לבדוק: ${c.flags.join(" · ")}</span>` : ""}</li>`;
+    const autoReplies = result.created.filter((c) => c.autoSent);
     const fresh = result.created.filter((c) => c.kind === "new");
     const fups = result.created.filter((c) => c.kind === "followup");
     try {
       await g.sendGmail({
         to: OWNER_NOTIFY,
-        subject: `✍️ ${result.created.length} טיוטות תשובה מחכות לך`,
+        subject: autoReplies.length
+          ? `🤖 נשלח מענה אוטומטי ל-${autoReplies.length} פניות דחופות — תעברי ותעני אישית`
+          : `✍️ ${result.created.length} טיוטות תשובה מחכות לך`,
         html: `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:560px;margin:0 auto;line-height:1.6">
           <h2 style="color:#c23b6d;margin:0 0 8px">טיוטות מוכנות בתיקיית הטיוטות</h2>
-          <p style="margin:0 0 10px">שום דבר לא נשלח — עברי, תקני אם צריך ושלחי מהג׳ימייל. השרשורים מסומנים "${LABEL_READY}".</p>
+          ${
+            autoReplies.length
+              ? `<div style="background:#fdf1f5;border:1px solid #c23b6d;border-radius:10px;padding:10px 14px;margin:0 0 12px"><b style="color:#c23b6d">🤖 נשלח מענה ראשוני אוטומטי (עם הסתייגות שזה בוט) לפניות דחופות על סטודיו/אביזרים:</b><ul style="padding-right:18px;margin:6px 0 0">${autoReplies.map((c) => `<li><b>${c.to}</b> — ${c.summary}</li>`).join("")}</ul><p style="margin:6px 0 0">עברי על המענה שנשלח (בתיקיית "נשלח" ובתווית "${LABEL_AUTO}"), ובדקי שהוא נכון. בכל שרשור מחכה לך גם טיוטה אישית לשליחה.</p></div>`
+              : ""
+          }
+          <p style="margin:0 0 10px">${autoReplies.length ? "שאר הפניות — שום דבר לא נשלח." : "שום דבר לא נשלח"} — עברי, תקני אם צריך ושלחי מהג׳ימייל. השרשורים מסומנים "${LABEL_READY}".</p>
           ${fresh.length ? `<h3 style="margin:14px 0 4px">פניות חדשות</h3><ul style="padding-right:18px;margin:0">${fresh.map(line).join("")}</ul>` : ""}
           ${fups.length ? `<h3 style="margin:14px 0 4px">מעקב ללקוחות שלא חזרו</h3><ul style="padding-right:18px;margin:0">${fups.map(line).join("")}</ul>` : ""}
           <p style="margin:16px 0 0;font-size:12px;color:#8a6a52">נוצר אוטומטית מהאתר · sweetbabyphoto.shop/admin/leads</p>
