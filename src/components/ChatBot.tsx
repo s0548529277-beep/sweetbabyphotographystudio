@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 import { useServerFn } from "@tanstack/react-start";
 import {
   CalendarDays,
+  Camera,
   Check,
   ChevronDown,
   Clock3,
@@ -10,10 +11,11 @@ import {
   Plus,
   Send,
   ShoppingBag,
+  Sparkles,
   UserRound,
   X,
 } from "lucide-react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { chatWithBot } from "@/lib/ai.functions";
 import { adminSetStatus } from "@/lib/admin-orders.functions";
@@ -98,11 +100,120 @@ export function linkifyPaths(text: string): string {
 
 const QUICK_QUESTIONS = [
   { label: "מתי הסטודיו פנוי?", icon: CalendarDays },
-  { label: "מצאי לי אביזרים", icon: PackageSearch },
-  { label: "האזור האישי שלי", icon: UserRound },
   { label: "כמה עולה השכרה?", icon: Clock3 },
+  { label: "האזור האישי שלי", icon: UserRound },
   { label: "הודעה למיכל", icon: Mail },
 ];
+
+type ActionChip = { label: string; prompt: string; icon: typeof CalendarDays };
+
+const CHIP_BOOK_STUDIO: ActionChip = {
+  label: "לקבוע את הסטודיו",
+  prompt: "אני רוצה לקבוע את הסטודיו",
+  icon: CalendarDays,
+};
+const CHIP_BOOK_SHOOT: ActionChip = {
+  label: "לקבוע צילומים עם מיכל",
+  prompt: "אני רוצה לקבוע צילומים עם מיכל",
+  icon: Camera,
+};
+const CHIP_PROPS: ActionChip = {
+  label: "להזמין אביזרים",
+  prompt: "אני רוצה להזמין אביזרים",
+  icon: PackageSearch,
+};
+const CHIP_FINISH: ActionChip = {
+  label: "תעזרי לי להשלים הזמנה",
+  prompt: "אני באמצע הזמנה ואשמח שתעזרי לי להשלים אותה",
+  icon: Sparkles,
+};
+
+type PageCtx = {
+  id: string;
+  /** No proactive bubble on this page (admin, contracts, payment, private galleries…). */
+  quiet?: boolean;
+  headline: string;
+  sub: string;
+  intro: string;
+  chips: ActionChip[];
+};
+
+const DEFAULT_ASSIST_LINE = "אפשר לבצע איתי את כל ההזמנה בקלות — פשוט לוחצים על אחד הכפתורים 👇";
+
+const QUIET_PREFIXES = [
+  "/admin",
+  "/contract",
+  "/newborn/gallery",
+  "/newborn/confirm",
+  "/deposit",
+  "/summary",
+  "/thank-you",
+  "/payment-failed",
+  "/auth",
+  "/reset-password",
+  "/track",
+  "/media",
+  "/photo-thanks",
+];
+
+/** Which page the customer is on decides what the bot invites her to do. */
+function pageContext(pathname: string): PageCtx {
+  if (QUIET_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+    return { id: "quiet", quiet: true, headline: "", sub: "", intro: "", chips: [] };
+  }
+  if (pathname.startsWith("/studio-rental")) {
+    return {
+      id: "studio",
+      headline: "רוצה לשריין את הסטודיו?",
+      sub: "אני בודקת תאריכים פנויים ומסדרת איתך את כל ההזמנה — בקלות 💗",
+      intro: "רואה שאת מתעניינת בהשכרת הסטודיו. אפשר לבחור איתי תאריך, לחשב מחיר ולשריין — הכל כאן, בלי למלא טפסים לבד.",
+      chips: [CHIP_BOOK_STUDIO, CHIP_PROPS],
+    };
+  }
+  if (pathname.startsWith("/rental-catalog") || pathname.startsWith("/items/")) {
+    return {
+      id: "props",
+      headline: "מחפשת אביזר מסוים?",
+      sub: "תכתבי לי מה בראש — אבדוק מה פנוי בתאריך שלך ואוסיף לעגלה",
+      intro: "אני יכולה למצוא אביזרים לפי תיאור, לבדוק מה פנוי בתאריך שלך ולהוסיף לעגלה — פשוט תספרי לי מה את מחפשת.",
+      chips: [CHIP_PROPS, CHIP_BOOK_STUDIO],
+    };
+  }
+  if (pathname.startsWith("/studio-photography") || pathname === "/newborn" || pathname.startsWith("/sleep-consultant")) {
+    return {
+      id: "shoot",
+      headline: "רוצה לקבוע צילום?",
+      sub: "אפשר לסגור את כל ההזמנה דרכי — ואולי תופתעי כמה זה קל",
+      intro: "אפשר לקבוע איתי צילומים, לשאול על חבילות ומחירים ולראות דוגמאות מהגלריה — הכל בשיחה אחת.",
+      chips: [CHIP_BOOK_SHOOT, CHIP_BOOK_STUDIO],
+    };
+  }
+  if (pathname.startsWith("/booking") || pathname.startsWith("/cart") || pathname.startsWith("/checkout")) {
+    return {
+      id: "finish",
+      headline: "תקועה באמצע? אני כאן",
+      sub: "אעזור להשלים את ההזמנה צעד אחרי צעד",
+      intro: "אם משהו לא ברור באמצע ההזמנה — תכתבי לי ואעזור להשלים אותה, בלי לחזור להתחלה.",
+      chips: [CHIP_FINISH, CHIP_PROPS],
+    };
+  }
+  if (pathname === "/") {
+    return {
+      id: "home",
+      headline: "אפשר לעשות הכל דרכי 💗",
+      sub: "סטודיו, אביזרים או צילומים — אני מזמינה איתך בקלות",
+      intro: "אפשר לקבוע דרכי סטודיו, צילומים עם מיכל והשכרת אביזרים — תבחרי מה מעניין אותך ואני אסדר הכל איתך.",
+      chips: [CHIP_BOOK_STUDIO, CHIP_BOOK_SHOOT, CHIP_PROPS],
+    };
+  }
+  return {
+    id: "general",
+    headline: "אני כאן לעזור 💗",
+    sub: "אפשר לבצע איתי את כל ההזמנה — אולי תופתעו כמה זה קל",
+    intro: "אפשר לקבוע דרכי סטודיו, צילומים או אביזרים, לבדוק זמינות ולקבל מחיר מדויק.",
+    chips: [CHIP_BOOK_STUDIO, CHIP_BOOK_SHOOT, CHIP_PROPS],
+  };
+}
 
 const ADMIN_QUICK = [
   { label: "מה יש היום ומחר?", icon: CalendarDays },
@@ -132,11 +243,12 @@ export function ChatBot() {
     (user?.user_metadata as { full_name?: string; name?: string } | null)?.name ||
     user?.email?.split("@")[0] ||
     undefined;
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const ctx = pageContext(pathname);
+  const pageIntro = ctx.intro || "אפשר לקבוע דרכי סטודיו, צילומים או אביזרים, לבדוק זמינות ולקבל מחיר מדויק.";
   const greeting = isAdmin
     ? `היי מיכל 💗\nמצב ניהול: אפשר לשאול אותי על הזמנות, הכנסות, לידים ולקוחות, לבקש שאחפש במיילים ושאכין טיוטות תשובה (אני לא שולחת — רק טיוטה), ולבקש שינויי סטטוס עם כפתור אישור.`
-    : isAuth
-    ? `היי ${userName || ""}, אני נועה 💗\nאני כאן כדי לבדוק זמינות אמיתית, למצוא אביזרים, לחשב מחיר וגם לעזור לך לסגור הזמנה.`
-    : "היי, אני נועה 💗\nהעוזרת של Sweetbaby. אפשר לבדוק איתי זמינות אמיתית, למצוא אביזרים, לחשב מחיר ולקבל עזרה בהזמנה.";
+    : `${isAuth ? `היי ${userName || ""}, אני נועה 💗` : "היי, אני נועה 💗\nהעוזרת של Sweetbaby."}\n${pageIntro}\n${DEFAULT_ASSIST_LINE}`;
 
   const [open, setOpen] = useState(false);
   const [showNudge, setShowNudge] = useState(false);
@@ -168,32 +280,45 @@ export function ChatBot() {
     }
   });
 
+  // Page-aware invitation: a few seconds after the customer lands on a page
+  // the bubble grows and says what the bot can do *for that page* (book the
+  // studio, order props, finish a half-done order…). Shown once per page
+  // type per browser session, never for the admin or on quiet pages
+  // (contracts, payment, private galleries).
+  const nudgeKey = `sweetbaby-chat-nudge:${ctx.id}`;
   useEffect(() => {
-    if (open) return;
+    setShowNudge(false);
+    if (open || isAdmin || ctx.quiet) return;
     try {
-      if (sessionStorage.getItem("sweetbaby-chat-nudge-shown")) return;
+      if (sessionStorage.getItem(nudgeKey)) return;
     } catch {
       // Storage may be unavailable in privacy mode; the invitation can still appear.
     }
     const timer = setTimeout(() => {
       setShowNudge(true);
       try {
-        sessionStorage.setItem("sweetbaby-chat-nudge-shown", "1");
+        sessionStorage.setItem(nudgeKey, "1");
       } catch {
         // No persistence is needed for the chat to work.
       }
-    }, 25_000);
+    }, 6_000);
     return () => clearTimeout(timer);
-  }, [open]);
+  }, [open, isAdmin, ctx.quiet, nudgeKey]);
 
   // The nudge grows the button in place (see the JSX below) instead of
-  // popping a separate card — it only needs to catch the eye for a few
-  // seconds, then shrinks back to the normal compact pill on its own.
+  // popping a separate card. It stays long enough to read and tap a
+  // button, then shrinks back to the normal compact pill on its own.
   useEffect(() => {
     if (!showNudge) return;
-    const timer = setTimeout(() => setShowNudge(false), 7_000);
+    const timer = setTimeout(() => setShowNudge(false), 16_000);
     return () => clearTimeout(timer);
   }, [showNudge]);
+
+  const startFromChip = (prompt: string) => {
+    setOpen(true);
+    setShowNudge(false);
+    void send(prompt);
+  };
 
   // Lets the floating button be dragged a little out of the way (e.g. if it
   // covers something on the page) without that drag being mistaken for a
@@ -328,6 +453,22 @@ export function ChatBot() {
       style={dragPos.x || dragPos.y ? { transform: `translate(${dragPos.x}px, ${dragPos.y}px)` } : undefined}
     >
       {!open && (
+        <div className="flex flex-col items-start gap-2">
+        {showNudge && ctx.chips.length > 0 && (
+          <div className="flex max-w-[min(340px,calc(100vw-32px))] flex-wrap gap-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
+            {ctx.chips.map(({ label, prompt, icon: Icon }) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => startFromChip(prompt)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg transition hover:scale-[1.04] hover:bg-primary/90 active:scale-95"
+              >
+                <Icon className="size-4" />
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
         <button
           type="button"
           onPointerDown={onDragPointerDown}
@@ -337,7 +478,7 @@ export function ChatBot() {
           onClick={handleBubbleClick}
           aria-label="פתיחת הצ׳אט עם נועה"
           className={`group relative flex items-center gap-3 rounded-full border border-bone/60 bg-gradient-to-br from-bone via-bone to-sand/40 pr-2.5 pl-5 text-foreground shadow-[0_22px_55px_-18px_color-mix(in_oklab,var(--color-ink)_42%,transparent)] ring-1 ring-white/40 transition-all duration-500 hover:scale-[1.04] active:scale-95 touch-none select-none ${
-            showNudge ? "py-4 pl-6 max-w-[280px] ring-2 ring-accent/60" : "py-2.5"
+            showNudge ? "py-4 pl-7 max-w-[min(340px,calc(100vw-32px))] ring-2 ring-accent/60" : "py-2.5"
           }`}
         >
           <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-full">
@@ -355,10 +496,8 @@ export function ChatBot() {
           </span>
           {showNudge ? (
             <span className="relative text-right">
-              <span className="block text-base font-bold leading-snug text-ink">היי! אני כאן לעזור — נסו אותי</span>
-              <span className="mt-1 block text-xs font-medium leading-tight text-ink-soft">
-                תנסו ואולי תופתעו
-              </span>
+              <span className="block text-base font-bold leading-snug text-ink">{ctx.headline}</span>
+              <span className="mt-1 block text-xs font-medium leading-snug text-ink-soft">{ctx.sub}</span>
             </span>
           ) : (
             <span className="relative text-right">
@@ -371,6 +510,7 @@ export function ChatBot() {
             </span>
           )}
         </button>
+        </div>
       )}
 
       {open && (
@@ -598,9 +738,42 @@ export function ChatBot() {
           </Conversation>
 
           <div className="border-t border-secondary/70 bg-card px-3 pt-3">
-            {messages.length <= 1 && !loading && (
+            {messages.length <= 1 && !loading && !isAdmin && (
+              <div className="mb-3 grid gap-2">
+                <div className="flex flex-wrap gap-2">
+                  {[...ctx.chips, ...[CHIP_BOOK_STUDIO, CHIP_BOOK_SHOOT, CHIP_PROPS].filter((c) => !ctx.chips.includes(c))]
+                    .slice(0, 3)
+                    .map(({ label, prompt, icon: Icon }) => (
+                      <Button
+                        key={label}
+                        onClick={() => send(prompt)}
+                        size="sm"
+                        className="rounded-full bg-primary px-4 text-primary-foreground shadow-sm hover:bg-primary/90"
+                      >
+                        <Icon />
+                        {label}
+                      </Button>
+                    ))}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {QUICK_QUESTIONS.map(({ label, icon: Icon }) => (
+                    <Button
+                      key={label}
+                      onClick={() => send(label)}
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full border-secondary bg-secondary/25 text-foreground shadow-none hover:bg-secondary/55"
+                    >
+                      <Icon />
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {messages.length <= 1 && !loading && isAdmin && (
               <div className="mb-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
-                {(isAdmin ? ADMIN_QUICK : QUICK_QUESTIONS).map(({ label, icon: Icon }) => (
+                {ADMIN_QUICK.map(({ label, icon: Icon }) => (
                   <Button
                     key={label}
                     onClick={() => send(label)}
