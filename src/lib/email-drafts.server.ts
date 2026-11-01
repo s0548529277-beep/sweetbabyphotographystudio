@@ -113,6 +113,8 @@ type Analysis = {
   flags?: string[];
   /** Client, studio/props topic, time-sensitive — eligible for the automatic first reply. */
   urgent?: boolean;
+  /** Studio/props inquirer who doesn't realise she can book/order by herself on the site or through the bot. */
+  needsGuidance?: boolean;
   /** Short, fact-safe first reply used only when the automatic reply is sent. */
   autoBody?: string;
 };
@@ -398,7 +400,7 @@ function shouldAutoSend(p: {
 }): boolean {
   const { a } = p;
   return (
-    a.urgent === true &&
+    (a.urgent === true || a.needsGuidance === true) &&
     a.isClient === true &&
     (a.topic === "studio" || a.topic === "props") &&
     p.brand === "studio" &&
@@ -491,7 +493,8 @@ async function analyze(subject: string, text: string, past: string, isSiteForm: 
 "summary": "שורה אחת למיכל: מי ומה",
 "flags": ["דברים שמיכל צריכה לבדוק/להשלים"],
 "urgent": true/false — true רק כשזו לקוחה (isClient) שפונה בנושא הזמנת סטודיו או השכרת אביזרים (topic studio/props) והעניין דחוף בזמן: מועד ההשכרה/הצילום היום או בתוך 48 שעות, בעיה ביום ההשכרה (הגעה, כניסה לסטודיו, תשלום, ציוד), שינוי/ביטול/אישור של הזמנה קיימת, או שביקשה במפורש תשובה מהירה. false לכל השאר — שאלות כלליות או על מחירים, צילומים של מיכל, סל לידה, ספקים, עמיתות, ובכל ספק,
-"autoBody": "רק כש-urgent=true: מענה ראשוני קצר של 2–5 שורות ללקוחה: חמה, מאשרת שהפנייה התקבלה ושמטפלים בה. אסור להבטיח זמינות, מחיר או אישור שלא ידועים, ואסור להמציא עובדות. מותר עובדה אחת רלוונטית מהידע ושלב אחד ברור (למשל להזמין ב-/booking, איסוף אביזרים עד 22:00). לסיים במשפט שמיכל תחזור אליה אישית בהקדם. בלי הצהרת בוט ובלי הסתייגות (מתווספות אוטומטית), בלי חתימה."}`,
+"needsGuidance": true/false — true כשזו פונה (isClient) בנושא סטודיו או אביזרים (topic studio/props) שנראה שהיא לא יודעת שאפשר להזמין/לשריין/לבדוק זמינות לבד באתר או דרך הבוט: שואלת "איך מזמינים / איך משריינים", "אפשר להזמין?", "פנוי בתאריך X?" ובקשות שהאתר והבוט עושים בעצמם, מבקשת שנחזור אליה עם פרטים כדי להזמין, או כותבת במייל/בטלפון דברים שהאתר מטפל בהם. false לשאלות שבאמת דורשות את מיכל (הנחה מיוחדת, בקשה חריגה, תלונה, שיתוף פעולה) ובכל ספק,
+"autoBody": "רק כש-urgent=true או needsGuidance=true: מענה ראשוני קצר של 2–5 שורות: חמה, מאשרת שהפנייה התקבלה. כש-needsGuidance — להסביר בפשטות שאפשר לבדוק זמינות, לשריין ולהזמין לבד בכל שעה באתר (סטודיו: sweetbabyphoto.shop/booking · אביזרים: sweetbabyphoto.shop/rental-catalog), או פשוט לשוחח עם סוויטבוט בצ׳אט שבודק זמינות אמיתית ומבצע את ההזמנה איתה בקלות (הכפתור למטה). אסור להבטיח זמינות, מחיר או אישור שלא ידועים, ואסור להמציא עובדות. מותר עובדה אחת רלוונטית מהידע. לסיים במשפט שמיכל תחזור אליה אישית בהקדם. בלי הצהרת בוט ובלי הסתייגות (מתווספות אוטומטית), בלי חתימה."}`,
     },
     45_000,
   );
