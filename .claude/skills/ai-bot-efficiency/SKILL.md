@@ -541,3 +541,12 @@ survivors?"
   started (tools may have had side effects); (2) don't name browser helpers
   `*.client.ts` (import-protected in the SSR build); (3) voice/WhatsApp are not
   streamed (they need the full text before speaking/sending).
+- **2026-11-02 (later still)**: Owner asked that the WEBSITE chat go straight to
+  Lovable's AI provider and never switch providers. Added `generateTextLovable`
+  / `getLovableChatModel` (single call to the Lovable AI Gateway, no fallback,
+  no provider-switch notifications) and moved `chatWithBot` + `/api/chat-stream`
+  onto it. Voice/WhatsApp/email stay on `generateTextResilient`. Trade-off the
+  owner accepted: no automatic failover for the site chat — if Lovable AI
+  credits run out (402) the chat shows its busy message. Low thinking level is
+  not set for this path (the gateway option name was not verified); revisit if
+  the site chat feels slow.

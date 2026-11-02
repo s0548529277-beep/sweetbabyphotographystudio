@@ -1,6 +1,6 @@
 import { stepCountIs, streamText } from "ai";
 import { ChatInput, finishChatTurn, prepareChatTurn } from "./ai.functions";
-import { generateTextResilient, pickStreamingGeminiModel } from "./ai-gateway.server";
+import { generateTextLovable, getLovableChatModel } from "./ai-gateway.server";
 
 /**
  * Streaming version of the site chat (2026-11-02, owner request: "show the
@@ -14,9 +14,9 @@ import { generateTextResilient, pickStreamingGeminiModel } from "./ai-gateway.se
  *   {"t":"x"}                        failed (client shows its normal "busy" message)
  *
  * Same prompt, tools, admin check, logging and UI cards as chatWithBot (both
- * use prepareChatTurn / finishChatTurn). If the stream fails before it
- * produced an answer, this falls back to generateTextResilient (the full
- * multi-key/provider chain) and sends the answer in one piece.
+ * use prepareChatTurn / finishChatTurn). Model: the Lovable AI Gateway only (no provider switching — owner request
+ * 2026-11-02). If the stream fails before it produced an answer, this retries
+ * once without streaming (generateTextLovable) and sends the answer in one piece.
  */
 const STREAM_TIMEOUT_MS = 25_000;
 
@@ -45,12 +45,16 @@ export async function handleChatStream(request: Request): Promise<Response> {
         let steps: any[] = [];
         let streamed = false;
 
-        const picked = pickStreamingGeminiModel();
-        if (picked) {
+        let model: ReturnType<typeof getLovableChatModel> | null = null;
+        try {
+          model = getLovableChatModel();
+        } catch (e) {
+          console.error("[SWEETBABY] chat stream: Lovable AI model unavailable", e);
+        }
+        if (model) {
           try {
             const result = streamText({
-              model: picked.model,
-              providerOptions: picked.providerOptions,
+              model,
               system: turn.system,
               messages: data.messages,
               tools: turn.tools,
@@ -88,7 +92,7 @@ export async function handleChatStream(request: Request): Promise<Response> {
 
         if (!streamed) {
           send({ t: "r" });
-          const result = await generateTextResilient({
+          const result = await generateTextLovable({
             system: turn.system,
             messages: data.messages,
             tools: turn.tools,

@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { stepCountIs } from "ai";
 import { z } from "zod";
-import { generateTextResilient } from "./ai-gateway.server";
+import { generateTextLovable, generateTextResilient } from "./ai-gateway.server";
 import { buildAssistantTools, buildWebChatTools, CHAT_BUTTON_PATHS } from "./ai-tools.server";
 import catalogData from "@/data/studio-catalog.json";
 
@@ -377,7 +377,7 @@ export const chatWithBot = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => ChatInput.parse(data))
   .handler(async ({ data }) => {
     const turn = await prepareChatTurn(data);
-    const result = await generateTextResilient({
+    const result = await generateTextLovable({
       system: turn.system,
       messages: data.messages,
       tools: turn.tools,

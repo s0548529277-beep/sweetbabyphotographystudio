@@ -257,6 +257,36 @@ export function pickStreamingGeminiModel() {
   };
 }
 
+// Website chat only (2026-11-02, owner request: "the site bot goes straight to
+// Lovable's AI provider, no switching between providers"). No Gemini keys, no
+// racing, no fallback to another provider and NO provider-switch notifications:
+// one call to the Lovable AI Gateway. Voice, WhatsApp and the email assistant
+// keep using generateTextResilient. If the Lovable AI credits run out the site
+// chat shows its normal "busy" message (the gateway answers 402).
+const LOVABLE_CHAT_MODEL_ID = "google/gemini-2.5-flash";
+
+/** The Lovable AI Gateway model used by the website chat (also for streamText). */
+export function getLovableChatModel() {
+  const key = process.env.LOVABLE_API_KEY;
+  if (!key) throw new Error("Missing LOVABLE_API_KEY");
+  return createLovableAiGatewayProvider(key)(LOVABLE_CHAT_MODEL_ID);
+}
+
+export async function generateTextLovable(options: GenerateTextOptionsNoModel, timeoutMs = DEFAULT_TIMEOUT_MS) {
+  const model = getLovableChatModel();
+  try {
+    return await generateText({
+      ...options,
+      model,
+      abortSignal: AbortSignal.timeout(timeoutMs),
+      maxRetries: 0,
+    } as GenerateTextOptions);
+  } catch (e) {
+    console.error(`[SWEETBABY] Lovable AI Gateway (site chat) failed ${e} | detail=${describeApiError(e)}`);
+    throw e;
+  }
+}
+
 export async function generateTextResilient(options: GenerateTextOptionsNoModel, timeoutMs = DEFAULT_TIMEOUT_MS) {
   const geminiKeys = collectGeminiKeys();
   const groqKey = process.env.GROQ_API_KEY;
