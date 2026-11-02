@@ -20,6 +20,9 @@ export const ADMIN_CHAT_RULES = `
 
 מצב ניהול: את מדברת עכשיו עם מיכל, בעלת הסטודיו (מנהלת מאומתת), לא עם לקוחה. פני אליה בגובה העיניים, קצר ומעשי. התעלמי מהודעות פתיחה קודמות בשיחה שנכתבו ללקוחות. אם היא שואלת אם את במצב ניהול — עני "כן מיכל, אני במצב ניהול 👑" ופרטי בקצרה מה אפשר: נתונים, לידים, מיילים וטיוטות, שינויי סטטוס.
 - נתונים (הזמנות, הכנסות, לידים, לקוחות, ניו-בורן): admin_snapshot לסקירה מהירה; לכל שאלה אחרת — admin_query_data עם SELECT אחד. לידים ופניות נמצאים בטבלה inquiry_leads (לא leads). לעולם אל תמציאי מספר. אם שאילתה נכשלה פעם אחת — אל תנסי שוב ושוב; עני במה שיש או אמרי שלא הצלחת.
+- לידים: newLeads ב-admin_snapshot הם רק ה-5 האחרונים; המספר האמיתי הוא newLeadsTotal — תמיד צייני אותו ("51 חדשים, הנה 5 האחרונים"). "לא נענו" = לידים בסטטוס new; לרשימה מלאה/ישנה השתמשי ב-admin_query_data.
+- "ממתינה למקדמה" = deposit_status (pending / cash_pending), לא status של ההזמנה (הזמנה יכולה להיות confirmed והמקדמה עדיין ממתינה). אל תערבבי ביניהם בספירה.
+- תאריכים: היום והיום בשבוע מופיעים בתחילת ההוראות — אל תנחשי יום בשבוע; "מחר" = היום + 1. הזמנה שמתחילה מחר לא "להיום".
 - טיוטות מייל: admin_snapshot מחזיר גם draftsStatus — מתי רצה הבדיקה האחרונה, כמה טיוטות הוכנו ואם היו תקלות. כשהיא שואלת על טיוטות, עני לפי זה.
 - שאלה על לקוחה ספציפית ("מה יש לפרימי", "מה הזמינה X", "מה הסטטוס של Y"): קראי פעם אחת ל-admin_get_client_summary עם השם או הטלפון — היא מחזירה בבת אחת שריונים, הזמנות אביזרים (כולל הפריטים), ניו-בורן ופניות. אל תריצי בנוסף admin_query_data או admin_db_schema על אותה שאלה.
 - עגלת קניות של לקוחה: האתר שומר עותק של העגלה של כל לקוחה מחוברת/אורחת (customer_carts). "מה יש בעגלה של X" → admin_get_client_summary (שדה carts); "מי השאירה עגלה / אילו עגלות יש" → admin_list_carts. אם carts ריק — עני שעדיין אין עגלה שמורה (לקוחה שגלשה בלי להתחבר, או שעוד לא הוסיפה כלום; עגלות שנוצרו לפני ההפעלה לא נשמרו), והציעי לבדוק הזמנות פתוחות. אל תחפשי עוד.
@@ -40,7 +43,7 @@ export function buildAdminChatTools() {
         try {
           const { getAdminVoiceSnapshot } = await import("./voice-admin.server");
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          const [snap, leads, drafts] = await Promise.all([
+          const [snap, leads, drafts, leadsCount] = await Promise.all([
             getAdminVoiceSnapshot(),
             (supabaseAdmin as any)
               .from("inquiry_leads")
@@ -49,6 +52,7 @@ export function buildAdminChatTools() {
               .order("created_at", { ascending: false })
               .limit(5),
             (supabaseAdmin as any).from("app_settings").select("value").eq("key", "email_drafts_status").maybeSingle(),
+            (supabaseAdmin as any).from("inquiry_leads").select("id", { count: "exact", head: true }).eq("status", "new"),
           ]);
           let draftsStatus: unknown = null;
           try {
@@ -56,7 +60,13 @@ export function buildAdminChatTools() {
           } catch {
             draftsStatus = null;
           }
-          return { ...snap, newLeads: leads.data ?? [], draftsStatus };
+          return {
+            ...snap,
+            newLeads: leads.data ?? [],
+            // newLeads is only the latest 5 — this is the real total (the bot used to report "5 new leads" when 51 were waiting)
+            newLeadsTotal: leadsCount?.count ?? null,
+            draftsStatus,
+          };
         } catch (e) {
           console.error("[SWEETBABY] admin_snapshot failed", e);
           return { error: true };

@@ -367,7 +367,7 @@ export function israelLocalToUtcMs(dateStr: string, timeStr: string): number {
 }
 
 /** Current date/time in Israel, as an ISO date plus minutes since midnight. */
-export function israelNow(): { date: string; minutes: number; time: string } {
+export function israelNow(): { date: string; minutes: number; time: string; weekday: string } {
   const fmt = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Jerusalem",
     year: "numeric", month: "2-digit", day: "2-digit",
@@ -379,6 +379,9 @@ export function israelNow(): { date: string; minutes: number; time: string } {
     date: `${parts.year}-${parts.month}-${parts.day}`,
     minutes: Number(parts.hour) * 60 + Number(parts.minute),
     time,
+    // Hebrew weekday name ("יום שני"). Without it the bots only saw an ISO date and guessed the weekday
+    // (found 2026-11-02: the admin bot said Monday was Sunday).
+    weekday: new Intl.DateTimeFormat("he-IL", { timeZone: "Asia/Jerusalem", weekday: "long" }).format(new Date()),
   };
 }
 

@@ -105,8 +105,8 @@ export const SYSTEM = `אתה "בוט Sweetbaby", העוזר האישי של ס�
 // Shared between the site-chat bot (below) and the WhatsApp auto-reply bot
 // (whatsapp-bot.server.ts) — one source of truth for the tool-usage rules
 // instead of two driftable copies.
-export function buildToolRules(now: { date: string; time: string }): string {
-  return `\n\nהיום ${now.date}, השעה בישראל ${now.time}. יש לך גישה אמיתית ליומן הסטודיו (כולל אירועים שהוזנו ישירות ביומן גוגל) ולמלאי האביזרים — הנתונים חיים ומדויקים לכל לקוחה, גם בלי התחברות:
+export function buildToolRules(now: { date: string; time: string; weekday?: string }): string {
+  return `\n\nהיום ${now.weekday ? now.weekday + ", " : ""}${now.date}, השעה בישראל ${now.time}. יש לך גישה אמיתית ליומן הסטודיו (כולל אירועים שהוזנו ישירות ביומן גוגל) ולמלאי האביזרים — הנתונים חיים ומדויקים לכל לקוחה, גם בלי התחברות:
 - שתי בדיקות זמינות שונות לגמרי, אסור לערבב ביניהן: check_studio_availability בודקת רק אם **הסטודיו עצמו** (המקום הפיזי, לפי שעות) פנוי. check_prop_availability בודקת רק אם **אביזר להשכרה** (מק״ט/שם) פנוי בטווח תאריכים — לאביזר אין שעות, רק ימים. שאלה על אביזר ("האם X פנוי", "אפשר לשכור Y") — אף פעם אל תבדקי/תזכירי זמינות הסטודיו, זה לא רלוונטי אליה. שאלה על שריון הסטודיו עצמו — רק check_studio_availability.
 - זמינות סטודיו בתאריך/שעה — חובה check_studio_availability, **בכל פעם מחדש, גם אם כבר בדקת תאריך/שעה דומים קודם באותה שיחה**. אסור להסתמך על "היום היה פנוי אז כנראה גם מחר פנוי" או על תשובה קודמת בשיחה — כל תאריך ושעה זו בדיקה נפרדת לגמרי, כי הזמינות משתנה כל הזמן (שריונים חדשים נכנסים). ענִי אך ורק לפי התוצאה של הבדיקה הנוכחית, לעולם אל תניחי שפנוי ואל תפני את הלקוחה "לבדוק בעמוד היומן" במקום לבדוק בעצמך.
 - זמינות אביזר לפי מק״ט או שם — חובה check_prop_availability. לחיפוש כללי בקטלוג — search_catalog.
