@@ -20,7 +20,7 @@ function textOf(el: Element | null | undefined): string {
  * red": shared strings (xl/sharedStrings.xml), cell styles — specifically
  * fill colors — (xl/styles.xml), and the first worksheet's cell data.
  */
-export async function readXlsxFirstSheet(file: File | Blob): Promise<XlsxRow[]> {
+export async function readXlsxSheets(file: File | Blob): Promise<{ name: string; rows: XlsxRow[] }[]> {
   const zip = await JSZip.loadAsync(file);
   const parser = new DOMParser();
 
@@ -55,53 +55,68 @@ export async function readXlsxFirstSheet(file: File | Blob): Promise<XlsxRow[]> 
     }
   }
 
-  // Resolve the first worksheet's actual file path via workbook.xml + its
-  // rels — usually xl/worksheets/sheet1.xml, but following the declared
-  // sheet order is more correct than guessing the filename.
-  let sheetPath = "xl/worksheets/sheet1.xml";
+  // Resolve every worksheet's file path via workbook.xml + its rels (in the
+  // declared sheet order) — a bank/card export sometimes keeps its real data
+  // on a later tab, and a workbook we produced ourselves has one tab per month.
+  const sheetRefs: { name: string; path: string }[] = [];
   const workbookXml = await zip.file("xl/workbook.xml")?.async("string");
   const relsXml = await zip.file("xl/_rels/workbook.xml.rels")?.async("string");
   if (workbookXml && relsXml) {
     const wbDoc = parser.parseFromString(workbookXml, "application/xml");
-    const firstSheet = wbDoc.getElementsByTagName("sheet")[0];
-    const rId = firstSheet?.getAttribute("r:id");
-    if (rId) {
-      const relsDoc = parser.parseFromString(relsXml, "application/xml");
-      const rel = Array.from(relsDoc.getElementsByTagName("Relationship")).find(
-        (r) => r.getAttribute("Id") === rId,
-      );
-      const target = rel?.getAttribute("Target");
-      if (target) sheetPath = `xl/${target.replace(/^\/?xl\//, "")}`;
+    const relsDoc = parser.parseFromString(relsXml, "application/xml");
+    const relationships = Array.from(relsDoc.getElementsByTagName("Relationship"));
+    for (const sheetEl of Array.from(wbDoc.getElementsByTagName("sheet"))) {
+      const rId = sheetEl.getAttribute("r:id");
+      const target = relationships.find((r) => r.getAttribute("Id") === rId)?.getAttribute("Target");
+      if (target) {
+        sheetRefs.push({
+          name: sheetEl.getAttribute("name") ?? `sheet${sheetRefs.length + 1}`,
+          path: `xl/${target.replace(/^\/?xl\//, "")}`,
+        });
+      }
     }
   }
+  if (sheetRefs.length === 0) sheetRefs.push({ name: "sheet1", path: "xl/worksheets/sheet1.xml" });
 
-  const sheetXml = await zip.file(sheetPath)?.async("string");
-  if (!sheetXml) return [];
-  const doc = parser.parseFromString(sheetXml, "application/xml");
-  const rows: XlsxRow[] = [];
-  for (const rowEl of Array.from(doc.getElementsByTagName("row"))) {
-    const cells: XlsxCell[] = [];
-    for (const cEl of Array.from(rowEl.getElementsByTagName("c"))) {
-      const colLetters = (cEl.getAttribute("r") ?? "").match(/^[A-Z]+/)?.[0] ?? "";
-      const colIndex = colLetters.split("").reduce((n, ch) => n * 26 + (ch.charCodeAt(0) - 64), 0) - 1;
-      const type = cEl.getAttribute("t");
-      const styleIdx = Number(cEl.getAttribute("s") ?? "0");
-      let value = "";
-      if (type === "inlineStr") {
-        value = textOf(cEl.getElementsByTagName("t")[0]);
-      } else {
-        const raw = textOf(cEl.getElementsByTagName("v")[0]);
-        value = type === "s" ? (sharedStrings[Number(raw)] ?? "") : raw;
+  const result: { name: string; rows: XlsxRow[] }[] = [];
+  for (const ref of sheetRefs) {
+    const sheetXml = await zip.file(ref.path)?.async("string");
+    if (!sheetXml) continue;
+    const doc = parser.parseFromString(sheetXml, "application/xml");
+    const rows: XlsxRow[] = [];
+    for (const rowEl of Array.from(doc.getElementsByTagName("row"))) {
+      const cells: XlsxCell[] = [];
+      for (const cEl of Array.from(rowEl.getElementsByTagName("c"))) {
+        const colLetters = (cEl.getAttribute("r") ?? "").match(/^[A-Z]+/)?.[0] ?? "";
+        const colIndex = colLetters.split("").reduce((n, ch) => n * 26 + (ch.charCodeAt(0) - 64), 0) - 1;
+        const type = cEl.getAttribute("t");
+        const styleIdx = Number(cEl.getAttribute("s") ?? "0");
+        let value = "";
+        if (type === "inlineStr") {
+          value = textOf(cEl.getElementsByTagName("t")[0]);
+        } else if (type === "str") {
+          // formula cell with a cached text result
+          value = textOf(cEl.getElementsByTagName("v")[0]);
+        } else {
+          const raw = textOf(cEl.getElementsByTagName("v")[0]);
+          value = type === "s" ? (sharedStrings[Number(raw)] ?? "") : raw;
+        }
+        if (colIndex >= 0) {
+          cells[colIndex] = { value, fillArgb: fillByXfIndex[styleIdx] ?? null };
+        }
       }
-      if (colIndex >= 0) {
-        cells[colIndex] = { value, fillArgb: fillByXfIndex[styleIdx] ?? null };
-      }
+      // Fill gaps (columns with no <c> element at all) so every row has a stable column count.
+      for (let i = 0; i < cells.length; i++) if (!cells[i]) cells[i] = { value: "", fillArgb: null };
+      rows.push({ cells });
     }
-    // Fill gaps (columns with no <c> element at all) so every row has a stable column count.
-    for (let i = 0; i < cells.length; i++) if (!cells[i]) cells[i] = { value: "", fillArgb: null };
-    rows.push({ cells });
+    result.push({ name: ref.name, rows });
   }
-  return rows;
+  return result;
+}
+
+/** First worksheet only (kept for callers that never needed the other tabs). */
+export async function readXlsxFirstSheet(file: File | Blob): Promise<XlsxRow[]> {
+  return (await readXlsxSheets(file))[0]?.rows ?? [];
 }
 
 /**

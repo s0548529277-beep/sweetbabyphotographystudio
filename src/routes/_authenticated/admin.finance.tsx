@@ -29,7 +29,17 @@ import {
   Repeat,
   CreditCard,
 } from "lucide-react";
-import { readXlsxFirstSheet, isReddishArgb, parseAmountCell, parseDateCell } from "@/lib/xlsx-read";
+import { readXlsxSheets, isReddishArgb } from "@/lib/xlsx-read";
+import {
+  parseImportSheets,
+  payeeKey,
+  parseRules,
+  IMPORT_RULES_KEY,
+  type ImportRules,
+  type ImportSelection,
+  type ImportDirection,
+  type ParsedImportRow,
+} from "@/lib/finance-import";
 import { toCSV, downloadCSV } from "@/lib/csv";
 
 export const Route = createFileRoute("/_authenticated/admin/finance")({
@@ -198,18 +208,16 @@ function FinanceAdmin() {
   // needs to be classified as income or expense, independent of personal/
   // business.
   const [importOpen, setImportOpen] = useState(false);
-  const [importHeaders, setImportHeaders] = useState<string[]>([]);
-  const [importRows, setImportRows] = useState<
-    {
-      cells: string[];
-      isRed: boolean;
-      selection: "none" | "personal" | "business";
-      direction: "expense" | "income";
-    }[]
-  >([]);
-  const [importDateCol, setImportDateCol] = useState(0);
-  const [importDescCol, setImportDescCol] = useState(1);
-  const [importAmountCol, setImportAmountCol] = useState(2);
+  const [importLayout, setImportLayout] = useState("");
+  type ImportRow = ParsedImportRow & {
+    selection: ImportSelection;
+    direction: ImportDirection;
+    /** "תמיד" — remember this payee's choice for the next files. */
+    always: boolean;
+    fromRule: boolean;
+  };
+  const [importRows, setImportRows] = useState<ImportRow[]>([]);
+  const [importRules, setImportRules] = useState<ImportRules>({});
   const [importCategory, setImportCategory] = useState("אחר");
   const [importIncomeCategory, setImportIncomeCategory] = useState(TYPE_PHOTO);
   const [importShowOnlyRed, setImportShowOnlyRed] = useState(true);
@@ -217,43 +225,52 @@ function FinanceAdmin() {
   const importFileRef = useRef<HTMLInputElement>(null);
 
   const resetImport = () => {
-    setImportHeaders([]);
     setImportRows([]);
+    setImportLayout("");
+  };
+
+  // Remembered "always" choices live in app_settings (no migration needed).
+  const loadImportRules = async (): Promise<ImportRules> => {
+    const { data } = await supabase.from("app_settings").select("value").eq("key", IMPORT_RULES_KEY).maybeSingle();
+    return parseRules(data?.value);
+  };
+  const saveImportRules = async (rules: ImportRules) => {
+    const { error } = await supabase
+      .from("app_settings")
+      .upsert({ key: IMPORT_RULES_KEY, value: JSON.stringify(rules), updated_at: new Date().toISOString() });
+    if (error) throw new Error(error.message);
+    setImportRules(rules);
   };
 
   const onImportFileSelected = async (file: File) => {
     try {
-      const sheetRows = await readXlsxFirstSheet(file);
-      const [headerRow, ...dataRows] = sheetRows;
-      if (!headerRow) {
-        toast.error("לא נמצאו שורות בקובץ");
+      const sheets = await readXlsxSheets(file);
+      const parsed = parseImportSheets(sheets, isReddishArgb);
+      if (!parsed || parsed.rows.length === 0) {
+        toast.error("לא זוהתה טבלת תנועות בקובץ (צריך עמודת תאריך, תיאור וסכום)");
         return;
       }
-      const headers = headerRow.cells.map((c) => c.value || "");
-      setImportHeaders(headers);
-      const guessCol = (keywords: string[]) => {
-        const idx = headers.findIndex((h) => keywords.some((k) => h.includes(k)));
-        return idx >= 0 ? idx : 0;
-      };
-      setImportDateCol(guessCol(["תאריך"]));
-      setImportDescCol(guessCol(["תיאור", "פירוט", "בית העסק", "שם"]));
-      setImportAmountCol(guessCol(["סכום", "חיוב", "₪"]));
-      const parsedRows = dataRows
-        .filter((r) => r.cells.some((c) => c.value.trim() !== ""))
-        .map((r) => ({
-          cells: r.cells.map((c) => c.value),
-          isRed: r.cells.some((c) => isReddishArgb(c.fillArgb)),
-          selection: "none" as const,
-          direction: "expense" as const,
-        }));
-      setImportRows(parsedRows);
-      // Some exports (e.g. a credit-card statement) never have red-colored
-      // rows at all — a file like a bank statement where she marks rows
-      // red is the exception, not the rule. Defaulting the "red only"
-      // filter to on would just show an empty table in that case, so only
-      // default to it when the file actually has red rows to filter to;
-      // otherwise she sees every row immediately and picks אישי/עסק herself.
-      setImportShowOnlyRed(parsedRows.some((r) => r.isRed));
+      const rules = await loadImportRules().catch(() => ({}) as ImportRules);
+      setImportRules(rules);
+      const rows: ImportRow[] = parsed.rows
+        .filter((r) => r.amount > 0)
+        .map((r) => {
+          const rule = rules[payeeKey(r.desc)];
+          const selection: ImportSelection = rule ? rule.selection : r.preSelection;
+          return {
+            ...r,
+            selection,
+            direction: rule?.direction ?? r.direction ?? "expense",
+            always: false,
+            fromRule: !!rule,
+          };
+        });
+      setImportRows(rows);
+      setImportLayout(
+        `${parsed.layout} · ${rows.length} שורות${parsed.sheetsUsed.length > 1 ? ` מתוך ${parsed.sheetsUsed.length} לשוניות` : ""}`,
+      );
+      // "Red only" only makes sense when the file really has red rows.
+      setImportShowOnlyRed(rows.some((r) => r.isRed));
       setImportOpen(true);
     } catch (err) {
       console.error("[SWEETBABY] xlsx import parse failed", err);
@@ -261,13 +278,17 @@ function FinanceAdmin() {
     }
   };
 
-  const setImportRowSelection = (idx: number, selection: "none" | "personal" | "business") => {
+  const setImportRowSelection = (idx: number, selection: ImportSelection) => {
     setImportRows((rows) =>
       rows.map((r, i) => (i === idx ? { ...r, selection: r.selection === selection ? "none" : selection } : r)),
     );
   };
 
-  const setImportRowDirection = (idx: number, direction: "expense" | "income") => {
+  const setImportRowAlways = (idx: number, always: boolean) => {
+    setImportRows((rows) => rows.map((r, i) => (i === idx ? { ...r, always } : r)));
+  };
+
+  const setImportRowDirection = (idx: number, direction: ImportDirection) => {
     setImportRows((rows) => rows.map((r, i) => (i === idx ? { ...r, direction } : r)));
   };
 
@@ -290,16 +311,14 @@ function FinanceAdmin() {
     if (selected.length === 0)
       return toast.error("לא נבחרו שורות לייבוא — סמני 'אישי' או 'עסק' על השורות הרצויות");
 
-    const dateFor = (r: (typeof importRows)[number]) =>
-      parseDateCell(r.cells[importDateCol]) || new Date().toISOString().slice(0, 10);
-    const titleFor = (r: (typeof importRows)[number]) =>
-      (r.cells[importDescCol] || "").trim() || "יובא מאקסל";
+    const dateFor = (r: ImportRow) => r.date || new Date().toISOString().slice(0, 10);
+    const titleFor = (r: ImportRow) => r.desc || "יובא מאקסל";
 
     const expenseRows = selected
       .filter((r) => r.direction === "expense")
       .map((r) => ({
         title: titleFor(r),
-        amount: parseAmountCell(r.cells[importAmountCol]),
+        amount: r.amount,
         category: importCategory,
         spent_on: dateFor(r),
         notes: "יובא מאקסל",
@@ -310,7 +329,7 @@ function FinanceAdmin() {
       .filter((r) => r.direction === "income")
       .map((r) => ({
         title: titleFor(r),
-        amount: parseAmountCell(r.cells[importAmountCol]),
+        amount: r.amount,
         category: importIncomeCategory,
         received_on: dateFor(r),
         notes: "יובא מאקסל",
@@ -319,7 +338,21 @@ function FinanceAdmin() {
       .filter((r) => r.amount > 0);
 
     if (expenseRows.length === 0 && incomeRows.length === 0)
-      return toast.error("לא נמצא סכום תקין באף שורה שנבחרה — בדקי את מיפוי העמודות");
+      return toast.error("לא נמצא סכום תקין באף שורה שנבחרה");
+
+    // Remember the rows ticked "תמיד" so the next file is pre-filled.
+    const toRemember = selected.filter((r) => r.always && payeeKey(r.desc));
+    if (toRemember.length > 0) {
+      const next: ImportRules = { ...importRules };
+      for (const r of toRemember) {
+        next[payeeKey(r.desc)] = { selection: r.selection as "personal" | "business", direction: r.direction };
+      }
+      try {
+        await saveImportRules(next);
+      } catch (err) {
+        toast.error(`שמירת הכללים נכשלה: ${(err as Error).message}`);
+      }
+    }
 
     setImportBusy(true);
     const [expenseResult, incomeResult] = await Promise.all([
@@ -1730,49 +1763,10 @@ function FinanceAdmin() {
               אבל זו רק המלצה (לרוב מתאימה ל"הוצאה"). הייבוא בפועל קורה רק לשורות שמסמנים עליהן "אישי"
               או "עסק" למטה — שורה שלא מסמנים עליה כלום לא תיובא.
             </p>
-            <div className="grid sm:grid-cols-5 gap-3">
-              <div>
-                <label className="text-xs text-muted-foreground">עמודת תאריך</label>
-                <select
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                  value={importDateCol}
-                  onChange={(e) => setImportDateCol(Number(e.target.value))}
-                >
-                  {importHeaders.map((h, i) => (
-                    <option key={i} value={i}>
-                      {h || `עמודה ${i + 1}`}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">עמודת תיאור</label>
-                <select
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                  value={importDescCol}
-                  onChange={(e) => setImportDescCol(Number(e.target.value))}
-                >
-                  {importHeaders.map((h, i) => (
-                    <option key={i} value={i}>
-                      {h || `עמודה ${i + 1}`}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">עמודת סכום</label>
-                <select
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                  value={importAmountCol}
-                  onChange={(e) => setImportAmountCol(Number(e.target.value))}
-                >
-                  {importHeaders.map((h, i) => (
-                    <option key={i} value={i}>
-                      {h || `עמודה ${i + 1}`}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {importLayout && (
+              <p className="text-xs rounded-md bg-primary/5 px-3 py-2">זוהה: {importLayout}</p>
+            )}
+            <div className="grid sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground">קטגוריה לשורות הוצאה</label>
                 <select
@@ -1833,11 +1827,12 @@ function FinanceAdmin() {
                 <thead className="bg-cream/60 text-right">
                   <tr>
                     <th className="p-2 font-medium w-8"></th>
-                    <th className="p-2 font-medium">{importHeaders[importDateCol] || "תאריך"}</th>
-                    <th className="p-2 font-medium">{importHeaders[importDescCol] || "תיאור"}</th>
-                    <th className="p-2 font-medium">{importHeaders[importAmountCol] || "סכום"}</th>
+                    <th className="p-2 font-medium">תאריך</th>
+                    <th className="p-2 font-medium">תיאור</th>
+                    <th className="p-2 font-medium">סכום</th>
                     <th className="p-2 font-medium">הכנסה / הוצאה</th>
                     <th className="p-2 font-medium">אישי / עסק</th>
+                    <th className="p-2 font-medium" title="לזכור את הבחירה לקבצים הבאים">תמיד</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1848,9 +1843,9 @@ function FinanceAdmin() {
                         <td className="p-2 text-center">
                           {r.isRed && <span className="inline-block h-2.5 w-2.5 rounded-full bg-destructive" />}
                         </td>
-                        <td className="p-2 whitespace-nowrap">{r.cells[importDateCol] || "—"}</td>
-                        <td className="p-2 max-w-[220px] truncate">{r.cells[importDescCol] || "—"}</td>
-                        <td className="p-2 whitespace-nowrap">{r.cells[importAmountCol] || "—"}</td>
+                        <td className="p-2 whitespace-nowrap">{r.dateText || "—"}</td>
+                        <td className="p-2 max-w-[220px] truncate" title={r.fromRule ? "מולא אוטומטית לפי כלל שמור" : undefined}>{r.desc || "—"}</td>
+                        <td className="p-2 whitespace-nowrap">{r.amountText || r.amount}</td>
                         <td className="p-2">
                           <div className="flex items-center gap-1">
                             <Button
@@ -1891,12 +1886,19 @@ function FinanceAdmin() {
                             </Button>
                           </div>
                         </td>
+                        <td className="p-2 text-center">
+                          <Checkbox
+                            checked={r.always}
+                            disabled={r.selection === "none"}
+                            onCheckedChange={(v) => setImportRowAlways(i, !!v)}
+                          />
+                        </td>
                       </tr>
                     );
                   })}
                   {importRows.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="p-6 text-center text-muted-foreground">
+                      <td colSpan={7} className="p-6 text-center text-muted-foreground">
                         אין שורות להצגה
                       </td>
                     </tr>
@@ -1905,6 +1907,40 @@ function FinanceAdmin() {
               </table>
             </div>
           </div>
+          {Object.keys(importRules).length > 0 && (
+            <details className="text-sm border border-primary/10 rounded-xl p-3">
+              <summary className="cursor-pointer">כללים שמורים ({Object.keys(importRules).length})</summary>
+              <div className="mt-2 space-y-1 max-h-48 overflow-y-auto">
+                {Object.entries(importRules).map(([key, rule]) => (
+                  <div key={key} className="flex items-center justify-between gap-2 text-xs">
+                    <span className="truncate">
+                      {key} — {rule.selection === "business" ? "עסק" : "אישי"}
+                      {rule.direction ? ` · ${rule.direction === "income" ? "הכנסה" : "הוצאה"}` : ""}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-2 text-xs"
+                      onClick={async () => {
+                        const next = { ...importRules };
+                        delete next[key];
+                        try {
+                          await saveImportRules(next);
+                          setImportRows((rows) =>
+                            rows.map((r) => (payeeKey(r.desc) === key ? { ...r, fromRule: false } : r)),
+                          );
+                        } catch (err) {
+                          toast.error((err as Error).message);
+                        }
+                      }}
+                    >
+                      הסרה
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setImportOpen(false)}>
               ביטול
