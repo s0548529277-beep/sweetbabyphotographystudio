@@ -35,6 +35,7 @@ const inputSchema = z.object({
     .optional(),
   contact_name: z.string().min(1).max(120),
   contact_phone: z.string().min(5).max(40),
+  contact_email: z.string().email().max(160).optional().nullable(),
   camera_model: z.string().min(1).max(120).optional().nullable(),
   notes: z.string().max(1000).optional().nullable(),
   coupon: z.string().max(40).optional().nullable(),
@@ -320,10 +321,11 @@ export const placeOrder = createServerFn({ method: "POST" })
     // Send confirmation emails (customer + studio) from the studio's Gmail.
     const pickupTime = data.start_time ?? "09:00";
     const returnTime = data.end_time ?? "18:00";
-    let customerEmail: string | undefined;
+    // A guest (anonymous) session has no email on the account — use the one she typed.
+    let customerEmail: string | undefined = data.contact_email?.trim() || undefined;
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      customerEmail = user?.email ?? undefined;
+      customerEmail = customerEmail ?? user?.email ?? undefined;
     } catch { /* ignore */ }
 
     try {

@@ -48,6 +48,7 @@ type ChatUi = {
   products: Array<{ sku: string; name: string; price: number; img: string | null; available?: boolean }>;
   buttons: Array<{ label: string; href: string }>;
   actions: Array<{ kind: "order_status" | "booking_status" | "lead_status"; id: string; status: string; summary: string }>;
+  guestPrompt?: boolean;
 };
 type Msg = { role: "user" | "assistant"; content: string; ui?: ChatUi };
 
@@ -448,6 +449,26 @@ export function ChatBot() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);
 
+  // The customer approved, inside the chat, to continue as a guest (no registration): open an
+  // anonymous session (same one /booking's "continue as guest" uses) and let the bot carry on.
+  const [guestBusy, setGuestBusy] = useState(false);
+  const continueAsGuest = async () => {
+    if (guestBusy || loading) return;
+    setGuestBusy(true);
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      if (!sess.session) {
+        const { error } = await supabase.auth.signInAnonymously();
+        if (error) throw error;
+      }
+      await send("אישרתי להמשיך כאורחת בלי הרשמה — בואי נמשיך עם ההזמנה כאן בצ׳אט.");
+    } catch {
+      setMessages((m) => [...m, { role: "assistant", content: "לא הצלחתי לפתוח מצב אורחת כרגע 💗 אפשר לנסות שוב, או להתחבר דרך /auth." }]);
+    } finally {
+      setGuestBusy(false);
+    }
+  };
+
   const addToCart = (p: ChatUi["products"][number]) => {
     cart.add({ id: p.sku, sku: p.sku, name: p.name, price: p.price, image_url: p.img });
     toast.success(`${p.name} נוסף לעגלה`);
@@ -763,6 +784,18 @@ export function ChatBot() {
                           </Link>
                         </Button>
                       )}
+                    </div>
+                  )}
+                  {message.ui?.guestPrompt && index === messages.length - 1 && !user && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <Button size="sm" className="h-8 rounded-full text-xs" disabled={guestBusy || loading} onClick={continueAsGuest}>
+                        להמשיך כאורחת (בלי הרשמה)
+                      </Button>
+                      <Button asChild size="sm" variant="outline" className="h-8 rounded-full border-primary/40 text-xs">
+                        <Link to="/auth" onClick={() => setOpen(false)}>
+                          להתחברות
+                        </Link>
+                      </Button>
                     </div>
                   )}
                   {message.ui?.actions?.map((a) => {

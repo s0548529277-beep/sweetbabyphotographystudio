@@ -62,6 +62,15 @@ export function buildWebChatTools(opts: { userId: string | null; isRealAccount: 
         return { photos, href: "/studio-photography", found: photos.length > 0 };
       },
     }),
+    offer_guest_continue: tool({
+      description:
+        "מציגה בצ'אט כפתורים 'להמשיך כאורחת (בלי הרשמה)' ו'להתחברות' — לקרוא לכלי כשלקוחה שעוד לא מחוברת רוצה להזמין סטודיו או אביזרים בצ'אט. אחרי הקריאה הסבירי במשפט אחד שאפשר להמשיך כאן בצ'אט בלי הרשמה ובלי לצאת (ההזמנה תישמר במצב אורחת ותקבל מייל אישור), וחכי שהיא תלחץ ותאשר. לא לקרוא לכלי כשהיא כבר מחוברת.",
+      inputSchema: z.object({}),
+      execute: async () =>
+        opts.userId
+          ? { shown: false, message: "הלקוחה כבר מחוברת — אפשר להמשיך ישר להזמנה." }
+          : { shown: true, message: "הכפתורים מוצגים. חכי לאישור שלה (תגיע הודעה 'אישרתי להמשיך כאורחת')." },
+    }),
     show_buttons: tool({
       description:
         "מציג ללקוחה כפתורים לחיצים מתחת לתשובה (מעבר לעמוד באתר). השתמשי כשיש צעד הבא ברור. עד 3 כפתורים. href רק מהרשימה: " +
@@ -164,7 +173,7 @@ export function buildWebChatTools(opts: { userId: string | null; isRealAccount: 
   };
 }
 
-export function buildAssistantTools(opts?: { isAuthenticated?: boolean }) {
+export function buildAssistantTools(opts?: { isAuthenticated?: boolean; isGuest?: boolean }) {
   return {
     check_studio_availability: tool({
       description:
@@ -366,7 +375,7 @@ export function buildAssistantTools(opts?: { isAuthenticated?: boolean }) {
 3. לשאול (בקצרה, אפשר לדלג על מה שלא רלוונטי) את פרטי השאלון: סוג הצילום, כמה אנשים בערך, גיל התינוק/ת אם ניו-בורן, האם יש מצלמה/צריך המלצה, ניסיון עם פלאש, האם צריך אביזרים, בקשות מיוחדות.
 4. להציג לה בהודעה בצ'אט (לא רק לינק) את התנאים המרכזיים ולקבל הסכמה מפורשת: מקדמה 90₪ שלא מוחזרת בביטול, ביטול ביום האירוע = 100%, נזק = עלות תיקון/רכישה +20% דמי טיפול, בלגן/ניקיון לא תקין = 150₪.
 5. לשאול איך היא מתכננת לשלם את המקדמה (depositPlan).
-${!opts?.isAuthenticated ? "הלקוחה הנוכחית היא אורחת/לא מחוברת בחשבון אמיתי — אסור בהחלט לקרוא לכלי הזה, יש להסביר בעדינות שצריך חשבון אישי אמיתי (לא כניסת אורח) וליצור/להתחבר ב-/auth, או להזמין לבד ב-/booking." : "הלקוחה מחוברת בחשבון אמיתי, אפשר להשתמש בכלי אחרי שכל התנאים לעיל התקיימו."}
+${!opts?.isAuthenticated ? "אין עדיין חיבור (לא חשבון ולא אורחת שאישרה) — אסור לקרוא לכלי הזה; קראי קודם ל-offer_guest_continue וחכי שהלקוחה תאשר בכפתור (להמשיך כאורחת בלי הרשמה, או להתחבר)." : opts?.isGuest ? "הלקוחה ממשיכה כאורחת (בלי הרשמה) באישורה — מותר לקרוא לכלי אחרי שכל התנאים לעיל התקיימו; אימייל חובה." : "הלקוחה מחוברת בחשבון אישי, אפשר להשתמש בכלי אחרי שכל התנאים לעיל התקיימו."}
 השריון נוצר במצב 'ממתין' — עדיין דורש תשלום מקדמה כדי להתאשר סופית, בדיוק כמו הזמנה רגילה דרך /booking.`,
       inputSchema: z.object({
         date: z.string().describe("YYYY-MM-DD"),
@@ -389,7 +398,7 @@ ${!opts?.isAuthenticated ? "הלקוחה הנוכחית היא אורחת/לא �
       }),
       execute: async (args) => {
         if (!opts?.isAuthenticated) {
-          return { ok: false, message: "הלקוחה אורחת / לא מחוברת בחשבון אמיתי — אי אפשר ליצור עבורה שריון דרך הצ'אט. יש להציע לה להתחבר/להירשם ב-/auth, או להזמין בעצמה כאורחת ב-/booking." };
+          return { ok: false, message: "אין עדיין חיבור — קראי ל-offer_guest_continue כדי שהלקוחה תאשר בכפתור להמשיך כאורחת (בלי הרשמה) או להתחבר, ואז המשיכי." };
         }
         if (!args.termsAccepted) {
           return { ok: false, message: "חסר אישור מפורש מהלקוחה לתנאים המרכזיים שהוצגו לה ולמקדמה — יש לבקש את זה קודם, לא ליצור שריון בלי אישור." };
@@ -460,7 +469,7 @@ ${!opts?.isAuthenticated ? "הלקוחה הנוכחית היא אורחת/לא �
 1. לאתר את הפריטים עם search_catalog ולבדוק זמינות אמיתית בתאריכים עם check_prop_availability — רק פריטים פנויים נכנסים להזמנה.
 2. לקבל בפירוש: תאריך איסוף (יום הצילום), תאריך החזרה, שם מלא וטלפון.
 3. להציג בהודעה בצ'אט סיכום: הפריטים, הכמויות, התאריכים והמחיר הכולל המשוער, ולקבל אישור מפורש ("כן, תזמיני") ואישור לתנאי ההשכרה והמקדמה (מקדמה לא מוחזרת בביטול; התנאים המלאים בעמוד התשלום).
-${!opts?.isAuthenticated ? "הלקוחה הנוכחית היא אורחת/לא מחוברת בחשבון אמיתי — אסור בהחלט לקרוא לכלי הזה; יש להסביר בעדינות שלהזמנה ישירה בצ'אט צריך להתחבר (/auth), או שאפשר להוסיף לעגלה ולהמשיך ב-/cart." : ""}
+${!opts?.isAuthenticated ? "אין עדיין חיבור (לא חשבון ולא אורחת שאישרה) — אסור לקרוא לכלי הזה; קראי קודם ל-offer_guest_continue וחכי שהלקוחה תאשר בכפתור." : opts?.isGuest ? "הלקוחה ממשיכה כאורחת (בלי הרשמה) באישורה — מותר לקרוא לכלי; אימייל חובה." : ""}
 ההזמנה נוצרת במצב 'ממתין' — עדיין דורשת תשלום מקדמה כדי להתאשר, בדיוק כמו הזמנה רגילה; מיד אחרי היצירה הציגי כפתור תשלום.`,
       inputSchema: z.object({
         lines: z
@@ -471,12 +480,13 @@ ${!opts?.isAuthenticated ? "הלקוחה הנוכחית היא אורחת/לא �
         returnDate: z.string().describe("YYYY-MM-DD — יום ההחזרה (אותו יום או מאוחר יותר)"),
         contactName: z.string().min(2).max(120),
         contactPhone: z.string().min(5).max(40),
+        contactEmail: z.string().email().max(160).describe("אימייל תקין — חובה לאורחת (לשם יישלח אישור ההזמנה); למחוברת אפשר לדלג"),
         notes: z.string().max(500).optional(),
         termsAccepted: z.boolean().describe("true רק אם הלקוחה אישרה בפירוש בצ'אט את הסיכום, התנאים והמקדמה"),
       }),
       execute: async (args) => {
         if (!opts?.isAuthenticated) {
-          return { ok: false, message: "הלקוחה אורחת / לא מחוברת בחשבון אמיתי — אי אפשר ליצור עבורה הזמנה דרך הצ'אט. הציעי להתחבר (/auth) או להוסיף לעגלה (/cart)." };
+          return { ok: false, message: "אין עדיין חיבור — קראי ל-offer_guest_continue כדי שהלקוחה תאשר בכפתור להמשיך כאורחת (בלי הרשמה) או להתחבר, ואז המשיכי." };
         }
         if (!args.termsAccepted) {
           return { ok: false, message: "חסר אישור מפורש מהלקוחה לסיכום, לתנאים ולמקדמה — יש לבקש קודם, לא ליצור הזמנה בלעדיו." };
@@ -513,7 +523,8 @@ ${!opts?.isAuthenticated ? "הלקוחה הנוכחית היא אורחת/לא �
               return_date: args.returnDate,
               contact_name: args.contactName,
               contact_phone: args.contactPhone,
-              notes: [args.notes, "הזמנה שבוצעה דרך הצ'אט באתר"].filter(Boolean).join("\n"),
+              contact_email: args.contactEmail,
+              notes: [args.notes, opts?.isGuest ? "הזמנה שבוצעה דרך הצ'אט באתר — במצב אורחת (בלי הרשמה)" : "הזמנה שבוצעה דרך הצ'אט באתר"].filter(Boolean).join("\n"),
               terms_accepted: true,
             },
           });

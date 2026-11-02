@@ -14,7 +14,12 @@ export async function streamChatReply(
 ): Promise<StreamedChatResult | null> {
   const res = await fetch("/api/chat-stream", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    // The tools that create a booking / order run inside this request and read the caller from the
+    // Authorization header, so send the same token the body carries.
+    headers: {
+      "Content-Type": "application/json",
+      ...((payload as any)?.accessToken ? { Authorization: `Bearer ${(payload as any).accessToken}` } : {}),
+    },
     body: JSON.stringify(payload),
   });
   if (!res.ok || !res.body) return null;

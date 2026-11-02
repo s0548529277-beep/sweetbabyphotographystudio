@@ -134,7 +134,7 @@ const WEB_CHAT_RULES = `
 - "האזור האישי / ההזמנות שלי / כמה קרדיט יש לי" — get_my_account. לא מחוברת → כפתור התחברות (/auth).
 - הזמנת אביזרים: מוסיפים לעגלה מהכרטיסים ואז כפתור /cart לסיום. שריון סטודיו: כמו קודם (create_studio_booking או כפתור /booking).
 - "תשלחי הודעה למיכל/לסטודיו" — נסחי איתה את ההודעה, קבלי שם + טלפון/אימייל, ואז send_message_to_studio.
-- הזמנה דרך הצ׳אט (הלקוחה לחצה על "לקבוע את הסטודיו" / "לקבוע צילומים עם מיכל" / "להזמין אביזרים" או כתבה שהיא רוצה להזמין): היי יוזמת ומובילה — שאלה אחת קצרה בכל פעם, בלי להציף. סטודיו: תאריך ושעה/משך → check_studio_availability + quote_studio_price → הצעת השריון (create_studio_booking אחרי כל התנאים, או כפתור /booking). צילומים עם מיכל: סוג הצילום ותאריך רצוי → get_photography_service_info → כפתור /studio-photography או send_message_to_studio. אביזרים: מה היא מחפשת ובאילו תאריכים → search_catalog / check_prop_availability → סיכום קצר (פריטים, כמויות, תאריכים, מחיר משוער) ובקשת אישור + שם וטלפון → create_props_order (רק למחוברת עם חשבון אמיתי; אורחת — להציע להתחבר /auth או להוסיף לעגלה → /cart) → כפתור התשלום מוצג אוטומטית. בסוף כל שלב הציעי את הצעד הבא עם show_buttons, ובקלילות הזכירי שאפשר לסיים את כל ההזמנה איתך. אם היא באמצע הזמנה ולא ברור לה משהו — עזרי להשלים אותה, אל תפני אותה להתחיל מחדש.
+- הזמנה דרך הצ׳אט (הלקוחה לחצה על "לקבוע את הסטודיו" / "לקבוע צילומים עם מיכל" / "להזמין אביזרים" או כתבה שהיא רוצה להזמין): היי יוזמת ומובילה — שאלה אחת קצרה בכל פעם, בלי להציף. סטודיו: תאריך ושעה/משך → check_studio_availability + quote_studio_price → הצעת השריון (create_studio_booking אחרי כל התנאים — גם לאורחת שאישרה להמשיך בצ׳אט בלי הרשמה; אם עוד אין חיבור: offer_guest_continue). צילומים עם מיכל: סוג הצילום ותאריך רצוי → get_photography_service_info → כפתור /studio-photography או send_message_to_studio. אביזרים: מה היא מחפשת ובאילו תאריכים → search_catalog / check_prop_availability → סיכום קצר (פריטים, כמויות, תאריכים, מחיר משוער) ובקשת אישור + שם וטלפון → create_props_order (למחוברת או לאורחת שאישרה; אם עוד אין לה חיבור — קראי ל-offer_guest_continue כדי שיוצגו כפתורי "להמשיך כאורחת"/"להתחברות", וחכי שתאשר; אחרי שאישרה (תקבלי הודעה שהיא ממשיכה כאורחת) קחי את הפרטים כרגיל: שם, טלפון ואימייל — האימייל חובה כדי שיישלח אישור) → כפתור התשלום מוצג אוטומטית. בסוף כל שלב הציעי את הצעד הבא עם show_buttons, ובקלילות הזכירי שאפשר לסיים את כל ההזמנה איתך. אם היא באמצע הזמנה ולא ברור לה משהו — עזרי להשלים אותה, אל תפני אותה להתחיל מחדש.
 - הודעה שפותחת במילים "אני כותבת בקשר להזמנת הסטודיו/האביזרים #XXXXXXXX" הגיעה מכפתור "להמשיך בצ׳אט" במייל: אם היא מחוברת — get_my_account ומצאי את ההזמנה לפי המספר; אם לא — בקשי להתחבר (/auth) או את שם וטלפון. אל תמציאי פרטי הזמנה. "הוראות הגעה" → get_arrival_directions. "שינוי מועד" → שאלי לאיזה תאריך/שעה, בדקי זמינות אמיתית ב-check_studio_availability, ואז send_message_to_studio עם מספר ההזמנה והמועד החדש המבוקש (השינוי נקבע רק אחרי אישור של מיכל — אל תבטיחי אותו). "להוסיף אביזרים" → search_catalog + check_prop_availability לתאריך ההזמנה והוספה לעגלה.
 - קישורים: כל הפניה לעמוד באתר כתבי תמיד כקישור Markdown עם שם ברור, למשל [לקטלוג האביזרים](/rental-catalog) — לעולם לא נתיב חשוף כמו /rental-catalog לבד.`;
 
@@ -143,6 +143,8 @@ type ChatUi = {
   products: Array<{ sku: string; name: string; price: number; img: string | null; available?: boolean }>;
   buttons: Array<{ label: string; href: string }>;
   actions: Array<{ kind: "order_status" | "booking_status" | "lead_status"; id: string; status: string; summary: string }>;
+  /** Show "continue as a guest / log in" buttons inside the chat (the bot asked for the customer's approval). */
+  guestPrompt?: boolean;
 };
 
 const CATALOG_IMG = new Map<string, string>(
@@ -158,6 +160,7 @@ export async function buildChatUi(steps: any[]): Promise<ChatUi> {
   for (const st of steps) {
     for (const call of st.toolCalls ?? []) {
       const input = call.input ?? call.args ?? {};
+      if (call.toolName === "offer_guest_continue") ui.guestPrompt = true;
       if (call.toolName === "show_buttons") {
         for (const b of input.buttons ?? []) {
           const path = String(b.href ?? "").split(/[?#]/)[0];
@@ -264,7 +267,7 @@ export async function prepareChatTurn(data: ChatTurnData) {
   ]);
   const personalized = data.isAuthenticated
     ? `\n\nהמשתמשת מחוברת לחשבון${data.userName ? ` בשם ${data.userName}` : ""}. את יכולה לפנות אליה בשמה.`
-    : `\n\nהמשתמשת לא מחוברת. לביצוע הזמנה בפועל הציעי לה להתחבר בעמוד /auth — אבל בדיקת זמינות אפשר לעשות גם בלי התחברות.`;
+    : `\n\nהמשתמשת לא מחוברת. לביצוע הזמנה בפועל (סטודיו או אביזרים) אל תפני אותה לעמוד אחר: קראי ל-offer_guest_continue — מוצגים בצ׳אט כפתורים "להמשיך כאורחת (בלי הרשמה)" ו"להתחברות"; ברגע שהיא אישרה ההזמנה מתבצעת כאן בצ׳אט. בדיקת זמינות אפשר לעשות גם בלי התחברות.`;
   const { israelNow } = await import("./availability.server");
   const now = israelNow();
   const toolRules = buildToolRules(now);
@@ -287,7 +290,8 @@ export async function prepareChatTurn(data: ChatTurnData) {
   return {
     system: SYSTEM + personalized + toolRules + WEB_CHAT_RULES + adminPart + extraKnowledge,
     tools: {
-      ...buildAssistantTools({ isAuthenticated: isRealAccount }),
+      // Real accounts AND guest (anonymous) sessions the customer approved inside the chat may order.
+      ...buildAssistantTools({ isAuthenticated: !!realUserId, isGuest: !!realUserId && !isRealAccount }),
       ...buildWebChatTools({ userId: realUserId, isRealAccount }),
       ...adminTools,
     },
