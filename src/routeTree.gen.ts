@@ -38,6 +38,7 @@ import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedMyPhotosRouteImport } from './routes/_authenticated/my-photos'
+import { Route as ApiChatStreamRouteImport } from './routes/api.chat-stream'
 import { Route as ApiSendBookingRemindersRouteImport } from './routes/api.send-booking-reminders'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogChalakahPhotoshootGuideRouteImport } from './routes/blog.chalakah-photoshoot-guide'
@@ -240,6 +241,11 @@ const AuthenticatedMyPhotosRoute = AuthenticatedMyPhotosRouteImport.update({
   id: '/my-photos',
   path: '/my-photos',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiChatStreamRoute = ApiChatStreamRouteImport.update({
+  id: '/api/chat-stream',
+  path: '/api/chat-stream',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSendBookingRemindersRoute = ApiSendBookingRemindersRouteImport.update({
   id: '/api/send-booking-reminders',
@@ -601,6 +607,7 @@ export interface FileRoutesByFullPath {
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/my-photos': typeof AuthenticatedMyPhotosRoute
+  '/api/chat-stream': typeof ApiChatStreamRoute
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
@@ -688,6 +695,7 @@ export interface FileRoutesByTo {
   '/wishlist': typeof WishlistRoute
   '/account': typeof AuthenticatedAccountRoute
   '/my-photos': typeof AuthenticatedMyPhotosRoute
+  '/api/chat-stream': typeof ApiChatStreamRoute
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
@@ -778,6 +786,7 @@ export interface FileRoutesById {
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/my-photos': typeof AuthenticatedMyPhotosRoute
+  '/api/chat-stream': typeof ApiChatStreamRoute
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
@@ -868,6 +877,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/my-photos'
+    | '/api/chat-stream'
     | '/api/send-booking-reminders'
     | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
@@ -955,6 +965,7 @@ export interface FileRouteTypes {
     | '/wishlist'
     | '/account'
     | '/my-photos'
+    | '/api/chat-stream'
     | '/api/send-booking-reminders'
     | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
@@ -1044,6 +1055,7 @@ export interface FileRouteTypes {
     | '/_authenticated/account'
     | '/_authenticated/admin'
     | '/_authenticated/my-photos'
+    | '/api/chat-stream'
     | '/api/send-booking-reminders'
     | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
@@ -1131,6 +1143,7 @@ export interface RootRouteChildren {
   ThankYouRoute: typeof ThankYouRoute
   TrackRoute: typeof TrackRoute
   WishlistRoute: typeof WishlistRoute
+  ApiChatStreamRoute: typeof ApiChatStreamRoute
   ApiSendBookingRemindersRoute: typeof ApiSendBookingRemindersRoute
   BlogChalakahPhotoshootGuideRoute: typeof BlogChalakahPhotoshootGuideRoute
   BlogEssentialNewbornPropsRoute: typeof BlogEssentialNewbornPropsRoute
@@ -1354,6 +1367,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/my-photos'
       preLoaderRoute: typeof AuthenticatedMyPhotosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/chat-stream': {
+      id: '/api/chat-stream'
+      path: '/api/chat-stream'
+      fullPath: '/api/chat-stream'
+      preLoaderRoute: typeof ApiChatStreamRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/send-booking-reminders': {
       id: '/api/send-booking-reminders'
@@ -1938,6 +1958,7 @@ const rootRouteChildren: RootRouteChildren = {
   ThankYouRoute: ThankYouRoute,
   TrackRoute: TrackRoute,
   WishlistRoute: WishlistRoute,
+  ApiChatStreamRoute: ApiChatStreamRoute,
   ApiSendBookingRemindersRoute: ApiSendBookingRemindersRoute,
   BlogChalakahPhotoshootGuideRoute: BlogChalakahPhotoshootGuideRoute,
   BlogEssentialNewbornPropsRoute: BlogEssentialNewbornPropsRoute,

@@ -531,3 +531,13 @@ survivors?"
   what runs *around* the model call (before and after), not just the call.
   Still open: streaming the reply to the browser (biggest perceived-speed win,
   needs client + server route changes — a night job).
+- **2026-11-02 (later)**: Added reply STREAMING for the site chat (biggest
+  perceived-speed win — the customer sees words immediately instead of waiting
+  for the whole tool loop + answer). `/api/chat-stream` uses `streamText` on a
+  single direct Gemini key and falls back to `generateTextResilient` when the
+  stream fails before producing an answer, so resilience is unchanged. Shared
+  `prepareChatTurn`/`finishChatTurn` keep the streaming and non-streaming paths
+  identical. Rules: (1) never re-run a turn on the client after the stream
+  started (tools may have had side effects); (2) don't name browser helpers
+  `*.client.ts` (import-protected in the SSR build); (3) voice/WhatsApp are not
+  streamed (they need the full text before speaking/sending).

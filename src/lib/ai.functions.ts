@@ -218,7 +218,7 @@ export async function buildChatUi(steps: any[]): Promise<ChatUi> {
   return ui;
 }
 
-const ChatInput = z.object({
+export const ChatInput = z.object({
   messages: z
     .array(
       z.object({
@@ -237,71 +237,92 @@ const ChatInput = z.object({
   accessToken: z.string().max(4000).optional(),
 });
 
-export const chatWithBot = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => ChatInput.parse(data))
-  .handler(async ({ data }) => {
-    // The client's `isAuthenticated` flag is only used for tone/wording —
-    // it's untrusted. Whether create_studio_booking is actually allowed to
-    // run is decided below from the real, server-verified token.
-    // 2026-11-02 speed fix: token check and the bot-knowledge DB read are
-    // independent — run them together instead of one after the other.
-    const { getBotKnowledgeText } = await import("./bot-knowledge.functions");
-    const [{ userId: realUserId, isRealAccount }, extraKnowledge] = await Promise.all([
-      getRealAuthState(data.accessToken),
-      getBotKnowledgeText(),
-    ]);
-    const personalized = data.isAuthenticated
-      ? `\n\nהמשתמשת מחוברת לחשבון${data.userName ? ` בשם ${data.userName}` : ""}. את יכולה לפנות אליה בשמה.`
-      : `\n\nהמשתמשת לא מחוברת. לביצוע הזמנה בפועל הציעי לה להתחבר בעמוד /auth — אבל בדיקת זמינות אפשר לעשות גם בלי התחברות.`;
-    const { israelNow } = await import("./availability.server");
-    const now = israelNow();
-    const toolRules = buildToolRules(now);
+type ChatTurnData = z.infer<typeof ChatInput>;
 
-    // Admin mode (2026-10-27): decided from the real token + user_roles,
-    // never from anything the client sends.
-    let isAdmin = false;
-    if (realUserId && isRealAccount) {
-      try {
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { data: roles } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", realUserId);
-        isAdmin = !!roles?.some((r: any) => r.role === "admin");
-      } catch (e) {
-        console.error("[SWEETBABY] chat admin check failed", e);
-      }
+/**
+ * Everything that happens BEFORE the model call, shared by the normal
+ * chatWithBot server function and the streaming route (chat-stream.server.ts)
+ * so the two can never drift apart (prompt, tools, admin check, step budget).
+ */
+export async function prepareChatTurn(data: ChatTurnData) {
+  // The client's `isAuthenticated` flag is only used for tone/wording —
+  // it's untrusted. Whether create_studio_booking is actually allowed to
+  // run is decided below from the real, server-verified token.
+  // 2026-11-02 speed fix: token check and the bot-knowledge DB read are
+  // independent — run them together instead of one after the other.
+  const { getBotKnowledgeText } = await import("./bot-knowledge.functions");
+  const [{ userId: realUserId, isRealAccount }, extraKnowledge] = await Promise.all([
+    getRealAuthState(data.accessToken),
+    getBotKnowledgeText(),
+  ]);
+  const personalized = data.isAuthenticated
+    ? `\n\nהמשתמשת מחוברת לחשבון${data.userName ? ` בשם ${data.userName}` : ""}. את יכולה לפנות אליה בשמה.`
+    : `\n\nהמשתמשת לא מחוברת. לביצוע הזמנה בפועל הציעי לה להתחבר בעמוד /auth — אבל בדיקת זמינות אפשר לעשות גם בלי התחברות.`;
+  const { israelNow } = await import("./availability.server");
+  const now = israelNow();
+  const toolRules = buildToolRules(now);
+
+  // Admin mode (2026-10-27): decided from the real token + user_roles,
+  // never from anything the client sends.
+  let isAdmin = false;
+  if (realUserId && isRealAccount) {
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: roles } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", realUserId);
+      isAdmin = !!roles?.some((r: any) => r.role === "admin");
+    } catch (e) {
+      console.error("[SWEETBABY] chat admin check failed", e);
     }
-    const adminPart = isAdmin ? (await import("./ai-admin-tools.server")).ADMIN_CHAT_RULES : "";
-    const adminTools = isAdmin ? (await import("./ai-admin-tools.server")).buildAdminChatTools() : {};
+  }
+  const adminPart = isAdmin ? (await import("./ai-admin-tools.server")).ADMIN_CHAT_RULES : "";
+  const adminTools = isAdmin ? (await import("./ai-admin-tools.server")).buildAdminChatTools() : {};
 
-    const result = await generateTextResilient({
-      system: SYSTEM + personalized + toolRules + WEB_CHAT_RULES + adminPart + extraKnowledge,
-      messages: data.messages,
-      tools: {
-        ...buildAssistantTools({ isAuthenticated: isRealAccount }),
-        ...buildWebChatTools({ userId: realUserId, isRealAccount }),
-        ...adminTools,
-      },
-      // Admin: short loop so a failing query can't retry until the request
-      // times out (2026-10-28, 499s). Customers unchanged.
-      stopWhen: stepCountIs(isAdmin ? 4 : 8),
-    });
-    const text = result.text;
-    const toolCalls = (result.steps ?? []).flatMap((st: any) => st.toolCalls ?? []);
-    // 2026-11-02 speed fix: product images lookup, the chat-log upsert and the
-    // "important chat" notification are independent DB calls that used to run
-    // one after another before the reply was returned — now they overlap.
-    const uiPromise = buildChatUi(result.steps ?? []);
-    let logPromise: Promise<void> = Promise.resolve();
+  return {
+    system: SYSTEM + personalized + toolRules + WEB_CHAT_RULES + adminPart + extraKnowledge,
+    tools: {
+      ...buildAssistantTools({ isAuthenticated: isRealAccount }),
+      ...buildWebChatTools({ userId: realUserId, isRealAccount }),
+      ...adminTools,
+    },
+    isAdmin,
+    realUserId,
+    // Admin: short loop so a failing query can't retry until the request
+    // times out (2026-10-28, 499s). Customers unchanged.
+    maxSteps: isAdmin ? 4 : 8,
+  };
+}
 
-    // Log the whole conversation so far (every visit, not just ones that
-    // book something) — one upserted row per browser session, not one
-    // insert per message.
-    if (data.sessionId && !isAdmin) {
-      logPromise = (async () => {
+/**
+ * Everything that happens AFTER the model answered: UI blocks (cards/buttons),
+ * the chat log and the "important chat" notification. Shared by chatWithBot
+ * and the streaming route.
+ */
+export async function finishChatTurn(args: {
+  data: ChatTurnData;
+  text: string;
+  steps: any[];
+  isAdmin: boolean;
+  realUserId: string | null;
+}): Promise<ChatUi> {
+  const { data, text, steps, isAdmin, realUserId } = args;
+  const toolCalls = steps.flatMap((st: any) => st.toolCalls ?? []);
+  // 2026-11-02 speed fix: product images lookup, the chat-log upsert and the
+  // "important chat" notification are independent DB calls that used to run
+  // one after another before the reply was returned — now they overlap.
+  const uiPromise = buildChatUi(steps);
+  let logPromise: Promise<void> = Promise.resolve();
+
+  // Log the whole conversation so far (every visit, not just ones that
+  // book something) — one upserted row per browser session, not one
+  // insert per message.
+  const sessionId = data.sessionId;
+  if (sessionId && !isAdmin) {
+    logPromise = (async () => {
       try {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         await supabaseAdmin.from("customer_chat_logs").upsert(
           {
-            session_id: data.sessionId,
+            session_id: sessionId,
             user_id: realUserId,
             messages: [...data.messages, { role: "assistant", content: text }],
             updated_at: new Date().toISOString(),
@@ -311,46 +332,65 @@ export const chatWithBot = createServerFn({ method: "POST" })
       } catch (e) {
         console.error("[SWEETBABY] chat log upsert failed", e);
       }
-      })();
+    })();
 
-      // Per explicit request: flag any conversation that went beyond a
-      // generic FAQ-style question — a real tool call (checking a specific
-      // date's availability, pricing, catalog search, actually booking,
-      // etc.) is a cheap, reliable proxy for "this wasn't just small talk",
-      // with no extra AI call needed to judge "importance" separately. One
-      // notification per session (deduped below), not one per turn — a long
-      // back-and-forth would otherwise flood the admin inbox.
-      if (toolCalls && toolCalls.length > 0) {
-        try {
-          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          const { data: already } = await supabaseAdmin
-            .from("admin_notifications")
-            .select("id")
-            .eq("type", "site_chat_important")
-            .contains("body", { session_id: data.sessionId })
-            .limit(1);
-          if (!already || already.length === 0) {
-            const lastUserMsg = [...data.messages].reverse().find((m) => m.role === "user")?.content ?? "";
-            await supabaseAdmin.from("admin_notifications").insert({
-              type: "site_chat_important",
-              title: `שיחת צ'אט עם כוונה ממשית${data.userName ? ` · ${data.userName}` : ""}`,
-              body: {
-                session_id: data.sessionId,
-                snippet: String(lastUserMsg).slice(0, 200),
-                tools: [...new Set(toolCalls.map((t: any) => t.toolName))].join(", "),
-                user_id: realUserId,
-              },
-            });
-          }
-        } catch (e) {
-          console.error("[SWEETBABY] important chat notify failed", e);
+    // Per explicit request: flag any conversation that went beyond a
+    // generic FAQ-style question — a real tool call (checking a specific
+    // date's availability, pricing, catalog search, actually booking,
+    // etc.) is a cheap, reliable proxy for "this wasn't just small talk",
+    // with no extra AI call needed to judge "importance" separately. One
+    // notification per session (deduped below), not one per turn — a long
+    // back-and-forth would otherwise flood the admin inbox.
+    if (toolCalls.length > 0) {
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: already } = await supabaseAdmin
+          .from("admin_notifications")
+          .select("id")
+          .eq("type", "site_chat_important")
+          .contains("body", { session_id: data.sessionId })
+          .limit(1);
+        if (!already || already.length === 0) {
+          const lastUserMsg = [...data.messages].reverse().find((m) => m.role === "user")?.content ?? "";
+          await supabaseAdmin.from("admin_notifications").insert({
+            type: "site_chat_important",
+            title: `שיחת צ'אט עם כוונה ממשית${data.userName ? ` · ${data.userName}` : ""}`,
+            body: {
+              session_id: data.sessionId,
+              snippet: String(lastUserMsg).slice(0, 200),
+              tools: [...new Set(toolCalls.map((t: any) => t.toolName))].join(", "),
+              user_id: realUserId,
+            },
+          });
         }
+      } catch (e) {
+        console.error("[SWEETBABY] important chat notify failed", e);
       }
     }
+  }
 
-    await logPromise;
-    const ui = await uiPromise;
-    return { reply: text, ui, isAdmin };
+  await logPromise;
+  return await uiPromise;
+}
+
+export const chatWithBot = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => ChatInput.parse(data))
+  .handler(async ({ data }) => {
+    const turn = await prepareChatTurn(data);
+    const result = await generateTextResilient({
+      system: turn.system,
+      messages: data.messages,
+      tools: turn.tools,
+      stopWhen: stepCountIs(turn.maxSteps),
+    });
+    const ui = await finishChatTurn({
+      data,
+      text: result.text,
+      steps: result.steps ?? [],
+      isAdmin: turn.isAdmin,
+      realUserId: turn.realUserId,
+    });
+    return { reply: result.text, ui, isAdmin: turn.isAdmin };
   });
 
 const SearchInput = z.object({ query: z.string().min(1).max(200) });

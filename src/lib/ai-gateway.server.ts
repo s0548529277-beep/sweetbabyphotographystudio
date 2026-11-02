@@ -237,6 +237,26 @@ function collectGeminiKeys(): string[] {
   return keys;
 }
 
+// Streaming (2026-11-02): the site chat streams its reply to the browser as it
+// is written (see chat-stream.server.ts). Streaming can't be raced across keys
+// like generateTextResilient does, so it uses ONE direct Gemini key (picked at
+// random to spread quota) and the caller falls back to generateTextResilient
+// if the stream fails before producing an answer. Keep the model id and
+// thinking level in sync with generateTextResilient above.
+const GEMINI_STREAM_MODEL_ID = "gemini-3-flash-preview";
+const GEMINI_STREAM_THINKING_LEVEL = "low" as const;
+
+/** Returns a direct Gemini model for streamText, or null when no Gemini key is configured. */
+export function pickStreamingGeminiModel() {
+  const keys = collectGeminiKeys();
+  if (keys.length === 0) return null;
+  const key = keys[Math.floor(Math.random() * keys.length)];
+  return {
+    model: createDirectGeminiProvider(key)(GEMINI_STREAM_MODEL_ID),
+    providerOptions: { google: { thinkingConfig: { thinkingLevel: GEMINI_STREAM_THINKING_LEVEL } } },
+  };
+}
+
 export async function generateTextResilient(options: GenerateTextOptionsNoModel, timeoutMs = DEFAULT_TIMEOUT_MS) {
   const geminiKeys = collectGeminiKeys();
   const groqKey = process.env.GROQ_API_KEY;

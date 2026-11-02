@@ -18,6 +18,7 @@ import {
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { chatWithBot } from "@/lib/ai.functions";
+import { streamChatReply } from "@/lib/chat-stream-reader";
 import { adminSetStatus } from "@/lib/admin-orders.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/lib/cart";
@@ -254,6 +255,8 @@ export function ChatBot() {
   const [showNudge, setShowNudge] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([{ role: "assistant", content: greeting }]);
   const [loading, setLoading] = useState(false);
+  // True once the first words of the streamed answer are on screen (hides the "writing…" placeholder).
+  const [streaming, setStreaming] = useState(false);
   const [availOpen, setAvailOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -362,15 +365,31 @@ export function ChatBot() {
     setLoading(true);
     try {
       const { data: sess } = await supabase.auth.getSession();
-      const res = await chat({
-        data: {
-          accessToken: sess.session?.access_token,
-          messages: next.map(({ role, content }) => ({ role, content: content.slice(0, 6000) })).slice(-20),
-          userName,
-          isAuthenticated: isAuth,
-          sessionId,
-        },
-      });
+      const payload = {
+        accessToken: sess.session?.access_token,
+        messages: next.map(({ role, content }) => ({ role, content: content.slice(0, 6000) })).slice(-20),
+        userName,
+        isAuthenticated: isAuth,
+        sessionId,
+      };
+      // 2026-11-02: the answer appears while it is being written. If the
+      // stream cannot be opened at all, fall back to the normal request.
+      let res: { reply: string; ui?: ChatUi } | null = null;
+      try {
+        res = await streamChatReply(payload, (partial) => {
+          if (partial) {
+            setStreaming(true);
+            setMessages([...next, { role: "assistant", content: partial }]);
+          } else {
+            setStreaming(false);
+            setMessages(next);
+          }
+        });
+      } catch (streamError) {
+        // Broke after it started: do not re-run the turn (it may have had side effects).
+        throw streamError;
+      }
+      if (!res) res = await chat({ data: payload });
       setMessages([...next, { role: "assistant", content: res.reply || "…", ui: res.ui }]);
     } catch (error) {
       console.error("[SWEETBABY] chat bot request failed", error);
@@ -383,6 +402,7 @@ export function ChatBot() {
         },
       ]);
     } finally {
+      setStreaming(false);
       setLoading(false);
     }
   };
@@ -759,7 +779,7 @@ export function ChatBot() {
                   })}
                 </Message>
               ))}
-              {loading && (
+              {loading && !streaming && (
                 <Message from="assistant">
                   <MessageContent className="flex-row items-center gap-2 text-muted-foreground">
                     <img
