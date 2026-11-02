@@ -1,5 +1,6 @@
 import { ARRIVAL_TEXT_HE } from "@/lib/arrival";
 import { hebrewDate } from "@/lib/hebrew-date";
+import { emailThumbUrl } from "@/lib/media-url";
 
 /** "2026-08-28 · כ״ח באב תשפ״ו" — the Gregorian date row value with the Hebrew calendar date alongside it, for every confirmation email. */
 function dateWithHebrew(isoDate: string | null | undefined): string {
@@ -159,7 +160,7 @@ export function buildBookingSummaryHtml(opts: {
                 (it) =>
                   `<tr>${
                     it.image_url
-                      ? `<td style="padding:6px 0 6px 8px;width:44px"><img src="${escapeHtml(it.image_url)}" alt="" width="40" height="40" style="width:40px;height:40px;object-fit:cover;border-radius:8px;display:block" /></td>`
+                      ? `<td style="padding:6px 0 6px 8px;width:44px"><img src="${escapeHtml(emailThumbUrl(it.image_url, 80) ?? "")}" alt="" width="40" height="40" style="width:40px;height:40px;object-fit:cover;border-radius:8px;display:block" /></td>`
                       : ""
                   }<td style="padding:6px 10px">${escapeHtml(it.name)} (${escapeHtml(it.sku)})</td></tr>`,
               )
@@ -328,7 +329,7 @@ export function buildPropsOrderSummaryHtml(opts: {
           : `₪${l.price.toFixed(0)}`;
       return `<tr>${
         l.image_url
-          ? `<td style="padding:6px 0 6px 8px;width:44px"><img src="${escapeHtml(l.image_url)}" alt="" width="40" height="40" style="width:40px;height:40px;object-fit:cover;border-radius:8px;display:block" /></td>`
+          ? `<td style="padding:6px 0 6px 8px;width:44px"><img src="${escapeHtml(emailThumbUrl(l.image_url, 80) ?? "")}" alt="" width="40" height="40" style="width:40px;height:40px;object-fit:cover;border-radius:8px;display:block" /></td>`
           : ""
       }<td style="padding:6px 10px">${escapeHtml(l.item_name)} (${escapeHtml(l.item_sku)})</td><td style="padding:6px 10px;text-align:center">×${l.quantity}</td><td style="padding:6px 10px;text-align:left;white-space:nowrap">${priceCell}</td></tr>`;
     })

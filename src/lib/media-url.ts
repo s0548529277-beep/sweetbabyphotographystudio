@@ -22,3 +22,20 @@ export function toSiteMediaUrl<T extends string | null | undefined>(url: T): T {
   if (!m || !isStorageHost(m[1])) return url;
   return `/media/${m[2].toLowerCase()}/${m[3]}` as T;
 }
+
+const SITE_ORIGIN = "https://sweetbabyphoto.shop";
+
+/**
+ * Small, fast thumbnail URL for emails (catalog item photos shown at ~40px).
+ * Storage public photos become `https://sweetbabyphoto.shop/media/public/...?w=<px>`;
+ * the /media proxy resizes them (and falls back to the original if resizing
+ * is unavailable). Anything else is returned unchanged. Always absolute,
+ * since mail clients can't resolve relative paths.
+ */
+export function emailThumbUrl<T extends string | null | undefined>(url: T, px = 80): T {
+  if (!url) return url;
+  const m = STORAGE_OBJECT_RE.exec(url);
+  if (!m || !isStorageHost(m[1]) || m[2].toLowerCase() !== "public") return url;
+  const path = m[3].split("?")[0];
+  return `${SITE_ORIGIN}/media/public/${path}?w=${px}` as T;
+}

@@ -26,6 +26,32 @@ export const Route = createFileRoute("/media/$")({
         const token = incoming.searchParams.get("token");
         if (token) target.searchParams.set("token", token);
 
+        // Optional thumbnail (?w=<px>, public objects only) — used by emails so a
+        // 40px thumbnail doesn't download the full-size original. Uses the
+        // storage image-transform endpoint; if it is unavailable or fails we
+        // silently fall through to the original file below.
+        const w = Number(incoming.searchParams.get("w"));
+        if (splat.startsWith("public/") && Number.isFinite(w) && w >= 16 && w <= 400) {
+          try {
+            const px = Math.round(w * 2); // 2x for retina screens
+            const thumbUrl = `${base}/storage/v1/render/image/${splat}?width=${px}&height=${px}&resize=cover&quality=70`;
+            const t = await fetch(thumbUrl);
+            const type = t.headers.get("content-type") ?? "";
+            if (t.ok && type.startsWith("image/")) {
+              return new Response(t.body, {
+                status: 200,
+                headers: {
+                  "content-type": type,
+                  "cache-control": "public, max-age=2592000",
+                  "x-content-type-options": "nosniff",
+                },
+              });
+            }
+          } catch {
+            /* fall back to the original below */
+          }
+        }
+
         const upstream = await fetch(target.toString(), {
           headers: request.headers.get("range") ? { range: request.headers.get("range")! } : undefined,
         });
