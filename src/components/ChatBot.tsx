@@ -532,7 +532,8 @@ export function ChatBot() {
     <div
       dir="rtl"
       className="fixed bottom-4 left-4 z-[100] font-body sm:bottom-6 sm:left-6"
-      style={dragPos.x || dragPos.y ? { transform: `translate(${dragPos.x}px, ${dragPos.y}px)` } : undefined}
+      // the drag offset moves only the closed bubble — when the chat window is open it must stay on-screen
+      style={!open && (dragPos.x || dragPos.y) ? { transform: `translate(${dragPos.x}px, ${dragPos.y}px)` } : undefined}
     >
       {!open && (
         <div className="flex flex-col items-start gap-2">

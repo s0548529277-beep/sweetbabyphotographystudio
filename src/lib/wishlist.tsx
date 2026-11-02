@@ -35,11 +35,13 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     } catch {}
   }, [items]);
 
-  const has = (id: string) => items.some((i) => i.id === id);
+  const has = (id: string) => items.some((i) => i.id === id || i.sku === id);
 
   const toggle = (item: WishlistItem) =>
     setItems((prev) =>
-      prev.some((i) => i.id === item.id) ? prev.filter((i) => i.id !== item.id) : [...prev, item],
+      prev.some((i) => i.id === item.id || i.sku === item.sku)
+        ? prev.filter((i) => i.id !== item.id && i.sku !== item.sku)
+        : [...prev, item],
     );
 
   const remove = (id: string) => setItems((prev) => prev.filter((i) => i.id !== id));

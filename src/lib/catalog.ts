@@ -31,6 +31,21 @@ type DbItem = {
 };
 
 /**
+ * Loading / error state of the live catalog query (same cache entry as
+ * `useCatalogCategories`, never fetches by itself). Pages use it to show
+ * "loading" or "try again" instead of a misleading "no items found" while the
+ * list is still empty because the request has not finished or failed.
+ */
+export function useCatalogStatus() {
+  const q = useQuery({ queryKey: ["items"], enabled: false });
+  return {
+    isLoading: q.isPending,
+    isError: q.isError,
+    retry: () => q.refetch(),
+  };
+}
+
+/**
  * Live catalog: the bundled catalog merged with whatever the studio edits in
  * /admin/items. Anything changed there (name, price, category, image, active,
  * drag-and-drop order) immediately changes every page that renders the catalog.

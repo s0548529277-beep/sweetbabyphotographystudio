@@ -120,7 +120,7 @@ function PhotoResizeAdmin() {
 
   /** Resizes (and, if selected + a logo is loaded, watermarks) one item to a real output File. */
   const processItem = async (item: Item): Promise<File> => {
-    const resized = await resizeImage(item.file, maxDim, quality);
+    const resized = await resizeImage(item.file, maxDim, quality / 100); // the field is a percent (10–100); canvas wants 0–1
     if (!item.watermark) return resized;
     if (!logoImg) throw new Error("יש להעלות לוגו לסימן המים קודם");
     return applyCustomWatermark(resized, logoImg, watermarkSize, watermarkOpacity);

@@ -1,4 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ProductImage } from "@/components/ProductImage";
@@ -22,6 +24,20 @@ export const Route = createFileRoute("/wishlist")({
 function WishlistPage() {
   const { items, remove } = useWishlist();
   const { add } = useCart();
+  // The catalog saves hearts under the item's SKU, but /items/$id needs the item's real id (uuid).
+  // Resolve sku → id so a saved item always opens its page.
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const skus = items.filter((i) => !UUID.test(i.id)).map((i) => i.sku);
+  const idBySku = useQuery({
+    queryKey: ["wishlist-sku-ids", skus.join(",")],
+    enabled: skus.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from("items").select("id, sku").in("sku", skus);
+      return new Map<string, string>((data ?? []).map((r: any) => [String(r.sku), String(r.id)]));
+    },
+  });
+  const pageIdFor = (it: { id: string; sku: string }): string | null =>
+    UUID.test(it.id) ? it.id : (idBySku.data?.get(String(it.sku)) ?? null);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -48,13 +64,25 @@ function WishlistPage() {
                 key={it.id}
                 className="flex gap-4 items-center bg-card rounded-2xl p-4 border border-primary/5"
               >
-                <Link to="/items/$id" params={{ id: it.id }} className="h-20 w-20 rounded-xl overflow-hidden bg-cream shrink-0">
-                  <ProductImage imageUrl={it.image_url} alt={it.name} fallbackClassName="h-6 w-6" />
-                </Link>
-                <div className="flex-1 min-w-0">
-                  <Link to="/items/$id" params={{ id: it.id }} className="font-display text-base text-primary truncate block hover:underline">
-                    {it.name}
+                {pageIdFor(it) ? (
+                  <Link to="/items/$id" params={{ id: pageIdFor(it)! }} className="h-20 w-20 rounded-xl overflow-hidden bg-cream shrink-0">
+                    <ProductImage imageUrl={it.image_url} alt={it.name} fallbackClassName="h-6 w-6" />
                   </Link>
+                ) : (
+                  <Link to="/rental-catalog" className="h-20 w-20 rounded-xl overflow-hidden bg-cream shrink-0">
+                    <ProductImage imageUrl={it.image_url} alt={it.name} fallbackClassName="h-6 w-6" />
+                  </Link>
+                )}
+                <div className="flex-1 min-w-0">
+                  {pageIdFor(it) ? (
+                    <Link to="/items/$id" params={{ id: pageIdFor(it)! }} className="font-display text-base text-primary truncate block hover:underline">
+                      {it.name}
+                    </Link>
+                  ) : (
+                    <Link to="/rental-catalog" className="font-display text-base text-primary truncate block hover:underline">
+                      {it.name}
+                    </Link>
+                  )}
                   <div className="font-display text-peach-deep text-base mt-1">₪{it.price.toFixed(0)}</div>
                   <div className="flex items-center gap-2 mt-2">
                     <Button

@@ -236,6 +236,7 @@ function AlbumDetailsForm({ token, details, onSaved }: { token: string; details:
       await submitFn({
         data: {
           token,
+          deviceKey: getGalleryDeviceKey(token),
           childName: form.childName,
           birthWeight: form.birthWeight,
           birthTime: form.birthTime,

@@ -48,7 +48,7 @@ export const Route = createFileRoute("/rental-catalog")({
 import { PropInspirationImage } from "@/components/PropInspirationImage";
 import { mergedInspiration, useItemInspiration } from "@/lib/item-inspiration";
 import { PAGE_IMAGE_KEYS, usePageGalleryWithAspect } from "@/lib/page-images";
-import { useCatalogCategories, type CatalogCategory, type CatalogItem } from "@/lib/catalog";
+import { useCatalogCategories, useCatalogStatus, type CatalogCategory, type CatalogItem } from "@/lib/catalog";
 import {
   THEME_TOPICS,
   makeHebrewMatcher,
@@ -72,6 +72,7 @@ function resultCountOf(groups: { items: unknown[] }[]): number {
 function RentalCatalogPage() {
   // Live catalog — admin edits (name/price/category/image) show up here.
   const categories = useCatalogCategories();
+  const catalogStatus = useCatalogStatus();
   const { lines, add, remove, subtotal, count } = useCart();
   const { has: isWished, toggle: toggleWishlist } = useWishlist();
   const { user } = useAuth();
@@ -536,7 +537,20 @@ function RentalCatalogPage() {
             </div>
 
             {/* Grid by category */}
-            {filtered.length === 0 && (
+            {filtered.length === 0 && catalogStatus.isError && (
+              <div className="rounded-3xl bg-card border border-primary/10 p-16 text-center text-muted-foreground">
+                לא הצלחנו לטעון את האביזרים כרגע.{" "}
+                <button type="button" onClick={() => catalogStatus.retry()} className="underline text-primary">
+                  לנסות שוב
+                </button>
+              </div>
+            )}
+            {filtered.length === 0 && !catalogStatus.isError && catalogStatus.isLoading && (
+              <div className="rounded-3xl bg-card border border-primary/10 p-16 text-center text-muted-foreground">
+                טוענת את האביזרים…
+              </div>
+            )}
+            {filtered.length === 0 && !catalogStatus.isError && !catalogStatus.isLoading && (
               <div className="rounded-3xl bg-card border border-primary/10 p-16 text-center text-muted-foreground">
                 לא נמצאו פריטים בחיפוש. נסו ניסוח אחר או נקו את החיפוש.
               </div>

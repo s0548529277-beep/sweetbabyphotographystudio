@@ -139,12 +139,22 @@ function StudioPhotographyPage() {
   const studioOutdoorGallery = usePageGallery(PAGE_IMAGE_KEYS.portfolioStudioOutdoor);
   const batMitzvahGallery = usePageGallery(PAGE_IMAGE_KEYS.portfolioBatMitzvah);
   const albumsGallery = usePageGallery(PAGE_IMAGE_KEYS.portfolioAlbums);
+  // The old "צילומים – בסטודיו / בטבע" admin tabs (photography-studio / photography-outdoor) are
+  // still where she uploads, hides and deletes these photos. Until she curates the new
+  // "Portfolio – Studio & Outdoor" bucket (no database rows yet), show those two galleries
+  // instead — so uploads/deletions made in the old tabs keep showing here.
+  const oldStudioGallery = usePageGallery(PAGE_IMAGE_KEYS.photographyStudio);
+  const oldOutdoorGallery = usePageGallery(PAGE_IMAGE_KEYS.photographyOutdoor);
+  const portfolioStudioOutdoorCurated = (studioOutdoorGallery.data ?? []).some((r) => r.source !== "config");
+  const studioOutdoorImages = portfolioStudioOutdoorCurated
+    ? studioOutdoorGallery.images
+    : [...oldStudioGallery.images, ...oldOutdoorGallery.images];
   const galleryByCategory: Record<GalleryCategoryId, string[]> = {
     newborn: newbornGallery.images,
     cakeSmash: cakeSmashGallery.images,
     upsherin: upsherinGallery.images,
     family: familyGallery.images,
-    studioOutdoor: studioOutdoorGallery.images,
+    studioOutdoor: studioOutdoorImages,
     batMitzvah: batMitzvahGallery.images,
     albums: albumsGallery.images,
   };

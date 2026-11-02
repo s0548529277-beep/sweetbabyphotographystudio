@@ -23,8 +23,21 @@ type HistoryMsg = { role: "user" | "assistant"; content: string };
 // Narrow, explicit phrase list — same reasoning as wantsToBookNow in
 // voice-menu.server.ts: a customer asking for a real person should reliably
 // hand off, not depend on the AI's own judgement call on that specific turn.
+// 2026-11-02: the bare word "מיכל" was removed — the studio belongs to a
+// photographer named Michal, so customers write "היי מיכל…" / "צילומים עם מיכל"
+// all the time and the bot went silent after the first message. Only explicit
+// requests to speak with her trigger a handoff now.
 const HANDOFF_PHRASES = [
-  "מיכל",
+  "לדבר עם מיכל",
+  "לדבר איתה",
+  "רוצה את מיכל",
+  "מבקשת את מיכל",
+  "מבקש את מיכל",
+  "שמיכל תחזור",
+  "שמיכל תתקשר",
+  "מיכל תחזור",
+  "מיכל תתקשר",
+  "מיכל בבקשה",
   "נציג",
   "נציגה",
   "בן אדם",

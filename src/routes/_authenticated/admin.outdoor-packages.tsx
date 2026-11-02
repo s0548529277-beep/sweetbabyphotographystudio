@@ -189,11 +189,37 @@ function OutdoorPackagesAdmin() {
     if (!phone) return toast.error("טלפון חובה");
     setOrderSaving(true);
     const chosenPkg = (packages.data ?? []).find((p) => p.id === orderForm.package_type_id);
+    const existing = orderForm.id ? (orders.data ?? []).find((o) => o.id === orderForm.id) : undefined;
+    // Editing must never wipe or silently re-price the order's package: the package
+    // name/description/price are copied from the package list only when the package
+    // CHOICE changed (or for a new order). Otherwise the agreed values stay as they were
+    // (also when that package was later deleted or its price changed).
+    const packageChanged = !existing || (existing.package_type_id ?? "") !== orderForm.package_type_id;
+    const pkgFields =
+      packageChanged || !existing
+        ? {
+            package_name: chosenPkg?.name ?? null,
+            package_description: chosenPkg?.description ?? null,
+            total_price: chosenPkg?.price ?? null,
+          }
+        : {};
+    // A rescheduled shoot gets a fresh contract and a fresh styling-call reminder.
+    const resets: Record<string, null> = {};
+    if (existing) {
+      if (
+        (existing.session_date ?? "") !== (orderForm.session_date || "") ||
+        (existing.session_time ?? "") !== (orderForm.session_time || "")
+      ) {
+        resets.contract_sent_at = null;
+      }
+      if ((existing.styling_call_date ?? "") !== (orderForm.styling_call_date || "")) {
+        resets.styling_call_reminder_sent_at = null;
+      }
+    }
     const payload = {
       package_type_id: orderForm.package_type_id || null,
-      package_name: chosenPkg?.name ?? null,
-      package_description: chosenPkg?.description ?? null,
-      total_price: chosenPkg?.price ?? null,
+      ...pkgFields,
+      ...resets,
       contact_name: name,
       contact_phone: phone,
       contact_email: orderForm.contact_email.trim() || null,
@@ -359,7 +385,19 @@ function OutdoorPackagesAdmin() {
                   </td>
                   <td className="p-3">
                     {o.contract_sent_at ? (
-                      <Badge variant="default">נשלח</Badge>
+                      <div className="flex items-center gap-1">
+                        <Badge variant="default">נשלח</Badge>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={sendingContractId === o.id}
+                          onClick={() => {
+                            if (window.confirm("לשלוח שוב את החוזה עם הפרטים העדכניים?")) sendContract(o);
+                          }}
+                        >
+                          {sendingContractId === o.id ? "שולח…" : "שליחה חוזרת"}
+                        </Button>
+                      </div>
                     ) : (
                       <Button
                         size="sm"
