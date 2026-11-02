@@ -485,7 +485,7 @@ ${!opts?.isAuthenticated ? "אין עדיין חיבור (לא חשבון ולא
         returnDate: z.string().describe("YYYY-MM-DD — יום ההחזרה (אותו יום או מאוחר יותר)"),
         contactName: z.string().min(2).max(120),
         contactPhone: z.string().min(5).max(40),
-        contactEmail: z.string().email().max(160).describe("אימייל תקין — חובה לאורחת (לשם יישלח אישור ההזמנה); למחוברת אפשר לדלג"),
+        contactEmail: z.string().email().max(160).optional().describe("אימייל תקין — חובה לאורחת (לשם יישלח אישור ההזמנה); למחוברת אפשר לדלג"),
         notes: z.string().max(500).optional(),
         termsAccepted: z.boolean().describe("true רק אם הלקוחה אישרה בפירוש בצ'אט את הסיכום, התנאים והמקדמה"),
       }),
@@ -495,6 +495,9 @@ ${!opts?.isAuthenticated ? "אין עדיין חיבור (לא חשבון ולא
         }
         if (!args.termsAccepted) {
           return { ok: false, message: "חסר אישור מפורש מהלקוחה לסיכום, לתנאים ולמקדמה — יש לבקש קודם, לא ליצור הזמנה בלעדיו." };
+        }
+        if (opts?.isGuest && !args.contactEmail) {
+          return { ok: false, message: "חסר אימייל — לאורחת חובה אימייל כדי שיישלח אישור ההזמנה. בקשי ממנה אימייל ואז קראי שוב." };
         }
         const today = israelNow().date;
         if (!/^\d{4}-\d{2}-\d{2}$/.test(args.pickupDate) || !/^\d{4}-\d{2}-\d{2}$/.test(args.returnDate) || args.pickupDate < today || args.returnDate < args.pickupDate) {
@@ -528,7 +531,7 @@ ${!opts?.isAuthenticated ? "אין עדיין חיבור (לא חשבון ולא
               return_date: args.returnDate,
               contact_name: args.contactName,
               contact_phone: args.contactPhone,
-              contact_email: args.contactEmail,
+              contact_email: args.contactEmail || null,
               notes: [args.notes, opts?.isGuest ? "הזמנה שבוצעה דרך הצ'אט באתר — במצב אורחת (בלי הרשמה)" : "הזמנה שבוצעה דרך הצ'אט באתר"].filter(Boolean).join("\n"),
               terms_accepted: true,
             },

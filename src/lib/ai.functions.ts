@@ -265,9 +265,13 @@ export async function prepareChatTurn(data: ChatTurnData) {
     getRealAuthState(data.accessToken),
     getBotKnowledgeText(),
   ]);
-  const personalized = data.isAuthenticated
+  // Decided from the server-verified token, not from the browser's flag (after "continue as guest" the
+  // browser flag is still stale for that one message).
+  const personalized = isRealAccount && realUserId
     ? `\n\nהמשתמשת מחוברת לחשבון${data.userName ? ` בשם ${data.userName}` : ""}. את יכולה לפנות אליה בשמה.`
-    : `\n\nהמשתמשת לא מחוברת. לביצוע הזמנה בפועל (סטודיו או אביזרים) אל תפני אותה לעמוד אחר: קראי ל-offer_guest_continue — מוצגים בצ׳אט כפתורים "להמשיך כאורחת (בלי הרשמה)" ו"להתחברות"; ברגע שהיא אישרה ההזמנה מתבצעת כאן בצ׳אט. בדיקת זמינות אפשר לעשות גם בלי התחברות.`;
+    : realUserId
+      ? `\n\nהמשתמשת ממשיכה כאורחת (בלי הרשמה) באישורה, והיא כבר מחוברת בצ׳אט — אל תקראי ל-offer_guest_continue ואל תבקשי ממנה להתחבר. אפשר להזמין סטודיו או אביזרים ישירות בצ׳אט (שם, טלפון ואימייל חובה).`
+      : `\n\nהמשתמשת לא מחוברת. לביצוע הזמנה בפועל (סטודיו או אביזרים) אל תפני אותה לעמוד אחר: קראי ל-offer_guest_continue — מוצגים בצ׳אט כפתורים "להמשיך כאורחת (בלי הרשמה)" ו"להתחברות"; ברגע שהיא אישרה ההזמנה מתבצעת כאן בצ׳אט. בדיקת זמינות אפשר לעשות גם בלי התחברות.`;
   const { israelNow } = await import("./availability.server");
   const now = israelNow();
   const toolRules = buildToolRules(now);
