@@ -1,3 +1,4 @@
+import { heartImg, withEmailHearts } from "@/lib/email-hearts";
 /**
  * The auto-reply email sent to whoever clicks "מעוניינת במימוש סל לידה" on
  * /newborn and leaves her contact details (see requestBirthBasketInterest
@@ -115,7 +116,7 @@ export function renderBirthBasketHtml(filledTemplate: string, photoUrls: string[
     </td></tr>
     <tr><td style="padding:16px 0 0">
       <div style="border-top:1px solid ${BORDER}55;position:relative;text-align:center">
-        <span style="position:relative;top:-9px;background:${CREAM};padding:0 10px;color:${ROSE};font-size:12px">♥</span>
+        <span style="position:relative;top:-9px;background:${CREAM};padding:0 10px;font-size:12px">${heartImg("michal", 14)}</span>
       </div>
     </td></tr>`,
     )
@@ -131,7 +132,7 @@ export function renderBirthBasketHtml(filledTemplate: string, photoUrls: string[
         .join("")}</tr></table>`
     : "";
 
-  return `<div dir="rtl" style="font-family:Arial,sans-serif;color:${BROWN};max-width:600px;margin:0 auto">
+  return withEmailHearts(`<div dir="rtl" style="font-family:Arial,sans-serif;color:${BROWN};max-width:600px;margin:0 auto">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BORDER};padding:14px 0">
       <tr><td align="center">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:${CREAM};border-radius:4px">
@@ -148,5 +149,5 @@ export function renderBirthBasketHtml(filledTemplate: string, photoUrls: string[
         </table>
       </td></tr>
     </table>
-  </div>`;
+  </div>`, "michal", 16);
 }

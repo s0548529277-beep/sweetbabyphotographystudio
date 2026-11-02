@@ -1,3 +1,4 @@
+import { heartImg, withEmailHearts } from "@/lib/email-hearts";
 // Server pieces of "ניהול לקוחות" (/admin/client-management). The admin
 // page reads/writes cm_clients / cm_sessions / cm_payment_accounts directly
 // through the authenticated browser client (admin-only RLS, see
@@ -51,14 +52,14 @@ function nl2br(s: string) {
 
 /** One RTL email shell in the site's own colors (forest green + blush). */
 function emailShell(title: string, bodyHtml: string) {
-  return `<!doctype html><html dir="rtl" lang="he"><body style="margin:0;background:#f7f3ee;font-family:Arial,Helvetica,sans-serif;color:#2d3d2b">
+  return withEmailHearts(`<!doctype html><html dir="rtl" lang="he"><body style="margin:0;background:#f7f3ee;font-family:Arial,Helvetica,sans-serif;color:#2d3d2b">
 <div style="max-width:560px;margin:0 auto;padding:24px 16px">
   <div style="background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #ecdcd4">
     <div style="background:#2d3d2b;color:#fff;padding:18px 22px;font-size:18px;font-weight:bold">${esc(title)}</div>
     <div style="padding:22px;font-size:15px;line-height:1.7">${bodyHtml}</div>
   </div>
   <div style="text-align:center;font-size:12px;color:#8a8a80;margin-top:14px">Sweetbaby · מיכל סיבוני · 054-8529277</div>
-</div></body></html>`;
+</div></body></html>`, "michal", 16);
 }
 
 /** Israel wall-clock parts for an instant. */

@@ -1,3 +1,4 @@
+import { heartImg } from "@/lib/email-hearts";
 import michalWordmark from "@/assets/michal-logo-wordmark.png";
 
 /**
@@ -217,7 +218,7 @@ export function renderNewbornContractHtml(filledTemplate: string): string {
     </td></tr>
     <tr><td style="padding:16px 0 0">
       <div style="border-top:1px solid ${BORDER}55;position:relative;text-align:center">
-        <span style="position:relative;top:-9px;background:${CREAM};padding:0 10px;color:${ROSE};font-size:12px">♥</span>
+        <span style="position:relative;top:-9px;background:${CREAM};padding:0 10px;font-size:12px">${heartImg("michal", 14)}</span>
       </div>
     </td></tr>`,
     )

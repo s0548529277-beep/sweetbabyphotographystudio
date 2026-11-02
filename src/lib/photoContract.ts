@@ -1,3 +1,4 @@
+import { heartImg } from "@/lib/email-hearts";
 import michalWordmark from "@/assets/michal-logo-wordmark.png";
 
 /**
@@ -58,7 +59,7 @@ function section(title: string, bodyHtml: string): string {
     </td></tr>
     <tr><td style="padding:16px 0 0">
       <div style="border-top:1px solid ${BORDER}55;position:relative;text-align:center">
-        <span style="position:relative;top:-9px;background:${CREAM};padding:0 10px;color:${ROSE};font-size:12px">♥</span>
+        <span style="position:relative;top:-9px;background:${CREAM};padding:0 10px;font-size:12px">${heartImg("michal", 14)}</span>
       </div>
     </td></tr>`;
 }
@@ -197,7 +198,7 @@ export function buildPhotoContractHtml(input: PhotoContractInput): string {
 
           <p style="margin:0 0 4px;color:${ROSE};font-size:19px;font-weight:bold">הי ${contactName || "יקרה"},</p>
           <p style="margin:0 0 4px;color:${BROWN};font-size:14px;line-height:1.8">
-            שמחה ומתרגשת שבחרת בי לקחת חלק ולתעד את המשפחה שלכם ברגעים מרגשים אלו 💗
+            שמחה ומתרגשת שבחרת בי לקחת חלק ולתעד את המשפחה שלכם ברגעים מרגשים אלו ${heartImg("michal")}
           </p>
 
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">

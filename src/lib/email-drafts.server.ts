@@ -45,9 +45,9 @@ export const AUTO_REPLY_NOTE = "🤖 נשלח מענה ראשוני אוטומט
 /** Shown as a highlighted box at the top of every automatic first reply. */
 const AUTO_DISCLAIMER = [
   "> **🤖 זהו מענה ראשוני אוטומטי של סוויטבוט — העוזר הדיגיטלי של מיכל.**",
-  "> מיכל תעבור על הפנייה בהקדם, תבדוק שעניתי נכון ותחזור אלייך באופן אישי, חם ואנושי.",
+  "> מיכל תעבור על הפנייה ותבדוק שעניתי נכון, ואם יהיה צורך היא תחזור אלייך אישית.",
   "> סליחה מראש אם נפלה טעות במענה האוטומטי — אני עלול לטעות 💗",
-  "> עד שמיכל תתפנה אפשר להמשיך לשוחח איתי ולבצע פעולות באתר (לבדוק זמינות, לשריין, להזמין) בכפתור למטה.",
+  "> עד אז אפשר להמשיך לשוחח איתי ולבצע פעולות באתר (לבדוק זמינות, לשריין, להזמין) בכפתור למטה.",
 ].join("\n");
 const AUTO_CHAT_CTA = { label: "להמשיך בצ׳אט עם סוויטבוט 💬", url: chatLinkUrl("help") };
 const SITE_FORM_SENDER = "sitemailerservice.com";
@@ -431,9 +431,11 @@ async function sendAutoReply(
     brand: DraftBrand;
     headers: { threadId?: string; inReplyTo?: string; references?: string };
     photo?: boolean;
+    topic?: string | null;
   },
 ): Promise<boolean> {
-  const body = `${AUTO_DISCLAIMER}\n\n${p.body.trim()}`;
+  // The answer comes first; the "automatic reply" explanation sits below it.
+  const body = `${p.body.trim()}\n\n${AUTO_DISCLAIMER}`;
   // Photography leads get the gallery + the photography page + the chat; rentals just the chat.
   const ctas = p.photo
     ? {
@@ -441,7 +443,12 @@ async function sendAutoReply(
         extraCtas: [{ label: "לפרטים על הצילומים", url: CTA_URLS.photography }, AUTO_CHAT_CTA],
         siteSignature: true,
       }
-    : { cta: AUTO_CHAT_CTA };
+    : p.topic === "props"
+      ? { cta: { label: "לקטלוג האביזרים", url: CTA_URLS.props }, extraCtas: [AUTO_CHAT_CTA] }
+      : {
+          cta: { label: "לבדיקת זמינות והזמנת הסטודיו", url: CTA_URLS.booking },
+          extraCtas: [{ label: "לפרטים על הסטודיו", url: CTA_URLS.studio }, AUTO_CHAT_CTA],
+        };
   const draftId = await g.createGmailHtmlDraft({
     connKey: k,
     fromEmail,
@@ -508,7 +515,7 @@ async function analyze(subject: string, text: string, past: string, isSiteForm: 
 "urgent": true/false — true רק כשזו לקוחה (isClient) שפונה בנושא הזמנת סטודיו או השכרת אביזרים (topic studio/props) והעניין דחוף בזמן: מועד ההשכרה/הצילום היום או בתוך 48 שעות, בעיה ביום ההשכרה (הגעה, כניסה לסטודיו, תשלום, ציוד), שינוי/ביטול/אישור של הזמנה קיימת, או שביקשה במפורש תשובה מהירה. false לכל השאר — שאלות כלליות או על מחירים, צילומים של מיכל, סל לידה, ספקים, עמיתות, ובכל ספק,
 "needsGuidance": true/false — true כשזו פונה (isClient) בנושא סטודיו או אביזרים (topic studio/props) שנראה שהיא לא יודעת שאפשר להזמין/לשריין/לבדוק זמינות לבד באתר או דרך הבוט: שואלת "איך מזמינים / איך משריינים", "אפשר להזמין?", "פנוי בתאריך X?" ובקשות שהאתר והבוט עושים בעצמם, מבקשת שנחזור אליה עם פרטים כדי להזמין, או כותבת במייל/בטלפון דברים שהאתר מטפל בהם. false לשאלות שבאמת דורשות את מיכל (הנחה מיוחדת, בקשה חריגה, תלונה, שיתוף פעולה) ובכל ספק,
 "photoLead": true/false — true כשזו פונה חדשה (isClient, מיכל עוד לא ענתה בשרשור) שמתעניינת בצילומים של מיכל עצמה (brand photographer; topic newborn/birth_basket/upsherin/family/outdoor), גם אם היא רק שואלת בכללי על צילומים/חבילות/מחירים. false לספקים, עמיתות, שולמית, ובקשה קיימת/מורכבת שדורשת את מיכל,
-"autoBody": "כש-photoLead=true: מענה מכבד וחם ללקוחה חדשה: להודות על הפנייה ולשקף במשפט אחד מה ביקשה, להפנות לאתר ולגלריה המתאימים לבקשה שלה (עמוד הצילומים sweetbabyphoto.shop/studio-photography וגלריית העבודות של מיכל michalsiboni.co.il — לפי מה שביקשה, למשל ניו בורן/משפחה/חלאקה), להסביר שמיכל הצלמת תחזור אליה אישית בקרוב ושבינתיים אפשר להתרשם בעבודות שלה באתר מיכל סיבוני. אסור בהחלט להזכיר מחירים או חבילות, ואסור להבטיח תאריכים/זמינות. 3–5 שורות. אחרת, רק כש-urgent=true או needsGuidance=true: מענה ראשוני קצר של 2–5 שורות: חמה, מאשרת שהפנייה התקבלה. כש-needsGuidance — להסביר בפשטות שאפשר לבדוק זמינות, לשריין ולהזמין לבד בכל שעה באתר (סטודיו: sweetbabyphoto.shop/booking · אביזרים: sweetbabyphoto.shop/rental-catalog), או פשוט לשוחח עם סוויטבוט בצ׳אט שבודק זמינות אמיתית ומבצע את ההזמנה איתה בקלות (הכפתור למטה). אסור להבטיח זמינות, מחיר או אישור שלא ידועים, ואסור להמציא עובדות. מותר עובדה אחת רלוונטית מהידע. לסיים במשפט שמיכל תחזור אליה אישית בהקדם. בלי הצהרת בוט ובלי הסתייגות (מתווספות אוטומטית), בלי חתימה."}`,
+"autoBody": "הטקסט שיופיע ראשון במענה האוטומטי — התשובה עצמה, בלי הקדמות על בוט (ההסבר 'מענה אוטומטי' נוסף אוטומטית מתחתיה). בלי קישורים וכתובות אתר בטקסט — כפתורים מתאימים (קטלוג/הזמנת סטודיו/גלריה/צ׳אט) מתווספים אוטומטית מתחת, אפשר להפנות אליהם במילים ('בכפתור למטה'). כש-photoLead=true: מענה מכבד וחם ללקוחה חדשה: להודות על הפנייה ולשקף במשפט אחד מה ביקשה, להפנות לכפתורים — עמוד הצילומים וגלריית העבודות של מיכל — לפי מה שביקשה, ולציין שבינתיים אפשר להתרשם בעבודות של מיכל באתר מיכל סיבוני. אסור להבטיח שמיכל תחזור אליה, אסור בהחלט להזכיר מחירים או חבילות, ואסור להבטיח תאריכים/זמינות. 3–5 שורות. אחרת, רק כש-urgent=true או needsGuidance=true: מענה קצר של 2–5 שורות: חמה, מאשרת שהפנייה התקבלה ועונה ככל שאפשר בלי להמציא. כש-needsGuidance — להסביר בפשטות שאפשר לבדוק זמינות, לשריין ולהזמין לבד בכל שעה (סטודיו: כפתור הזמנת הסטודיו · אביזרים: כפתור קטלוג האביזרים), או פשוט לשוחח עם סוויטבוט בצ׳אט שבודק זמינות אמיתית ומבצע את ההזמנה בקלות. אסור להבטיח זמינות, מחיר או אישור שלא ידועים, ואסור להמציא עובדות. אסור להתחייב שמיכל תחזור אליה (ההסבר מתחת כבר אומר שאם יהיה צורך היא תחזור). בלי הצהרת בוט ובלי הסתייגות, בלי חתימה"}`,
     },
     45_000,
   );
@@ -719,6 +726,7 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
             brand,
             headers: replyHeaders,
             photo: brand === "photographer",
+            topic: a.topic,
           });
         } catch (e: any) {
           result.errors.push(`מענה אוטומטי: ${String(e?.message ?? e).slice(0, 120)}`);

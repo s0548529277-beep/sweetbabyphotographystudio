@@ -1,3 +1,4 @@
+import { heartImg } from "@/lib/email-hearts";
 import { ARRIVAL_TEXT_HE } from "@/lib/arrival";
 import { hebrewDate } from "@/lib/hebrew-date";
 import { emailThumbUrl } from "@/lib/media-url";
@@ -44,7 +45,7 @@ export function buildCashbackEarnedHtml(amount: number): string {
     <p style="margin:0 0 4px;font-size:26px;line-height:1">🎉✨🎊</p>
     <p style="margin:0 0 2px;color:#6b4f1d;font-size:14px;font-weight:600">צברת קאשבק!</p>
     <p style="margin:0;color:#8a5a12;font-size:32px;font-weight:800;letter-spacing:0.5px">₪${amount.toFixed(0)}</p>
-    <p style="margin:6px 0 0;color:#6b8a63;font-size:13px">מההזמנה הזו — זמין לשימוש בהזמנה הבאה שלך 💗</p>
+    <p style="margin:6px 0 0;color:#6b8a63;font-size:13px">מההזמנה הזו — זמין לשימוש בהזמנה הבאה שלך ${heartImg("bot")}</p>
   </div>`;
 }
 
@@ -229,7 +230,7 @@ export function pillButton(href: string, label: string, primary = false): string
 export function buildChatButtonHtml(opts: { kind: ChatLinkKind; id?: string | null; date?: string | null }): string {
   const url = chatLinkUrl(opts.kind, opts.id, opts.date);
   return `<div style="text-align:center;margin:22px 0 6px">
-      <p style="margin:0 0 8px;color:#2d3d2b;font-size:15px">צריכה לשנות, להוסיף או לשאול משהו? נועה, הבוט של הסטודיו, עוזרת בכל שלב 💗</p>
+      <p style="margin:0 0 8px;color:#2d3d2b;font-size:15px">צריכה לשנות, להוסיף או לשאול משהו? נועה, הבוט של הסטודיו, עוזרת בכל שלב ${heartImg("bot")}</p>
       ${pillButton(url, "להמשיך בצ׳אט 💬", true)}
     </div>`;
 }

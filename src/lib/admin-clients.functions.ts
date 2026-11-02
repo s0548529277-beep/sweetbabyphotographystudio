@@ -1,3 +1,4 @@
+import { heartImg, withEmailHearts } from "@/lib/email-hearts";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -156,7 +157,7 @@ export const grantManualCredit = createServerFn({ method: "POST" })
               <p style="margin:0 0 4px;font-size:26px;line-height:1">🎁✨🎊</p>
               <p style="margin:0 0 2px;color:#6b4f1d;font-size:14px;font-weight:600">קיבלת זיכוי מהסטודיו!</p>
               <p style="margin:0;color:#8a5a12;font-size:32px;font-weight:800;letter-spacing:0.5px">₪${data.amount.toFixed(0)}</p>
-              <p style="margin:6px 0 0;color:#6b8a63;font-size:13px">יתרת הקרדיט שלך כעת: ₪${creditBalance.toFixed(0)} — זמין לשימוש בהזמנה הבאה שלך 💗</p>
+              <p style="margin:6px 0 0;color:#6b8a63;font-size:13px">יתרת הקרדיט שלך כעת: ₪${creditBalance.toFixed(0)} — זמין לשימוש בהזמנה הבאה שלך ${heartImg("bot")}</p>
             </div>
           </div>`;
           await sendGmail({ to: customerEmail, subject: "קיבלת זיכוי מסטודיו Sweetbaby 🎁", html });

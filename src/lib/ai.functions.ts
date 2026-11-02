@@ -134,7 +134,7 @@ const WEB_CHAT_RULES = `
 - "האזור האישי / ההזמנות שלי / כמה קרדיט יש לי" — get_my_account. לא מחוברת → כפתור התחברות (/auth).
 - הזמנת אביזרים: מוסיפים לעגלה מהכרטיסים ואז כפתור /cart לסיום. שריון סטודיו: כמו קודם (create_studio_booking או כפתור /booking).
 - "תשלחי הודעה למיכל/לסטודיו" — נסחי איתה את ההודעה, קבלי שם + טלפון/אימייל, ואז send_message_to_studio.
-- הזמנה דרך הצ׳אט (הלקוחה לחצה על "לקבוע את הסטודיו" / "לקבוע צילומים עם מיכל" / "להזמין אביזרים" או כתבה שהיא רוצה להזמין): היי יוזמת ומובילה — שאלה אחת קצרה בכל פעם, בלי להציף. סטודיו: תאריך ושעה/משך → check_studio_availability + quote_studio_price → הצעת השריון (create_studio_booking אחרי כל התנאים, או כפתור /booking). צילומים עם מיכל: סוג הצילום ותאריך רצוי → get_photography_service_info → כפתור /studio-photography או send_message_to_studio. אביזרים: מה היא מחפשת ובאילו תאריכים → search_catalog / check_prop_availability → הוספה לעגלה → כפתור /cart. בסוף כל שלב הציעי את הצעד הבא עם show_buttons, ובקלילות הזכירי שאפשר לסיים את כל ההזמנה איתך. אם היא באמצע הזמנה ולא ברור לה משהו — עזרי להשלים אותה, אל תפני אותה להתחיל מחדש.
+- הזמנה דרך הצ׳אט (הלקוחה לחצה על "לקבוע את הסטודיו" / "לקבוע צילומים עם מיכל" / "להזמין אביזרים" או כתבה שהיא רוצה להזמין): היי יוזמת ומובילה — שאלה אחת קצרה בכל פעם, בלי להציף. סטודיו: תאריך ושעה/משך → check_studio_availability + quote_studio_price → הצעת השריון (create_studio_booking אחרי כל התנאים, או כפתור /booking). צילומים עם מיכל: סוג הצילום ותאריך רצוי → get_photography_service_info → כפתור /studio-photography או send_message_to_studio. אביזרים: מה היא מחפשת ובאילו תאריכים → search_catalog / check_prop_availability → סיכום קצר (פריטים, כמויות, תאריכים, מחיר משוער) ובקשת אישור + שם וטלפון → create_props_order (רק למחוברת עם חשבון אמיתי; אורחת — להציע להתחבר /auth או להוסיף לעגלה → /cart) → כפתור התשלום מוצג אוטומטית. בסוף כל שלב הציעי את הצעד הבא עם show_buttons, ובקלילות הזכירי שאפשר לסיים את כל ההזמנה איתך. אם היא באמצע הזמנה ולא ברור לה משהו — עזרי להשלים אותה, אל תפני אותה להתחיל מחדש.
 - הודעה שפותחת במילים "אני כותבת בקשר להזמנת הסטודיו/האביזרים #XXXXXXXX" הגיעה מכפתור "להמשיך בצ׳אט" במייל: אם היא מחוברת — get_my_account ומצאי את ההזמנה לפי המספר; אם לא — בקשי להתחבר (/auth) או את שם וטלפון. אל תמציאי פרטי הזמנה. "הוראות הגעה" → get_arrival_directions. "שינוי מועד" → שאלי לאיזה תאריך/שעה, בדקי זמינות אמיתית ב-check_studio_availability, ואז send_message_to_studio עם מספר ההזמנה והמועד החדש המבוקש (השינוי נקבע רק אחרי אישור של מיכל — אל תבטיחי אותו). "להוסיף אביזרים" → search_catalog + check_prop_availability לתאריך ההזמנה והוספה לעגלה.
 - קישורים: כל הפניה לעמוד באתר כתבי תמיד כקישור Markdown עם שם ברור, למשל [לקטלוג האביזרים](/rental-catalog) — לעולם לא נתיב חשוף כמו /rental-catalog לבד.`;
 
@@ -169,6 +169,13 @@ export async function buildChatUi(steps: any[]): Promise<ChatUi> {
       }
     }
     for (const r of st.toolResults ?? []) {
+      // A booking / props order the bot just created: always give the customer the payment button.
+      if (r.toolName === "create_props_order" || r.toolName === "create_studio_booking") {
+        const out = r.output ?? r.result ?? {};
+        const pay = String(out.payPath ?? "");
+        if (out.ok && /^\/deposit\/(booking|order)\/[0-9a-f-]{36}$/.test(pay) && !ui.buttons.some((b) => b.href === pay))
+          ui.buttons.unshift({ label: "לתשלום המקדמה", href: pay });
+      }
       if (r.toolName === "show_gallery_photos") {
         const out = r.output ?? r.result ?? {};
         for (const photo of out.photos ?? []) {

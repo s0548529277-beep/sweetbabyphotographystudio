@@ -9,6 +9,7 @@
 
 import michalWordmark from "@/assets/michal-logo-wordmark.png";
 import sweetbabyLogo from "@/assets/logo-green-hero.png";
+import { heartImg, withEmailHearts, type HeartKind } from "@/lib/email-hearts";
 import michalAnimatedAsset from "@/assets/michal-logo-animated-v2.gif.asset.json";
 
 // Absolute URLs — email clients can't resolve relative/build-hashed paths
@@ -226,6 +227,8 @@ export function buildDraftHtml(opts: {
 }): string {
   const t = THEMES[opts.brand];
   const sig = SIGNATURES[opts.brand];
+  // Michal's own heart for every photographer mail, the bot's colourful heart for the rest.
+  const heartKind: HeartKind = opts.brand === "photographer" ? "michal" : "bot";
   const logo = (h: number, animated = false) =>
     opts.brand === "photographer"
       ? `<img src="${animated ? MICHAL_ANIMATED_LOGO_URL : MICHAL_LOGO_URL}" alt="מיכל סיבוני" height="${h}" style="height:${h}px;width:auto;border:0">`
@@ -242,7 +245,7 @@ export function buildDraftHtml(opts: {
   const heart =
     opts.brand === "general"
       ? ""
-      : `<tr><td style="padding:6px 28px 0"><div style="border-top:1px solid ${t.soft}55;text-align:center;line-height:0"><span style="position:relative;top:-1px;background:${t.cardBg};padding:0 10px;color:${t.accent};font-size:12px;line-height:1">♥</span></div></td></tr>`;
+      : `<tr><td style="padding:6px 28px 0"><div style="border-top:1px solid ${t.soft}55;text-align:center;line-height:0"><span style="position:relative;top:-1px;background:${t.cardBg};padding:0 10px;color:${t.accent};font-size:12px;line-height:1">${heartImg(heartKind, 14)}</span></div></td></tr>`;
   const lists =
     opts.brand === "photographer" && opts.priceList && opts.priceList !== "none"
       ? (opts.priceList === "newborn" || opts.priceList === "both" ? priceBlock(NEWBORN, t) : "") +
@@ -259,7 +262,7 @@ export function buildDraftHtml(opts: {
     : "";
   const photos = opts.brand === "photographer" ? photoStrip(opts.photos ?? [], !!opts.bigPhotos) : "";
   const branded = opts.brand !== "general";
-  return `<div dir="rtl" style="background:${t.pageBg};padding:${branded ? "14px 0" : "24px 8px"}">
+  const html = `<div dir="rtl" style="background:${t.pageBg};padding:${branded ? "14px 0" : "24px 8px"}">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:${t.cardBg};${
     branded ? "border-radius:4px" : `border:1px solid ${t.border};border-radius:16px`
   };overflow:hidden;font-family:${FONT};color:${t.text};direction:rtl;text-align:right">
@@ -287,6 +290,7 @@ export function buildDraftHtml(opts: {
     </td></tr>
   </table>
 </div>`;
+  return withEmailHearts(html, heartKind, 14);
 }
 
 /** Plain-text twin of the draft (for the text/plain part). */

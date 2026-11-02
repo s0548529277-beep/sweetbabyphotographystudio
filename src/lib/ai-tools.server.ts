@@ -440,6 +440,7 @@ ${!opts?.isAuthenticated ? "הלקוחה הנוכחית היא אורחת/לא �
           return {
             ok: true,
             bookingId: res.id,
+            payPath: `/deposit/booking/${res.id}`,
             price: res.price,
             deposit: res.deposit,
             message:
@@ -449,6 +450,86 @@ ${!opts?.isAuthenticated ? "הלקוחה הנוכחית היא אורחת/לא �
           return {
             ok: false,
             message: `יצירת השריון נכשלה: ${e?.message ?? "שגיאה לא צפויה"}. אפשר להציע ללקוחה לנסות ישירות דרך /booking, או להפנות אותה ליצירת קשר עם הסטודיו.`,
+          };
+        }
+      },
+    }),
+
+    create_props_order: tool({
+      description: `יוצרת הזמנת השכרת אביזרים אמיתית (לא רק בדיקה!) עבור לקוחה עם חשבון אישי אמיתי, בלי שתצטרך לעבור בעצמה על העגלה והקופה. חובה לפני הקריאה:
+1. לאתר את הפריטים עם search_catalog ולבדוק זמינות אמיתית בתאריכים עם check_prop_availability — רק פריטים פנויים נכנסים להזמנה.
+2. לקבל בפירוש: תאריך איסוף (יום הצילום), תאריך החזרה, שם מלא וטלפון.
+3. להציג בהודעה בצ'אט סיכום: הפריטים, הכמויות, התאריכים והמחיר הכולל המשוער, ולקבל אישור מפורש ("כן, תזמיני") ואישור לתנאי ההשכרה והמקדמה (מקדמה לא מוחזרת בביטול; התנאים המלאים בעמוד התשלום).
+${!opts?.isAuthenticated ? "הלקוחה הנוכחית היא אורחת/לא מחוברת בחשבון אמיתי — אסור בהחלט לקרוא לכלי הזה; יש להסביר בעדינות שלהזמנה ישירה בצ'אט צריך להתחבר (/auth), או שאפשר להוסיף לעגלה ולהמשיך ב-/cart." : ""}
+ההזמנה נוצרת במצב 'ממתין' — עדיין דורשת תשלום מקדמה כדי להתאשר, בדיוק כמו הזמנה רגילה; מיד אחרי היצירה הציגי כפתור תשלום.`,
+      inputSchema: z.object({
+        lines: z
+          .array(z.object({ sku: z.string().min(1).describe("מק״ט מתוצאות הכלים"), quantity: z.number().int().min(1).max(10).default(1) }))
+          .min(1)
+          .max(20),
+        pickupDate: z.string().describe("YYYY-MM-DD — יום הצילום / האיסוף"),
+        returnDate: z.string().describe("YYYY-MM-DD — יום ההחזרה (אותו יום או מאוחר יותר)"),
+        contactName: z.string().min(2).max(120),
+        contactPhone: z.string().min(5).max(40),
+        notes: z.string().max(500).optional(),
+        termsAccepted: z.boolean().describe("true רק אם הלקוחה אישרה בפירוש בצ'אט את הסיכום, התנאים והמקדמה"),
+      }),
+      execute: async (args) => {
+        if (!opts?.isAuthenticated) {
+          return { ok: false, message: "הלקוחה אורחת / לא מחוברת בחשבון אמיתי — אי אפשר ליצור עבורה הזמנה דרך הצ'אט. הציעי להתחבר (/auth) או להוסיף לעגלה (/cart)." };
+        }
+        if (!args.termsAccepted) {
+          return { ok: false, message: "חסר אישור מפורש מהלקוחה לסיכום, לתנאים ולמקדמה — יש לבקש קודם, לא ליצור הזמנה בלעדיו." };
+        }
+        const today = israelNow().date;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(args.pickupDate) || !/^\d{4}-\d{2}-\d{2}$/.test(args.returnDate) || args.pickupDate < today || args.returnDate < args.pickupDate) {
+          return { ok: false, message: "התאריכים לא תקינים (איסוף לא בעבר, והחזרה לא לפני האיסוף) — בקשי תאריכים מתוקנים." };
+        }
+        try {
+          const skus = Array.from(new Set(args.lines.map((l) => l.sku)));
+          const avail = await propsAvailability(skus, args.pickupDate, args.returnDate);
+          const availBySku = new Map(avail.map((r) => [r.sku, r]));
+          const unavailable = args.lines.filter((l) => (availBySku.get(l.sku)?.available ?? 0) < l.quantity);
+          if (unavailable.length) {
+            return {
+              ok: false,
+              message: `לא זמינים בתאריכים האלה (או בכמות המבוקשת): ${unavailable.map((l) => availBySku.get(l.sku)?.name ?? l.sku).join(", ")}. הציעי תאריך אחר או חלופה מהקטלוג — לא ליצור הזמנה חלקית בלי אישור הלקוחה.`,
+            };
+          }
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { data: rows, error } = await supabaseAdmin.from("items").select("id, name, sku, price").in("sku", skus);
+          if (error) throw new Error(error.message);
+          const bySku = new Map((rows ?? []).map((r: any) => [r.sku, r]));
+          const lines = args.lines.map((l) => {
+            const it: any = bySku.get(l.sku);
+            if (!it) throw new Error(`פריט לא נמצא: ${l.sku}`);
+            return { id: it.id, name: it.name, sku: it.sku, price: Number(it.price), quantity: l.quantity };
+          });
+          const { placeOrder } = await import("./orders.functions");
+          const res = await placeOrder({
+            data: {
+              lines,
+              session_date: args.pickupDate,
+              return_date: args.returnDate,
+              contact_name: args.contactName,
+              contact_phone: args.contactPhone,
+              notes: [args.notes, "הזמנה שבוצעה דרך הצ'אט באתר"].filter(Boolean).join("\n"),
+              terms_accepted: true,
+            },
+          });
+          return {
+            ok: true,
+            orderId: res.id,
+            total: res.total,
+            deposit: res.deposit,
+            payPath: `/deposit/order/${res.id}`,
+            message:
+              "ההזמנה נוצרה במצב ממתין לתשלום מקדמה. כפתור 'לתשלום המקדמה' מוצג ללקוחה אוטומטית — הסבירי בקצרה שההזמנה תאושר סופית רק אחרי התשלום (הפריטים שמורים לה לזמן קצר), ושנשלח אליה מייל סיכום.",
+          };
+        } catch (e: any) {
+          return {
+            ok: false,
+            message: `יצירת ההזמנה נכשלה: ${e?.message ?? "שגיאה לא צפויה"}. אפשר להציע ללקוחה להוסיף לעגלה ולהשלים ב-/cart, או לשלוח הודעה לסטודיו.`,
           };
         }
       },

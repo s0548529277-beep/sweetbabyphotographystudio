@@ -61,7 +61,7 @@ function buildVoiceTools(callerPhone: string) {
   // never to call it here. Voice has its own equivalent, create_phone_booking
   // below. Dropping it saves its ~1,450-character description on every
   // single voice turn for a tool that could never fire anyway.
-  const { create_studio_booking: _unused, ...base } = buildAssistantTools({ isAuthenticated: false });
+  const { create_studio_booking: _unused, create_props_order: _unusedProps, ...base } = buildAssistantTools({ isAuthenticated: false });
   return {
     ...base,
     create_phone_booking: tool({

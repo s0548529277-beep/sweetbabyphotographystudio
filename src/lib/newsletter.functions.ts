@@ -1,3 +1,4 @@
+import { heartImg, withEmailHearts } from "@/lib/email-hearts";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -72,7 +73,7 @@ async function sendWelcomeEmail(email: string, coupon: IssuedCoupon | null) {
        </div>`
     : "";
   const html = `<div dir="rtl" style="font-family:sans-serif;color:#2d3d2b;max-width:520px;margin:0 auto">
-    <h2>ברוכה הבאה למשפחת Sweetbaby! 💗</h2>
+    <h2>ברוכה הבאה למשפחת Sweetbaby! ${heartImg("bot", 18)}</h2>
     <p>שמחות שהצטרפת לניוזלטר שלנו — עדכונים, מבצעים והשראה לצילומים ישירות אלייך.</p>
     ${codeBlock}
     <p style="font-size:13px;color:#6b5b53">אפשר להשתמש בקוד בהשכרת סטודיו או בהשכרת אביזרים, בעמוד התשלום.</p>

@@ -1,3 +1,4 @@
+import { heartImg } from "@/lib/email-hearts";
 /**
  * Two customer follow-up emails (owner request 2026-11-02), run from the
  * existing cron route (/api/send-booking-reminders):
@@ -120,7 +121,7 @@ export async function runDuePostSessionThanks(): Promise<{ checked: number; sent
       if (to) {
         const name = esc(b.contact_name || "");
         const html = `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:600px;margin:auto;line-height:1.7">
-          <h2 style="color:#2d3d2b">תודה שהיית אצלנו 💗</h2>
+          <h2 style="color:#2d3d2b">תודה שהיית אצלנו ${heartImg("bot", 18)}</h2>
           <p>שלום ${name},</p>
           <p>היה לנו כיף לארח אותך בסטודיו Sweetbaby ב${esc(dateHe(b.session_date))}. מקווים שהצילומים יצאו מושלמים!</p>
           <p>${
@@ -183,7 +184,7 @@ export async function runDueUnfinishedBookingFollowUps(): Promise<{ checked: num
       if (to) {
         const name = esc(b.contact_name || "");
         const html = `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:560px;margin:auto;line-height:1.7">
-          <h2 style="color:#2d3d2b">ההזמנה שלך בסטודיו עדיין מחכה 💗</h2>
+          <h2 style="color:#2d3d2b">ההזמנה שלך בסטודיו עדיין מחכה ${heartImg("bot", 18)}</h2>
           <p>שלום ${name},</p>
           <p>בחרת מועד בסטודיו Sweetbaby ל${esc(dateHe(b.session_date))} בשעה ${esc(String(b.start_time).slice(0, 5))}, ורק רצינו לבדוק שלא נתקעת באמצע — אין שום התחייבות.</p>
           <p>אפשר להמשיך מאותו מקום, או לכתוב לנועה בצ׳אט — היא תבדוק שהמועד עדיין פנוי, תעזור לבחור מועד אחר ותסגור איתך את ההזמנה בקלות.</p>
