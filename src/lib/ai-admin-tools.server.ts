@@ -90,8 +90,11 @@ export function buildAdminChatTools() {
           const digits = q.replace(/\D/g, "");
           const byPhone = digits.length >= 4;
           const none = Promise.resolve({ data: [] as any[] });
+          // A failed query must not look like "nothing found" — remember the first error and report it.
+          let queryError: string | null = null;
           const pick = (name: Promise<any>, phone: Promise<any>) =>
             Promise.all([name, phone]).then(([a, b]) => {
+              if (!queryError && (a?.error || b?.error)) queryError = String((a?.error ?? b?.error)?.message ?? "query failed");
               const seen = new Set<string>();
               return [...(a.data ?? []), ...(b.data ?? [])].filter((r: any) => (seen.has(r.id) ? false : (seen.add(r.id), true)));
             });
@@ -106,10 +109,12 @@ export function buildAdminChatTools() {
             latest("newborn_package_orders", "id, session_date, total_price, amount_paid, contact_name, contact_phone, contact_email, created_at", "contact_name", "contact_phone"),
             latest("inquiry_leads", "id, name, email, phone, topic, status, last_contact_at, created_at", "name", "phone"),
           ]);
+          if (queryError) return { error: true, message: queryError };
           const orderIds = orders.map((o: any) => o.id);
           const itemsRes = orderIds.length
             ? await db.from("order_items").select("order_id, item_name, quantity, price").in("order_id", orderIds)
             : { data: [] };
+          if (itemsRes.error) return { error: true, message: String(itemsRes.error.message ?? "items query failed") };
           const itemsByOrder = new Map<string, any[]>();
           for (const it of itemsRes.data ?? []) {
             const arr = itemsByOrder.get(it.order_id) ?? [];
