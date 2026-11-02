@@ -48,21 +48,25 @@ import { PropInspirationImage } from "@/components/PropInspirationImage";
 import { mergedInspiration, useItemInspiration } from "@/lib/item-inspiration";
 import { PAGE_IMAGE_KEYS, usePageGalleryWithAspect } from "@/lib/page-images";
 import { useCatalogCategories, type CatalogCategory, type CatalogItem } from "@/lib/catalog";
-import { makeHebrewMatcher } from "@/lib/hebrew-search";
+import {
+  THEME_TOPICS,
+  makeHebrewMatcher,
+  makeTopicMatcher,
+  relevanceScore,
+  suggestQuery,
+} from "@/lib/hebrew-search";
 
 type Item = CatalogItem;
 type Category = CatalogCategory;
 
-// Theme-filter chips: the catalog has no curated tags field, so this matches
-// a keyword heuristic against each item's own name/category text instead of
-// pretending to a precise tagging system that doesn't exist.
-const THEME_TAGS: { label: string; keywords: string[] }[] = [
-  { label: "סמאש קייק", keywords: ["סמאש", "smash", "קייק", "עוגה", "עוגת"] },
-  { label: "חלאקה", keywords: ["חלאקה", "תספורת"] },
-  { label: "ניו-בורן בנים", keywords: ["תכלת", "כחול", " בן ", "בנים"] },
-  { label: "ניו-בורן בנות", keywords: ["ורוד", "פרחוני", "פרח", " בת ", "בנות"] },
-  { label: "עץ טבעי וכפרי", keywords: ["עץ", "עצי", "טבעי", "כפרי", "רטרו"] },
-];
+// Theme-filter chips come from the shared TOPICS list in hebrew-search.ts (the
+// same keywords the typed search and the chat bot use). The catalog has no
+// curated tags field, so a topic matches keywords that really appear in item
+// names / categories.
+
+function resultCountOf(groups: { items: unknown[] }[]): number {
+  return groups.reduce((n, c) => n + c.items.length, 0);
+}
 
 function RentalCatalogPage() {
   // Live catalog — admin edits (name/price/category/image) show up here.
@@ -163,14 +167,14 @@ function RentalCatalogPage() {
     }
   }, [dateFrom, dateTo, timeFrom, timeTo]);
 
-  const activeThemeKeywords = useMemo(
-    () => THEME_TAGS.find((t) => t.label === activeTheme)?.keywords ?? null,
+  const activeThemeMatch = useMemo(
+    () => (activeTheme ? makeTopicMatcher(activeTheme) : null),
     [activeTheme],
   );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const searching = !!aiSkus || !!q;
+    const searching = !!aiSkus || !!q || !!activeThemeMatch;
     const matches = makeHebrewMatcher(q);
     return (
       categories
@@ -181,11 +185,8 @@ function RentalCatalogPage() {
           ...c,
           items: c.items.filter((it) => {
             if (it.hasHand) return false;
-            if (activeThemeKeywords) {
-              const hayTheme = ` ${it.sku} ${it.name} ${it.alt} ${c.title} `.toLowerCase();
-              if (!activeThemeKeywords.some((kw) => hayTheme.includes(kw.toLowerCase())))
-                return false;
-            }
+            if (activeThemeMatch && !activeThemeMatch(`${it.name} ${it.alt} ${c.title}`))
+              return false;
             if (aiSkus?.has(it.sku)) return true;
             if (aiSkus && !q) return false;
             if (!q) return true;
@@ -193,9 +194,32 @@ function RentalCatalogPage() {
             return matches(`${it.name} ${it.alt} ${c.title}`);
           }),
         }))
+        // Best matches first inside each category (name hit before description hit).
+        .map((c) =>
+          q && !aiSkus
+            ? {
+                ...c,
+                items: [...c.items].sort(
+                  (a, b) =>
+                    relevanceScore(q, `${b.name}`, `${b.alt} ${c.title}`) -
+                    relevanceScore(q, `${a.name}`, `${a.alt} ${c.title}`),
+                ),
+              }
+            : c,
+        )
         .filter((c) => c.items.length > 0)
     );
-  }, [query, aiSkus, activeCat, activeThemeKeywords, categories]);
+  }, [query, aiSkus, activeCat, activeThemeMatch, categories]);
+
+  // "Did you mean…?" when a typed search finds nothing.
+  const didYouMean = useMemo(() => {
+    const q = query.trim();
+    if (!q || aiSkus || resultCountOf(filtered) > 0) return null;
+    return suggestQuery(
+      q,
+      categories.flatMap((c) => [c.title, ...c.items.map((i) => `${i.name} ${i.alt}`)]),
+    );
+  }, [query, aiSkus, filtered, categories]);
 
   const resultCount = useMemo(() => filtered.reduce((n, c) => n + c.items.length, 0), [filtered]);
 
@@ -413,11 +437,48 @@ function RentalCatalogPage() {
                   </button>
                 )}
               </div>
-              {(aiSkus || query.trim()) && (
+              {(aiSkus || query.trim() || activeTheme) && (
                 <div className="mt-3 text-xs text-forest/70">
                   {resultCount > 0
                     ? `${aiSkus ? "✨ תוצאות חיפוש חכם" : "תוצאות חיפוש"}: ${resultCount} פריטים`
-                    : "לא נמצאו אביזרים מתאימים — נסי מילה אחרת."}
+                    : "לא נמצאו אביזרים מתאימים."}
+                  {resultCount === 0 && didYouMean && (
+                    <>
+                      {" "}
+                      התכוונת ל
+                      <button
+                        type="button"
+                        className="underline font-medium text-primary mx-1"
+                        onClick={() => setQuery(didYouMean)}
+                      >
+                        {didYouMean}
+                      </button>
+                      ?
+                    </>
+                  )}
+                  {resultCount === 0 && (
+                    <>
+                      {" "}
+                      {query.trim() && (
+                        <button
+                          type="button"
+                          className="underline mx-1"
+                          onClick={doAiSearch}
+                        >
+                          נסי חיפוש חכם
+                        </button>
+                      )}
+                      {activeTheme && (
+                        <button
+                          type="button"
+                          className="underline mx-1"
+                          onClick={() => setActiveTheme(null)}
+                        >
+                          הסירי את סינון הסגנון
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
 
@@ -440,11 +501,14 @@ function RentalCatalogPage() {
               {/* Theme chips — keyword-based, not a curated tag field */}
               <div className="flex flex-wrap gap-2 mt-2">
                 <span className="text-xs text-muted-foreground self-center ml-1">לפי סגנון:</span>
-                {THEME_TAGS.map((t) => (
+                {THEME_TOPICS.map((t) => (
                   <Chip
                     key={t.label}
                     active={activeTheme === t.label}
-                    onClick={() => setActiveTheme((cur) => (cur === t.label ? null : t.label))}
+                    onClick={() => {
+                      setActiveTheme((cur) => (cur === t.label ? null : t.label));
+                      setActiveCat("all");
+                    }}
                   >
                     {t.label}
                   </Chip>
