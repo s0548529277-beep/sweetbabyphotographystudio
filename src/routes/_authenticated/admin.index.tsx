@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { listAdminNotifications } from "@/lib/admin-notifications.functions";
+import { DraftsStatusTile } from "@/components/DraftsStatusTile";
 import { TYPE_LABELS, TYPE_ICONS } from "@/routes/_authenticated/admin.notifications";
 import { Package, ShoppingBag, CalendarDays, TrendingUp, Bell, Sun, PackageOpen, PackageCheck, Wallet, Baby, Home } from "lucide-react";
 
@@ -133,6 +134,7 @@ function Overview() {
 
   return (
     <div className="space-y-8">
+      <DraftsStatusTile />
       <IncomeSummary />
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {cards.map((c) => (

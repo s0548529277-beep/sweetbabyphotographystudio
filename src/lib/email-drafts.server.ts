@@ -881,6 +881,22 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
 
   seen.ids = seen.ids.slice(-500);
   await setSetting(db, SEEN_KEY, JSON.stringify(seen));
+
+  // Running per-day totals (Israel date) for the admin "drafts" indicator tile.
+  const dayKey = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
+  let todayCreated = 0;
+  let todayAutoSent = 0;
+  try {
+    const prevRaw = await getSetting(db, STATUS_KEY);
+    const prev = prevRaw ? JSON.parse(prevRaw) : null;
+    if (prev?.today?.date === dayKey) {
+      todayCreated = Number(prev.today.created) || 0;
+      todayAutoSent = Number(prev.today.autoSent) || 0;
+    }
+  } catch {
+    /* start the day's counters from zero */
+  }
+  const runAutoSent = result.created.filter((c) => c.autoSent).length;
   await setSetting(
     db,
     STATUS_KEY,
@@ -889,10 +905,11 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
       account: acc.email,
       accounts,
       created: result.created.length,
-      autoSent: result.created.filter((c) => c.autoSent).length,
+      autoSent: runAutoSent,
       cleaned: result.cleaned ?? 0,
       skipped: result.skipped,
       errors: result.errors,
+      today: { date: dayKey, created: todayCreated + result.created.length, autoSent: todayAutoSent + runAutoSent },
     }),
   );
 
