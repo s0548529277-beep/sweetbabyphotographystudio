@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { stepCountIs } from "ai";
 import { z } from "zod";
-import { generateTextLovable, generateTextResilient } from "./ai-gateway.server";
+import { generateTextLovable, generateTextResilient, wordAnswerFromToolResults } from "./ai-gateway.server";
 import { buildAssistantTools, buildWebChatTools, CHAT_BUTTON_PATHS } from "./ai-tools.server";
 import catalogData from "@/data/studio-catalog.json";
 
@@ -435,14 +435,18 @@ export const chatWithBot = createServerFn({ method: "POST" })
       tools: turn.tools,
       stopWhen: stepCountIs(turn.maxSteps),
     });
+    let text = result.text;
+    if (!text.trim()) {
+      text = await wordAnswerFromToolResults(turn.system, data.messages, (result as any).response?.messages ?? []);
+    }
     const ui = await finishChatTurn({
       data,
-      text: result.text,
+      text,
       steps: result.steps ?? [],
       isAdmin: turn.isAdmin,
       realUserId: turn.realUserId,
     });
-    return { reply: result.text, ui, isAdmin: turn.isAdmin };
+    return { reply: text || "…", ui, isAdmin: turn.isAdmin };
   });
 
 const SearchInput = z.object({ query: z.string().min(1).max(200) });

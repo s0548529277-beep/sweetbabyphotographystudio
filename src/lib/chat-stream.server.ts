@@ -1,6 +1,6 @@
 import { stepCountIs, streamText } from "ai";
 import { ChatInput, finishChatTurn, prepareChatTurn } from "./ai.functions";
-import { generateTextLovable, getLovableChatModel, LOVABLE_CHAT_PROVIDER_OPTIONS } from "./ai-gateway.server";
+import { generateTextLovable, getLovableChatModel, LOVABLE_CHAT_PROVIDER_OPTIONS, wordAnswerFromToolResults } from "./ai-gateway.server";
 
 /**
  * Streaming version of the site chat (2026-11-02, owner request: "show the
@@ -85,6 +85,17 @@ export async function handleChatStream(request: Request): Promise<Response> {
               text = stepText;
               steps = (await result.steps) as any[];
               streamed = true;
+            } else if (!failed) {
+              // Tools ran but the last step had no text: word the answer from their results instead of re-running them.
+              steps = (await result.steps) as any[];
+              const respMessages = ((await result.response) as any)?.messages ?? [];
+              const worded = await wordAnswerFromToolResults(turn.system, data.messages, respMessages);
+              if (worded.trim()) {
+                send({ t: "r" });
+                send({ t: "d", v: worded });
+                text = worded;
+                streamed = true;
+              }
             }
           } catch (e) {
             console.error("[SWEETBABY] chat stream failed, falling back to non-streaming", e);

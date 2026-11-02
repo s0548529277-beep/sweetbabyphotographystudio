@@ -307,6 +307,33 @@ export async function generateTextLovable(options: GenerateTextOptionsNoModel, t
   }
 }
 
+/**
+ * Site chat: a tool-using turn sometimes ends with a model step that has NO text (found in a live simulation
+ * 2026-11-02: 4 of 7 tool turns showed "…"). Instead of re-running the whole turn (and its tools), ask the
+ * model once, without tools, to word the answer from the tool results it already has.
+ */
+export async function wordAnswerFromToolResults(
+  system: string,
+  messages: any[],
+  responseMessages: any[],
+): Promise<string> {
+  if (!responseMessages?.length) return "";
+  try {
+    const r = await generateTextLovable({
+      system,
+      messages: [
+        ...messages,
+        ...responseMessages,
+        { role: "user", content: "נסחי עכשיו ללקוחה תשובה קצרה וברורה על סמך התוצאות שקיבלת מהכלים (בלי לקרוא לכלים שוב)." },
+      ],
+    });
+    return r.text ?? "";
+  } catch (e) {
+    console.error("[SWEETBABY] wordAnswerFromToolResults failed", e);
+    return "";
+  }
+}
+
 export async function generateTextResilient(options: GenerateTextOptionsNoModel, timeoutMs = DEFAULT_TIMEOUT_MS) {
   const geminiKeys = collectGeminiKeys();
   const groqKey = process.env.GROQ_API_KEY;
