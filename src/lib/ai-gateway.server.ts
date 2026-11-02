@@ -92,7 +92,17 @@ const DEFAULT_TIMEOUT_MS = 25_000;
 // real failover or recovery — drops a one-line note in admin_notifications.
 // Never awaited by the caller in a way that could slow the response down
 // meaningfully (one small upsert), and never throws.
+//
+// 2026-11-02 speed fix: this used to run 2-3 sequential DB round trips AFTER
+// EVERY AI reply, before the answer was returned to the customer. The status
+// only changes on a real failover, so skip the DB entirely when this isolate
+// already recorded the same provider/model in the last 5 minutes.
+const PROVIDER_RECORD_TTL_MS = 5 * 60_000;
+let lastRecordedProvider: { key: string; at: number } | null = null;
 async function recordProviderUsed(provider: string, model: string): Promise<void> {
+  const recordKey = `${provider}/${model}`;
+  if (lastRecordedProvider && lastRecordedProvider.key === recordKey && Date.now() - lastRecordedProvider.at < PROVIDER_RECORD_TTL_MS) return;
+  lastRecordedProvider = { key: recordKey, at: Date.now() };
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: prev } = await (supabaseAdmin.from("ai_provider_status") as any).select("provider, model").eq("id", true).maybeSingle();
@@ -252,6 +262,16 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel,
   // worth the latency cost, so back to a single known-working candidate.
   const DIRECT_GEMINI_MODEL_CANDIDATES = ["gemini-3-flash-preview"];
 
+  // 2026-11-02 speed fix: gemini-3-flash-preview is a "thinking" model and
+  // defaults to a deep thinking level — every step of a tool loop (up to 8 on
+  // the site chat) paid for it, several seconds each. A booking/FAQ assistant
+  // doesn't need deep reasoning, so ask for "low" (the SDK's own typings in
+  // @ai-sdk/google 4.0.53 list: minimal | low | medium | high). Still a
+  // thinking model, so thought_signatures keep working on multi-step tool
+  // calls. If answers about availability/prices ever get worse, raise this to
+  // "medium" here — one place, all bots.
+  const GEMINI_THINKING_LEVEL = "low" as const;
+
   // The AI SDK retries a failed call internally by default (3 attempts with
   // backoff) — real logs showed this burning most of a 30s budget on a
   // single quota-exceeded error ("Please retry in 31.48s") before this
@@ -300,6 +320,10 @@ export async function generateTextResilient(options: GenerateTextOptionsNoModel,
             ...options,
             model: createDirectGeminiProvider(key)(modelId),
             abortSignal: controller.signal,
+            providerOptions: {
+              ...(options.providerOptions ?? {}),
+              google: { thinkingConfig: { thinkingLevel: GEMINI_THINKING_LEVEL }, ...((options.providerOptions as any)?.google ?? {}) },
+            },
             ...NO_INTERNAL_RETRY,
           } as GenerateTextOptions);
           return { modelId, result };

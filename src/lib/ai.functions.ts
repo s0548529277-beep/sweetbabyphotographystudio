@@ -243,15 +243,18 @@ export const chatWithBot = createServerFn({ method: "POST" })
     // The client's `isAuthenticated` flag is only used for tone/wording —
     // it's untrusted. Whether create_studio_booking is actually allowed to
     // run is decided below from the real, server-verified token.
-    const { userId: realUserId, isRealAccount } = await getRealAuthState(data.accessToken);
+    // 2026-11-02 speed fix: token check and the bot-knowledge DB read are
+    // independent — run them together instead of one after the other.
+    const { getBotKnowledgeText } = await import("./bot-knowledge.functions");
+    const [{ userId: realUserId, isRealAccount }, extraKnowledge] = await Promise.all([
+      getRealAuthState(data.accessToken),
+      getBotKnowledgeText(),
+    ]);
     const personalized = data.isAuthenticated
       ? `\n\nהמשתמשת מחוברת לחשבון${data.userName ? ` בשם ${data.userName}` : ""}. את יכולה לפנות אליה בשמה.`
       : `\n\nהמשתמשת לא מחוברת. לביצוע הזמנה בפועל הציעי לה להתחבר בעמוד /auth — אבל בדיקת זמינות אפשר לעשות גם בלי התחברות.`;
     const { israelNow } = await import("./availability.server");
     const now = israelNow();
-    const { getBotKnowledgeText } = await import("./bot-knowledge.functions");
-    const extraKnowledge = await getBotKnowledgeText();
-
     const toolRules = buildToolRules(now);
 
     // Admin mode (2026-10-27): decided from the real token + user_roles,
@@ -283,12 +286,17 @@ export const chatWithBot = createServerFn({ method: "POST" })
     });
     const text = result.text;
     const toolCalls = (result.steps ?? []).flatMap((st: any) => st.toolCalls ?? []);
-    const ui = await buildChatUi(result.steps ?? []);
+    // 2026-11-02 speed fix: product images lookup, the chat-log upsert and the
+    // "important chat" notification are independent DB calls that used to run
+    // one after another before the reply was returned — now they overlap.
+    const uiPromise = buildChatUi(result.steps ?? []);
+    let logPromise: Promise<void> = Promise.resolve();
 
     // Log the whole conversation so far (every visit, not just ones that
     // book something) — one upserted row per browser session, not one
     // insert per message.
     if (data.sessionId && !isAdmin) {
+      logPromise = (async () => {
       try {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         await supabaseAdmin.from("customer_chat_logs").upsert(
@@ -303,6 +311,7 @@ export const chatWithBot = createServerFn({ method: "POST" })
       } catch (e) {
         console.error("[SWEETBABY] chat log upsert failed", e);
       }
+      })();
 
       // Per explicit request: flag any conversation that went beyond a
       // generic FAQ-style question — a real tool call (checking a specific
@@ -339,6 +348,8 @@ export const chatWithBot = createServerFn({ method: "POST" })
       }
     }
 
+    await logPromise;
+    const ui = await uiPromise;
     return { reply: text, ui, isAdmin };
   });
 

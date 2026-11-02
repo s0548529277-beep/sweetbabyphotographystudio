@@ -518,3 +518,16 @@ survivors?"
   are not given to voice/WhatsApp; the ~12 admin tools + `ADMIN_CHAT_RULES`
   are spread in only for a verified admin, and the DB schema text is behind
   `admin_db_schema` instead of in the prompt.
+- **2026-11-02**: Owner reported site-chat/bot answers feel slow. Findings and
+  fixes (all in the shared gateway or the chat handler): (1) Gemini 3 flash is a
+  thinking model — default thinking level made every tool-loop step slow; the
+  direct Gemini call now passes `thinkingConfig.thinkingLevel: "low"` (valid
+  values checked in the installed @ai-sdk/google 4.0.53 typings, not guessed).
+  Raise to "medium" in `GEMINI_THINKING_LEVEL` if answer quality drops.
+  (2) `recordProviderUsed` ran 2-3 sequential DB calls after EVERY reply —
+  now throttled to once per 5 min per isolate. (3) `chatWithBot`: independent
+  pre-model reads (token check, bot knowledge) run in parallel; post-model
+  writes (image lookup, chat log, notification) overlap. **Pattern**: check
+  what runs *around* the model call (before and after), not just the call.
+  Still open: streaming the reply to the browser (biggest perceived-speed win,
+  needs client + server route changes — a night job).
