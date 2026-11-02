@@ -564,6 +564,30 @@ export type Database = {
         }
         Relationships: []
       }
+      catalog_search_misses: {
+        Row: {
+          first_seen: string
+          hits: number
+          last_seen: string
+          query_norm: string
+          query_sample: string
+        }
+        Insert: {
+          first_seen?: string
+          hits?: number
+          last_seen?: string
+          query_norm: string
+          query_sample: string
+        }
+        Update: {
+          first_seen?: string
+          hits?: number
+          last_seen?: string
+          query_norm?: string
+          query_sample?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -2838,6 +2862,7 @@ export type Database = {
         Args: { _from: string; _item_id: string; _to: string }
         Returns: number
       }
+      log_catalog_search_miss: { Args: { _query: string }; Returns: undefined }
       redeem_subscription_pass_entry: {
         Args: { p_pass_id: string; p_session_date: string }
         Returns: boolean
