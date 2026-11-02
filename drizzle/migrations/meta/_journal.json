@@ -197,6 +197,13 @@
       "when": 1793610728771,
       "tag": "0027_item_tags_search_misses",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1793620509395,
+      "tag": "0028_customer_carts",
+      "breakpoints": true
     }
   ]
 }

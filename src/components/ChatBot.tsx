@@ -49,6 +49,7 @@ type ChatUi = {
   buttons: Array<{ label: string; href: string }>;
   actions: Array<{ kind: "order_status" | "booking_status" | "lead_status"; id: string; status: string; summary: string }>;
   guestPrompt?: boolean;
+  cartAdds?: Array<{ sku: string; name: string; price: number; quantity: number; img: string | null }>;
 };
 type Msg = { role: "user" | "assistant"; content: string; ui?: ChatUi };
 
@@ -372,6 +373,12 @@ export function ChatBot() {
         userName,
         isAuthenticated: isAuth,
         sessionId,
+        cartLines: cart.lines.slice(0, 40).map((l) => ({
+          sku: String(l.sku).slice(0, 40),
+          name: String(l.name).slice(0, 120),
+          quantity: Math.max(1, Math.min(99, l.quantity)),
+          price: Number(l.price) || 0,
+        })),
       };
       // 2026-11-02: the answer appears while it is being written. If the
       // stream cannot be opened at all, fall back to the normal request.
@@ -391,6 +398,10 @@ export function ChatBot() {
         throw streamError;
       }
       if (!res) res = await chat({ data: payload });
+      // Items the bot added to the customer's cart: put them into her real cart now (once per reply).
+      for (const a of res.ui?.cartAdds ?? []) {
+        cart.add({ id: a.sku, sku: a.sku, name: a.name, price: a.price, image_url: a.img }, a.quantity);
+      }
       setMessages([...next, { role: "assistant", content: res.reply || "…", ui: res.ui }]);
     } catch (error) {
       console.error("[SWEETBABY] chat bot request failed", error);

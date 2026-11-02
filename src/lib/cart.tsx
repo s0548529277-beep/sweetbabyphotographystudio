@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export type CartLine = {
@@ -18,7 +18,7 @@ export type AppliedCoupon = {
 
 type CartContextValue = {
   lines: CartLine[];
-  add: (line: Omit<CartLine, "quantity">) => void;
+  add: (line: Omit<CartLine, "quantity">, qty?: number) => void;
   remove: (id: string) => void;
   setQty: (id: string, qty: number) => void;
   clear: () => void;
@@ -59,17 +59,59 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } catch {}
   }, [coupon]);
 
-  const add: CartContextValue["add"] = (line) =>
+  // Mirror the cart to the server (customer_carts) a moment after the customer changes it, so the
+  // owner can see it (admin chat bot). Only after a real change in this browser — never on load —
+  // so an empty first render can't wipe a saved cart. Needs a session (signed in or guest).
+  const touched = useRef(false);
+  useEffect(() => {
+    if (!touched.current) return;
+    const timer = setTimeout(async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        const uid = data.session?.user?.id;
+        if (!uid) return;
+        const db = supabase as any;
+        if (lines.length === 0) {
+          await db.from("customer_carts").delete().eq("user_id", uid);
+          return;
+        }
+        await db.from("customer_carts").upsert({
+          user_id: uid,
+          lines: lines.map((l) => ({ sku: l.sku, name: l.name, price: l.price, quantity: l.quantity, image_url: l.image_url })),
+          item_count: lines.reduce((a, l) => a + l.quantity, 0),
+          subtotal: lines.reduce((a, l) => a + l.quantity * l.price, 0),
+          updated_at: new Date().toISOString(),
+        });
+      } catch {
+        // best effort — the cart itself still works from the browser
+      }
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [lines]);
+
+  const add: CartContextValue["add"] = (line, qty = 1) => {
+    touched.current = true;
+    const n = Math.max(1, Math.min(99, Math.floor(qty) || 1));
     setLines((prev) => {
       const found = prev.find((l) => l.id === line.id);
-      if (found) return prev.map((l) => (l.id === line.id ? { ...l, quantity: l.quantity + 1 } : l));
-      return [...prev, { ...line, quantity: 1 }];
+      if (found) return prev.map((l) => (l.id === line.id ? { ...l, quantity: l.quantity + n } : l));
+      return [...prev, { ...line, quantity: n }];
     });
+  };
 
-  const remove = (id: string) => setLines((prev) => prev.filter((l) => l.id !== id));
-  const setQty = (id: string, qty: number) =>
+  const remove = (id: string) => {
+    touched.current = true;
+    setLines((prev) => prev.filter((l) => l.id !== id));
+  };
+  const setQty = (id: string, qty: number) => {
+    touched.current = true;
     setLines((prev) => prev.map((l) => (l.id === id ? { ...l, quantity: Math.max(1, qty) } : l)));
-  const clear = () => { setLines([]); setCoupon(null); };
+  };
+  const clear = () => {
+    touched.current = true;
+    setLines([]);
+    setCoupon(null);
+  };
 
   const count = lines.reduce((a, l) => a + l.quantity, 0);
   const subtotal = lines.reduce((a, l) => a + l.quantity * l.price, 0);

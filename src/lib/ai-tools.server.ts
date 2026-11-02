@@ -2,6 +2,7 @@ import { tool } from "ai";
 import { z } from "zod";
 import {
   findSkusByText,
+  loadLiveCatalog,
   israelNow,
   nextAvailableDays,
   propsAvailability,
@@ -46,6 +47,40 @@ export const CHAT_BUTTON_PATHS = [
  */
 export function buildWebChatTools(opts: { userId: string | null; isRealAccount: boolean }) {
   return {
+    add_to_cart: tool({
+      description:
+        "מוסיפה אביזרים לעגלת הקניות של הלקוחה באתר (העגלה שלה מתעדכנת מיד והיא רואה אותם שם). קראי לזה כשהלקוחה אומרת שהיא רוצה/מזמינה/מוסיפה אביזר — אל תסתפקי בהצגת כרטיסים. המק״טים חייבים להגיע מ-search_catalog / check_prop_availability. הוספה לעגלה איננה הזמנה: הזמנה בפועל נעשית רק דרך create_props_order או בעמוד /cart.",
+      inputSchema: z.object({
+        items: z
+          .array(z.object({ sku: z.string().min(1).max(40), quantity: z.number().int().min(1).max(10).optional() }))
+          .min(1)
+          .max(10),
+      }),
+      execute: async ({ items }) => {
+        const catalog = await loadLiveCatalog();
+        const added: Array<{ sku: string; name: string; price: number; quantity: number }> = [];
+        const unknown: string[] = [];
+        for (const it of items) {
+          const found = catalog.find((c) => String(c.sku) === String(it.sku));
+          if (!found) {
+            unknown.push(it.sku);
+            continue;
+          }
+          added.push({
+            sku: String(found.sku),
+            name: found.name || found.alt || String(found.sku),
+            price: Number(found.price ?? 0),
+            quantity: it.quantity ?? 1,
+          });
+        }
+        return {
+          ok: added.length > 0,
+          added,
+          ...(unknown.length ? { unknownSkus: unknown, message: "חלק מהמק״טים לא נמצאו בקטלוג — חפשי אותם שוב עם search_catalog." } : {}),
+        };
+      },
+    }),
+
     show_gallery_photos: tool({
       description: "מציגה תמונות אמיתיות מהגלריה הציבורית בתוך הצ׳אט. חובה כשמבקשים תמונות, דוגמאות או השראה לצילומים; לא לשלוח רק קישור. לא תמונות פרטיות של לקוחות.",
       inputSchema: z.object({

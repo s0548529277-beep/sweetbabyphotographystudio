@@ -22,7 +22,7 @@ export const ADMIN_CHAT_RULES = `
 - נתונים (הזמנות, הכנסות, לידים, לקוחות, ניו-בורן): admin_snapshot לסקירה מהירה; לכל שאלה אחרת — admin_query_data עם SELECT אחד. לידים ופניות נמצאים בטבלה inquiry_leads (לא leads). לעולם אל תמציאי מספר. אם שאילתה נכשלה פעם אחת — אל תנסי שוב ושוב; עני במה שיש או אמרי שלא הצלחת.
 - טיוטות מייל: admin_snapshot מחזיר גם draftsStatus — מתי רצה הבדיקה האחרונה, כמה טיוטות הוכנו ואם היו תקלות. כשהיא שואלת על טיוטות, עני לפי זה.
 - שאלה על לקוחה ספציפית ("מה יש לפרימי", "מה הזמינה X", "מה הסטטוס של Y"): קראי פעם אחת ל-admin_get_client_summary עם השם או הטלפון — היא מחזירה בבת אחת שריונים, הזמנות אביזרים (כולל הפריטים), ניו-בורן ופניות. אל תריצי בנוסף admin_query_data או admin_db_schema על אותה שאלה.
-- עגלת קניות של לקוחה (פריטים שהוסיפה ועוד לא שלחה הזמנה) נשמרת רק בדפדפן שלה ואינה קיימת בשום טבלה, ולכן אי אפשר לראות אותה. אם שואלים "מה יש בעגלה של X": חפשי אותה פעם אחת ב-admin_get_client_summary לראות אם יש הזמנה פתוחה; אם אין — עני מיד שהעגלה שמורה רק אצלה במכשיר, והציעי לבקש ממנה לשלוח הזמנה או לתת פרטים. אל תחפשי עוד.
+- עגלת קניות של לקוחה: האתר שומר עותק של העגלה של כל לקוחה מחוברת/אורחת (customer_carts). "מה יש בעגלה של X" → admin_get_client_summary (שדה carts); "מי השאירה עגלה / אילו עגלות יש" → admin_list_carts. אם carts ריק — עני שעדיין אין עגלה שמורה (לקוחה שגלשה בלי להתחבר, או שעוד לא הוסיפה כלום; עגלות שנוצרו לפני ההפעלה לא נשמרו), והציעי לבדוק הזמנות פתוחות. אל תחפשי עוד.
 - חיפוש שלא החזיר תוצאה: מקסימום שני ניסיונות בסך הכול בשאלה אחת. אחרי זה עני במה שיש או אמרי "לא נמצא", בלי להמשיך לנסות.
 - פרטי קשר של לקוחה: admin_find_customer.
 - מיילים: יש עוזר טיוטות אוטומטי שרץ לבד; "תכיני טיוטות עכשיו" → run_email_drafts_now. חיפוש/קריאה: gmail_search / gmail_read, וטיוטת תשובה — gmail_create_draft בלבד. את לא שולחת מיילים, רק טיוטות; אמרי לה שהטיוטה מחכה בתיקיית הטיוטות לבדיקה ושליחה שלה. לפני יצירת טיוטה הראי לה את הנוסח בקצרה, אלא אם כבר ביקשה במפורש "תכיני טיוטה".
@@ -104,12 +104,34 @@ export function buildAdminChatTools() {
               byPhone ? db.from(t).select(cols).ilike(phoneCol, `%${digits}%`).order("created_at", { ascending: false }).limit(5) : none,
             );
           const [bookings, orders, newborn, leads] = await Promise.all([
-            latest("bookings", "id, status, package, session_date, start_time, end_time, price, deposit_status, contact_name, contact_phone, created_at", "contact_name", "contact_phone"),
-            latest("orders", "id, status, total, deposit_status, session_date, scheduled_date, return_date, contact_name, contact_phone, created_at", "contact_name", "contact_phone"),
+            latest("bookings", "id, user_id, status, package, session_date, start_time, end_time, price, deposit_status, contact_name, contact_phone, created_at", "contact_name", "contact_phone"),
+            latest("orders", "id, user_id, status, total, deposit_status, session_date, scheduled_date, return_date, contact_name, contact_phone, created_at", "contact_name", "contact_phone"),
             latest("newborn_package_orders", "id, session_date, total_price, amount_paid, contact_name, contact_phone, contact_email, created_at", "contact_name", "contact_phone"),
             latest("inquiry_leads", "id, name, email, phone, topic, status, last_contact_at, created_at", "name", "phone"),
           ]);
           if (queryError) return { error: true, message: queryError };
+          // The customer's cart (mirrored from her browser): find her user ids via profile, bookings and orders.
+          const [profByName, profByPhone] = await Promise.all([
+            db.from("profiles").select("id, full_name, phone").ilike("full_name", `%${q}%`).limit(5),
+            byPhone ? db.from("profiles").select("id, full_name, phone").ilike("phone", `%${digits}%`).limit(5) : none,
+          ]);
+          const profiles = [...(profByName.data ?? []), ...(profByPhone.data ?? [])];
+          const userIds = Array.from(
+            new Set(
+              [...profiles.map((p: any) => p.id), ...bookings.map((b: any) => b.user_id), ...orders.map((o: any) => o.user_id)].filter(Boolean),
+            ),
+          ) as string[];
+          const cartsRes = userIds.length
+            ? await db.from("customer_carts").select("user_id, lines, item_count, subtotal, updated_at").in("user_id", userIds)
+            : { data: [] };
+          const nameByUser = new Map<string, string>(profiles.map((p: any) => [p.id, p.full_name]));
+          const carts = (cartsRes.data ?? []).map((c: any) => ({
+            customer: nameByUser.get(c.user_id) ?? q,
+            items: (c.lines ?? []).map((l: any) => ({ name: l.name, sku: l.sku, qty: l.quantity, price: l.price })),
+            itemCount: c.item_count,
+            subtotal: c.subtotal,
+            lastChange: c.updated_at,
+          }));
           const orderIds = orders.map((o: any) => o.id);
           const itemsRes = orderIds.length
             ? await db.from("order_items").select("order_id, item_name, quantity, price").in("order_id", orderIds)
@@ -127,11 +149,45 @@ export function buildAdminChatTools() {
             orders: orders.map((o: any) => ({ ...o, items: itemsByOrder.get(o.id) ?? [] })),
             newbornOrders: newborn,
             leads,
-            found: bookings.length + orders.length + newborn.length + leads.length > 0,
-            note: "עגלת קניות שלא נשלחה נשמרת רק בדפדפן של הלקוחה ואינה כאן.",
+            carts,
+            found: bookings.length + orders.length + newborn.length + leads.length + carts.length > 0,
+            note: "carts = עגלת הקניות של הלקוחה כפי שנשמרה באתר מאז ההפעלה (רק לקוחה מחוברת או אורחת; מי שגלשה בלי חיבור לא נשמרת). אם carts ריק — עדיין אין עגלה שמורה.",
           };
         } catch (e: any) {
           console.error("[SWEETBABY] admin_get_client_summary failed", e);
+          return { error: true, message: String(e?.message ?? e) };
+        }
+      },
+    }),
+
+    admin_list_carts: tool({
+      description:
+        "רשימת עגלות הקניות האחרונות של לקוחות באתר (מה כל אחת הוסיפה ועוד לא הזמינה): שם, פריטים, סכום ומתי השתנתה. לשאלות כמו 'מי השאירה עגלה' או 'מה יש בעגלות'.",
+      inputSchema: z.object({ limit: z.number().int().min(1).max(20).optional() }),
+      execute: async ({ limit }) => {
+        try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const db = supabaseAdmin as any;
+          const { data, error } = await db
+            .from("customer_carts")
+            .select("user_id, lines, item_count, subtotal, updated_at")
+            .order("updated_at", { ascending: false })
+            .limit(limit ?? 10);
+          if (error) return { error: true, message: error.message };
+          const ids = (data ?? []).map((c: any) => c.user_id);
+          const profs = ids.length ? await db.from("profiles").select("id, full_name, phone").in("id", ids) : { data: [] };
+          const prof = new Map<string, any>((profs.data ?? []).map((p: any) => [p.id, p]));
+          return {
+            count: (data ?? []).length,
+            carts: (data ?? []).map((c: any) => ({
+              customer: prof.get(c.user_id)?.full_name || "אורחת (בלי פרופיל)",
+              phone: prof.get(c.user_id)?.phone ?? null,
+              items: (c.lines ?? []).map((l: any) => `${l.name} ×${l.quantity}`),
+              subtotal: c.subtotal,
+              lastChange: c.updated_at,
+            })),
+          };
+        } catch (e: any) {
           return { error: true, message: String(e?.message ?? e) };
         }
       },
