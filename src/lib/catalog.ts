@@ -10,6 +10,8 @@ export type CatalogItem = {
   img: string;
   alt: string;
   hasHand?: boolean;
+  /** Admin-set tags (items.tags), e.g. "חלאקה" — searched together with the name. */
+  tags?: string[];
 };
 export type CatalogCategory = { title: string; items: CatalogItem[] };
 
@@ -23,6 +25,7 @@ type DbItem = {
   price: number | string;
   image_url: string | null;
   active: boolean;
+  tags?: string[] | null;
   sort_order?: number | null;
   categories: { name: string } | null;
 };
@@ -55,7 +58,7 @@ export function useCatalogCategories(): CatalogCategory[] {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("items")
-        .select("id, sku, name, description, price, image_url, active, sort_order, categories(name)")
+        .select("id, sku, name, description, price, image_url, active, tags, sort_order, categories(name)")
         .order("sort_order", { ascending: true });
       if (error) throw error;
       return (data ?? []) as unknown as DbItem[];
@@ -109,6 +112,7 @@ export function useCatalogCategories(): CatalogCategory[] {
           price: Number(row.price ?? item.price),
           img: row.image_url || item.img,
           alt: row.description || item.alt,
+          tags: row.tags ?? [],
         });
       }
     }
@@ -122,6 +126,7 @@ export function useCatalogCategories(): CatalogCategory[] {
         price: Number(row.price ?? 0),
         img: row.image_url || "",
         alt: row.description || row.name,
+        tags: row.tags ?? [],
       });
     }
 

@@ -155,7 +155,9 @@ export const TOPICS: Topic[] = [
 export const THEME_TOPICS: Topic[] = TOPICS.filter((t) => t.chip);
 
 function topicMatcherFrom(topic: Topic): (text: string) => boolean {
-  const ks = topic.keywords.map(norm).filter((k) => k.length >= 1);
+  // The chip label itself counts too, so an item tagged with the label
+  // (items.tags, set in /admin/items) always belongs to the topic.
+  const ks = [topic.label, ...topic.keywords].map(norm).filter((k) => k.length >= 1);
   return (text) => {
     const h = norm(text);
     return ks.some((k) => h.includes(k));

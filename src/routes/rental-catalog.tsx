@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PROPS_HANDOFF_NOTE, PROPS_LATEST_HANDOFF } from "@/lib/props-hours";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { AnimatePresence, motion } from "framer-motion";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -185,13 +186,14 @@ function RentalCatalogPage() {
           ...c,
           items: c.items.filter((it) => {
             if (it.hasHand) return false;
-            if (activeThemeMatch && !activeThemeMatch(`${it.name} ${it.alt} ${c.title}`))
+            const tagText = (it.tags ?? []).join(" ");
+            if (activeThemeMatch && !activeThemeMatch(`${it.name} ${it.alt} ${c.title} ${tagText}`))
               return false;
             if (aiSkus?.has(it.sku)) return true;
             if (aiSkus && !q) return false;
             if (!q) return true;
             if (it.sku.toLowerCase().includes(q)) return true;
-            return matches(`${it.name} ${it.alt} ${c.title}`);
+            return matches(`${it.name} ${it.alt} ${c.title} ${tagText}`);
           }),
         }))
         // Best matches first inside each category (name hit before description hit).
@@ -201,8 +203,8 @@ function RentalCatalogPage() {
                 ...c,
                 items: [...c.items].sort(
                   (a, b) =>
-                    relevanceScore(q, `${b.name}`, `${b.alt} ${c.title}`) -
-                    relevanceScore(q, `${a.name}`, `${a.alt} ${c.title}`),
+                    relevanceScore(q, `${b.name}`, `${b.alt} ${c.title} ${(b.tags ?? []).join(" ")}`) -
+                    relevanceScore(q, `${a.name}`, `${a.alt} ${c.title} ${(a.tags ?? []).join(" ")}`),
                 ),
               }
             : c,
@@ -222,6 +224,23 @@ function RentalCatalogPage() {
   }, [query, aiSkus, filtered, categories]);
 
   const resultCount = useMemo(() => filtered.reduce((n, c) => n + c.items.length, 0), [filtered]);
+
+  // Remember typed searches that found nothing (shown to the admin in
+  // /admin/items). Waits until typing stopped, once per query per visit,
+  // fire-and-forget — a failure here must never affect the catalog.
+  const loggedMisses = useRef(new Set<string>());
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2 || aiSkus || activeTheme || resultCount > 0 || categories.length === 0) return;
+    if (loggedMisses.current.has(q)) return;
+    const t = setTimeout(() => {
+      loggedMisses.current.add(q);
+      void Promise.resolve(supabase.rpc("log_catalog_search_miss" as never, { _query: q } as never)).catch(
+        () => {},
+      );
+    }, 1800);
+    return () => clearTimeout(t);
+  }, [query, aiSkus, activeTheme, resultCount, categories.length]);
 
   const doAiSearch = async () => {
     const q = query.trim();

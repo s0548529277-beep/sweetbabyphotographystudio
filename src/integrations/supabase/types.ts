@@ -1100,6 +1100,7 @@ export type Database = {
           sku: string
           sort_order: number
           stock_quantity: number
+          tags: string[]
           updated_at: string
         }
         Insert: {
@@ -1115,6 +1116,7 @@ export type Database = {
           sku: string
           sort_order?: number
           stock_quantity?: number
+          tags?: string[]
           updated_at?: string
         }
         Update: {
@@ -1130,6 +1132,7 @@ export type Database = {
           sku?: string
           sort_order?: number
           stock_quantity?: number
+          tags?: string[]
           updated_at?: string
         }
         Relationships: [

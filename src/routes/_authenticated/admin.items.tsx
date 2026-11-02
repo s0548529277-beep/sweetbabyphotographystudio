@@ -42,6 +42,82 @@ import {
 import { toCSV, downloadCSV, parseCSVRecords } from "@/lib/csv";
 import { fetchItemInspiration, type ItemInspirationImage } from "@/lib/item-inspiration";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
+import { THEME_TOPICS } from "@/lib/hebrew-search";
+
+/** "חלאקה, סמאש קייק" → ["חלאקה","סמאש קייק"] (trimmed, unique, max 12). */
+function parseTags(raw: string): string[] {
+  const out: string[] = [];
+  for (const t of raw.split(/[,،\n]/)) {
+    const v = t.trim().slice(0, 40);
+    if (v && !out.includes(v)) out.push(v);
+  }
+  return out.slice(0, 12);
+}
+
+/** Admin-only list of typed catalog searches that found nothing (see log_catalog_search_miss). */
+function SearchMissesPanel() {
+  const qc = useQueryClient();
+  const misses = useQuery({
+    queryKey: ["catalog-search-misses"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("catalog_search_misses" as never)
+        .select("query_norm, query_sample, hits, last_seen")
+        .order("hits", { ascending: false })
+        .limit(40);
+      if (error) throw error;
+      return (data ?? []) as unknown as {
+        query_norm: string;
+        query_sample: string;
+        hits: number;
+        last_seen: string;
+      }[];
+    },
+  });
+  const remove = async (norm: string) => {
+    const { error } = await supabase
+      .from("catalog_search_misses" as never)
+      .delete()
+      .eq("query_norm", norm);
+    if (error) return toast.error(error.message);
+    qc.invalidateQueries({ queryKey: ["catalog-search-misses"] });
+  };
+  const rows = misses.data ?? [];
+  return (
+    <details className="bg-card rounded-2xl border border-primary/5 px-4 py-3 text-sm">
+      <summary className="cursor-pointer font-medium">
+        חיפושים שלקוחות הקלידו ולא מצאו ({rows.length})
+      </summary>
+      <p className="text-xs text-muted-foreground mt-2">
+        מילים שחיפשו בקטלוג האביזרים בלי תוצאה — שווה להוסיף תגית לאביזר המתאים או לשנות שם.
+        לחצו ✕ אחרי שטיפלתם.
+      </p>
+      {rows.length === 0 ? (
+        <p className="text-xs text-muted-foreground mt-2">עדיין אין חיפושים ללא תוצאה.</p>
+      ) : (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {rows.map((r) => (
+            <span
+              key={r.query_norm}
+              className="inline-flex items-center gap-2 rounded-full bg-cream px-3 py-1 text-xs"
+            >
+              {r.query_sample}
+              <span className="text-forest/60">×{r.hits}</span>
+              <button
+                type="button"
+                className="text-destructive"
+                onClick={() => remove(r.query_norm)}
+                aria-label="הסרה מהרשימה"
+              >
+                ✕
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </details>
+  );
+}
 
 export const Route = createFileRoute("/_authenticated/admin/items")({
   component: ItemsAdmin,
@@ -58,6 +134,8 @@ type ItemForm = {
   category_id: string | null;
   active: boolean;
   stock_quantity: number;
+  /** comma-separated tags, e.g. "חלאקה, סמאש קייק" */
+  tags: string;
 };
 
 const empty: ItemForm = {
@@ -70,6 +148,7 @@ const empty: ItemForm = {
   category_id: null,
   active: true,
   stock_quantity: 1,
+  tags: "",
 };
 
 /** SHA-256 of the file's bytes, hex-encoded — used only for exact-duplicate detection (see uploadToStorage). */
@@ -244,6 +323,7 @@ function ItemsAdmin() {
       category_id: i.category_id,
       active: i.active,
       stock_quantity: Number(i.stock_quantity ?? 1),
+      tags: Array.isArray(i.tags) ? i.tags.join(", ") : "",
     });
     setOpen(true);
   };
@@ -260,6 +340,7 @@ function ItemsAdmin() {
       category_id: form.category_id,
       active: form.active,
       stock_quantity: Math.max(1, Math.floor(form.stock_quantity || 1)),
+      tags: parseTags(form.tags),
     };
     // image_hash cast past the generated types for the same reason as above.
     const { error } = form.id
@@ -738,8 +819,16 @@ function ItemsAdmin() {
     (i: any) =>
       !q ||
       i.name.toLowerCase().includes(q.toLowerCase()) ||
-      i.sku.toLowerCase().includes(q.toLowerCase()),
+      i.sku.toLowerCase().includes(q.toLowerCase()) ||
+      (Array.isArray(i.tags) && i.tags.some((t: string) => t.toLowerCase().includes(q.toLowerCase()))),
   );
+
+  // Quick tag toggle straight from the table row (style chips).
+  const toggleRowTag = (i: any, label: string) => {
+    const cur: string[] = Array.isArray(i.tags) ? i.tags : [];
+    const next = cur.includes(label) ? cur.filter((t) => t !== label) : [...cur, label];
+    updateItemField(i.id, { tags: next });
+  };
 
   return (
     <div className="space-y-4">
@@ -878,6 +967,36 @@ function ItemsAdmin() {
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
                     className="mt-1"
                   />
+                </div>
+                <div>
+                  <Label>תגיות (מופרדות בפסיק)</Label>
+                  <Input
+                    value={form.tags}
+                    onChange={(e) => setForm({ ...form, tags: e.target.value })}
+                    className="mt-1"
+                    placeholder="לדוגמה: חלאקה, עץ טבעי וכפרי"
+                  />
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {THEME_TOPICS.map((t) => {
+                      const on = parseTags(form.tags).includes(t.label);
+                      return (
+                        <button
+                          key={t.label}
+                          type="button"
+                          onClick={() => {
+                            const cur = parseTags(form.tags);
+                            const next = on ? cur.filter((x) => x !== t.label) : [...cur, t.label];
+                            setForm({ ...form, tags: next.join(", ") });
+                          }}
+                          className={`rounded-full border px-2.5 py-0.5 text-xs ${
+                            on ? "bg-primary text-primary-foreground" : "hover:bg-cream"
+                          }`}
+                        >
+                          {t.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div>
                   <Label>תמונה</Label>
@@ -1116,6 +1235,8 @@ function ItemsAdmin() {
         </DialogContent>
       </Dialog>
 
+      <SearchMissesPanel />
+
       <div className="bg-card rounded-2xl border border-primary/5 overflow-hidden">
         <div className="px-4 py-2 text-xs text-muted-foreground border-b border-border">
           לחצו על שם, קטגוריה, מחיר, כמות או מצב בטבלה כדי לערוך ישירות — נשמר אוטומטית. גררו שורות
@@ -1131,6 +1252,7 @@ function ItemsAdmin() {
               <th className="p-3 font-medium">מק״ט</th>
               <th className="p-3 font-medium">שם</th>
               <th className="p-3 font-medium">קטגוריה</th>
+              <th className="p-3 font-medium">תגיות</th>
               <th className="p-3 font-medium">מחיר</th>
               <th className="p-3 font-medium">כמות</th>
               <th className="p-3 font-medium">מצב</th>
@@ -1246,6 +1368,41 @@ function ItemsAdmin() {
                   </Select>
                 </td>
 
+                <td className="p-3 min-w-[11rem]">
+                  <div className="flex flex-wrap gap-1">
+                    {THEME_TOPICS.map((t) => {
+                      const on = Array.isArray(i.tags) && i.tags.includes(t.label);
+                      return (
+                        <button
+                          key={t.label}
+                          type="button"
+                          onClick={() => toggleRowTag(i, t.label)}
+                          className={`rounded-full border px-2 py-0.5 text-[10px] leading-4 ${
+                            on ? "bg-primary text-primary-foreground" : "text-forest/60 hover:bg-cream"
+                          }`}
+                          title={on ? "הסרת תגית" : "הוספת תגית"}
+                        >
+                          {t.label}
+                        </button>
+                      );
+                    })}
+                    {Array.isArray(i.tags) &&
+                      i.tags
+                        .filter((t: string) => !THEME_TOPICS.some((x) => x.label === t))
+                        .map((t: string) => (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => toggleRowTag(i, t)}
+                            className="rounded-full border bg-cream px-2 py-0.5 text-[10px] leading-4"
+                            title="הסרת תגית"
+                          >
+                            {t} ✕
+                          </button>
+                        ))}
+                  </div>
+                </td>
+
                 <td className="p-3">
                   <div className="flex items-center gap-1">
                     <span className="text-muted-foreground text-xs">₪</span>
@@ -1305,7 +1462,7 @@ function ItemsAdmin() {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={10} className="p-16 text-center text-muted-foreground">
+                <td colSpan={11} className="p-16 text-center text-muted-foreground">
                   אין אביזרים עדיין. לחצו על "אביזר חדש".
                 </td>
               </tr>
