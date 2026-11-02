@@ -263,27 +263,47 @@ export function pickStreamingGeminiModel() {
 // one call to the Lovable AI Gateway. Voice, WhatsApp and the email assistant
 // keep using generateTextResilient. If the Lovable AI credits run out the site
 // chat shows its normal "busy" message (the gateway answers 402).
-const LOVABLE_CHAT_MODEL_ID = "google/gemini-2.5-flash";
+const LOVABLE_CHAT_MODEL_ID = "google/gemini-3-flash-preview";
+// Older, known-good model used only if the call above is rejected (e.g. the
+// gateway refuses the reasoning setting or the Gemini 3 tool loop).
+const LOVABLE_CHAT_SAFE_MODEL_ID = "google/gemini-2.5-flash";
+// Short "thinking" for the site chat (owner request 2026-11-02: answers too slow).
+// Lovable's chat confirmed the gateway accepts reasoning effort; not verified live.
+export const LOVABLE_CHAT_PROVIDER_OPTIONS = {
+  "lovable-ai-gateway": { reasoningEffort: "low" },
+} as const;
 
 /** The Lovable AI Gateway model used by the website chat (also for streamText). */
-export function getLovableChatModel() {
+export function getLovableChatModel(modelId: string = LOVABLE_CHAT_MODEL_ID) {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error("Missing LOVABLE_API_KEY");
-  return createLovableAiGatewayProvider(key)(LOVABLE_CHAT_MODEL_ID);
+  return createLovableAiGatewayProvider(key)(modelId);
 }
 
 export async function generateTextLovable(options: GenerateTextOptionsNoModel, timeoutMs = DEFAULT_TIMEOUT_MS) {
-  const model = getLovableChatModel();
   try {
     return await generateText({
       ...options,
-      model,
+      model: getLovableChatModel(),
+      providerOptions: { ...(options.providerOptions ?? {}), ...LOVABLE_CHAT_PROVIDER_OPTIONS },
       abortSignal: AbortSignal.timeout(timeoutMs),
       maxRetries: 0,
     } as GenerateTextOptions);
   } catch (e) {
-    console.error(`[SWEETBABY] Lovable AI Gateway (site chat) failed ${e} | detail=${describeApiError(e)}`);
-    throw e;
+    console.error(`[SWEETBABY] Lovable AI Gateway (site chat, fast model) failed ${e} | detail=${describeApiError(e)}`);
+    // Out of credits: the safe model would fail the same way.
+    if ((e as { statusCode?: number })?.statusCode === 402) throw e;
+    try {
+      return await generateText({
+        ...options,
+        model: getLovableChatModel(LOVABLE_CHAT_SAFE_MODEL_ID),
+        abortSignal: AbortSignal.timeout(timeoutMs),
+        maxRetries: 0,
+      } as GenerateTextOptions);
+    } catch (e2) {
+      console.error(`[SWEETBABY] Lovable AI Gateway (site chat, safe model) failed ${e2} | detail=${describeApiError(e2)}`);
+      throw e2;
+    }
   }
 }
 

@@ -1,6 +1,6 @@
 import { stepCountIs, streamText } from "ai";
 import { ChatInput, finishChatTurn, prepareChatTurn } from "./ai.functions";
-import { generateTextLovable, getLovableChatModel } from "./ai-gateway.server";
+import { generateTextLovable, getLovableChatModel, LOVABLE_CHAT_PROVIDER_OPTIONS } from "./ai-gateway.server";
 
 /**
  * Streaming version of the site chat (2026-11-02, owner request: "show the
@@ -55,6 +55,7 @@ export async function handleChatStream(request: Request): Promise<Response> {
           try {
             const result = streamText({
               model,
+              providerOptions: LOVABLE_CHAT_PROVIDER_OPTIONS,
               system: turn.system,
               messages: data.messages,
               tools: turn.tools,
