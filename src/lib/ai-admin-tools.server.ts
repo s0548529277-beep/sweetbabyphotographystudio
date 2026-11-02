@@ -21,6 +21,9 @@ export const ADMIN_CHAT_RULES = `
 מצב ניהול: את מדברת עכשיו עם מיכל, בעלת הסטודיו (מנהלת מאומתת), לא עם לקוחה. פני אליה בגובה העיניים, קצר ומעשי. התעלמי מהודעות פתיחה קודמות בשיחה שנכתבו ללקוחות. אם היא שואלת אם את במצב ניהול — עני "כן מיכל, אני במצב ניהול 👑" ופרטי בקצרה מה אפשר: נתונים, לידים, מיילים וטיוטות, שינויי סטטוס.
 - נתונים (הזמנות, הכנסות, לידים, לקוחות, ניו-בורן): admin_snapshot לסקירה מהירה; לכל שאלה אחרת — admin_query_data עם SELECT אחד. לידים ופניות נמצאים בטבלה inquiry_leads (לא leads). לעולם אל תמציאי מספר. אם שאילתה נכשלה פעם אחת — אל תנסי שוב ושוב; עני במה שיש או אמרי שלא הצלחת.
 - טיוטות מייל: admin_snapshot מחזיר גם draftsStatus — מתי רצה הבדיקה האחרונה, כמה טיוטות הוכנו ואם היו תקלות. כשהיא שואלת על טיוטות, עני לפי זה.
+- שאלה על לקוחה ספציפית ("מה יש לפרימי", "מה הזמינה X", "מה הסטטוס של Y"): קראי פעם אחת ל-admin_get_client_summary עם השם או הטלפון — היא מחזירה בבת אחת שריונים, הזמנות אביזרים (כולל הפריטים), ניו-בורן ופניות. אל תריצי בנוסף admin_query_data או admin_db_schema על אותה שאלה.
+- עגלת קניות של לקוחה (פריטים שהוסיפה ועוד לא שלחה הזמנה) נשמרת רק בדפדפן שלה ואינה קיימת בשום טבלה, ולכן אי אפשר לראות אותה. אם שואלים "מה יש בעגלה של X": חפשי אותה פעם אחת ב-admin_get_client_summary לראות אם יש הזמנה פתוחה; אם אין — עני מיד שהעגלה שמורה רק אצלה במכשיר, והציעי לבקש ממנה לשלוח הזמנה או לתת פרטים. אל תחפשי עוד.
+- חיפוש שלא החזיר תוצאה: מקסימום שני ניסיונות בסך הכול בשאלה אחת. אחרי זה עני במה שיש או אמרי "לא נמצא", בלי להמשיך לנסות.
 - פרטי קשר של לקוחה: admin_find_customer.
 - מיילים: יש עוזר טיוטות אוטומטי שרץ לבד; "תכיני טיוטות עכשיו" → run_email_drafts_now. חיפוש/קריאה: gmail_search / gmail_read, וטיוטת תשובה — gmail_create_draft בלבד. את לא שולחת מיילים, רק טיוטות; אמרי לה שהטיוטה מחכה בתיקיית הטיוטות לבדיקה ושליחה שלה. לפני יצירת טיוטה הראי לה את הנוסח בקצרה, אלא אם כבר ביקשה במפורש "תכיני טיוטה".
 - שינוי סטטוס של הזמנה/שריון/ליד — רק propose_admin_action. זה מציג לה כפתור אישור; השינוי קורה רק כשהיא לוחצת. לעולם אל תגידי "עדכנתי" על שינוי כזה.
@@ -71,6 +74,60 @@ export function buildAdminChatTools() {
         } catch (e) {
           console.error("[SWEETBABY] admin_find_customer failed", e);
           return { error: true };
+        }
+      },
+    }),
+
+    admin_get_client_summary: tool({
+      description:
+        "תמונה מלאה של לקוחה אחת בקריאה אחת: שריוני סטודיו, הזמנות אביזרים (עם הפריטים), הזמנות ניו-בורן ופניות/לידים — לפי שם או טלפון. עגלה שלא נשלחה לא קיימת במסד.",
+      inputSchema: z.object({ query: z.string().min(2).max(60) }),
+      execute: async ({ query }) => {
+        try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const db = supabaseAdmin as any;
+          const q = query.trim().replace(/[%,()]/g, " ").trim();
+          const digits = q.replace(/\D/g, "");
+          const byPhone = digits.length >= 4;
+          const none = Promise.resolve({ data: [] as any[] });
+          const pick = (name: Promise<any>, phone: Promise<any>) =>
+            Promise.all([name, phone]).then(([a, b]) => {
+              const seen = new Set<string>();
+              return [...(a.data ?? []), ...(b.data ?? [])].filter((r: any) => (seen.has(r.id) ? false : (seen.add(r.id), true)));
+            });
+          const latest = (t: string, cols: string, nameCol: string, phoneCol: string) =>
+            pick(
+              db.from(t).select(cols).ilike(nameCol, `%${q}%`).order("created_at", { ascending: false }).limit(5),
+              byPhone ? db.from(t).select(cols).ilike(phoneCol, `%${digits}%`).order("created_at", { ascending: false }).limit(5) : none,
+            );
+          const [bookings, orders, newborn, leads] = await Promise.all([
+            latest("bookings", "id, status, package, session_date, start_time, end_time, price, deposit_status, contact_name, contact_phone, created_at", "contact_name", "contact_phone"),
+            latest("orders", "id, status, total, deposit_status, session_date, scheduled_date, return_date, contact_name, contact_phone, created_at", "contact_name", "contact_phone"),
+            latest("newborn_package_orders", "id, session_date, total_price, amount_paid, contact_name, contact_phone, contact_email, created_at", "contact_name", "contact_phone"),
+            latest("inquiry_leads", "id, name, email, phone, topic, status, last_contact_at, created_at", "name", "phone"),
+          ]);
+          const orderIds = orders.map((o: any) => o.id);
+          const itemsRes = orderIds.length
+            ? await db.from("order_items").select("order_id, item_name, quantity, price").in("order_id", orderIds)
+            : { data: [] };
+          const itemsByOrder = new Map<string, any[]>();
+          for (const it of itemsRes.data ?? []) {
+            const arr = itemsByOrder.get(it.order_id) ?? [];
+            arr.push({ item: it.item_name, qty: it.quantity, price: it.price });
+            itemsByOrder.set(it.order_id, arr);
+          }
+          return {
+            query,
+            bookings,
+            orders: orders.map((o: any) => ({ ...o, items: itemsByOrder.get(o.id) ?? [] })),
+            newbornOrders: newborn,
+            leads,
+            found: bookings.length + orders.length + newborn.length + leads.length > 0,
+            note: "עגלת קניות שלא נשלחה נשמרת רק בדפדפן של הלקוחה ואינה כאן.",
+          };
+        } catch (e: any) {
+          console.error("[SWEETBABY] admin_get_client_summary failed", e);
+          return { error: true, message: String(e?.message ?? e) };
         }
       },
     }),
