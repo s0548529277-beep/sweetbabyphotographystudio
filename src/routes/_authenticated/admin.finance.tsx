@@ -41,6 +41,8 @@ import {
   type ParsedImportRow,
 } from "@/lib/finance-import";
 import { toCSV, downloadCSV } from "@/lib/csv";
+import { MaaserCard } from "@/components/finance/MaaserCard";
+import type { MaaserTxn } from "@/lib/maaser";
 
 export const Route = createFileRoute("/_authenticated/admin/finance")({
   component: FinanceAdmin,
@@ -615,6 +617,23 @@ function FinanceAdmin() {
     });
   }, [allTxns, from, to, client, type, paymentFilter, personalFilter]);
 
+  // Feed for the ma'aser card: every transaction (date range is applied inside the card).
+  const maaserTxns = useMemo<MaaserTxn[]>(
+    () =>
+      allTxns.map((t) => ({
+        id: `${t.kind}:${t.id}`,
+        kind: t.kind,
+        title: t.title,
+        date: t.date,
+        amount: t.amount,
+        isPersonal: t.isPersonal,
+        depositStatus: t.depositStatus,
+        paymentMethod: t.paymentMethod ?? null,
+        unpaid: !!t.debt,
+      })),
+    [allTxns],
+  );
+
   // Further filtered by the income/expense card click — only for the
   // itemized list below, never for the totals/months/category stats above
   // (those always reflect everything the other filters allow, regardless of
@@ -1083,6 +1102,8 @@ function FinanceAdmin() {
           </div>
         ))}
       </div>
+
+      <MaaserCard txns={maaserTxns} from={from} to={to} />
 
       {/* Income by business line — clicking a card filters the whole page
           to that line (same "סוג" filter as above); clicking again clears. */}
