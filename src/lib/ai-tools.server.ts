@@ -256,7 +256,7 @@ export function buildAssistantTools(opts?: { isAuthenticated?: boolean; isGuest?
         to: z.string().optional().describe("YYYY-MM-DD"),
       }),
       execute: async ({ query, from, to }) => {
-        const matches = findSkusByText(query, 6);
+        const matches = await findSkusByText(query, 6);
         if (matches.length === 0) return { found: false, message: "לא נמצא אביזר תואם בקטלוג" };
         const res = await propsAvailability(matches.map((m) => m.sku), from, to || from);
         return {
@@ -268,13 +268,18 @@ export function buildAssistantTools(opts?: { isAuthenticated?: boolean; isGuest?
     }),
 
     search_catalog: tool({
-      description: "מחפש אביזרים בקטלוג לפי תיאור בעברית ומחזיר מק״טים, שמות ומחירים (בלי בדיקת זמינות). באתר — הפריטים מוצגים ללקוחה אוטומטית ככרטיסים עם תמונה וכפתור הוספה לעגלה.",
+      description: "מחפש אביזרים בקטלוג לפי תיאור בעברית ומחזיר מק״טים, שמות ומחירים (בלי בדיקת זמינות). החיפוש כולל גם את התגיות שמיכל סימנה לכל אביזר (למשל חלאקה, סמאש קייק) — אפשר לחפש לפי סגנון. באתר — הפריטים מוצגים ללקוחה אוטומטית ככרטיסים עם תמונה וכפתור הוספה לעגלה.",
       inputSchema: z.object({ query: z.string() }),
       execute: async ({ query }) => {
-        const items = findSkusByText(query, 8);
+        const items = await findSkusByText(query, 8);
         return {
           count: items.length,
-          items: items.map((i) => ({ sku: i.sku, name: i.name || i.alt, price: i.price })),
+          items: items.map((i) => ({
+            sku: i.sku,
+            name: i.name || i.alt,
+            price: i.price,
+            ...(i.tags.length ? { tags: i.tags } : {}),
+          })),
         };
       },
     }),

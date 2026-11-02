@@ -126,15 +126,71 @@ export async function releaseAbandonedItemLocks(itemIds: string[], from: string,
   }
 }
 
-export function findSkusByText(query: string, limit = 8): CatItem[] {
+export type LiveCatItem = CatItem & { tags: string[] };
+
+let liveCatalogCache: { at: number; items: LiveCatItem[] } | null = null;
+
+/**
+ * The catalog the customer sees: the bundled json merged with what the admin
+ * edited in /admin/items (names, prices, hidden items, new items and TAGS).
+ * Cached for a minute; falls back to the bundled json if the DB is unreachable.
+ */
+export async function loadLiveCatalog(): Promise<LiveCatItem[]> {
+  if (liveCatalogCache && Date.now() - liveCatalogCache.at < 60_000) return liveCatalogCache.items;
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("items")
+      .select("sku, name, description, price, active, tags");
+    if (error) throw new Error(error.message);
+    const rows = new Map((data ?? []).map((r) => [String(r.sku), r]));
+    const used = new Set<string>();
+    const items: LiveCatItem[] = [];
+    for (const i of CATALOG_ITEMS) {
+      const r = rows.get(i.sku);
+      if (!r) {
+        items.push({ ...i, tags: [] });
+        continue;
+      }
+      used.add(i.sku);
+      if (r.active === false) continue; // hidden from the catalog by admin
+      items.push({
+        sku: i.sku,
+        name: r.name || i.name,
+        alt: r.description || i.alt,
+        price: Number(r.price ?? i.price),
+        tags: r.tags ?? [],
+      });
+    }
+    for (const r of data ?? []) {
+      if (used.has(String(r.sku)) || r.active === false) continue;
+      items.push({
+        sku: String(r.sku),
+        name: r.name,
+        alt: r.description || r.name,
+        price: Number(r.price ?? 0),
+        tags: r.tags ?? [],
+      });
+    }
+    liveCatalogCache = { at: Date.now(), items };
+    return items;
+  } catch (e) {
+    console.error("[SWEETBABY] loadLiveCatalog failed, using bundled catalog", e);
+    return CATALOG_ITEMS.map((i) => ({ ...i, tags: [] }));
+  }
+}
+
+/** Searches the live catalog (name, description, admin tags) for the chat bots. */
+export async function findSkusByText(query: string, limit = 8): Promise<LiveCatItem[]> {
   const q = query.trim().toLowerCase();
   if (!q) return [];
-  const direct = CATALOG_ITEMS.filter((i) => i.sku === q);
+  const all = await loadLiveCatalog();
+  const direct = all.filter((i) => i.sku === q);
   if (direct.length) return direct;
   const matches = makeHebrewMatcher(q);
-  return CATALOG_ITEMS.filter(
-    (i) => i.sku.includes(q) || matches(`${i.name || ""} ${i.alt || ""}`),
-  ).slice(0, limit);
+  return all
+    .filter((i) => i.sku.includes(q) || matches(`${i.name || ""} ${i.alt || ""} ${i.tags.join(" ")}`))
+    .slice(0, limit);
 }
 
 /** Real availability of props between two dates (inclusive). */
