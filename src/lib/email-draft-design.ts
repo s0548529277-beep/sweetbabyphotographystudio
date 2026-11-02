@@ -222,9 +222,14 @@ export function buildDraftHtml(opts: {
   cta?: { label: string; url: string } | null;
   /** More buttons next to the main one (e.g. gallery + details + chat in the automatic first reply). */
   extraCtas?: Array<{ label: string; url: string }>;
-  /** Photographer brand only: close with the signature block shown in the site's footer (animated logo, tagline, phone, mail). */
+  /**
+   * Photographer brand only: close with the signature block shown in the site's footer (animated logo with
+   * Michal's heart, tagline, phone, mail). ON by default for every photographer draft / reply (regular,
+   * follow-up and automatic); pass `false` to fall back to the small static-logo signature.
+   */
   siteSignature?: boolean;
 }): string {
+  const useSiteSig = opts.brand === "photographer" && opts.siteSignature !== false;
   const t = THEMES[opts.brand];
   const sig = SIGNATURES[opts.brand];
   // Michal's own heart for every photographer mail, the bot's colourful heart for the rest.
@@ -276,7 +281,7 @@ export function buildDraftHtml(opts: {
     ${heart}
     <tr><td style="padding:${branded ? "14px 28px 26px" : "16px 28px 20px"};${branded ? "" : `border-top:1px solid ${t.border};`}font-size:13px;color:${t.soft};text-align:center;line-height:1.6">
       ${
-        opts.siteSignature && opts.brand === "photographer"
+        useSiteSig
           ? `<div>${logo(96, true)}</div>
       <div style="margin-top:4px">צילומי ניו-בורן ומשפחה</div>
       <div style="margin-top:6px"><span dir="ltr"><a href="tel:${SITE_PHONE.replace(/-/g, "")}" style="color:${t.soft};text-decoration:none">${SITE_PHONE}</a></span> · <a href="mailto:${SITE_MAIL}" style="color:${t.soft}">${SITE_MAIL}</a></div>
@@ -312,7 +317,7 @@ export function buildDraftText(opts: {
       : "";
   const body = opts.body.replace(/^##\s+/gm, "").replace(/^>\s?/gm, "").replace(/\*\*/g, "");
   return `${body}\n${lists}${[...(opts.cta ? [opts.cta] : []), ...(opts.extraCtas ?? [])].map((c) => `\n${c.label}: ${c.url}`).join("")}${opts.cta || opts.extraCtas?.length ? "\n" : ""}\n--\n${
-    opts.siteSignature && opts.brand === "photographer"
+    opts.brand === "photographer" && opts.siteSignature !== false
       ? `מיכל סיבוני\nצילומי ניו-בורן ומשפחה\n${SITE_PHONE} · ${SITE_MAIL}\nmichalsiboni.co.il`
       : `${sig.name}\n${sig.lines.join(" · ")}${sig.site ? `\n${sig.site.label}` : ""}`
   }\n`;
