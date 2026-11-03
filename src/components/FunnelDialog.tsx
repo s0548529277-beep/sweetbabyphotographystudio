@@ -268,7 +268,7 @@ export function FunnelDialog() {
       <DialogContent
         dir="rtl"
         style={themeVars}
-        className="max-h-[92vh] gap-0 overflow-y-auto border-2 border-[var(--f-border)] bg-[var(--f-soft)] p-0 text-[var(--f-ink)] sm:max-w-lg sm:rounded-3xl"
+        className="max-h-[92vh] gap-0 overflow-y-auto border-2 border-[var(--f-border)] bg-[var(--f-soft)] p-0 sm:p-0 text-[var(--f-ink)] sm:max-w-lg sm:rounded-3xl"
         closeClassName="text-white opacity-90 hover:bg-white/20 rounded-full p-1"
       >
         <DialogDescription className="sr-only">שאלון קצר להתאמת השירות</DialogDescription>
