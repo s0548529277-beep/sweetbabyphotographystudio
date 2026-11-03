@@ -17,7 +17,7 @@ import { heartImg } from "@/lib/email-hearts";
  * The review button needs GOOGLE_REVIEW_URL in the environment; without it
  * the email simply asks her to reply with a few words.
  */
-import { buildChatButtonHtml, pillButton, buildContinueOrderHtml } from "@/lib/orderSummary";
+import { buildChatButtonHtml, pillButton, buildContinueOrderHtml, buildReminderActionsHtml } from "@/lib/orderSummary";
 import { PHONE_BOOKING_NOTES_MARKER } from "@/lib/availability.server";
 import { isPlaceholderEmail } from "@/lib/auth.functions";
 
@@ -25,7 +25,7 @@ const SENT_KEY = "booking_followups_sent";
 const SITE = "https://sweetbabyphoto.shop";
 const MAX_PER_RUN = 5;
 
-type Sent = { thanks: string[]; unfinished: string[] };
+type Sent = { thanks: string[]; unfinished: string[]; pre: string[] };
 
 function israelNow() {
   const f = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Jerusalem", weekday: "short", hour: "2-digit", hour12: false }).formatToParts(new Date());
@@ -61,14 +61,14 @@ async function loadSent(db: any): Promise<Sent> {
   const { data } = await db.from("app_settings").select("value").eq("key", SENT_KEY).maybeSingle();
   try {
     const v = JSON.parse(data?.value || "{}");
-    return { thanks: Array.isArray(v.thanks) ? v.thanks : [], unfinished: Array.isArray(v.unfinished) ? v.unfinished : [] };
+    return { thanks: Array.isArray(v.thanks) ? v.thanks : [], unfinished: Array.isArray(v.unfinished) ? v.unfinished : [], pre: Array.isArray(v.pre) ? v.pre : [] };
   } catch {
-    return { thanks: [], unfinished: [] };
+    return { thanks: [], unfinished: [], pre: [] };
   }
 }
 
 async function saveSent(db: any, sent: Sent) {
-  const trimmed = { thanks: sent.thanks.slice(-400), unfinished: sent.unfinished.slice(-400) };
+  const trimmed = { thanks: sent.thanks.slice(-400), unfinished: sent.unfinished.slice(-400), pre: sent.pre.slice(-400) };
   await db.from("app_settings").upsert({ key: SENT_KEY, value: JSON.stringify(trimmed), updated_at: new Date().toISOString() });
 }
 
@@ -199,6 +199,64 @@ export async function runDueUnfinishedBookingFollowUps(): Promise<{ checked: num
       sent += 1;
     } catch (e) {
       console.error("[SWEETBABY] unfinished-booking follow-up failed for booking", b.id, e);
+    }
+  }
+  if (sent) await saveSent(db, sentReg);
+  return { checked: (rows ?? []).length, sent };
+}
+
+/**
+ * Pre-session reminder (owner request 2026-11-03): ~24 hours before a confirmed studio session (sent when it is
+ * 12–30 hours away, inside the 9:00–21:00 window) one email with the address, arrival directions, add-props and
+ * change-date buttons. Skipped for customers who chose their own reminder time (they already get that one),
+ * phone bookings and placeholder emails. Once per booking (ids in app_settings).
+ */
+export async function runDuePreSessionReminders(): Promise<{ checked: number; sent: number }> {
+  if (!sendWindowOpen()) return { checked: 0, sent: 0 };
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const db = supabaseAdmin as any;
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
+  const until = new Date(Date.now() + 3 * 86400000).toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
+  const { data: rows, error } = await db
+    .from("bookings")
+    .select("id, user_id, session_date, start_time, end_time, contact_name, status, notes, reminder_hours_before")
+    .neq("status", "cancelled")
+    .not("google_event_id", "is", null)
+    .is("reminder_hours_before", null)
+    .gte("session_date", today)
+    .lte("session_date", until);
+  if (error) {
+    console.error("[SWEETBABY] pre-session reminder scan failed", error);
+    return { checked: 0, sent: 0 };
+  }
+  const sentReg = await loadSent(db);
+  const done = new Set(sentReg.pre);
+  const { sendGmail } = await import("@/integrations/google/gmail.server");
+  let sent = 0;
+  for (const b of rows ?? []) {
+    if (sent >= MAX_PER_RUN) break;
+    if (done.has(b.id) || b.notes?.includes(PHONE_BOOKING_NOTES_MARKER)) continue;
+    const hoursTo = (israelMs(b.session_date, b.start_time) - Date.now()) / 3_600_000;
+    if (hoursTo < 12 || hoursTo > 30) continue;
+    try {
+      const to = await customerEmailOf(db, b.user_id);
+      if (to) {
+        const name = esc(b.contact_name || "");
+        const html = `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:560px;margin:auto;line-height:1.7">
+          <h2 style="color:#2d3d2b">מחכות לך בסטודיו ${heartImg("bot", 18)}</h2>
+          <p>שלום ${name},</p>
+          <p>תזכורת קטנה: הסשן שלך בסטודיו Sweetbaby ${esc(dateHe(b.session_date))} בשעה ${esc(String(b.start_time).slice(0, 5))}.</p>
+          <p>הכתובת: תלמוד ירושלמי 24, בית שמש. אפשר לבקש הוראות הגעה, להוסיף אביזרים או לשנות מועד — בלחיצה, והצ׳אט יעזור.</p>
+          ${buildReminderActionsHtml(b.id, b.session_date)}
+          <p style="color:#6b8a63;font-size:13px;margin-top:16px">סטודיו Sweetbaby · 054-8529277</p>
+        </div>`;
+        await sendGmail({ to, subject: "תזכורת לסשן שלך בסטודיו 💗 · Sweetbaby", html });
+      }
+      done.add(b.id);
+      sentReg.pre.push(b.id);
+      sent += 1;
+    } catch (e) {
+      console.error("[SWEETBABY] pre-session reminder failed for booking", b.id, e);
     }
   }
   if (sent) await saveSent(db, sentReg);

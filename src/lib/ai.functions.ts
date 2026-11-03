@@ -123,6 +123,7 @@ export function buildToolRules(now: { date: string; time: string; weekday?: stri
 const WEB_CHAT_RULES = `
 
 ממשק האתר (צ׳אט):
+- כל תשובה חייבת להכיל טקסט: גם כשמוצגים כרטיסים/כפתורים — כתבי משפט אחד שמנקב בשם של הפריט הראשון ובזמינות/מחיר ("מצאתי את X – פנוי בתאריך, ₪Y"). אל תחזירי רק כרטיסים. בכל הודעה שלך שאלה אחת בלבד לשלב הבא — לא לאחד שני שלבים של ההזמנה באותה תשובה.
 - אביזרים שמצאת ב-search_catalog / check_prop_availability מוצגים ללקוחה אוטומטית ככרטיסים עם תמונה, מחיר וכפתור "הוספה לעגלה" — אל תכתבי קישורי תמונה בעצמך, ואל תחזרי על כל הפרטים בטקסט; משפט קצר מספיק. כשהלקוחה אומרת שהיא רוצה/מזמינה/מוסיפה אביזר — אל תסתפקי בכרטיסים: קראי ל-add_to_cart (הפריטים נכנסים לעגלה שלה מיד) ואשרי לה במשפט קצר מה נוסף.
 - בקשת תמונות/השראה/דוגמאות לצילומים — חובה show_gallery_photos עם הקטגוריה המתאימה, גם במצב ניהול. התמונות מוצגות בתוך השיחה. אם אין תמונות בקטגוריה, אמרי זאת והציעי את הגלריה; לעולם אל תמציאי קישורי תמונות. בקשת תמונת אביזר — search_catalog גם במצב ניהול, לא admin_query_data.
 - כשיש צעד הבא ברור (להזמין, לשריין, לעבור לעגלה, להתחבר, לאזור האישי) — קראי ל-show_buttons עם עד 3 כפתורים.
@@ -326,7 +327,10 @@ export async function prepareChatTurn(data: ChatTurnData) {
     getRealAuthState(data.accessToken),
     getBotKnowledgeText(),
     // Checked while auth + knowledge load, so it costs no extra waiting (see chat-prefetch.server.ts).
-    import("./chat-prefetch.server").then((m) => m.prefetchStudioNote(lastUserText)),
+    import("./chat-prefetch.server").then(async (m) => {
+      const studio = await m.prefetchStudioNote(lastUserText);
+      return studio || (await m.prefetchPropsNote(lastUserText, (data.cartLines ?? []).map((l) => l.sku)));
+    }),
   ]);
   // Decided from the server-verified token, not from the browser's flag (after "continue as guest" the
   // browser flag is still stale for that one message).

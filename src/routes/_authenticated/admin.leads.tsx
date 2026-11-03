@@ -162,6 +162,39 @@ function LeadsAdmin() {
     },
     refetchInterval: 120000,
   });
+  // Carts with items nobody touched for 3h–7 days (mirror in customer_carts). Names/phones from the profile or her bookings/orders.
+  const carts = useQuery({
+    queryKey: ["admin-abandoned-carts"],
+    queryFn: async () => {
+      const db = supabase as any;
+      const { data } = await db
+        .from("customer_carts")
+        .select("user_id, lines, item_count, subtotal, updated_at")
+        .gt("item_count", 0)
+        .lt("updated_at", new Date(Date.now() - 3 * 3600 * 1000).toISOString())
+        .gt("updated_at", new Date(Date.now() - 7 * 86400000).toISOString())
+        .order("updated_at", { ascending: false })
+        .limit(12);
+      const rows = (data ?? []) as any[];
+      const ids = rows.map((r) => r.user_id);
+      if (!ids.length) return [];
+      const [pr, bk, od] = await Promise.all([
+        db.from("profiles").select("id, full_name, phone").in("id", ids),
+        db.from("bookings").select("user_id, contact_name, contact_phone").in("user_id", ids),
+        db.from("orders").select("user_id, contact_name, contact_phone, created_at").in("user_id", ids),
+      ]);
+      const who = new Map<string, { name?: string; phone?: string }>();
+      for (const r of [...(od.data ?? []), ...(bk.data ?? [])]) who.set(r.user_id, { name: r.contact_name, phone: r.contact_phone });
+      for (const p of pr.data ?? []) who.set(p.id, { name: p.full_name || who.get(p.id)?.name, phone: p.phone || who.get(p.id)?.phone });
+      // A customer who ordered after the cart was last changed already followed through.
+      const ordered = new Map<string, string>();
+      for (const o of od.data ?? []) if (!ordered.has(o.user_id) || o.created_at > ordered.get(o.user_id)!) ordered.set(o.user_id, o.created_at);
+      return rows
+        .filter((r) => !(ordered.get(r.user_id) && ordered.get(r.user_id)! > r.updated_at))
+        .map((r) => ({ ...r, ...(who.get(r.user_id) ?? {}) }));
+    },
+    refetchInterval: 180000,
+  });
   const markStuckHandled = async (key: string) => {
     await (supabase as any).from("booking_drafts").update({ handled: true }).eq("client_key", key);
     qc.invalidateQueries({ queryKey: ["admin-booking-drafts"] });
@@ -349,9 +382,29 @@ function LeadsAdmin() {
       )}
 
       {/* Who to get back to today */}
-      {(callBack.unanswered.length > 0 || callBack.quiet.length > 0 || (unpaid.data?.length ?? 0) > 0) && (
+      {(callBack.unanswered.length > 0 || callBack.quiet.length > 0 || (unpaid.data?.length ?? 0) > 0 || (carts.data?.length ?? 0) > 0) && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 space-y-3">
           <div className="font-medium text-forest">📞 למי לחזור היום</div>
+          {(carts.data?.length ?? 0) > 0 && (
+            <div>
+              <div className="text-xs text-forest/70 mb-1">🛒 השאירו עגלה ולא הזמינו ({carts.data!.length})</div>
+              <ul className="flex flex-wrap gap-2">
+                {carts.data!.slice(0, 8).map((c: any) => (
+                  <li key={c.user_id} className="bg-card rounded-full border border-primary/10 px-3 py-1 text-xs flex items-center gap-2">
+                    <span className="font-medium">{c.name || "אורחת (בלי פרטים)"}</span>
+                    <span className="text-forest/60">
+                      {c.item_count} פריטים · ₪{c.subtotal} · {fmt(c.updated_at)}
+                    </span>
+                    {c.phone && (
+                      <a href={waLink(c.phone)} target="_blank" rel="noreferrer" className="text-emerald-700" aria-label="וואטסאפ">
+                        <MessageCircle className="h-3.5 w-3.5" />
+                      </a>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {(unpaid.data?.length ?? 0) > 0 && (
             <div>
               <div className="text-xs text-forest/70 mb-1">שריון בלי מקדמה יותר מ־12 שעות ({unpaid.data!.length})</div>
