@@ -27,6 +27,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChatBookingWizard, type WizardPrefill } from "@/components/ChatBookingWizard";
+import { describeBookingProgress, hasBookingProgress, loadBookingProgress } from "@/lib/booking-draft";
 import {
   Conversation,
   ConversationContent,
@@ -391,6 +392,7 @@ export function ChatBot() {
         userName,
         isAuthenticated: isAuth,
         sessionId,
+        bookingProgress: isAdmin ? undefined : describeBookingProgress() || undefined,
         cartLines: cart.lines.slice(0, 40).map((l) => ({
           sku: String(l.sku).slice(0, 40),
           name: String(l.name).slice(0, 120),
@@ -874,6 +876,12 @@ export function ChatBot() {
             {messages.length <= 1 && !loading && !isAdmin && (
               <div className="mb-3 grid gap-2">
                 <div className="flex flex-wrap gap-2">
+                  {hasBookingProgress(loadBookingProgress()) && (
+                    <Button onClick={() => openWizard()} size="sm" className="rounded-full bg-accent px-4 text-accent-foreground shadow-sm hover:bg-accent/90">
+                      <Sparkles />
+                      להמשיך את ההזמנה שהתחלתי
+                    </Button>
+                  )}
                   {[...ctx.chips, ...[CHIP_BOOK_STUDIO, CHIP_BOOK_SHOOT, CHIP_PROPS].filter((c) => !ctx.chips.includes(c))]
                     .slice(0, 3)
                     .map(({ label, prompt, icon: Icon }) => (

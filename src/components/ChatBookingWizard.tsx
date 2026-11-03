@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { getStudioDayBusy } from "@/lib/studio-availability.functions";
-import { placeBooking, computeStudioPrice, isMorningPackage } from "@/lib/bookings.functions";
+import { placeBooking, computeStudioPrice, isMorningPackage, GUIDANCE_FEES, GUIDANCE_LABELS } from "@/lib/bookings.functions";
 import { submitStudioIntake } from "@/lib/studio-intake.functions";
+import { loadBookingProgress, saveBookingProgress, clearBookingProgress, wizardStartStep } from "@/lib/booking-draft";
 
 /**
  * Studio booking wizard that lives INSIDE the chat (owner request 2026-11-03: the whole process —
@@ -79,30 +80,44 @@ export function ChatBookingWizard({
   onBooked: (r: WizardResult) => void;
   onClose: () => void;
 }) {
-  const [step, setStep] = useState(0);
-  const [date, setDate] = useState(prefill?.date ?? "");
-  const [hours, setHours] = useState<number>(prefill?.hours ?? 0);
-  const [time, setTime] = useState(prefill?.startTime ?? "");
+  // Start from whatever the visitor already filled (here, on /booking or on /studio-rental).
+  const saved = useMemo(() => loadBookingProgress(), []);
+  const [step, setStep] = useState(() => wizardStartStep({ ...saved, date: prefill?.date ?? saved.date, time: prefill?.startTime ?? saved.time, hours: prefill?.hours ?? saved.hours }));
+  const [date, setDate] = useState(prefill?.date ?? saved.date ?? "");
+  const [hours, setHours] = useState<number>(prefill?.hours ?? saved.hours ?? 0);
+  const [time, setTime] = useState(prefill?.startTime ?? saved.time ?? "");
   const [busy, setBusy] = useState<Array<{ start_time: string; end_time: string }> | null>(null);
   const [busyErr, setBusyErr] = useState(false);
 
-  const [sessionType, setSessionType] = useState("");
-  const [people, setPeople] = useState("");
-  const [babyAge, setBabyAge] = useState("");
-  const [camera, setCamera] = useState("");
-  const [flash, setFlash] = useState("");
-  const [props, setProps] = useState("");
-  const [special, setSpecial] = useState("");
+  const [sessionType, setSessionType] = useState(saved.sessionType ?? "");
+  const [people, setPeople] = useState(saved.people ?? "");
+  const [babyAge, setBabyAge] = useState(saved.babyAge ?? "");
+  const [camera, setCamera] = useState(saved.camera ?? "");
+  const [flash, setFlash] = useState(saved.flash ?? "");
+  const [props, setProps] = useState(saved.props ?? "");
+  const [special, setSpecial] = useState(saved.special ?? "");
 
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [terms, setTerms] = useState(false);
+  const [name, setName] = useState(saved.name ?? "");
+  const [phone, setPhone] = useState(saved.phone ?? "");
+  const [email, setEmail] = useState(saved.email ?? "");
+  const [terms, setTerms] = useState(saved.terms ?? false);
 
+  const [guidance, setGuidance] = useState<keyof typeof GUIDANCE_FEES>("basic");
+  const [coupon, setCoupon] = useState("");
+  const [isMember, setIsMember] = useState(false);
+  const [editContact, setEditContact] = useState(false);
+  const [creditBalance, setCreditBalance] = useState(0);
+  const [useCredit, setUseCredit] = useState(false);
   const [plan, setPlan] = useState<DepositPlan | "">("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState<WizardResult | null>(null);
+
+  // Remember progress so a visitor who gets stuck (or closes the chat) can continue, and so the bot knows what is missing.
+  useEffect(() => {
+    if (done) return;
+    saveBookingProgress({ date, time, hours: hours || undefined, sessionType, people, babyAge, camera, flash, props, special, name, phone, email, terms: terms || undefined });
+  }, [done, date, time, hours, sessionType, people, babyAge, camera, flash, props, special, name, phone, email, terms]);
 
   // Prefill contact details from the signed-in profile (best effort).
   useEffect(() => {
@@ -112,7 +127,14 @@ export function ChatBookingWizard({
         const { data } = await supabase.auth.getUser();
         const u = data.user;
         if (off || !u || u.is_anonymous) return;
+        setIsMember(true);
         setEmail((v) => v || u.email || "");
+        try {
+          const { data: loy } = await (supabase as any).from("customer_loyalty").select("credit_balance").eq("user_id", u.id).maybeSingle();
+          if (!off) setCreditBalance(Number(loy?.credit_balance ?? 0));
+        } catch {
+          /* optional */
+        }
         const { data: p } = await (supabase as any).from("profiles").select("full_name, phone").eq("id", u.id).maybeSingle();
         if (off || !p) return;
         setName((v) => v || p.full_name || "");
@@ -164,10 +186,14 @@ export function ChatBookingWizard({
   }, [freeStarts, time, busy, hours]);
 
   const slots = Math.round(hours * 2);
-  const price = hours && time ? computeStudioPrice(slots, time) : 0;
+  const guidanceFee = GUIDANCE_FEES[guidance] ?? 0;
+  const price = hours && time ? computeStudioPrice(slots, time) + guidanceFee : 0;
   const morning = hours && time ? isMorningPackage(slots, time) : false;
   const phoneOk = phone.replace(/\D/g, "").length >= 9;
   const emailOk = /^\S+@\S+\.\S+$/.test(email.trim());
+  const contactKnown = isMember && !!name.trim() && phoneOk && emailOk;
+  const showContactFields = !contactKnown || editContact;
+  const creditApplied = useCredit ? Math.min(creditBalance, price) : 0;
 
   // What is missing on the current step (shown under a disabled "continue").
   const missing: string[] = [];
@@ -209,7 +235,9 @@ export function ChatBookingWizard({
           contact_phone: phone.trim(),
           contact_email: email.trim(),
           notes: [`הוזמן דרך אשף ההזמנה בצ'אט`, `מקדמה: ${planLabel}`, special ? `בקשות: ${special}` : ""].filter(Boolean).join("\n"),
-          guidance: "basic",
+          guidance,
+          coupon: !morning && coupon.trim() ? coupon.trim().toUpperCase() : null,
+          use_credit: creditApplied > 0 ? creditApplied : undefined,
           terms_accepted: true,
         },
       });
@@ -241,6 +269,7 @@ export function ChatBookingWizard({
         deposit: Number(res.deposit ?? 90),
         summary: `השריון נוצר (ממתין למקדמה): ${dateHe}, ${time}–${fmt(toMin(time) + hours * 60)}, ${hoursLabel(hours)}, ${Number(res.price ?? price)}₪, מקדמה ${Number(res.deposit ?? 90)}₪.`,
       };
+      clearBookingProgress();
       setDone(result);
       onBooked(result);
     } catch (e: any) {
@@ -383,6 +412,17 @@ export function ChatBookingWizard({
               ))}
             </div>
           </Field>
+          <Field label="חבילת הדרכה (אופציונלי)">
+            <div className="flex flex-wrap gap-1.5">
+              {(Object.keys(GUIDANCE_FEES) as Array<keyof typeof GUIDANCE_FEES>).map((g) => (
+                <Chip key={g} active={guidance === g} onClick={() => setGuidance(g)}>
+                  {GUIDANCE_LABELS[g].split(" · ")[0]}
+                  {GUIDANCE_FEES[g] ? ` +${GUIDANCE_FEES[g]}₪` : ""}
+                </Chip>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground">{GUIDANCE_LABELS[guidance]}</p>
+          </Field>
           <Field label="בקשות מיוחדות (אופציונלי)">
             <Input value={special} onChange={(e) => setSpecial(e.target.value)} className="h-9 text-sm" />
           </Field>
@@ -391,6 +431,8 @@ export function ChatBookingWizard({
 
       {step === 2 && (
         <div className="space-y-3">
+          {showContactFields ? (
+            <>
           <Field label="שם מלא">
             <Input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" className="h-9 text-sm" />
           </Field>
@@ -400,6 +442,17 @@ export function ChatBookingWizard({
           <Field label="אימייל (לשם נשלח אישור ההזמנה)">
             <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" autoComplete="email" dir="ltr" className="h-9 text-right text-sm" />
           </Field>
+            </>
+          ) : (
+            <div className="flex items-center justify-between gap-2 rounded-lg bg-secondary/40 px-3 py-2 text-xs">
+              <span>
+                פרטי קשר מהחשבון שלך: <b>{name}</b> · {phone} · {email}
+              </span>
+              <button type="button" onClick={() => setEditContact(true)} className="shrink-0 underline-offset-2 hover:underline">
+                שינוי
+              </button>
+            </div>
+          )}
           <div className="space-y-1.5 rounded-lg bg-secondary/40 p-2.5 text-[11px] leading-relaxed">
             <p className="font-semibold">תנאי הסטודיו המרכזיים</p>
             <p>• מקדמה 90₪ לשריון המועד — לא מוחזרת בביטול.</p>
@@ -425,9 +478,33 @@ export function ChatBookingWizard({
               {people ? ` · ${people} אנשים` : ""} · {name}
             </p>
             <p>
-              מחיר <b>{price}₪</b> · מקדמה <b>90₪</b>
+              מחיר <b>{price}₪</b>
+              {guidanceFee ? ` (כולל הדרכה ${guidanceFee}₪)` : ""} · מקדמה <b>90₪</b>
             </p>
           </div>
+          {!morning && (
+            <Field label="קוד קופון (אופציונלי)">
+              <Input value={coupon} onChange={(e) => setCoupon(e.target.value)} dir="ltr" className="h-9 text-right text-sm" placeholder="למשל SWEETBABY10" />
+              <p className="text-[11px] text-muted-foreground">ההנחה תחושב ותוצג בשריון.</p>
+            </Field>
+          )}
+          {isMember && creditBalance > 0 && (
+            <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-secondary/40 px-3 py-2 text-xs">
+              <Checkbox checked={useCredit} onCheckedChange={(v) => setUseCredit(v === true)} />
+              <span>
+                להשתמש בקרדיט שלי (₪{creditBalance.toFixed(0)}){useCredit ? ` — יקוזזו ₪${creditApplied}` : ""}
+              </span>
+            </label>
+          )}
+          {!isMember && (
+            <p className="rounded-lg bg-accent/20 px-3 py-2 text-[11px] leading-snug">
+              💡 מומלץ{" "}
+              <Link to="/auth" search={{ redirect: "/" }} className="font-semibold underline">
+                להתחבר
+              </Link>{" "}
+              לפני השריון — לקוחות מחוברות מקבלות את הפרטים ממולאים, צוברות ומשתמשות בקרדיט, ורואות את כל ההזמנות שלהן בחשבון. ההתקדמות שמילאת כאן נשמרת.
+            </p>
+          )}
           <Field label="איך תרצי לטפל במקדמה?">
             <div className="flex flex-wrap gap-1.5">
               {DEPOSIT_PLANS.map((p) => (

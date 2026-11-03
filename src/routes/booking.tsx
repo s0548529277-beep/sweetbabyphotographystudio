@@ -33,6 +33,7 @@ import { he } from "date-fns/locale";
 import { Lock, Clock, Sparkles, CalendarDays, Package, X, Search, BellRing } from "lucide-react";
 import { useCatalogItems, type CatalogItem } from "@/lib/catalog";
 import { GuestContinueButton } from "@/components/GuestContinueButton";
+import { saveBookingProgress, clearBookingProgress } from "@/lib/booking-draft";
 
 
 type CatItem = CatalogItem;
@@ -231,6 +232,12 @@ function Booking() {
   // /admin/clients) replaces the standard price list entirely if present —
   // fetched alongside credit_balance so the preview matches what the
   // server will actually charge.
+  // Remember the hour she picked (and her details) so the chat bot can help finish if she gets stuck.
+  useEffect(() => {
+    if (!date || !startTime) return;
+    saveBookingProgress({ date: toLocalISODate(date), time: startTime, hours: slots / 2, name: contactName, phone: contactPhone, email: contactEmail });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date, startTime, slots, contactName, contactPhone, contactEmail]);
   const [customHourlyRate, setCustomHourlyRate] = useState<number | null>(null);
 
   // Studio-visit pass (e.g. the 5 or 10-entry card) — covers the first hour
@@ -415,6 +422,7 @@ function Booking() {
           terms_accepted: true as const,
         },
       });
+      clearBookingProgress();
       toast.success("הבקשה נשלחה! התאריך שמור לך לשעה — נשלים את התשלום עכשיו כדי לשריין אותו סופית.");
       nav({ to: "/summary/$type/$id", params: { type: "booking", id: res.id } });
     } catch (err) {

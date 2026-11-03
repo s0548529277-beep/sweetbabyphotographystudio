@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { InspirationStrip } from "@/components/InspirationStrip";
 import { usePageGallery, PAGE_IMAGE_KEYS } from "@/lib/page-images";
 import { ArrivalDirections } from "@/components/ArrivalDirections";
+import { saveBookingProgress } from "@/lib/booking-draft";
 
 
 export const Route = createFileRoute("/studio-rental")({
@@ -192,6 +193,11 @@ function StudioRentalPage() {
 
 
 
+
+  // Remember how far she got in the questionnaire so the chat bot can offer to finish it with her.
+  useEffect(() => {
+    saveBookingProgress({ sessionType: form.sessionType, people: form.peopleCount, babyAge: form.babyAge, name: form.clientName, phone: form.phone, email: form.email });
+  }, [form.sessionType, form.peopleCount, form.babyAge, form.clientName, form.phone, form.email]);
 
   const sendIntake = async () => {
     if (!form.clientName.trim() || !form.phone.trim() || !form.email.trim()) {
