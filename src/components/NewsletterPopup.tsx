@@ -24,6 +24,12 @@ import { heError } from "@/lib/he-errors";
 import { toast } from "sonner";
 
 const POPUP_KEY = "sweetbaby-newsletter-popup-shown";
+const OPEN_SIGNUP_EVENT = "sweetbaby-open-signup";
+
+/** Open the sign-up + prize-wheel popup on demand (e.g. from a lead funnel), even if it was shown or closed before. */
+export function openSignupWheel() {
+  window.dispatchEvent(new Event(OPEN_SIGNUP_EVENT));
+}
 const DELAY_MS = 4000;
 // Skip on transactional/private flows — a marketing popup there is just
 // noise (or actively unwanted, e.g. mid-checkout).
@@ -107,6 +113,16 @@ export function NewsletterPopup() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, isRegistered]);
+
+  useEffect(() => {
+    const onOpen = () => {
+      setPhase("form");
+      setOptIn(true);
+      setOpen(true);
+    };
+    window.addEventListener(OPEN_SIGNUP_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_SIGNUP_EVENT, onOpen);
+  }, []);
 
   const markSeen = () => {
     try {

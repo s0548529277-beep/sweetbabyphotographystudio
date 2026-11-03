@@ -40,7 +40,7 @@ export const ENTRY_QUESTION: FunnelQuestion = {
   id: "who",
   title: "איך נעים להכיר? מי את?",
   options: [
-    { id: "photographer", label: "צלמת", hint: "קבועה או חדשה — מחפשת סטודיו", goto: "studio" },
+    { id: "photographer", label: "שכירת סטודיו", hint: "צלמת קבועה, צלמת חדשה או שכירות חד פעמית", goto: "studio" },
     { id: "newborn", label: "לקוחה — ניו-בורן", hint: "צילומי התינוק החדש", goto: "newborn" },
     { id: "client", label: "לקוחה — משפחה, ילדים או חוץ", hint: "סשן אצל מיכל", goto: "photography" },
   ],
@@ -56,15 +56,26 @@ export const STUDIO_CARDS = [
   { id: "card10", name: "כרטיסייה 10 כניסות", entries: 10, price: 1300 },
 ] as const;
 
-const STUDIO_VISITS: Record<string, number> = { v1: 2, v2: 4, v3: 8, v4: 12 };
+const STUDIO_VISITS: Record<string, number> = { v0: 1, v1: 2, v2: 4, v3: 8, v4: 12 };
 const STUDIO_HOURS: Record<string, number> = { h1: 1, h2: 2, h3: 3, h4: 4 };
 
 export const STUDIO_QUESTIONS: FunnelQuestion[] = [
   {
+    id: "history",
+    title: "איזה שימוש בסטודיו מתאים לך?",
+    options: [
+      { id: "regular", label: "צלמת קבועה", hint: "מצלמת בסטודיו כל חודש" },
+      { id: "before", label: "צלמת, כבר צילמתי אצלכם פעם או פעמיים" },
+      { id: "once", label: "שכירות חד פעמית", hint: "צילום משפחתי, אירוע או תוכן — לא צלמת קבועה" },
+      { id: "new", label: "זו הפעם הראשונה שלי", hint: "עוד לא הייתי בסטודיו" },
+    ],
+  },
+  {
     id: "visits",
     title: "כמה פעמים את מתכננת לצלם בסטודיו בחודשים הקרובים?",
     options: [
-      { id: "v1", label: "1–3 פעמים" },
+      { id: "v0", label: "פעם אחת בלבד" },
+      { id: "v1", label: "2–3 פעמים" },
       { id: "v2", label: "4–6 פעמים" },
       { id: "v3", label: "7–10 פעמים" },
       { id: "v4", label: "יותר מ-10" },
@@ -78,15 +89,6 @@ export const STUDIO_QUESTIONS: FunnelQuestion[] = [
       { id: "h2", label: "שעתיים" },
       { id: "h3", label: "3 שעות" },
       { id: "h4", label: "4 שעות ויותר" },
-    ],
-  },
-  {
-    id: "history",
-    title: "כבר צילמת אצלנו?",
-    options: [
-      { id: "regular", label: "כן, אני צלמת קבועה" },
-      { id: "before", label: "פעם או פעמיים" },
-      { id: "new", label: "עוד לא, זו הפעם הראשונה" },
     ],
   },
 ];
@@ -115,16 +117,20 @@ function evalStudio(a: Record<string, string>) {
   else if (visits >= 4) score += 2;
   if (a.history === "regular") score += 2;
   else if (a.history === "before") score += 1;
-  const rec =
+  // A first-timer or a one-time renter: the first sign-up on the site earns a spin of the prize wheel.
+  const signup = a.history === "once" || a.history === "new" || a.visits === "v0";
+  const rec0 =
     best.id === "none"
       ? `לפי מה שסיפרת (בערך ${visits} כניסות של ${hours} ${hours === 1 ? "שעה" : "שעות"}) כרטיסייה עדיין לא משתלמת: ${none.total.toLocaleString("he-IL")} ₪ לכל התקופה. שעה ראשונה ${STUDIO_FIRST_HOUR} ₪ וכל שעה נוספת ${STUDIO_EXTRA_HOUR} ₪.`
       : `${best.name} משתלמת לך: בערך ${best.total.toLocaleString("he-IL")} ₪ במקום ${none.total.toLocaleString("he-IL")} ₪ בלי כרטיסייה — חיסכון של כ-${saving.toLocaleString("he-IL")} ₪ (לפי ${visits} כניסות של ${hours} ${hours === 1 ? "שעה" : "שעות"}).`;
+  const rec = signup ? `${rec0} וכשנרשמים לאתר בפעם הראשונה מקבלים סיבוב בגלגל המתנות 🎁 — הנחה או קרדיט להזמנה.` : rec0;
   return {
     score,
     hot: score >= 4,
     recommendation: rec,
     headline: best.id === "none" ? "תשלום לפי שעה" : best.name,
     details: rows.map((r) => `${r.name}: ${r.total.toLocaleString("he-IL")} ₪`),
+    signup,
   };
 }
 
@@ -265,7 +271,8 @@ export const FUNNEL_QUESTIONS: Record<LeadFunnelId, FunnelQuestion[]> = {
   newborn: NEWBORN_QUESTIONS,
 };
 
-export type FunnelResult = { score: number; hot: boolean; recommendation: string; headline: string; details: string[] };
+/** `signup`: show the "register for the first time and spin the prize wheel" button on the result screen. */
+export type FunnelResult = { score: number; hot: boolean; recommendation: string; headline: string; details: string[]; signup?: boolean };
 
 /** The answers must be a complete, valid set for this funnel (every question answered with one of its own options). */
 export function validateAnswers(funnel: LeadFunnelId, answers: Record<string, string>): boolean {

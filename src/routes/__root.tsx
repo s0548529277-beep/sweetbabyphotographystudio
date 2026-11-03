@@ -20,7 +20,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ChatBot } from "@/components/ChatBot";
 import { AccessibilityWidget } from "@/components/AccessibilityWidget";
 import { CookieConsent } from "@/components/CookieConsent";
-import { FunnelDialog } from "@/components/FunnelDialog";
+import { FunnelDialog, FunnelFloat } from "@/components/FunnelDialog";
 import { Analytics } from "@/components/Analytics";
 import { SiteTracking } from "@/lib/site-tracking";
 import { NewsletterPopup } from "@/components/NewsletterPopup";
@@ -200,6 +200,7 @@ function RootComponent() {
             <SiteTexts />
             <CookieConsent />
             <FunnelDialog />
+            <FunnelFloat />
           </WishlistProvider>
         </CartProvider>
       </AuthProvider>

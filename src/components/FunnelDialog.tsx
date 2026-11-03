@@ -1,9 +1,10 @@
 // משפכי שאלון: one dialog for all funnels (mounted once in __root.tsx) + FunnelCta, the button each page shows.
 // A funnel can be switched off in /admin/funnel-leads: then its buttons disappear and its dialog never opens.
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type CSSProperties, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { MessageCircle, ArrowRight, Sparkles, Check } from "lucide-react";
+import { MessageCircle, ArrowRight, Check, X, Gift } from "lucide-react";
+import { useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
@@ -16,6 +17,8 @@ import {
   type LeadFunnelId,
 } from "@/lib/funnels";
 import { getFunnelSettings, submitFunnelLead } from "@/lib/funnels.functions";
+import { FUNNEL_THEMES, type FunnelTheme } from "@/lib/funnel-theme";
+import { openSignupWheel } from "@/components/NewsletterPopup";
 
 const OPEN_EVENT = "sweetbaby-open-funnel";
 const PHONE_WA = "972548529277";
@@ -29,22 +32,118 @@ export function useFunnelSettings() {
   return q.data ?? DEFAULT_FUNNEL_SETTINGS;
 }
 
-/** The button a page shows to start its funnel. Renders nothing while that funnel is switched off. */
+/** The button a page shows to start its funnel. Renders nothing while that funnel is switched off. Coloured per funnel (funnel-theme.ts). */
 export function FunnelCta({ funnel, label, sub, className = "" }: { funnel: FunnelId; label: string; sub?: string; className?: string }) {
   const settings = useFunnelSettings();
   if (!settings[funnel]) return null;
+  const t = FUNNEL_THEMES[funnel];
   return (
     <button
       type="button"
       onClick={() => openFunnel(funnel)}
-      className={`inline-flex items-center gap-3 rounded-full bg-[#2d3d2b] px-6 py-3 text-white shadow-md transition hover:bg-[#3d5239] ${className}`}
+      style={{ background: t.gradient }}
+      className={`inline-flex items-center gap-3 rounded-full px-6 py-3 text-white shadow-lg ring-2 ring-white/60 transition hover:scale-[1.02] hover:shadow-xl ${className}`}
     >
-      <Sparkles className="h-4 w-4 shrink-0" />
+      <span className="text-xl leading-none" aria-hidden>
+        {t.emoji}
+      </span>
       <span className="text-start leading-tight">
         <span className="block text-[15px] font-semibold">{label}</span>
-        {sub && <span className="block text-xs text-white/75">{sub}</span>}
+        {sub && <span className="block text-xs text-white/85">{sub}</span>}
       </span>
     </button>
+  );
+}
+
+/* ---------------------------------------------------------- floating button */
+
+const FLOAT_ROUTES: Record<string, FunnelId> = {
+  "/": "entry",
+  "/studio-rental": "studio",
+  "/studio-photography": "photography",
+  "/newborn": "newborn",
+};
+const FLOAT_CLOSED_KEY = "sb-funnel-float-closed";
+const FLOAT_CLOSED_DAYS = 3;
+const FLOAT_DELAY_MS = 2500;
+
+function floatClosedRecently(id: FunnelId): boolean {
+  try {
+    const all = JSON.parse(localStorage.getItem(FLOAT_CLOSED_KEY) || "{}") as Record<string, number>;
+    return !!all[id] && Date.now() - all[id] < FLOAT_CLOSED_DAYS * 86_400_000;
+  } catch {
+    return false;
+  }
+}
+function rememberFloatClosed(id: FunnelId) {
+  try {
+    const all = JSON.parse(localStorage.getItem(FLOAT_CLOSED_KEY) || "{}") as Record<string, number>;
+    all[id] = Date.now();
+    localStorage.setItem(FLOAT_CLOSED_KEY, JSON.stringify(all));
+  } catch {
+    // private browsing: it simply comes back on the next visit
+  }
+}
+
+/** A floating button for the funnel of the page the visitor is on, with an X to dismiss it. Mounted once in __root.tsx. */
+export function FunnelFloat() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const settings = useFunnelSettings();
+  const id = FLOAT_ROUTES[pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname];
+  const [shown, setShown] = useState(false);
+  const [hiddenByDialog, setHiddenByDialog] = useState(false);
+
+  useEffect(() => {
+    setShown(false);
+    if (!id || floatClosedRecently(id)) return;
+    const t = setTimeout(() => setShown(true), FLOAT_DELAY_MS);
+    return () => clearTimeout(t);
+  }, [id]);
+
+  useEffect(() => {
+    const sync = () => setHiddenByDialog(document.body.dataset.funnelOpen === "1");
+    sync();
+    const mo = new MutationObserver(sync);
+    mo.observe(document.body, { attributes: true, attributeFilter: ["data-funnel-open"] });
+    return () => mo.disconnect();
+  }, []);
+
+  if (!id || !shown || hiddenByDialog || !settings[id]) return null;
+  const t = FUNNEL_THEMES[id];
+  return (
+    <div
+      dir="rtl"
+      className="fixed bottom-20 right-4 z-[95] font-body animate-in fade-in slide-in-from-bottom-4 duration-500 sm:bottom-24 sm:right-6"
+    >
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => openFunnel(id)}
+          style={{ background: t.gradient }}
+          className="flex items-center gap-2.5 rounded-full py-2.5 pe-5 ps-4 text-white shadow-xl ring-2 ring-white/70 transition hover:scale-[1.03]"
+        >
+          <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/25 text-lg" aria-hidden>
+            {t.emoji}
+            <span className="absolute inset-0 animate-ping rounded-full bg-white/30" style={{ animationDuration: "2.6s" }} />
+          </span>
+          <span className="text-start leading-tight">
+            <span className="block text-sm font-semibold">{t.floatLabel}</span>
+            <span className="hidden text-xs text-white/85 sm:block">{t.floatSub}</span>
+          </span>
+        </button>
+        <button
+          type="button"
+          aria-label="סגירה"
+          onClick={() => {
+            rememberFloatClosed(id);
+            setShown(false);
+          }}
+          className="absolute -left-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#2d3d2b] shadow-md ring-1 ring-black/10 hover:bg-[#f5d5cf]"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -87,6 +186,17 @@ export function FunnelDialog() {
   const questions: FunnelQuestion[] = funnel ? FUNNEL_QUESTIONS[funnel] : [ENTRY_QUESTION];
   const q = questions[step];
   const result = funnel && phase !== "questions" ? evaluateFunnel(funnel, answers) : null;
+  // The palette follows the funnel she is in (the entry question uses the home palette).
+  const t: FunnelTheme = FUNNEL_THEMES[funnel ?? "entry"];
+  const themeVars = {
+    "--f-solid": t.solid,
+    "--f-solid-hover": t.solidHover,
+    "--f-soft": t.soft,
+    "--f-tint": t.tint,
+    "--f-border": t.border,
+    "--f-ink": t.ink,
+    "--f-accent": t.accent,
+  } as CSSProperties;
 
   const choose = (optionId: string) => {
     if (!funnel) {
@@ -142,122 +252,187 @@ export function FunnelDialog() {
     }
   };
 
-  const progress = funnel ? `${Math.min(step + 1, questions.length)}/${questions.length}` : "";
+  const total = questions.length;
+  const progressPct = phase !== "questions" ? 100 : funnel ? Math.round(((step + 1) / total) * 100) : 10;
+  const input =
+    "w-full rounded-xl border border-[var(--f-border)] bg-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-[var(--f-accent)]";
+
+  const goSignup = () => {
+    setOpen(false);
+    // let the funnel dialog finish closing first, so the two never overlap
+    window.setTimeout(openSignupWheel, 250);
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent dir="rtl" className="max-h-[92vh] overflow-y-auto sm:max-w-lg bg-[#f6efe6] text-[#2d3d2b] border-[#2d3d2b]/15">
+      <DialogContent
+        dir="rtl"
+        style={themeVars}
+        className="max-h-[92vh] gap-0 overflow-y-auto border-2 border-[var(--f-border)] bg-[var(--f-soft)] p-0 text-[var(--f-ink)] sm:max-w-lg sm:rounded-3xl"
+        closeClassName="text-white opacity-90 hover:bg-white/20 rounded-full p-1"
+      >
         <DialogDescription className="sr-only">שאלון קצר להתאמת השירות</DialogDescription>
-        {phase === "questions" && q && (
-          <div className="space-y-5">
-            <div className="flex items-center justify-between text-xs text-[#2d3d2b]/60">
-              {canBack ? (
-                <button type="button" onClick={back} className="inline-flex items-center gap-1 hover:text-[#2d3d2b]">
-                  <ArrowRight className="h-3.5 w-3.5" /> חזרה
-                </button>
-              ) : (
-                <span />
-              )}
-              <span>{progress}</span>
-            </div>
-            <DialogTitle className="text-2xl leading-snug" style={{ fontFamily: "'DM Serif Display', serif" }}>
-              {q.title}
-            </DialogTitle>
-            <div className="grid gap-2.5">
-              {q.options.map((o) => (
-                <button
-                  key={o.id}
-                  type="button"
-                  onClick={() => choose(o.id)}
-                  className={`rounded-2xl border bg-white px-4 py-3 text-start transition hover:border-[#2d3d2b] hover:shadow-sm ${
-                    answers[q.id] === o.id ? "border-[#2d3d2b]" : "border-[#2d3d2b]/15"
-                  }`}
-                >
-                  <span className="block font-medium">{o.label}</span>
-                  {o.hint && <span className="block text-xs text-[#2d3d2b]/60">{o.hint}</span>}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
-        {phase === "result" && result && (
-          <form onSubmit={send} className="space-y-4">
-            <button type="button" onClick={back} className="inline-flex items-center gap-1 text-xs text-[#2d3d2b]/60 hover:text-[#2d3d2b]">
-              <ArrowRight className="h-3.5 w-3.5" /> חזרה
-            </button>
-            <div className="rounded-2xl bg-white p-4 border border-[#2d3d2b]/10">
-              <div className="text-xs tracking-wide text-[#2d3d2b]/55">ההמלצה בשבילך</div>
-              <DialogTitle className="mt-1 text-2xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
-                {result.headline}
+        {/* colourful header with the progress bar */}
+        <div className="px-6 pb-4 pt-5 text-white" style={{ background: t.gradient }}>
+          <div className="flex items-center gap-2 ps-8 text-sm font-medium text-white/90">
+            <span className="text-lg" aria-hidden>
+              {t.emoji}
+            </span>
+            {t.title}
+          </div>
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/25">
+            <div className="h-full rounded-full bg-white transition-all duration-300" style={{ width: `${Math.max(progressPct, 8)}%` }} />
+          </div>
+        </div>
+
+        <div className="space-y-5 p-6">
+          {phase === "questions" && q && (
+            <div className="space-y-5">
+              <div className="flex items-center justify-between text-xs text-[var(--f-ink)]/60">
+                {canBack ? (
+                  <button type="button" onClick={back} className="inline-flex items-center gap-1 hover:text-[var(--f-ink)]">
+                    <ArrowRight className="h-3.5 w-3.5" /> חזרה
+                  </button>
+                ) : (
+                  <span />
+                )}
+                {funnel && (
+                  <span>
+                    {Math.min(step + 1, total)}/{total}
+                  </span>
+                )}
+              </div>
+              <DialogTitle className="text-2xl leading-snug" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                {q.title}
               </DialogTitle>
-              <p className="mt-2 text-sm leading-relaxed text-[#2d3d2b]/80">{result.recommendation}</p>
-              {result.details.length > 0 && (
-                <ul className="mt-3 space-y-1 text-sm text-[#2d3d2b]/75">
-                  {result.details.map((d) => (
-                    <li key={d} className="flex gap-2">
-                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#6b8a63]" /> {d}
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <div className="grid gap-2.5">
+                {q.options.map((o) => (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => choose(o.id)}
+                    className={`rounded-2xl border-2 bg-white px-4 py-3 text-start shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--f-solid)] hover:bg-[var(--f-tint)] hover:shadow-md ${
+                      answers[q.id] === o.id ? "border-[var(--f-solid)] bg-[var(--f-tint)]" : "border-[var(--f-border)]/60"
+                    }`}
+                  >
+                    <span className="block font-medium">{o.label}</span>
+                    {o.hint && <span className="block text-xs text-[var(--f-ink)]/60">{o.hint}</span>}
+                  </button>
+                ))}
+              </div>
             </div>
-            <p className="text-sm text-[#2d3d2b]/75">רוצה שנחזור אלייך עם פרטים והצעה? השאירי פרטים:</p>
-            <input
-              required
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="שם"
-              aria-label="שם"
-              className="w-full rounded-xl border border-[#2d3d2b]/20 bg-white px-3 py-2.5"
-            />
-            <input
-              required
-              type="tel"
-              dir="ltr"
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              placeholder="טלפון"
-              aria-label="טלפון"
-              className="w-full rounded-xl border border-[#2d3d2b]/20 bg-white px-3 py-2.5 text-end"
-            />
-            <input
-              type="email"
-              dir="ltr"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              placeholder="מייל (לא חובה)"
-              aria-label="מייל"
-              className="w-full rounded-xl border border-[#2d3d2b]/20 bg-white px-3 py-2.5 text-end"
-            />
-            <input tabIndex={-1} autoComplete="off" aria-hidden className="hidden" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} />
-            <button
-              type="submit"
-              disabled={sending}
-              className="w-full rounded-full bg-[#2d3d2b] py-3 font-semibold text-white hover:bg-[#3d5239] disabled:opacity-60"
-            >
-              {sending ? "שולחת…" : "שלחי לי פרטים"}
-            </button>
-            <p className="text-center text-xs text-[#2d3d2b]/50">הפרטים משמשים רק ליצירת קשר איתך בנושא הזה.</p>
-          </form>
-        )}
+          )}
 
-        {phase === "done" && (
-          <div className="space-y-4 py-4 text-center">
-            <DialogTitle className="text-2xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
-              תודה, קיבלנו! 🤍
-            </DialogTitle>
-            <p className="text-sm text-[#2d3d2b]/75">נחזור אלייך בהקדם. אפשר גם לכתוב לנו עכשיו בוואטסאפ.</p>
-            <a
-              href={`https://wa.me/${PHONE_WA}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full bg-[#25d366] px-6 py-3 font-semibold text-white"
-            >
-              <MessageCircle className="h-4 w-4" /> וואטסאפ
-            </a>
-          </div>
-        )}
+          {phase === "result" && result && (
+            <div className="space-y-4">
+              <button type="button" onClick={back} className="inline-flex items-center gap-1 text-xs text-[var(--f-ink)]/60 hover:text-[var(--f-ink)]">
+                <ArrowRight className="h-3.5 w-3.5" /> חזרה
+              </button>
+              <div className="rounded-2xl border-2 border-[var(--f-border)] bg-white p-4 shadow-sm">
+                <div className="inline-block rounded-full px-3 py-0.5 text-xs font-semibold text-white" style={{ background: t.gradient }}>
+                  ההמלצה בשבילך
+                </div>
+                <DialogTitle className="mt-2 text-2xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                  {result.headline}
+                </DialogTitle>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--f-ink)]/85">{result.recommendation}</p>
+                {result.details.length > 0 && (
+                  <ul className="mt-3 space-y-1 text-sm text-[var(--f-ink)]/80">
+                    {result.details.map((d) => (
+                      <li key={d} className="flex gap-2">
+                        <Check className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: t.solid }} /> {d}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {result.signup && (
+                <div className="rounded-2xl border-2 border-dashed border-[var(--f-solid)] bg-[var(--f-tint)] p-4 text-center">
+                  <div className="text-3xl" aria-hidden>
+                    🎡
+                  </div>
+                  <div className="mt-1 text-lg font-semibold" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                    הרשמה ראשונה = סיבוב בגלגל מתנות
+                  </div>
+                  <p className="mt-1 text-sm text-[var(--f-ink)]/75">פותחות חשבון בשנייה ומסובבות: הנחה או קרדיט מתנה להזמנה.</p>
+                  <button
+                    type="button"
+                    onClick={goSignup}
+                    style={{ background: t.gradient }}
+                    className="mt-3 inline-flex items-center gap-2 rounded-full px-6 py-2.5 font-semibold text-white shadow-md transition hover:scale-[1.03]"
+                  >
+                    <Gift className="h-4 w-4" /> להרשמה ולסיבוב בגלגל
+                  </button>
+                </div>
+              )}
+
+              <form onSubmit={send} className="space-y-3">
+                <p className="text-sm text-[var(--f-ink)]/80">
+                  {result.signup ? "או שאפשר להשאיר פרטים ונחזור אלייך:" : "רוצה שנחזור אלייך עם פרטים והצעה? השאירי פרטים:"}
+                </p>
+                <input
+                  required
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="שם"
+                  aria-label="שם"
+                  className={input}
+                />
+                <input
+                  required
+                  type="tel"
+                  dir="ltr"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  placeholder="טלפון"
+                  aria-label="טלפון"
+                  className={`${input} text-end`}
+                />
+                <input
+                  type="email"
+                  dir="ltr"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  placeholder="מייל (לא חובה)"
+                  aria-label="מייל"
+                  className={`${input} text-end`}
+                />
+                <input tabIndex={-1} autoComplete="off" aria-hidden className="hidden" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} />
+                <button
+                  type="submit"
+                  disabled={sending}
+                  style={{ background: result.signup ? t.solid : t.gradient }}
+                  className="w-full rounded-full py-3 font-semibold text-white shadow-md transition hover:brightness-110 disabled:opacity-60"
+                >
+                  {sending ? "שולחת…" : "שלחי לי פרטים"}
+                </button>
+                <p className="text-center text-xs text-[var(--f-ink)]/50">הפרטים משמשים רק ליצירת קשר איתך בנושא הזה.</p>
+              </form>
+            </div>
+          )}
+
+          {phase === "done" && (
+            <div className="space-y-4 py-4 text-center">
+              <div className="text-4xl" aria-hidden>
+                {t.emoji}
+              </div>
+              <DialogTitle className="text-2xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                תודה, קיבלנו! 🤍
+              </DialogTitle>
+              <p className="text-sm text-[var(--f-ink)]/80">נחזור אלייך בהקדם. אפשר גם לכתוב לנו עכשיו בוואטסאפ.</p>
+              <a
+                href={`https://wa.me/${PHONE_WA}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full bg-[#25d366] px-6 py-3 font-semibold text-white"
+              >
+                <MessageCircle className="h-4 w-4" /> וואטסאפ
+              </a>
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

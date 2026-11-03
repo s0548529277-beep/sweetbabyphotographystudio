@@ -17,6 +17,15 @@ test("studio: few visits → pay per hour, many visits → a punch card with a s
   assert.equal(many.hot, true);
 });
 
+test("studio: a one-time renter / first-timer gets pay-per-hour plus the sign-up wheel; a regular does not", () => {
+  const once = evaluateFunnel("studio", { history: "once", visits: "v0", hours: "h2" });
+  assert.equal(once.headline, "תשלום לפי שעה");
+  assert.equal(once.signup, true);
+  assert.match(once.recommendation, /גלגל/);
+  assert.equal(evaluateFunnel("studio", { history: "new", visits: "v2", hours: "h1" }).signup, true);
+  assert.equal(evaluateFunnel("studio", { history: "regular", visits: "v3", hours: "h2" }).signup, false);
+});
+
 test("studio: 12 visits of 1h picks the 10-entry card (1300 + 2*180 < 2*750)", () => {
   const r = evaluateFunnel("studio", { visits: "v4", hours: "h1", history: "before" });
   assert.match(r.headline, /10/);
