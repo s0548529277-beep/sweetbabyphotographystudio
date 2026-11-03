@@ -71,7 +71,8 @@ export function NewsletterPopup() {
 
     const schedule = () => {
       timer = setTimeout(() => {
-        if (!cancelled) setOpen(true);
+        // Never pop up over a lead funnel the visitor is in the middle of (FunnelDialog sets this flag).
+        if (!cancelled && document.body.dataset.funnelOpen !== "1") setOpen(true);
       }, DELAY_MS);
     };
 

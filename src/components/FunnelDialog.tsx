@@ -63,6 +63,13 @@ export function FunnelDialog() {
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
+    document.body.dataset.funnelOpen = open ? "1" : "";
+    return () => {
+      document.body.dataset.funnelOpen = "";
+    };
+  }, [open]);
+
+  useEffect(() => {
     const onOpen = (e: Event) => {
       const id = (e as CustomEvent<FunnelId>).detail;
       if (!settings[id]) return;
