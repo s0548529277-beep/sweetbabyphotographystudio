@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-03 (21:4x Israel) — Claude (chat, via GitHub, owner: "small X on the buttons the bot offers"):** `ChatBot.tsx`: each CTA chip above the chat launcher (book studio / props / ...) has a small X that hides that chip (per page view, `dismissedChips`). tsc OK; not clicked live.
+
 - **2026-11-03 (21:2x Israel) — Claude (chat, via GitHub, owner: "an extra hour costs 100 ₪, not 90 — it should earn cashback" + "remove the (300 ₪ per hour) parenthetical"):** (1) `studioCost` in `funnels.ts`: the 100 ₪ cashback threshold is now checked against the LIST price (paid amount / (1 − discount)), so a covered visit's extra hour (100 ₪ list, 90 ₪ after the returning-photographer discount) now earns cashback; the credit is still 10% of what is actually paid. Replaces the earlier assumption in the 19:3x entry. (2) `evalPhotography`: removed the "(300 ₪ לשעה)" / "300 ₪ לשעה (חצי שעה 150 ₪…)" price text from the photography-funnel result ("סשן עם מיכל"). The same text does not exist in the photographer-site repo. Test added; tsc + tests run.
 
 - **2026-11-03 (19:5x Israel) — Claude (chat, via GitHub):** fix: the funnel dialog header was inset by 24px on desktop since the mobile pass changed the base dialog padding to `p-5 sm:p-6` (the funnel's `p-0` no longer beat `sm:p-6`) — `FunnelDialog.tsx` now passes `p-0 sm:p-0`. Live check of the 19:3x/19:4x changes: funnel button sits right after the prices on /studio-rental, returning photographer with 2–3 visits sees discount + cashback in the result, /rental-catalog shows the accumulation line.

@@ -261,6 +261,7 @@ export function ChatBot() {
 
   const [open, setOpen] = useState(false);
   const [showNudge, setShowNudge] = useState(false);
+  const [dismissedChips, setDismissedChips] = useState<Set<string>>(new Set());
   const [messages, setMessages] = useState<Msg[]>([{ role: "assistant", content: greeting }]);
   const [loading, setLoading] = useState(false);
   // True once the first words of the streamed answer are on screen (hides the "writing…" placeholder).
@@ -595,16 +596,25 @@ export function ChatBot() {
         <div className="flex flex-col items-start gap-2">
         {showNudge && ctx.chips.length > 0 && (
           <div className="flex max-w-[min(340px,calc(100vw-32px))] flex-wrap gap-1.5 sm:gap-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
-            {ctx.chips.map(({ label, prompt, icon: Icon }) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => startFromChip(prompt)}
-                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg transition hover:scale-[1.04] hover:bg-primary/90 active:scale-95"
-              >
-                <Icon className="size-4" />
-                {label}
-              </button>
+            {ctx.chips.filter((c) => !dismissedChips.has(c.label)).map(({ label, prompt, icon: Icon }) => (
+              <span key={label} className="relative inline-flex">
+                <button
+                  type="button"
+                  onClick={() => startFromChip(prompt)}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg transition hover:scale-[1.04] hover:bg-primary/90 active:scale-95"
+                >
+                  <Icon className="size-4" />
+                  {label}
+                </button>
+                <button
+                  type="button"
+                  aria-label={`הסתרת "${label}"`}
+                  onClick={() => setDismissedChips((d) => new Set(d).add(label))}
+                  className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-md hover:text-foreground"
+                >
+                  <X className="size-3" aria-hidden="true" />
+                </button>
+              </span>
             ))}
           </div>
         )}
