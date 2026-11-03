@@ -1,3 +1,4 @@
+import { isImmediateOrder } from "@/lib/orderSummary";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -289,6 +290,11 @@ export function ChatBookingWizard({
           <Check className="size-4" /> השריון נוצר 💗
         </p>
         <p className="text-xs text-foreground/80">{done.summary}</p>
+        {isImmediateOrder(date, time) && (
+          <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs font-medium leading-snug">
+            📞 הזמנה מיידית (בתוך 24 שעות) — נתקשר אלייך בהקדם לוודא שהכול תקין. אנא היי זמינה בטלפון שמסרת, או התקשרי אלינו: 054-8529277.
+          </p>
+        )}
         <p className="rounded-lg bg-accent/20 px-3 py-2 text-xs leading-snug">
           ⏳ המועד נשמר לך <b>זמנית</b> — הוא יאושר סופית רק אחרי תשלום המקדמה. בלי תשלום השריון עלול להשתחרר.
         </p>

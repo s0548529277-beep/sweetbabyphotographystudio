@@ -1,3 +1,4 @@
+import { isImmediateOrder } from "@/lib/orderSummary";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -192,6 +193,11 @@ export function ChatPropsWizard({ onClose, onOrdered }: { onClose: () => void; o
         <p className="flex items-center gap-1.5 font-semibold text-primary">
           <Check className="size-4" /> ההזמנה נוצרה 💗
         </p>
+        {isImmediateOrder(pickup, pickupTime) && (
+          <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs font-medium leading-snug">
+            📞 הזמנה מיידית (בתוך 24 שעות) — נתקשר אלייך בהקדם לוודא שהכול תקין. אנא היי זמינה בטלפון שמסרת, או התקשרי אלינו: 054-8529277.
+          </p>
+        )}
         <p className="rounded-lg bg-accent/20 px-3 py-2 text-xs leading-snug">
           ⏳ הפריטים נשמרים לך <b>זמנית</b> — ההזמנה תאושר סופית רק אחרי התשלום. בלי תשלום השריון עלול להשתחרר.
         </p>

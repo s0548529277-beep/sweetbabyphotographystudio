@@ -179,6 +179,7 @@ export function buildBookingSummaryHtml(opts: {
     <h2 style="color:#2d3d2b">${escapeHtml(heading)}</h2>
     <p>שלום ${escapeHtml(b.contact_name ?? "")},</p>
     <p>${intro}</p>
+    ${isImmediateOrder(b.session_date, b.start_time) ? buildImmediateNoticeHtml() : ""}
     <h3 style="color:#2d3d2b">סיכום הזמנה</h3>
     <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">
       <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>מספר הזמנה</strong></td><td style="padding:6px 10px;font-size:20px;font-weight:700;color:#2d3d2b" dir="ltr">#${b.id.slice(0, 8)}</td></tr>
@@ -202,6 +203,35 @@ export function buildBookingSummaryHtml(opts: {
     ${buildChatButtonHtml({ kind: "booking", id: b.id, date: b.session_date })}
     <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: תלמוד ירושלמי 24, בית שמש · לשאלות: s0548529277@gmail.com / 054-8529277</p>
   </div>`;
+}
+
+
+// ---------- immediate orders (owner request 2026-11-03) ----------
+
+/**
+ * True when the session / pickup is within the next 24 hours (Israel time). Such orders get a phone check from
+ * the studio to make sure there is no problem — the customer is told so in the email, on the site and in the chat.
+ */
+export function isImmediateOrder(date: string | null | undefined, time?: string | null): boolean {
+  if (!date) return false;
+  const now = new Date();
+  const today = now.toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
+  const nowTime = now.toLocaleTimeString("en-GB", { timeZone: "Asia/Jerusalem", hour12: false }).slice(0, 5);
+  const tomorrow = new Date(now.getTime() + 86400000).toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
+  if (date < today) return false;
+  if (date === today) return true;
+  if (date === tomorrow) return String(time ?? "00:00").slice(0, 5) <= nowTime;
+  return false;
+}
+
+export const IMMEDIATE_ORDER_NOTE =
+  "הזמנה מיידית (בתוך 24 שעות): כדי לוודא שהכול תקין, נתקשר אלייך טלפונית בהקדם. אנא היי זמינה למענה בטלפון שמסרת, ואם נוח לך — אפשר גם להתקשר אלינו: 054-8529277.";
+
+export function buildImmediateNoticeHtml(): string {
+  return `<div style="border:2px solid #c9593f;background:#fff3ee;border-radius:12px;padding:12px 16px;margin:14px 0;color:#2d3d2b;line-height:1.7">
+      <strong>📞 הזמנה מיידית — נתקשר אלייך לוודא שהכול תקין</strong><br/>
+      ההזמנה שלך היא בתוך 24 השעות הקרובות, ולכן נצור איתך קשר טלפוני בהקדם כדי לוודא שאין תקלה. אנא היי זמינה למענה בטלפון שמסרת. אפשר גם להתקשר אלינו: 054-8529277.
+    </div>`;
 }
 
 // ---------- "continue in the chat" buttons (owner request 2026-11-02) ----------
@@ -340,6 +370,7 @@ export function buildPropsOrderSummaryHtml(opts: {
     <h2 style="color:#2d3d2b">${escapeHtml(heading)}</h2>
     <p>שלום ${escapeHtml(o.contact_name ?? "")},</p>
     <p>${intro}</p>
+    ${isImmediateOrder(o.session_date, o.pickup_time) ? buildImmediateNoticeHtml() : ""}
     <h3 style="color:#2d3d2b">סיכום הזמנה</h3>
     <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">
       <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>מספר הזמנה</strong></td><td style="padding:6px 10px;font-size:20px;font-weight:700;color:#2d3d2b" dir="ltr">#${o.id.slice(0, 8)}</td></tr>

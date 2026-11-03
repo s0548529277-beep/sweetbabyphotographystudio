@@ -1,3 +1,4 @@
+import { isImmediateOrder } from "@/lib/orderSummary";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -195,6 +196,25 @@ function LeadsAdmin() {
     },
     refetchInterval: 180000,
   });
+  // Immediate orders (studio session or props pickup within ~24h): the studio phones the customer to make sure all is well.
+  const immediate = useQuery({
+    queryKey: ["admin-immediate-orders"],
+    queryFn: async () => {
+      const db = supabase as any;
+      const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
+      const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
+      const [bk, od] = await Promise.all([
+        db.from("bookings").select("id, contact_name, contact_phone, session_date, start_time, created_at").neq("status", "cancelled").gte("session_date", today).lte("session_date", tomorrow).order("session_date").limit(30),
+        db.from("orders").select("id, contact_name, contact_phone, session_date, created_at, status").neq("status", "cancelled").gte("session_date", today).lte("session_date", tomorrow).order("session_date").limit(30),
+      ]);
+      const rows = [
+        ...(bk.data ?? []).map((r: any) => ({ ...r, kind: "סטודיו", at: r.start_time })),
+        ...(od.data ?? []).map((r: any) => ({ ...r, kind: "אביזרים", at: "" })),
+      ].filter((r: any) => isImmediateOrder(r.session_date, r.at));
+      return rows as any[];
+    },
+    refetchInterval: 120000,
+  });
   const markStuckHandled = async (key: string) => {
     await (supabase as any).from("booking_drafts").update({ handled: true }).eq("client_key", key);
     qc.invalidateQueries({ queryKey: ["admin-booking-drafts"] });
@@ -382,9 +402,30 @@ function LeadsAdmin() {
       )}
 
       {/* Who to get back to today */}
-      {(callBack.unanswered.length > 0 || callBack.quiet.length > 0 || (unpaid.data?.length ?? 0) > 0 || (carts.data?.length ?? 0) > 0) && (
+      {(callBack.unanswered.length > 0 || callBack.quiet.length > 0 || (unpaid.data?.length ?? 0) > 0 || (carts.data?.length ?? 0) > 0 || (immediate.data?.length ?? 0) > 0) && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 space-y-3">
           <div className="font-medium text-forest">📞 למי לחזור היום</div>
+          {(immediate.data?.length ?? 0) > 0 && (
+            <div>
+              <div className="text-xs text-red-700 font-medium mb-1">📞 הזמנות מיידיות (בתוך 24 שעות) — להתקשר ולוודא שהכול תקין ({immediate.data!.length})</div>
+              <ul className="flex flex-wrap gap-2">
+                {immediate.data!.map((r: any) => (
+                  <li key={`${r.kind}-${r.id}`} className="bg-card rounded-full border border-red-300 px-3 py-1 text-xs flex items-center gap-2">
+                    <span className="font-medium">{r.contact_name || r.contact_phone || "ללא שם"}</span>
+                    <span className="text-forest/60">{r.kind} · {fmt(r.session_date)} {String(r.at ?? "").slice(0, 5)}</span>
+                    {r.contact_phone && (
+                      <>
+                        <a href={`tel:${String(r.contact_phone).replace(/[^\d+]/g, "")}`} className="text-red-700 font-medium">התקשרי</a>
+                        <a href={waLink(r.contact_phone)} target="_blank" rel="noreferrer" className="text-emerald-700" aria-label="וואטסאפ">
+                          <MessageCircle className="h-3.5 w-3.5" />
+                        </a>
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {(carts.data?.length ?? 0) > 0 && (
             <div>
               <div className="text-xs text-forest/70 mb-1">🛒 השאירו עגלה ולא הזמינו ({carts.data!.length})</div>

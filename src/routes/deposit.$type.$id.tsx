@@ -1,3 +1,4 @@
+import { isImmediateOrder } from "@/lib/orderSummary";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { BackButton, MissingList } from "@/components/FlowHelpers";
 import { useEffect, useState } from "react";
@@ -203,7 +204,12 @@ function Deposit() {
             </div>
           )}
           <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-3">Step 3 · Payment</div>
-          <h1 className="font-display text-5xl text-primary mb-10">{done ? "ההזמנה אושרה ✓" : "סיום תשלום"}</h1>
+          <h1 className="font-display text-5xl text-primary mb-6">{done ? "ההזמנה אושרה ✓" : "סיום תשלום"}</h1>
+          {isImmediateOrder(record?.session_date ?? record?.scheduled_date, record?.start_time ?? pickupTime) && (
+            <div className="mb-6 rounded-2xl border-2 border-destructive/50 bg-destructive/10 p-4 text-sm leading-relaxed">
+              <b>📞 הזמנה מיידית — נתקשר אלייך לוודא שהכול תקין.</b> ההזמנה היא בתוך 24 השעות הקרובות, ולכן נצור איתך קשר טלפוני בהקדם. אנא היי זמינה בטלפון שמסרת, או התקשרי אלינו: 054-8529277.
+            </div>
+          )}
 
 
           {done ? (
