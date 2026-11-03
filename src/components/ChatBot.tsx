@@ -26,6 +26,7 @@ import { checkItemsAvailability } from "@/lib/orders.functions";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ChatBookingWizard, type WizardPrefill } from "@/components/ChatBookingWizard";
 import {
   Conversation,
   ConversationContent,
@@ -49,6 +50,8 @@ type ChatUi = {
   buttons: Array<{ label: string; href: string }>;
   actions: Array<{ kind: "order_status" | "booking_status" | "lead_status"; id: string; status: string; summary: string }>;
   guestPrompt?: boolean;
+  /** Show the in-chat studio booking wizard (optionally prefilled). */
+  wizard?: WizardPrefill;
   cartAdds?: Array<{ sku: string; name: string; price: number; quantity: number; img: string | null }>;
 };
 type Msg = { role: "user" | "assistant"; content: string; ui?: ChatUi };
@@ -359,9 +362,24 @@ export function ChatBot() {
     setShowNudge(false);
   };
 
+  // Opens the in-chat studio booking wizard (no model call, instant).
+  const [closedWizards, setClosedWizards] = useState<Set<number>>(new Set());
+  const openWizard = (prefill: WizardPrefill = {}) => {
+    setOpen(true);
+    setShowNudge(false);
+    setMessages((m) => [
+      ...m,
+      { role: "assistant", content: "בשמחה 💗 נעבור על זה יחד, שלב אחרי שלב — אפשר תמיד לחזור אחורה.", ui: { products: [], buttons: [], actions: [], wizard: prefill } },
+    ]);
+  };
+
   const send = async (rawText: string) => {
     const text = rawText.trim();
     if (!text || loading) return;
+    if (text === CHIP_BOOK_STUDIO.prompt) {
+      openWizard();
+      return;
+    }
     const next: Msg[] = [...messages, { role: "user", content: text }];
     setMessages(next);
     setLoading(true);
@@ -797,6 +815,15 @@ export function ChatBot() {
                         </Button>
                       )}
                     </div>
+                  )}
+                  {message.ui?.wizard && !closedWizards.has(index) && (
+                    <ChatBookingWizard
+                      prefill={message.ui.wizard}
+                      onClose={() => setClosedWizards((s) => new Set(s).add(index))}
+                      onBooked={(r) =>
+                        setMessages((m) => [...m, { role: "assistant", content: `${r.summary} כדי לאשר סופית צריך לשלם את המקדמה בכפתור למעלה 💗` }])
+                      }
+                    />
                   )}
                   {message.ui?.guestPrompt && index === messages.length - 1 && !user && (
                     <div className="mt-2 flex flex-wrap gap-2">

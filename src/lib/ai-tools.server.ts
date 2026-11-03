@@ -97,6 +97,16 @@ export function buildWebChatTools(opts: { userId: string | null; isRealAccount: 
         return { photos, href: "/studio-photography", found: photos.length > 0 };
       },
     }),
+    open_booking_wizard: tool({
+      description:
+        "מציגה בצ'אט אשף שריון סטודיו מוכן (מועד → שאלון → פרטים ותנאים → בחירת תשלום, בכפתורים, עם חזרה לשלב הקודם) והוא יוצר את השריון בעצמו. לקרוא לו כשלקוחה רוצה להזמין סטודיו — עם date (YYYY-MM-DD), startTime (HH:MM) ו-hours (1/1.5/2/3) אם כבר נאמרו. אחרי הקריאה לכתוב משפט קצר אחד בלבד.",
+      inputSchema: z.object({
+        date: z.string().optional(),
+        startTime: z.string().optional(),
+        hours: z.number().optional(),
+      }),
+      execute: async () => ({ shown: true, message: "האשף מוצג בצ'אט. אל תאספי פרטים בטקסט; משפט קצר אחד." }),
+    }),
     offer_guest_continue: tool({
       description:
         "מציגה בצ'אט כפתורים 'להמשיך כאורחת (בלי הרשמה)' ו'להתחברות' — לקרוא לכלי כשלקוחה שעוד לא מחוברת רוצה להזמין סטודיו או אביזרים בצ'אט. אחרי הקריאה הסבירי במשפט אחד שאפשר להמשיך כאן בצ'אט בלי הרשמה ובלי לצאת (ההזמנה תישמר במצב אורחת ותקבל מייל אישור), וחכי שהיא תלחץ ותאשר. לא לקרוא לכלי כשהיא כבר מחוברת.",

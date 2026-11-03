@@ -113,7 +113,7 @@ export function buildToolRules(now: { date: string; time: string; weekday?: stri
 - "מחר"/"יום שלישי הקרוב" — המירי לפי היום והיום בשבוע שמעל. תאריך עברי — רק דרך studio_check (hebrewDay+hebrewMonth), לעולם לא לחשב בעצמך.
 - מחיר — studio_check/quote_studio_price, לא הערכה עצמית.
 - calendarLinked=false — אמרי שהבדיקה חלקית והציעי לאמת מול הסטודיו. כשתפוס — הציעי מיד חלופות קרובות.
-- אחרי תשובה חיובית — עברי מיד להשלמת השריון כאן בצ׳אט: אם היא לא מחוברת — offer_guest_continue מיד (עם משפט קצר, בלי כפתור /booking); אחרי חיבור — פרטי קשר, שאלון קצר, תנאים, create_studio_booking. הפני לאתר (/booking, /rental-catalog) רק אם ביקשה להזמין לבד. אביזרים: add_to_cart/create_props_order בצ׳אט.
+- אחרי תשובה חיובית — עברי מיד להשלמת השריון כאן בצ׳אט: קראי ל-open_booking_wizard (עם התאריך/שעה/משך שכבר נאמרו) — הוא מציג אשף מוכן עם שאלון, תנאים ובחירת תשלום בכפתורים, ושם היא גם ממשיכה כאורחת אוטומטית; כתבי משפט קצר אחד בלבד ואל תאספי פרטים בטקסט. רק אם היא מעדיפה להקליד — פרטי קשר, שאלון קצר, תנאים, create_studio_booking (ואם לא מחוברת: offer_guest_continue). הפני לאתר (/booking, /rental-catalog) רק אם ביקשה להזמין לבד. אביזרים: add_to_cart/create_props_order בצ׳אט.
 - אם נתקעה/הטופס לא עובד — אל תחזירי אותה לאותו טופס: בדקי מה חסר ועזרי שלב-שלב.
 - שריון בפועל — רק create_studio_booking אחרי כל התנאים בתיאור הכלי (זמינות, פרטי קשר, אישור מפורש). לעולם אל תגידי "שריינתי" בלי לקרוא לכלי.`;
 }
@@ -140,6 +140,8 @@ type ChatUi = {
   actions: Array<{ kind: "order_status" | "booking_status" | "lead_status"; id: string; status: string; summary: string }>;
   /** Show "continue as a guest / log in" buttons inside the chat (the bot asked for the customer's approval). */
   guestPrompt?: boolean;
+  /** Open the in-chat studio booking wizard (optionally prefilled from what the customer already said). */
+  wizard?: { date?: string; startTime?: string; hours?: number };
   /** Items the bot added to the customer's cart this turn (the browser applies them to the real cart). */
   cartAdds?: Array<{ sku: string; name: string; price: number; quantity: number; img: string | null }>;
 };
@@ -167,6 +169,14 @@ export async function buildChatUi(steps: any[]): Promise<ChatUi> {
     for (const call of st.toolCalls ?? []) {
       const input = call.input ?? call.args ?? {};
       if (call.toolName === "offer_guest_continue") ui.guestPrompt = true;
+      if (call.toolName === "open_booking_wizard") {
+        const i = input as { date?: string; startTime?: string; hours?: number };
+        ui.wizard = {
+          date: /^\d{4}-\d{2}-\d{2}$/.test(String(i.date ?? "")) ? i.date : undefined,
+          startTime: /^\d{2}:\d{2}$/.test(String(i.startTime ?? "")) ? i.startTime : undefined,
+          hours: [1, 1.5, 2, 3].includes(Number(i.hours)) ? Number(i.hours) : undefined,
+        };
+      }
       if (call.toolName === "show_buttons") {
         for (const b of input.buttons ?? []) {
           const path = String(b.href ?? "").split(/[?#]/)[0];
