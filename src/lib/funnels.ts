@@ -106,12 +106,12 @@ const STUDIO_CASHBACK_MIN_ORDER = 100;
 type CostRow = { id: string; name: string; total: number; cashback: number; net: number };
 
 /** What each way of paying costs for `visits` visits of `hours` hours. `disc` = returning-photographer discount rate (0 or 0.1). Cashback is earned on every
- *  per-visit order of 100 ₪+ (after the discount), NOT on buying a card or a top-up. `net` = total minus the cashback credit earned. */
+ *  per-visit order whose LIST price is 100 ₪+ (the threshold ignores the returning-photographer discount; the credit is 10% of what is actually paid), NOT on buying a card or a top-up. `net` = total minus the cashback credit earned. */
 function studioCost(visits: number, hours: number, topup: boolean, disc: number): CostRow[] {
   const k = 1 - disc;
   const extra = STUDIO_EXTRA_HOUR * (hours - 1) * k; // a covered visit still pays its extra hours
   const full = (STUDIO_FIRST_HOUR + STUDIO_EXTRA_HOUR * (hours - 1)) * k; // a visit with no card entry
-  const cb = (orders: number[]) => orders.filter((o) => o >= STUDIO_CASHBACK_MIN_ORDER).reduce((sum, o) => sum + o * STUDIO_CASHBACK, 0);
+  const cb = (orders: number[]) => orders.filter((o) => Math.round(o / k) >= STUDIO_CASHBACK_MIN_ORDER).reduce((sum, o) => sum + o * STUDIO_CASHBACK, 0);
   const mk = (id: string, name: string, total: number, orders: number[]): CostRow => {
     const cashback = Math.round(cb(orders));
     return { id, name, total: Math.round(total), cashback, net: Math.round(total) - cashback };
@@ -221,8 +221,8 @@ function evalPhotography(a: Record<string, string>) {
     a.where === "outdoor"
       ? "צילומי חוץ מתואמים אישית (לוקיישן ומועד לפי השקיעה והעונה), ומיכל תחזור אלייך עם הצעה מדויקת."
       : a.where === "studio"
-        ? "בסטודיו הסשן הוא 300 ₪ לשעה (חצי שעה 150 ₪, בניית סט נוסף +100 ₪), בדרך כלל כשני סטים בשעה."
-        : "אפשר גם בסטודיו (300 ₪ לשעה) וגם בחוץ — נבחר יחד מה מתאים לך.";
+        ? "בסטודיו נתאים יחד את משך הסשן ומספר הסטים, בדרך כלל כשני סטים בשעה."
+        : "אפשר גם בסטודיו וגם בחוץ — נבחר יחד מה מתאים לך.";
   const extra =
     a.priority === "album" || a.priority === "wall"
       ? " כי חשוב לך מוצר מודפס, מיכל תתאים לך חבילה עם אלבום או תמונה לקיר."

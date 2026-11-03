@@ -69,3 +69,11 @@ test("studio top-up (750 → 1,000) only appears when switched on, and wins for 
   const small = evaluateFunnel("studio", { history: "once", visits: "v0", hours: "h1" }, { topup: true });
   assert.equal(small.headline, "תשלום לפי שעה");
 });
+
+test("studio: an extra hour (100 ₪ list price) earns cashback even after the returning-photographer discount", () => {
+  // regular, 8 visits (v3), 2h: with a card the covered visit pays only the extra hour = 90 ₪ after the discount
+  const r = evaluateFunnel("studio", { history: "regular", visits: "v3", hours: "h2" });
+  assert.match(r.details.join(" "), /קרדיט צבירה/);
+  const cardLine = r.details.find((d) => d.includes("כרטיסי") && d.includes("קרדיט")) ?? "";
+  assert.ok(cardLine.length > 0);
+});
