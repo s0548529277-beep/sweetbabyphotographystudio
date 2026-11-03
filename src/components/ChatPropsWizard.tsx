@@ -73,6 +73,10 @@ export function ChatPropsWizard({ onClose, onOrdered }: { onClose: () => void; o
   const [error, setError] = useState("");
   const [done, setDone] = useState<Done | null>(null);
   const [member, setMember] = useState(false);
+  const [couponInput, setCouponInput] = useState("");
+  const [applying, setApplying] = useState(false);
+  const [creditBalance, setCreditBalance] = useState(0);
+  const [useCredit, setUseCredit] = useState(false);
 
   useEffect(() => {
     if (!profile.loaded) return;
@@ -85,6 +89,12 @@ export function ChatPropsWizard({ onClose, onOrdered }: { onClose: () => void; o
       if (u && !u.is_anonymous) {
         setMember(true);
         if (u.email) setEmail((v) => v || u.email!);
+        (supabase as any)
+          .from("customer_loyalty")
+          .select("credit_balance")
+          .eq("user_id", u.id)
+          .maybeSingle()
+          .then(({ data: loy }: any) => setCreditBalance(Number(loy?.credit_balance ?? 0)));
       }
     });
   }, []);
@@ -127,6 +137,17 @@ export function ChatPropsWizard({ onClose, onOrdered }: { onClose: () => void; o
   }
   const canContinue = missing.length === 0;
 
+  const creditApplied = useCredit ? Math.min(creditBalance, cart.total) : 0;
+  const onApplyCoupon = async () => {
+    setApplying(true);
+    const res = await cart.applyCoupon(couponInput);
+    setApplying(false);
+    if (res.ok) {
+      toast.success(res.message);
+      setCouponInput("");
+    } else toast.error(res.message);
+  };
+
   const submit = async () => {
     if (submitting) return;
     setSubmitting(true);
@@ -148,11 +169,13 @@ export function ChatPropsWizard({ onClose, onOrdered }: { onClose: () => void; o
           return_date: ret,
           end_time: returnTime,
           notes: ["הוזמן דרך אשף האביזרים בצ'אט", notes].filter(Boolean).join("\n"),
+          coupon: cart.coupon?.code ?? null,
+          use_credit: creditApplied > 0 ? creditApplied : undefined,
           terms_accepted: true as const,
         },
       } as any);
       cart.clear();
-      const d: Done = { id: res.id, total: Number(res.total ?? cart.subtotal), deposit: Number(res.deposit ?? 0) };
+      const d: Done = { id: res.id, total: Number(res.total ?? cart.total), deposit: Number(res.deposit ?? 0) };
       setDone(d);
       onOrdered(`ההזמנה נוצרה (ממתינה לתשלום): ${cart.lines.length} פריטים, איסוף ${pickup}, החזרה ${ret}, סה״כ ${d.total}₪.`);
     } catch (e: any) {
@@ -270,8 +293,33 @@ export function ChatPropsWizard({ onClose, onOrdered }: { onClose: () => void; o
             <Row onEdit={() => setStep(0)}>איסוף {pickup} {pickupTime} · החזרה {ret} {returnTime}</Row>
             <Row onEdit={() => setStep(1)}>{cart.lines.map((l) => `${l.name} ×${l.quantity}`).join(", ")}</Row>
             <Row onEdit={() => setStep(2)}>{name} · {phone} · {email}</Row>
-            <p>סה״כ <b>₪{cart.subtotal}</b></p>
+            <p>
+              סה״כ <b>₪{cart.total}</b>
+              {cart.discount > 0 ? ` (אחרי הנחה ₪${cart.discount})` : ""}
+              {creditApplied > 0 ? ` · קרדיט −₪${creditApplied}` : ""}
+            </p>
           </div>
+          <Field label="קוד קופון (אופציונלי)">
+            {cart.coupon ? (
+              <p className="flex items-center justify-between rounded-lg bg-secondary/50 px-3 py-2 text-xs">
+                <span>קופון {cart.coupon.code} הופעל</span>
+                <button type="button" className="text-destructive underline" onClick={() => cart.removeCoupon()}>הסרה</button>
+              </p>
+            ) : (
+              <div className="flex gap-2">
+                <Input value={couponInput} onChange={(e) => setCouponInput(e.target.value)} dir="ltr" className="h-9 text-right text-sm" placeholder="למשל SWEETBABY10" />
+                <Button type="button" size="sm" variant="outline" disabled={applying || !couponInput.trim()} onClick={onApplyCoupon} className="h-9 rounded-full text-xs">
+                  {applying ? <Loader2 className="size-3.5 animate-spin" /> : "הפעלה"}
+                </Button>
+              </div>
+            )}
+          </Field>
+          {member && creditBalance > 0 && (
+            <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-secondary/40 px-3 py-2 text-xs">
+              <Checkbox checked={useCredit} onCheckedChange={(v) => setUseCredit(v === true)} />
+              <span>להשתמש בקרדיט שלי (₪{creditBalance.toFixed(0)}){useCredit ? ` — יקוזזו ₪${creditApplied}` : ""}</span>
+            </label>
+          )}
           <p className="text-[11px] text-muted-foreground">אחרי האישור הפריטים נשמרים לך זמנית, ויופיע כפתור אחד לתשלום.</p>
           {error && <p className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</p>}
         </div>

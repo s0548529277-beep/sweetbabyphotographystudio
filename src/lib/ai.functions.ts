@@ -113,7 +113,7 @@ export function buildToolRules(now: { date: string; time: string; weekday?: stri
 - "מחר"/"יום שלישי הקרוב" — המירי לפי היום והיום בשבוע שמעל. תאריך עברי — רק דרך studio_check (hebrewDay+hebrewMonth), לעולם לא לחשב בעצמך.
 - מחיר — studio_check/quote_studio_price, לא הערכה עצמית.
 - calendarLinked=false — אמרי שהבדיקה חלקית והציעי לאמת מול הסטודיו. כשתפוס — הציעי מיד חלופות קרובות.
-- אחרי תשובה חיובית — עברי מיד להשלמת השריון כאן בצ׳אט: קראי ל-open_booking_wizard (עם התאריך/שעה/משך שכבר נאמרו) — הוא מציג אשף מוכן עם שאלון, תנאים ובחירת תשלום בכפתורים, ושם היא גם ממשיכה כאורחת אוטומטית; כתבי משפט קצר אחד בלבד ואל תאספי פרטים בטקסט. רק אם היא מעדיפה להקליד — פרטי קשר, שאלון קצר, תנאים, create_studio_booking (ואם לא מחוברת: offer_guest_continue). הפני לאתר (/booking, /rental-catalog) רק אם ביקשה להזמין לבד. אביזרים: add_to_cart/create_props_order בצ׳אט.
+- אחרי תשובה חיובית — עברי מיד להשלמת השריון כאן בצ׳אט: קראי ל-open_booking_wizard (עם התאריך/שעה/משך שכבר נאמרו) — הוא מציג אשף מוכן עם שאלון, תנאים ובחירת תשלום בכפתורים, ושם היא גם ממשיכה כאורחת אוטומטית; כתבי משפט קצר אחד בלבד ואל תאספי פרטים בטקסט. רק אם היא מעדיפה להקליד — פרטי קשר, שאלון קצר, תנאים, create_studio_booking (ואם לא מחוברת: offer_guest_continue). הפני לאתר (/booking, /rental-catalog) רק אם ביקשה להזמין לבד. אביזרים: add_to_cart בצ׳אט, וכשהיא רוצה לסגור/להזמין את מה שבעגלה — קראי ל-open_props_wizard (אשף מוכן לתאריכים, פרטים, סיכום ותשלום) וכתבי משפט קצר אחד בלבד; create_props_order רק אם היא מעדיפה להקליד.
 - אם נתקעה/הטופס לא עובד — אל תחזירי אותה לאותו טופס: בדקי מה חסר ועזרי שלב-שלב.
 - שריון בפועל — רק create_studio_booking אחרי כל התנאים בתיאור הכלי (זמינות, פרטי קשר, אישור מפורש). לעולם אל תגידי "שריינתי" בלי לקרוא לכלי.`;
 }
@@ -142,6 +142,8 @@ type ChatUi = {
   guestPrompt?: boolean;
   /** Open the in-chat studio booking wizard (optionally prefilled from what the customer already said). */
   wizard?: { date?: string; startTime?: string; hours?: number };
+  /** Open the in-chat props-rental wizard. */
+  propsWizard?: boolean;
   /** Items the bot added to the customer's cart this turn (the browser applies them to the real cart). */
   cartAdds?: Array<{ sku: string; name: string; price: number; quantity: number; img: string | null }>;
 };
@@ -179,6 +181,7 @@ export async function buildChatUi(steps: any[]): Promise<ChatUi> {
     for (const call of st.toolCalls ?? []) {
       const input = call.input ?? call.args ?? {};
       if (call.toolName === "offer_guest_continue") ui.guestPrompt = true;
+      if (call.toolName === "open_props_wizard") ui.propsWizard = true;
       if (call.toolName === "open_booking_wizard") {
         const i = input as { date?: string; startTime?: string; hours?: number };
         ui.wizard = {

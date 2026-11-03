@@ -97,6 +97,12 @@ export function buildWebChatTools(opts: { userId: string | null; isRealAccount: 
         return { photos, href: "/studio-photography", found: photos.length > 0 };
       },
     }),
+    open_props_wizard: tool({
+      description:
+        "פותח בצ'אט את אשף הזמנת האביזרים (תאריכי השכרה, פריטים מהעגלה, פרטים, סיכום ותשלום). קראי לו כשהלקוחה רוצה להזמין/לסגור אביזרים שכבר בעגלה או שהוספת לה, ואז כתבי משפט קצר אחד בלבד. לא כותבים את כל הפרטים בטקסט.",
+      inputSchema: z.object({}),
+      execute: async () => ({ ok: true, message: "האשף מוצג ללקוחה מתחת להודעה. כתבי משפט קצר אחד בלבד." }),
+    }),
     open_booking_wizard: tool({
       description:
         "מציגה בצ'אט אשף שריון סטודיו מוכן (מועד → שאלון → פרטים ותנאים → בחירת תשלום, בכפתורים, עם חזרה לשלב הקודם) והוא יוצר את השריון בעצמו. לקרוא לו כשלקוחה רוצה להזמין סטודיו — עם date (YYYY-MM-DD), startTime (HH:MM) ו-hours (1/1.5/2/3) אם כבר נאמרו. אחרי הקריאה לכתוב משפט קצר אחד בלבד.",
