@@ -152,6 +152,14 @@ const CATALOG_IMG = new Map<string, string>(
   ),
 );
 
+/** Last-resort text when the model produced none: point at the cards/buttons the tools already produced. */
+export function emptyReplyFallback(ui: { products?: unknown[]; photos?: unknown[]; buttons?: unknown[] } | null | undefined): string {
+  if (ui?.products?.length) return "מצאתי לך כמה אפשרויות — הן מופיעות כאן למטה 💗";
+  if (ui?.photos?.length) return "הנה כמה תמונות להשראה 💗";
+  if (ui?.buttons?.length) return "אפשר להמשיך מכאן 💗 ואם חסר לך משהו — כתבי לי ואבדוק שוב.";
+  return "סליחה, לא הצלחתי לנסח תשובה הפעם — אפשר לנסות לשאול שוב במילים אחרות? 💗";
+}
+
 /** Turns the tool calls/results of one turn into UI blocks for the chat widget. */
 export async function buildChatUi(steps: any[]): Promise<ChatUi> {
   const ui: ChatUi = { products: [], buttons: [], actions: [], photos: [] };
@@ -437,7 +445,7 @@ export const chatWithBot = createServerFn({ method: "POST" })
     });
     let text = result.text;
     if (!text.trim()) {
-      text = await wordAnswerFromToolResults(turn.system, data.messages, (result as any).response?.messages ?? []);
+      text = await wordAnswerFromToolResults(turn.system, data.messages, (result as any).response?.messages ?? [], turn.tools as any);
     }
     const ui = await finishChatTurn({
       data,
@@ -446,7 +454,7 @@ export const chatWithBot = createServerFn({ method: "POST" })
       isAdmin: turn.isAdmin,
       realUserId: turn.realUserId,
     });
-    return { reply: text || "…", ui, isAdmin: turn.isAdmin };
+    return { reply: text.trim() ? text : emptyReplyFallback(ui), ui, isAdmin: turn.isAdmin };
   });
 
 const SearchInput = z.object({ query: z.string().min(1).max(200) });

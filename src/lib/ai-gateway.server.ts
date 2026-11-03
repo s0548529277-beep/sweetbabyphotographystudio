@@ -316,11 +316,14 @@ export async function wordAnswerFromToolResults(
   system: string,
   messages: any[],
   responseMessages: any[],
+  tools?: Record<string, any>,
 ): Promise<string> {
   if (!responseMessages?.length) return "";
   try {
     const r = await generateTextLovable({
       system,
+      // Tool-call history is only valid for the provider when the tools are declared; toolChoice none forbids new calls.
+      ...(tools ? { tools, toolChoice: "none" as const } : {}),
       messages: [
         ...messages,
         ...responseMessages,

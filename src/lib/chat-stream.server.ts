@@ -1,5 +1,5 @@
 import { stepCountIs, streamText } from "ai";
-import { ChatInput, finishChatTurn, prepareChatTurn } from "./ai.functions";
+import { ChatInput, emptyReplyFallback, finishChatTurn, prepareChatTurn } from "./ai.functions";
 import { generateTextLovable, getLovableChatModel, LOVABLE_CHAT_PROVIDER_OPTIONS, wordAnswerFromToolResults } from "./ai-gateway.server";
 
 /**
@@ -89,7 +89,7 @@ export async function handleChatStream(request: Request): Promise<Response> {
               // Tools ran but the last step had no text: word the answer from their results instead of re-running them.
               steps = (await result.steps) as any[];
               const respMessages = ((await result.response) as any)?.messages ?? [];
-              const worded = await wordAnswerFromToolResults(turn.system, data.messages, respMessages);
+              const worded = await wordAnswerFromToolResults(turn.system, data.messages, respMessages, turn.tools as any);
               if (worded.trim()) {
                 send({ t: "r" });
                 send({ t: "d", v: worded });
@@ -121,7 +121,7 @@ export async function handleChatStream(request: Request): Promise<Response> {
           isAdmin: turn.isAdmin,
           realUserId: turn.realUserId,
         });
-        send({ t: "f", reply: text || "…", ui, isAdmin: turn.isAdmin });
+        send({ t: "f", reply: text.trim() ? text : emptyReplyFallback(ui), ui, isAdmin: turn.isAdmin });
       } catch (e) {
         console.error("[SWEETBABY] chat stream request failed", e);
         send({ t: "x" });
