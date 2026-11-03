@@ -40,6 +40,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedMyPhotosRouteImport } from './routes/_authenticated/my-photos'
 import { Route as ApiChatStreamRouteImport } from './routes/api.chat-stream'
 import { Route as ApiSendBookingRemindersRouteImport } from './routes/api.send-booking-reminders'
+import { Route as ApiTrackDwellRouteImport } from './routes/api.track-dwell'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogChalakahPhotoshootGuideRouteImport } from './routes/blog.chalakah-photoshoot-guide'
 import { Route as BlogEssentialNewbornPropsRouteImport } from './routes/blog.essential-newborn-props'
@@ -250,6 +251,11 @@ const ApiChatStreamRoute = ApiChatStreamRouteImport.update({
 const ApiSendBookingRemindersRoute = ApiSendBookingRemindersRouteImport.update({
   id: '/api/send-booking-reminders',
   path: '/api/send-booking-reminders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTrackDwellRoute = ApiTrackDwellRouteImport.update({
+  id: '/api/track-dwell',
+  path: '/api/track-dwell',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlogIndexRoute = BlogIndexRouteImport.update({
@@ -609,6 +615,7 @@ export interface FileRoutesByFullPath {
   '/my-photos': typeof AuthenticatedMyPhotosRoute
   '/api/chat-stream': typeof ApiChatStreamRoute
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
+  '/api/track-dwell': typeof ApiTrackDwellRoute
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
   '/blog/smash-cake-toddler-prep': typeof BlogSmashCakeToddlerPrepRoute
@@ -697,6 +704,7 @@ export interface FileRoutesByTo {
   '/my-photos': typeof AuthenticatedMyPhotosRoute
   '/api/chat-stream': typeof ApiChatStreamRoute
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
+  '/api/track-dwell': typeof ApiTrackDwellRoute
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
   '/blog/smash-cake-toddler-prep': typeof BlogSmashCakeToddlerPrepRoute
@@ -788,6 +796,7 @@ export interface FileRoutesById {
   '/_authenticated/my-photos': typeof AuthenticatedMyPhotosRoute
   '/api/chat-stream': typeof ApiChatStreamRoute
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
+  '/api/track-dwell': typeof ApiTrackDwellRoute
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
   '/blog/smash-cake-toddler-prep': typeof BlogSmashCakeToddlerPrepRoute
@@ -879,6 +888,7 @@ export interface FileRouteTypes {
     | '/my-photos'
     | '/api/chat-stream'
     | '/api/send-booking-reminders'
+    | '/api/track-dwell'
     | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
     | '/blog/smash-cake-toddler-prep'
@@ -967,6 +977,7 @@ export interface FileRouteTypes {
     | '/my-photos'
     | '/api/chat-stream'
     | '/api/send-booking-reminders'
+    | '/api/track-dwell'
     | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
     | '/blog/smash-cake-toddler-prep'
@@ -1057,6 +1068,7 @@ export interface FileRouteTypes {
     | '/_authenticated/my-photos'
     | '/api/chat-stream'
     | '/api/send-booking-reminders'
+    | '/api/track-dwell'
     | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
     | '/blog/smash-cake-toddler-prep'
@@ -1145,6 +1157,7 @@ export interface RootRouteChildren {
   WishlistRoute: typeof WishlistRoute
   ApiChatStreamRoute: typeof ApiChatStreamRoute
   ApiSendBookingRemindersRoute: typeof ApiSendBookingRemindersRoute
+  ApiTrackDwellRoute: typeof ApiTrackDwellRoute
   BlogChalakahPhotoshootGuideRoute: typeof BlogChalakahPhotoshootGuideRoute
   BlogEssentialNewbornPropsRoute: typeof BlogEssentialNewbornPropsRoute
   BlogSmashCakeToddlerPrepRoute: typeof BlogSmashCakeToddlerPrepRoute
@@ -1380,6 +1393,13 @@ declare module '@tanstack/react-router' {
       path: '/api/send-booking-reminders'
       fullPath: '/api/send-booking-reminders'
       preLoaderRoute: typeof ApiSendBookingRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/track-dwell': {
+      id: '/api/track-dwell'
+      path: '/api/track-dwell'
+      fullPath: '/api/track-dwell'
+      preLoaderRoute: typeof ApiTrackDwellRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blog/': {
@@ -1960,6 +1980,7 @@ const rootRouteChildren: RootRouteChildren = {
   WishlistRoute: WishlistRoute,
   ApiChatStreamRoute: ApiChatStreamRoute,
   ApiSendBookingRemindersRoute: ApiSendBookingRemindersRoute,
+  ApiTrackDwellRoute: ApiTrackDwellRoute,
   BlogChalakahPhotoshootGuideRoute: BlogChalakahPhotoshootGuideRoute,
   BlogEssentialNewbornPropsRoute: BlogEssentialNewbornPropsRoute,
   BlogSmashCakeToddlerPrepRoute: BlogSmashCakeToddlerPrepRoute,

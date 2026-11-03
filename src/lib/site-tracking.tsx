@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { getCookieConsent, onCookieConsentChange } from "@/lib/cookie-consent";
 import { useAuth } from "@/lib/auth";
+import { clearVisitorId, ensureVisitorId } from "@/lib/visitor-id";
 
 const SESSION_KEY = "sb_session_id";
 const HEARTBEAT_MS = 20_000;
@@ -66,8 +67,14 @@ export function SiteTracking() {
   const tracking = consented && adminChecked && !isAdmin;
 
   useEffect(() => {
-    setConsented(getCookieConsent() === "accepted");
-    return onCookieConsentChange((choice) => setConsented(choice === "accepted"));
+    const initial = getCookieConsent();
+    setConsented(initial === "accepted");
+    if (initial === "rejected") clearVisitorId();
+    return onCookieConsentChange((choice) => {
+      setConsented(choice === "accepted");
+      // "רק הכרחי" later on: forget the persistent visitor id.
+      if (choice !== "accepted") clearVisitorId();
+    });
   }, []);
 
   // Session start — once per tab, only after consent, and never for an admin.
@@ -75,12 +82,16 @@ export function SiteTracking() {
     if (!tracking) return;
     const { id, isNew } = getOrCreateSessionId();
     sessionIdRef.current = id;
+    // Persistent visitor id (created only here, after consent, and never for an admin).
+    const visitorId = ensureVisitorId();
     if (!isNew) return;
     const searchStr = typeof search === "string" ? search : new URLSearchParams(search as any).toString();
     const entryPath = pathname + (searchStr ? `?${searchStr}` : "");
     sessionReadyRef.current = import("@/lib/analytics.functions")
       .then(({ startAnalyticsSession }) =>
-        startAnalyticsSession({ data: { sessionId: id, entryPath, referrer: document.referrer, userAgent: navigator.userAgent } }),
+        startAnalyticsSession({
+          data: { sessionId: id, entryPath, referrer: document.referrer, userAgent: navigator.userAgent, ...(visitorId ? { visitorId } : {}) },
+        }),
       )
       .then(() => {}, () => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -95,6 +106,54 @@ export function SiteTracking() {
     sessionReadyRef.current.then(() =>
       import("@/lib/analytics.functions").then(({ trackPageview }) => trackPageview({ data: { sessionId: id, path: pathname } }).catch(() => {})),
     );
+  }, [pathname, tracking]);
+
+  // Active time on each page (only while the tab is visible). Counted per page and sent when the visitor leaves the
+  // page, hides the tab or closes it, as an additive beacon (/api/track-dwell). Failures are silent.
+  const dwellRef = useRef<{ path: string; acc: number; since: number | null }>({ path: "", acc: 0, since: null });
+  useEffect(() => {
+    if (!tracking) return;
+    const d = dwellRef.current;
+    d.path = pathname;
+    d.acc = 0;
+    d.since = document.visibilityState === "visible" ? Date.now() : null;
+    const send = (path: string, ms: number) => {
+      const sessionId = sessionIdRef.current;
+      const seconds = Math.min(1800, Math.round(ms / 1000));
+      if (!sessionId || seconds < 1) return;
+      const body = JSON.stringify({ s: sessionId, p: path, t: seconds });
+      try {
+        if (navigator.sendBeacon?.("/api/track-dwell", new Blob([body], { type: "text/plain" }))) return;
+      } catch {
+        /* fall through to fetch */
+      }
+      try {
+        void fetch("/api/track-dwell", { method: "POST", body, keepalive: true, headers: { "Content-Type": "text/plain" } }).catch(() => {});
+      } catch {
+        /* ignore */
+      }
+    };
+    const flush = () => {
+      if (d.since !== null) {
+        d.acc += Date.now() - d.since;
+        d.since = null;
+      }
+      if (d.acc > 0) {
+        send(d.path, d.acc);
+        d.acc = 0;
+      }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flush();
+      else if (d.since === null) d.since = Date.now();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
   }, [pathname, tracking]);
 
   // Click batching — accumulate locally, flush periodically and on

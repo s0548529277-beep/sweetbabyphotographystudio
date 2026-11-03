@@ -211,6 +211,13 @@
       "when": 1793620510395,
       "tag": "0029_booking_drafts",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1793621510395,
+      "tag": "0030_visitor_tracking",
+      "breakpoints": true
     }
   ]
 }

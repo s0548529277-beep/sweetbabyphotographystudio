@@ -45,6 +45,12 @@ function scheduleServerSync() {
         _progress: rest,
         _step: String(wizardStartStep(p)),
       });
+      // Tie this visitor's browsing history to the details she just typed (only if she accepted the cookie banner).
+      const { getVisitorId } = await import("@/lib/visitor-id");
+      if (getVisitorId()) {
+        const { linkVisitorIdentity } = await import("@/lib/visitor-tracking.functions");
+        await linkVisitorIdentity({ data: { kind: "booking_draft", refId: key, name: p.name ?? "", phone: p.phone ?? "", email: p.email ?? "" } });
+      }
     } catch {
       /* ignore */
     }

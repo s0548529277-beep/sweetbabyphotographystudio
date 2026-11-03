@@ -5,6 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { getVisitorJourneys } from "@/lib/visitor-tracking.functions";
+import { VisitorJourneyPanel } from "@/components/VisitorJourneyPanel";
+import type { VisitorJourney } from "@/lib/visitor-journey";
 import { Target, Plus, MessageCircle, Mail, Phone } from "lucide-react";
 
 // Inquiry leads (table public.inquiry_leads — NOT public.leads, which is the
@@ -165,6 +169,27 @@ function LeadsAdmin() {
 
   const all = leads.data ?? [];
 
+  // Browsing history (visits, pages, time) of people who left a phone / email, matched through visitor_identities.
+  const fetchJourneys = useServerFn(getVisitorJourneys);
+  const journeys = useQuery({
+    queryKey: ["admin-visitor-journeys", all.length, stuck.data?.length ?? 0],
+    enabled: all.length > 0 || (stuck.data?.length ?? 0) > 0,
+    queryFn: async (): Promise<Record<string, VisitorJourney>> => {
+      const contacts = [
+        ...all.slice(0, 250).map((l) => ({ key: `lead:${l.id}`, phone: l.phone, email: l.email })),
+        ...(stuck.data ?? []).map((d: any) => ({ key: `draft:${d.client_key}`, phone: d.phone, email: d.email })),
+      ].filter((c) => c.phone || c.email);
+      if (contacts.length === 0) return {};
+      try {
+        return await fetchJourneys({ data: { contacts } });
+      } catch {
+        return {}; // history is a bonus, never break the page
+      }
+    },
+    staleTime: 60_000,
+  });
+  const journeyOf = (key: string) => journeys.data?.[key];
+
   const counts = useMemo(() => {
     const c = { new: 0, replied: 0, follow_up: 0, booked: 0, not_relevant: 0 } as Record<
       "new" | "replied" | "follow_up" | "booked" | "not_relevant",
@@ -313,6 +338,9 @@ function LeadsAdmin() {
                       טופל
                     </button>
                   </span>
+                  <div className="basis-full">
+                    <VisitorJourneyPanel journey={journeyOf(`draft:${d.client_key}`)} />
+                  </div>
                 </li>
               );
             })}
@@ -474,6 +502,7 @@ function LeadsAdmin() {
                       <Mail className="h-3 w-3" /> {l.email}
                     </a>
                   )}
+                  <VisitorJourneyPanel journey={journeyOf(`lead:${l.id}`)} />
                 </td>
                 <td className="p-3">
                   <select

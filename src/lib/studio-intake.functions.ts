@@ -47,6 +47,14 @@ export const submitStudioIntake = createServerFn({ method: "POST" })
       console.error("[SWEETBABY] intake admin notify failed", e);
     }
 
+    // Tie the visitor's browsing history to the questionnaire (consent only, best-effort, never throws).
+    try {
+      const { linkVisitorFromRequest } = await import("@/lib/visitor-tracking.server");
+      await linkVisitorFromRequest({ kind: "intake", refId: String(row?.id ?? userId), name: data.clientName, phone: data.phone, email: data.email });
+    } catch {
+      /* ignore */
+    }
+
     return { ok: true, id: row?.id ?? null };
   });
 

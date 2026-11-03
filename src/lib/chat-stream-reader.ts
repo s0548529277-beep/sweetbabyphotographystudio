@@ -6,6 +6,8 @@
  * returning null, so the caller does NOT re-run a turn that may already have
  * had side effects (e.g. a booking).
  */
+import { getVisitorId } from "@/lib/visitor-id";
+
 export type StreamedChatResult = { reply: string; ui?: any; isAdmin?: boolean };
 
 export async function streamChatReply(
@@ -19,6 +21,8 @@ export async function streamChatReply(
     headers: {
       "Content-Type": "application/json",
       ...((payload as any)?.accessToken ? { Authorization: `Bearer ${(payload as any).accessToken}` } : {}),
+      // Lets bookings / orders the bot places inside the chat be tied to this visitor's history (consent only).
+      ...(getVisitorId() ? { "x-visitor-id": getVisitorId() as string } : {}),
     },
     body: JSON.stringify(payload),
   });

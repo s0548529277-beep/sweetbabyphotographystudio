@@ -158,6 +158,52 @@ function AnalyticsAdmin() {
 
           <div className="grid lg:grid-cols-2 gap-6">
             <div className="bg-card rounded-2xl p-6 border border-primary/5">
+              <h3 className="font-display text-xl text-primary mb-1">מבקרים חדשים וחוזרים</h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                רק מי שאישר/ה את באנר העוגיות נספר/ת כאן כמבקר/ת עם זיהוי קבוע. ביקורים בלי אישור מופיעים בנפרד.
+              </p>
+              {data.visitors.total === 0 ? (
+                <div className="text-muted-foreground text-sm py-6 text-center">עדיין אין מספיק נתונים.</div>
+              ) : (
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div className="rounded-xl bg-cream/60 p-3">
+                    <div className="text-2xl font-display text-primary">{data.visitors.new}</div>
+                    <div className="text-xs text-muted-foreground">חדשים</div>
+                  </div>
+                  <div className="rounded-xl bg-cream/60 p-3">
+                    <div className="text-2xl font-display text-primary">{data.visitors.returning}</div>
+                    <div className="text-xs text-muted-foreground">חוזרים</div>
+                  </div>
+                  <div className="rounded-xl bg-cream/60 p-3">
+                    <div className="text-2xl font-display text-primary">{data.visitors.withoutId}</div>
+                    <div className="text-xs text-muted-foreground">כניסות בלי אישור עוגיות</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-card rounded-2xl p-6 border border-primary/5">
+              <h3 className="font-display text-xl text-primary mb-1">זמן שהייה ממוצע בעמוד</h3>
+              <p className="text-xs text-muted-foreground mb-4">זמן פעיל בלבד (הלשונית פתוחה ובמסך), לעמודים שנמדדו לפחות פעמיים.</p>
+              {data.dwellByPage.length === 0 ? (
+                <div className="text-muted-foreground text-sm py-6 text-center">עדיין אין מספיק נתונים.</div>
+              ) : (
+                <ul className="space-y-2 text-sm">
+                  {data.dwellByPage.map((r) => (
+                    <li key={r.path} className="flex justify-between gap-3">
+                      <span>{friendlyPage(r.path)}</span>
+                      <span className="text-muted-foreground whitespace-nowrap">
+                        {formatDuration(r.avgSeconds)} · {r.views} צפיות
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-6">
+            <div className="bg-card rounded-2xl p-6 border border-primary/5">
               <h3 className="font-display text-xl text-primary mb-4">מאיפה נכנסו אלי</h3>
               {data.trafficSources.length === 0 ? (
                 <div className="text-muted-foreground text-sm py-6 text-center">עדיין אין מספיק נתונים.</div>

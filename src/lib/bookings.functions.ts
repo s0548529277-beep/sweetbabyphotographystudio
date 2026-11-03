@@ -479,6 +479,14 @@ export const placeBooking = createServerFn({ method: "POST" })
       console.error("[SWEETBABY] booking confirmation email failed", e);
     }
 
+    // Tie the visitor's browsing history to this booking (consent only, best-effort, never throws).
+    try {
+      const { linkVisitorFromRequest } = await import("@/lib/visitor-tracking.server");
+      await linkVisitorFromRequest({ kind: "booking", refId: booking.id, name: data.contact_name, phone: data.contact_phone, email: data.contact_email });
+    } catch {
+      /* ignore */
+    }
+
     return { id: booking.id, price, deposit, balance: Math.max(0, price - deposit), end_time: endTime };
   });
 

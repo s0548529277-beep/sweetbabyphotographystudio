@@ -370,6 +370,14 @@ export const placeOrder = createServerFn({ method: "POST" })
     // studio-booking flow, so the calendar invite never arrives before (or
     // instead of) the actual paid confirmation.
 
+    // Tie the visitor's browsing history to this order (consent only, best-effort, never throws).
+    try {
+      const { linkVisitorFromRequest } = await import("@/lib/visitor-tracking.server");
+      await linkVisitorFromRequest({ kind: "order", refId: order.id, name: data.contact_name, phone: data.contact_phone, email: data.contact_email });
+    } catch {
+      /* ignore */
+    }
+
     return { id: order.id, total, deposit: depositAmount, balance: balanceAmount };
   });
 

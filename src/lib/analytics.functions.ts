@@ -60,6 +60,8 @@ export const startAnalyticsSession = createServerFn({ method: "POST" })
         entryPath: z.string().min(1).max(500),
         referrer: z.string().max(1000).optional().default(""),
         userAgent: z.string().max(500).optional().default(""),
+        // Persistent per-browser id; the browser only sends it after the cookie banner was accepted.
+        visitorId: z.string().uuid().optional(),
       })
       .parse(d),
   )
@@ -76,9 +78,15 @@ export const startAnalyticsSession = createServerFn({ method: "POST" })
             referrer: data.referrer || null,
             source,
             user_agent: data.userAgent || null,
+            ...(data.visitorId ? { visitor_id: data.visitorId.toLowerCase() } : {}),
           },
           { onConflict: "id", ignoreDuplicates: true },
         );
+      if (data.visitorId) {
+        // A visitor who already left her details came back: tell the owner (throttled inside).
+        const { maybeAlertReturningVisitor } = await import("@/lib/visitor-tracking.server");
+        await maybeAlertReturningVisitor(supabaseAdmin as any, data.visitorId.toLowerCase());
+      }
     } catch (e) {
       // Analytics must never break the page it's measuring.
       console.error("[SWEETBABY] startAnalyticsSession failed", e);
@@ -254,6 +262,10 @@ export type AnalyticsSummary = {
   /** Most recent visits, newest first — capped (see MAX_SESSION_DETAIL_ROWS) so a busy site doesn't dump thousands of rows into one response. */
   recentSessions: SessionDetailRow[];
   collages: CollageRow[];
+  /** Only sessions from visitors who accepted the cookie banner carry a visitor id; the rest are counted in `withoutId`. */
+  visitors: { total: number; returning: number; new: number; withoutId: number };
+  /** Average active seconds per page view, for pages with measured time. */
+  dwellByPage: { path: string; avgSeconds: number; views: number }[];
 };
 
 const MAX_SESSION_DETAIL_ROWS = 150;
@@ -275,8 +287,8 @@ export const getAnalyticsSummary = createServerFn({ method: "POST" })
 
     const runQueries = () =>
       Promise.all([
-        (supabaseAdmin as any).from("analytics_sessions").select("id, entry_path, first_seen, last_seen, source, referrer").gte("first_seen", since),
-        (supabaseAdmin as any).from("analytics_events").select("session_id, type, path, created_at").gte("created_at", since).limit(50_000),
+        (supabaseAdmin as any).from("analytics_sessions").select("id, entry_path, first_seen, last_seen, source, referrer, visitor_id").gte("first_seen", since),
+        (supabaseAdmin as any).from("analytics_events").select("session_id, type, path, created_at, duration_seconds").gte("created_at", since).limit(50_000),
         (supabaseAdmin as any)
           .from("collage_creations")
           .select("id, storage_path, format_id, size_id, style_id, photo_count, caption, subtitle, created_at")
@@ -361,6 +373,33 @@ export const getAnalyticsSummary = createServerFn({ method: "POST" })
         totalPageviews++;
       }
     }
+    const sessionsPerVisitor = new Map<string, number>();
+    let withoutId = 0;
+    for (const s of sessions) {
+      if (s.visitor_id) sessionsPerVisitor.set(s.visitor_id, (sessionsPerVisitor.get(s.visitor_id) ?? 0) + 1);
+      else withoutId++;
+    }
+    const returningVisitors = Array.from(sessionsPerVisitor.values()).filter((n) => n >= 2).length;
+    const visitors = {
+      total: sessionsPerVisitor.size,
+      returning: returningVisitors,
+      new: sessionsPerVisitor.size - returningVisitors,
+      withoutId,
+    };
+    const dwellAgg = new Map<string, { sum: number; n: number }>();
+    for (const e of events) {
+      if (e.type !== "pageview" || typeof e.duration_seconds !== "number" || e.duration_seconds <= 0) continue;
+      const a = dwellAgg.get(e.path) ?? { sum: 0, n: 0 };
+      a.sum += Math.min(1800, e.duration_seconds);
+      a.n += 1;
+      dwellAgg.set(e.path, a);
+    }
+    const dwellByPage = Array.from(dwellAgg.entries())
+      .map(([path, a]) => ({ path, avgSeconds: Math.round(a.sum / a.n), views: a.n }))
+      .filter((r) => r.views >= 2)
+      .sort((a, b) => b.views - a.views)
+      .slice(0, 8);
+
     const allPaths = new Set([...clicksByPath.keys(), ...viewsByPath.keys()]);
     const topPages: TopPageRow[] = Array.from(allPaths)
       .map((path) => ({ path, clicks: clicksByPath.get(path) ?? 0, pageviews: viewsByPath.get(path) ?? 0 }))
@@ -423,5 +462,7 @@ export const getAnalyticsSummary = createServerFn({ method: "POST" })
       topPages,
       sessionsByDay,
       collages: collageRows,
+      visitors,
+      dwellByPage,
     };
   });
