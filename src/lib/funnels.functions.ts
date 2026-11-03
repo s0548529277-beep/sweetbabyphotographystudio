@@ -39,7 +39,7 @@ export const getFunnelSettings = createServerFn({ method: "GET" }).handler(async
 
 export const setFunnelSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ entry: z.boolean(), studio: z.boolean(), photography: z.boolean(), newborn: z.boolean() }).parse(d))
+  .inputValidator((d: unknown) => z.object({ entry: z.boolean(), studio: z.boolean(), photography: z.boolean(), newborn: z.boolean(), studioTopup: z.boolean().default(false) }).parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -72,10 +72,12 @@ export const submitFunnelLead = createServerFn({ method: "POST" })
     if (!LEAD_FUNNELS.includes(funnel) || !validateAnswers(funnel, data.answers)) throw new Error("התשובות לא תקינות");
     const digits = data.phone.replace(/\D/g, "");
     if (digits.length < 8) throw new Error("מספר הטלפון אינו תקין");
-    const result = evaluateFunnel(funnel, data.answers);
     const email = data.email || "";
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // the same switches the visitor saw decide the recommendation text (e.g. the top-up offer)
+    const { data: settingsRow } = await (supabaseAdmin as any).from("app_settings").select("value").eq("key", SETTINGS_KEY).maybeSingle();
+    const result = evaluateFunnel(funnel, data.answers, { topup: parseFunnelSettings(settingsRow?.value).studioTopup });
     const { data: saved, error } = await (supabaseAdmin as any)
       .from("funnel_leads")
       .insert({

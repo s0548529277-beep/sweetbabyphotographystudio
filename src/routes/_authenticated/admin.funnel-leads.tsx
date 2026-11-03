@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Check, Flame, MessageCircle, RotateCcw, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
-import { FUNNEL_LABELS, answerLines, type FunnelId, type LeadFunnelId } from "@/lib/funnels";
+import { FUNNEL_LABELS, answerLines, type FunnelId, type FunnelSettings, type LeadFunnelId } from "@/lib/funnels";
 import { getFunnelSettings, setFunnelSettings } from "@/lib/funnels.functions";
 import { getVisitorJourneys } from "@/lib/visitor-tracking.functions";
 import { VisitorJourneyPanel } from "@/components/VisitorJourneyPanel";
@@ -56,7 +56,7 @@ function FunnelLeadsAdmin() {
 
   const settings = useQuery({ queryKey: ["funnel-settings"], queryFn: () => loadSettings() });
   const toggle = useMutation({
-    mutationFn: async (next: Record<FunnelId, boolean>) => saveSettings({ data: next }),
+    mutationFn: async (next: FunnelSettings) => saveSettings({ data: next }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["funnel-settings"] });
       toast.success("נשמר");
@@ -127,6 +127,23 @@ function FunnelLeadsAdmin() {
                 </div>
               </li>
             ))}
+            <li className="flex items-center justify-between gap-4 py-2.5">
+              <div>
+                <div className="text-sm font-medium">💗 טעינה: משלמת 750 ₪ ומקבלת 1,000 ₪ קרדיט</div>
+                <div className="text-xs text-muted-foreground">
+                  כשפעיל, משפך הסטודיו מוסיף את הטעינה להשוואת המחירים וממליץ עליה כשהיא משתלמת. זו המלצה בלבד: אין עדיין רכישה אוטומטית של הטעינה באתר, ולכן מי שמעוניינת משאירה פרטים ואת מטעינה לה קרדיט.
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                {settings.data!.studioTopup ? "פעיל" : "כבוי"}
+                <Switch
+                  checked={settings.data!.studioTopup}
+                  disabled={toggle.isPending}
+                  onCheckedChange={(v) => toggle.mutate({ ...settings.data!, studioTopup: v })}
+                  aria-label="הפעלת הטעינה 750 ל-1000"
+                />
+              </div>
+            </li>
           </ul>
         )}
       </section>

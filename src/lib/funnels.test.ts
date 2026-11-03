@@ -52,7 +52,20 @@ test("every funnel's first option set evaluates without throwing", () => {
 });
 
 test("settings: everything is on by default, only an explicit false switches a funnel off", () => {
-  assert.deepEqual(parseFunnelSettings(null), { entry: true, studio: true, photography: true, newborn: true });
+  assert.deepEqual(parseFunnelSettings(null), { entry: true, studio: true, photography: true, newborn: true, studioTopup: false });
   assert.equal(parseFunnelSettings('{"studio":false}').studio, false);
   assert.equal(parseFunnelSettings("not json").newborn, true);
+});
+
+test("studio top-up (750 → 1,000) only appears when switched on, and wins for a heavy user", () => {
+  const a = { history: "regular", visits: "v3", hours: "h2" }; // 8 visits x 280 = 2,240 without a card
+  const off = evaluateFunnel("studio", a);
+  assert.equal(off.details.some((d) => d.includes("טעינת")), false);
+  const on = evaluateFunnel("studio", a, { topup: true });
+  assert.equal(on.details.some((d) => d.includes("טעינת")), true);
+  assert.match(on.details.join(" "), /10% הנחה בכל סכום/); // returning photographer
+  assert.match(on.details.join(" "), /10% קרדיט/);
+  // 1 visit of 1 hour (180): the top-up is never the cheapest, no leftover talk
+  const small = evaluateFunnel("studio", { history: "once", visits: "v0", hours: "h1" }, { topup: true });
+  assert.equal(small.headline, "תשלום לפי שעה");
 });

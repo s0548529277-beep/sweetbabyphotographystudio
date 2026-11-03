@@ -185,7 +185,7 @@ export function FunnelDialog() {
 
   const questions: FunnelQuestion[] = funnel ? FUNNEL_QUESTIONS[funnel] : [ENTRY_QUESTION];
   const q = questions[step];
-  const result = funnel && phase !== "questions" ? evaluateFunnel(funnel, answers) : null;
+  const result = funnel && phase !== "questions" ? evaluateFunnel(funnel, answers, { topup: settings.studioTopup }) : null;
   // The palette follows the funnel she is in (the entry question uses the home palette).
   const t: FunnelTheme = FUNNEL_THEMES[funnel ?? "entry"];
   const themeVars = {

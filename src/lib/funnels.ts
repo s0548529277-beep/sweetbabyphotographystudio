@@ -56,6 +56,12 @@ export const STUDIO_CARDS = [
   { id: "card10", name: "כרטיסייה 10 כניסות", entries: 10, price: 1300 },
 ] as const;
 
+/** "טעינה": pay 750, get 1,000 of studio credit. Only offered while the admin switch `studioTopup` is on (/admin/funnel-leads). */
+export const STUDIO_TOPUP = { pay: 750, get: 1000 } as const;
+/** The club: every registered customer collects 10% of each order of 100 ₪ or more as credit; returning photographers also get 10% off any amount. */
+export const STUDIO_CASHBACK_NOTE = "כל הזמנה בסטודיו מ-100 ₪ צוברת 10% קרדיט להזמנה הבאה";
+export const STUDIO_RETURNING_NOTE = "צלמות חוזרות מקבלות גם 10% הנחה בכל סכום";
+
 const STUDIO_VISITS: Record<string, number> = { v0: 1, v1: 2, v2: 4, v3: 8, v4: 12 };
 const STUDIO_HOURS: Record<string, number> = { h1: 1, h2: 2, h3: 3, h4: 4 };
 
@@ -93,7 +99,7 @@ export const STUDIO_QUESTIONS: FunnelQuestion[] = [
   },
 ];
 
-function studioCost(visits: number, hours: number) {
+function studioCost(visits: number, hours: number, topup: boolean) {
   const perVisitExtra = STUDIO_EXTRA_HOUR * (hours - 1);
   const none = visits * (STUDIO_FIRST_HOUR + perVisitExtra);
   const rows = [{ id: "none", name: "בלי כרטיסייה", total: none }];
@@ -102,13 +108,16 @@ function studioCost(visits: number, hours: number) {
     const uncovered = visits - covered;
     rows.push({ id: c.id, name: c.name, total: c.price + covered * perVisitExtra + uncovered * (STUDIO_FIRST_HOUR + perVisitExtra) });
   }
+  if (topup) {
+    rows.push({ id: "topup", name: `טעינת ${STUDIO_TOPUP.pay} ₪ וקבלת ${STUDIO_TOPUP.get.toLocaleString("he-IL")} ₪`, total: STUDIO_TOPUP.pay + Math.max(0, none - STUDIO_TOPUP.get) });
+  }
   return rows;
 }
 
-function evalStudio(a: Record<string, string>) {
+function evalStudio(a: Record<string, string>, topup: boolean) {
   const visits = STUDIO_VISITS[a.visits] ?? 4;
   const hours = STUDIO_HOURS[a.hours] ?? 2;
-  const rows = studioCost(visits, hours);
+  const rows = studioCost(visits, hours, topup);
   const best = rows.slice().sort((x, y) => x.total - y.total)[0];
   const none = rows[0];
   const saving = none.total - best.total;
@@ -123,13 +132,19 @@ function evalStudio(a: Record<string, string>) {
     best.id === "none"
       ? `לפי מה שסיפרת (בערך ${visits} כניסות של ${hours} ${hours === 1 ? "שעה" : "שעות"}) כרטיסייה עדיין לא משתלמת: ${none.total.toLocaleString("he-IL")} ₪ לכל התקופה. שעה ראשונה ${STUDIO_FIRST_HOUR} ₪ וכל שעה נוספת ${STUDIO_EXTRA_HOUR} ₪.`
       : `${best.name} משתלמת לך: בערך ${best.total.toLocaleString("he-IL")} ₪ במקום ${none.total.toLocaleString("he-IL")} ₪ בלי כרטיסייה — חיסכון של כ-${saving.toLocaleString("he-IL")} ₪ (לפי ${visits} כניסות של ${hours} ${hours === 1 ? "שעה" : "שעות"}).`;
-  const rec = signup ? `${rec0} וכשנרשמים לאתר בפעם הראשונה מקבלים סיבוב בגלגל המתנות 🎁 — הנחה או קרדיט להזמנה.` : rec0;
+  const leftover = best.id === "topup" ? Math.max(0, STUDIO_TOPUP.get - none.total) : 0;
+  const rec1 = leftover > 0 ? `${rec0} יישאר לך קרדיט של ${leftover.toLocaleString("he-IL")} ₪ להזמנות הבאות.` : rec0;
+  const rec = signup ? `${rec1} וכשנרשמים לאתר בפעם הראשונה מקבלים סיבוב בגלגל המתנות 🎁 — הנחה או קרדיט להזמנה.` : rec1;
   return {
     score,
     hot: score >= 4,
     recommendation: rec,
     headline: best.id === "none" ? "תשלום לפי שעה" : best.name,
-    details: rows.map((r) => `${r.name}: ${r.total.toLocaleString("he-IL")} ₪`),
+    details: [
+      ...rows.map((r) => `${r.name}: ${r.total.toLocaleString("he-IL")} ₪`),
+      STUDIO_CASHBACK_NOTE,
+      ...(a.history === "regular" || a.history === "before" ? [STUDIO_RETURNING_NOTE] : []),
+    ],
     signup,
   };
 }
@@ -279,8 +294,8 @@ export function validateAnswers(funnel: LeadFunnelId, answers: Record<string, st
   return FUNNEL_QUESTIONS[funnel].every((q) => q.options.some((o) => o.id === answers[q.id]));
 }
 
-export function evaluateFunnel(funnel: LeadFunnelId, answers: Record<string, string>): FunnelResult {
-  if (funnel === "studio") return evalStudio(answers);
+export function evaluateFunnel(funnel: LeadFunnelId, answers: Record<string, string>, opts: { topup?: boolean } = {}): FunnelResult {
+  if (funnel === "studio") return evalStudio(answers, !!opts.topup);
   if (funnel === "photography") return evalPhotography(answers);
   return evalNewborn(answers);
 }
@@ -290,8 +305,9 @@ export function answerLines(funnel: LeadFunnelId, answers: Record<string, string
   return FUNNEL_QUESTIONS[funnel].map((q) => ({ q: q.title, a: q.options.find((o) => o.id === answers[q.id])?.label ?? "—" }));
 }
 
-export type FunnelSettings = Record<FunnelId, boolean>;
-export const DEFAULT_FUNNEL_SETTINGS: FunnelSettings = { entry: true, studio: true, photography: true, newborn: true };
+/** On/off switches: the four funnels (default ON) + `studioTopup`, the "load 750, get 1,000" offer inside the studio funnel (default OFF). */
+export type FunnelSettings = Record<FunnelId, boolean> & { studioTopup: boolean };
+export const DEFAULT_FUNNEL_SETTINGS: FunnelSettings = { entry: true, studio: true, photography: true, newborn: true, studioTopup: false };
 
 export function parseFunnelSettings(raw: string | null | undefined): FunnelSettings {
   try {
@@ -301,6 +317,7 @@ export function parseFunnelSettings(raw: string | null | undefined): FunnelSetti
       studio: v.studio !== false,
       photography: v.photography !== false,
       newborn: v.newborn !== false,
+      studioTopup: v.studioTopup === true,
     };
   } catch {
     return { ...DEFAULT_FUNNEL_SETTINGS };

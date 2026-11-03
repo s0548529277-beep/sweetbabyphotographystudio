@@ -46,12 +46,13 @@ export const FUNNEL_THEMES: Record<FunnelId, FunnelTheme> = {
     floatSub: "כמה שאלות ונמצא יחד",
   },
   studio: {
-    gradient: "linear-gradient(135deg,#2d3d2b 0%,#5f8a58 100%)",
+    // forest green with a very gentle blush of the brand pink at the corner
+    gradient: "linear-gradient(135deg,#2d3d2b 0%,#5f8a58 82%,#d9a39c 100%)",
     solid: "#2d3d2b",
     solidHover: "#3d5239",
-    soft: "#f1f5ec",
-    tint: "#dfeadb",
-    border: "#9dbb94",
+    soft: "#f8f3ef",
+    tint: "#f6e3df",
+    border: "#e6bdb4",
     ink: "#2d3d2b",
     accent: "#e8a99c",
     emoji: "🎞️",
