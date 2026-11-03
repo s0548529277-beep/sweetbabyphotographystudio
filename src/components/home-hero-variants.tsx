@@ -124,7 +124,7 @@ export function HeroFullBleed({ slide, setSlide, slides, logo }: HeroProps) {
 
               <img src={logo} alt="Sweetbaby" className="h-14 md:h-20 w-auto mb-3" />
 
-              <h1 className="text-5xl md:text-7xl lg:text-8xl leading-[1.05] text-[#f8ede4]" style={{ fontFamily: "'DM Serif Display', serif", fontWeight: 500 }}>
+              <h1 className="text-4xl sm:text-4xl sm:text-5xl md:text-7xl lg:text-8xl leading-[1.05] text-[#f8ede4]" style={{ fontFamily: "'DM Serif Display', serif", fontWeight: 500 }}>
                 כאן נולדת התמונה
                 <br />
                 <span className="text-[#f5d5cf]">שתשאר איתך תמיד.</span>
@@ -248,7 +248,7 @@ export function HeroLightArch({ slide, setSlide, slides, logo, aspect }: HeroPro
               </Link>
               <Link
                 to="/rental-catalog"
-                className="inline-flex items-center gap-2 text-[#2d3d2b] font-medium underline decoration-[#f5d5cf] decoration-4 underline-offset-8 hover:decoration-[#a8c4a2] transition-colors"
+                className="inline-flex items-center gap-2 min-h-11 text-[#2d3d2b] font-medium underline decoration-[#f5d5cf] decoration-4 underline-offset-8 hover:decoration-[#a8c4a2] transition-colors"
               >
                 <Sparkles className="h-4 w-4" /> לקטלוג האביזרים
               </Link>

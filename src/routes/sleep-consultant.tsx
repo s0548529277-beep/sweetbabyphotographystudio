@@ -139,7 +139,7 @@ function SleepConsultant() {
           </div>
           <div className="order-1 md:order-2">
             <div className="text-xs tracking-[0.3em] uppercase" style={{ color: ACCENT }}>Welcome to the World</div>
-            <h1 className="font-display text-5xl md:text-6xl mt-3 leading-tight">מזל טוב לרגל הלידה!</h1>
+            <h1 className="font-display text-4xl sm:text-5xl md:text-6xl mt-3 leading-tight">מזל טוב לרגל הלידה!</h1>
             <p className="text-lg mt-4" style={{ color: INK_SOFT }}>בשעה טובה ומוצלחת ✿ מגיע לך להתפנק...</p>
 
             <div className="mt-8 rounded-2xl p-5" style={{ background: CARD }}>

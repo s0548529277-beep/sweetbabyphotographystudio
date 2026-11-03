@@ -113,7 +113,7 @@ export function FunnelFloat() {
   return (
     <div
       dir="rtl"
-      className="fixed bottom-20 right-4 z-[95] font-body animate-in fade-in slide-in-from-bottom-4 duration-500 sm:bottom-24 sm:right-6"
+      className="sb-funnel-float fixed bottom-20 right-4 z-[95] font-body animate-in fade-in slide-in-from-bottom-4 duration-500 sm:bottom-24 sm:right-6"
     >
       <div className="relative">
         <button
@@ -138,7 +138,7 @@ export function FunnelFloat() {
             rememberFloatClosed(id);
             setShown(false);
           }}
-          className="absolute -left-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#2d3d2b] shadow-md ring-1 ring-black/10 hover:bg-[#f5d5cf]"
+          className="absolute -left-2.5 -top-2.5 flex h-8 w-8 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-white text-[#2d3d2b] shadow-md ring-1 ring-black/10 hover:bg-[#f5d5cf]"
         >
           <X className="h-3.5 w-3.5" />
         </button>

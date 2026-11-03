@@ -90,7 +90,7 @@ export function AccessibilityWidget() {
   const reset = () => update(DEFAULT_SETTINGS);
 
   return (
-    <div dir="rtl" className="fixed bottom-4 right-4 z-[100] font-body sm:bottom-6 sm:right-6">
+    <div dir="rtl" className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 z-[100] font-body sm:bottom-6 sm:right-6">
       {open && (
         <div className="absolute bottom-[calc(100%+12px)] right-0 w-[min(300px,calc(100vw-32px))] rounded-2xl border border-secondary bg-card p-4 shadow-[0_20px_55px_-22px_color-mix(in_oklab,var(--color-primary)_30%,transparent)] animate-in fade-in slide-in-from-bottom-2 duration-200">
           <div className="flex items-center justify-between mb-3">
@@ -116,7 +116,7 @@ export function AccessibilityWidget() {
                   aria-label="הקטנת טקסט"
                   disabled={settings.textScale === 0}
                   onClick={() => update({ textScale: Math.max(0, settings.textScale - 1) as A11ySettings["textScale"] })}
-                  className="h-7 w-7 rounded-full border border-border flex items-center justify-center disabled:opacity-30"
+                  className="h-9 w-9 sm:h-7 sm:w-7 rounded-full border border-border flex items-center justify-center disabled:opacity-30"
                 >
                   <Minus className="h-3.5 w-3.5" />
                 </button>
@@ -125,7 +125,7 @@ export function AccessibilityWidget() {
                   aria-label="הגדלת טקסט"
                   disabled={settings.textScale === 3}
                   onClick={() => update({ textScale: Math.min(3, settings.textScale + 1) as A11ySettings["textScale"] })}
-                  className="h-7 w-7 rounded-full border border-border flex items-center justify-center disabled:opacity-30"
+                  className="h-9 w-9 sm:h-7 sm:w-7 rounded-full border border-border flex items-center justify-center disabled:opacity-30"
                 >
                   <Plus className="h-3.5 w-3.5" />
                 </button>

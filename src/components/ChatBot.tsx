@@ -325,6 +325,16 @@ export function ChatBot() {
     return () => clearTimeout(timer);
   }, [showNudge]);
 
+  // Lets the funnel's floating button step aside on phones while the nudge buttons are showing
+  // (they would sit on top of each other) — pure CSS on the other side, see styles.css.
+  useEffect(() => {
+    if (!showNudge) return;
+    document.body.dataset.chatNudge = "1";
+    return () => {
+      delete document.body.dataset.chatNudge;
+    };
+  }, [showNudge]);
+
   const startFromChip = (prompt: string) => {
     setOpen(true);
     setShowNudge(false);
@@ -577,14 +587,14 @@ export function ChatBot() {
   return (
     <div
       dir="rtl"
-      className="fixed bottom-4 left-4 z-[100] font-body sm:bottom-6 sm:left-6"
+      className={`fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-4 ${open ? "z-[110]" : "z-[100]"} font-body sm:bottom-6 sm:left-6`}
       // the drag offset moves only the closed bubble — when the chat window is open it must stay on-screen
       style={!open && (dragPos.x || dragPos.y) ? { transform: `translate(${dragPos.x}px, ${dragPos.y}px)` } : undefined}
     >
       {!open && (
         <div className="flex flex-col items-start gap-2">
         {showNudge && ctx.chips.length > 0 && (
-          <div className="flex max-w-[min(340px,calc(100vw-32px))] flex-wrap gap-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <div className="flex max-w-[min(340px,calc(100vw-32px))] flex-wrap gap-1.5 sm:gap-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
             {ctx.chips.map(({ label, prompt, icon: Icon }) => (
               <button
                 key={label}
@@ -607,13 +617,13 @@ export function ChatBot() {
           onClick={handleBubbleClick}
           aria-label="פתיחת הצ׳אט עם נועה"
           className={`group relative flex items-center gap-3 rounded-full border border-bone/60 bg-gradient-to-br from-bone via-bone to-sand/40 pr-2.5 pl-5 text-foreground shadow-[0_22px_55px_-18px_color-mix(in_oklab,var(--color-ink)_42%,transparent)] ring-1 ring-white/40 transition-all duration-500 hover:scale-[1.04] active:scale-95 touch-none select-none ${
-            showNudge ? "py-4 pl-7 max-w-[min(340px,calc(100vw-32px))] ring-2 ring-accent/60" : "py-2.5"
+            showNudge ? "py-4 pl-7 max-w-[min(340px,calc(100vw-32px))] ring-2 ring-accent/60 max-sm:!p-1.5 max-sm:gap-0" : "py-2.5 max-sm:!p-1.5 max-sm:gap-0"
           }`}
         >
           <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-full">
             <span className="absolute -right-6 -top-8 size-24 rounded-full bg-white/30 blur-2xl transition-opacity duration-500 group-hover:opacity-80" />
           </span>
-          <span className="relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white/70 bg-white/85 shadow-inner">
+          <span className="relative flex size-14 sm:size-16 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white/70 bg-white/85 shadow-inner">
             <img
               src={avatarSrc}
               alt=""
@@ -624,12 +634,12 @@ export function ChatBot() {
             <span className="absolute bottom-1 right-1 size-3.5 rounded-full border-2 border-white bg-accent shadow-sm" />
           </span>
           {showNudge ? (
-            <span className="relative text-right">
+            <span className="relative hidden text-right sm:block">
               <span className="block text-base font-bold leading-snug text-ink">{ctx.headline}</span>
               <span className="mt-1 block text-xs font-medium leading-snug text-ink-soft">{ctx.sub}</span>
             </span>
           ) : (
-            <span className="relative text-right">
+            <span className="relative hidden text-right sm:block">
               <span className="block text-[11px] font-semibold leading-none text-ink-soft">
                 נועה · זמינה עכשיו
               </span>
@@ -917,14 +927,14 @@ export function ChatBot() {
                       </Button>
                     ))}
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:pb-1 max-sm:[scrollbar-width:none]">
                   {QUICK_QUESTIONS.map(({ label, icon: Icon }) => (
                     <Button
                       key={label}
                       onClick={() => send(label)}
                       variant="outline"
                       size="sm"
-                      className="rounded-full border-secondary bg-secondary/25 text-foreground shadow-none hover:bg-secondary/55"
+                      className="max-sm:shrink-0 rounded-full border-secondary bg-secondary/25 text-foreground shadow-none hover:bg-secondary/55"
                     >
                       <Icon />
                       {label}

@@ -52,17 +52,17 @@ function Contact() {
       <Header />
       <section className="container-page py-16 md:py-24">
         <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-4">Get In Touch</div>
-        <h1 className="font-display text-5xl md:text-6xl text-primary">בואו נדבר</h1>
+        <h1 className="font-display text-4xl sm:text-5xl md:text-6xl text-primary">בואו נדבר</h1>
         <p className="text-muted-foreground max-w-lg mt-4">
           שמחות לענות על שאלות, לעזור בבחירת אביזרים ולתאם השכרה.
         </p>
 
         <div className="grid md:grid-cols-3 gap-5 mt-14">
           {cards.map((c) => (
-            <a key={c.t} href={c.href} className="bg-card rounded-3xl p-8 border border-primary/5 hover:shadow-[var(--shadow-card)] transition-shadow block">
+            <a key={c.t} href={c.href} className="bg-card rounded-3xl p-6 md:p-8 border border-primary/5 hover:shadow-[var(--shadow-card)] transition-shadow block min-w-0">
               <c.icon className="h-6 w-6 text-peach-deep mb-6" />
               <div className="text-xs tracking-widest uppercase text-muted-foreground mb-2">{c.t}</div>
-              <div className="font-display text-2xl text-primary" dir={c.t === "אימייל" || c.t === "טלפון" ? "ltr" : undefined}>{c.v}</div>
+              <div className="font-display text-xl sm:text-2xl text-primary [overflow-wrap:anywhere]" dir={c.t === "אימייל" || c.t === "טלפון" ? "ltr" : undefined}>{c.v}</div>
             </a>
           ))}
         </div>

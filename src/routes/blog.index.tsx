@@ -107,7 +107,7 @@ function BlogIndex() {
                       <div className="mt-5">
                         <Link
                           to={post.to}
-                          className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:gap-2 transition-all"
+                          className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:gap-2 transition-all min-h-11"
                         >
                           קריאת המאמר
                           <ChevronLeft className="w-4 h-4" />

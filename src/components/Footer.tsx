@@ -4,9 +4,9 @@ import { NewsletterSignup } from "@/components/NewsletterSignup";
 
 export function Footer() {
   return (
-    <footer className="mt-24 bg-foreground text-background border-t border-foreground">
-      <div className="container-page py-20">
-        <div className="grid gap-12 md:grid-cols-12 border-b border-background/15 pb-12">
+    <footer className="mt-14 md:mt-24 bg-foreground text-background border-t border-foreground">
+      <div className="container-page py-12 md:py-20">
+        <div className="grid gap-8 md:gap-12 md:grid-cols-12 border-b border-background/15 pb-10 md:pb-12">
           <div className="md:col-span-5">
             <img src={logo} alt="Sweetbaby" className="h-16 w-auto -mr-3 opacity-90" />
             <p className="text-background/70 text-sm mt-4 max-w-sm leading-relaxed">
@@ -16,8 +16,8 @@ export function Footer() {
           <div className="md:col-span-3 text-sm space-y-2">
             <h4 className="text-[10px] tracking-[0.35em] uppercase text-sand mb-4">Contact</h4>
             <p className="text-background/85">תלמוד ירושלמי 24, בית שמש</p>
-            <p dir="ltr" className="text-start text-background/85">054-8529277</p>
-            <p dir="ltr" className="text-start text-background/85">s0548529277@gmail.com</p>
+            <a href="tel:0548529277" dir="ltr" className="block py-1 text-start text-background/85 hover:text-background">054-8529277</a>
+            <a href="mailto:s0548529277@gmail.com" dir="ltr" className="block py-1 text-start text-background/85 hover:text-background [overflow-wrap:anywhere]">s0548529277@gmail.com</a>
           </div>
           <div className="md:col-span-4 text-sm space-y-2">
             <h4 className="text-[10px] tracking-[0.35em] uppercase text-sand mb-4">Hours</h4>
@@ -25,10 +25,10 @@ export function Footer() {
             <p className="text-background/85">מינימום הזמנה 50 ש״ח</p>
           </div>
         </div>
-        <NewsletterSignup className="border-b border-background/15 py-12" />
+        <NewsletterSignup className="border-b border-background/15 py-8 md:py-12" />
         <div className="flex flex-col md:flex-row justify-between gap-4 pt-8 text-[11px] tracking-[0.28em] uppercase text-background/50">
           <span>© {new Date().getFullYear()} Sweetbaby Studio</span>
-          <Link to="/terms" className="hover:text-background transition-colors">
+          <Link to="/terms" className="inline-block py-2 hover:text-background transition-colors">
             תנאים והגבלות
           </Link>
           <span>Photography Props · Est. 2023</span>

@@ -56,7 +56,7 @@ function Start() {
         <div className="grid lg:grid-cols-[1fr_1.1fr] gap-10 lg:gap-16 items-start">
           <div className="space-y-6 lg:pt-8">
             <div className="text-xs tracking-[0.35em] uppercase text-forest/70">Sweetbaby · Studio</div>
-            <h1 className="font-display text-5xl md:text-6xl leading-[1.05] text-primary">
+            <h1 className="font-display text-4xl sm:text-5xl md:text-6xl leading-[1.05] text-primary">
               בואי נכיר
               <br />
               <span className="italic text-blush-deep">לפני שנתחיל</span>

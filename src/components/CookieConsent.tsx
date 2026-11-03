@@ -29,13 +29,13 @@ export function CookieConsent() {
       aria-label="הסכמה לשימוש באחסון מקומי"
       className="fixed inset-x-0 bottom-0 z-[120] px-3 pb-3 sm:px-6 sm:pb-6 font-body animate-in slide-in-from-bottom-4 fade-in duration-300"
     >
-      <div className="mx-auto max-w-2xl rounded-2xl border border-secondary bg-card/97 backdrop-blur-sm shadow-[0_20px_55px_-18px_color-mix(in_oklab,var(--color-primary)_38%,transparent)] p-4 sm:p-5">
+      <div className="mx-auto max-w-2xl rounded-2xl border border-secondary bg-card/97 backdrop-blur-sm shadow-[0_20px_55px_-18px_color-mix(in_oklab,var(--color-primary)_38%,transparent)] p-3.5 sm:p-5 max-h-[60dvh] overflow-y-auto">
         <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <span className="hidden sm:flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
             <Cookie className="h-5 w-5" />
           </span>
           <div className="flex-1 min-w-0">
-            <p className="text-sm text-foreground leading-relaxed">
+            <p className="text-[13px] sm:text-sm text-foreground leading-snug sm:leading-relaxed">
               האתר משתמש באחסון מקומי בדפדפן (בדומה לעוגיות) כדי להבין איך גולשים משתמשים באתר ולשפר את החוויה:
               אילו עמודים נצפו, כמה זמן, ומזהה אקראי שמאפשר לזהות שחזרתם. אם תמסרו פרטים באתר (למשל בהזמנה),
               נקשר אליהם את היסטוריית הגלישה. אין שיתוף עם צדדים שלישיים. פרטים נוספים ב
@@ -44,18 +44,18 @@ export function CookieConsent() {
               </Link>
               .
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-3 grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => choose("accepted")}
-                className="rounded-full bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
+                className="rounded-full bg-primary px-5 py-2.5 sm:py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
               >
                 מאשר/ת
               </button>
               <button
                 type="button"
                 onClick={() => choose("rejected")}
-                className="rounded-full border border-border px-5 py-2 text-sm text-foreground hover:bg-cream transition-colors"
+                className="rounded-full border border-border px-5 py-2.5 sm:py-2 text-sm text-foreground hover:bg-cream transition-colors"
               >
                 רק הכרחי
               </button>

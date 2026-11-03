@@ -206,7 +206,7 @@ function AuthPage() {
                   <button
                     type="button"
                     onClick={() => setForgotOpen((v) => !v)}
-                    className="text-xs text-forest/80 hover:text-primary underline underline-offset-4"
+                    className="text-sm md:text-xs text-forest/80 hover:text-primary underline underline-offset-4 py-2 px-2"
                   >
                     שכחתי סיסמה
                   </button>
@@ -218,14 +218,14 @@ function AuthPage() {
                     <button
                       type="button"
                       onClick={() => setResetMode("email")}
-                      className={`px-3 py-1.5 rounded-full ${resetMode === "email" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}
+                      className={`px-3 py-2.5 md:py-1.5 rounded-full ${resetMode === "email" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}
                     >
                       איפוס במייל
                     </button>
                     <button
                       type="button"
                       onClick={() => setResetMode("phone")}
-                      className={`px-3 py-1.5 rounded-full ${resetMode === "phone" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}
+                      className={`px-3 py-2.5 md:py-1.5 rounded-full ${resetMode === "phone" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}
                     >
                       איפוס בשיחה טלפונית
                     </button>
@@ -311,7 +311,7 @@ function AuthPage() {
           </Tabs>
 
           <p className="text-[11px] text-center text-muted-foreground mt-6">
-            הרשמה מהווה הסכמה ל<Link to="/" className="underline">תנאי השימוש</Link>.
+            הרשמה מהווה הסכמה ל<Link to="/" className="underline inline-block py-1">תנאי השימוש</Link>.
           </p>
         </div>
       </section>

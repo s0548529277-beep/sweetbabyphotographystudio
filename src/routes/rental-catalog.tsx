@@ -325,7 +325,7 @@ function RentalCatalogPage() {
               Rental Catalog
             </div>
             <h1
-              className={`font-display text-5xl md:text-6xl mb-3 ${inspirationImages.length > 0 ? "text-white" : "text-primary"}`}
+              className={`font-display text-4xl sm:text-5xl md:text-6xl mb-3 ${inspirationImages.length > 0 ? "text-white" : "text-primary"}`}
             >
               קטלוג אביזרים להשכרה
             </h1>
@@ -351,7 +351,7 @@ function RentalCatalogPage() {
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-2">
-                <div className="grid grid-cols-[1fr_auto] gap-2">
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
                   <label className="text-xs text-primary/80">
                     מתאריך
                     <input
@@ -359,7 +359,7 @@ function RentalCatalogPage() {
                       min={new Date().toISOString().slice(0, 10)}
                       value={dateFrom}
                       onChange={(e) => setDateFrom(e.target.value)}
-                      className="mt-1 w-full h-11 px-3 rounded-full bg-white border border-primary/15 text-sm"
+                      className="mt-1 w-full min-w-0 h-11 px-3 rounded-full bg-white border border-primary/15 text-sm"
                     />
                   </label>
                   <label className="text-xs text-primary/80">
@@ -369,11 +369,11 @@ function RentalCatalogPage() {
                       max={PROPS_LATEST_HANDOFF}
                       value={timeFrom}
                       onChange={(e) => setTimeFrom(e.target.value)}
-                      className="mt-1 w-[110px] h-11 px-3 rounded-full bg-white border border-primary/15 text-sm"
+                      className="mt-1 w-[104px] sm:w-[110px] h-11 px-3 rounded-full bg-white border border-primary/15 text-sm"
                     />
                   </label>
                 </div>
-                <div className="grid grid-cols-[1fr_auto] gap-2">
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
                   <label className="text-xs text-primary/80">
                     עד תאריך
                     <input
@@ -381,7 +381,7 @@ function RentalCatalogPage() {
                       min={dateFrom || new Date().toISOString().slice(0, 10)}
                       value={dateTo}
                       onChange={(e) => setDateTo(e.target.value)}
-                      className="mt-1 w-full h-11 px-3 rounded-full bg-white border border-primary/15 text-sm"
+                      className="mt-1 w-full min-w-0 h-11 px-3 rounded-full bg-white border border-primary/15 text-sm"
                     />
                   </label>
                   <label className="text-xs text-primary/80">
@@ -391,7 +391,7 @@ function RentalCatalogPage() {
                       max={PROPS_LATEST_HANDOFF}
                       value={timeTo}
                       onChange={(e) => setTimeTo(e.target.value)}
-                      className="mt-1 w-[110px] h-11 px-3 rounded-full bg-white border border-primary/15 text-sm"
+                      className="mt-1 w-[104px] sm:w-[110px] h-11 px-3 rounded-full bg-white border border-primary/15 text-sm"
                     />
                   </label>
                 </div>

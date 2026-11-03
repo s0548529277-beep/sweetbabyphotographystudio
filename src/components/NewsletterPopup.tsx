@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { EmailDatalist } from "@/components/EmailDatalist";
 import { NewsletterWheel } from "@/components/NewsletterWheel";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { getCookieConsent, onCookieConsentChange } from "@/lib/cookie-consent";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { heError } from "@/lib/he-errors";
@@ -74,12 +75,24 @@ export function NewsletterPopup() {
 
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let stopWaiting: (() => void) | undefined;
 
-    const schedule = () => {
+    const schedule = (delay: number = DELAY_MS) => {
       timer = setTimeout(() => {
+        if (cancelled) return;
+        // First visit on a phone: the cookie banner is still on screen and would cover half of this
+        // popup (including its submit button) — wait until it is answered instead of stacking both.
+        if (getCookieConsent() === null && window.matchMedia("(max-width: 767px)").matches) {
+          stopWaiting = onCookieConsentChange(() => {
+            stopWaiting?.();
+            stopWaiting = undefined;
+            if (!cancelled) schedule(2500);
+          });
+          return;
+        }
         // Never pop up over a lead funnel the visitor is in the middle of (FunnelDialog sets this flag).
-        if (!cancelled && document.body.dataset.funnelOpen !== "1") setOpen(true);
-      }, DELAY_MS);
+        if (document.body.dataset.funnelOpen !== "1") setOpen(true);
+      }, delay);
     };
 
     // A real (non-guest) account with an email — sync with the server
@@ -110,6 +123,7 @@ export function NewsletterPopup() {
     return () => {
       cancelled = true;
       if (timer) clearTimeout(timer);
+      stopWaiting?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, isRegistered]);

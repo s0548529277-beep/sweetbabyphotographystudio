@@ -263,7 +263,7 @@ function StudioPhotographyPage() {
               <Camera size={14} /> צילום מקצועי · מיכל סיבוני
             </div>
             <h1
-              className="text-5xl md:text-7xl mb-5 leading-[1.15] text-[#2d3d2b]"
+              className="text-4xl sm:text-5xl md:text-7xl mb-5 leading-[1.15] text-[#2d3d2b]"
               style={{ fontFamily: "'DM Serif Display', serif" }}
             >
               רגעים שנשארים.

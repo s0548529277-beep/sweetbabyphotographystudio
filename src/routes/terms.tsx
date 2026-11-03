@@ -98,7 +98,7 @@ function Terms() {
         <section className="container-page py-16 md:py-24" dir="rtl">
           <div className="max-w-3xl">
             <div className="eyebrow mb-4">Studio Terms</div>
-            <h1 className="font-display text-5xl md:text-7xl text-primary leading-none">
+            <h1 className="font-display text-4xl sm:text-5xl md:text-7xl text-primary leading-none">
               תקנון ותנאי <span className="italic text-peach-deep">שימוש</span>
             </h1>
             <p className="text-muted-foreground mt-6 leading-relaxed">

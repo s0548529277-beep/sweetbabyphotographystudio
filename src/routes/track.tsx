@@ -21,7 +21,7 @@ function Track() {
       <section className="container-page py-16 flex-1">
         <div className="text-center max-w-2xl mx-auto mb-14">
           <div className="text-xs tracking-[0.35em] uppercase text-forest/70 mb-3">Choose your path</div>
-          <h1 className="font-display text-5xl md:text-6xl text-primary">איך נמשיך מכאן?</h1>
+          <h1 className="font-display text-4xl sm:text-5xl md:text-6xl text-primary">איך נמשיך מכאן?</h1>
           <p className="text-muted-foreground mt-4">שני מסלולים — בחרי את זה שמתאים לך היום.</p>
         </div>
 

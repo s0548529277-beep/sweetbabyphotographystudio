@@ -62,9 +62,9 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 backdrop-blur-xl bg-background/80 border-b border-border">
-      <div className="container-page flex items-center justify-between h-28 gap-6">
+      <div className="container-page flex items-center justify-between h-16 md:h-28 gap-2 md:gap-6">
         <Link to="/" className="flex items-center gap-3 shrink-0">
-          <img src={logo} alt="Sweetbaby" className="h-16 md:h-20 w-auto" />
+          <img src={logo} alt="Sweetbaby" className="h-10 md:h-20 w-auto" />
         </Link>
 
         <nav className="hidden md:flex items-center gap-8 text-[14px] tracking-[0.16em] uppercase">
@@ -88,16 +88,16 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-0.5 sm:gap-2 md:gap-3">
           <Link
             to="/wishlist"
             className="relative"
             aria-label={`רשימת משאלות${wishlistCount > 0 ? ` (${wishlistCount} פריטים)` : ""}`}
           >
-            <Button variant="ghost" size="icon" className="rounded-full h-12 w-12" aria-label="רשימת משאלות">
-              <Heart className="!h-6 !w-6" />
+            <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 md:h-12 md:w-12" aria-label="רשימת משאלות">
+              <Heart className="!h-5 !w-5 md:!h-6 md:!w-6" />
               {wishlistCount > 0 && (
-                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-peach-deep text-primary text-[11px] font-medium flex items-center justify-center">
+                <span className="absolute top-0 -right-0.5 md:-top-1 md:-right-1 h-4 w-4 md:h-5 md:w-5 rounded-full bg-peach-deep text-primary text-[10px] md:text-[11px] font-medium flex items-center justify-center">
                   {wishlistCount}
                 </span>
               )}
@@ -105,10 +105,10 @@ export function Header() {
           </Link>
 
           <Link to="/cart" className="relative" aria-label={`עגלת קניות${count > 0 ? ` (${count} פריטים)` : ""}`}>
-            <Button variant="ghost" size="icon" className="rounded-full h-12 w-12" aria-label="עגלת קניות">
-              <ShoppingBag className="!h-6 !w-6" />
+            <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 md:h-12 md:w-12" aria-label="עגלת קניות">
+              <ShoppingBag className="!h-5 !w-5 md:!h-6 md:!w-6" />
               {count > 0 && (
-                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-peach-deep text-primary text-[11px] font-medium flex items-center justify-center">
+                <span className="absolute top-0 -right-0.5 md:-top-1 md:-right-1 h-4 w-4 md:h-5 md:w-5 rounded-full bg-peach-deep text-primary text-[10px] md:text-[11px] font-medium flex items-center justify-center">
                   {count}
                 </span>
               )}
@@ -119,12 +119,12 @@ export function Header() {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="rounded-full h-12 pl-2 pr-3 gap-2 border border-peach-deep/40 bg-peach/30 hover:bg-peach/50" aria-label="אזור אישי">
+                <Button variant="ghost" className="rounded-full h-10 md:h-12 pl-1.5 pr-1.5 sm:pr-3 gap-2 border border-peach-deep/40 bg-peach/30 hover:bg-peach/50" aria-label="אזור אישי">
                   <span className="hidden sm:flex flex-col items-end leading-tight text-right">
                     <span className="text-[10px] tracking-[0.25em] uppercase text-foreground/60">אזור אישי</span>
                     <span className="text-sm font-medium text-foreground max-w-[140px] truncate">{displayName || "שלום"}</span>
                   </span>
-                  <span className="h-10 w-10 rounded-full bg-peach-deep text-primary flex items-center justify-center shrink-0">
+                  <span className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-peach-deep text-primary flex items-center justify-center shrink-0">
                     <UserIcon className="!h-5 !w-5" />
                   </span>
                 </Button>
@@ -158,7 +158,7 @@ export function Header() {
             </DropdownMenu>
           ) : (
             <Link to="/auth" aria-label="כניסה לאזור אישי" title="אזור אישי">
-              <Button variant="default" size="icon" className="rounded-full h-12 w-12 bg-peach-deep text-primary hover:bg-peach-deep/90 shadow-md">
+              <Button variant="default" size="icon" className="rounded-full h-10 w-10 md:h-12 md:w-12 bg-peach-deep text-primary hover:bg-peach-deep/90 shadow-md">
                 <UserIcon className="!h-5 !w-5" />
               </Button>
             </Link>
@@ -166,20 +166,20 @@ export function Header() {
 
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden rounded-full h-12 w-12" aria-label="פתיחת תפריט ניווט">
-                <Menu className="!h-6 !w-6" />
+              <Button variant="ghost" size="icon" className="md:hidden rounded-full h-10 w-10" aria-label="פתיחת תפריט ניווט">
+                <Menu className="!h-5 !w-5" />
               </Button>
             </SheetTrigger>
 
-            <SheetContent side="right" className="w-72">
-              <div className="flex flex-col gap-4 pt-8">
+            <SheetContent side="right" className="w-[min(18rem,85vw)] overflow-y-auto">
+              <div className="flex flex-col gap-1 pt-8">
                 {nav.map((n) => (
                   <Link
                     key={n.label}
                     to={n.to}
                     hash={n.hash}
                     onClick={(e) => { scrollToHash(n.hash)(e); setOpen(false); }}
-                    className="text-lg font-display inline-flex items-center gap-2"
+                    className="text-lg font-display inline-flex items-center gap-2 min-h-12 py-2 border-b border-border/40"
                   >
                     {n.label}
                     {n.soon && (
