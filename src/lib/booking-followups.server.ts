@@ -178,7 +178,7 @@ export async function runDueUnfinishedBookingFollowUps(): Promise<{ checked: num
     if (sent >= MAX_PER_RUN) break;
     if (done.has(b.id) || b.notes?.includes(PHONE_BOOKING_NOTES_MARKER)) continue;
     const ageHours = (Date.now() - new Date(b.created_at as string).getTime()) / 3_600_000;
-    if (ageHours < 3 || ageHours > 30) continue;
+    if (ageHours < 1 || ageHours > 30) continue; // first reminder after an hour (owner approval 2026-11-03)
     try {
       const to = await customerEmailOf(db, b.user_id);
       if (to) {

@@ -27,6 +27,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChatBookingWizard, type WizardPrefill } from "@/components/ChatBookingWizard";
+import { ChatPropsWizard } from "@/components/ChatPropsWizard";
 import { describeBookingProgress, hasBookingProgress, loadBookingProgress } from "@/lib/booking-draft";
 import {
   Conversation,
@@ -53,6 +54,7 @@ type ChatUi = {
   guestPrompt?: boolean;
   /** Show the in-chat studio booking wizard (optionally prefilled). */
   wizard?: WizardPrefill;
+  propsWizard?: boolean;
   cartAdds?: Array<{ sku: string; name: string; price: number; quantity: number; img: string | null }>;
 };
 type Msg = { role: "user" | "assistant"; content: string; ui?: ChatUi };
@@ -374,9 +376,22 @@ export function ChatBot() {
     ]);
   };
 
+  const openPropsWizard = () => {
+    setOpen(true);
+    setShowNudge(false);
+    setMessages((m) => [
+      ...m,
+      { role: "assistant", content: "בשמחה 💗 נבחר תאריכים, נעבור על הפריטים בעגלה ונסגור — אפשר תמיד לחזור אחורה.", ui: { products: [], buttons: [], actions: [], propsWizard: true } },
+    ]);
+  };
+
   const send = async (rawText: string) => {
     const text = rawText.trim();
     if (!text || loading) return;
+    if (text === CHIP_PROPS.prompt && !isAdmin) {
+      openPropsWizard();
+      return;
+    }
     if (text === CHIP_BOOK_STUDIO.prompt) {
       openWizard();
       return;
@@ -825,6 +840,12 @@ export function ChatBot() {
                       onBooked={(r) =>
                         setMessages((m) => [...m, { role: "assistant", content: `${r.summary} כדי לאשר סופית צריך לשלם את המקדמה בכפתור למעלה 💗` }])
                       }
+                    />
+                  )}
+                  {message.ui?.propsWizard && !closedWizards.has(index) && (
+                    <ChatPropsWizard
+                      onClose={() => setClosedWizards((s) => new Set(s).add(index))}
+                      onOrdered={(summary) => setMessages((m) => [...m, { role: "assistant", content: `${summary} כדי לאשר סופית צריך לשלם בכפתור למעלה 💗` }])}
                     />
                   )}
                   {message.ui?.guestPrompt && index === messages.length - 1 && !user && (

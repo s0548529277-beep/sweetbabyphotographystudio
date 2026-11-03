@@ -288,10 +288,12 @@ export function ChatBookingWizard({
           <Check className="size-4" /> השריון נוצר 💗
         </p>
         <p className="text-xs text-foreground/80">{done.summary}</p>
-        <p className="text-xs text-muted-foreground">השריון יאושר סופית אחרי תשלום המקדמה.</p>
-        <Button asChild size="sm" className="h-9 rounded-full text-xs">
+        <p className="rounded-lg bg-accent/20 px-3 py-2 text-xs leading-snug">
+          ⏳ המועד נשמר לך <b>זמנית</b> — הוא יאושר סופית רק אחרי תשלום המקדמה. בלי תשלום השריון עלול להשתחרר.
+        </p>
+        <Button asChild size="lg" className="h-11 w-full rounded-full text-sm font-semibold shadow-md">
           <Link to="/deposit/$type/$id" params={{ type: "booking", id: done.id }}>
-            לתשלום המקדמה ({done.deposit}₪)
+            לתשלום המקדמה עכשיו · {done.deposit}₪
           </Link>
         </Button>
       </div>
@@ -468,15 +470,19 @@ export function ChatBookingWizard({
 
       {step === 3 && (
         <div className="space-y-3">
-          <div className="space-y-1 rounded-lg bg-secondary/50 p-2.5 text-xs">
-            <p className="font-semibold">סיכום ההזמנה</p>
-            <p>
+          <div className="space-y-1.5 rounded-lg bg-secondary/50 p-2.5 text-xs">
+            <p className="font-semibold">סיכום לפני אישור</p>
+            <SummaryRow onEdit={() => setStep(0)}>
               {new Date(`${date}T00:00:00`).toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "numeric" })} · {time}–{fmt(toMin(time) + hours * 60)} ({hoursLabel(hours)})
-            </p>
-            <p>
+            </SummaryRow>
+            <SummaryRow onEdit={() => setStep(1)}>
               {sessionType}
-              {people ? ` · ${people} אנשים` : ""} · {name}
-            </p>
+              {people ? ` · ${people} אנשים` : ""}
+              {babyAge ? ` · גיל התינוק: ${babyAge}` : ""}
+            </SummaryRow>
+            <SummaryRow onEdit={() => { setEditContact(true); setStep(2); }}>
+              {name} · {phone} · {email}
+            </SummaryRow>
             <p>
               מחיר <b>{price}₪</b>
               {guidanceFee ? ` (כולל הדרכה ${guidanceFee}₪)` : ""} · מקדמה <b>90₪</b>
@@ -514,7 +520,7 @@ export function ChatBookingWizard({
               ))}
             </div>
           </Field>
-          <p className="text-[11px] text-muted-foreground">אחרי השריון יופיע כפתור תשלום מאובטח (אשראי, ביט או העברה).</p>
+          <p className="text-[11px] text-muted-foreground">אחרי האישור המועד נשמר לך זמנית, ויופיע כפתור אחד לתשלום המקדמה (אשראי, ביט או העברה).</p>
           {error && <p className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</p>}
         </div>
       )}
@@ -547,6 +553,17 @@ export function ChatBookingWizard({
         </div>
         {!canContinue && <p className="text-[11px] leading-snug text-muted-foreground">כדי להמשיך: {missing.join(" · ")}</p>}
       </div>
+    </div>
+  );
+}
+
+function SummaryRow({ children, onEdit }: { children: React.ReactNode; onEdit: () => void }) {
+  return (
+    <div className="flex items-start justify-between gap-2">
+      <p className="min-w-0 flex-1 break-words">{children}</p>
+      <button type="button" onClick={onEdit} className="shrink-0 text-[11px] font-semibold text-primary underline">
+        שינוי
+      </button>
     </div>
   );
 }

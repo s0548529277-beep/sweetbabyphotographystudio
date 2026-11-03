@@ -22,6 +22,7 @@ export const ADMIN_CHAT_RULES = `
 - נתונים (הזמנות, הכנסות, לידים, לקוחות, ניו-בורן): admin_snapshot לסקירה מהירה; לכל שאלה אחרת — admin_query_data עם SELECT אחד. לידים ופניות נמצאים בטבלה inquiry_leads (לא leads). לעולם אל תמציאי מספר. אם שאילתה נכשלה פעם אחת — אל תנסי שוב ושוב; עני במה שיש או אמרי שלא הצלחת.
 - לידים: newLeads ב-admin_snapshot הם רק ה-5 האחרונים; המספר האמיתי הוא newLeadsTotal — תמיד צייני אותו ("51 חדשים, הנה 5 האחרונים"). "לא נענו" = לידים בסטטוס new; לרשימה מלאה/ישנה השתמשי ב-admin_query_data.
 - "ממתינה למקדמה" = deposit_status (pending / cash_pending), לא status של ההזמנה (הזמנה יכולה להיות confirmed והמקדמה עדיין ממתינה). אל תערבבי ביניהם בספירה.
+- "השבוע" / "בשבוע האחרון" = 7 הימים האחרונים כולל היום (לא שבוע קלנדרי); אמרי את טווח התאריכים שהשתמשת בו.
 - תאריכים: היום והיום בשבוע מופיעים בתחילת ההוראות — אל תנחשי יום בשבוע; "מחר" = היום + 1. הזמנה שמתחילה מחר לא "להיום".
 - טיוטות מייל: admin_snapshot מחזיר גם draftsStatus — מתי רצה הבדיקה האחרונה, כמה טיוטות הוכנו ואם היו תקלות. כשהיא שואלת על טיוטות, עני לפי זה.
 - שאלה על לקוחה ספציפית ("מה יש לפרימי", "מה הזמינה X", "מה הסטטוס של Y"): קראי פעם אחת ל-admin_get_client_summary עם השם או הטלפון — היא מחזירה בבת אחת שריונים, הזמנות אביזרים (כולל הפריטים), ניו-בורן ופניות. אל תריצי בנוסף admin_query_data או admin_db_schema על אותה שאלה.
@@ -187,11 +188,23 @@ export function buildAdminChatTools() {
           const ids = (data ?? []).map((c: any) => c.user_id);
           const profs = ids.length ? await db.from("profiles").select("id, full_name, phone").in("id", ids) : { data: [] };
           const prof = new Map<string, any>((profs.data ?? []).map((p: any) => [p.id, p]));
+          // Guests have no profile: take the name/phone from their bookings and orders instead.
+          const [bk, od] = ids.length
+            ? await Promise.all([
+                db.from("bookings").select("user_id, contact_name, contact_phone").in("user_id", ids).order("created_at", { ascending: false }).limit(60),
+                db.from("orders").select("user_id, contact_name, contact_phone").in("user_id", ids).order("created_at", { ascending: false }).limit(60),
+              ])
+            : [{ data: [] }, { data: [] }];
+          const contact = new Map<string, { name: string | null; phone: string | null }>();
+          for (const r of [...(bk.data ?? []), ...(od.data ?? [])]) {
+            if (!r.user_id || contact.has(r.user_id) || !(r.contact_name || r.contact_phone)) continue;
+            contact.set(r.user_id, { name: r.contact_name ?? null, phone: r.contact_phone ?? null });
+          }
           return {
             count: (data ?? []).length,
             carts: (data ?? []).map((c: any) => ({
-              customer: prof.get(c.user_id)?.full_name || "אורחת (בלי פרופיל)",
-              phone: prof.get(c.user_id)?.phone ?? null,
+              customer: prof.get(c.user_id)?.full_name || contact.get(c.user_id)?.name || "אורחת (עוד בלי שם — לא הזמינה)",
+              phone: prof.get(c.user_id)?.phone ?? contact.get(c.user_id)?.phone ?? null,
               items: (c.lines ?? []).map((l: any) => `${l.name} ×${l.quantity}`),
               subtotal: c.subtotal,
               lastChange: c.updated_at,

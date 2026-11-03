@@ -139,6 +139,25 @@ function LeadsAdmin() {
     },
     refetchInterval: 60000,
   });
+  // Bookings created more than 12h ago whose deposit is still unpaid (session still ahead).
+  const unpaid = useQuery({
+    queryKey: ["admin-unpaid-bookings"],
+    queryFn: async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      const cutoff = new Date(Date.now() - 12 * 3600 * 1000).toISOString();
+      const { data } = await (supabase as any)
+        .from("bookings")
+        .select("id, contact_name, contact_phone, contact_email, session_date, start_time, price, created_at")
+        .eq("deposit_status", "pending")
+        .neq("status", "cancelled")
+        .gte("session_date", today)
+        .lt("created_at", cutoff)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      return (data ?? []) as any[];
+    },
+    refetchInterval: 120000,
+  });
   const markStuckHandled = async (key: string) => {
     await (supabase as any).from("booking_drafts").update({ handled: true }).eq("client_key", key);
     qc.invalidateQueries({ queryKey: ["admin-booking-drafts"] });
@@ -302,9 +321,27 @@ function LeadsAdmin() {
       )}
 
       {/* Who to get back to today */}
-      {(callBack.unanswered.length > 0 || callBack.quiet.length > 0) && (
+      {(callBack.unanswered.length > 0 || callBack.quiet.length > 0 || (unpaid.data?.length ?? 0) > 0) && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 space-y-3">
           <div className="font-medium text-forest">📞 למי לחזור היום</div>
+          {(unpaid.data?.length ?? 0) > 0 && (
+            <div>
+              <div className="text-xs text-forest/70 mb-1">שריון בלי מקדמה יותר מ־12 שעות ({unpaid.data!.length})</div>
+              <ul className="flex flex-wrap gap-2">
+                {unpaid.data!.slice(0, 8).map((b: any) => (
+                  <li key={b.id} className="bg-card rounded-full border border-primary/10 px-3 py-1 text-xs flex items-center gap-2">
+                    <span className="font-medium">{b.contact_name || b.contact_phone || "ללא שם"}</span>
+                    <span className="text-forest/60">{fmt(b.session_date)} {String(b.start_time ?? "").slice(0, 5)}</span>
+                    {b.contact_phone && (
+                      <a href={waLink(b.contact_phone)} target="_blank" rel="noreferrer" className="text-emerald-700" aria-label="וואטסאפ">
+                        <MessageCircle className="h-3.5 w-3.5" />
+                      </a>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {[
             { title: "לא נענו יותר מיום", list: callBack.unanswered, date: (l: Lead) => l.first_contact_at },
             { title: "נענו ושקטות 3+ ימים, בלי מעקב", list: callBack.quiet, date: (l: Lead) => l.last_contact_at ?? l.first_contact_at },
