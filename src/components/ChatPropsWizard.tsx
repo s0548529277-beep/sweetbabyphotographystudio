@@ -304,6 +304,10 @@ export function ChatPropsWizard({ onClose, onOrdered }: { onClose: () => void; o
               {cart.discount > 0 ? ` (אחרי הנחה ₪${cart.discount})` : ""}
               {creditApplied > 0 ? ` · קרדיט −₪${creditApplied}` : ""}
             </p>
+            <p className="text-[#8a4a5c]">
+              💗 צבירה לכולן: 10% מכל הזמנה מ-100 ₪ חוזרים אלייך כקרדיט להזמנה הבאה
+              {cart.total >= 100 ? ` (בהזמנה הזו כ-₪${Math.round(cart.total * 0.1)})` : ""}
+            </p>
           </div>
           <Field label="קוד קופון (אופציונלי)">
             {cart.coupon ? (

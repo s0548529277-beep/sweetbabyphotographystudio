@@ -334,6 +334,11 @@ function RentalCatalogPage() {
             >
               {allItems.length}+ אביזרים · {categories.length} קטגוריות · מינימום הזמנה 50 ₪
             </p>
+            <p
+              className={`mt-2 inline-block rounded-full px-3 py-1 text-xs ${inspirationImages.length > 0 ? "bg-white/20 text-white" : "bg-[#f5d5cf]/70 text-[#2d3d2b]"}`}
+            >
+              💗 צבירה לכולן: 10% מכל הזמנה מ-100 ₪ חוזרים אלייך כקרדיט להזמנה הבאה
+            </p>
           </div>
         </div>
       </section>

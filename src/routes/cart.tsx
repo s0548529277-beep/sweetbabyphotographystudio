@@ -191,6 +191,10 @@ function Cart() {
                 <Row k="דמי טיפול" v="—" />
                 <div className="h-px bg-[#2d3d2b]/15 my-3" />
                 <Row k="סה״כ" v={`₪${total.toFixed(0)}`} big />
+                <p className="rounded-xl bg-white/60 px-3 py-2 text-xs leading-relaxed">
+                  💗 צבירה לכולן: 10% מכל הזמנה מ-100 ₪ חוזרים אלייך כקרדיט להזמנה הבאה
+                  {total >= 100 ? ` — בהזמנה הזו תצברי כ-₪${Math.round(total * 0.1)}` : ` (חסרים עוד ₪${Math.ceil(100 - total)} כדי לצבור)`}.
+                </p>
                 {total < 50 && (
                   <div className="mt-3">
                     <div className="h-2 rounded-full bg-[#2d3d2b]/10 overflow-hidden">
