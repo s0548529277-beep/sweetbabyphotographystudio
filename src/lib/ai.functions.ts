@@ -106,18 +106,16 @@ export const SYSTEM = `אתה "בוט Sweetbaby", העוזר האישי של ס�
 // (whatsapp-bot.server.ts) — one source of truth for the tool-usage rules
 // instead of two driftable copies.
 export function buildToolRules(now: { date: string; time: string; weekday?: string }): string {
-  return `\n\nהיום ${now.weekday ? now.weekday + ", " : ""}${now.date}, השעה בישראל ${now.time}. יש לך גישה אמיתית ליומן הסטודיו (כולל אירועים שהוזנו ישירות ביומן גוגל) ולמלאי האביזרים — הנתונים חיים ומדויקים לכל לקוחה, גם בלי התחברות:
-- שתי בדיקות זמינות שונות לגמרי, אסור לערבב ביניהן: check_studio_availability בודקת רק אם **הסטודיו עצמו** (המקום הפיזי, לפי שעות) פנוי. check_prop_availability בודקת רק אם **אביזר להשכרה** (מק״ט/שם) פנוי בטווח תאריכים — לאביזר אין שעות, רק ימים. שאלה על אביזר ("האם X פנוי", "אפשר לשכור Y") — אף פעם אל תבדקי/תזכירי זמינות הסטודיו, זה לא רלוונטי אליה. שאלה על שריון הסטודיו עצמו — רק check_studio_availability.
-- זמינות סטודיו בתאריך/שעה — חובה check_studio_availability, **בכל פעם מחדש, גם אם כבר בדקת תאריך/שעה דומים קודם באותה שיחה**. אסור להסתמך על "היום היה פנוי אז כנראה גם מחר פנוי" או על תשובה קודמת בשיחה — כל תאריך ושעה זו בדיקה נפרדת לגמרי, כי הזמינות משתנה כל הזמן (שריונים חדשים נכנסים). ענִי אך ורק לפי התוצאה של הבדיקה הנוכחית, לעולם אל תניחי שפנוי ואל תפני את הלקוחה "לבדוק בעמוד היומן" במקום לבדוק בעצמך.
-- זמינות אביזר לפי מק״ט או שם — חובה check_prop_availability. לחיפוש כללי בקטלוג — search_catalog.
-- שאלת מחיר — חשבי עם quote_studio_price ואל תעריכי בעצמך.
-- ביטויים כמו "מחר"/"יום שלישי הקרוב" — המירי לתאריך YYYY-MM-DD לפי התאריך הנוכחי (אפשר current_datetime).
-- אם לקוחה אומרת תאריך לפי הלוח העברי (שם חודש עברי כמו כסלו/שבט/ניסן, למשל "כ״ה בכסלו" או "ראש חודש אדר") — לעולם אל תנחשי/תחשבי את ההמרה ללוח הלועזי בעצמך, זה חישוב לא טריוויאלי (חודשים משתנים, שנים מעוברות). תמיד תשתמשי בכלי hebrew_date_to_gregorian ואז תמשיכי עם התאריך הלועזי שהוא מחזיר.
-- אם הכלי מחזיר calendarLinked=false — אמרי בעדינות שהבדיקה חלקית והציעי לאמת מול הסטודיו.
-- כשתפוס — אל תעצרי שם: הציעי מיד חלופות קרובות מהכלי.
-- אחרי תשובה חיובית — **תעדיפי להציע להשלים את השריון ישר כאן בצ'אט** (עם create_studio_booking, בכפוף לתנאים בתיאור הכלי) לפני שמפנים לטופס הרגיל — זה בדרך כלל מהיר יותר ללקוחה, במיוחד אם היא נשמעת מהוססת, שאלה כבר כמה שאלות, או אמרה במפורש שהיא מתקשה/מסתבכת עם התהליך הרגיל. רק אם היא מעדיפה לעשות זאת בעצמה (ואם היא לא מחוברת בכלל — קודם offer_guest_continue) — הפני לעמודים: סטודיו ב-/studio-rental (שאלון קצר ואז יומן), אביזרים ב-/rental-catalog. בכל מקרה — תמיד תציעי, בעדינות ולא בכוח, גם את האפשרות לסגור הכל דרך הצ'אט עצמו.
-- אם הלקוחה אומרת שנתקעה, שהטופס לא עובד או שהיא רוצה שתעשי זאת בשבילה — אל תחזירי אותה מיד לאותו טופס. בדקי מה חסר, עזרי בצ׳אט שלב-שלב, הציעי ללקוחה (חשבון או אורחת) ליצור את השריון כאן בהתאם לכללי create_studio_booking.
-- יצירת שריון בפועל בשם הלקוחה — רק עם create_studio_booking, ורק אחרי שמתקיימים כל התנאים בתיאור הכלי (זמינות אמיתית, פרטי קשר, אישור מפורש על תנאים ומקדמה). לעולם אל תגידי ללקוחה "שריינתי לך" בלי לקרוא לכלי הזה בפועל.`;
+  return `\n\nהיום ${now.weekday ? now.weekday + ", " : ""}${now.date}, השעה בישראל ${now.time}. יש לך גישה אמיתית ליומן הסטודיו (כולל יומן גוגל) ולמלאי האביזרים — נתונים חיים, גם בלי התחברות:
+- שתי בדיקות נפרדות, אסור לערבב: הסטודיו עצמו (מקום, לפי שעות) ↔ אביזר להשכרה (מק״ט/שם, לפי ימים בלבד). שאלה על אביזר — לא מזכירים זמינות סטודיו, ולהפך.
+- סטודיו: קראי ל-studio_check (כלי אחד: זמינות + מחיר + המרת תאריך עברי; בלי תאריך מחזיר מועדים קרובים — הציעי 2-3 מהם). בכל שאלה בדיקה חדשה, גם אם בדקת תאריך דומה קודם; אל תניחי ואל תפני ללוח במקום לבדוק. אם הוסיפו לך בדיקה שבוצעה מראש לאותו תאריך — השתמשי בה בלי לקרוא שוב. כשצריך כמה כלים שונים — קראי להם באותו סבב, לא ברצף.
+- אביזר: check_prop_availability לפי מק״ט/שם; חיפוש כללי: search_catalog.
+- "מחר"/"יום שלישי הקרוב" — המירי לפי היום והיום בשבוע שמעל. תאריך עברי — רק דרך studio_check (hebrewDay+hebrewMonth), לעולם לא לחשב בעצמך.
+- מחיר — studio_check/quote_studio_price, לא הערכה עצמית.
+- calendarLinked=false — אמרי שהבדיקה חלקית והציעי לאמת מול הסטודיו. כשתפוס — הציעי מיד חלופות קרובות.
+- אחרי תשובה חיובית — הציעי להשלים את השריון כאן בצ׳אט (create_studio_booking, בכפוף לתנאים בתיאור הכלי), במיוחד אם היא מהססת או מסתבכת בטופס הרגיל; ואם היא לא מחוברת או מעדיפה לבד — הפני ל-/studio-rental (סטודיו) או /rental-catalog (אביזרים). תמיד להציע גם את אפשרות הצ׳אט, בעדינות.
+- אם נתקעה/הטופס לא עובד — אל תחזירי אותה לאותו טופס: בדקי מה חסר ועזרי שלב-שלב.
+- שריון בפועל — רק create_studio_booking אחרי כל התנאים בתיאור הכלי (זמינות, פרטי קשר, אישור מפורש). לעולם אל תגידי "שריינתי" בלי לקרוא לכלי.`;
 }
 
 
@@ -297,9 +295,12 @@ export async function prepareChatTurn(data: ChatTurnData) {
   // 2026-11-02 speed fix: token check and the bot-knowledge DB read are
   // independent — run them together instead of one after the other.
   const { getBotKnowledgeText } = await import("./bot-knowledge.functions");
-  const [{ userId: realUserId, isRealAccount }, extraKnowledge] = await Promise.all([
+  const lastUserText = [...data.messages].reverse().find((m) => m.role === "user")?.content ?? "";
+  const [{ userId: realUserId, isRealAccount }, extraKnowledge, prefetchNote] = await Promise.all([
     getRealAuthState(data.accessToken),
     getBotKnowledgeText(),
+    // Checked while auth + knowledge load, so it costs no extra waiting (see chat-prefetch.server.ts).
+    import("./chat-prefetch.server").then((m) => m.prefetchStudioNote(lastUserText)),
   ]);
   // Decided from the server-verified token, not from the browser's flag (after "continue as guest" the
   // browser flag is still stale for that one message).
@@ -337,7 +338,7 @@ export async function prepareChatTurn(data: ChatTurnData) {
   const adminTools = isAdmin ? (await import("./ai-admin-tools.server")).buildAdminChatTools() : {};
 
   return {
-    system: SYSTEM + personalized + cartPart + toolRules + WEB_CHAT_RULES + adminPart + extraKnowledge,
+    system: SYSTEM + personalized + cartPart + prefetchNote + toolRules + WEB_CHAT_RULES + adminPart + extraKnowledge,
     tools: {
       // Real accounts AND guest (anonymous) sessions the customer approved inside the chat may order.
       ...buildAssistantTools({ isAuthenticated: !!realUserId, isGuest: !!realUserId && !isRealAccount }),

@@ -210,6 +210,72 @@ export function buildWebChatTools(opts: { userId: string | null; isRealAccount: 
 
 export function buildAssistantTools(opts?: { isAuthenticated?: boolean; isGuest?: boolean }) {
   return {
+    // One call instead of 3-4 (speed, 2026-11-03): converts a Hebrew date if given, checks the studio on that day
+    // (or finds the nearest free days when no date), and prices the session — all in a single tool round-trip.
+    studio_check: tool({
+      description:
+        "כלי אחד לכל שאלת זמינות/מחיר של הסטודיו. עם תאריך (לועזי YYYY-MM-DD, או עברי: hebrewDay+hebrewMonth) — מחזיר חצאי שעה פנויים, האם השעה המבוקשת פנויה והאם יש מספיק רצף, ומחיר אם ידועה משך. בלי תאריך — מחזיר 2-5 מועדים פנויים קרובים. קראי לזה במקום check_studio_availability + find_next_available_days + quote_studio_price + hebrew_date_to_gregorian.",
+      inputSchema: z.object({
+        date: z.string().optional().describe("YYYY-MM-DD"),
+        hebrewDay: z.number().int().min(1).max(30).optional(),
+        hebrewMonth: z.string().optional().describe('למשל "כסלו"'),
+        hebrewYear: z.number().int().optional(),
+        time: z.string().optional().describe("HH:MM שעת התחלה מבוקשת"),
+        hours: z.number().optional().describe("משך בשעות, אפשר 1.5 (ברירת מחדל 1)"),
+        guidance: z.enum(["basic", "mini", "plus", "premium"]).optional(),
+      }),
+      execute: async ({ date, hebrewDay, hebrewMonth, hebrewYear, time, hours, guidance }) => {
+        try {
+          let day = date;
+          if (!day && hebrewDay && hebrewMonth) {
+            try {
+              const { HDate } = await import("@hebcal/hdate");
+              const hd = new HDate(hebrewDay, hebrewMonth, hebrewYear ?? new HDate().getFullYear());
+              day = hd.greg().toISOString().slice(0, 10);
+            } catch (e: any) {
+              return { ok: false, message: `לא הצלחתי להמיר את התאריך העברי (${e?.message ?? "שגיאה"}) — בקשי תאריך לועזי.` };
+            }
+          }
+          const duration = hours ?? 1;
+          const slots = Math.max(2, Math.round(duration * 2));
+          const quote = (start?: string) => {
+            const base = computeStudioPrice(slots, start?.slice(0, 5) ?? "");
+            const add = GUIDANCE[guidance ?? "basic"];
+            return { hours: slots / 2, basePrice: base, guidanceFee: add, total: base + add, deposit: 90 };
+          };
+          if (!day) {
+            const from = israelNow().date;
+            const options = await nextAvailableDays(from, duration, 21, 5);
+            return { mode: "nearest_free_days", from, hours: duration, options, price: quote() };
+          }
+          const res = await studioAvailability(day, time);
+          if (res.closed) return { mode: "day", date: day, closed: true, message: "הסטודיו סגור ביום זה" };
+          let enough: boolean | null = null;
+          if (time) {
+            const [h, m] = time.slice(0, 5).split(":").map(Number);
+            enough = Array.from({ length: slots }, (_, i) => {
+              const t = h * 60 + m + i * 30;
+              return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
+            }).every((x) => res.freeSlots.includes(x));
+          }
+          return {
+            mode: "day",
+            date: day,
+            closed: false,
+            requestedTime: time ?? null,
+            requestedTimeFree: time ? res.wantedFree : null,
+            enoughConsecutiveTime: enough,
+            freeSlots: res.freeSlots,
+            calendarLinked: res.calendarLinked ?? true,
+            price: quote(time),
+          };
+        } catch (e) {
+          console.error("[SWEETBABY] studio_check failed", e);
+          return { error: true, message: "הבדיקה נכשלה זמנית — אל תמציאי זמינות או מחיר; הסבירי שיש תקלה זמנית והציעי לנסות שוב עוד רגע." };
+        }
+      },
+    }),
+
     check_studio_availability: tool({
       description:
         "בודק זמינות אמיתית של הסטודיו ליום מסוים — כולל שריונים באתר וגם אירועים ביומן גוגל של הסטודיו. תאריך בפורמט YYYY-MM-DD, ואופציונלית שעה HH:MM.",
