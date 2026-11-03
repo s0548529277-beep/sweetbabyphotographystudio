@@ -1,5 +1,4 @@
 import { heError } from "@/lib/he-errors";
-import { MissingList } from "@/components/FlowHelpers";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
@@ -690,13 +689,12 @@ function StudioRentalPage() {
               <span><strong>קראתי והסכמתי</strong> להסכם תיאום הציפיות ולכל כללי הסטודיו המפורטים מעלה (מחירון, ביטולים, ניקיון, אחריות ונזקים).</span>
             </label>
 
-            <MissingList items={intakeMissing} className="mt-5" />
             <div className="mt-5 flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={sendIntake}
-                disabled={submitting || intakeMissing.length > 0}
-                className="rounded-full bg-[#2d3d2b] hover:bg-[#1f2b1e] text-[#f8ede4] px-7 py-3.5 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                disabled={submitting}
+                className="rounded-full bg-[#2d3d2b] hover:bg-[#1f2b1e] text-[#f8ede4] px-7 py-3.5 text-sm font-medium transition-colors disabled:opacity-50"
               >
                 {submitting ? "שומר…" : "אישור והמשך ליומן →"}
               </button>
@@ -708,6 +706,11 @@ function StudioRentalPage() {
                 → חזרה
               </button>
             </div>
+            {intakeMissing.length > 0 && (
+              <p className="mt-3 text-xs text-[#2d3d2b]/60" role="status">
+                💡 לפני שממשיכים, עוד לא מולא: {intakeMissing.join(" · ")}
+              </p>
+            )}
           </motion.div>
         </div>
       )}
