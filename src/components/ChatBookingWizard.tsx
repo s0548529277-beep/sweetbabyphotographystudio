@@ -292,7 +292,7 @@ export function ChatBookingWizard({
         <p className="text-xs text-foreground/80">{done.summary}</p>
         {isImmediateOrder(date, time) && (
           <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs font-medium leading-snug">
-            📞 הזמנה מיידית (בתוך 24 שעות) — אנא התקשרי אלינו בהקדם לוודא שהכול תקין: 054-8529277.
+            📞 בגלל שההזמנה בתוך 24 שעות — אנא התקשרי אלינו בהקדם לוודא שהכול תקין: 054-8529277.
           </p>
         )}
         <p className="rounded-lg bg-accent/20 px-3 py-2 text-xs leading-snug">

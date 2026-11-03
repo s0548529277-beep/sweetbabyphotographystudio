@@ -207,7 +207,7 @@ function Deposit() {
           <h1 className="font-display text-5xl text-primary mb-6">{done ? "ההזמנה אושרה ✓" : "סיום תשלום"}</h1>
           {isImmediateOrder(record?.session_date ?? record?.scheduled_date, record?.start_time ?? pickupTime) && (
             <div className="mb-6 rounded-2xl border-2 border-destructive/50 bg-destructive/10 p-4 text-sm leading-relaxed">
-              <b>📞 הזמנה מיידית — אנא התקשרי אלינו לוודא שהכול תקין.</b> ההזמנה היא בתוך 24 השעות הקרובות, ולכן חשוב שתתקשרי בהקדם כדי לוודא שאין תקלה: <a href="tel:0548529277" className="font-bold underline">054-8529277</a>.
+              <b>📞 בגלל שההזמנה בתוך 24 שעות — אנא התקשרי אלינו לוודא שהכול תקין.</b> מכיוון שמועד ההזמנה בתוך 24 השעות הקרובות, חשוב שתתקשרי בהקדם כדי לוודא שאין תקלה: <a href="tel:0548529277" className="font-bold underline">054-8529277</a>.
             </div>
           )}
 
