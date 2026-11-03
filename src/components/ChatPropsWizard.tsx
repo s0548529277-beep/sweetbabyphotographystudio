@@ -195,7 +195,7 @@ export function ChatPropsWizard({ onClose, onOrdered }: { onClose: () => void; o
         </p>
         {isImmediateOrder(pickup, pickupTime) && (
           <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs font-medium leading-snug">
-            📞 הזמנה מיידית (בתוך 24 שעות) — נתקשר אלייך בהקדם לוודא שהכול תקין. אנא היי זמינה בטלפון שמסרת, או התקשרי אלינו: 054-8529277.
+            📞 הזמנה מיידית (בתוך 24 שעות) — אנא התקשרי אלינו בהקדם לוודא שהכול תקין: 054-8529277.
           </p>
         )}
         <p className="rounded-lg bg-accent/20 px-3 py-2 text-xs leading-snug">

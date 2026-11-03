@@ -407,7 +407,7 @@ function LeadsAdmin() {
           <div className="font-medium text-forest">📞 למי לחזור היום</div>
           {(immediate.data?.length ?? 0) > 0 && (
             <div>
-              <div className="text-xs text-red-700 font-medium mb-1">📞 הזמנות מיידיות (בתוך 24 שעות) — להתקשר ולוודא שהכול תקין ({immediate.data!.length})</div>
+              <div className="text-xs text-red-700 font-medium mb-1">📞 הזמנות מיידיות (בתוך 24 שעות) — ביקשנו מהן להתקשר אלייך; אם לא התקשרו, אפשר ליזום ({immediate.data!.length})</div>
               <ul className="flex flex-wrap gap-2">
                 {immediate.data!.map((r: any) => (
                   <li key={`${r.kind}-${r.id}`} className="bg-card rounded-full border border-red-300 px-3 py-1 text-xs flex items-center gap-2">
