@@ -23,7 +23,7 @@ const ALERT_MAX_PER_DAY = 10;
 const MAX_IDENTITIES_PER_VISITOR = 30;
 const SITE = "https://sweetbabyphoto.shop";
 
-export type IdentityKind = "booking_draft" | "booking" | "order" | "intake" | "contact" | "chat_lead";
+export type IdentityKind = "booking_draft" | "booking" | "order" | "intake" | "contact" | "chat_lead" | "funnel";
 
 export function visitorIdFromRequest(): string | null {
   try {
@@ -255,4 +255,25 @@ export async function addDwell(db: any, sessionId: string, path: string, seconds
   if (!row) return;
   const next = Math.min(3600, (row.duration_seconds ?? 0) + sec);
   await db.from("analytics_events").update({ duration_seconds: next }).eq("id", row.id);
+}
+
+/** A small HTML block with the browsing history of the visitor in the current request (for the owner's lead emails). Empty string when there is none. */
+export async function journeyEmailBlock(): Promise<string> {
+  try {
+    const visitorId = visitorIdFromRequest();
+    if (!visitorId) return "";
+    const j = await journeyForVisitors(await admin(), [visitorId]);
+    if (j.visits === 0) return "";
+    const rows = j.pages
+      .slice(0, 6)
+      .map((p) => `<li>${esc(p.label)} · ${p.views} צפיות${p.seconds ? ` · ${p.seconds} שנ׳` : ""}</li>`)
+      .join("");
+    return `<div style="margin:14px 0 0;padding:12px 14px;background:#fff;border-radius:10px;font-size:14px">
+      <div style="font-weight:bold;margin-bottom:4px">👣 היסטוריית גלישה${j.hot ? " · ליד חם 🔥" : ""}</div>
+      <div style="color:#8a7466;margin-bottom:6px">${j.visits} ביקורים · ${j.totalSeconds} שניות פעילות${j.hot ? ` · ${esc(j.hotReasons.join(" · "))}` : ""}</div>
+      <ul style="margin:0;padding-right:20px">${rows}</ul></div>`;
+  } catch (e) {
+    console.error("[SWEETBABY] journeyEmailBlock failed", e);
+    return "";
+  }
 }

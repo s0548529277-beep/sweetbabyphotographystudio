@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate, useRouterState, Link, Outlet } from "@tanstack/react-router";
+import { FunnelCta } from "@/components/FunnelDialog";
 import { heError } from "@/lib/he-errors";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -536,6 +537,10 @@ function NewbornLandingPage() {
       </section>
 
       <DueDateCalculator />
+
+      <div className="flex justify-center px-6 pt-10">
+        <FunnelCta funnel="newborn" label="איזו חבילה מתאימה לי?" sub="3 שאלות קצרות והמלצה אישית" />
+      </div>
 
       {/* Packages */}
       <section id="packages" className="max-w-6xl mx-auto px-6 py-16 md:py-20">

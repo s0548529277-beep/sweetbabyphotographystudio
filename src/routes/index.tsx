@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { FunnelCta } from "@/components/FunnelDialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Camera, Home as HomeIcon, Sparkles, ArrowLeft, MapPin, Star, Heart, LayoutGrid, IdCard } from "lucide-react";
@@ -208,6 +209,13 @@ function Home() {
               </div>
             </Link>
           </motion.div>
+        </div>
+      </section>
+
+      {/* שאלת פתיחה: צלמת או לקוחה → משפך מתאים (can be switched off in /admin/funnel-leads) */}
+      <section className="container-page pb-10 md:pb-14" dir="rtl">
+        <div className="flex justify-center">
+          <FunnelCta funnel="entry" label="לא בטוחה מה מתאים לך?" sub="כמה שאלות קצרות ונמצא יחד את הפתרון" />
         </div>
       </section>
 

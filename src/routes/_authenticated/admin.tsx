@@ -81,7 +81,15 @@ const links: NavEntry[] = [
   { to: "/admin/orders", label: "הזמנות", icon: ShoppingBag },
   { to: "/admin/calendar", label: "יומן", icon: CalendarDays },
   { to: "/admin/client-management", label: "ניהול לקוחות", icon: ContactRound },
-  { to: "/admin/leads", label: "לידים ופניות", icon: Target },
+  {
+    key: "leads",
+    label: "לידים ומשפכים",
+    icon: Target,
+    items: [
+      { to: "/admin/leads", label: "לידים ופניות", icon: Target },
+      { to: "/admin/funnel-leads", label: "לידים מהמשפכים והפעלה", icon: Sparkles },
+    ],
+  },
   { to: "/admin/clients", label: "לקוחות", icon: Users },
   { to: "/admin/whatsapp", label: "וואטסאפ", icon: MessageSquare },
   { to: "/admin/newborn-packages", label: "חבילות ניו-בורן", icon: Baby },

@@ -1,4 +1,5 @@
 import { heError } from "@/lib/he-errors";
+import { FunnelCta } from "@/components/FunnelDialog";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
@@ -309,6 +310,10 @@ function StudioRentalPage() {
             <p className="mt-3 text-base text-[#2d3d2b]/75 max-w-2xl leading-relaxed">
               חלל בוטיק שקט ומאובזר לצלמות — תאורה מקצועית, רקעים ואווירה שמזמינה יצירה. מחירון שקוף, יומן פתוח.
             </p>
+
+            <div className="mt-5">
+              <FunnelCta funnel="studio" label="איזו כרטיסייה מתאימה לי?" sub="3 שאלות ויוצא חישוב מדויק" />
+            </div>
 
             <div className="mt-5 flex flex-wrap gap-3">
               {quickFacts.map(({ icon: Icon, label }) => (

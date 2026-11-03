@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { FunnelCta } from "@/components/FunnelDialog";
 import { heError } from "@/lib/he-errors";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -273,6 +274,9 @@ function StudioPhotographyPage() {
               סשנים אישיים עם הצלמת מיכל סיבוני – ניו-בורן, משפחה, ילדים ואירועים. תבחרי את האווירה
               שמדברת אלייך: אור רך של סטודיו או קסם טבעי בטבע.
             </p>
+            <div className="mb-8 flex justify-center">
+              <FunnelCta funnel="photography" label="איזה סשן מתאים לי?" sub="4 שאלות קצרות והמלצה אישית" />
+            </div>
             <div className="flex flex-wrap items-stretch justify-center gap-3">
               <button
                 type="button"
