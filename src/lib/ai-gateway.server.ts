@@ -263,15 +263,15 @@ export function pickStreamingGeminiModel() {
 // one call to the Lovable AI Gateway. Voice, WhatsApp and the email assistant
 // keep using generateTextResilient. If the Lovable AI credits run out the site
 // chat shows its normal "busy" message (the gateway answers 402).
-const LOVABLE_CHAT_MODEL_ID = "google/gemini-3-flash-preview";
+const LOVABLE_CHAT_MODEL_ID = "google/gemini-2.5-flash";
 // Older, known-good model used only if the call above is rejected (e.g. the
 // gateway refuses the reasoning setting or the Gemini 3 tool loop).
 const LOVABLE_CHAT_SAFE_MODEL_ID = "google/gemini-2.5-flash";
 // Short "thinking" for the site chat (owner request 2026-11-02: answers too slow).
 // Lovable's chat confirmed the gateway accepts reasoning effort; not verified live.
-export const LOVABLE_CHAT_PROVIDER_OPTIONS = {
-  "lovable-ai-gateway": { reasoningEffort: "low" },
-} as const;
+// 2026-11-03: gemini-2.5-flash again (Lovable chat: Gemini 3 thinks every tool step, 499 cancels at 20-27s,
+// empty last step). No reasoning option needed for 2.5-flash.
+export const LOVABLE_CHAT_PROVIDER_OPTIONS = {} as const;
 
 /** The Lovable AI Gateway model used by the website chat (also for streamText). */
 export function getLovableChatModel(modelId: string = LOVABLE_CHAT_MODEL_ID) {

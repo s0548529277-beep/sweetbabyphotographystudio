@@ -18,7 +18,7 @@ import { generateTextLovable, getLovableChatModel, LOVABLE_CHAT_PROVIDER_OPTIONS
  * 2026-11-02). If the stream fails before it produced an answer, this retries
  * once without streaming (generateTextLovable) and sends the answer in one piece.
  */
-const STREAM_TIMEOUT_MS = 25_000;
+const STREAM_TIMEOUT_MS = 35_000;
 
 export async function handleChatStream(request: Request): Promise<Response> {
   let data: ReturnType<typeof ChatInput.parse>;
