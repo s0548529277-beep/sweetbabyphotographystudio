@@ -99,17 +99,33 @@ export const STUDIO_QUESTIONS: FunnelQuestion[] = [
   },
 ];
 
-function studioCost(visits: number, hours: number, topup: boolean) {
-  const perVisitExtra = STUDIO_EXTRA_HOUR * (hours - 1);
-  const none = visits * (STUDIO_FIRST_HOUR + perVisitExtra);
-  const rows = [{ id: "none", name: "בלי כרטיסייה", total: none }];
+const STUDIO_DISCOUNT = 0.1; // returning photographers: 10% off any amount
+const STUDIO_CASHBACK = 0.1; // every registered customer: 10% of each order of 100 ₪+ comes back as credit
+const STUDIO_CASHBACK_MIN_ORDER = 100;
+
+type CostRow = { id: string; name: string; total: number; cashback: number; net: number };
+
+/** What each way of paying costs for `visits` visits of `hours` hours. `disc` = returning-photographer discount rate (0 or 0.1). Cashback is earned on every
+ *  per-visit order of 100 ₪+ (after the discount), NOT on buying a card or a top-up. `net` = total minus the cashback credit earned. */
+function studioCost(visits: number, hours: number, topup: boolean, disc: number): CostRow[] {
+  const k = 1 - disc;
+  const extra = STUDIO_EXTRA_HOUR * (hours - 1) * k; // a covered visit still pays its extra hours
+  const full = (STUDIO_FIRST_HOUR + STUDIO_EXTRA_HOUR * (hours - 1)) * k; // a visit with no card entry
+  const cb = (orders: number[]) => orders.filter((o) => o >= STUDIO_CASHBACK_MIN_ORDER).reduce((sum, o) => sum + o * STUDIO_CASHBACK, 0);
+  const mk = (id: string, name: string, total: number, orders: number[]): CostRow => {
+    const cashback = Math.round(cb(orders));
+    return { id, name, total: Math.round(total), cashback, net: Math.round(total) - cashback };
+  };
+  const rows: CostRow[] = [mk("none", "בלי כרטיסייה", visits * full, Array(visits).fill(full))];
   for (const c of STUDIO_CARDS) {
     const covered = Math.min(visits, c.entries);
     const uncovered = visits - covered;
-    rows.push({ id: c.id, name: c.name, total: c.price + covered * perVisitExtra + uncovered * (STUDIO_FIRST_HOUR + perVisitExtra) });
+    const orders = [...Array(covered).fill(extra), ...Array(uncovered).fill(full)];
+    rows.push(mk(c.id, c.name, c.price * k + covered * extra + uncovered * full, orders));
   }
   if (topup) {
-    rows.push({ id: "topup", name: `טעינת ${STUDIO_TOPUP.pay} ₪ וקבלת ${STUDIO_TOPUP.get.toLocaleString("he-IL")} ₪`, total: STUDIO_TOPUP.pay + Math.max(0, none - STUDIO_TOPUP.get) });
+    const need = visits * full;
+    rows.push(mk("topup", `טעינת ${STUDIO_TOPUP.pay} ₪ וקבלת ${STUDIO_TOPUP.get.toLocaleString("he-IL")} ₪`, STUDIO_TOPUP.pay + Math.max(0, need - STUDIO_TOPUP.get), []));
   }
   return rows;
 }
@@ -117,10 +133,13 @@ function studioCost(visits: number, hours: number, topup: boolean) {
 function evalStudio(a: Record<string, string>, topup: boolean) {
   const visits = STUDIO_VISITS[a.visits] ?? 4;
   const hours = STUDIO_HOURS[a.hours] ?? 2;
-  const rows = studioCost(visits, hours, topup);
-  const best = rows.slice().sort((x, y) => x.total - y.total)[0];
+  const returning = a.history === "regular" || a.history === "before";
+  const disc = returning ? STUDIO_DISCOUNT : 0;
+  const rows = studioCost(visits, hours, topup, disc);
+  const best = rows.slice().sort((x, y) => x.net - y.net)[0];
   const none = rows[0];
-  const saving = none.total - best.total;
+  const saving = none.net - best.net;
+  const n = (v: number) => v.toLocaleString("he-IL");
   let score = 0;
   if (visits >= 8) score += 3;
   else if (visits >= 4) score += 2;
@@ -128,12 +147,14 @@ function evalStudio(a: Record<string, string>, topup: boolean) {
   else if (a.history === "before") score += 1;
   // A first-timer or a one-time renter: the first sign-up on the site earns a spin of the prize wheel.
   const signup = a.history === "once" || a.history === "new" || a.visits === "v0";
+  const span = `${visits === 1 ? "כניסה אחת" : `${visits} כניסות`} של ${hours} ${hours === 1 ? "שעה" : "שעות"}`;
+  const discNote = returning ? " כולל 10% הנחת צלמת חוזרת" : "";
   const rec0 =
     best.id === "none"
-      ? `לפי מה שסיפרת (בערך ${visits} כניסות של ${hours} ${hours === 1 ? "שעה" : "שעות"}) כרטיסייה עדיין לא משתלמת: ${none.total.toLocaleString("he-IL")} ₪ לכל התקופה. שעה ראשונה ${STUDIO_FIRST_HOUR} ₪ וכל שעה נוספת ${STUDIO_EXTRA_HOUR} ₪.`
-      : `${best.name} משתלמת לך: בערך ${best.total.toLocaleString("he-IL")} ₪ במקום ${none.total.toLocaleString("he-IL")} ₪ בלי כרטיסייה — חיסכון של כ-${saving.toLocaleString("he-IL")} ₪ (לפי ${visits} כניסות של ${hours} ${hours === 1 ? "שעה" : "שעות"}).`;
+      ? `לפי מה שסיפרת (בערך ${span}) כרטיסייה עדיין לא משתלמת: ${n(none.total)} ₪ לכל התקופה${discNote}, ו-${n(none.cashback)} ₪ מזה חוזרים אלייך כקרדיט צבירה (10% מכל הזמנה מ-100 ₪). שעה ראשונה ${STUDIO_FIRST_HOUR} ₪ וכל שעה נוספת ${STUDIO_EXTRA_HOUR} ₪.`
+      : `${best.name} משתלמת לך: בערך ${n(best.total)} ₪${best.cashback > 0 ? ` (ועוד ${n(best.cashback)} ₪ קרדיט צבירה שחוזר אלייך)` : ""} במקום ${n(none.total)} ₪ בלי כרטיסייה${none.cashback > 0 ? ` (שמחזירים ${n(none.cashback)} ₪ קרדיט)` : ""} — חיסכון נטו של כ-${n(saving)} ₪ (לפי ${span}${discNote}).`;
   const leftover = best.id === "topup" ? Math.max(0, STUDIO_TOPUP.get - none.total) : 0;
-  const rec1 = leftover > 0 ? `${rec0} יישאר לך קרדיט של ${leftover.toLocaleString("he-IL")} ₪ להזמנות הבאות.` : rec0;
+  const rec1 = leftover > 0 ? `${rec0} יישאר לך קרדיט של ${n(leftover)} ₪ להזמנות הבאות.` : rec0;
   const rec = signup ? `${rec1} וכשנרשמים לאתר בפעם הראשונה מקבלים סיבוב בגלגל המתנות 🎁 — הנחה או קרדיט להזמנה.` : rec1;
   return {
     score,
@@ -141,9 +162,9 @@ function evalStudio(a: Record<string, string>, topup: boolean) {
     recommendation: rec,
     headline: best.id === "none" ? "תשלום לפי שעה" : best.name,
     details: [
-      ...rows.map((r) => `${r.name}: ${r.total.toLocaleString("he-IL")} ₪`),
-      STUDIO_CASHBACK_NOTE,
-      ...(a.history === "regular" || a.history === "before" ? [STUDIO_RETURNING_NOTE] : []),
+      ...rows.map((r) => `${r.name}: ${n(r.total)} ₪${r.cashback > 0 ? ` · קרדיט צבירה ${n(r.cashback)} ₪ (נטו ${n(r.net)} ₪)` : ""}`),
+      STUDIO_CASHBACK_NOTE + " (נרשמות לאתר, והקרדיט נצבר לבד)",
+      ...(returning ? [STUDIO_RETURNING_NOTE + " — כלולה בחישוב"] : []),
     ],
     signup,
   };

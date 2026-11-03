@@ -311,10 +311,6 @@ function StudioRentalPage() {
               חלל בוטיק שקט ומאובזר לצלמות — תאורה מקצועית, רקעים ואווירה שמזמינה יצירה. מחירון שקוף, יומן פתוח.
             </p>
 
-            <div className="mt-5">
-              <FunnelCta funnel="studio" label="איזו כרטיסייה מתאימה לי?" sub="3 שאלות ויוצא חישוב מדויק" />
-            </div>
-
             <div className="mt-5 flex flex-wrap gap-3">
               {quickFacts.map(({ icon: Icon, label }) => (
                 <div key={label} className="inline-flex items-center gap-2 bg-white/80 backdrop-blur px-3.5 py-1.5 rounded-full border border-[#2d3d2b]/10 text-xs text-[#2d3d2b]/75">
@@ -375,6 +371,13 @@ function StudioRentalPage() {
               </button>
             </div>
           </motion.div>
+        </div>
+      </section>
+
+      {/* שאלון הכרטיסיות — right after the prices */}
+      <section className="container-page pb-8" dir="rtl">
+        <div className="flex justify-center">
+          <FunnelCta funnel="studio" label="כמה יעלה לי הסטודיו? איזו כרטיסייה משתלמת?" sub="3 שאלות ויוצא חישוב מדויק, כולל צבירה והנחה" />
         </div>
       </section>
 
