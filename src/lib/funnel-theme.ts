@@ -46,15 +46,15 @@ export const FUNNEL_THEMES: Record<FunnelId, FunnelTheme> = {
     floatSub: "כמה שאלות ונמצא יחד",
   },
   studio: {
-    // forest green with a very gentle blush of the brand pink at the corner
-    gradient: "linear-gradient(135deg,#2d3d2b 0%,#5f8a58 82%,#d9a39c 100%)",
-    solid: "#2d3d2b",
-    solidHover: "#3d5239",
-    soft: "#f8f3ef",
-    tint: "#f6e3df",
-    border: "#e6bdb4",
+    // brand forest green flowing into a clear rose pink
+    gradient: "linear-gradient(135deg,#2d3d2b 0%,#7d6a5f 45%,#e39aa0 100%)",
+    solid: "#c2677a",
+    solidHover: "#a95468",
+    soft: "#fdeeec",
+    tint: "#f9d6d2",
+    border: "#e8a5a0",
     ink: "#2d3d2b",
-    accent: "#e8a99c",
+    accent: "#f5b8ac",
     emoji: "🎞️",
     title: "שכירת הסטודיו",
     floatLabel: "כמה יעלה לי הסטודיו?",
