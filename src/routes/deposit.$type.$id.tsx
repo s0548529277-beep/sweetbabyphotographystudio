@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { BackButton, MissingList } from "@/components/FlowHelpers";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Header } from "@/components/Header";
@@ -196,6 +197,11 @@ function Deposit() {
       <Header />
       <section className="container-page py-14 flex-1">
         <div className="max-w-4xl mx-auto">
+          {!done && (
+            <div className="mb-5 text-forest">
+              <BackButton fallback={isStudio ? "/booking" : "/checkout"} label={isStudio ? "חזרה ליומן" : "חזרה להזמנה"} />
+            </div>
+          )}
           <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-3">Step 3 · Payment</div>
           <h1 className="font-display text-5xl text-primary mb-10">{done ? "ההזמנה אושרה ✓" : "סיום תשלום"}</h1>
 
@@ -428,6 +434,9 @@ function Deposit() {
                   )}
                 </div>
 
+                <MissingList
+                  items={showReceiptUpload && !file && !confirmedPaid ? ["לצרף אסמכתא או צילום מסך של התשלום, או לסמן שביצעת את התשלום (התיבה למעלה)"] : []}
+                />
                 <Button
                   disabled={uploading || (showReceiptUpload && !file && !confirmedPaid)}
                   onClick={submit}

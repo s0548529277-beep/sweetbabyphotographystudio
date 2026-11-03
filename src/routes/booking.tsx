@@ -34,6 +34,8 @@ import { Lock, Clock, Sparkles, CalendarDays, Package, X, Search, BellRing } fro
 import { useCatalogItems, type CatalogItem } from "@/lib/catalog";
 import { GuestContinueButton } from "@/components/GuestContinueButton";
 import { saveBookingProgress, clearBookingProgress } from "@/lib/booking-draft";
+import { BackButton, MissingList } from "@/components/FlowHelpers";
+
 
 
 type CatItem = CatalogItem;
@@ -354,6 +356,15 @@ function Booking() {
   const [recurWeeks, setRecurWeeks] = useState(4);
 
   const canBook = date && startTime && slots >= 2 && contactName && contactPhone && user;
+  // Exactly what is still missing — shown next to the (inactive) continue button.
+  const missing: string[] = [
+    ...(!date ? ["לבחור תאריך ביומן"] : []),
+    ...(!startTime ? ["לסמן שעת התחלה פנויה"] : []),
+    ...(slots < 2 ? ["לבחור משך של שעה לפחות"] : []),
+    ...(!contactName.trim() ? ["למלא שם מלא"] : []),
+    ...(!contactPhone.trim() ? ["למלא מספר טלפון"] : []),
+    ...(!user ? ["להתחבר או להמשיך כאורחת"] : []),
+  ];
 
   useEffect(() => {
     setWlJoined(false);
@@ -437,6 +448,9 @@ function Booking() {
       <div className="min-h-screen flex flex-col bg-[#f8ede4]">
         <Header />
         <section className="container-page py-24 flex-1" dir="rtl">
+          <div className="max-w-md mx-auto mb-4 text-[#2d3d2b]">
+            <BackButton fallback="/studio-rental" />
+          </div>
           <div className="max-w-md mx-auto text-center bg-white rounded-3xl p-10 border border-[#2d3d2b]/10 shadow-sm">
             <Lock className="h-8 w-8 text-[#6b8a63] mx-auto mb-3" />
             <h2 className="font-display text-3xl text-[#2d3d2b] mb-2">התחברות או מצב אורח</h2>
@@ -461,6 +475,9 @@ function Booking() {
     <div className="min-h-screen flex flex-col bg-[#f8ede4]" dir="rtl">
       <Header />
       <section className="container-page py-10 md:py-14 flex-1">
+        <div className="mb-5 text-[#2d3d2b]">
+          <BackButton fallback="/studio-rental" label="חזרה לפרטי הסטודיו" />
+        </div>
         {/* Header */}
         <div className="max-w-3xl mb-8">
           <div className="inline-flex items-center gap-2 text-[10px] tracking-[0.32em] uppercase text-[#6b8a63] mb-3">
@@ -858,6 +875,7 @@ function Booking() {
 
               {!recurring && <div className="text-[10px] text-[#f8ede4]/55 mb-4">מתוכם 90₪ מקדמה לשריון</div>}
 
+              <MissingList items={missing} onDark className="mb-3" />
               <Button
                 type="submit"
                 disabled={!canBook || busy}

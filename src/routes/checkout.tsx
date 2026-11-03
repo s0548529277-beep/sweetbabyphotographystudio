@@ -1,4 +1,5 @@
 import { heError } from "@/lib/he-errors";
+import { BackButton, MissingList } from "@/components/FlowHelpers";
 import { isWithinPropsHandoffHours, PROPS_HANDOFF_NOTE, PROPS_LATEST_HANDOFF } from "@/lib/props-hours";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -146,6 +147,9 @@ function Checkout() {
       <div className="min-h-screen flex flex-col">
         <Header />
         <section className="container-page py-24 flex-1">
+          <div className="max-w-md mx-auto mb-4 text-forest">
+            <BackButton fallback="/cart" label="חזרה לעגלה" />
+          </div>
           <div className="max-w-md mx-auto text-center glass-card rounded-3xl p-10">
             <Lock className="h-8 w-8 text-primary/40 mx-auto mb-3" />
             <h2 className="font-display text-3xl text-primary mb-2">התחברות או מצב אורח</h2>
@@ -203,6 +207,9 @@ function Checkout() {
     <div className="min-h-screen flex flex-col">
       <Header />
       <section className="container-page py-14 flex-1">
+        <div className="mb-5 text-forest">
+          <BackButton fallback="/cart" label="חזרה לעגלה" />
+        </div>
         <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-3">Checkout</div>
         <h1 className="font-display text-5xl text-primary mb-10">סיכום ההזמנה</h1>
 
@@ -377,6 +384,18 @@ function Checkout() {
               <Checkbox checked={form.terms_accepted} onCheckedChange={(v) => setForm({ ...form, terms_accepted: !!v })} className="mt-0.5" />
               <span className="font-medium">אני מאשר/ת שקראתי את הכללים ואני מסכימה לתנאי ההשכרה *</span>
             </label>
+            <MissingList
+              onDark
+              className="mt-3"
+              items={[
+                ...(lines.length === 0 ? ["להוסיף לעגלה לפחות אביזר אחד"] : []),
+                ...(lines.length > 0 && subtotal < 50 ? ["להגיע למינימום הזמנה של ₪50"] : []),
+                ...(!form.session_date ? ["לבחור תאריך איסוף"] : []),
+                ...(!form.return_date ? ["לבחור תאריך החזרה"] : []),
+                ...(anyUnavailable ? ["חלק מהאביזרים תפוסים בתאריכים שנבחרו — אפשר לשנות תאריכים או להסיר אותם מהעגלה"] : []),
+                ...(!form.terms_accepted ? ["לסמן את אישור תנאי ההשכרה (התיבה למעלה)"] : []),
+              ]}
+            />
             <Button
               type="submit"
               disabled={disabled || busy || !form.terms_accepted || !form.session_date || !form.return_date || anyUnavailable}
@@ -384,12 +403,6 @@ function Checkout() {
             >
               {busy ? "שולח…" : "אישור הזמנה"}
             </Button>
-            {!form.terms_accepted && (
-              <div className="text-xs text-blush mt-2 text-center">יש ללחוץ על אישור ההסכם למעלה כדי שהכפתור יופעל</div>
-            )}
-            {anyUnavailable && (
-              <div className="text-xs text-blush mt-2 text-center">חלק מהאביזרים תפוסים בתאריכים שנבחרו</div>
-            )}
           </aside>
         </form>
       </section>

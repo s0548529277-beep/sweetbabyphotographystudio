@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Minus, Plus, Trash2, ShoppingBag, Tag, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
+import { BackButton, MissingList } from "@/components/FlowHelpers";
 
 
 export const Route = createFileRoute("/cart")({
@@ -60,6 +61,9 @@ function Cart() {
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       <section className="container-page py-14 flex-1">
+        <div className="mb-5 text-forest">
+          <BackButton fallback="/rental-catalog" label="חזרה לקטלוג" />
+        </div>
         <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-3">Your Cart</div>
         <h1 className="font-display text-5xl text-primary mb-10">העגלה שלי</h1>
 
@@ -161,9 +165,16 @@ function Cart() {
                   </div>
                 )}
               </div>
+              <MissingList
+                className="mt-6"
+                items={[
+                  ...(lines.length === 0 ? ["להוסיף לעגלה לפחות אביזר אחד"] : []),
+                  ...(lines.length > 0 && total < 50 ? [`להגיע למינימום הזמנה של ₪50 (חסרים עוד ₪${(50 - total).toFixed(0)})`] : []),
+                ]}
+              />
               <Link to="/checkout" className="block">
                 <Button
-                  className="w-full mt-6 rounded-full h-12 bg-[#2d3d2b] text-[#f5d5cf] hover:bg-[#2d3d2b]/90"
+                  className="w-full mt-3 rounded-full h-12 bg-[#2d3d2b] text-[#f5d5cf] hover:bg-[#2d3d2b]/90"
                   disabled={lines.length === 0 || total < 50}
                 >
                   המשך לתשלום
@@ -299,10 +310,17 @@ function Cart() {
               </div>
             </div>
 
+            <MissingList
+              className="mt-6"
+              items={[
+                ...(!form.agree ? ["לסמן אישור של כללי ההשכרה והמדיניות (סעיף 9)"] : []),
+                ...(lines.length === 0 ? ["להוסיף לעגלה לפחות אביזר אחד"] : []),
+              ]}
+            />
             <Button
               type="submit"
               disabled={!form.agree || lines.length === 0}
-              className="w-full mt-6 rounded-full h-12"
+              className="w-full mt-3 rounded-full h-12"
             >
               ✉️ שליחת ההזמנה למייל
             </Button>

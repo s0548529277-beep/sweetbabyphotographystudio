@@ -1,4 +1,5 @@
 import { heError } from "@/lib/he-errors";
+import { MissingList } from "@/components/FlowHelpers";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
@@ -198,6 +199,15 @@ function StudioRentalPage() {
   useEffect(() => {
     saveBookingProgress({ sessionType: form.sessionType, people: form.peopleCount, babyAge: form.babyAge, name: form.clientName, phone: form.phone, email: form.email });
   }, [form.sessionType, form.peopleCount, form.babyAge, form.clientName, form.phone, form.email]);
+  // What is still missing in the intake form — shown above the "continue" button, which stays inactive until it is empty.
+  const intakeMissing: string[] = [
+    ...(!form.clientName.trim() ? ["שם מלא"] : []),
+    ...(!form.phone.trim() ? ["מספר טלפון"] : []),
+    ...(!form.email.trim() ? ["כתובת אימייל"] : []),
+    ...(!form.sessionType.trim() ? ["סוג הצילום"] : []),
+    ...(!form.agreed ? ["אישור הסכם תיאום הציפיות (תיבת הסימון למעלה)"] : []),
+  ];
+
 
   const sendIntake = async () => {
     if (!form.clientName.trim() || !form.phone.trim() || !form.email.trim()) {
@@ -680,12 +690,13 @@ function StudioRentalPage() {
               <span><strong>קראתי והסכמתי</strong> להסכם תיאום הציפיות ולכל כללי הסטודיו המפורטים מעלה (מחירון, ביטולים, ניקיון, אחריות ונזקים).</span>
             </label>
 
+            <MissingList items={intakeMissing} className="mt-5" />
             <div className="mt-5 flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={sendIntake}
-                disabled={submitting}
-                className="rounded-full bg-[#2d3d2b] hover:bg-[#1f2b1e] text-[#f8ede4] px-7 py-3.5 text-sm font-medium transition-colors disabled:opacity-50"
+                disabled={submitting || intakeMissing.length > 0}
+                className="rounded-full bg-[#2d3d2b] hover:bg-[#1f2b1e] text-[#f8ede4] px-7 py-3.5 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {submitting ? "שומר…" : "אישור והמשך ליומן →"}
               </button>
@@ -694,7 +705,7 @@ function StudioRentalPage() {
                 onClick={() => setShowForm(false)}
                 className="rounded-full border border-[#2d3d2b]/25 text-[#2d3d2b] px-7 py-3.5 text-sm font-medium hover:bg-white/50 transition-colors"
               >
-                ביטול
+                → חזרה
               </button>
             </div>
           </motion.div>
