@@ -204,6 +204,13 @@
       "when": 1793620509395,
       "tag": "0028_customer_carts",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1793620510395,
+      "tag": "0029_booking_drafts",
+      "breakpoints": true
     }
   ]
 }

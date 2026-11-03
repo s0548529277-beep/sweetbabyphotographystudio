@@ -122,6 +122,28 @@ function LeadsAdmin() {
     refetchInterval: 60000,
   });
 
+  const stuck = useQuery({
+    queryKey: ["admin-booking-drafts"],
+    queryFn: async () => {
+      const since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+      const { data, error } = await (supabase as any)
+        .from("booking_drafts")
+        .select("*")
+        .eq("completed", false)
+        .eq("handled", false)
+        .gte("updated_at", since)
+        .order("updated_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    refetchInterval: 60000,
+  });
+  const markStuckHandled = async (key: string) => {
+    await (supabase as any).from("booking_drafts").update({ handled: true }).eq("client_key", key);
+    qc.invalidateQueries({ queryKey: ["admin-booking-drafts"] });
+  };
+
   const all = leads.data ?? [];
 
   const counts = useMemo(() => {
@@ -234,6 +256,48 @@ function LeadsAdmin() {
               )}
             </>
           )}
+        </div>
+      )}
+
+      {/* Visitors who started a studio booking and stopped */}
+      {(stuck.data?.length ?? 0) > 0 && (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50/60 p-4 space-y-3">
+          <div className="font-medium text-forest">🛒 התחילו להזמין סטודיו ולא סיימו ({stuck.data!.length})</div>
+          <ul className="space-y-2">
+            {stuck.data!.map((d: any) => {
+              const pr = d.progress ?? {};
+              const stepName = ["בחירת מועד", "שאלון", "פרטים ותנאים", "תשלום"][Number(d.step)] ?? "";
+              const slot = pr.date && pr.time ? `${pr.date} ${pr.time}${pr.hours ? ` (${pr.hours} ש׳)` : ""}` : "לא נבחר מועד";
+              return (
+                <li key={d.client_key} className="bg-card rounded-xl border border-primary/10 px-3 py-2 text-xs flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span className="font-medium text-sm">{d.name || d.email || d.phone}</span>
+                  <span className="text-forest/70">{slot}</span>
+                  {pr.sessionType && <span className="text-forest/70">{pr.sessionType}</span>}
+                  <span className="text-forest/60">נעצרה ב: {stepName} · {fmt(d.updated_at)}</span>
+                  <span className="flex items-center gap-2 mr-auto">
+                    {d.phone && (
+                      <>
+                        <a href={waLink(d.phone)} target="_blank" rel="noreferrer" className="text-emerald-700" aria-label="וואטסאפ">
+                          <MessageCircle className="h-4 w-4" />
+                        </a>
+                        <a href={`tel:${d.phone}`} className="text-forest" aria-label="חיוג">
+                          <Phone className="h-4 w-4" />
+                        </a>
+                      </>
+                    )}
+                    {d.email && (
+                      <a href={`mailto:${d.email}`} className="text-forest" aria-label="מייל">
+                        <Mail className="h-4 w-4" />
+                      </a>
+                    )}
+                    <button type="button" className="text-forest/60 underline" onClick={() => markStuckHandled(d.client_key)}>
+                      טופל
+                    </button>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
 

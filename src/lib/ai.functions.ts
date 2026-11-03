@@ -154,7 +154,17 @@ const CATALOG_IMG = new Map<string, string>(
 
 /** Last-resort text when the model produced none: point at the cards/buttons the tools already produced. */
 export function emptyReplyFallback(ui: { products?: unknown[]; photos?: unknown[]; buttons?: unknown[]; guestPrompt?: boolean } | null | undefined): string {
-  if (ui?.products?.length) return "מצאתי לך כמה אפשרויות — הן מופיעות כאן למטה 💗";
+  if (ui?.products?.length) {
+    const ps = ui.products as Array<{ name?: string; price?: number; available?: boolean }>;
+    const shown = ps.slice(0, 3).map((p) => {
+      const name = String(p.name ?? "").slice(0, 40);
+      const price = typeof p.price === "number" && p.price > 0 ? `, ₪${p.price}` : "";
+      const av = p.available === true ? ", פנוי" : p.available === false ? ", לא פנוי בתאריך" : "";
+      return `${name}${price}${av}`;
+    });
+    const more = ps.length > 3 ? ` ועוד ${ps.length - 3}` : "";
+    return `מצאתי: ${shown.join(" · ")}${more}. הכרטיסים כאן למטה — אפשר להוסיף לעגלה או לשאול אותי עוד 💗`;
+  }
   if (ui?.photos?.length) return "הנה כמה תמונות להשראה 💗";
   if ((ui as any)?.guestPrompt) return "כדי להשלים את ההזמנה כאן בצ׳אט אפשר להמשיך כאורחת (בלי הרשמה) או להתחבר — מה נוח לך? 💗";
   if (ui?.buttons?.length) return "אפשר להמשיך מכאן 💗 ואם חסר לך משהו — כתבי לי ואבדוק שוב.";

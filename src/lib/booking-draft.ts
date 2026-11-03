@@ -5,6 +5,51 @@
  */
 const KEY = "sb_booking_progress";
 const MAX_AGE_MS = 3 * 24 * 3600 * 1000;
+const CLIENT_KEY = "sb_booking_client_key";
+let syncTimer: ReturnType<typeof setTimeout> | null = null;
+
+function clientKey(): string | null {
+  try {
+    let k = window.localStorage.getItem(CLIENT_KEY);
+    if (!k) {
+      k = (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/[^a-zA-Z0-9-]/g, "");
+      window.localStorage.setItem(CLIENT_KEY, k);
+    }
+    return k;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Server copy (table booking_drafts) so the admin sees who started a booking and left. Only once a phone or an
+ * email is known, debounced, fire-and-forget; failures are ignored (the browser copy still works).
+ */
+function scheduleServerSync() {
+  if (typeof window === "undefined") return;
+  if (syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(async () => {
+    syncTimer = null;
+    try {
+      const p = loadBookingProgress();
+      if (!((p.phone ?? "").replace(/\D/g, "").length >= 7 || (p.email ?? "").includes("@"))) return;
+      const key = clientKey();
+      if (!key) return;
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { savedAt: _s, ...rest } = p;
+      await (supabase as any).rpc("save_booking_draft", {
+        _key: key,
+        _name: p.name ?? "",
+        _phone: p.phone ?? "",
+        _email: p.email ?? "",
+        _progress: rest,
+        _step: String(wizardStartStep(p)),
+      });
+    } catch {
+      /* ignore */
+    }
+  }, 4000);
+}
 
 export type BookingProgress = {
   savedAt?: number;
@@ -50,6 +95,7 @@ export function saveBookingProgress(patch: BookingProgress) {
       if (next[k] === "" || next[k] === undefined) delete next[k];
     }
     window.localStorage.setItem(KEY, JSON.stringify(next));
+    scheduleServerSync();
   } catch {
     /* storage unavailable */
   }
@@ -57,8 +103,19 @@ export function saveBookingProgress(patch: BookingProgress) {
 
 export function clearBookingProgress() {
   if (typeof window === "undefined") return;
+  if (syncTimer) {
+    clearTimeout(syncTimer);
+    syncTimer = null;
+  }
   try {
     window.localStorage.removeItem(KEY);
+    const key = window.localStorage.getItem(CLIENT_KEY);
+    if (key) {
+      void import("@/integrations/supabase/client")
+        .then(({ supabase }) => (supabase as any).rpc("complete_booking_draft", { _key: key }))
+        .catch(() => {});
+      window.localStorage.removeItem(CLIENT_KEY);
+    }
   } catch {
     /* ignore */
   }
