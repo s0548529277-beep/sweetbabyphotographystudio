@@ -106,6 +106,7 @@ export function ChatBookingWizard({
   const [coupon, setCoupon] = useState("");
   const [isMember, setIsMember] = useState(false);
   const [editContact, setEditContact] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
   const [creditBalance, setCreditBalance] = useState(0);
   const [useCredit, setUseCredit] = useState(false);
   const [plan, setPlan] = useState<DepositPlan | "">("");
@@ -460,6 +461,32 @@ export function ChatBookingWizard({
             <p>• מקדמה 90₪ לשריון המועד — לא מוחזרת בביטול.</p>
             <p>• ביטול ביום הצילומים עצמו — תשלום של 100% מההזמנה.</p>
             <p>• נזק: עלות תיקון/רכישה + 20% דמי טיפול. בלגן משמעותי: 150₪ דמי ניקיון.</p>
+            <p>• עיכוב של 15 דק׳ ומעלה מחויב כחצי שעה נוספת, ו־45 דק׳ ומעלה כשעה מלאה. הזמן כולל התארגנות וניקיון בסיום.</p>
+            <p>• יש להחזיר את הסטודיו נקי ומסודר למצבו המקורי. הבטיחות באחריות השוכר/ת.</p>
+            <button type="button" onClick={() => setShowTerms((v) => !v)} className="font-semibold text-primary underline">
+              {showTerms ? "סגירת התנאים המלאים" : "פתיחה מלאה של התנאים"}
+            </button>
+            {showTerms && (
+              <div className="space-y-1 border-t border-primary/20 pt-2">
+                <p className="font-semibold">תשלום וביטולים</p>
+                <p>• מקדמה 90₪ לשריון המועד, יתרה בסיום (אשראי / פייבוקס / העברה / מזומן).</p>
+                <p>• ביטול או שינוי עד ליום הצילומים: המקדמה לא מוחזרת. ביטול ביום הצילומים: חיוב מלא (100%).</p>
+                <p className="font-semibold">שעות ומחיר</p>
+                <p>• שעה ראשונה 180₪, כל שעה נוספת 100₪, מינימום שעה. הסטודיו פתוח א׳–ה׳ 8:00–23:00.</p>
+                <p className="font-semibold">ציוד ותאורה</p>
+                <p>• פלאש Godox AD200 PRO וסופטבוקס זמינים בסטודיו. השימוש בפלאש דורש ידע מוקדם.</p>
+                <p>• השארת אור או מזגן דולקים: 7₪ לשעה עד 8:00 בבוקר למחרת.</p>
+                <p className="font-semibold">רקעים וניקיון</p>
+                <p>• רקעי נייר לקירות בלבד. שימוש כרצפה: 50₪ בתיאום מראש. רקע שהתלכלך או נהרס: 100₪ למטר.</p>
+                <p>• בלגן או לכלוך משמעותי: 150₪ דמי ניקיון.</p>
+                <p className="font-semibold">אחריות</p>
+                <p>• נזק לרכוש: עלות תיקון או רכישה + 20% דמי טיפול.</p>
+                <p>• חפצים שיישכחו מעל 30 יום יעברו למאגר הסטודיו.</p>
+                <Link to="/terms" target="_blank" className="font-semibold text-primary underline">
+                  לתקנון המלא באתר
+                </Link>
+              </div>
+            )}
           </div>
           <label className="flex cursor-pointer items-start gap-2 text-xs">
             <Checkbox checked={terms} onCheckedChange={(v) => setTerms(v === true)} className="mt-0.5" />

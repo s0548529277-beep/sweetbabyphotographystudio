@@ -37,6 +37,25 @@ function Cart() {
   const [couponInput, setCouponInput] = useState("");
   const [applying, setApplying] = useState(false);
   const [showOrderForm, setShowOrderForm] = useState(false);
+  // Open studio bookings (deposit not paid yet, not cancelled, still ahead) of the signed-in / guest customer.
+  const [openBookings, setOpenBookings] = useState<Array<{ id: string; session_date: string; start_time: string; end_time: string | null; price: number | null }>>([]);
+  useEffect(() => {
+    if (!user) {
+      setOpenBookings([]);
+      return;
+    }
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
+    (supabase as any)
+      .from("bookings")
+      .select("id, session_date, start_time, end_time, price")
+      .eq("user_id", user.id)
+      .eq("deposit_status", "pending")
+      .neq("status", "cancelled")
+      .gte("session_date", today)
+      .order("session_date", { ascending: true })
+      .limit(10)
+      .then(({ data }: any) => setOpenBookings(data ?? []));
+  }, [user]);
   const [form, setForm] = useState({
     orderType: "הזמנת אביזרים",
     email: user?.email ?? "", name: "", phone: "", referral: "", pickup: "",
@@ -66,6 +85,27 @@ function Cart() {
         </div>
         <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-3">Your Cart</div>
         <h1 className="font-display text-5xl text-primary mb-10">העגלה שלי</h1>
+
+        {openBookings.length > 0 && (
+          <div className="mb-8 rounded-2xl border border-primary/20 bg-accent/10 p-4 space-y-2">
+            <div className="font-medium text-forest">📸 שריוני סטודיו פתוחים — ממתינים למקדמה</div>
+            <ul className="space-y-2">
+              {openBookings.map((b) => (
+                <li key={b.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-card px-3 py-2 text-sm">
+                  <span className="font-medium">
+                    {new Date(`${b.session_date}T00:00:00`).toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "numeric" })} · {String(b.start_time).slice(0, 5)}
+                    {b.end_time ? `–${String(b.end_time).slice(0, 5)}` : ""}
+                  </span>
+                  {b.price ? <span className="text-forest/70">₪{b.price}</span> : null}
+                  <Link to="/deposit/$type/$id" params={{ type: "booking", id: b.id }} className="mr-auto rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground">
+                    לתשלום המקדמה
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <p className="text-[11px] text-forest/70">המועד נשמר זמנית עד תשלום המקדמה.</p>
+          </div>
+        )}
 
         {lines.length === 0 ? (
           <div className="rounded-3xl bg-cream/50 border border-primary/10 py-24 text-center">
