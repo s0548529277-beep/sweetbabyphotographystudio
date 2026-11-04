@@ -355,7 +355,8 @@ function Booking() {
   const [recurring, setRecurring] = useState(false);
   const [recurWeeks, setRecurWeeks] = useState(4);
 
-  const canBook = date && startTime && slots >= 2 && contactName && contactPhone && user;
+  const emailOk = /^\S+@\S+\.\S+$/.test(contactEmail.trim());
+  const canBook = date && startTime && slots >= 2 && contactName && contactPhone && emailOk && user;
   // Exactly what is still missing — shown next to the (inactive) continue button.
   const missing: string[] = [
     ...(!date ? ["לבחור תאריך ביומן"] : []),
@@ -363,6 +364,7 @@ function Booking() {
     ...(slots < 2 ? ["לבחור משך של שעה לפחות"] : []),
     ...(!contactName.trim() ? ["למלא שם מלא"] : []),
     ...(!contactPhone.trim() ? ["למלא מספר טלפון"] : []),
+    ...(!emailOk ? ["למלא אימייל תקין (אליו נשלח האישור והתזכורות)"] : []),
     ...(!user ? ["להתחבר או להמשיך כאורחת"] : []),
   ];
 
@@ -399,7 +401,7 @@ function Booking() {
             weeks: recurWeeks,
             contact_name: contactName,
             contact_phone: contactPhone,
-            contact_email: contactEmail.trim() ? contactEmail.trim() : null,
+            contact_email: contactEmail.trim(),
             notes,
             guidance: guidanceKey,
             terms_accepted: true as const,
@@ -421,7 +423,7 @@ function Booking() {
           slots,
           contact_name: contactName,
           contact_phone: contactPhone,
-          contact_email: contactEmail.trim() ? contactEmail.trim() : null,
+          contact_email: contactEmail.trim(),
 
           notes,
           reserved_items: reservedSkus,
@@ -634,9 +636,10 @@ function Booking() {
             <div className="bg-white rounded-2xl border border-[#2d3d2b]/8 p-5 space-y-3 shadow-sm">
               <h3 className="font-display text-lg text-[#2d3d2b]">הערות לשריון</h3>
               <div>
-                <Label className="text-xs text-[#2d3d2b]/70">אימייל לקבלת הזמנה ליומן</Label>
+                <Label className="text-xs text-[#2d3d2b]/70">אימייל לקבלת הזמנה ליומן *</Label>
                 <Input
                   type="email"
+                  required
                   dir="ltr"
                   list="email-suggest-booking"
                   value={contactEmail}
@@ -645,7 +648,7 @@ function Booking() {
                   className="mt-1 text-sm"
                 />
                 <EmailDatalist id="email-suggest-booking" value={contactEmail} />
-                <p className="text-[11px] text-[#2d3d2b]/60 mt-1">נשלח אליך אישור והזמנה לאירוע ביומן Google.</p>
+                <p className="text-[11px] text-[#2d3d2b]/60 mt-1">חובה — נשלח אליך אישור, תזכורות והזמנה לאירוע ביומן Google.</p>
               </div>
               <div>
                 <Label className="text-xs text-[#2d3d2b]/70">הערות (אופציונלי)</Label>

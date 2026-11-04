@@ -72,7 +72,10 @@ async function saveSent(db: any, sent: Sent) {
   await db.from("app_settings").upsert({ key: SENT_KEY, value: JSON.stringify(trimmed), updated_at: new Date().toISOString() });
 }
 
-async function customerEmailOf(db: any, userId: string): Promise<string | null> {
+async function customerEmailOf(db: any, userId: string, bookingEmail?: string | null): Promise<string | null> {
+  // The address typed into the booking wins; the account email is the fallback.
+  const typed = bookingEmail?.trim();
+  if (typed && !isPlaceholderEmail(typed)) return typed;
   const {
     data: { user },
   } = await db.auth.admin.getUserById(userId);
@@ -95,7 +98,7 @@ export async function runDuePostSessionThanks(): Promise<{ checked: number; sent
 
   const { data: rows, error } = await db
     .from("bookings")
-    .select("id, user_id, session_date, start_time, end_time, contact_name, status, notes")
+    .select("id, user_id, session_date, start_time, end_time, contact_name, contact_email, status, notes")
     .neq("status", "cancelled")
     .not("google_event_id", "is", null)
     .gte("session_date", from)
@@ -117,7 +120,7 @@ export async function runDuePostSessionThanks(): Promise<{ checked: number; sent
     const hoursSince = (Date.now() - israelMs(b.session_date, b.end_time)) / 3_600_000;
     if (hoursSince < 1.5 || hoursSince > 36) continue;
     try {
-      const to = await customerEmailOf(db, b.user_id);
+      const to = await customerEmailOf(db, b.user_id, b.contact_email);
       if (to) {
         const name = esc(b.contact_name || "");
         const html = `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:600px;margin:auto;line-height:1.7">
@@ -159,7 +162,7 @@ export async function runDueUnfinishedBookingFollowUps(): Promise<{ checked: num
 
   const { data: rows, error } = await db
     .from("bookings")
-    .select("id, user_id, session_date, start_time, contact_name, status, deposit_status, notes, created_at")
+    .select("id, user_id, session_date, start_time, contact_name, contact_email, status, deposit_status, notes, created_at")
     .eq("deposit_status", "pending")
     .neq("status", "cancelled")
     .gte("session_date", today)
@@ -180,7 +183,7 @@ export async function runDueUnfinishedBookingFollowUps(): Promise<{ checked: num
     const ageHours = (Date.now() - new Date(b.created_at as string).getTime()) / 3_600_000;
     if (ageHours < 1 || ageHours > 30) continue; // first reminder after an hour (owner approval 2026-11-03)
     try {
-      const to = await customerEmailOf(db, b.user_id);
+      const to = await customerEmailOf(db, b.user_id, b.contact_email);
       if (to) {
         const name = esc(b.contact_name || "");
         const html = `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:560px;margin:auto;line-height:1.7">
@@ -219,7 +222,7 @@ export async function runDuePreSessionReminders(): Promise<{ checked: number; se
   const until = new Date(Date.now() + 3 * 86400000).toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
   const { data: rows, error } = await db
     .from("bookings")
-    .select("id, user_id, session_date, start_time, end_time, contact_name, status, notes, reminder_hours_before")
+    .select("id, user_id, session_date, start_time, end_time, contact_name, contact_email, status, notes, reminder_hours_before")
     .neq("status", "cancelled")
     .not("google_event_id", "is", null)
     .is("reminder_hours_before", null)
@@ -239,7 +242,7 @@ export async function runDuePreSessionReminders(): Promise<{ checked: number; se
     const hoursTo = (israelMs(b.session_date, b.start_time) - Date.now()) / 3_600_000;
     if (hoursTo < 12 || hoursTo > 30) continue;
     try {
-      const to = await customerEmailOf(db, b.user_id);
+      const to = await customerEmailOf(db, b.user_id, b.contact_email);
       if (to) {
         const name = esc(b.contact_name || "");
         const html = `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:560px;margin:auto;line-height:1.7">

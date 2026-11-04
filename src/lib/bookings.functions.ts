@@ -6,6 +6,14 @@ import { bookingBlocksSlot, PENDING_HOLD_MINUTES, PHONE_BOOKING_NOTES_MARKER } f
 import { PROPS_REQUEST_CONTEXT_MARKER } from "@/lib/voice-message.server";
 import { isPlaceholderEmail } from "@/lib/auth.functions";
 
+/** The address typed into the booking itself wins; the account email is only the fallback (guests / phone accounts have none). */
+export function pickBookingEmail(bookingEmail: string | null | undefined, accountEmail: string | null | undefined): string | undefined {
+  const b = bookingEmail?.trim();
+  if (b && !isPlaceholderEmail(b)) return b;
+  const a = accountEmail?.trim();
+  return a && !isPlaceholderEmail(a) ? a : undefined;
+}
+
 /** Resolves reserved-prop SKUs to name + photo for the confirmation/reminder emails — so the customer (and the studio's own copy) sees a recognizable thumbnail instead of a bare SKU she'd otherwise have to look up. Best-effort: any DB hiccup just falls back to the plain SKU list already handled by buildBookingSummaryHtml. */
 async function resolveReservedItemDetails(
   supabaseLike: any,
@@ -103,7 +111,7 @@ const inputSchema = z.object({
   slots: z.number().int().min(2).max(30),
   contact_name: z.string().min(1).max(120),
   contact_phone: z.string().min(5).max(40),
-  contact_email: z.string().email().max(160).optional().nullable(),
+  contact_email: z.string().email().max(160),
 
   notes: z.string().max(1000).optional().nullable(),
   reserved_items: z.array(z.string().min(1).max(24)).max(20).optional(),
@@ -314,6 +322,7 @@ export const placeBooking = createServerFn({ method: "POST" })
         subscription_pass_id: passIdToRedeem,
         contact_name: data.contact_name,
         contact_phone: data.contact_phone,
+        contact_email: data.contact_email.trim(),
         notes: [
           guidanceFee > 0 ? `חבילת הדרכה: ${GUIDANCE_LABELS[guidanceKey]} (+₪${guidanceFee})` : null,
           customRateNote,
@@ -409,7 +418,7 @@ export const placeBooking = createServerFn({ method: "POST" })
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      customerEmail = customerEmail ?? user?.email ?? undefined;
+      customerEmail = customerEmail ?? pickBookingEmail(null, user?.email);
     } catch {
       /* ignore */
     }
@@ -499,7 +508,7 @@ const recurringInputSchema = z.object({
   weeks: z.number().int().min(2).max(13), // total sessions, one per week — capped so a series can't run past ~3 months
   contact_name: z.string().min(1).max(120),
   contact_phone: z.string().min(5).max(40),
-  contact_email: z.string().email().max(160).optional().nullable(),
+  contact_email: z.string().email().max(160),
   notes: z.string().max(1000).optional().nullable(),
   guidance: z.string().max(60).optional().nullable(),
   terms_accepted: z.literal(true),
@@ -609,6 +618,7 @@ export const placeRecurringBooking = createServerFn({ method: "POST" })
             deposit_status: "pending",
             contact_name: data.contact_name,
             contact_phone: data.contact_phone,
+            contact_email: data.contact_email.trim(),
             notes: [
               guidanceFee > 0 ? `חבילת הדרכה: ${GUIDANCE_LABELS[guidanceKey]} (+₪${guidanceFee})` : null,
               customHourlyRate ? `תעריף אישי: ₪${customHourlyRate}/שעה` : null,
@@ -654,7 +664,7 @@ export const placeRecurringBooking = createServerFn({ method: "POST" })
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        customerEmail = customerEmail ?? user?.email ?? undefined;
+        customerEmail = customerEmail ?? pickBookingEmail(null, user?.email);
       } catch {
         /* ignore */
       }
@@ -1040,7 +1050,7 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
     const { data: b, error } = await supabase
       .from("bookings")
       .select(
-        "id, user_id, session_date, start_time, end_time, price, deposit_amount, balance_amount, balance_method, notes, reserved_items, contact_name, contact_phone, deposit_receipt_url, google_event_id, door_code",
+        "id, user_id, session_date, start_time, end_time, price, deposit_amount, balance_amount, balance_method, notes, reserved_items, contact_name, contact_phone, contact_email, deposit_receipt_url, google_event_id, door_code",
       )
       .eq("id", data.id)
       .maybeSingle();
@@ -1101,7 +1111,7 @@ export const confirmBookingDeposit = createServerFn({ method: "POST" })
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      customerEmail = user?.email ?? undefined;
+      customerEmail = pickBookingEmail((b as any).contact_email, user?.email);
     } catch {
       /* ignore */
     }
@@ -1150,7 +1160,7 @@ export const adminConfirmPhoneBookingDeposit = createServerFn({ method: "POST" }
     const { data: b, error } = await supabaseAdmin
       .from("bookings")
       .select(
-        "id, user_id, session_date, start_time, end_time, price, deposit_amount, balance_amount, balance_method, notes, reserved_items, contact_name, contact_phone, deposit_receipt_url, google_event_id, door_code",
+        "id, user_id, session_date, start_time, end_time, price, deposit_amount, balance_amount, balance_method, notes, reserved_items, contact_name, contact_phone, contact_email, deposit_receipt_url, google_event_id, door_code",
       )
       .eq("id", data.id)
       .maybeSingle();
@@ -1334,7 +1344,7 @@ export async function runDueBookingReminders(): Promise<{ checked: number; sent:
   const { data: candidates, error } = await supabaseAdmin
     .from("bookings")
     .select(
-      "id, user_id, session_date, start_time, end_time, price, deposit_amount, balance_amount, balance_method, notes, reserved_items, contact_name, contact_phone, google_event_id, reminder_sent_at, reminder_hours_before, status",
+      "id, user_id, session_date, start_time, end_time, price, deposit_amount, balance_amount, balance_method, notes, reserved_items, contact_name, contact_phone, contact_email, google_event_id, reminder_sent_at, reminder_hours_before, status",
     )
     .is("reminder_sent_at", null)
     .not("reminder_hours_before", "is", null) // opt-in only
@@ -1363,7 +1373,7 @@ export async function runDueBookingReminders(): Promise<{ checked: number; sent:
       const {
         data: { user },
       } = await supabaseAdmin.auth.admin.getUserById(b.user_id);
-      const customerEmail = user?.email ?? undefined;
+      const customerEmail = pickBookingEmail((b as any).contact_email, user?.email);
 
       const intakePayload = await fetchLatestIntake(supabaseAdmin, b.user_id);
       const reservedItemDetails = await resolveReservedItemDetails(supabaseAdmin, b.reserved_items as string[] | null);
@@ -1444,7 +1454,7 @@ export async function runDueAbandonedHoldReminders(): Promise<{ checked: number;
 
   const { data: candidates, error } = await supabaseAdmin
     .from("bookings")
-    .select("id, user_id, session_date, start_time, price, deposit_amount, contact_name, notes, created_at, status, deposit_status, abandoned_hold_reminder_sent_at")
+    .select("id, user_id, session_date, start_time, price, deposit_amount, contact_name, contact_email, notes, created_at, status, deposit_status, abandoned_hold_reminder_sent_at")
     .eq("deposit_status", "pending")
     .neq("status", "cancelled")
     .is("abandoned_hold_reminder_sent_at", null)
@@ -1468,7 +1478,7 @@ export async function runDueAbandonedHoldReminders(): Promise<{ checked: number;
       const {
         data: { user },
       } = await supabaseAdmin.auth.admin.getUserById(b.user_id);
-      const customerEmail = user?.email;
+      const customerEmail = pickBookingEmail((b as any).contact_email, user?.email);
       // A phone-only account's "email" is a synthetic placeholder nobody
       // reads — nothing to send to, and nothing to mark as reminded since
       // trying again next pass can't help either, so still mark it below.

@@ -453,6 +453,7 @@ export type Database = {
           balance_paid: boolean
           cancellation_charge: number | null
           cashback_awarded: number
+          contact_email: string | null
           contact_name: string | null
           contact_phone: string | null
           coupon_code: string | null
@@ -498,6 +499,7 @@ export type Database = {
           balance_paid?: boolean
           cancellation_charge?: number | null
           cashback_awarded?: number
+          contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
           coupon_code?: string | null
@@ -543,6 +545,7 @@ export type Database = {
           balance_paid?: boolean
           cancellation_charge?: number | null
           cashback_awarded?: number
+          contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
           coupon_code?: string | null
