@@ -151,6 +151,7 @@ function exportTxnsCSV(rows: Txn[]) {
 
 function FinanceAdmin() {
   const qc = useQueryClient();
+  const [tab, setTab] = useState<"overview" | "transactions" | "debts" | "recurring">("overview");
   const [form, setForm] = useState({
     title: "",
     amount: "",
@@ -414,7 +415,8 @@ function FinanceAdmin() {
   const txnsListRef = useRef<HTMLDivElement>(null);
   const focusKind = (k: "income" | "expense") => {
     setKindFilter((prev) => (prev === k ? "all" : k));
-    txnsListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setTab("transactions");
+    setTimeout(() => txnsListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
   };
 
   const data = useQuery({
@@ -1116,6 +1118,28 @@ function FinanceAdmin() {
 
       <MaaserCard txns={maaserTxns} from={from} to={to} />
 
+      {/* Tabs — the long page is split into focused sections (owner request 2026-11-04) */}
+      <div className="flex flex-wrap gap-2 border-b border-primary/10 pb-3" role="tablist">
+        {([
+          ["overview", "סקירה"],
+          ["transactions", "תנועות והוספה"],
+          ["debts", "חובות לקוחות"],
+          ["recurring", "קבועות וייבוא"],
+        ] as const).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={tab === key}
+            onClick={() => setTab(key)}
+            className={`rounded-full px-4 py-1.5 text-sm transition-colors ${tab === key ? "bg-primary text-primary-foreground" : "bg-card border border-primary/10 hover:bg-cream"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "overview" && (<>
       {/* Income by business line — clicking a card filters the whole page
           to that line (same "סוג" filter as above); clicking again clears. */}
       <div className="bg-card rounded-2xl border border-primary/5 p-5">
@@ -1246,7 +1270,9 @@ function FinanceAdmin() {
           </div>
         )}
       </div>
+      </>)}
 
+      {tab === "debts" && (<>
       {/* Customer debts — unified view of every open balance a customer owes
           the studio, across the 3 completely separate systems that track
           it (props orders, studio bookings, newborn packages) — see the
@@ -1294,7 +1320,9 @@ function FinanceAdmin() {
           </div>
         )}
       </div>
+      </>)}
 
+      {tab === "transactions" && (<>
       {/* Transactions */}
       <div
         ref={txnsListRef}
@@ -1534,7 +1562,9 @@ function FinanceAdmin() {
           הוסף הוצאה
         </Button>
       </div>
+      </>)}
 
+      {tab === "recurring" && (<>
       {/* Recurring monthly expenses — define once (e.g. rent ₪1200), and
           runDueRecurringExpenses inserts the real expense row automatically
           every month once its day arrives, so she never re-types it. */}
@@ -1642,6 +1672,7 @@ function FinanceAdmin() {
           הוספת הוצאה קבועה
         </Button>
       </div>
+      </>)}
 
       <Dialog open={debtOpen} onOpenChange={setDebtOpen}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto" dir="rtl">
