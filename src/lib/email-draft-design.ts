@@ -14,12 +14,15 @@ import { heartImg, withEmailHearts, type HeartKind } from "@/lib/email-hearts";
 // Absolute URLs — email clients can't resolve relative/build-hashed paths
 // (same approach as the contract emails, photoContract.ts).
 const MICHAL_LOGO_URL = `https://sweetbabyphoto.shop${michalWordmark}`;
-// The animated "michal" signature from the photographer site (michalsiboni.co.il): the script writes itself,
-// then the heart pops and beats. Built from that site's two layers by scripts/make-michal-signature-gif.py
-// (cream background = the card colour below, first frame = the finished logo for Outlook / blocked images).
-const MICHAL_ANIMATED_LOGO_URL = "https://sweetbabyphoto.shop/email/michal-signature-animated.gif";
+// Michal's FIXED email signature (the animated GIF from her Gmail signature: circle photo + "MICHAL SIBONI",
+// phone, mail, site and services) — re-coloured to the card colour below by scripts/make-email-signature-gif.py
+// (source: Drive "michal-siboni-signature-final-cream2.gif"; first frame = a finished frame for Outlook / blocked
+// images). Under it come her three signature buttons, exactly as in her Gmail signature.
+const SIGNATURE_GIF_URL = "https://sweetbabyphoto.shop/email/michal-signature.gif";
 const SITE_PHONE = "053-418-1051";
-const SITE_MAIL = "s0548529277@gmail.com";
+const SITE_MAIL = "m0548529277@gmail.com";
+const SIG_BROWN = "#3e3029";
+const SIG_CREAM = "#f7f3ee";
 const STUDIO_LOGO_URL = `https://sweetbabyphoto.shop${sweetbabyLogo}`;
 
 export type DraftBrand = "photographer" | "studio" | "general";
@@ -39,11 +42,11 @@ type Theme = {
 
 const THEMES: Record<DraftBrand, Theme> = {
   // Contract-email palette (owner liked it, 2026-10-30), softened 2026-11-04: a light sand frame instead of
-  // the full brown one. Personal ("general") replies use the same look. cardBg must stay #f6f0e4 — the
-  // animated signature GIF is rendered on that colour.
+  // the full brown one. Personal ("general") replies use the same look. cardBg is Michal's brand cream
+  // (#f7f3ee) and must equal the colour the signature GIF was re-coloured to (scripts/make-email-signature-gif.py).
   photographer: {
     pageBg: "#e8dccb",
-    cardBg: "#f6f0e4",
+    cardBg: "#f7f3ee",
     border: "#e2cfb6",
     headerBg: "",
     wordmark: "#c23b6d",
@@ -240,14 +243,18 @@ export function buildDraftHtml(opts: {
   const sig = SIGNATURES[look];
   // Michal's own heart for every photographer / personal mail, the bot's colourful heart for the studio.
   const heartKind: HeartKind = look === "photographer" ? "michal" : "bot";
-  const logo = (h: number, animated = false) =>
+  const logo = (h: number) =>
     look === "photographer"
-      ? `<img src="${animated ? MICHAL_ANIMATED_LOGO_URL : MICHAL_LOGO_URL}" alt="מיכל סיבוני" height="${h}" style="height:${h}px;width:auto;border:0">`
+      ? `<img src="${MICHAL_LOGO_URL}" alt="מיכל סיבוני" height="${h}" style="height:${h}px;width:auto;border:0">`
       : look === "studio"
         ? `<img src="${STUDIO_LOGO_URL}" alt="Sweetbaby" height="${h}" style="height:${h}px;width:auto;border:0">`
         : "";
   // Personal replies: no big logo on top (it would repeat the signature) — the signature logo closes the mail.
-  const header = opts.brand === "general" ? "" : `<tr><td align="center" style="padding:30px 28px 6px">${logo(look === "studio" ? 52 : 84, true)}
+  const header = opts.brand === "general" ? "" : `<tr><td align="center" style="padding:30px 28px 6px">${
+    look === "studio"
+      ? logo(52)
+      : `<div dir="ltr" style="font-family:Helvetica,Arial,sans-serif;font-size:24px;letter-spacing:9px;margin-right:-9px;color:${SIG_BROWN}">MICHAL SIBONI</div>`
+  }
           <div style="font-size:12px;letter-spacing:2px;color:${t.soft};margin-top:8px">${
             look === "studio" ? "סטודיו בוטיק לצילום · בית שמש" : "צילומי ניו בורן ומשפחה"
           }</div></td></tr>`;
@@ -281,11 +288,12 @@ export function buildDraftHtml(opts: {
     <tr><td style="padding:${branded ? "14px 28px 26px" : "16px 28px 20px"};${branded ? "" : `border-top:1px solid ${t.border};`}font-size:13px;color:${t.soft};text-align:center;line-height:1.6">
       ${
         useSiteSig
-          ? `<div>${logo(96, true)}</div>
-      <div style="margin-top:4px">צילומי ניו-בורן ומשפחה</div>
-      <div style="margin-top:6px"><span dir="ltr"><a href="tel:${SITE_PHONE.replace(/-/g, "")}" style="color:${t.soft};text-decoration:none">${SITE_PHONE}</a></span> · <a href="mailto:${SITE_MAIL}" style="color:${t.soft}">${SITE_MAIL}</a></div>
-      <div><a href="https://michalsiboni.co.il" style="color:${t.soft}">michalsiboni.co.il</a></div>
-      <div style="font-size:11px;margin-top:8px;opacity:.8">© מיכל סיבוני — כל הזכויות שמורות</div>`
+          ? `<div style="line-height:0"><img src="${SIGNATURE_GIF_URL}" alt="MICHAL SIBONI · ${SITE_PHONE} · ${SITE_MAIL} · michalsiboni.co.il" width="560" style="width:100%;max-width:560px;height:auto;border:0;display:inline-block"></div>
+      <div style="margin-top:14px;line-height:1.4">
+        <a href="https://michalsiboni.co.il/" style="display:inline-block;background:${SIG_BROWN};color:${SIG_CREAM};border:1px solid ${SIG_BROWN};font-family:Arial,sans-serif;font-size:14px;font-weight:bold;text-decoration:none;padding:9px 24px;border-radius:18px;white-space:nowrap;margin:4px">לגלריה שלי</a>
+        <a href="https://sweetbabyphoto.shop/" style="display:inline-block;background:${SIG_CREAM};color:${SIG_BROWN};border:1px solid ${SIG_BROWN};font-family:Arial,sans-serif;font-size:13px;font-weight:bold;text-decoration:none;padding:8px 18px;border-radius:18px;white-space:nowrap;margin:4px">לאתר הסטודיו</a>
+        <a href="mailto:${SITE_MAIL}" style="display:inline-block;background:${SIG_CREAM};color:${SIG_BROWN};border:1px solid ${SIG_BROWN};font-family:Arial,sans-serif;font-size:13px;font-weight:bold;text-decoration:none;padding:8px 18px;border-radius:18px;white-space:nowrap;margin:4px">שליחת מייל</a>
+      </div>`
           : `<div style="font-weight:bold;color:${t.accent}">${esc(sig.name)}</div>
       ${sig.lines.map((l) => `<div>${esc(l)}</div>`).join("")}
       ${sig.site ? `<div><a href="${sig.site.url}" style="color:${t.soft}">${esc(sig.site.label)}</a></div>` : ""}
@@ -317,7 +325,7 @@ export function buildDraftText(opts: {
   const body = opts.body.replace(/^##\s+/gm, "").replace(/^>\s?/gm, "").replace(/\*\*/g, "");
   return `${body}\n${lists}${[...(opts.cta ? [opts.cta] : []), ...(opts.extraCtas ?? [])].map((c) => `\n${c.label}: ${c.url}`).join("")}${opts.cta || opts.extraCtas?.length ? "\n" : ""}\n--\n${
     opts.brand !== "studio" && opts.siteSignature !== false
-      ? `מיכל סיבוני\nצילומי ניו-בורן ומשפחה\n${SITE_PHONE} · ${SITE_MAIL}\nmichalsiboni.co.il`
+      ? `MICHAL SIBONI\nצילומי ניו בורן | משפחה | מימוש סל לידה | סטודיו סוויט בייבי\n${SITE_PHONE} · ${SITE_MAIL} · michalsiboni.co.il`
       : `${sig.name}\n${sig.lines.join(" · ")}${sig.site ? `\n${sig.site.label}` : ""}`
   }\n`;
 }

@@ -50,7 +50,6 @@ import { mergedInspiration, useItemInspiration } from "@/lib/item-inspiration";
 import { PAGE_IMAGE_KEYS, usePageGalleryWithAspect } from "@/lib/page-images";
 import { useCatalogCategories, useCatalogStatus, type CatalogCategory, type CatalogItem } from "@/lib/catalog";
 import {
-  THEME_TOPICS,
   makeHebrewMatcher,
   makeTopicMatcher,
   relevanceScore,
@@ -493,15 +492,6 @@ function RentalCatalogPage() {
                           נסי חיפוש חכם
                         </button>
                       )}
-                      {activeTheme && (
-                        <button
-                          type="button"
-                          className="underline mx-1"
-                          onClick={() => setActiveTheme(null)}
-                        >
-                          הסירי את סינון הסגנון
-                        </button>
-                      )}
                     </>
                   )}
                 </div>
@@ -519,23 +509,6 @@ function RentalCatalogPage() {
                     onClick={() => setActiveCat(c.title)}
                   >
                     {c.title}
-                  </Chip>
-                ))}
-              </div>
-
-              {/* Theme chips — keyword-based, not a curated tag field */}
-              <div className="flex flex-wrap gap-2 mt-2">
-                <span className="text-xs text-muted-foreground self-center ml-1">לפי סגנון:</span>
-                {THEME_TOPICS.map((t) => (
-                  <Chip
-                    key={t.label}
-                    active={activeTheme === t.label}
-                    onClick={() => {
-                      setActiveTheme((cur) => (cur === t.label ? null : t.label));
-                      setActiveCat("all");
-                    }}
-                  >
-                    {t.label}
                   </Chip>
                 ))}
               </div>
