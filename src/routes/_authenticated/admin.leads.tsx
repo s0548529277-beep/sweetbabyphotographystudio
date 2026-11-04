@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
+import { sendBookingPaymentReminder } from "@/lib/bookings.functions";
 import { getVisitorJourneys } from "@/lib/visitor-tracking.functions";
 import { VisitorJourneyPanel } from "@/components/VisitorJourneyPanel";
 import type { VisitorJourney } from "@/lib/visitor-journey";
@@ -204,7 +205,7 @@ function LeadsAdmin() {
       const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
       const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
       const [bk, od] = await Promise.all([
-        db.from("bookings").select("id, contact_name, contact_phone, session_date, start_time, created_at").neq("status", "cancelled").gte("session_date", today).lte("session_date", tomorrow).order("session_date").limit(30),
+        db.from("bookings").select("id, contact_name, contact_phone, contact_email, deposit_status, session_date, start_time, created_at").neq("status", "cancelled").gte("session_date", today).lte("session_date", tomorrow).order("session_date").limit(30),
         db.from("orders").select("id, contact_name, contact_phone, session_date, created_at, status").neq("status", "cancelled").gte("session_date", today).lte("session_date", tomorrow).order("session_date").limit(30),
       ]);
       const rows = [
@@ -215,6 +216,21 @@ function LeadsAdmin() {
     },
     refetchInterval: 120000,
   });
+  const remindPay = useServerFn(sendBookingPaymentReminder);
+  const [remindingId, setRemindingId] = useState<string | null>(null);
+  const sendPayReminder = async (id: string) => {
+    setRemindingId(id);
+    try {
+      const r: any = await remindPay({ data: { id } });
+      if (r.sent) toast.success("תזכורת תשלום נשלחה במייל");
+      else if (r.reason === "no_email") toast.error("אין אימייל להזמנה הזו — אפשר לשלוח בוואטסאפ");
+      else toast.info("המקדמה כבר שולמה או שההזמנה בוטלה");
+    } catch (e: any) {
+      toast.error(e?.message ?? "השליחה נכשלה");
+    } finally {
+      setRemindingId(null);
+    }
+  };
   const markStuckHandled = async (key: string) => {
     await (supabase as any).from("booking_drafts").update({ handled: true }).eq("client_key", key);
     qc.invalidateQueries({ queryKey: ["admin-booking-drafts"] });
@@ -413,6 +429,15 @@ function LeadsAdmin() {
                   <li key={`${r.kind}-${r.id}`} className="bg-card rounded-full border border-red-300 px-3 py-1 text-xs flex items-center gap-2">
                     <span className="font-medium">{r.contact_name || r.contact_phone || "ללא שם"}</span>
                     <span className="text-forest/60">{r.kind} · {fmt(r.session_date)} {String(r.at ?? "").slice(0, 5)}</span>
+                    {r.kind === "סטודיו" && r.deposit_status === "pending" && (
+                      <>
+                        <span className="rounded-full bg-red-100 text-red-800 px-2 py-0.5">מקדמה לא שולמה</span>
+                        <button type="button" disabled={remindingId === r.id} onClick={() => sendPayReminder(r.id)} className="text-red-700 underline disabled:opacity-50">
+                          שלחי תזכורת תשלום
+                        </button>
+                      </>
+                    )}
+                    {r.kind === "סטודיו" && !r.contact_email && <span className="rounded-full bg-amber-100 text-amber-900 px-2 py-0.5">חסר אימייל</span>}
                     {r.contact_phone && (
                       <>
                         <a href={`tel:${String(r.contact_phone).replace(/[^\d+]/g, "")}`} className="text-red-700 font-medium">התקשרי</a>
@@ -454,6 +479,10 @@ function LeadsAdmin() {
                   <li key={b.id} className="bg-card rounded-full border border-primary/10 px-3 py-1 text-xs flex items-center gap-2">
                     <span className="font-medium">{b.contact_name || b.contact_phone || "ללא שם"}</span>
                     <span className="text-forest/60">{fmt(b.session_date)} {String(b.start_time ?? "").slice(0, 5)}</span>
+                    <button type="button" disabled={remindingId === b.id} onClick={() => sendPayReminder(b.id)} className="text-primary underline disabled:opacity-50">
+                      שלחי תזכורת תשלום
+                    </button>
+                    {!b.contact_email && <span className="rounded-full bg-amber-100 text-amber-900 px-2 py-0.5">חסר אימייל</span>}
                     {b.contact_phone && (
                       <a href={waLink(b.contact_phone)} target="_blank" rel="noreferrer" className="text-emerald-700" aria-label="וואטסאפ">
                         <MessageCircle className="h-3.5 w-3.5" />

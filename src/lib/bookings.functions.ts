@@ -1501,3 +1501,47 @@ export async function runDueAbandonedHoldReminders(): Promise<{ checked: number;
 
   return { checked: (candidates ?? []).length, sent };
 }
+
+
+/** Admin button: emails the customer a "finish your deposit" reminder with the payment link (uses the booking's own email, else the account's). */
+export const sendBookingPaymentReminder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+    if (!roles?.some((r: any) => r.role === "admin")) throw new Error("אין הרשאת ניהול");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: b } = await supabaseAdmin
+      .from("bookings")
+      .select("id, user_id, session_date, start_time, contact_name, contact_email, deposit_status, status")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!b) throw new Error("ההזמנה לא נמצאה");
+    if (b.deposit_status !== "pending" || b.status === "cancelled") return { sent: false as const, reason: "already_paid_or_cancelled" as const };
+
+    let accountEmail: string | undefined;
+    try {
+      const {
+        data: { user },
+      } = await supabaseAdmin.auth.admin.getUserById(b.user_id);
+      accountEmail = user?.email ?? undefined;
+    } catch {
+      /* ignore */
+    }
+    const customerEmail = pickBookingEmail(b.contact_email, accountEmail);
+    if (!customerEmail) return { sent: false as const, reason: "no_email" as const };
+
+    const when = `${new Date(`${b.session_date}T00:00:00`).toLocaleDateString("he-IL", { day: "numeric", month: "long" })} בשעה ${String(b.start_time).slice(0, 5)}`;
+    const html = `<div dir="rtl" style="font-family:sans-serif;color:#2d3d2b;max-width:520px;margin:0 auto">
+      <h2>תזכורת להשלמת ההזמנה 💚</h2>
+      <p>שלום ${b.contact_name || ""},</p>
+      <p>ההזמנה שלך לסטודיו Sweetbaby ל-${when} עדיין ממתינה לתשלום המקדמה. כדי שנוכל לשריין לך את המקום סופית — אפשר להשלים את התשלום בלחיצה:</p>
+      ${buildContinueOrderHtml(`https://sweetbabyphoto.shop/deposit/booking/${b.id}`)}
+      <p style="color:#6b8a63;font-size:13px">יש שאלה? אפשר להתקשר או לכתוב: 054-8529277</p>
+    </div>`;
+    const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+    await sendStudioAndCustomer({ customerEmail, subject: "תזכורת: השלמת תשלום המקדמה · Sweetbaby", html });
+    return { sent: true as const };
+  });
