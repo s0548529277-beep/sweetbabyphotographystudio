@@ -29,6 +29,8 @@ import { ClientsTab } from "@/components/client-management/ClientsTab";
 import { PaymentsTab } from "@/components/client-management/PaymentsTab";
 import { SettingsTab } from "@/components/client-management/SettingsTab";
 
+import { PhotoSectionTabs } from "@/components/PhotoSectionTabs";
+
 export const Route = createFileRoute("/_authenticated/admin/client-management")({
   component: ClientManagementPage,
 });
@@ -60,6 +62,7 @@ function ClientManagementPage() {
       className="min-h-screen bg-gradient-to-b from-newborn-canvas via-white to-newborn-blush/30"
     >
       <div className="mx-auto max-w-7xl px-4 py-6">
+        <PhotoSectionTabs className="mb-4" />
         <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div className="flex items-center gap-3">
             <Link

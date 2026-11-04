@@ -1,18 +1,20 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Baby, Trees, GalleryVerticalEnd } from "lucide-react";
+import { Baby, Trees, GalleryVerticalEnd, ContactRound } from "lucide-react";
 
 /**
- * One admin menu button ("חבילות צילום") covers three pages that used to be
+ * One admin menu button ("ניהול לקוחות") covers client management plus three pages that used to be
  * separate buttons: newborn packages, outdoor packages and photo clients
  * (galleries). This tab bar switches between them at the top of each page.
  */
 export const PHOTO_SECTION_PATHS = [
+  "/admin/client-management",
   "/admin/newborn-packages",
   "/admin/outdoor-packages",
   "/admin/photo-clients",
 ];
 
 const TABS = [
+  { to: "/admin/client-management", label: "ניהול לקוחות — מסך ראשי", icon: ContactRound },
   { to: "/admin/newborn-packages", label: "ניו-בורן", icon: Baby },
   { to: "/admin/outdoor-packages", label: "צילומי חוץ", icon: Trees },
   { to: "/admin/photo-clients", label: "לקוחות צילום וגלריות", icon: GalleryVerticalEnd },
