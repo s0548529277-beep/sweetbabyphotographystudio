@@ -94,8 +94,10 @@ import { Route as ContractKindTokenRouteImport } from './routes/contract.$kind.$
 import { Route as DepositTypeIdRouteImport } from './routes/deposit.$type.$id'
 import { Route as NewbornConfirmTokenRouteImport } from './routes/newborn.confirm.$token'
 import { Route as NewbornGalleryTokenRouteImport } from './routes/newborn.gallery.$token'
+import { Route as OutdoorGalleryTokenRouteImport } from './routes/outdoor.gallery.$token'
 import { Route as SummaryTypeIdRouteImport } from './routes/summary.$type.$id'
 import { Route as AuthenticatedAdminNewbornPackagesOrderIdRouteImport } from './routes/_authenticated/admin.newborn-packages.$orderId'
+import { Route as AuthenticatedAdminOutdoorPackagesOrderIdRouteImport } from './routes/_authenticated/admin.outdoor-packages.$orderId'
 import { Route as AuthenticatedAdminPhotoClientsBookingIdRouteImport } from './routes/_authenticated/admin.photo-clients.$bookingId'
 import { Route as AuthenticatedOrdersIdReceiptRouteImport } from './routes/_authenticated/orders.$id.receipt'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp/webhook'
@@ -561,6 +563,11 @@ const NewbornGalleryTokenRoute = NewbornGalleryTokenRouteImport.update({
   path: '/gallery/$token',
   getParentRoute: () => NewbornRoute,
 } as any)
+const OutdoorGalleryTokenRoute = OutdoorGalleryTokenRouteImport.update({
+  id: '/outdoor/gallery/$token',
+  path: '/outdoor/gallery/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SummaryTypeIdRoute = SummaryTypeIdRouteImport.update({
   id: '/summary/$type/$id',
   path: '/summary/$type/$id',
@@ -571,6 +578,12 @@ const AuthenticatedAdminNewbornPackagesOrderIdRoute =
     id: '/$orderId',
     path: '/$orderId',
     getParentRoute: () => AuthenticatedAdminNewbornPackagesRoute,
+  } as any)
+const AuthenticatedAdminOutdoorPackagesOrderIdRoute =
+  AuthenticatedAdminOutdoorPackagesOrderIdRouteImport.update({
+    id: '/$orderId',
+    path: '/$orderId',
+    getParentRoute: () => AuthenticatedAdminOutdoorPackagesRoute,
   } as any)
 const AuthenticatedAdminPhotoClientsBookingIdRoute =
   AuthenticatedAdminPhotoClientsBookingIdRouteImport.update({
@@ -654,7 +667,7 @@ export interface FileRoutesByFullPath {
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
-  '/admin/outdoor-packages': typeof AuthenticatedAdminOutdoorPackagesRoute
+  '/admin/outdoor-packages': typeof AuthenticatedAdminOutdoorPackagesRouteWithChildren
   '/admin/photo-batch': typeof AuthenticatedAdminPhotoBatchRoute
   '/admin/photo-clients': typeof AuthenticatedAdminPhotoClientsRouteWithChildren
   '/admin/photo-editor': typeof AuthenticatedAdminPhotoEditorRoute
@@ -675,9 +688,11 @@ export interface FileRoutesByFullPath {
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/newborn/confirm/$token': typeof NewbornConfirmTokenRoute
   '/newborn/gallery/$token': typeof NewbornGalleryTokenRoute
+  '/outdoor/gallery/$token': typeof OutdoorGalleryTokenRoute
   '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/admin/newborn-packages/$orderId': typeof AuthenticatedAdminNewbornPackagesOrderIdRoute
+  '/admin/outdoor-packages/$orderId': typeof AuthenticatedAdminOutdoorPackagesOrderIdRoute
   '/admin/photo-clients/$bookingId': typeof AuthenticatedAdminPhotoClientsBookingIdRoute
   '/orders/$id/receipt': typeof AuthenticatedOrdersIdReceiptRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
@@ -744,7 +759,7 @@ export interface FileRoutesByTo {
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
-  '/admin/outdoor-packages': typeof AuthenticatedAdminOutdoorPackagesRoute
+  '/admin/outdoor-packages': typeof AuthenticatedAdminOutdoorPackagesRouteWithChildren
   '/admin/photo-batch': typeof AuthenticatedAdminPhotoBatchRoute
   '/admin/photo-clients': typeof AuthenticatedAdminPhotoClientsRouteWithChildren
   '/admin/photo-editor': typeof AuthenticatedAdminPhotoEditorRoute
@@ -765,9 +780,11 @@ export interface FileRoutesByTo {
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/newborn/confirm/$token': typeof NewbornConfirmTokenRoute
   '/newborn/gallery/$token': typeof NewbornGalleryTokenRoute
+  '/outdoor/gallery/$token': typeof OutdoorGalleryTokenRoute
   '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/admin/newborn-packages/$orderId': typeof AuthenticatedAdminNewbornPackagesOrderIdRoute
+  '/admin/outdoor-packages/$orderId': typeof AuthenticatedAdminOutdoorPackagesOrderIdRoute
   '/admin/photo-clients/$bookingId': typeof AuthenticatedAdminPhotoClientsBookingIdRoute
   '/orders/$id/receipt': typeof AuthenticatedOrdersIdReceiptRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
@@ -837,7 +854,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/_authenticated/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/_authenticated/admin/orders': typeof AuthenticatedAdminOrdersRoute
-  '/_authenticated/admin/outdoor-packages': typeof AuthenticatedAdminOutdoorPackagesRoute
+  '/_authenticated/admin/outdoor-packages': typeof AuthenticatedAdminOutdoorPackagesRouteWithChildren
   '/_authenticated/admin/photo-batch': typeof AuthenticatedAdminPhotoBatchRoute
   '/_authenticated/admin/photo-clients': typeof AuthenticatedAdminPhotoClientsRouteWithChildren
   '/_authenticated/admin/photo-editor': typeof AuthenticatedAdminPhotoEditorRoute
@@ -858,9 +875,11 @@ export interface FileRoutesById {
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/newborn/confirm/$token': typeof NewbornConfirmTokenRoute
   '/newborn/gallery/$token': typeof NewbornGalleryTokenRoute
+  '/outdoor/gallery/$token': typeof OutdoorGalleryTokenRoute
   '/summary/$type/$id': typeof SummaryTypeIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/admin/newborn-packages/$orderId': typeof AuthenticatedAdminNewbornPackagesOrderIdRoute
+  '/_authenticated/admin/outdoor-packages/$orderId': typeof AuthenticatedAdminOutdoorPackagesOrderIdRoute
   '/_authenticated/admin/photo-clients/$bookingId': typeof AuthenticatedAdminPhotoClientsBookingIdRoute
   '/_authenticated/orders/$id/receipt': typeof AuthenticatedOrdersIdReceiptRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
@@ -951,9 +970,11 @@ export interface FileRouteTypes {
     | '/deposit/$type/$id'
     | '/newborn/confirm/$token'
     | '/newborn/gallery/$token'
+    | '/outdoor/gallery/$token'
     | '/summary/$type/$id'
     | '/admin/'
     | '/admin/newborn-packages/$orderId'
+    | '/admin/outdoor-packages/$orderId'
     | '/admin/photo-clients/$bookingId'
     | '/orders/$id/receipt'
     | '/api/public/whatsapp/webhook'
@@ -1041,9 +1062,11 @@ export interface FileRouteTypes {
     | '/deposit/$type/$id'
     | '/newborn/confirm/$token'
     | '/newborn/gallery/$token'
+    | '/outdoor/gallery/$token'
     | '/summary/$type/$id'
     | '/admin'
     | '/admin/newborn-packages/$orderId'
+    | '/admin/outdoor-packages/$orderId'
     | '/admin/photo-clients/$bookingId'
     | '/orders/$id/receipt'
     | '/api/public/whatsapp/webhook'
@@ -1133,9 +1156,11 @@ export interface FileRouteTypes {
     | '/deposit/$type/$id'
     | '/newborn/confirm/$token'
     | '/newborn/gallery/$token'
+    | '/outdoor/gallery/$token'
     | '/summary/$type/$id'
     | '/_authenticated/admin/'
     | '/_authenticated/admin/newborn-packages/$orderId'
+    | '/_authenticated/admin/outdoor-packages/$orderId'
     | '/_authenticated/admin/photo-clients/$bookingId'
     | '/_authenticated/orders/$id/receipt'
     | '/api/public/whatsapp/webhook'
@@ -1185,6 +1210,7 @@ export interface RootRouteChildren {
   ApiYemotIvrRoute: typeof ApiYemotIvrRoute
   ContractKindTokenRoute: typeof ContractKindTokenRoute
   DepositTypeIdRoute: typeof DepositTypeIdRoute
+  OutdoorGalleryTokenRoute: typeof OutdoorGalleryTokenRoute
   SummaryTypeIdRoute: typeof SummaryTypeIdRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
 }
@@ -1786,6 +1812,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NewbornGalleryTokenRouteImport
       parentRoute: typeof NewbornRoute
     }
+    '/outdoor/gallery/$token': {
+      id: '/outdoor/gallery/$token'
+      path: '/outdoor/gallery/$token'
+      fullPath: '/outdoor/gallery/$token'
+      preLoaderRoute: typeof OutdoorGalleryTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/summary/$type/$id': {
       id: '/summary/$type/$id'
       path: '/summary/$type/$id'
@@ -1799,6 +1832,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/newborn-packages/$orderId'
       preLoaderRoute: typeof AuthenticatedAdminNewbornPackagesOrderIdRouteImport
       parentRoute: typeof AuthenticatedAdminNewbornPackagesRoute
+    }
+    '/_authenticated/admin/outdoor-packages/$orderId': {
+      id: '/_authenticated/admin/outdoor-packages/$orderId'
+      path: '/$orderId'
+      fullPath: '/admin/outdoor-packages/$orderId'
+      preLoaderRoute: typeof AuthenticatedAdminOutdoorPackagesOrderIdRouteImport
+      parentRoute: typeof AuthenticatedAdminOutdoorPackagesRoute
     }
     '/_authenticated/admin/photo-clients/$bookingId': {
       id: '/_authenticated/admin/photo-clients/$bookingId'
@@ -1839,6 +1879,21 @@ const AuthenticatedAdminNewbornPackagesRouteWithChildren =
     AuthenticatedAdminNewbornPackagesRouteChildren,
   )
 
+interface AuthenticatedAdminOutdoorPackagesRouteChildren {
+  AuthenticatedAdminOutdoorPackagesOrderIdRoute: typeof AuthenticatedAdminOutdoorPackagesOrderIdRoute
+}
+
+const AuthenticatedAdminOutdoorPackagesRouteChildren: AuthenticatedAdminOutdoorPackagesRouteChildren =
+  {
+    AuthenticatedAdminOutdoorPackagesOrderIdRoute:
+      AuthenticatedAdminOutdoorPackagesOrderIdRoute,
+  }
+
+const AuthenticatedAdminOutdoorPackagesRouteWithChildren =
+  AuthenticatedAdminOutdoorPackagesRoute._addFileChildren(
+    AuthenticatedAdminOutdoorPackagesRouteChildren,
+  )
+
 interface AuthenticatedAdminPhotoClientsRouteChildren {
   AuthenticatedAdminPhotoClientsBookingIdRoute: typeof AuthenticatedAdminPhotoClientsBookingIdRoute
 }
@@ -1877,7 +1932,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminNewsletterRoute: typeof AuthenticatedAdminNewsletterRoute
   AuthenticatedAdminNotificationsRoute: typeof AuthenticatedAdminNotificationsRoute
   AuthenticatedAdminOrdersRoute: typeof AuthenticatedAdminOrdersRoute
-  AuthenticatedAdminOutdoorPackagesRoute: typeof AuthenticatedAdminOutdoorPackagesRoute
+  AuthenticatedAdminOutdoorPackagesRoute: typeof AuthenticatedAdminOutdoorPackagesRouteWithChildren
   AuthenticatedAdminPhotoBatchRoute: typeof AuthenticatedAdminPhotoBatchRoute
   AuthenticatedAdminPhotoClientsRoute: typeof AuthenticatedAdminPhotoClientsRouteWithChildren
   AuthenticatedAdminPhotoEditorRoute: typeof AuthenticatedAdminPhotoEditorRoute
@@ -1922,7 +1977,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminNotificationsRoute: AuthenticatedAdminNotificationsRoute,
   AuthenticatedAdminOrdersRoute: AuthenticatedAdminOrdersRoute,
   AuthenticatedAdminOutdoorPackagesRoute:
-    AuthenticatedAdminOutdoorPackagesRoute,
+    AuthenticatedAdminOutdoorPackagesRouteWithChildren,
   AuthenticatedAdminPhotoBatchRoute: AuthenticatedAdminPhotoBatchRoute,
   AuthenticatedAdminPhotoClientsRoute:
     AuthenticatedAdminPhotoClientsRouteWithChildren,
@@ -2017,6 +2072,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiYemotIvrRoute: ApiYemotIvrRoute,
   ContractKindTokenRoute: ContractKindTokenRoute,
   DepositTypeIdRoute: DepositTypeIdRoute,
+  OutdoorGalleryTokenRoute: OutdoorGalleryTokenRoute,
   SummaryTypeIdRoute: SummaryTypeIdRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
 }

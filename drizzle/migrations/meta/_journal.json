@@ -232,6 +232,13 @@
       "when": 1793711600395,
       "tag": "0032_photo_image_client_note",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1793715200395,
+      "tag": "0033_outdoor_gallery",
+      "breakpoints": true
     }
   ]
 }

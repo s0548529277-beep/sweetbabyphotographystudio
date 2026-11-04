@@ -39,6 +39,8 @@ import { PhotoSectionTabs } from "@/components/PhotoSectionTabs";
 
 export const Route = createFileRoute("/_authenticated/admin/photo-clients")({
   component: PhotoClientsAdmin,
+  // "general" = clients with a package or studio+editing; "send" = option 4, only delivering photos (no editing pipeline).
+  validateSearch: (s: Record<string, unknown>): { kind?: "send" } => (s.kind === "send" ? { kind: "send" } : {}),
 });
 
 const STAGE_COLORS: Record<WorkflowStage, string> = {
@@ -88,9 +90,9 @@ const EMPTY_FORM = {
 };
 
 /** "לקוחה חדשה" — creates a full client card (contact + shoot + package details), no site account required in advance (one gets minted for her if she doesn't have one). */
-function NewClientDialog({ onCreated }: { onCreated: (workflowId: string) => void }) {
+function NewClientDialog({ onCreated, sendOnly = false }: { onCreated: (workflowId: string) => void; sendOnly?: boolean }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [form, setForm] = useState(sendOnly ? { ...EMPTY_FORM, serviceType: "studio" as const, wantsEditing: false } : EMPTY_FORM);
   const [busy, setBusy] = useState(false);
   const createClient = useServerFn(createPhotoClient);
 
@@ -611,7 +613,9 @@ function PhotoClientsAdmin() {
   const [view, setView] = useState<"dashboard" | "clients" | "payments" | "calendar">("dashboard");
   const fetchClients = useServerFn(listPhotoClients);
   const clients = useQuery({ queryKey: ["photo-clients"], queryFn: () => fetchClients({}), enabled: !isDetail });
-  const rows = (clients.data ?? []) as unknown as Row[];
+  const kind = Route.useSearch().kind === "send" ? "send" : "general";
+  const isSendOnly = (r: Row) => !r.has_package && r.wants_editing === false;
+  const rows = ((clients.data ?? []) as unknown as Row[]).filter((r) => (kind === "send" ? isSendOnly(r) : !isSendOnly(r)));
   const filtered = rows.filter(
     (r) => !q.trim() || r.contact_name.toLowerCase().includes(q.trim().toLowerCase()) || r.contact_email.toLowerCase().includes(q.trim().toLowerCase()),
   );
@@ -637,7 +641,7 @@ function PhotoClientsAdmin() {
             כל לקוחה שהזמינה צילומים עם מיכל, וכל לקוחה שהתחלת לה תהליך ידנית — מעקב אחר שלב מסירת התמונות שלה.
           </p>
         </div>
-        <NewClientDialog onCreated={onWorkflowCreated} />
+        <NewClientDialog key={kind} onCreated={onWorkflowCreated} sendOnly={kind === "send"} />
       </div>
 
       <div className="flex gap-2 flex-wrap">

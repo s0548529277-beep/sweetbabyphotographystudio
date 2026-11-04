@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Trees, Mail, MapPin } from "lucide-react";
+import { Plus, Pencil, Trash2, Trees, Mail, MapPin, Images } from "lucide-react";
 import { heError } from "@/lib/he-errors";
 import { sendOutdoorContract } from "@/lib/outdoor-packages.functions";
 
@@ -91,6 +91,9 @@ const emptyOrder: OrderForm = {
 };
 
 function OutdoorPackagesAdmin() {
+  // /admin/outdoor-packages/$orderId (the client gallery page) is a child route of this list page.
+  const pathname = useRouterState({ select: (st) => st.location.pathname });
+  const isDetail = pathname.replace(/\/$/, "") !== "/admin/outdoor-packages";
   const qc = useQueryClient();
   const sendContractFn = useServerFn(sendOutdoorContract);
 
@@ -275,6 +278,8 @@ function OutdoorPackagesAdmin() {
     }
   };
 
+  if (isDetail) return <Outlet />;
+
   return (
     <div className="space-y-8">
       <PhotoSectionTabs />
@@ -416,6 +421,11 @@ function OutdoorPackagesAdmin() {
                   </td>
                   <td className="p-3">
                     <div className="flex items-center gap-1">
+                      <Button size="sm" variant="outline" className="gap-1" asChild>
+                        <Link to="/admin/outdoor-packages/$orderId" params={{ orderId: o.id }}>
+                          <Images className="h-3.5 w-3.5" /> גלריה
+                        </Link>
+                      </Button>
                       <Button size="icon" variant="ghost" onClick={() => openEditOrder(o)}>
                         <Pencil className="h-4 w-4" />
                       </Button>

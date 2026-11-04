@@ -29,6 +29,7 @@ import { ClientsTab } from "@/components/client-management/ClientsTab";
 import { PaymentsTab } from "@/components/client-management/PaymentsTab";
 import { SettingsTab } from "@/components/client-management/SettingsTab";
 
+import { AllTracksPanel } from "@/components/client-management/AllTracksPanel";
 import { PhotoSectionTabs } from "@/components/PhotoSectionTabs";
 
 export const Route = createFileRoute("/_authenticated/admin/client-management")({
@@ -368,6 +369,8 @@ function Overview({
           );
         })()}
       </Panel>
+
+      <AllTracksPanel newborn={data.newborn as any[]} />
 
       {needsReminder.length > 0 && (
         <Panel title="⚠️ לא יקבלו תזכורת אוטומטית">
