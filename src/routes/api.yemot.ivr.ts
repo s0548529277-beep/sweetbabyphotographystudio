@@ -462,11 +462,13 @@ async function handle(request: Request): Promise<Response> {
     };
 
     if (stage === "menu_dtmf") {
-      if (rawDigits === "1") return await respondNbStart(rawDigits, "dtmf", phrases.studio_blurb);
-      if (rawDigits === "2") return await respondMenuDtmfWithInfo(rawDigits, phrases.props_blurb);
+      // Keypad order (owner request 2026-11-04): 1 = leave a message, 2 = studio booking, 5 = props
+      // (3 = directions, 4 = guide, 6 = personal messages, 9 = AI chat are unchanged).
+      if (rawDigits === "2") return await respondNbStart(rawDigits, "dtmf", phrases.studio_blurb);
+      if (rawDigits === "5") return await respondMenuDtmfWithInfo(rawDigits, phrases.props_blurb);
       if (rawDigits === "3") return await respondMenuDtmfWithInfo(rawDigits, phrases.arrival_spoken);
       if (rawDigits === "4") return await respondMenuDtmfWithInfo(rawDigits, phrases.full_guide_spoken);
-      if (rawDigits === "5") {
+      if (rawDigits === "1") {
         // Leave a message. The message text itself still needs real speech
         // (an open-ended message has no keypad equivalent); only the
         // confirm/send step is keypad-driven, see "leaving_message_dtmf" below.
@@ -495,7 +497,7 @@ async function handle(request: Request): Promise<Response> {
       return yemotSayAndListen(phrases.transfer_to_ai_intro);
     }
 
-    // ---- Stage 0c: recording the message text for option 5 above ----
+    // ---- Stage 0c: recording the message text for option 1 above ----
     if (stage === "leaving_message_dtmf") {
       await save([...priorMessages, { role: "user", content: speech }, { role: "assistant", content: phrases.dtmf_leave_message_confirm }], "leaving_message_dtmf_confirm");
       return yemotSayAndListenTap(phrases.dtmf_leave_message_confirm, LEAVE_MSG_DTMF_CONFIRM_TAP);
