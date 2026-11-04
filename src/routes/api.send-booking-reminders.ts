@@ -66,6 +66,13 @@ export const Route = createFileRoute("/api/send-booking-reminders")({
           runDueUnfinishedBookingFollowUps().catch((e) => ({ checked: 0, sent: 0, error: String(e?.message ?? e) })),
           runDuePreSessionReminders().catch((e) => ({ checked: 0, sent: 0, error: String(e?.message ?? e) })),
         ]);
+        // Heartbeat: lets the admin dashboard warn when the external scheduler stops calling this route.
+        try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          await (supabaseAdmin as any).from("app_settings").upsert({ key: "scheduler_last_run", value: new Date().toISOString(), updated_at: new Date().toISOString() });
+        } catch (e) {
+          console.error("[SWEETBABY] scheduler heartbeat failed", e);
+        }
         return new Response(JSON.stringify({ bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds, pendingPassApprovals, dataBackup, recurringExpenses, outdoorStylingCallReminders, clientManagement, emailDrafts, postSessionThanks, unfinishedBookings, preSessionReminders }), {
           status: 200,
           headers: { "Content-Type": "application/json" },

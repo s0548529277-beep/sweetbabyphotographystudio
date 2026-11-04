@@ -186,7 +186,7 @@ export function buildBookingSummaryHtml(opts: {
       ${row("תאריך", dateWithHebrew(b.session_date))}
       ${row("שעה", `${String(b.start_time).slice(0, 5)} - ${String(b.end_time).slice(0, 5)}`)}
       ${row("מחיר כולל", `₪${b.price}`)}
-      ${b.deposit_amount != null ? row("מקדמה ששולמה", `₪${b.deposit_amount}`) : ""}
+      ${b.deposit_amount != null ? row(continueUrl || paymentAmount != null ? "מקדמה לתשלום (טרם שולמה)" : "מקדמה ששולמה", `₪${b.deposit_amount}`) : ""}
       ${b.balance_method ? row("אמצעי תשלום", PAYMENT_METHOD_LABELS[b.balance_method] ?? escapeHtml(b.balance_method)) : ""}
       ${row("יתרה לתשלום בסטודיו", `₪${balance}`)}
       ${b.notes ? row("הערות", escapeHtml(String(b.notes))) : ""}

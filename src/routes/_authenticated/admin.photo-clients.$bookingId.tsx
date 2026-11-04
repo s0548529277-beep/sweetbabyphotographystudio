@@ -57,7 +57,7 @@ export const Route = createFileRoute("/_authenticated/admin/photo-clients/$booki
   component: PhotoClientDetail,
 });
 
-type ImageRow = { id: string; kind: "proof" | "edited"; image_url: string; selected: boolean; watermarked?: boolean };
+type ImageRow = { id: string; kind: "proof" | "edited"; image_url: string; selected: boolean; watermarked?: boolean; client_note?: string | null };
 
 async function uploadImage(workflowId: string, file: File): Promise<{ url: string; path: string }> {
   const ext = file.name.split(".").pop();
@@ -210,6 +210,20 @@ function UploadSection({
       </button>
       <input ref={inputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => onFiles(e.target.files)} />
 
+      {kind === "proof" && images.some((im) => im.client_note?.trim()) && (
+        <div className="rounded-xl border border-amber-300/60 bg-amber-50 p-3 space-y-1.5 mt-2" dir="rtl">
+          <p className="text-sm font-medium text-amber-900">הערות הלקוחה לתמונות שבחרה</p>
+          {images.map((im, i) =>
+            im.client_note?.trim() ? (
+              <p key={im.id} className="text-sm text-amber-950 flex gap-2">
+                <span className="font-mono text-xs bg-white/80 rounded px-1.5 py-0.5 shrink-0 self-start">{String(i + 1).padStart(3, "0")}</span>
+                <span>{im.client_note}</span>
+              </p>
+            ) : null,
+          )}
+        </div>
+      )}
+
       {images.length > 0 && (
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-2">
           {images.map((img, i) => (
@@ -218,7 +232,12 @@ function UploadSection({
               <span className="absolute bottom-1 right-1 bg-background/85 text-foreground text-[10px] font-mono px-1.5 py-0.5 rounded">
                 {String(i + 1).padStart(3, "0")}
               </span>
-              {img.watermarked && (
+              {img.client_note?.trim() && (
+                <span className="absolute top-1 left-1 bg-amber-100 text-amber-900 rounded-full px-1.5 py-0.5 text-[10px]" title={img.client_note}>
+                  💬
+                </span>
+              )}
+              {img.watermarked && !img.client_note?.trim() && (
                 <span className="absolute top-1 left-1 bg-background/85 text-primary rounded-full p-1" title="כולל סימן מים">
                   <Droplet className="h-3 w-3" />
                 </span>
