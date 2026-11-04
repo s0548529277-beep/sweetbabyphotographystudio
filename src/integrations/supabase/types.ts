@@ -317,6 +317,7 @@ export type Database = {
       analytics_events: {
         Row: {
           created_at: string
+          duration_seconds: number | null
           id: string
           path: string
           session_id: string
@@ -324,6 +325,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          duration_seconds?: number | null
           id?: string
           path: string
           session_id: string
@@ -331,6 +333,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          duration_seconds?: number | null
           id?: string
           path?: string
           session_id?: string
@@ -356,6 +359,7 @@ export type Database = {
           referrer: string | null
           source: string
           user_agent: string | null
+          visitor_id: string | null
         }
         Insert: {
           created_at?: string
@@ -366,6 +370,7 @@ export type Database = {
           referrer?: string | null
           source?: string
           user_agent?: string | null
+          visitor_id?: string | null
         }
         Update: {
           created_at?: string
@@ -376,6 +381,7 @@ export type Database = {
           referrer?: string | null
           source?: string
           user_agent?: string | null
+          visitor_id?: string | null
         }
         Relationships: []
       }
@@ -397,6 +403,45 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           value?: string | null
+        }
+        Relationships: []
+      }
+      booking_drafts: {
+        Row: {
+          client_key: string
+          completed: boolean
+          created_at: string
+          email: string | null
+          handled: boolean
+          name: string | null
+          phone: string | null
+          progress: Json
+          step: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_key: string
+          completed?: boolean
+          created_at?: string
+          email?: string | null
+          handled?: boolean
+          name?: string | null
+          phone?: string | null
+          progress?: Json
+          step?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_key?: string
+          completed?: boolean
+          created_at?: string
+          email?: string | null
+          handled?: boolean
+          name?: string | null
+          phone?: string | null
+          progress?: Json
+          step?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -839,6 +884,30 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_carts: {
+        Row: {
+          item_count: number
+          lines: Json
+          subtotal: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          item_count?: number
+          lines?: Json
+          subtotal?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          item_count?: number
+          lines?: Json
+          subtotal?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       customer_chat_logs: {
         Row: {
           created_at: string
@@ -953,6 +1022,60 @@ export type Database = {
           vendor_email?: string | null
           vendor_name?: string | null
           vendor_phone?: string | null
+        }
+        Relationships: []
+      }
+      funnel_leads: {
+        Row: {
+          answers: Json
+          created_at: string
+          email: string | null
+          funnel: string
+          handled_at: string | null
+          id: string
+          is_hot: boolean
+          marketing_consent: boolean
+          name: string
+          phone: string
+          recommendation: string | null
+          score: number
+          source_page: string | null
+          status: string
+          utm: Json
+        }
+        Insert: {
+          answers?: Json
+          created_at?: string
+          email?: string | null
+          funnel: string
+          handled_at?: string | null
+          id?: string
+          is_hot?: boolean
+          marketing_consent?: boolean
+          name: string
+          phone: string
+          recommendation?: string | null
+          score?: number
+          source_page?: string | null
+          status?: string
+          utm?: Json
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          email?: string | null
+          funnel?: string
+          handled_at?: string | null
+          id?: string
+          is_hot?: boolean
+          marketing_consent?: boolean
+          name?: string
+          phone?: string
+          recommendation?: string | null
+          score?: number
+          source_page?: string | null
+          status?: string
+          utm?: Json
         }
         Relationships: []
       }
@@ -2644,6 +2767,39 @@ export type Database = {
         }
         Relationships: []
       }
+      visitor_identities: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          kind: string
+          name: string | null
+          phone: string | null
+          ref_id: string
+          visitor_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          kind: string
+          name?: string | null
+          phone?: string | null
+          ref_id: string
+          visitor_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          kind?: string
+          name?: string | null
+          phone?: string | null
+          ref_id?: string
+          visitor_id?: string
+        }
+        Relationships: []
+      }
       voice_bot_phrases: {
         Row: {
           key: string
@@ -2858,6 +3014,7 @@ export type Database = {
         Args: { p_delta: number; p_pass_id: string }
         Returns: number
       }
+      complete_booking_draft: { Args: { _key: string }; Returns: undefined }
       count_item_reservations: {
         Args: { _from: string; _item_id: string; _to: string }
         Returns: number
@@ -2869,6 +3026,17 @@ export type Database = {
       }
       reload_pgrst_schema: { Args: never; Returns: undefined }
       run_readonly_query: { Args: { q: string }; Returns: Json }
+      save_booking_draft: {
+        Args: {
+          _email: string
+          _key: string
+          _name: string
+          _phone: string
+          _progress: Json
+          _step: string
+        }
+        Returns: undefined
+      }
       spend_loyalty_credit: {
         Args: { p_amount: number; p_user_id: string }
         Returns: {
