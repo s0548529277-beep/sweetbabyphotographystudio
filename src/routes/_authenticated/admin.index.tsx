@@ -189,7 +189,7 @@ function Overview() {
                     <li key={o.id} className="flex items-center justify-between gap-2">
                       <span className="truncate">{o.contact_name || "—"}</span>
                       <span className="text-muted-foreground shrink-0" dir="ltr">
-                        {o.pickup_at ? new Date(o.pickup_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" }) : "—"}
+                        {o.pickup_at ? String(o.pickup_at).slice(11, 16) : "—"}
                       </span>
                     </li>
                   ))}
@@ -208,7 +208,7 @@ function Overview() {
                     <li key={o.id} className="flex items-center justify-between gap-2">
                       <span className="truncate">{o.contact_name || "—"}</span>
                       <span className="text-muted-foreground shrink-0" dir="ltr">
-                        {o.return_at ? new Date(o.return_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" }) : "—"}
+                        {o.return_at ? String(o.return_at).slice(11, 16) : "—"}
                       </span>
                     </li>
                   ))}

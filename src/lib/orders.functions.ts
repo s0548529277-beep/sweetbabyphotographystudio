@@ -1,3 +1,4 @@
+import { naiveHHMM, naiveLocalISO, naiveIsraelMs } from "@/lib/naive-time";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
@@ -534,10 +535,10 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
       }
 
       const pickupTime = o.pickup_at
-        ? new Date(o.pickup_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
+        ? naiveHHMM(o.pickup_at)!
         : null;
       const returnTime = o.return_at
-        ? new Date(o.return_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
+        ? naiveHHMM(o.return_at)!
         : null;
 
       // Issues a real temporary door passcode (TTLock) covering the whole
@@ -619,7 +620,7 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
       try {
         const { sendYemotVoiceMessage } = await import("@/integrations/yemot/campaign.server");
         const pickupTimeSpoken = o.pickup_at
-          ? new Date(o.pickup_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
+          ? naiveHHMM(o.pickup_at)!
           : "";
         const text = `שלום ${o.contact_name || ""}, הזמנת האביזרים שלך מסטודיו סוויט בייבי אושרה. איסוף בתאריך ${o.session_date}${
           pickupTimeSpoken ? ` בשעה ${pickupTimeSpoken}` : ""
@@ -645,10 +646,10 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
           .select("item_name, item_sku, quantity")
           .eq("order_id", o.id);
         const pickupTime = o.pickup_at
-          ? new Date(o.pickup_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
+          ? naiveHHMM(o.pickup_at)!
           : "09:00";
         const returnTime = o.return_at
-          ? new Date(o.return_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
+          ? naiveHHMM(o.return_at)!
           : "18:00";
         const event = await createGoogleCalendarEvent({
           summary: `איסוף אביזרים · ${o.contact_name ?? ""}`,
@@ -664,8 +665,9 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
           ]
             .filter(Boolean)
             .join("\n"),
-          startISO: `${o.pickup_at ?? `${o.session_date}T${pickupTime}:00`}`,
-          endISO: `${o.pickup_at ?? `${o.session_date}T${pickupTime}:00`}`.replace(
+          // Naive Israel-local datetime (NO "+00:00"): the calendar applies timeZone Asia/Jerusalem.
+          startISO: naiveLocalISO(o.pickup_at) ?? `${o.session_date}T${pickupTime}:00`,
+          endISO: (naiveLocalISO(o.pickup_at) ?? `${o.session_date}T${pickupTime}:00`).replace(
             /T\d{2}:/,
             `T${String(Math.min(23, Number(pickupTime.slice(0, 2)) + 1)).padStart(2, "0")}:`,
           ),
@@ -732,7 +734,7 @@ export async function runDueOrderReminders(): Promise<{ checked: number; sent: n
     if (!o.pickup_at) continue;
     const hoursBefore = Number((o as any).reminder_hours_before);
     if (!hoursBefore || hoursBefore <= 0) continue;
-    const hoursUntil = (new Date(o.pickup_at).getTime() - now) / (1000 * 60 * 60);
+    const hoursUntil = (naiveIsraelMs(String(o.pickup_at)) - now) / (1000 * 60 * 60);
     if (hoursUntil < hoursBefore - REMINDER_WINDOW_SLACK_HOURS || hoursUntil > hoursBefore + REMINDER_WINDOW_SLACK_HOURS) continue;
 
     try {
@@ -754,10 +756,10 @@ export async function runDueOrderReminders(): Promise<{ checked: number; sent: n
       }));
 
       const pickupTime = o.pickup_at
-        ? new Date(o.pickup_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
+        ? naiveHHMM(o.pickup_at)!
         : null;
       const returnTime = o.return_at
-        ? new Date(o.return_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
+        ? naiveHHMM(o.return_at)!
         : null;
 
       const html = buildPropsOrderSummaryHtml({

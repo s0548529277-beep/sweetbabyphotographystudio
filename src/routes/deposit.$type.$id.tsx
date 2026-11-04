@@ -104,7 +104,7 @@ function Deposit() {
   // OR the customer explicitly confirms the payment was made.
   const showReceiptUpload = method !== "cash";
   const pickupTime = record?.pickup_at
-    ? new Date(record.pickup_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })
+    ? String(record.pickup_at).slice(11, 16)
     : null;
   const timeText = isStudio
     ? record?.start_time
