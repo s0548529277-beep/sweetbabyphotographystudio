@@ -81,6 +81,8 @@ import {
   ArrowRight,
 } from "lucide-react";
 
+import { PhotoSectionTabs } from "@/components/PhotoSectionTabs";
+
 export const Route = createFileRoute("/_authenticated/admin/newborn-packages")({
   component: NewbornPackagesAdmin,
 });
@@ -533,6 +535,7 @@ function NewbornPackagesAdmin() {
       </header>
 
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-6">
+        <PhotoSectionTabs />
         {orders.isLoading && <p className="text-sm text-muted-foreground">טוען…</p>}
         {!orders.isLoading && rows.length === 0 && view !== "settings" && view !== "packages" && (
           <div className="rounded-3xl border border-newborn-rose/20 bg-white p-8 text-center text-sm text-muted-foreground">

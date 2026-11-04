@@ -16,6 +16,8 @@ import { Plus, Pencil, Trash2, Trees, Mail, MapPin } from "lucide-react";
 import { heError } from "@/lib/he-errors";
 import { sendOutdoorContract } from "@/lib/outdoor-packages.functions";
 
+import { PhotoSectionTabs } from "@/components/PhotoSectionTabs";
+
 export const Route = createFileRoute("/_authenticated/admin/outdoor-packages")({
   component: OutdoorPackagesAdmin,
 });
@@ -275,6 +277,7 @@ function OutdoorPackagesAdmin() {
 
   return (
     <div className="space-y-8">
+      <PhotoSectionTabs />
       <div>
         <div className="flex items-center justify-between">
           <h2 className="font-display text-2xl text-primary flex items-center gap-2">

@@ -35,6 +35,8 @@ import {
   Wallet,
 } from "lucide-react";
 
+import { PhotoSectionTabs } from "@/components/PhotoSectionTabs";
+
 export const Route = createFileRoute("/_authenticated/admin/photo-clients")({
   component: PhotoClientsAdmin,
 });
@@ -625,6 +627,7 @@ function PhotoClientsAdmin() {
 
   return (
     <div className="space-y-6 max-w-4xl">
+      <PhotoSectionTabs />
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="font-display text-xl text-primary mb-1 flex items-center gap-2">

@@ -25,7 +25,6 @@ import {
   MessageCircle,
   Wand2,
   Sliders,
-  GalleryVerticalEnd,
   Sparkles,
   Bell,
   Mic,
@@ -43,7 +42,6 @@ import {
   X,
   BellRing,
   Disc3,
-  Trees,
   ContactRound,
   Target,
   BookHeart,
@@ -63,7 +61,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminLayout,
 });
 
-type NavLink = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean };
+type NavLink = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean; alsoActive?: string[] };
 type NavGroup = { key: string; label: string; icon: typeof LayoutDashboard; items: NavLink[] };
 type NavEntry = NavLink | NavGroup;
 
@@ -92,8 +90,7 @@ const links: NavEntry[] = [
   },
   { to: "/admin/clients", label: "לקוחות", icon: Users },
   { to: "/admin/whatsapp", label: "וואטסאפ", icon: MessageSquare },
-  { to: "/admin/newborn-packages", label: "חבילות ניו-בורן", icon: Baby },
-  { to: "/admin/outdoor-packages", label: "חבילות צילומי חוץ", icon: Trees },
+  { to: "/admin/newborn-packages", label: "חבילות צילום", icon: Baby, alsoActive: ["/admin/outdoor-packages", "/admin/photo-clients"] },
   { to: "/admin/newborn-contract-text", label: "מלל הכנה+חוזה ניו-בורן", icon: FileText },
   { to: "/admin/birth-basket-text", label: "מלל מימוש סל לידה", icon: Gift },
   { to: "/admin/finance", label: "הכנסות והוצאות", icon: Wallet },
@@ -134,7 +131,6 @@ const links: NavEntry[] = [
       { to: "/admin/photo-editor", label: "עריכת תמונות (AI)", icon: Wand2 },
       { to: "/admin/photo-batch", label: "כיוונון תמונות (כמות גדולה)", icon: Sliders },
       { to: "/admin/photo-resize", label: "הקטנת תמונות וסימן מים", icon: Droplets },
-      { to: "/admin/photo-clients", label: "לקוחות צילום", icon: GalleryVerticalEnd },
       { to: "/admin/albums", label: "אלבומים מותאמים אישית", icon: BookHeart },
       { to: "/admin/retouch-presets", label: "עיבוד AI ללקוחות (פריסטים)", icon: Sparkles },
     ],
@@ -144,7 +140,8 @@ const links: NavEntry[] = [
 const FULLSCREEN_PATHS = ["/admin/newborn-packages", "/admin/client-management"];
 
 function isLinkActive(path: string, l: NavLink) {
-  return l.exact ? path === l.to : path === l.to || path.startsWith(`${l.to}/`);
+  const on = (to: string) => path === to || path.startsWith(`${to}/`);
+  return l.exact ? path === l.to : on(l.to) || !!l.alsoActive?.some(on);
 }
 
 function NavLinkRow({
