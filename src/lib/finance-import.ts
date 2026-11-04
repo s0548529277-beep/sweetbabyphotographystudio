@@ -11,7 +11,8 @@ import { parseAmountCell, parseDateCell, type XlsxRow } from "@/lib/xlsx-read";
  */
 
 export type ImportDirection = "expense" | "income";
-export type ImportSelection = "none" | "personal" | "business";
+/** "external" = "חיצוני": a line that is neither income nor expense (trash) — never imported, only remembered. */
+export type ImportSelection = "none" | "personal" | "business" | "external";
 
 export type ParsedImportRow = {
   /** Original cells of the row (kept so the review table can show them as in the file). */
@@ -196,7 +197,7 @@ export function parseImportSheets(
       }
       const selText = selCell(cells, cols.selection);
       parsed.push({
-        preSelection: selText.startsWith("אישי") ? "personal" : selText.startsWith("עסק") ? "business" : "none",
+        preSelection: selText.startsWith("אישי") ? "personal" : selText.startsWith("עסק") ? "business" : selText.startsWith("חיצוני") ? "external" : "none",
         cells,
         isRed: r.cells.some((c) => isRedCell(c.fillArgb, isReddish)),
         sheet: sheet.name,
@@ -251,7 +252,7 @@ export function parseRules(value: string | null | undefined): ImportRules {
     const out: ImportRules = {};
     for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
       const r = v as Partial<ImportRule> | null;
-      if (r && (r.selection === "personal" || r.selection === "business") && k) {
+      if (r && (r.selection === "personal" || r.selection === "business" || r.selection === "external") && k) {
         out[k] = {
           selection: r.selection,
           ...(r.direction === "income" || r.direction === "expense" ? { direction: r.direction } : {}),

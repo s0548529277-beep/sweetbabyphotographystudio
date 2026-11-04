@@ -299,7 +299,7 @@ function FinanceAdmin() {
   // once (and drop the red-only filter so she can see and deselect any
   // exceptions), instead of trying to guess "this looks like a credit
   // file" from the data itself.
-  const markAllImportSelection = (selection: "none" | "personal" | "business") => {
+  const markAllImportSelection = (selection: ImportSelection) => {
     if (selection !== "none") setImportShowOnlyRed(false);
     setImportRows((rows) => rows.map((r) => ({ ...r, selection })));
   };
@@ -309,9 +309,12 @@ function FinanceAdmin() {
   };
 
   const submitImport = async () => {
-    const selected = importRows.filter((r) => r.selection !== "none");
-    if (selected.length === 0)
-      return toast.error("לא נבחרו שורות לייבוא — סמני 'אישי' או 'עסק' על השורות הרצויות");
+    const selectedAll = importRows.filter((r) => r.selection !== "none");
+    if (selectedAll.length === 0)
+      return toast.error("לא נבחרו שורות לייבוא — סמני 'אישי', 'עסק' או 'חיצוני' על השורות הרצויות");
+    // "חיצוני" lines are never saved as income or expense; they are only remembered (if "תמיד").
+    const selected = selectedAll.filter((r) => r.selection !== "external");
+    const externalCount = selectedAll.length - selected.length;
 
     const dateFor = (r: ImportRow) => r.date || new Date().toISOString().slice(0, 10);
     const titleFor = (r: ImportRow) => r.desc || "יובא מאקסל";
@@ -339,21 +342,28 @@ function FinanceAdmin() {
       }))
       .filter((r) => r.amount > 0);
 
-    if (expenseRows.length === 0 && incomeRows.length === 0)
+    if (expenseRows.length === 0 && incomeRows.length === 0 && externalCount === 0)
       return toast.error("לא נמצא סכום תקין באף שורה שנבחרה");
 
     // Remember the rows ticked "תמיד" so the next file is pre-filled.
-    const toRemember = selected.filter((r) => r.always && payeeKey(r.desc));
+    const toRemember = selectedAll.filter((r) => r.always && payeeKey(r.desc));
     if (toRemember.length > 0) {
       const next: ImportRules = { ...importRules };
       for (const r of toRemember) {
-        next[payeeKey(r.desc)] = { selection: r.selection as "personal" | "business", direction: r.direction };
+        next[payeeKey(r.desc)] = { selection: r.selection as "personal" | "business" | "external", direction: r.direction };
       }
       try {
         await saveImportRules(next);
       } catch (err) {
         toast.error(`שמירת הכללים נכשלה: ${(err as Error).message}`);
       }
+    }
+
+    if (expenseRows.length === 0 && incomeRows.length === 0) {
+      toast.success(`${externalCount} שורות סומנו כחיצוניות ולא יובאו`);
+      setImportOpen(false);
+      resetImport();
+      return;
     }
 
     setImportBusy(true);
@@ -373,6 +383,7 @@ function FinanceAdmin() {
     const parts: string[] = [];
     if (expenseRows.length > 0) parts.push(`${expenseRows.length} הוצאות`);
     if (incomeRows.length > 0) parts.push(`${incomeRows.length} הכנסות`);
+    if (externalCount > 0) parts.push(`${externalCount} חיצוניות דולגו`);
     const summary = parts.join(" ו-");
     if (expenseResult.schemaFallback || incomeResult.schemaFallback) {
       toast.warning(`${summary} יובאו, אבל הסימון אישי/עסק עדיין לא נשמר בחלקן — יש לעדכן שוב בעוד כמה דקות`);
@@ -1821,12 +1832,15 @@ function FinanceAdmin() {
                 {importRows.length})
               </label>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-muted-foreground">סימון מהיר — אישי/עסק:</span>
+                <span className="text-xs text-muted-foreground">סימון מהיר — אישי/עסק/חיצוני:</span>
                 <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => markAllImportSelection("business")}>
                   סימון הכל כעסק
                 </Button>
                 <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => markAllImportSelection("personal")}>
                   סימון הכל כאישי
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => markAllImportSelection("external")}>
+                  סימון הכל כחיצוני
                 </Button>
                 <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => markAllImportSelection("none")}>
                   ביטול הכל
@@ -1905,6 +1919,15 @@ function FinanceAdmin() {
                             >
                               עסק
                             </Button>
+                            <Button
+                              size="sm"
+                              variant={r.selection === "external" ? "default" : "outline"}
+                              className="h-7 px-2.5 rounded-full text-xs"
+                              title="פח — לא נחשב לא הוצאה ולא הכנסה"
+                              onClick={() => setImportRowSelection(i, "external")}
+                            >
+                              חיצוני
+                            </Button>
                           </div>
                         </td>
                         <td className="p-2 text-center">
@@ -1935,8 +1958,8 @@ function FinanceAdmin() {
                 {Object.entries(importRules).map(([key, rule]) => (
                   <div key={key} className="flex items-center justify-between gap-2 text-xs">
                     <span className="truncate">
-                      {key} — {rule.selection === "business" ? "עסק" : "אישי"}
-                      {rule.direction ? ` · ${rule.direction === "income" ? "הכנסה" : "הוצאה"}` : ""}
+                      {key} — {rule.selection === "business" ? "עסק" : rule.selection === "external" ? "חיצוני" : "אישי"}
+                      {rule.selection !== "external" && rule.direction ? ` · ${rule.direction === "income" ? "הכנסה" : "הוצאה"}` : ""}
                     </span>
                     <Button
                       size="sm"
@@ -1969,7 +1992,7 @@ function FinanceAdmin() {
             <Button onClick={submitImport} disabled={importBusy}>
               {importBusy
                 ? "מייבא…"
-                : `ייבוא ${importRows.filter((r) => r.selection !== "none").length} שורות`}
+                : `ייבוא ${importRows.filter((r) => r.selection === "personal" || r.selection === "business").length} שורות`}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -66,3 +66,9 @@ test("parseRules drops malformed entries", () => {
   assert.deepEqual(Object.keys(rules), ["a"]);
   assert.deepEqual(parseRules("not json"), {});
 });
+
+test("parseRules keeps an 'external' (חיצוני) rule", async () => {
+  const { parseRules } = await import("./finance-import");
+  const r = parseRules(JSON.stringify({ paybox: { selection: "external" }, x: { selection: "bogus" } }));
+  assert.deepEqual(r, { paybox: { selection: "external" } });
+});
