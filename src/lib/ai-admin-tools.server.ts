@@ -298,7 +298,7 @@ export function buildAdminChatTools() {
 
     run_email_drafts_now: tool({
       description:
-        "מריץ עכשיו את עוזר הטיוטות האוטומטי: עובר על מיילים חדשים שמחכים לתשובה ויוצר טיוטות מעוצבות בג׳ימייל (לא שולח). רץ גם לבד כל 20 דקות בשעות 8–22.",
+        "מריץ עכשיו את עוזר הטיוטות האוטומטי: עובר על מיילים חדשים שמחכים לתשובה ויוצר טיוטות מעוצבות בג׳ימייל (לא שולח). רץ גם לבד בערך כל 10 דקות בין 7:30 ל-23:50 (לא בשבת).",
       inputSchema: z.object({}),
       execute: async () => {
         const { runEmailDraftAssistant } = await import("./email-drafts.server");

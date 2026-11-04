@@ -10,13 +10,14 @@
 import michalWordmark from "@/assets/michal-logo-wordmark.png";
 import sweetbabyLogo from "@/assets/logo-green-hero.png";
 import { heartImg, withEmailHearts, type HeartKind } from "@/lib/email-hearts";
-import michalAnimatedAsset from "@/assets/michal-logo-animated-v2.gif.asset.json";
 
 // Absolute URLs — email clients can't resolve relative/build-hashed paths
 // (same approach as the contract emails, photoContract.ts).
 const MICHAL_LOGO_URL = `https://sweetbabyphoto.shop${michalWordmark}`;
-// The new animated Michal logo shown on the site (/newborn header + footer).
-const MICHAL_ANIMATED_LOGO_URL = `https://sweetbabyphoto.shop${michalAnimatedAsset.url}`;
+// The animated "michal" signature from the photographer site (michalsiboni.co.il): the script writes itself,
+// then the heart pops and beats. Built from that site's two layers by scripts/make-michal-signature-gif.py
+// (cream background = the card colour below, first frame = the finished logo for Outlook / blocked images).
+const MICHAL_ANIMATED_LOGO_URL = "https://sweetbabyphoto.shop/email/michal-signature-animated.gif";
 const SITE_PHONE = "053-418-1051";
 const SITE_MAIL = "s0548529277@gmail.com";
 const STUDIO_LOGO_URL = `https://sweetbabyphoto.shop${sweetbabyLogo}`;
@@ -37,9 +38,11 @@ type Theme = {
 };
 
 const THEMES: Record<DraftBrand, Theme> = {
-  // Same palette as the contract emails (owner liked them, 2026-10-30).
+  // Contract-email palette (owner liked it, 2026-10-30), softened 2026-11-04: a light sand frame instead of
+  // the full brown one. Personal ("general") replies use the same look. cardBg must stay #f6f0e4 — the
+  // animated signature GIF is rendered on that colour.
   photographer: {
-    pageBg: "#a9784f",
+    pageBg: "#e8dccb",
     cardBg: "#f6f0e4",
     border: "#e2cfb6",
     headerBg: "",
@@ -229,28 +232,26 @@ export function buildDraftHtml(opts: {
    */
   siteSignature?: boolean;
 }): string {
-  const useSiteSig = opts.brand === "photographer" && opts.siteSignature !== false;
-  const t = THEMES[opts.brand];
-  const sig = SIGNATURES[opts.brand];
-  // Michal's own heart for every photographer mail, the bot's colourful heart for the rest.
-  const heartKind: HeartKind = opts.brand === "photographer" ? "michal" : "bot";
+  // Personal replies ("general": suppliers, colleagues, everything else) look exactly like the photographer's
+  // — soft contract-style frame, Michal's animated signature logo, her heart. Only the studio brand differs.
+  const look: DraftBrand = opts.brand === "general" ? "photographer" : opts.brand;
+  const useSiteSig = look === "photographer" && opts.siteSignature !== false;
+  const t = THEMES[look];
+  const sig = SIGNATURES[look];
+  // Michal's own heart for every photographer / personal mail, the bot's colourful heart for the studio.
+  const heartKind: HeartKind = look === "photographer" ? "michal" : "bot";
   const logo = (h: number, animated = false) =>
-    opts.brand === "photographer"
+    look === "photographer"
       ? `<img src="${animated ? MICHAL_ANIMATED_LOGO_URL : MICHAL_LOGO_URL}" alt="מיכל סיבוני" height="${h}" style="height:${h}px;width:auto;border:0">`
-      : opts.brand === "studio"
+      : look === "studio"
         ? `<img src="${STUDIO_LOGO_URL}" alt="Sweetbaby" height="${h}" style="height:${h}px;width:auto;border:0">`
         : "";
-  const header =
-    opts.brand === "general"
-      ? ""
-      : `<tr><td align="center" style="padding:30px 28px 6px">${logo(opts.brand === "studio" ? 52 : 84, true)}
+  // Personal replies: no big logo on top (it would repeat the signature) — the signature logo closes the mail.
+  const header = opts.brand === "general" ? "" : `<tr><td align="center" style="padding:30px 28px 6px">${logo(look === "studio" ? 52 : 84, true)}
           <div style="font-size:12px;letter-spacing:2px;color:${t.soft};margin-top:8px">${
-            opts.brand === "studio" ? "סטודיו בוטיק לצילום · בית שמש" : "צילומי ניו בורן ומשפחה"
+            look === "studio" ? "סטודיו בוטיק לצילום · בית שמש" : "צילומי ניו בורן ומשפחה"
           }</div></td></tr>`;
-  const heart =
-    opts.brand === "general"
-      ? ""
-      : `<tr><td style="padding:6px 28px 0"><div style="border-top:1px solid ${t.soft}55;text-align:center;line-height:0"><span style="position:relative;top:-1px;background:${t.cardBg};padding:0 10px;color:${t.accent};font-size:12px;line-height:1">${heartImg(heartKind, 14)}</span></div></td></tr>`;
+  const heart = `<tr><td style="padding:6px 28px 0"><div style="border-top:1px solid ${t.soft}55;text-align:center;line-height:0"><span style="position:relative;top:-1px;background:${t.cardBg};padding:0 10px;color:${t.accent};font-size:12px;line-height:1">${heartImg(heartKind, 14)}</span></div></td></tr>`;
   const lists =
     opts.brand === "photographer" && opts.priceList && opts.priceList !== "none"
       ? (opts.priceList === "newborn" || opts.priceList === "both" ? priceBlock(NEWBORN, t) : "") +
@@ -266,13 +267,11 @@ export function buildDraftHtml(opts: {
         .join("")}</div>`
     : "";
   const photos = opts.brand === "photographer" ? photoStrip(opts.photos ?? [], !!opts.bigPhotos) : "";
-  const branded = opts.brand !== "general";
-  const html = `<div dir="rtl" style="background:${t.pageBg};padding:${branded ? "14px 0" : "24px 8px"}">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:${t.cardBg};${
-    branded ? "border-radius:4px" : `border:1px solid ${t.border};border-radius:16px`
-  };overflow:hidden;font-family:${FONT};color:${t.text};direction:rtl;text-align:right">
+  const branded = true;
+  const html = `<div dir="rtl" style="background:${t.pageBg};padding:18px 10px">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:${t.cardBg};border:1px solid ${t.border};border-radius:14px;overflow:hidden;font-family:${FONT};color:${t.text};direction:rtl;text-align:right">
     ${header}
-    <tr><td style="padding:${branded ? "18px 34px 10px" : "24px 28px 8px"};font-size:15px;line-height:1.8">
+    <tr><td style="padding:${opts.brand === "general" ? "30px 34px 10px" : "18px 34px 10px"};font-size:15px;line-height:1.8">
       ${photos}
       ${bodyToHtml(opts.body, t)}
       ${lists}
@@ -317,7 +316,7 @@ export function buildDraftText(opts: {
       : "";
   const body = opts.body.replace(/^##\s+/gm, "").replace(/^>\s?/gm, "").replace(/\*\*/g, "");
   return `${body}\n${lists}${[...(opts.cta ? [opts.cta] : []), ...(opts.extraCtas ?? [])].map((c) => `\n${c.label}: ${c.url}`).join("")}${opts.cta || opts.extraCtas?.length ? "\n" : ""}\n--\n${
-    opts.brand === "photographer" && opts.siteSignature !== false
+    opts.brand !== "studio" && opts.siteSignature !== false
       ? `מיכל סיבוני\nצילומי ניו-בורן ומשפחה\n${SITE_PHONE} · ${SITE_MAIL}\nmichalsiboni.co.il`
       : `${sig.name}\n${sig.lines.join(" · ")}${sig.site ? `\n${sig.site.label}` : ""}`
   }\n`;

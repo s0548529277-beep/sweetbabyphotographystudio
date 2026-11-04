@@ -16,8 +16,8 @@
  * for her to review and answer personally. See shouldAutoSend().
  *
  * Cheap by design: a Gmail search every run, AI only for real new threads
- * (max MAX_NEW + MAX_FOLLOWUPS per run), runs at most every 20 minutes,
- * 8:00–22:00 Israel time, never on Shabbat. Threads already looked at are
+ * (max MAX_NEW + MAX_FOLLOWUPS per run), runs about every 10 minutes
+ * between 7:30 and 23:50 Israel time (owner request 2026-11-04), never on Shabbat. Threads already looked at are
  * remembered in app_settings (email_drafts_seen) so nothing is re-judged.
  */
 import { generateTextResilient } from "./ai-gateway.server";
@@ -26,7 +26,13 @@ import { chatLinkUrl } from "./orderSummary";
 
 const MAX_NEW = 3;
 const MAX_FOLLOWUPS = 2;
-const MIN_GAP_MS = 20 * 60_000;
+// Owner request 2026-11-04: a run every 10 minutes. The gap is 9 min so that an external scheduler firing every
+// 10 minutes sharp (with a few seconds of jitter) never gets skipped as "too_soon". How often this actually
+// runs is set by the external scheduler that calls /api/send-booking-reminders — it must call at least every 10 min.
+const MIN_GAP_MS = 9 * 60_000;
+// Active window (Israel time), in minutes from midnight: 07:30 – 23:50.
+const WINDOW_START_MIN = 7 * 60 + 30;
+const WINDOW_END_MIN = 23 * 60 + 50;
 const SEEN_KEY = "email_drafts_seen";
 const STATUS_KEY = "email_drafts_status";
 const LAST_RUN_KEY = "email_drafts_last_run";
@@ -127,10 +133,11 @@ function israelParts(d = new Date()) {
     timeZone: "Asia/Jerusalem",
     weekday: "short",
     hour: "2-digit",
+    minute: "2-digit",
     hour12: false,
   }).formatToParts(d);
   const get = (t: string) => f.find((p) => p.type === t)?.value ?? "";
-  return { weekday: get("weekday"), hour: Number(get("hour")) % 24 };
+  return { weekday: get("weekday"), hour: Number(get("hour")) % 24, minute: Number(get("minute")) };
 }
 
 function addrOf(from: string): string {
@@ -554,12 +561,13 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const db = supabaseAdmin as any;
 
-  const { weekday, hour } = israelParts();
+  const { weekday, hour, minute } = israelParts();
   if (!opts.force) {
     if (weekday === "Sat" || (weekday === "Fri" && hour >= 14)) return { ...result, reason: "shabbat" };
-    // Owner request 2026-11-02: runs around the clock (no more 8:00–22:00 limit) so
-    // urgent / confused customers get the automatic first reply at night too.
-    // Shabbat (Fri 14:00 → Sat night) stays off.
+    // Owner request 2026-11-04: active 07:30–23:50 Israel time (was around the clock since 2026-11-02),
+    // a run about every 10 minutes. Shabbat (Fri 14:00 → Sat night) stays off.
+    const minutesOfDay = hour * 60 + minute;
+    if (minutesOfDay < WINDOW_START_MIN || minutesOfDay > WINDOW_END_MIN) return { ...result, reason: "outside_hours" };
     const last = await getSetting(db, LAST_RUN_KEY);
     if (last && Date.now() - Date.parse(last) < MIN_GAP_MS) return { ...result, reason: "too_soon" };
   }
