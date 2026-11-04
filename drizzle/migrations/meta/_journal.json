@@ -225,6 +225,13 @@
       "when": 1793708000395,
       "tag": "0031_funnel_leads",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1793711600395,
+      "tag": "0032_photo_image_client_note",
+      "breakpoints": true
     }
   ]
 }

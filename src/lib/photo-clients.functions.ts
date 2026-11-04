@@ -1050,8 +1050,10 @@ export const getMyPhotoGalleries = createServerFn({ method: "POST" })
       (workflows ?? []).map(async (w: any) => {
         const stage = w.stage as WorkflowStage;
         let kind: "proof" | "edited" | null = null;
-        if (stage === "proofs_ready") kind = "proof";
-        else if (stage === "album_published") kind = "edited";
+        if (stage === "album_published") kind = "edited";
+        // After she sends her selection the stage moves on (edited_uploaded), but her
+        // proof photos must stay in her area — locked, with her picks still marked.
+        else if (stage === "proofs_ready" || !!w.proof_selection_submitted_at) kind = "proof";
 
         let images: any[] = [];
         if (kind) {
@@ -1061,7 +1063,7 @@ export const getMyPhotoGalleries = createServerFn({ method: "POST" })
           // unlock ZIP; for "edited" it's the regular album ZIP.
           const { data: imgs } = await (supabase as any)
             .from("photo_client_images")
-            .select("id, kind, image_url, original_image_url, selected, sort_order")
+            .select("id, kind, image_url, original_image_url, selected, sort_order, client_note")
             .eq("workflow_id", w.id)
             .eq("kind", kind)
             .order("sort_order", { ascending: true });
@@ -1138,6 +1140,35 @@ export const toggleProofSelection = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const noteSchema = z.object({ imageId: z.string().uuid(), note: z.string().max(300) });
+
+/** A short note from the client on one of her picked proof photos ("מה לשנות") — only before she sends the selection. */
+export const setProofNote = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => noteSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: img } = await (supabaseAdmin as any)
+      .from("photo_client_images")
+      .select("id, kind, workflow_id")
+      .eq("id", data.imageId)
+      .single();
+    if (!img || img.kind !== "proof") throw new Error("תמונה לא נמצאה");
+    const { data: wf } = await (supabaseAdmin as any)
+      .from("photo_client_workflows")
+      .select("id, user_id, proof_selection_submitted_at")
+      .eq("id", img.workflow_id)
+      .single();
+    if (!wf || wf.user_id !== context.userId) throw new Error("אין הרשאה");
+    if (wf.proof_selection_submitted_at) throw new Error("הבחירה כבר נשלחה — אפשר לכתוב לי הערות בוואטסאפ");
+    const { error } = await (supabaseAdmin as any)
+      .from("photo_client_images")
+      .update({ client_note: data.note.trim() || null })
+      .eq("id", data.imageId);
+    if (error) throw new Error("שמירת ההערה נכשלה — נסי שוב");
+    return { ok: true };
+  });
+
 const submitSelectionSchema = z.object({ workflowId: z.string().uuid() });
 
 /**
@@ -1169,7 +1200,7 @@ export const submitProofSelection = createServerFn({ method: "POST" })
 
     const { data: selectedImages, error: imgErr } = await supabaseAdmin
       .from("photo_client_images")
-      .select("id, image_url, sort_order")
+      .select("id, image_url, sort_order, client_note")
       .eq("workflow_id", wf.id)
       .eq("kind", "proof")
       .eq("selected", true)
@@ -1232,7 +1263,10 @@ export const submitProofSelection = createServerFn({ method: "POST" })
       const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
       const thumbsHtml = selectedImages
         .slice(0, 60)
-        .map((i: any) => `<img src="${i.image_url}" alt="" width="110" height="110" style="object-fit:cover;border-radius:8px;margin:3px" />`)
+        .map((i: any) => {
+          const note = i.client_note ? String(i.client_note).replace(/</g, "&lt;") : "";
+          return `<span style="display:inline-block;vertical-align:top;width:130px;margin:3px;text-align:center"><img src="${i.image_url}" alt="" width="110" height="110" style="object-fit:cover;border-radius:8px" />${note ? `<br><span style="font-size:12px;color:#8a6338">${note}</span>` : ""}</span>`;
+        })
         .join("");
       await sendStudioAndCustomer({
         customerEmail: user?.email,

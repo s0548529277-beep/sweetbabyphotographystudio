@@ -8,6 +8,7 @@ import {
   getMyPhotoGalleries,
   toggleProofSelection,
   submitProofSelection,
+  setProofNote,
   submitAllPhotosUnlockReceipt,
   type WorkflowStage,
 } from "@/lib/photo-clients.functions";
@@ -26,7 +27,7 @@ export const Route = createFileRoute("/_authenticated/my-photos")({
   head: () => ({ meta: [{ title: "התמונות שלי | Sweetbaby" }, { name: "robots", content: "noindex, nofollow" }] }),
 });
 
-type Img = { id: string; kind: "proof" | "edited"; image_url: string; original_image_url?: string | null; selected: boolean };
+type Img = { id: string; kind: "proof" | "edited"; image_url: string; original_image_url?: string | null; selected: boolean; client_note?: string | null };
 // booking is null for a workflow the admin started manually, with no
 // underlying package='photography' booking (see startManualPhotoWorkflow).
 type Gallery = {
@@ -46,9 +47,41 @@ const STAGE_MESSAGE: Record<WorkflowStage, string> = {
   booked: "השריון והמקדמה התקבלו — עדיין אין תמונות להצגה.",
   date_confirmed: "יום הצילומים נקבע 📅 התמונות יעלו לכאן אחרי הצילום.",
   proofs_ready: "התמונות מוכנות! תבחרי את המועדפות עלייך — לחיצה על התמונה מגדילה אותה, לחיצה על הלב מסמנת/מבטלת בחירה.",
-  edited_uploaded: "התמונות שנבחרו נמצאות כרגע בעריכה.",
+  edited_uploaded: "הבחירה שלך נשלחה ונעולה 💗 התמונות שבחרת נשארות מסומנות כאן, והן נמצאות כרגע בעריכה.",
   album_published: "האלבום הסופי שלך מוכן 💗",
 };
+
+function PhotoNote({ img, onSaved }: { img: Img; onSaved: () => void }) {
+  const save = useServerFn(setProofNote);
+  const [value, setValue] = useState(img.client_note ?? "");
+  const [saving, setSaving] = useState(false);
+  const commit = async () => {
+    if ((img.client_note ?? "") === value.trim()) return;
+    setSaving(true);
+    try {
+      await save({ data: { imageId: img.id, note: value } });
+      onSaved();
+    } catch (e: any) {
+      toast.error(e?.message ?? "שמירת ההערה נכשלה");
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <div className="flex items-center gap-2 rounded-xl bg-card border border-primary/10 p-1.5">
+      <img src={img.image_url} alt="" className="h-12 w-12 rounded-lg object-cover shrink-0" />
+      <input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={commit}
+        maxLength={300}
+        placeholder="מה לשנות בתמונה (לא חובה) — בקצרה"
+        className="flex-1 min-w-0 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+      />
+      {saving && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+    </div>
+  );
+}
 
 function ProofGrid({ gallery, onRefetch }: { gallery: Gallery; onRefetch: () => void }) {
   const { user } = useAuth();
@@ -169,6 +202,32 @@ function ProofGrid({ gallery, onRefetch }: { gallery: Gallery; onRefetch: () => 
                 }
           }
         />
+      )}
+
+      {!submitted && selectedImages.length > 0 && (
+        <div className="mt-4 space-y-2">
+          <p className="text-sm font-medium">התמונות שבחרת — אפשר להוסיף לכל תמונה הערה קצרה מה לשנות (לפני השליחה)</p>
+          <div className="grid gap-2 md:grid-cols-2">
+            {selectedImages.map((img) => (
+              <PhotoNote key={img.id} img={img} onSaved={onRefetch} />
+            ))}
+          </div>
+        </div>
+      )}
+      {submitted && selectedImages.some((i) => i.client_note) && (
+        <div className="mt-4 space-y-2">
+          <p className="text-sm font-medium">ההערות ששלחת</p>
+          <div className="grid gap-2 md:grid-cols-2">
+            {selectedImages
+              .filter((i) => i.client_note)
+              .map((img) => (
+                <div key={img.id} className="flex items-center gap-2 rounded-xl bg-card border border-primary/10 p-1.5">
+                  <img src={img.image_url} alt="" className="h-12 w-12 rounded-lg object-cover shrink-0" />
+                  <span className="text-sm">{img.client_note}</span>
+                </div>
+              ))}
+          </div>
+        </div>
       )}
 
       <AllPhotosUnlockPanel
@@ -347,7 +406,7 @@ function MyPhotosPage() {
               <StepTracker theme="pink" steps={CLIENT_STEPS} current={g.client_step ?? 1} hint={CLIENT_STEP_HINTS[(g.client_step ?? 1) - 1]} />
             </div>
             <p className="text-sm text-muted-foreground">{STAGE_MESSAGE[g.stage]}</p>
-            {g.stage === "proofs_ready" && g.images.length > 0 && (
+            {(g.stage === "proofs_ready" || !!g.proof_selection_submitted_at) && g.stage !== "album_published" && g.images.length > 0 && (
               <>
                 <ProofGrid gallery={g} onRefetch={refetch} />
                 {/* Per explicit request — shown under the watermarked proof
