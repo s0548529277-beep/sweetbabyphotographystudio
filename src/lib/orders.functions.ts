@@ -599,12 +599,18 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
         cashbackEarned,
       });
 
+      // Same confirmation as a self-contained file (photos embedded) so it
+      // opens even where remote images in the mail body are blocked.
+      const { buildOrderHtmlAttachment } = await import("@/lib/order-html-attachment.server");
+      const summaryFile = await buildOrderHtmlAttachment(html, o.id);
+      const confirmationAttachments = [summaryFile, receiptAttachment].filter(Boolean) as NonNullable<typeof receiptAttachment>[];
+
       const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
       await sendStudioAndCustomer({
         customerEmail,
         subject: `אישור הזמנה — השכרת אביזרים #${o.id.slice(0, 8)} · Sweetbaby`,
         html,
-        attachments: receiptAttachment ? [receiptAttachment] : undefined,
+        attachments: confirmationAttachments.length ? confirmationAttachments : undefined,
       });
 
       await supabaseAdmin.from("orders").update({ confirmation_sent_at: new Date().toISOString() }).eq("id", o.id);
