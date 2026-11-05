@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-05 (23:1x Israel) — Claude (chat):** PUBLISHED commit bec0be4 (deploy 34a7e822) — includes the homepage card photos (297c603), the catalog category cleanup (5238c5d) and the email thumbnail fix. Status was "pending" when logged; not checked live.
+
 - **2026-11-05 (23:xx Israel) — Claude (chat, via GitHub, owner: "the prop photos sent in the order email do not open"):** ROOT CAUSE in `emailThumbUrl` (`media-url.ts`, used by `orderSummary.ts`): live `items.image_url` = 242 relative paths ("/catalog-images/101.jpg") left as-is (a relative src cannot load in a mail client) + 107 SIGNED storage URLs on `*.lovable.cloud` (blocked by NetFree; only "public" URLs were proxied). FIX: relative paths -> `https://sweetbabyphoto.shop<path>`; signed storage URLs -> `https://sweetbabyphoto.shop/media/sign/<bucket>/<path>?token=…` (existing /media proxy). Public storage unchanged. Applies to new mails only (already-sent mails keep the old src). Not tested with a real mail (sandbox cannot reach the site); needs Publish.
 
 - **2026-11-05 (21:0x Israel) — Claude (chat, via GitHub, owner sent 3 photos for the 3 homepage cards):** `src/routes/index.tsx` "שלוש דרכים" cards now use fixed photos: צילומים עם מיכל סיבוני = girl with the "One" cake (`src/assets/home-card-michal.jpg`), השכרת הסטודיו (home icon) = child on the white sofa (`home-card-studio.jpg`), קטלוג האביזרים (sparkles) = two boys on the white rocking horse (`home-card-props.jpg`). Images resized to 1400px. The hover cross-fade second image was removed from all three cards (the chosen photo stays). Unused `heroImg` import removed. Claude's reading: "צילומים בסטודיו" = the studio-rental card (sofa). tsc/build not run; not checked live; not deployed.
