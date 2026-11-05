@@ -109,7 +109,7 @@ function reminderHtml(opts: {
   const heb = hebrewDate(opts.date);
   const notes =
     opts.settings.includeNotesInReminder && opts.notes
-      ? `<p style="background:#fbeef2;border-radius:14px;padding:12px 16px">${nl2br(opts.notes)}</p>`
+      ? `<p style="background:#efe6da;color:#5a4433;border-radius:14px;padding:12px 16px">${nl2br(opts.notes)}</p>`
       : "";
   // Wording is admin-editable (הגדרות → נוסחי מיילים); date block and notes stay automatic.
   const text = fillEmailTemplate(opts.settings.reminderEmailText, {
@@ -119,7 +119,7 @@ function reminderHtml(opts: {
   });
   return emailShell(
     `תזכורת לצילום ${opts.type} 📸`,
-    `<p style="font-size:17px;text-align:center;background:#fbeef2;color:#c23b6d;border-radius:14px;padding:14px 16px"><b>${esc(formatDateIL(opts.date))}</b>${heb ? ` · ${esc(heb)}` : ""} · בשעה <b>${esc(opts.time)}</b></p>
+    `<p style="font-size:17px;text-align:center;background:#efe6da;color:#3e3029;border-radius:14px;padding:14px 16px"><b>${esc(formatDateIL(opts.date))}</b>${heb ? ` · ${esc(heb)}` : ""} · בשעה <b>${esc(opts.time)}</b></p>
 <p>${textToEmailHtml(text)}</p>
 ${notes}`,
   );
@@ -142,7 +142,7 @@ function paymentHtml(opts: {
         ? "התשלום התקבל במלואו — תודה רבה! 🙏"
         : "עדכון על מצב התשלום שלך:";
   const bank = opts.settings.bankDetails?.trim()
-    ? `<p style="background:#fbeef2;border-radius:14px;padding:12px 16px"><b>פרטים להעברה:</b><br>${nl2br(opts.settings.bankDetails)}</p>`
+    ? `<p style="background:#efe6da;color:#5a4433;border-radius:14px;padding:12px 16px"><b>פרטים להעברה:</b><br>${nl2br(opts.settings.bankDetails)}</p>`
     : "";
   const links =
     opts.settings.paymentLinks?.trim() && balance > 0

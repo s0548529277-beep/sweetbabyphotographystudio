@@ -249,7 +249,7 @@ export function buildBrandedMailHtml(opts: { title: string; innerHtml: string; t
       <div style="font-size:12px;letter-spacing:2px;color:${t.soft};margin-top:8px">${esc(opts.tagline ?? "צילומי ניו בורן ומשפחה")}</div></td></tr>
     <tr><td style="padding:6px 28px 0"><div style="border-top:1px solid ${t.soft}55;text-align:center;line-height:0"><span style="position:relative;top:-1px;background:${t.cardBg};padding:0 10px;color:${t.accent};font-size:12px;line-height:1">${heartImg(heartKind, 14)}</span></div></td></tr>
     <tr><td dir="rtl" style="padding:14px 34px 10px;font-size:15px;line-height:1.8;${rtl}">
-      <h2 style="margin:0 0 14px;text-align:center;font-size:21px;font-weight:bold;color:${t.accent};font-family:${FONT}">${esc(opts.title)}</h2>
+      <h2 style="margin:0 0 14px;text-align:center;font-size:21px;font-weight:bold;color:${SIG_BROWN};font-family:${FONT}">${esc(opts.title)}</h2>
       ${opts.innerHtml}
     </td></tr>
     <tr><td style="padding:14px 28px 26px;font-size:13px;color:${t.soft};text-align:center;line-height:1.6">${signatureBlockHtml()}</td></tr>
