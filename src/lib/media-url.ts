@@ -34,8 +34,18 @@ const SITE_ORIGIN = "https://sweetbabyphoto.shop";
  */
 export function emailThumbUrl<T extends string | null | undefined>(url: T, px = 80): T {
   if (!url) return url;
+  // Bundled catalog photos are stored as site-relative paths
+  // ("/catalog-images/101.jpg"). A relative path cannot load inside an email,
+  // so make it absolute (this was why most item photos never opened in mails).
+  if (url.startsWith("/") && !url.startsWith("//")) return `${SITE_ORIGIN}${url}` as T;
   const m = STORAGE_OBJECT_RE.exec(url);
-  if (!m || !isStorageHost(m[1]) || m[2].toLowerCase() !== "public") return url;
-  const path = m[3].split("?")[0];
-  return `${SITE_ORIGIN}/media/public/${path}?w=${px}` as T;
+  if (!m || !isStorageHost(m[1])) return url;
+  const kind = m[2].toLowerCase();
+  if (kind === "public") {
+    const path = m[3].split("?")[0];
+    return `${SITE_ORIGIN}/media/public/${path}?w=${px}` as T;
+  }
+  // Signed storage URLs (items uploaded from the admin) point at the blocked
+  // *.lovable.cloud host — route them through the site's own /media proxy too.
+  return `${SITE_ORIGIN}/media/sign/${m[3]}` as T;
 }
