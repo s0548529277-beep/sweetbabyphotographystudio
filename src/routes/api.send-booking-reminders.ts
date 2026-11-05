@@ -46,17 +46,36 @@ export const Route = createFileRoute("/api/send-booking-reminders")({
           });
         }
 
+        // One failing job must not take the whole run (and every other reminder) down with it:
+        // each job is wrapped, its error is recorded and shown on the admin dashboard.
+        const errors: Record<string, string> = {};
+        const safe = <T,>(name: string, fn: () => Promise<T>): Promise<T | { error: string }> =>
+          fn().catch((e: any) => {
+            errors[name] = String(e?.message ?? e).slice(0, 300);
+            console.error(`[SWEETBABY] scheduler job ${name} failed`, e);
+            return { error: errors[name] };
+          });
+        const stamp = async (k: string, v: string) => {
+          try {
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            await (supabaseAdmin as any).from("app_settings").upsert({ key: k, value: v, updated_at: new Date().toISOString() });
+          } catch (e) {
+            console.error("[SWEETBABY] scheduler stamp failed", k, e);
+          }
+        };
+        await stamp("scheduler_last_call", new Date().toISOString());
+
         const [bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds, pendingPassApprovals, dataBackup, recurringExpenses, outdoorStylingCallReminders, clientManagement, emailDrafts, postSessionThanks, unfinishedBookings, preSessionReminders] = await Promise.all([
-          runDueBookingReminders(),
-          runDueOrderReminders(),
-          notifyPendingPhoneBookingConfirmations(),
-          notifyPendingPropsRequests(),
-          runDueProofSelectionReminders(),
-          runDueAbandonedHoldReminders(),
-          runDuePendingPassApprovalNudges(),
-          runDataBackupIfDue(),
-          runDueRecurringExpenses(),
-          runDueOutdoorStylingCallReminders(),
+          safe("bookings", () => runDueBookingReminders()),
+          safe("orders", () => runDueOrderReminders()),
+          safe("pendingPhoneCalls", () => notifyPendingPhoneBookingConfirmations()),
+          safe("pendingPropsCalls", () => notifyPendingPropsRequests()),
+          safe("proofReminders", () => runDueProofSelectionReminders()),
+          safe("abandonedHolds", () => runDueAbandonedHoldReminders()),
+          safe("pendingPassApprovals", () => runDuePendingPassApprovalNudges()),
+          safe("dataBackup", () => runDataBackupIfDue()),
+          safe("recurringExpenses", () => runDueRecurringExpenses()),
+          safe("outdoorStylingCallReminders", () => runDueOutdoorStylingCallReminders()),
           // Own catch: the cm_* tables may not exist until the migration is applied.
           runDueClientManagementReminders().catch((e) => ({ reminders: 0, dailySchedule: false, skipped: String(e?.message ?? e) })),
           // Automatic designed reply drafts in Gmail (never sends) — see email-drafts.server.ts.
@@ -67,12 +86,8 @@ export const Route = createFileRoute("/api/send-booking-reminders")({
           runDuePreSessionReminders().catch((e) => ({ checked: 0, sent: 0, error: String(e?.message ?? e) })),
         ]);
         // Heartbeat: lets the admin dashboard warn when the external scheduler stops calling this route.
-        try {
-          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          await (supabaseAdmin as any).from("app_settings").upsert({ key: "scheduler_last_run", value: new Date().toISOString(), updated_at: new Date().toISOString() });
-        } catch (e) {
-          console.error("[SWEETBABY] scheduler heartbeat failed", e);
-        }
+        await stamp("scheduler_last_run", new Date().toISOString());
+        await stamp("scheduler_last_errors", JSON.stringify({ at: new Date().toISOString(), errors }));
         return new Response(JSON.stringify({ bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds, pendingPassApprovals, dataBackup, recurringExpenses, outdoorStylingCallReminders, clientManagement, emailDrafts, postSessionThanks, unfinishedBookings, preSessionReminders }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
