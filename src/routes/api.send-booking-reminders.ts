@@ -65,7 +65,9 @@ export const Route = createFileRoute("/api/send-booking-reminders")({
         };
         await stamp("scheduler_last_call", new Date().toISOString());
 
-        const [bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds, pendingPassApprovals, dataBackup, recurringExpenses, outdoorStylingCallReminders, clientManagement, emailDrafts, postSessionThanks, unfinishedBookings, preSessionReminders] = await Promise.all([
+        const [followUpDigest, bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds, pendingPassApprovals, dataBackup, recurringExpenses, outdoorStylingCallReminders, clientManagement, emailDrafts, postSessionThanks, unfinishedBookings, preSessionReminders] = await Promise.all([
+          // Hourly "who to call back and why" summary mail — see follow-up-digest.server.ts.
+          safe("followUpDigest", async () => (await import("@/lib/follow-up-digest.server")).runHourlyFollowUpDigest()),
           safe("bookings", () => runDueBookingReminders()),
           safe("orders", () => runDueOrderReminders()),
           safe("pendingPhoneCalls", () => notifyPendingPhoneBookingConfirmations()),
@@ -88,7 +90,7 @@ export const Route = createFileRoute("/api/send-booking-reminders")({
         // Heartbeat: lets the admin dashboard warn when the external scheduler stops calling this route.
         await stamp("scheduler_last_run", new Date().toISOString());
         await stamp("scheduler_last_errors", JSON.stringify({ at: new Date().toISOString(), errors }));
-        return new Response(JSON.stringify({ bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds, pendingPassApprovals, dataBackup, recurringExpenses, outdoorStylingCallReminders, clientManagement, emailDrafts, postSessionThanks, unfinishedBookings, preSessionReminders }), {
+        return new Response(JSON.stringify({ followUpDigest, bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds, pendingPassApprovals, dataBackup, recurringExpenses, outdoorStylingCallReminders, clientManagement, emailDrafts, postSessionThanks, unfinishedBookings, preSessionReminders }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         });
