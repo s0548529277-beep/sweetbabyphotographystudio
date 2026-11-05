@@ -1,5 +1,4 @@
-import { heartImg, withEmailHearts } from "@/lib/email-hearts";
-import { signatureBlockHtml } from "@/lib/email-draft-design";
+import { buildBrandedMailHtml } from "@/lib/email-draft-design";
 // Server pieces of "ניהול לקוחות" (/admin/client-management). The admin
 // page reads/writes cm_clients / cm_sessions / cm_payment_accounts directly
 // through the authenticated browser client (admin-only RLS, see
@@ -51,19 +50,9 @@ function nl2br(s: string) {
   return esc(s).replace(/\n/g, "<br>");
 }
 
-/** One RTL email shell in the site's own colors (forest green + blush). */
+/** One RTL email shell in the photographer-site look (same as the reply drafts) — see buildBrandedMailHtml. */
 function emailShell(title: string, bodyHtml: string) {
-  // dir="rtl" is set on EVERY wrapper (not only <html>): Gmail strips the <html> attribute, which used to leave
-  // Hebrew text left-to-right with punctuation in the wrong place.
-  return withEmailHearts(`<!doctype html><html dir="rtl" lang="he"><body dir="rtl" style="margin:0;background:#f7f3ee;font-family:Arial,Helvetica,sans-serif;color:#2d3d2b;direction:rtl;text-align:right">
-<div dir="rtl" style="max-width:560px;margin:0 auto;padding:24px 16px;direction:rtl;text-align:right">
-  <div dir="rtl" style="background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #ecdcd4;direction:rtl;text-align:right">
-    <div dir="rtl" style="background:#2d3d2b;color:#fff;padding:18px 22px;font-size:18px;font-weight:bold;direction:rtl;text-align:right">${esc(title)}</div>
-    <div dir="rtl" style="padding:22px;font-size:15px;line-height:1.7;direction:rtl;text-align:right">${bodyHtml}</div>
-  </div>
-  <!-- outside the white card: the signature GIF is drawn on the page colour #f7f3ee -->
-  <div dir="rtl" style="padding:18px 0 4px;text-align:center;font-size:13px;color:#8a8a80;line-height:1.6">${signatureBlockHtml()}</div>
-</div></body></html>`, "michal", 16);
+  return buildBrandedMailHtml({ title: title.replace(/\s*[\u{1F300}-\u{1FAFF}\u2600-\u27BF]+\s*$/u, ""), innerHtml: bodyHtml });
 }
 
 /** Israel wall-clock parts for an instant. */
@@ -120,7 +109,7 @@ function reminderHtml(opts: {
   const heb = hebrewDate(opts.date);
   const notes =
     opts.settings.includeNotesInReminder && opts.notes
-      ? `<p style="background:#fbf1ee;border-radius:12px;padding:10px 14px">${nl2br(opts.notes)}</p>`
+      ? `<p style="background:#fbeef2;border-radius:14px;padding:12px 16px">${nl2br(opts.notes)}</p>`
       : "";
   // Wording is admin-editable (הגדרות → נוסחי מיילים); date block and notes stay automatic.
   const text = fillEmailTemplate(opts.settings.reminderEmailText, {
@@ -130,7 +119,7 @@ function reminderHtml(opts: {
   });
   return emailShell(
     `תזכורת לצילום ${opts.type} 📸`,
-    `<p style="font-size:17px;background:#f2f5f0;border-radius:12px;padding:10px 14px"><b>${esc(formatDateIL(opts.date))}</b>${heb ? ` · ${esc(heb)}` : ""} · בשעה <b>${esc(opts.time)}</b></p>
+    `<p style="font-size:17px;text-align:center;background:#fbeef2;color:#c23b6d;border-radius:14px;padding:14px 16px"><b>${esc(formatDateIL(opts.date))}</b>${heb ? ` · ${esc(heb)}` : ""} · בשעה <b>${esc(opts.time)}</b></p>
 <p>${textToEmailHtml(text)}</p>
 ${notes}`,
   );
@@ -153,7 +142,7 @@ function paymentHtml(opts: {
         ? "התשלום התקבל במלואו — תודה רבה! 🙏"
         : "עדכון על מצב התשלום שלך:";
   const bank = opts.settings.bankDetails?.trim()
-    ? `<p style="background:#f2f5f0;border-radius:12px;padding:10px 14px"><b>פרטים להעברה:</b><br>${nl2br(opts.settings.bankDetails)}</p>`
+    ? `<p style="background:#fbeef2;border-radius:14px;padding:12px 16px"><b>פרטים להעברה:</b><br>${nl2br(opts.settings.bankDetails)}</p>`
     : "";
   const links =
     opts.settings.paymentLinks?.trim() && balance > 0

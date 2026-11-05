@@ -232,6 +232,31 @@ export function signatureBlockHtml(): string {
       </div>`;
 }
 
+/**
+ * The photographer-site look (sand frame, cream card, MICHAL SIBONI wordmark, heart divider, pink heading) around
+ * ready-made inner HTML — used by the site's automatic mails (reminders, payment, gallery nudge) so they match the
+ * reply drafts, the photographer site and the newborn page. RTL is forced on every wrapper (Gmail strips the
+ * attribute on <html>), and Michal's fixed signature closes the mail.
+ */
+export function buildBrandedMailHtml(opts: { title: string; innerHtml: string; tagline?: string }): string {
+  const t = THEMES.photographer;
+  const heartKind: HeartKind = "michal";
+  const rtl = "direction:rtl;text-align:right";
+  const html = `<div dir="rtl" style="background:${t.pageBg};padding:18px 10px;${rtl}">
+  <table role="presentation" dir="rtl" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:${t.cardBg};border:1px solid ${t.border};border-radius:14px;overflow:hidden;font-family:${FONT};color:${t.text};${rtl}">
+    <tr><td align="center" style="padding:30px 28px 6px"><div dir="ltr" style="font-family:Helvetica,Arial,sans-serif;font-size:24px;letter-spacing:9px;margin-right:-9px;color:${SIG_BROWN}">MICHAL SIBONI</div>
+      <div style="font-size:12px;letter-spacing:2px;color:${t.soft};margin-top:8px">${esc(opts.tagline ?? "צילומי ניו בורן ומשפחה")}</div></td></tr>
+    <tr><td style="padding:6px 28px 0"><div style="border-top:1px solid ${t.soft}55;text-align:center;line-height:0"><span style="position:relative;top:-1px;background:${t.cardBg};padding:0 10px;color:${t.accent};font-size:12px;line-height:1">${heartImg(heartKind, 14)}</span></div></td></tr>
+    <tr><td dir="rtl" style="padding:14px 34px 10px;font-size:15px;line-height:1.8;${rtl}">
+      <h2 style="margin:0 0 14px;text-align:center;font-size:21px;font-weight:bold;color:${t.accent};font-family:${FONT}">${esc(opts.title)}</h2>
+      ${opts.innerHtml}
+    </td></tr>
+    <tr><td style="padding:14px 28px 26px;font-size:13px;color:${t.soft};text-align:center;line-height:1.6">${signatureBlockHtml()}</td></tr>
+  </table>
+</div>`;
+  return withEmailHearts(html, heartKind, 14);
+}
+
 export function buildDraftHtml(opts: {
   brand: DraftBrand;
   body: string;
