@@ -50,7 +50,11 @@ export const Route = createFileRoute("/api/send-booking-reminders")({
         // each job is wrapped, its error is recorded and shown on the admin dashboard.
         const errors: Record<string, string> = {};
         const safe = <T,>(name: string, fn: () => Promise<T>): Promise<T | { error: string }> =>
-          fn().catch((e: any) => {
+          Promise.race([
+            fn(),
+            // A job that hangs (never resolves) used to block the whole run, so no heartbeat was written.
+            new Promise<never>((_, rej) => setTimeout(() => rej(new Error("timeout after 40s")), 40_000)),
+          ]).catch((e: any) => {
             errors[name] = String(e?.message ?? e).slice(0, 300);
             console.error(`[SWEETBABY] scheduler job ${name} failed`, e);
             return { error: errors[name] };
@@ -79,13 +83,13 @@ export const Route = createFileRoute("/api/send-booking-reminders")({
           safe("recurringExpenses", () => runDueRecurringExpenses()),
           safe("outdoorStylingCallReminders", () => runDueOutdoorStylingCallReminders()),
           // Own catch: the cm_* tables may not exist until the migration is applied.
-          runDueClientManagementReminders().catch((e) => ({ reminders: 0, dailySchedule: false, skipped: String(e?.message ?? e) })),
+          safe("clientManagement", () => runDueClientManagementReminders()),
           // Automatic designed reply drafts in Gmail (never sends) — see email-drafts.server.ts.
-          runEmailDraftAssistant().catch((e) => ({ ran: false, error: String(e?.message ?? e) })),
+          safe("emailDrafts", () => runEmailDraftAssistant()),
           // Thank-you after the session + gentle nudge for an unfinished booking — see booking-followups.server.ts.
-          runDuePostSessionThanks().catch((e) => ({ checked: 0, sent: 0, error: String(e?.message ?? e) })),
-          runDueUnfinishedBookingFollowUps().catch((e) => ({ checked: 0, sent: 0, error: String(e?.message ?? e) })),
-          runDuePreSessionReminders().catch((e) => ({ checked: 0, sent: 0, error: String(e?.message ?? e) })),
+          safe("postSessionThanks", () => runDuePostSessionThanks()),
+          safe("unfinishedBookings", () => runDueUnfinishedBookingFollowUps()),
+          safe("preSessionReminders", () => runDuePreSessionReminders()),
         ]);
         // Heartbeat: lets the admin dashboard warn when the external scheduler stops calling this route.
         await stamp("scheduler_last_run", new Date().toISOString());
