@@ -26,11 +26,15 @@ export function SchedulerStatusTile() {
     refetchInterval: 60_000,
   });
 
+  // "Alive" = the external caller reached the route recently (scheduler_last_call). A run that gets cut off
+  // before its end no longer shows the red "scheduler stopped" warning.
   const q = useQuery({
-    queryKey: ["admin-scheduler-last-run"],
+    queryKey: ["admin-scheduler-last-call"],
     queryFn: async (): Promise<string | null> => {
-      const { data } = await (supabase as any).from("app_settings").select("value").eq("key", "scheduler_last_run").maybeSingle();
-      return data?.value ?? null;
+      const { data } = await (supabase as any).from("app_settings").select("key, value").in("key", ["scheduler_last_call", "scheduler_last_run"]);
+      const rows = (data ?? []) as { key: string; value: string }[];
+      const times = rows.map((r) => Date.parse(r.value)).filter((n) => isFinite(n));
+      return times.length ? new Date(Math.max(...times)).toISOString() : null;
     },
     refetchInterval: 60_000,
   });

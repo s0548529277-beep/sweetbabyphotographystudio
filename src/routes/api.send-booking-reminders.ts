@@ -49,12 +49,15 @@ export const Route = createFileRoute("/api/send-booking-reminders")({
         // One failing job must not take the whole run (and every other reminder) down with it:
         // each job is wrapped, its error is recorded and shown on the admin dashboard.
         const errors: Record<string, string> = {};
+        // Which jobs have finished so far (written after every job): if the run is cut off, this shows the one that never finished.
+        const doneJobs: Record<string, number> = {};
+        const startedAt = Date.now();
         const safe = <T,>(name: string, fn: () => Promise<T>): Promise<T | { error: string }> =>
           Promise.race([
             fn(),
             // A job that hangs (never resolves) used to block the whole run, so no heartbeat was written.
             new Promise<never>((_, rej) => setTimeout(() => rej(new Error("timeout after 40s")), 40_000)),
-          ]).catch((e: any) => {
+          ]).then((v) => { doneJobs[name] = Date.now() - startedAt; void stamp("scheduler_progress", JSON.stringify({ at: new Date().toISOString(), done: doneJobs })); return v; }).catch((e: any) => {
             errors[name] = String(e?.message ?? e).slice(0, 300);
             console.error(`[SWEETBABY] scheduler job ${name} failed`, e);
             return { error: errors[name] };

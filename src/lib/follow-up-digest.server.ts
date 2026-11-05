@@ -14,7 +14,7 @@ const STATE_KEY = "follow_up_digest_state";
 const MIN_GAP_MS = 55 * 60_000;
 const SITE = "https://sweetbabyphoto.shop";
 
-type Reason = { weight: number; icon: string; text: string; at: string | null };
+type Reason = { id?: string; weight: number; icon: string; text: string; at: string | null };
 type Person = { key: string; name: string; phone: string; email: string; reasons: Reason[] };
 
 const esc = (s: unknown) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] as string);
@@ -62,13 +62,13 @@ function waLink(p: string): string {
   return `https://wa.me/${intl}`;
 }
 
-async function loadState(db: any): Promise<{ at: string | null; keys: string[] }> {
+async function loadState(db: any): Promise<{ at: string | null; ids: string[] }> {
   const { data } = await db.from("app_settings").select("value").eq("key", STATE_KEY).maybeSingle();
   try {
     const v = JSON.parse(data?.value || "{}");
-    return { at: v.at ?? null, keys: Array.isArray(v.keys) ? v.keys : [] };
+    return { at: v.at ?? null, ids: Array.isArray(v.ids) ? v.ids : [] };
   } catch {
-    return { at: null, keys: [] };
+    return { at: null, ids: [] };
   }
 }
 
@@ -83,7 +83,7 @@ export async function collectFollowUps(db: any): Promise<Person[]> {
     if (!cur.name && p.name) cur.name = String(p.name).trim();
     if (!cur.phone && p.phone) cur.phone = String(p.phone).trim();
     if (!cur.email && ek) cur.email = ek;
-    cur.reasons.push(r);
+    cur.reasons.push({ ...r, id: `${r.icon}:${p.id}:${r.at ?? ""}` });
     people.set(key, cur);
   };
 
@@ -205,10 +205,11 @@ export async function collectFollowUps(db: any): Promise<Person[]> {
   return [...people.values()].sort((a, b) => Math.max(...b.reasons.map((r) => r.weight)) - Math.max(...a.reasons.map((r) => r.weight)));
 }
 
-function renderHtml(people: Person[], fresh: Set<string>): string {
+function renderHtml(people: Person[], stillWaiting: number): string {
+  const fresh = new Set<string>();
   const rows = people
     .map((p) => {
-      const isNew = fresh.has(p.key);
+      const isNew = false;
       const contact = [
         p.phone ? `<a href="tel:${esc(digits(p.phone))}" style="color:#2d3d2b;font-weight:700" dir="ltr">${esc(p.phone)}</a> · <a href="${waLink(p.phone)}" style="color:#1f7a4d">וואטסאפ</a>` : "",
         p.email ? `<a href="mailto:${esc(p.email)}" style="color:#2d3d2b" dir="ltr">${esc(p.email)}</a>` : "",
@@ -228,9 +229,9 @@ function renderHtml(people: Person[], fresh: Set<string>): string {
     .join("");
   return `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:620px;margin:auto;line-height:1.6">
     <h2 style="margin-bottom:4px">📋 למי לחזור עכשיו</h2>
-    <p style="margin:0 0 8px;color:#6b8a63">${people.length} ${people.length === 1 ? "מישהי מחכה" : "מחכות"} לתשובה${fresh.size ? ` · ${fresh.size} חדשות מאז הסיכום הקודם` : ""}. מסודר לפי דחיפות.</p>
+    <p style="margin:0 0 8px;color:#6b8a63">${people.length} ${people.length === 1 ? "חדשה" : "חדשות"} מאז הסיכום הקודם. מסודר לפי דחיפות.${stillWaiting ? ` עוד ${stillWaiting} מהסיכומים הקודמים עדיין מחכות — לא חוזר עליהן כאן.` : ""}</p>
     ${rows}
-    <p style="color:#6b8a63;font-size:12px;margin-top:18px">פניות וטלפונים: <a href="${SITE}/admin/leads">${SITE}/admin/leads</a> · התראות: <a href="${SITE}/admin/notifications">${SITE}/admin/notifications</a><br>כשסימנת הודעה כנקראה או שינית סטטוס לליד — היא יוצאת מהרשימה. הסיכום נשלח פעם בשעה, רק כשיש מישהי שמחכה.</p>
+    <p style="color:#6b8a63;font-size:12px;margin-top:18px">פניות וטלפונים: <a href="${SITE}/admin/leads">${SITE}/admin/leads</a> · התראות: <a href="${SITE}/admin/notifications">${SITE}/admin/notifications</a><br>כשסימנת הודעה כנקראה או שינית סטטוס לליד — היא יוצאת מהרשימה. הסיכום נשלח פעם בשעה, ורק עם מה שנוסף מאז הסיכום הקודם.</p>
   </div>`;
 }
 
@@ -242,19 +243,31 @@ export async function runHourlyFollowUpDigest(opts: { force?: boolean } = {}): P
   const state = await loadState(db);
   if (!opts.force && state.at && Date.now() - Date.parse(state.at) < MIN_GAP_MS) return { sent: false, reason: "too_soon" };
 
-  const people = await collectFollowUps(db);
-  if (people.length === 0) return { sent: false, reason: "nothing_waiting", people: 0 };
+  const all = await collectFollowUps(db);
+  if (all.length === 0) return { sent: false, reason: "nothing_waiting", people: 0 };
 
-  const seen = new Set(state.keys);
-  const fresh = new Set(people.filter((p) => !seen.has(p.key)).map((p) => p.key));
+  // Only what is NEW since the previous digest: reasons whose id was not in the last one.
+  const seen = new Set(state.ids);
+  const news: Person[] = [];
+  for (const p of all) {
+    const fresh = p.reasons.filter((r) => !seen.has(r.id as string));
+    if (fresh.length) news.push({ ...p, reasons: fresh });
+  }
+  const allIds = all.flatMap((p) => p.reasons.map((r) => r.id as string));
+  if (news.length === 0) {
+    // Nothing new: stay silent, but forget items that were handled so they can come back if they reappear.
+    await db.from("app_settings").upsert({ key: STATE_KEY, value: JSON.stringify({ at: state.at, ids: allIds }), updated_at: new Date().toISOString() });
+    return { sent: false, reason: "nothing_new", people: 0 };
+  }
+  const stillWaiting = all.length - news.length;
   const { sendGmail } = await import("@/integrations/google/gmail.server");
   const ok = await sendGmail({
     to: DIGEST_TO,
-    subject: `📋 למי לחזור עכשיו (${people.length})${fresh.size ? ` · ${fresh.size} חדשות` : ""}`,
-    html: renderHtml(people, fresh),
+    subject: `📋 חדש: למי לחזור (${news.length})`,
+    html: renderHtml(news, stillWaiting),
     fromName: "Sweetbaby · סיכום שעתי",
   });
-  if (!ok) return { sent: false, reason: "send_failed", people: people.length };
-  await db.from("app_settings").upsert({ key: STATE_KEY, value: JSON.stringify({ at: new Date().toISOString(), keys: people.map((p) => p.key) }), updated_at: new Date().toISOString() });
-  return { sent: true, people: people.length };
+  if (!ok) return { sent: false, reason: "send_failed", people: news.length };
+  await db.from("app_settings").upsert({ key: STATE_KEY, value: JSON.stringify({ at: new Date().toISOString(), ids: allIds }), updated_at: new Date().toISOString() });
+  return { sent: true, people: news.length };
 }
