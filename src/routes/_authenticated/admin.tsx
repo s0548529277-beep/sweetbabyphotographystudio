@@ -7,6 +7,8 @@ import { countUnreadAdminNotifications } from "@/lib/admin-notifications.functio
 import { countPendingOrders } from "@/lib/admin-orders.functions";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { InstallAppButton } from "@/components/InstallAppButton";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import {
   Package,
   Users,
@@ -38,7 +40,6 @@ import {
   FileText,
   MessageSquare,
   Menu,
-  X,
   BellRing,
   Disc3,
   ContactRound,
@@ -250,11 +251,10 @@ function AdminLayout() {
     }
     return initial;
   });
-  // The sidebar lists 15+ links — on a phone that's taller than the
-  // viewport, so it's collapsed behind this toggle by default there
-  // (always expanded on lg: and up, see the aside's own classes below).
-  // Per explicit report: without this, the nav list alone filled the whole
-  // screen and a page like "לקוחות" never had room to actually show.
+  // On a phone the admin is a compact app-like screen: a sticky top bar
+  // (menu button + current page + the two bells) and the page list in a
+  // slide-in drawer, instead of a tall list pushing the page down. The
+  // site header/footer are hidden there (always shown on lg: and up).
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const closeMobileNav = () => setMobileNavOpen(false);
 
@@ -264,95 +264,117 @@ function AdminLayout() {
     return <Outlet />;
   }
 
+  const navList = (onNavigate?: () => void) => (
+    <nav className="flex flex-col gap-1">
+      {links.map((entry) => {
+        if (!isGroup(entry)) {
+          return (
+            <NavLinkRow
+              key={entry.to}
+              l={entry}
+              active={isLinkActive(path, entry)}
+              onNavigate={onNavigate}
+            />
+          );
+        }
+        const isOpen = !!openGroups[entry.key];
+        const hasActiveChild = entry.items.some((l) => isLinkActive(path, l));
+        return (
+          <div key={entry.key}>
+            <button
+              type="button"
+              onClick={() => setOpenGroups((prev) => ({ ...prev, [entry.key]: !prev[entry.key] }))}
+              className={`w-full flex items-center gap-3 px-4 h-11 rounded-xl text-sm transition-colors ${
+                hasActiveChild && !isOpen ? "bg-primary/10 text-primary" : "hover:bg-cream text-foreground"
+              }`}
+            >
+              <entry.icon className="h-4 w-4" />
+              <span className="flex-1 text-right">{entry.label}</span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+            </button>
+            {isOpen && (
+              <div className="flex flex-col gap-1 mt-1">
+                {entry.items.map((l) => (
+                  <NavLinkRow
+                    key={l.to}
+                    l={l}
+                    active={isLinkActive(path, l)}
+                    indent
+                    onNavigate={onNavigate}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </nav>
+  );
+
   return (
     <div className="min-h-screen flex flex-col bg-cream/40">
-      <Header />
-      <section className="container-page py-10 flex-1">
-        <div className="flex items-start justify-between gap-3 mb-3">
+      <div className="hidden lg:block">
+        <Header />
+      </div>
+
+      {/* Phone: sticky app bar */}
+      <div className="lg:hidden sticky top-0 z-40 flex items-center gap-2 border-b border-primary/10 bg-card/95 px-3 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 backdrop-blur">
+        <button
+          type="button"
+          onClick={() => setMobileNavOpen(true)}
+          aria-label="פתיחת תפריט ניהול"
+          className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl bg-cream/70 px-3 text-sm font-medium text-primary"
+        >
+          <Menu className="h-5 w-5 shrink-0" />
+          <span className="truncate">{currentPageLabel(path)}</span>
+        </button>
+        <OrdersBell />
+        <NotificationBell />
+      </div>
+
+      <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+        <SheetContent side="right" className="w-[85vw] max-w-sm overflow-y-auto p-3 lg:hidden" dir="rtl">
+          <SheetTitle className="px-2 pb-3 pt-2 font-display text-xl text-primary">ניהול סטודיו</SheetTitle>
+          {navList(closeMobileNav)}
+          <div className="mt-4 flex flex-col gap-2 border-t border-primary/10 pt-4">
+            <Link
+              to="/"
+              onClick={closeMobileNav}
+              className="flex h-11 items-center justify-center rounded-xl border border-primary/15 text-sm text-primary"
+            >
+              חזרה לאתר
+            </Link>
+            <InstallAppButton className="text-primary" />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <section className="container-page flex-1 py-4 lg:py-10">
+        <div className="hidden lg:flex items-start justify-between gap-3 mb-3">
           <div className="text-xs tracking-[0.3em] uppercase text-forest/70">Admin</div>
           <div className="flex items-center gap-2">
             <OrdersBell />
             <NotificationBell />
           </div>
         </div>
-        <h1 className="font-display text-4xl text-primary mb-8">ניהול סטודיו</h1>
+        <h1 className="hidden lg:block font-display text-4xl text-primary mb-8">ניהול סטודיו</h1>
 
-        <div className="grid lg:grid-cols-[220px_1fr] gap-8">
-          <div className="lg:hidden">
-            <button
-              type="button"
-              onClick={() => setMobileNavOpen((v) => !v)}
-              className="w-full flex items-center justify-between gap-3 px-4 h-12 rounded-xl bg-card border border-primary/5 text-sm font-medium text-primary"
-            >
-              <span className="flex items-center gap-2">
-                {mobileNavOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-                תפריט ניהול
-              </span>
-              <span className="text-forest/60">{currentPageLabel(path)}</span>
-            </button>
-          </div>
-          <aside
-            className={`bg-card rounded-2xl p-3 border border-primary/5 h-fit lg:sticky lg:top-24 ${
-              mobileNavOpen ? "block" : "hidden"
-            } lg:block`}
-          >
-            <nav className="flex flex-col gap-1">
-              {links.map((entry) => {
-                if (!isGroup(entry)) {
-                  return (
-                    <NavLinkRow
-                      key={entry.to}
-                      l={entry}
-                      active={isLinkActive(path, entry)}
-                      onNavigate={closeMobileNav}
-                    />
-                  );
-                }
-                const isOpen = !!openGroups[entry.key];
-                const hasActiveChild = entry.items.some((l) => isLinkActive(path, l));
-                return (
-                  <div key={entry.key}>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setOpenGroups((prev) => ({ ...prev, [entry.key]: !prev[entry.key] }))
-                      }
-                      className={`w-full flex items-center gap-3 px-4 h-11 rounded-xl text-sm transition-colors ${
-                        hasActiveChild && !isOpen
-                          ? "bg-primary/10 text-primary"
-                          : "hover:bg-cream text-foreground"
-                      }`}
-                    >
-                      <entry.icon className="h-4 w-4" />
-                      <span className="flex-1 text-right">{entry.label}</span>
-                      <ChevronDown
-                        className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
-                      />
-                    </button>
-                    {isOpen && (
-                      <div className="flex flex-col gap-1 mt-1">
-                        {entry.items.map((l) => (
-                          <NavLinkRow
-                            key={l.to}
-                            l={l}
-                            active={isLinkActive(path, l)}
-                            indent
-                            onNavigate={closeMobileNav}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </nav>
+        <div className="grid lg:grid-cols-[220px_1fr] gap-4 lg:gap-8">
+          <aside className="hidden lg:block bg-card rounded-2xl p-3 border border-primary/5 h-fit sticky top-24">
+            {navList()}
+            <div className="mt-3 border-t border-primary/10 pt-3 flex justify-center text-primary">
+              <InstallAppButton />
+            </div>
           </aside>
-          <div className="min-w-0">
+          {/* min-w-0 + overflow-x-auto: wide tables scroll inside the page instead of stretching it sideways on a phone */}
+          <div className="min-w-0 overflow-x-auto [&_button]:min-h-9 [&_input]:text-base [&_select]:text-base [&_textarea]:text-base max-lg:[&_table]:min-w-max">
             <Outlet />
           </div>
         </div>
       </section>
-      <Footer />
+      <div className="hidden lg:block">
+        <Footer />
+      </div>
     </div>
   );
 }

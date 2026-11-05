@@ -300,7 +300,7 @@ export function ChatBot() {
   const nudgeKey = `sweetbaby-chat-nudge:${ctx.id}`;
   useEffect(() => {
     setShowNudge(false);
-    if (open || isAdmin || ctx.quiet) return;
+    if (open || isAdmin || ctx.quiet || compact) return;
     try {
       if (sessionStorage.getItem(nudgeKey)) return;
     } catch {
@@ -315,7 +315,7 @@ export function ChatBot() {
       }
     }, 6_000);
     return () => clearTimeout(timer);
-  }, [open, isAdmin, ctx.quiet, nudgeKey]);
+  }, [open, isAdmin, ctx.quiet, compact, nudgeKey]);
 
   // The nudge grows the button in place (see the JSX below) instead of
   // popping a separate card. It stays long enough to read and tap a
@@ -348,6 +348,25 @@ export function ChatBot() {
   // the small threshold below, so `moved` stays false and the click fires
   // normally.
   const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
+  // After the customer closes the chat with the X, the launcher stays as a small
+  // avatar-only bubble (never disappears) for the rest of the visit.
+  const [compact, setCompact] = useState(() => {
+    try {
+      return typeof sessionStorage !== "undefined" && sessionStorage.getItem("sweetbaby-launcher-compact") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const closeChat = () => {
+    setOpen(false);
+    setCompact(true);
+    setShowNudge(false);
+    try {
+      sessionStorage.setItem("sweetbaby-launcher-compact", "1");
+    } catch {
+      /* ignore */
+    }
+  };
   const dragState = useRef<{ startX: number; startY: number; origX: number; origY: number; moved: boolean } | null>(null);
   const justDraggedRef = useRef(false);
 
@@ -592,7 +611,23 @@ export function ChatBot() {
       // the drag offset moves only the closed bubble — when the chat window is open it must stay on-screen
       style={!open && (dragPos.x || dragPos.y) ? { transform: `translate(${dragPos.x}px, ${dragPos.y}px)` } : undefined}
     >
-      {!open && (
+      {!open && compact && (
+        <button
+          type="button"
+          onPointerDown={onDragPointerDown}
+          onPointerMove={onDragPointerMove}
+          onPointerUp={onDragPointerUp}
+          onPointerCancel={onDragPointerUp}
+          onClick={handleBubbleClick}
+          aria-label="פתיחת הצ׳אט עם נועה"
+          className="group relative flex size-12 items-center justify-center overflow-hidden rounded-full border-2 border-white/70 bg-white/85 opacity-90 shadow-[0_10px_28px_-12px_color-mix(in_oklab,var(--color-ink)_42%,transparent)] transition hover:scale-105 hover:opacity-100 active:scale-95 touch-none select-none"
+        >
+          <img src={avatarSrc} alt="" width={768} height={768} className="h-full w-full object-contain" />
+          <span className="absolute bottom-0.5 right-0.5 size-3 rounded-full border-2 border-white bg-accent shadow-sm" />
+        </button>
+      )}
+
+      {!open && !compact && (
         <div className="flex flex-col items-start gap-2">
         {showNudge && ctx.chips.length > 0 && (
           <div className="flex max-w-[min(340px,calc(100vw-32px))] flex-wrap gap-1.5 sm:gap-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -714,7 +749,7 @@ export function ChatBot() {
                   שיחה חדשה
                 </Button>
                 <Button
-                  onClick={() => setOpen(false)}
+                  onClick={closeChat}
                   aria-label="סגירת הצ׳אט"
                   variant="ghost"
                   size="icon"

@@ -1,6 +1,7 @@
 import logo from "@/assets/logo-peach.png";
 import { Link } from "@tanstack/react-router";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
+import { InstallAppButton } from "@/components/InstallAppButton";
 
 export function Footer() {
   return (
@@ -26,6 +27,9 @@ export function Footer() {
           </div>
         </div>
         <NewsletterSignup className="border-b border-background/15 py-8 md:py-12" />
+        <div className="flex justify-center pt-8">
+          <InstallAppButton className="text-background" />
+        </div>
         <div className="flex flex-col md:flex-row justify-between gap-4 pt-8 text-[11px] tracking-[0.28em] uppercase text-background/50">
           <span>© {new Date().getFullYear()} Sweetbaby Studio</span>
           <Link to="/terms" className="inline-block py-2 hover:text-background transition-colors">
