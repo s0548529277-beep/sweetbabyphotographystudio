@@ -165,12 +165,12 @@ export function formatDateIL(s: string | null | undefined) {
 const HEB_MONTH_NAMES: Record<number, string> = {
   1: "ניסן",
   2: "אייר",
-  3: "סיון",
+  3: "סיוון",
   4: "תמוז",
   5: "אב",
   6: "אלול",
   7: "תשרי",
-  8: "חשון",
+  8: "חשוון",
   9: "כסלו",
   10: "טבת",
   11: "שבט",
@@ -178,21 +178,24 @@ const HEB_MONTH_NAMES: Record<number, string> = {
   13: "אדר ב׳",
 };
 
-/** "י״ג חשון" — short Hebrew day label for a calendar cell. */
+/** Month name as Google Calendar writes it (leap-year Adar is "אדר א׳" / "אדר ב׳"). */
+function hebMonthName(month: number, leap: boolean) {
+  return month === 12 && leap ? "אדר א׳" : HEB_MONTH_NAMES[month];
+}
+
+/** "י״ג בחשוון" — Hebrew day label (letters only, like Google Calendar). */
 export function hebrewDayLabel(d: Date) {
   const h = new HDate(d);
   const leap = HDate.isLeapYear(h.getFullYear());
-  const m = h.getMonth();
-  const monthName = m === 12 && leap ? "אדר א׳" : HEB_MONTH_NAMES[m];
-  return `${gematriya(h.getDate())} ${monthName}`;
+  return `${gematriya(h.getDate())} ב${hebMonthName(h.getMonth(), leap)}`;
 }
 
-/** "חשון–כסלו תשפ״ז" style caption for a Gregorian month. */
+/** "חשוון–כסלו תשפ״ז" style caption for a Gregorian month. */
 export function hebrewMonthCaption(year: number, month0: number) {
   const first = new HDate(new Date(year, month0, 1));
   const last = new HDate(new Date(year, month0 + 1, 0));
-  const a = HEB_MONTH_NAMES[first.getMonth()];
-  const b = HEB_MONTH_NAMES[last.getMonth()];
+  const a = hebMonthName(first.getMonth(), HDate.isLeapYear(first.getFullYear()));
+  const b = hebMonthName(last.getMonth(), HDate.isLeapYear(last.getFullYear()));
   const yearStr = gematriya(last.getFullYear() % 1000);
   return a === b ? `${a} ${yearStr}` : `${a}–${b} ${yearStr}`;
 }
