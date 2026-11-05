@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-05 (23:5x Israel) — Claude (chat, via GitHub, owner: "there is no such thing as '26 בחשוון 5787' — a Hebrew date is only letters, check Google Calendar" + "address / מחכה לכן same size as the date"):** `hebrew-date.ts`: `hebrewDate()` now writes the Hebrew date in LETTERS like Google Calendar ("כ״ו בחשוון תשפ״ז", year without the thousands) via the new `hebrewNumeral()` (gematria, 15 -> ט״ו, 16 -> ט״ז) on top of Intl `formatToParts` (month name from Intl, incl. "אדר א׳/ב׳"). Used by orderSummary, reminder/summary mails, `/summary/...` page and (via `fullHebrewDate`) thank-you + admin client-management. The admin calendar cells already used gematriya (`hebrewDayLabel`, hebcal) and were not changed. Verified: 2026-11-06 -> כ״ו בחשוון תשפ״ז, 2026-09-12 -> א׳ בתשרי תשפ״ז. Reminder mail text paragraph (address / מחכה לכן) is now 17px like the date box. Not published yet.
+
 - **2026-11-05 (23:5x Israel) — Claude (chat, via GitHub, owner: "background a bit stronger"):** `buildBrandedMailHtml` gradient made stronger: `#f6d8d0 -> #eccbb4 -> #d9b898` (fallback `#ecd0b8`). Not published yet.
 
 - **2026-11-05 (23:5x Israel) — Claude (chat, via GitHub, owner: "the address — same text structure everywhere — add a Waze link"):** `arrival.ts`: new `STUDIO_WAZE_URL` (same link as the home page), `STUDIO_ADDRESS_WAZE_HTML` and `WAZE_BUTTON_HTML` (pill "ניווט בוויז 🚗"). The reminder mail (`reminderHtml`) shows the Waze button under the address text; the two "כתובת הסטודיו: …" lines in `orderSummary.ts` (booking + props order mails) now link the address to Waze. Not touched: the contract / photography-request / gallery mails that mention the address as plain text. Syntax check only; not published yet.

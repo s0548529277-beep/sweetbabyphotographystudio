@@ -121,7 +121,7 @@ function reminderHtml(opts: {
   return emailShell(
     `תזכורת לצילום ${opts.type} 📸`,
     `<p style="font-size:17px;text-align:center;background:#efe6da;color:#3e3029;border-radius:14px;padding:14px 16px"><b>${esc(formatDateIL(opts.date))}</b>${heb ? ` · ${esc(heb)}` : ""} · בשעה <b>${esc(opts.time)}</b></p>
-<p>${textToEmailHtml(text)}</p>
+<p style="font-size:17px;line-height:1.8">${textToEmailHtml(text)}</p>
 ${WAZE_BUTTON_HTML}
 ${notes}`,
   );
