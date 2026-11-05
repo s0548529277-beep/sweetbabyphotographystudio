@@ -12,7 +12,6 @@ import { CountUp } from "@/components/CountUp";
 // the header keeps using the original, padded file.
 import logo from "@/assets/logo-green-hero.png";
 
-import heroImg from "@/assets/hero-studio.jpg.asset.json";
 import { PAGE_IMAGE_KEYS, usePageGalleryWithAspect } from "@/lib/page-images";
 import hero0 from "@/assets/home-hero-0.png.asset.json";
 import hero1 from "@/assets/home-hero-1.png.asset.json";
@@ -21,7 +20,9 @@ import hero3 from "@/assets/home-hero-3.jpg.asset.json";
 import hero4 from "@/assets/home-hero-4.jpg.asset.json";
 import hero5 from "@/assets/home-hero-5.jpg.asset.json";
 import hero7 from "@/assets/home-hero-7.png.asset.json";
-import studioPropsCorner from "@/assets/studio-props-corner.jpg";
+import cardMichal from "@/assets/home-card-michal.jpg";
+import cardProps from "@/assets/home-card-props.jpg";
+import cardStudio from "@/assets/home-card-studio.jpg";
 import { HeroLightArch } from "@/components/home-hero-variants";
 
 const HERO_SLIDES: string[] = [
@@ -119,8 +120,7 @@ function Home() {
           <motion.div initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={0} variants={fadeUp}>
             <Link to="/studio-photography" className="group block bg-white rounded-[2rem] overflow-hidden border border-[#2d3d2b]/5 h-full flex flex-col hover:shadow-2xl transition-all hover:-translate-y-1">
               <div className="h-64 relative overflow-hidden bg-[#f5d5cf]">
-                <img src={hero3.url} alt="צילום של מיכל סיבוני" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
-                <img src={hero4.url} alt="צילום נוסף של מיכל סיבוני" className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500" loading="lazy" />
+                <img src={cardMichal} alt="צילום של מיכל סיבוני" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 object-[70%_50%]" loading="lazy" />
                 <div className="absolute top-4 right-4 h-12 w-12 rounded-full bg-white/90 backdrop-blur flex items-center justify-center">
                   <Camera className="h-5 w-5 text-[#2d3d2b]" />
                 </div>
@@ -150,8 +150,7 @@ function Home() {
           <motion.div initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={1} variants={fadeUp}>
             <Link to="/studio-rental" className="group block bg-[#a8c4a2]/20 rounded-[2rem] overflow-hidden border border-[#a8c4a2]/40 h-full flex flex-col hover:shadow-2xl transition-all hover:-translate-y-1">
               <div className="h-64 relative overflow-hidden">
-                <img src={heroImg.url} alt="חלל הסטודיו" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
-                <img src={hero0.url} alt="פינת רקעים בסטודיו" className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500" loading="lazy" />
+                <img src={cardStudio} alt="חלל הסטודיו" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
                 <div className="absolute top-4 right-4 h-12 w-12 rounded-full bg-white/90 backdrop-blur flex items-center justify-center">
                   <HomeIcon className="h-5 w-5 text-[#2d3d2b]" />
                 </div>
@@ -183,8 +182,7 @@ function Home() {
           <motion.div initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} custom={2} variants={fadeUp}>
             <Link to="/rental-catalog" className="group block bg-white rounded-[2rem] overflow-hidden border border-[#2d3d2b]/5 h-full flex flex-col hover:shadow-2xl transition-all hover:-translate-y-1">
               <div className="h-64 relative overflow-hidden bg-[#f5d5cf]">
-                <img src={studioPropsCorner} alt="פינת אביזרים לצילום" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
-                <img src={hero2.url} alt="אביזרים נוספים" className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500" loading="lazy" />
+                <img src={cardProps} alt="פינת אביזרים לצילום" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 object-[35%_50%]" loading="lazy" />
                 <div className="absolute top-4 right-4 h-12 w-12 rounded-full bg-white/90 backdrop-blur flex items-center justify-center">
                   <Sparkles className="h-5 w-5 text-[#2d3d2b]" />
                 </div>
