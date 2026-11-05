@@ -271,6 +271,25 @@ export function ChatBot() {
   const [dateTo, setDateTo] = useState("");
   const [skuInput, setSkuInput] = useState("");
   const [availLoading, setAvailLoading] = useState(false);
+  // After the customer closes the chat with the X, the launcher stays as a small
+  // avatar-only bubble (never disappears) for the rest of the visit.
+  const [compact, setCompact] = useState(() => {
+    try {
+      return typeof sessionStorage !== "undefined" && sessionStorage.getItem("sweetbaby-launcher-compact") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const closeChat = () => {
+    setOpen(false);
+    setCompact(true);
+    setShowNudge(false);
+    try {
+      sessionStorage.setItem("sweetbaby-launcher-compact", "1");
+    } catch {
+      /* ignore */
+    }
+  };
   // Auth/admin state resolves after first render — refresh the greeting
   // while the conversation hasn't started yet.
   useEffect(() => {
@@ -348,25 +367,6 @@ export function ChatBot() {
   // the small threshold below, so `moved` stays false and the click fires
   // normally.
   const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
-  // After the customer closes the chat with the X, the launcher stays as a small
-  // avatar-only bubble (never disappears) for the rest of the visit.
-  const [compact, setCompact] = useState(() => {
-    try {
-      return typeof sessionStorage !== "undefined" && sessionStorage.getItem("sweetbaby-launcher-compact") === "1";
-    } catch {
-      return false;
-    }
-  });
-  const closeChat = () => {
-    setOpen(false);
-    setCompact(true);
-    setShowNudge(false);
-    try {
-      sessionStorage.setItem("sweetbaby-launcher-compact", "1");
-    } catch {
-      /* ignore */
-    }
-  };
   const dragState = useRef<{ startX: number; startY: number; origX: number; origY: number; moved: boolean } | null>(null);
   const justDraggedRef = useRef(false);
 
