@@ -1,5 +1,5 @@
 import { heartImg } from "@/lib/email-hearts";
-import { ARRIVAL_TEXT_HE } from "@/lib/arrival";
+import { ARRIVAL_TEXT_HE, STUDIO_ADDRESS_WAZE_HTML } from "@/lib/arrival";
 import { hebrewDate } from "@/lib/hebrew-date";
 import { emailThumbUrl } from "@/lib/media-url";
 
@@ -201,7 +201,7 @@ export function buildBookingSummaryHtml(opts: {
     ${continueUrl ? buildContinueOrderHtml(continueUrl) : ""}
     ${opts.reminderActions ? buildReminderActionsHtml(b.id, b.session_date) : ""}
     ${buildChatButtonHtml({ kind: "booking", id: b.id, date: b.session_date })}
-    <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: תלמוד ירושלמי 24, בית שמש · לשאלות: s0548529277@gmail.com / 054-8529277</p>
+    <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: ${STUDIO_ADDRESS_WAZE_HTML} · לשאלות: s0548529277@gmail.com / 054-8529277</p>
   </div>`;
 }
 
@@ -389,6 +389,6 @@ export function buildPropsOrderSummaryHtml(opts: {
     ${footerNote ? `<p style="color:#6b8a63;font-size:13px;margin-top:16px">${footerNote}</p>` : ""}
     ${continueUrl ? buildContinueOrderHtml(continueUrl) : ""}
     ${buildChatButtonHtml({ kind: "order", id: o.id, date: o.session_date })}
-    <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: תלמוד ירושלמי 24, בית שמש · לשאלות: s0548529277@gmail.com / 054-8529277</p>
+    <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: ${STUDIO_ADDRESS_WAZE_HTML} · לשאלות: s0548529277@gmail.com / 054-8529277</p>
   </div>`;
 }

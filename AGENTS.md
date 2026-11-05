@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-05 (23:5x Israel) — Claude (chat, via GitHub, owner: "the address — same text structure everywhere — add a Waze link"):** `arrival.ts`: new `STUDIO_WAZE_URL` (same link as the home page), `STUDIO_ADDRESS_WAZE_HTML` and `WAZE_BUTTON_HTML` (pill "ניווט בוויז 🚗"). The reminder mail (`reminderHtml`) shows the Waze button under the address text; the two "כתובת הסטודיו: …" lines in `orderSummary.ts` (booking + props order mails) now link the address to Waze. Not touched: the contract / photography-request / gallery mails that mention the address as plain text. Syntax check only; not published yet.
+
 - **2026-11-05 (23:5x Israel) — Claude (chat, via GitHub, owner: "remove the 'היי אסתי סינוביץ,' part"):** default `reminderEmailText` no longer starts with the "היי {שם}," greeting: now just "כתובת: … / מחכה לכן 💗". The `{שם}` placeholder still works if she re-adds it in הגדרות → נוסחי מיילים. Not published yet.
 
 - **2026-11-05 (23:5x Israel) — Claude (chat, via GitHub, owner: "remove what repeats; everything is written in pink"):** reminder mail: default `reminderEmailText` (`client-management.ts`) shortened to "היי {שם}, / כתובת: … / מחכה לכן 💗" — the date/time sentence (already in the date box) and the "מיכל" sign-off (already in the signature) were removed. No saved override exists in `app_settings`, so the new default applies. Pink toned down: heading (`buildBrandedMailHtml`) is now dark brown, the date/notes/bank boxes are sand `#efe6da` with brown text; pink stays only in the divider heart. Not published yet; tsc not run.

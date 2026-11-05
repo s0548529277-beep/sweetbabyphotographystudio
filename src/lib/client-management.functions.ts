@@ -1,4 +1,5 @@
 import { buildBrandedMailHtml } from "@/lib/email-draft-design";
+import { WAZE_BUTTON_HTML } from "@/lib/arrival";
 // Server pieces of "ניהול לקוחות" (/admin/client-management). The admin
 // page reads/writes cm_clients / cm_sessions / cm_payment_accounts directly
 // through the authenticated browser client (admin-only RLS, see
@@ -121,6 +122,7 @@ function reminderHtml(opts: {
     `תזכורת לצילום ${opts.type} 📸`,
     `<p style="font-size:17px;text-align:center;background:#efe6da;color:#3e3029;border-radius:14px;padding:14px 16px"><b>${esc(formatDateIL(opts.date))}</b>${heb ? ` · ${esc(heb)}` : ""} · בשעה <b>${esc(opts.time)}</b></p>
 <p>${textToEmailHtml(text)}</p>
+${WAZE_BUTTON_HTML}
 ${notes}`,
   );
 }
