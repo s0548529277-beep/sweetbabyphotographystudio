@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +48,7 @@ export const Route = createFileRoute("/_authenticated/admin/finance")({
   component: FinanceAdmin,
 });
 
+const IMPORT_STAGING_KEY = "finance_import_staging";
 const TYPE_PROPS = "השכרת אביזרים";
 const TYPE_STUDIO = "השכרת סטודיו";
 const TYPE_PHOTO = "צילומים בסטודיו";
@@ -218,8 +219,52 @@ function FinanceAdmin() {
     /** "תמיד" — remember this payee's choice for the next files. */
     always: boolean;
     fromRule: boolean;
+    /** "קבוע" — also create a monthly recurring expense from this line. */
+    recurring: boolean;
+    /** Stable id of the line (date|direction|amount|name#n) so the same file never loads twice. */
+    key: string;
   };
+  /** Slim, saved form of a review row — the review list survives closing the window / reloading the page. */
+  type StagedRow = {
+    key: string;
+    date: string;
+    dateText: string;
+    desc: string;
+    payee: string;
+    amount: number;
+    amountText: string;
+    direction: ImportDirection;
+    selection: ImportSelection;
+    recurring: boolean;
+    always: boolean;
+    isRed: boolean;
+  };
+  const toStaged = (r: ImportRow): StagedRow => ({
+    key: r.key,
+    date: r.date,
+    dateText: r.dateText,
+    desc: r.desc,
+    payee: r.payee,
+    amount: r.amount,
+    amountText: r.amountText,
+    direction: r.direction,
+    selection: r.selection,
+    recurring: r.recurring,
+    always: r.always,
+    isRed: r.isRed,
+  });
+  const fromStaged = (r: StagedRow): ImportRow => ({
+    cells: [],
+    sheet: "",
+    preSelection: "none",
+    fromRule: false,
+    ...r,
+  });
   const [importRows, setImportRows] = useState<ImportRow[]>([]);
+  /** Lines she threw in the trash — remembered so loading the same file again does not bring them back. */
+  const [importDeleted, setImportDeleted] = useState<string[]>([]);
+  const [importQuery, setImportQuery] = useState("");
+  const [importStatus, setImportStatus] = useState<"all" | "none" | "marked" | "income" | "expense">("all");
   const [importRules, setImportRules] = useState<ImportRules>({});
   const [importCategory, setImportCategory] = useState("אחר");
   const [importIncomeCategory, setImportIncomeCategory] = useState(TYPE_PHOTO);
@@ -229,7 +274,66 @@ function FinanceAdmin() {
 
   const resetImport = () => {
     setImportRows([]);
+    setImportDeleted([]);
+    setImportQuery("");
+    setImportStatus("all");
     setImportLayout("");
+  };
+
+  // The review list is saved in app_settings (no migration needed), like the remembered rules.
+  const loadStaging = async (): Promise<{ rows: StagedRow[]; deleted: string[] }> => {
+    const { data } = await supabase.from("app_settings").select("value").eq("key", IMPORT_STAGING_KEY).maybeSingle();
+    try {
+      const raw = JSON.parse(data?.value ?? "null") as { rows?: StagedRow[]; deleted?: string[] } | null;
+      return { rows: Array.isArray(raw?.rows) ? raw!.rows! : [], deleted: Array.isArray(raw?.deleted) ? raw!.deleted! : [] };
+    } catch {
+      return { rows: [], deleted: [] };
+    }
+  };
+  const persistStaging = async (rows: ImportRow[], deleted: string[]) => {
+    const { error } = await supabase.from("app_settings").upsert({
+      key: IMPORT_STAGING_KEY,
+      value: JSON.stringify({ rows: rows.map(toStaged), deleted: deleted.slice(-3000) }),
+      updated_at: new Date().toISOString(),
+    });
+    if (error) console.error("[SWEETBABY] saving import list failed", error);
+  };
+  // Auto-save every change (mark, direction, trash) a moment after it happens.
+  useEffect(() => {
+    if (!importOpen) return;
+    const t = setTimeout(() => void persistStaging(importRows, importDeleted), 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [importRows, importDeleted, importOpen]);
+
+  const openSavedImport = async () => {
+    const saved = await loadStaging();
+    if (saved.rows.length === 0) return toast.info("אין שורות שמורות — אפשר לייבא קובץ");
+    setImportRules(await loadImportRules().catch(() => ({}) as ImportRules));
+    setImportRows(saved.rows.map(fromStaged));
+    setImportDeleted(saved.deleted);
+    setImportLayout(`${saved.rows.length} שורות שמורות מקבצים קודמים`);
+    setImportShowOnlyRed(false);
+    setImportOpen(true);
+  };
+
+  /** Closing the window never loses work: the list is saved first, then the screen state is cleared. */
+  const closeImport = () => {
+    void persistStaging(importRows, importDeleted);
+    setImportOpen(false);
+    resetImport();
+  };
+
+  const deleteImportRow = (idx: number) => {
+    setImportRows((rows) => {
+      const gone = rows[idx];
+      if (gone) setImportDeleted((d) => (d.includes(gone.key) ? d : [...d, gone.key]));
+      return rows.filter((_, i) => i !== idx);
+    });
+  };
+
+  const setImportRowRecurring = (idx: number, recurring: boolean) => {
+    setImportRows((rows) => rows.map((r, i) => (i === idx ? { ...r, recurring } : r)));
   };
 
   // Remembered "always" choices live in app_settings (no migration needed).
@@ -255,25 +359,38 @@ function FinanceAdmin() {
       }
       const rules = await loadImportRules().catch(() => ({}) as ImportRules);
       setImportRules(rules);
-      const rows: ImportRow[] = parsed.rows
+      const seen = new Map<string, number>();
+      const fileRows: ImportRow[] = parsed.rows
         .filter((r) => r.amount > 0)
         .map((r) => {
-          const rule = rules[payeeKey(r.desc)];
+          const rule = rules[payeeKey(r.payee || r.desc)];
           const selection: ImportSelection = rule ? rule.selection : r.preSelection;
+          const direction: ImportDirection = rule?.direction ?? r.direction ?? "expense";
+          const base = `${r.date}|${direction}|${r.amount.toFixed(2)}|${payeeKey(r.desc)}`;
+          const n = (seen.get(base) ?? 0) + 1;
+          seen.set(base, n);
           return {
             ...r,
             selection,
-            direction: rule?.direction ?? r.direction ?? "expense",
+            direction,
             always: false,
             fromRule: !!rule,
+            recurring: false,
+            key: `${base}#${n}`,
           };
         });
-      setImportRows(rows);
+      // Merge with what is already saved: the same line is never loaded twice, trashed lines stay in the trash.
+      const saved = await loadStaging();
+      const have = new Set([...saved.rows.map((x) => x.key), ...saved.deleted]);
+      const fresh = fileRows.filter((r) => !have.has(r.key));
+      const merged = [...saved.rows.map(fromStaged), ...fresh];
+      setImportRows(merged);
+      setImportDeleted(saved.deleted);
       setImportLayout(
-        `${parsed.layout} · ${rows.length} שורות${parsed.sheetsUsed.length > 1 ? ` מתוך ${parsed.sheetsUsed.length} לשוניות` : ""}`,
+        `${parsed.layout} · ${fresh.length} שורות חדשות${fileRows.length - fresh.length > 0 ? `, ${fileRows.length - fresh.length} כבר היו שמורות או נמחקו` : ""} · בסך הכל ${merged.length} ברשימה`,
       );
       // "Red only" only makes sense when the file really has red rows.
-      setImportShowOnlyRed(rows.some((r) => r.isRed));
+      setImportShowOnlyRed(fresh.some((r) => r.isRed) && fresh.length === merged.length);
       setImportOpen(true);
     } catch (err) {
       console.error("[SWEETBABY] xlsx import parse failed", err);
@@ -317,6 +434,13 @@ function FinanceAdmin() {
     const selected = selectedAll.filter((r) => r.selection !== "external");
     const externalCount = selectedAll.length - selected.length;
 
+    // Lines she decided on leave the saved list (imported or external); untouched lines stay for later.
+    const clearProcessed = async () => {
+      await persistStaging(
+        importRows.filter((r) => r.selection === "none"),
+        importDeleted,
+      );
+    };
     const dateFor = (r: ImportRow) => r.date || new Date().toISOString().slice(0, 10);
     const titleFor = (r: ImportRow) => r.desc || "יובא מאקסל";
 
@@ -347,11 +471,11 @@ function FinanceAdmin() {
       return toast.error("לא נמצא סכום תקין באף שורה שנבחרה");
 
     // Remember the rows ticked "תמיד" so the next file is pre-filled.
-    const toRemember = selectedAll.filter((r) => r.always && payeeKey(r.desc));
+    const toRemember = selectedAll.filter((r) => r.always && payeeKey(r.payee || r.desc));
     if (toRemember.length > 0) {
       const next: ImportRules = { ...importRules };
       for (const r of toRemember) {
-        next[payeeKey(r.desc)] = { selection: r.selection as "personal" | "business" | "external", direction: r.direction };
+        next[payeeKey(r.payee || r.desc)] = { selection: r.selection as "personal" | "business" | "external", direction: r.direction };
       }
       try {
         await saveImportRules(next);
@@ -361,6 +485,7 @@ function FinanceAdmin() {
     }
 
     if (expenseRows.length === 0 && incomeRows.length === 0) {
+      await clearProcessed();
       toast.success(`${externalCount} שורות סומנו כחיצוניות ולא יובאו`);
       setImportOpen(false);
       resetImport();
@@ -381,9 +506,36 @@ function FinanceAdmin() {
     if (expenseResult.error) return toast.error(expenseResult.error.message);
     if (incomeResult.error) return toast.error(incomeResult.error.message);
 
+    // "קבוע": the line was saved above for its own month; also create the monthly template, marked as already
+    // generated for that month so the scheduler does not add the same month twice.
+    const recurringRows = selected
+      .filter((r) => r.recurring && r.direction === "expense" && r.amount > 0)
+      .map((r) => {
+        const d = dateFor(r);
+        return {
+          title: (r.payee || r.desc || "הוצאה קבועה").slice(0, 120),
+          amount: r.amount,
+          category: importCategory,
+          day_of_month: Math.min(28, Math.max(1, Number(d.slice(8, 10)) || 1)),
+          is_personal: r.selection === "personal",
+          last_generated_month: monthKey(d),
+        };
+      });
+    let recurringSaved = 0;
+    if (recurringRows.length > 0) {
+      const rec = await (supabase as any).from("recurring_expenses").insert(recurringRows);
+      if (rec.error) toast.error(`ההוצאות יובאו אבל ההוצאה הקבועה לא נשמרה: ${rec.error.message}`);
+      else {
+        recurringSaved = recurringRows.length;
+        qc.invalidateQueries({ queryKey: ["admin-recurring-expenses"] });
+      }
+    }
+    await clearProcessed();
+
     const parts: string[] = [];
     if (expenseRows.length > 0) parts.push(`${expenseRows.length} הוצאות`);
     if (incomeRows.length > 0) parts.push(`${incomeRows.length} הכנסות`);
+    if (recurringSaved > 0) parts.push(`${recurringSaved} הוגדרו כקבועות`);
     if (externalCount > 0) parts.push(`${externalCount} חיצוניות דולגו`);
     const summary = parts.join(" ו-");
     if (expenseResult.schemaFallback || incomeResult.schemaFallback) {
@@ -1497,6 +1649,9 @@ function FinanceAdmin() {
             >
               <FileSpreadsheet className="h-4 w-4" /> ייבוא מבנק/אשראי
             </Button>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={openSavedImport}>
+              <FileSpreadsheet className="h-4 w-4" /> שורות שמורות לסימון
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -1811,8 +1966,8 @@ function FinanceAdmin() {
       <Dialog
         open={importOpen}
         onOpenChange={(o) => {
-          setImportOpen(o);
-          if (!o) resetImport();
+          if (o) setImportOpen(true);
+          else closeImport();
         }}
       >
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto" dir="rtl">
@@ -1824,7 +1979,9 @@ function FinanceAdmin() {
               קובץ בנק/אשראי מכיל גם הפקדות וגם חיובים — לכן לכל שורה יש שתי בחירות נפרדות: "הכנסה" או
               "הוצאה", וגם "אישי" או "עסק". שורות שצבעת באדום בקובץ מסומנות כאן אוטומטית בנקודה אדומה —
               אבל זו רק המלצה (לרוב מתאימה ל"הוצאה"). הייבוא בפועל קורה רק לשורות שמסמנים עליהן "אישי"
-              או "עסק" למטה — שורה שלא מסמנים עליה כלום לא תיובא.
+              או "עסק" למטה — שורה שלא מסמנים עליה כלום לא תיובא. "קבוע" מוסיף גם הוצאה חודשית קבועה,
+              "חיצוני" לא נספר כהכנסה וגם לא כהוצאה, ופח 🗑 מוחק את השורה מהרשימה. הרשימה נשמרת
+              אוטומטית — אפשר לסגור ולהמשיך בפעם אחרת מ"שורות שמורות לסימון".
             </p>
             {importLayout && (
               <p className="text-xs rounded-md bg-primary/5 px-3 py-2">זוהה: {importLayout}</p>
@@ -1888,22 +2045,52 @@ function FinanceAdmin() {
               </div>
             </div>
 
+            <div className="flex items-center gap-2 flex-wrap">
+              <Input
+                placeholder="חיפוש לפי שם / תיאור"
+                className="h-9 max-w-[240px]"
+                value={importQuery}
+                onChange={(e) => setImportQuery(e.target.value)}
+              />
+              <select
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                value={importStatus}
+                onChange={(e) => setImportStatus(e.target.value as typeof importStatus)}
+              >
+                <option value="all">כל השורות</option>
+                <option value="none">עוד לא סומנו</option>
+                <option value="marked">סומנו</option>
+                <option value="income">הכנסות</option>
+                <option value="expense">הוצאות</option>
+              </select>
+              <span className="text-xs text-muted-foreground">
+                {importRows.filter((r) => r.selection === "none").length} עוד לא סומנו מתוך {importRows.length}
+              </span>
+            </div>
+
             <div className="border border-primary/10 rounded-xl overflow-x-auto">
               <table className="w-full min-w-[640px] text-sm">
                 <thead className="bg-cream/60 text-right">
                   <tr>
                     <th className="p-2 font-medium w-8"></th>
                     <th className="p-2 font-medium">תאריך</th>
-                    <th className="p-2 font-medium">תיאור</th>
+                    <th className="p-2 font-medium">שם ותיאור</th>
                     <th className="p-2 font-medium">סכום</th>
                     <th className="p-2 font-medium">הכנסה / הוצאה</th>
                     <th className="p-2 font-medium">אישי / עסק</th>
+                    <th className="p-2 font-medium" title="גם הוצאה חודשית קבועה">קבוע</th>
                     <th className="p-2 font-medium" title="לזכור את הבחירה לקבצים הבאים">תמיד</th>
+                    <th className="p-2 font-medium w-8"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {importRows.map((r, i) => {
                     if (importShowOnlyRed && !r.isRed) return null;
+                    if (importStatus === "none" && r.selection !== "none") return null;
+                    if (importStatus === "marked" && r.selection === "none") return null;
+                    if (importStatus === "income" && r.direction !== "income") return null;
+                    if (importStatus === "expense" && r.direction !== "expense") return null;
+                    if (importQuery.trim() && !`${r.desc} ${r.payee}`.toLowerCase().includes(importQuery.trim().toLowerCase())) return null;
                     return (
                       <tr key={i} className={`border-t border-primary/5 ${r.selection !== "none" ? "bg-primary/5" : ""}`}>
                         <td className="p-2 text-center">
@@ -1963,17 +2150,36 @@ function FinanceAdmin() {
                         </td>
                         <td className="p-2 text-center">
                           <Checkbox
+                            checked={r.recurring}
+                            disabled={r.selection === "none" || r.selection === "external" || r.direction !== "expense"}
+                            title="הוצאה בלבד, אחרי סימון אישי או עסק"
+                            onCheckedChange={(v) => setImportRowRecurring(i, !!v)}
+                          />
+                        </td>
+                        <td className="p-2 text-center">
+                          <Checkbox
                             checked={r.always}
                             disabled={r.selection === "none"}
                             onCheckedChange={(v) => setImportRowAlways(i, !!v)}
                           />
+                        </td>
+                        <td className="p-2 text-center">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-destructive"
+                            title="מחיקת השורה מהרשימה"
+                            onClick={() => deleteImportRow(i)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </td>
                       </tr>
                     );
                   })}
                   {importRows.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="p-6 text-center text-muted-foreground">
+                      <td colSpan={9} className="p-6 text-center text-muted-foreground">
                         אין שורות להצגה
                       </td>
                     </tr>
@@ -2002,7 +2208,7 @@ function FinanceAdmin() {
                         try {
                           await saveImportRules(next);
                           setImportRows((rows) =>
-                            rows.map((r) => (payeeKey(r.desc) === key ? { ...r, fromRule: false } : r)),
+                            rows.map((r) => (payeeKey(r.payee || r.desc) === key ? { ...r, fromRule: false } : r)),
                           );
                         } catch (err) {
                           toast.error((err as Error).message);
@@ -2017,8 +2223,8 @@ function FinanceAdmin() {
             </details>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setImportOpen(false)}>
-              ביטול
+            <Button variant="outline" onClick={closeImport}>
+              סגירה (הרשימה נשמרת)
             </Button>
             <Button onClick={submitImport} disabled={importBusy}>
               {importBusy

@@ -22,6 +22,8 @@ export type ParsedImportRow = {
   date: string; // yyyy-mm-dd or ""
   dateText: string;
   desc: string;
+  /** Who paid / who was paid (the name), "" when the file has no name for the line. Used for remembered rules. */
+  payee: string;
   /** Always positive. 0 when the row has no usable amount. */
   amount: number;
   /** "אישי"/"עסק" already written in the file's own personal/business column (e.g. our exported workbook). */
@@ -49,6 +51,12 @@ export type ImportColumns = {
   credit: number; // -1 = none
   /** Column holding "אישי" / "עסק", -1 = none. */
   selection: number;
+  /** Bank "פרטים" column ("המבצע: <name> עבור: <purpose>"), -1 = none. */
+  details: number;
+  /** Bank "לטובת" column (the other side's name), -1 = none. */
+  payeeCol: number;
+  /** Bank "עבור" column (what the payment was for), -1 = none. */
+  purposeCol: number;
 };
 
 const DATE_WORDS = ["תאריך עסקה", "תאריך", "date"];
@@ -91,8 +99,12 @@ export function guessColumns(headers: string[]): ImportColumns {
   const desc = findCol(headers, DESC_WORDS, excluded);
   const amount = hasSplit ? -1 : findCol(headers, AMOUNT_WORDS, [...excluded, desc].filter((i) => i >= 0));
   const selection = headers.findIndex((h) => h.includes("אישי") && h.includes("עסק"));
+  const exactCol = (word: string) => headers.findIndex((h) => h.trim() === word);
   return {
     selection,
+    details: exactCol("פרטים"),
+    payeeCol: exactCol("לטובת"),
+    purposeCol: exactCol("עבור"),
     date: Math.max(date, 0),
     desc: desc >= 0 ? desc : Math.min(1, Math.max(headers.length - 1, 0)),
     amount: hasSplit ? -1 : amount >= 0 ? amount : Math.min(2, Math.max(headers.length - 1, 0)),
@@ -133,6 +145,38 @@ function isRedCell(fill: string | null, isReddish: (a: string | null) => boolean
   return isReddish(fill);
 }
 
+/** Removes account / ID numbers ("מח-ן:000444610", "מזהה 322962580", any 8+ digit run) so they never land in a transaction name. */
+function cleanName(text: string): string {
+  return (text || "")
+    .replace(/\s*(?:מח-ן|מזהה)\s*:?\s*\d+/g, "")
+    .replace(/\b\d{8,}\b/g, "")
+    .replace(/[\s,]+$/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+/**
+ * Bank lines say only "זיכוי" / "העברה" in the operation column; the NAME sits in
+ * "פרטים" ("המבצע: X עבור: Y" / "לטובת: X") or in the separate "לטובת" / "עבור" columns.
+ * Returns the name and the purpose, both cleaned of account numbers.
+ */
+export function extractPayee(details: string, payeeCell: string, purposeCell: string): { payee: string; purpose: string } {
+  const notId = (t: string) => !!t && !/^[\d\s-]+$/.test(t);
+  let payee = cleanName(payeeCell);
+  if (!notId(payee)) {
+    const m = (details || "").match(/(?:המבצע|לטובת)\s*:\s*(.+?)(?:\s+עבור\s*:|$)/);
+    payee = m ? cleanName(m[1]) : "";
+    if (!notId(payee)) payee = "";
+  }
+  let purpose = cleanName(purposeCell);
+  if (!purpose) {
+    const m = (details || "").match(/עבור\s*:\s*(.*)$/);
+    purpose = m ? cleanName(m[1]) : "";
+  }
+  if (purpose === payee) purpose = "";
+  return { payee, purpose };
+}
+
 export function parseImportSheets(
   sheets: { name: string; rows: XlsxRow[] }[],
   isReddish: (argb: string | null) => boolean,
@@ -163,7 +207,14 @@ export function parseImportSheets(
       if (!cells.some((c) => c.trim() !== "")) continue;
       const dateText = (cells[cols.date] ?? "").trim();
       const date = parseDateCell(dateText) ?? "";
-      const desc = (cells[cols.desc] ?? "").trim();
+      const operation = (cells[cols.desc] ?? "").trim();
+      const { payee, purpose } = extractPayee(
+        cols.details >= 0 ? (cells[cols.details] ?? "") : "",
+        cols.payeeCol >= 0 ? (cells[cols.payeeCol] ?? "") : "",
+        cols.purposeCol >= 0 ? (cells[cols.purposeCol] ?? "") : "",
+      );
+      // With a name: "name · purpose". Without one (card charges, fees): the operation text as before.
+      const desc = payee ? (purpose ? `${payee} · ${purpose}` : payee) : operation;
       // Skip total / blank-label rows that sit under the table ("סה״כ הכנסות" etc.).
       if (!date && (/^סה["״']?כ/.test(desc) || desc === "")) continue;
       let amount = 0;
@@ -204,6 +255,7 @@ export function parseImportSheets(
         date,
         dateText,
         desc,
+        payee,
         amount,
         direction,
         amountText,
@@ -216,10 +268,17 @@ export function parseImportSheets(
   // Single amount column: if the file has negative amounts at all, the sign tells the direction
   // (negative = expense, positive = income). Otherwise (e.g. a credit-card statement where
   // everything is a charge) every row defaults to expense.
+  const isCardFile = headers.some((h) => h.includes("בית עסק") || h.includes("בית העסק"));
   if (columns.debit < 0) {
-    const hasNegative = parsed.some((p) => p.direction === "expense");
-    for (const p of parsed) {
-      if (p.direction === null) p.direction = hasNegative ? "income" : "expense";
+    if (isCardFile) {
+      // Credit-card statement: a positive line is a charge (expense); only a NEGATIVE line (refund / credit)
+      // is income. A single refund must not turn every charge in the file into income.
+      for (const p of parsed) p.direction = p.direction === "expense" ? "income" : "expense";
+    } else {
+      const hasNegative = parsed.some((p) => p.direction === "expense");
+      for (const p of parsed) {
+        if (p.direction === null) p.direction = hasNegative ? "income" : "expense";
+      }
     }
   }
   return { headers, rows: parsed, sheetsUsed, layout: describeLayout(headers, columns), columns };
