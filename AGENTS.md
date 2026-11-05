@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-05 (23:2x Israel) — Claude (chat):** PUBLISHED commit 68c38f7 (deploy 9244dfe2; the first publish click returned the earlier deploy 34a7e822, so it was sent again) — adds the HTML attachment to the order confirmation mail. Status "pending" when logged; not checked live.
+
 - **2026-11-05 (23:2x Israel) — Claude (chat, via GitHub, owner: "can the order confirmation e-mail also come as an attached file?"):** NEW `src/lib/order-html-attachment.server.ts` (`buildOrderHtmlAttachment`): the props-order CONFIRMATION mail (`orders.functions.ts`, the "אישור הזמנה — השכרת אביזרים" send) now also attaches `order-<id8>.html` = the same HTML with every `https://sweetbabyphoto.shop/...` image fetched and embedded as a data: URI (images >400KB or failing fetches are left as links; 8s timeout each), so it opens offline/with filters. Sent to studio + customer together with the receipt attachment. Only the confirmation mail got it (not the "request received" or reminder mails). HTML, not PDF (no PDF lib / Hebrew RTL in the worker). tsc not run; not tested with a real mail; not deployed.
 
 - **2026-11-05 (23:1x Israel) — Claude (chat):** PUBLISHED commit bec0be4 (deploy 34a7e822) — includes the homepage card photos (297c603), the catalog category cleanup (5238c5d) and the email thumbnail fix. Status was "pending" when logged; not checked live.
