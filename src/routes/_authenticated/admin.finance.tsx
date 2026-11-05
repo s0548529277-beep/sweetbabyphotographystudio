@@ -1888,8 +1888,8 @@ function FinanceAdmin() {
               </div>
             </div>
 
-            <div className="border border-primary/10 rounded-xl overflow-hidden">
-              <table className="w-full text-sm">
+            <div className="border border-primary/10 rounded-xl overflow-x-auto">
+              <table className="w-full min-w-[640px] text-sm">
                 <thead className="bg-cream/60 text-right">
                   <tr>
                     <th className="p-2 font-medium w-8"></th>

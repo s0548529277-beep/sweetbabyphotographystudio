@@ -140,7 +140,7 @@ function Overview() {
       <IncomeSummary />
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {cards.map((c) => (
-          <Link key={c.label} to={c.to} className="bg-card rounded-2xl p-6 border border-primary/5 hover:shadow-[var(--shadow-card)] transition-shadow">
+          <Link key={c.label} to={c.to} className="bg-card rounded-2xl p-4 sm:p-6 border border-primary/5 hover:shadow-[var(--shadow-card)] transition-shadow">
             <div className="flex items-center justify-between">
               <div className="h-10 w-10 rounded-full bg-peach text-primary flex items-center justify-center">
                 <c.icon className="h-4 w-4" />
@@ -152,7 +152,7 @@ function Overview() {
         ))}
       </div>
 
-      <div className="bg-card rounded-2xl p-6 border border-primary/5">
+      <div className="bg-card rounded-2xl p-4 sm:p-6 border border-primary/5">
         <h2 className="font-display text-2xl text-primary flex items-center gap-2 mb-4">
           <Sun className="h-5 w-5" /> היום במבט אחד
         </h2>
@@ -222,7 +222,7 @@ function Overview() {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
-        <div className="bg-card rounded-2xl p-6 border border-primary/5">
+        <div className="bg-card rounded-2xl p-4 sm:p-6 border border-primary/5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-2xl text-primary flex items-center gap-2">
               <ShoppingBag className="h-5 w-5" /> הזמנות אחרונות
@@ -261,7 +261,7 @@ function Overview() {
           )}
         </div>
 
-        <div className="bg-card rounded-2xl p-6 border border-primary/5">
+        <div className="bg-card rounded-2xl p-4 sm:p-6 border border-primary/5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-2xl text-primary flex items-center gap-2">
               <Bell className="h-5 w-5" /> הודעות מערכת
@@ -376,7 +376,7 @@ function IncomeSummary() {
   const periodLabel = period === "month" ? "החודש" : period === "year" ? "השנה" : "מאז ומעולם";
 
   return (
-    <div className="bg-card rounded-2xl p-6 border border-primary/5">
+    <div className="bg-card rounded-2xl p-4 sm:p-6 border border-primary/5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Wallet className="h-4 w-4" /> כמה נכנס {periodLabel}

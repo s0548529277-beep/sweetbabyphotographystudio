@@ -284,7 +284,7 @@ function OutdoorPackagesAdmin() {
     <div className="space-y-8">
       <PhotoSectionTabs />
       <div>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <h2 className="font-display text-2xl text-primary flex items-center gap-2">
             <Trees className="h-5 w-5" /> חבילות צילומי חוץ
           </h2>
@@ -338,7 +338,7 @@ function OutdoorPackagesAdmin() {
       </div>
 
       <div>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <h2 className="font-display text-2xl text-primary flex items-center gap-2">
             <MapPin className="h-5 w-5" /> לקוחות צילומי חוץ
           </h2>

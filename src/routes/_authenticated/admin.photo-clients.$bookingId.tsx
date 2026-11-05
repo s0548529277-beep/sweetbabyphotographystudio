@@ -166,7 +166,7 @@ function UploadSection({
         <div className="flex items-center gap-1.5">
           <span className="text-xs font-medium text-muted-foreground">דחיסה לתצוגה:</span>
           <Select value={compression} onValueChange={(v) => setCompression(v as CompressionLevel)}>
-            <SelectTrigger className="h-7 text-xs w-[220px]">
+            <SelectTrigger className="h-7 text-xs w-full max-w-[220px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

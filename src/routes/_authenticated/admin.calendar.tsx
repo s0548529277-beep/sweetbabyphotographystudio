@@ -98,7 +98,7 @@ function CalendarAdmin() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl text-primary">יומן מסודר</h1>
           <p className="text-xs text-muted-foreground mt-1">
@@ -131,7 +131,7 @@ function CalendarAdmin() {
           </div>
         </div>
 
-        <div className="bg-card rounded-2xl p-6 border border-primary/5">
+        <div className="bg-card rounded-2xl p-4 sm:p-6 border border-primary/5">
           <div className="flex items-center justify-between mb-5">
             <div>
               <h2 className="font-display text-2xl text-primary">

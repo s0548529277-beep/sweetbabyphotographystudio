@@ -60,7 +60,7 @@ function formatDuration(totalSeconds: number): string {
 
 function StatTile({ icon: Icon, label, value }: { icon: typeof Users; label: string; value: string | number }) {
   return (
-    <div className="bg-card rounded-2xl p-6 border border-primary/5">
+    <div className="bg-card rounded-2xl p-4 sm:p-6 border border-primary/5">
       <div className="flex items-center justify-between">
         <div className="h-10 w-10 rounded-full bg-peach text-primary flex items-center justify-center">
           <Icon className="h-4 w-4" />
@@ -157,7 +157,7 @@ function AnalyticsAdmin() {
           </div>
 
           <div className="grid lg:grid-cols-2 gap-6">
-            <div className="bg-card rounded-2xl p-6 border border-primary/5">
+            <div className="bg-card rounded-2xl p-4 sm:p-6 border border-primary/5">
               <h3 className="font-display text-xl text-primary mb-1">מבקרים חדשים וחוזרים</h3>
               <p className="text-xs text-muted-foreground mb-4">
                 רק מי שאישר/ה את באנר העוגיות נספר/ת כאן כמבקר/ת עם זיהוי קבוע. ביקורים בלי אישור מופיעים בנפרד.
@@ -182,7 +182,7 @@ function AnalyticsAdmin() {
               )}
             </div>
 
-            <div className="bg-card rounded-2xl p-6 border border-primary/5">
+            <div className="bg-card rounded-2xl p-4 sm:p-6 border border-primary/5">
               <h3 className="font-display text-xl text-primary mb-1">זמן שהייה ממוצע בעמוד</h3>
               <p className="text-xs text-muted-foreground mb-4">זמן פעיל בלבד (הלשונית פתוחה ובמסך), לעמודים שנמדדו לפחות פעמיים.</p>
               {data.dwellByPage.length === 0 ? (
@@ -203,7 +203,7 @@ function AnalyticsAdmin() {
           </div>
 
           <div className="grid lg:grid-cols-2 gap-6">
-            <div className="bg-card rounded-2xl p-6 border border-primary/5">
+            <div className="bg-card rounded-2xl p-4 sm:p-6 border border-primary/5">
               <h3 className="font-display text-xl text-primary mb-4">מאיפה נכנסו אלי</h3>
               {data.trafficSources.length === 0 ? (
                 <div className="text-muted-foreground text-sm py-6 text-center">עדיין אין מספיק נתונים.</div>
@@ -228,7 +228,7 @@ function AnalyticsAdmin() {
               )}
             </div>
 
-            <div className="bg-card rounded-2xl p-6 border border-primary/5">
+            <div className="bg-card rounded-2xl p-4 sm:p-6 border border-primary/5">
               <h3 className="font-display text-xl text-primary mb-4">הקלקות בכל עמוד</h3>
               {data.topPages.length === 0 ? (
                 <div className="text-muted-foreground text-sm py-6 text-center">עדיין אין מספיק נתונים.</div>
@@ -242,7 +242,7 @@ function AnalyticsAdmin() {
             </div>
           </div>
 
-          <div className="bg-card rounded-2xl p-6 border border-primary/5">
+          <div className="bg-card rounded-2xl p-4 sm:p-6 border border-primary/5">
             <h3 className="font-display text-xl text-primary mb-1">כניסות בודדות (אנונימי)</h3>
             <p className="text-xs text-muted-foreground mb-4">
               כל כניסה בנפרד — מאיפה הגיעה, לאיזה עמוד, כמה צפתה ולחצה. בלי שם או זהות — בדיוק כמו
@@ -288,7 +288,7 @@ function AnalyticsAdmin() {
             )}
           </div>
 
-          <div className="bg-card rounded-2xl p-6 border border-primary/5">
+          <div className="bg-card rounded-2xl p-4 sm:p-6 border border-primary/5">
             <div className="flex items-center gap-2 mb-4">
               <ImageIcon className="h-5 w-5 text-primary" />
               <h3 className="font-display text-xl text-primary">קולאז'ים שאנשים יצרו</h3>

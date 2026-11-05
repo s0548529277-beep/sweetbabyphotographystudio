@@ -358,7 +358,7 @@ function SubscriptionsAdmin() {
     <div className="space-y-10">
       {/* Plan templates */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <h2 className="font-display text-2xl text-primary flex items-center gap-2">
             <Layers className="h-5 w-5" /> תבניות חבילה
           </h2>
@@ -560,7 +560,7 @@ function SubscriptionsAdmin() {
                 placeholder="לדוגמה: כרטיסיית 5 כניסות"
               />
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div>
                 <Label>מספר כניסות</Label>
                 <Input
@@ -674,7 +674,7 @@ function SubscriptionsAdmin() {
                 onChange={(e) => setPassForm((f) => ({ ...f, plan_name: e.target.value }))}
               />
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div>
                 <Label>מספר כניסות</Label>
                 <Input

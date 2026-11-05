@@ -1237,13 +1237,13 @@ function ItemsAdmin() {
 
       <SearchMissesPanel />
 
-      <div className="bg-card rounded-2xl border border-primary/5 overflow-hidden">
+      <div className="bg-card rounded-2xl border border-primary/5 overflow-x-auto">
         <div className="px-4 py-2 text-xs text-muted-foreground border-b border-border">
           לחצו על שם, קטגוריה, מחיר, כמות או מצב בטבלה כדי לערוך ישירות — נשמר אוטומטית. גררו שורות
           כדי לשנות את הסדר — הסדר מתעדכן אוטומטית בקטלוג ובכל דפי האביזרים.
           {savingOrder ? " · שומר…" : ""}
         </div>
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[820px] text-sm">
           <thead className="bg-cream/60 text-right">
             <tr>
               <th className="p-3 font-medium w-8" />
