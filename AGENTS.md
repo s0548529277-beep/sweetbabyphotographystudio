@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-05 (23:5x Israel) — Claude (chat, via GitHub, owner: "background a bit stronger"):** `buildBrandedMailHtml` gradient made stronger: `#f6d8d0 -> #eccbb4 -> #d9b898` (fallback `#ecd0b8`). Not published yet.
+
 - **2026-11-05 (23:5x Israel) — Claude (chat, via GitHub, owner: "the address — same text structure everywhere — add a Waze link"):** `arrival.ts`: new `STUDIO_WAZE_URL` (same link as the home page), `STUDIO_ADDRESS_WAZE_HTML` and `WAZE_BUTTON_HTML` (pill "ניווט בוויז 🚗"). The reminder mail (`reminderHtml`) shows the Waze button under the address text; the two "כתובת הסטודיו: …" lines in `orderSummary.ts` (booking + props order mails) now link the address to Waze. Not touched: the contract / photography-request / gallery mails that mention the address as plain text. Syntax check only; not published yet.
 
 - **2026-11-05 (23:5x Israel) — Claude (chat, via GitHub, owner: "remove the 'היי אסתי סינוביץ,' part"):** default `reminderEmailText` no longer starts with the "היי {שם}," greeting: now just "כתובת: … / מחכה לכן 💗". The `{שם}` placeholder still works if she re-adds it in הגדרות → נוסחי מיילים. Not published yet.

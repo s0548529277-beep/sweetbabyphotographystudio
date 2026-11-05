@@ -243,7 +243,7 @@ export function buildBrandedMailHtml(opts: { title: string; innerHtml: string; t
   const heartKind: HeartKind = "michal";
   const rtl = "direction:rtl;text-align:right";
   // Soft blush-to-sand gradient behind the card (solid colour first as the fallback for clients without gradients).
-  const html = `<div dir="rtl" style="background:#f1e2d6;background-image:linear-gradient(160deg,#fbeeea 0%,#f3e3d6 55%,#e9d6c1 100%);padding:28px 12px;${rtl}">
+  const html = `<div dir="rtl" style="background:#ecd0b8;background-image:linear-gradient(160deg,#f6d8d0 0%,#eccbb4 55%,#d9b898 100%);padding:28px 12px;${rtl}">
   <table role="presentation" dir="rtl" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:${t.cardBg};border:1px solid #efe0d2;border-radius:20px;overflow:hidden;box-shadow:0 8px 28px rgba(120,86,60,0.16);font-family:${FONT};color:${t.text};${rtl}">
     <tr><td align="center" style="padding:30px 28px 6px"><div dir="ltr" style="font-family:Helvetica,Arial,sans-serif;font-size:24px;letter-spacing:9px;margin-right:-9px;color:${SIG_BROWN}">MICHAL SIBONI</div>
       <div style="font-size:12px;letter-spacing:2px;color:${t.soft};margin-top:8px">${esc(opts.tagline ?? "צילומי ניו בורן ומשפחה")}</div></td></tr>
