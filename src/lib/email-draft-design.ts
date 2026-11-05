@@ -219,6 +219,19 @@ const SIGNATURES: Record<DraftBrand, { name: string; lines: string[]; site?: { l
   general: { name: "מיכל סיבוני", lines: ["053-418-1051"] },
 };
 
+/**
+ * Michal's fixed e-mail signature (animated GIF + her three buttons), as one RTL block. Used by the reply drafts
+ * AND by the site's automatic mails (reminders etc.) so every mail closes the same way.
+ */
+export function signatureBlockHtml(): string {
+  return `<div style="line-height:0"><img src="${SIGNATURE_GIF_URL}" alt="MICHAL SIBONI · ${SITE_PHONE} · ${SITE_MAIL} · michalsiboni.co.il" width="560" style="width:100%;max-width:560px;height:auto;border:0;display:inline-block"></div>
+      <div style="margin-top:14px;line-height:1.4">
+        <a href="https://michalsiboni.co.il/" style="display:inline-block;background:${SIG_BROWN};color:${SIG_CREAM};border:1px solid ${SIG_BROWN};font-family:Arial,sans-serif;font-size:14px;font-weight:bold;text-decoration:none;padding:9px 24px;border-radius:18px;white-space:nowrap;margin:4px">לגלריה שלי</a>
+        <a href="https://sweetbabyphoto.shop/" style="display:inline-block;background:${SIG_CREAM};color:${SIG_BROWN};border:1px solid ${SIG_BROWN};font-family:Arial,sans-serif;font-size:13px;font-weight:bold;text-decoration:none;padding:8px 18px;border-radius:18px;white-space:nowrap;margin:4px">לאתר הסטודיו</a>
+        <a href="mailto:${SITE_MAIL}" style="display:inline-block;background:${SIG_CREAM};color:${SIG_BROWN};border:1px solid ${SIG_BROWN};font-family:Arial,sans-serif;font-size:13px;font-weight:bold;text-decoration:none;padding:8px 18px;border-radius:18px;white-space:nowrap;margin:4px">שליחת מייל</a>
+      </div>`;
+}
+
 export function buildDraftHtml(opts: {
   brand: DraftBrand;
   body: string;
@@ -288,12 +301,7 @@ export function buildDraftHtml(opts: {
     <tr><td style="padding:${branded ? "14px 28px 26px" : "16px 28px 20px"};${branded ? "" : `border-top:1px solid ${t.border};`}font-size:13px;color:${t.soft};text-align:center;line-height:1.6">
       ${
         useSiteSig
-          ? `<div style="line-height:0"><img src="${SIGNATURE_GIF_URL}" alt="MICHAL SIBONI · ${SITE_PHONE} · ${SITE_MAIL} · michalsiboni.co.il" width="560" style="width:100%;max-width:560px;height:auto;border:0;display:inline-block"></div>
-      <div style="margin-top:14px;line-height:1.4">
-        <a href="https://michalsiboni.co.il/" style="display:inline-block;background:${SIG_BROWN};color:${SIG_CREAM};border:1px solid ${SIG_BROWN};font-family:Arial,sans-serif;font-size:14px;font-weight:bold;text-decoration:none;padding:9px 24px;border-radius:18px;white-space:nowrap;margin:4px">לגלריה שלי</a>
-        <a href="https://sweetbabyphoto.shop/" style="display:inline-block;background:${SIG_CREAM};color:${SIG_BROWN};border:1px solid ${SIG_BROWN};font-family:Arial,sans-serif;font-size:13px;font-weight:bold;text-decoration:none;padding:8px 18px;border-radius:18px;white-space:nowrap;margin:4px">לאתר הסטודיו</a>
-        <a href="mailto:${SITE_MAIL}" style="display:inline-block;background:${SIG_CREAM};color:${SIG_BROWN};border:1px solid ${SIG_BROWN};font-family:Arial,sans-serif;font-size:13px;font-weight:bold;text-decoration:none;padding:8px 18px;border-radius:18px;white-space:nowrap;margin:4px">שליחת מייל</a>
-      </div>`
+          ? signatureBlockHtml()
           : `<div style="font-weight:bold;color:${t.accent}">${esc(sig.name)}</div>
       ${sig.lines.map((l) => `<div>${esc(l)}</div>`).join("")}
       ${sig.site ? `<div><a href="${sig.site.url}" style="color:${t.soft}">${esc(sig.site.label)}</a></div>` : ""}
