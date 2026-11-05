@@ -104,7 +104,7 @@ export const DEFAULT_CM_SETTINGS: CmSettings = {
   bankDetails: "",
   paymentLinks: "",
   galleryEmailText: "שלום {שם},\nהתמונות שלך מוכנות לצפייה ובחירה — אפשר להיכנס בקישור, אין צורך בחשבון או סיסמה:\n{קישור}\nמחכה לבחירה שלך 💗",
-  reminderEmailText: "היי {שם},\nכתובת: תלמוד ירושלמי 24, בית שמש.\nמחכה לכן 💗",
+  reminderEmailText: "כתובת: תלמוד ירושלמי 24, בית שמש.\nמחכה לכן 💗",
   galleryNudgeText: "היי {שם},\nשלחתי לך לפני כמה ימים את התמונות לבחירה ועוד לא הספקת להציץ 😊\nהן מחכות לך כאן:\n{קישור}\nמיכל",
 };
 
