@@ -39,10 +39,33 @@ export type GmailMessage = {
   attachments?: GmailAttachment[];
 };
 
-function buildMime({ to, subject, html, fromName = "Sweetbaby", attachments = [] }: GmailMessage): string {
-  const htmlB64 = chunk76(toBase64Url(new TextEncoder().encode(html)).replace(/-/g, "+").replace(/_/g, "/"));
-  const htmlB64Padded = htmlB64 + "=".repeat((4 - (htmlB64.replace(/\r\n/g, "").length % 4)) % 4);
+/** Plain-text twin of an HTML mail (HTML-only mails are a spam signal). */
+function htmlToPlainText(html: string): string {
+  return html
+    .replace(/<(style|script|head)[\s\S]*?<\/\1>/gi, "")
+    .replace(/<a\s[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, (_m, href: string, label: string) => {
+      const t = label.replace(/<[^>]+>/g, "").trim();
+      return /^(https?:|mailto:)/i.test(href) && t && t !== href ? `${t} (${href})` : t || href;
+    })
+    .replace(/<br\s*\/?>|<\/(p|div|tr|h[1-6]|li)>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
 
+function b64Body(text: string): string {
+  const b = chunk76(toBase64Url(new TextEncoder().encode(text)).replace(/-/g, "+").replace(/_/g, "/"));
+  return b + "=".repeat((4 - (b.replace(/\r\n/g, "").length % 4)) % 4);
+}
+
+function buildMime({ to, subject, html, fromName = "Sweetbaby", attachments = [] }: GmailMessage): string {
   const headers = [
     `From: ${encodeHeader(fromName)} <s0548529277@gmail.com>`,
     `To: ${to}`,
@@ -50,24 +73,34 @@ function buildMime({ to, subject, html, fromName = "Sweetbaby", attachments = []
     "MIME-Version: 1.0",
   ];
 
-  if (attachments.length === 0) {
-    return [
-      ...headers,
-      'Content-Type: text/html; charset="UTF-8"',
-      "Content-Transfer-Encoding: base64",
-      "",
-      htmlB64Padded,
-    ].join("\r\n");
-  }
-
-  // multipart/mixed: one text/html part + one part per attachment.
-  const boundary = `sweetbaby_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-  const parts: string[] = [
-    `--${boundary}`,
+  // multipart/alternative: plain text + HTML (better deliverability than HTML only).
+  const altBoundary = `sweetbaby_alt_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  const alt = [
+    `--${altBoundary}`,
+    'Content-Type: text/plain; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    b64Body(htmlToPlainText(html)),
+    "",
+    `--${altBoundary}`,
     'Content-Type: text/html; charset="UTF-8"',
     "Content-Transfer-Encoding: base64",
     "",
-    htmlB64Padded,
+    b64Body(html),
+    "",
+    `--${altBoundary}--`,
+  ];
+
+  if (attachments.length === 0) {
+    return [...headers, `Content-Type: multipart/alternative; boundary="${altBoundary}"`, "", ...alt].join("\r\n");
+  }
+
+  const boundary = `sweetbaby_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  const parts: string[] = [
+    `--${boundary}`,
+    `Content-Type: multipart/alternative; boundary="${altBoundary}"`,
+    "",
+    ...alt,
     "",
   ];
 

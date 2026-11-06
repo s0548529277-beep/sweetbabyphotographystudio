@@ -599,11 +599,9 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
         cashbackEarned,
       });
 
-      // Same confirmation as a self-contained file (photos embedded) so it
-      // opens even where remote images in the mail body are blocked.
-      const { buildOrderHtmlAttachment } = await import("@/lib/order-html-attachment.server");
-      const summaryFile = await buildOrderHtmlAttachment(html, o.id);
-      const confirmationAttachments = [summaryFile, receiptAttachment].filter(Boolean) as NonNullable<typeof receiptAttachment>[];
+      // The self-contained HTML attachment (order-html-attachment.server.ts) is no longer sent:
+      // HTML attachments trigger spam filters. Only the customer's receipt file is attached.
+      const confirmationAttachments = [receiptAttachment].filter(Boolean) as NonNullable<typeof receiptAttachment>[];
 
       const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
       await sendStudioAndCustomer({
