@@ -1,5 +1,6 @@
 import botHeartAsset from "@/assets/heart-gradient-small.png";
 import michalHeartAsset from "@/assets/michal-heart.png";
+import botAvatarAsset from "@/assets/bot-antenna-heart-small.png";
 
 /**
  * Hearts for emails (email clients can't use the 💗 emoji style we want, and
@@ -11,6 +12,8 @@ const SITE = "https://sweetbabyphoto.shop";
 export const BOT_HEART_URL = `${SITE}${botHeartAsset}`;
 export const MICHAL_HEART_URL = `${SITE}${michalHeartAsset}`;
 
+export const BOT_AVATAR_URL = `${SITE}${botAvatarAsset}`;
+
 export type HeartKind = "bot" | "michal";
 
 /** Inline heart image sized to sit in a line of text (or as a divider when `px` is bigger). */
@@ -20,7 +23,12 @@ export function heartImg(kind: HeartKind, px = 14): string {
   return `<img src="${url}" alt="♥" width="${w}" height="${px}" style="display:inline-block;width:${w}px;height:${px}px;vertical-align:-2px;border:0;margin:0 2px">`;
 }
 
+/** The site bot's own avatar (the heart with the antenna) — used instead of the 🤖 emoji. */
+export function botAvatarImg(px = 18): string {
+  return `<img src="${BOT_AVATAR_URL}" alt="סוויטבוט" width="${px}" height="${px}" style="display:inline-block;width:${px}px;height:${px}px;vertical-align:-4px;border:0;margin:0 2px">`;
+}
+
 /** Replaces every 💗 / ♥ character in an HTML string with the heart image. */
 export function withEmailHearts(html: string, kind: HeartKind, px = 14): string {
-  return html.split("💗").join(heartImg(kind, px));
+  return html.split("💗").join(heartImg(kind, px)).split("🤖").join(botAvatarImg(Math.round(px * 1.3)));
 }

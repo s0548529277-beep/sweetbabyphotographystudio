@@ -1,3 +1,4 @@
+import { Heart } from "@/components/Heart";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -214,7 +215,7 @@ export function JournalTab({
         }
       }
 
-      toast.success(form.id ? "הצילום עודכן" : "הצילום נקבע 💗");
+      toast.success(form.id ? "הצילום עודכן" : <>הצילום נקבע <Heart kind="michal" /></>);
       setForm(emptyForm(today, form.type));
       invalidate();
     } catch (e) {

@@ -1,3 +1,4 @@
+import { isQuietForMail } from "@/lib/mail-quiet-hours";
 import { heartImg } from "@/lib/email-hearts";
 import { createServerFn } from "@tanstack/react-start";
 import { toSiteMediaUrl } from "@/lib/media-url";
@@ -678,6 +679,8 @@ export const advancePhotoClientStage = createServerFn({ method: "POST" })
  * reminder jobs.
  */
 export async function runDueProofSelectionReminders(): Promise<{ checked: number; sent: number }> {
+  // Owner rule: no automatic mail on Shabbat / yom tov or in the hours around it — sent on a later run.
+  if (isQuietForMail()) return { checked: 0, sent: 0 };
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   // Bounded window: shoots from 7 to 60 days ago — old enough to be due,
@@ -738,7 +741,7 @@ export async function runDueProofSelectionReminders(): Promise<{ checked: number
           <p>שלום${profile?.full_name ? " " + profile.full_name : ""},</p>
           <p>רק תזכורת חמה — התמונות מהצילומים שלך כבר מחכות לבחירה, ועוד לא סימנת את המועדפות עלייך.</p>
           <p>אפשר לבחור כאן: <a href="https://sweetbabyphoto.shop/my-photos">https://sweetbabyphoto.shop/my-photos</a></p>
-          <p>כדי שנוכל להתקדם לעיבוד ולשלוח לך את האלבום הסופי בקרוב, נשמח שתזדרזי קצת ${heartImg("bot")}</p>
+          <p>כדי שנוכל להתקדם לעיבוד ולשלוח לך את האלבום הסופי בקרוב, נשמח שתזדרזי קצת ${heartImg("michal")}</p>
         </div>`,
       });
       // Counted as sent the moment the email itself succeeds — the dedup

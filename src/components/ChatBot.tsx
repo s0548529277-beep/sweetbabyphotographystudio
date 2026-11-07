@@ -1,3 +1,4 @@
+import { HeartText } from "@/components/Heart";
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -290,6 +291,8 @@ export function ChatBot() {
       /* ignore */
     }
   };
+  // The photographer pages (/newborn, /studio-photography, /sleep-consultant) always show the small avatar-only bubble.
+  const isCompact = compact || ctx.id === "shoot";
   // Auth/admin state resolves after first render — refresh the greeting
   // while the conversation hasn't started yet.
   useEffect(() => {
@@ -319,7 +322,7 @@ export function ChatBot() {
   const nudgeKey = `sweetbaby-chat-nudge:${ctx.id}`;
   useEffect(() => {
     setShowNudge(false);
-    if (open || isAdmin || ctx.quiet || compact) return;
+    if (open || isAdmin || ctx.quiet || isCompact) return;
     try {
       if (sessionStorage.getItem(nudgeKey)) return;
     } catch {
@@ -334,7 +337,7 @@ export function ChatBot() {
       }
     }, 6_000);
     return () => clearTimeout(timer);
-  }, [open, isAdmin, ctx.quiet, compact, nudgeKey]);
+  }, [open, isAdmin, ctx.quiet, isCompact, nudgeKey]);
 
   // The nudge grows the button in place (see the JSX below) instead of
   // popping a separate card. It stays long enough to read and tap a
@@ -611,7 +614,7 @@ export function ChatBot() {
       // the drag offset moves only the closed bubble — when the chat window is open it must stay on-screen
       style={!open && (dragPos.x || dragPos.y) ? { transform: `translate(${dragPos.x}px, ${dragPos.y}px)` } : undefined}
     >
-      {!open && compact && (
+      {!open && isCompact && (
         <button
           type="button"
           onPointerDown={onDragPointerDown}
@@ -627,7 +630,7 @@ export function ChatBot() {
         </button>
       )}
 
-      {!open && !compact && (
+      {!open && !isCompact && (
         <div className="flex flex-col items-start gap-2">
         {showNudge && ctx.chips.length > 0 && (
           <div className="flex max-w-[min(340px,calc(100vw-32px))] flex-wrap gap-1.5 sm:gap-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -680,8 +683,8 @@ export function ChatBot() {
           </span>
           {showNudge ? (
             <span className="relative hidden text-right sm:block">
-              <span className="block text-base font-bold leading-snug text-ink">{ctx.headline}</span>
-              <span className="mt-1 block text-xs font-medium leading-snug text-ink-soft">{ctx.sub}</span>
+              <span className="block text-base font-bold leading-snug text-ink"><HeartText text={ctx.headline} kind="bot" /></span>
+              <span className="mt-1 block text-xs font-medium leading-snug text-ink-soft"><HeartText text={ctx.sub} kind="bot" /></span>
             </span>
           ) : (
             <span className="relative hidden text-right sm:block">

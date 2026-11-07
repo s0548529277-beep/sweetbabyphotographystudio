@@ -494,7 +494,7 @@ export const sendOutdoorGalleryLinkByEmail = createServerFn({ method: "POST" })
         `<div dir="rtl" style="font-family:sans-serif;font-size:15px;line-height:1.7">${textToEmailHtml(text)}${
           text.includes(link) ? "" : `<p><a href="${link}">${link}</a></p>`
         }</div>`,
-        "bot",
+        "michal",
         16,
       ),
     });

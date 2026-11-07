@@ -1,3 +1,4 @@
+import { Heart } from "@/components/Heart";
 import { isImmediateOrder } from "@/lib/orderSummary";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
@@ -287,7 +288,7 @@ export function ChatBookingWizard({
     return (
       <div className="mt-2 space-y-2 rounded-2xl border border-primary/30 bg-secondary/40 p-3 text-sm">
         <p className="flex items-center gap-1.5 font-semibold text-primary">
-          <Check className="size-4" /> השריון נוצר 💗
+          <Check className="size-4" /> השריון נוצר <Heart kind="bot" />
         </p>
         <p className="text-xs text-foreground/80">{done.summary}</p>
         {isImmediateOrder(date, time) && (

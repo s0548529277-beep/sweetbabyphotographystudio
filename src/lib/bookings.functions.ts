@@ -1,3 +1,4 @@
+import { isQuietForMail } from "@/lib/mail-quiet-hours";
 import { heartImg } from "@/lib/email-hearts";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -1333,6 +1334,8 @@ const REMINDER_WINDOW_SLACK_HOURS = 0.5;
  * service job, not on behalf of a logged-in user.
  */
 export async function runDueBookingReminders(): Promise<{ checked: number; sent: number }> {
+  // Owner rule: no automatic mail on Shabbat / yom tov or in the hours around it — sent on a later run.
+  if (isQuietForMail()) return { checked: 0, sent: 0 };
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   // Bound the query to the next 3 days so we don't scan the whole table
@@ -1367,7 +1370,8 @@ export async function runDueBookingReminders(): Promise<{ checked: number; sent:
     const startISO = `${b.session_date}T${String(b.start_time).slice(0, 5)}:00`;
     const startMs = new Date(startISO).getTime();
     const hoursUntil = (startMs - now) / (1000 * 60 * 60);
-    if (hoursUntil < hoursBefore - REMINDER_WINDOW_SLACK_HOURS || hoursUntil > hoursBefore + REMINDER_WINDOW_SLACK_HOURS) continue;
+    // Not too early; and if a quiet period (Shabbat) made us miss the exact window, still send until the session starts.
+    if (hoursUntil > hoursBefore + REMINDER_WINDOW_SLACK_HOURS || hoursUntil <= 0) continue;
 
     try {
       const {
@@ -1445,6 +1449,8 @@ const ABANDONED_HOLD_REMINDER_WINDOW_MINUTES = 20;
  * deposit page to link back to.
  */
 export async function runDueAbandonedHoldReminders(): Promise<{ checked: number; sent: number }> {
+  // Owner rule: no automatic mail on Shabbat / yom tov or in the hours around it — sent on a later run.
+  if (isQuietForMail()) return { checked: 0, sent: 0 };
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   // Bound the scan to bookings young enough to still matter — anything

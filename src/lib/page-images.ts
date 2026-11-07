@@ -1,12 +1,11 @@
+import { heartImg } from "@/lib/email-hearts";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { studioInspirationMap } from "@/lib/inspiration";
 import { STATIC_CATALOG } from "@/lib/catalog";
-import heartGradientDefault from "@/assets/heart-gradient.png";
 
 /** Absolute URL (email clients can't resolve relative/build-hashed paths) for the bundled default heart, used until she uploads her own via /admin/gallery. */
-const DEFAULT_EMAIL_HEART_URL = `https://sweetbabyphoto.shop${heartGradientDefault}`;
 
 /**
  * These config values (chat avatar, site heart icon, hero design) are fetched
@@ -520,6 +519,8 @@ export async function emailHeartImgTag(sizePx = 16): Promise<string> {
   } catch {
     // best-effort — fall back to the bundled default below
   }
-  const src = url ?? DEFAULT_EMAIL_HEART_URL;
+  // Everything that uses this helper is a photography mail -> Michal's own heart (from her contract) unless an admin override exists.
+  if (!url) return heartImg("michal", sizePx);
+  const src = url;
   return `<img src="${src}" alt="💗" width="${sizePx}" height="${sizePx}" style="display:inline-block;vertical-align:-${Math.round(sizePx * 0.12)}px;width:${sizePx}px;height:${sizePx}px" />`;
 }

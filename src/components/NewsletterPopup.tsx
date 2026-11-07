@@ -6,6 +6,7 @@
 // no wheel, no discount. An already-logged-in visitor who hasn't
 // subscribed yet skips straight to the checkbox+wheel (no need to
 // re-collect her name/phone/password).
+import { Heart } from "@/components/Heart";
 import { useEffect, useState, type FormEvent } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useRouterState } from "@tanstack/react-router";
@@ -176,7 +177,7 @@ export function NewsletterPopup() {
       if (optIn) {
         setPhase("wheel");
       } else {
-        toast.success("החשבון נוצר בהצלחה! 💗");
+        toast.success(<>החשבון נוצר בהצלחה! <Heart kind="bot" /></>);
         setPhase("done");
         markSeen();
       }
@@ -212,7 +213,7 @@ export function NewsletterPopup() {
             {phase === "wheel"
               ? "כיף שהצטרפת! סובבו לפרס 🎁"
               : phase === "done"
-                ? "תודה שהצטרפת! 💗"
+                ? <>תודה שהצטרפת! <Heart kind="bot" /></>
                 : isRegistered
                   ? "הצטרפי לניוזלטר וקבלי הנחה"
                   : "ברוכה הבאה למשפחת Sweetbaby"}

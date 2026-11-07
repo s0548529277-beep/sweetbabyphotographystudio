@@ -1,3 +1,4 @@
+import { Heart } from "@/components/Heart";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -99,7 +100,7 @@ function ContractSigningPage() {
         <h1 className="text-2xl mb-2" style={{ fontFamily: "'DM Serif Display', serif" }}>
           תודה{contactName ? `, ${contactName}` : ""}!
         </h1>
-        <p className="text-sm text-[#4a3221]/75">האישור נשלח אליי — מחכה ממש לתעד לכם רגעים מרגשים 💗</p>
+        <p className="text-sm text-[#4a3221]/75">האישור נשלח אליי — מחכה ממש לתעד לכם רגעים מרגשים <Heart kind="michal" /></p>
       </div>,
     );
   }

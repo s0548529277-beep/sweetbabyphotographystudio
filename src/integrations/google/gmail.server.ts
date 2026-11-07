@@ -65,11 +65,16 @@ function b64Body(text: string): string {
   return b + "=".repeat((4 - (b.replace(/\r\n/g, "").length % 4)) % 4);
 }
 
+/** A subject line cannot hold the colourful heart image, so the pink 💗 emoji is dropped from it (owner request 2026-11-07). */
+function stripPinkHearts(subject: string): string {
+  return subject.replace(/\s*💗\s*/g, " ").replace(/\s{2,}/g, " ").trim();
+}
+
 function buildMime({ to, subject, html, fromName = "Sweetbaby", attachments = [] }: GmailMessage): string {
   const headers = [
     `From: ${encodeHeader(fromName)} <s0548529277@gmail.com>`,
     `To: ${to}`,
-    `Subject: ${encodeHeader(subject)}`,
+    `Subject: ${encodeHeader(stripPinkHearts(subject))}`,
     "MIME-Version: 1.0",
   ];
 
@@ -346,14 +351,16 @@ export async function getGmailMessageBody(id: string, connKey?: string): Promise
 
 /** Sends the same message (optionally with attachments) to the studio inbox plus (optionally) the customer — deduped case-insensitively so a test order using the studio's own address (in any casing) never sends the same email twice to one inbox. */
 export async function sendStudioAndCustomer(opts: {
-  customerEmail?: string | null;
+  /** One address, or several (e.g. the account's and the one typed into the order) — duplicates are sent once. */
+  customerEmail?: string | null | Array<string | null | undefined>;
   subject: string;
   html: string;
   attachments?: GmailAttachment[];
 }): Promise<void> {
   const seen = new Set<string>();
   const recipients: string[] = [];
-  for (const raw of ["s0548529277@gmail.com", opts.customerEmail]) {
+  const customers = Array.isArray(opts.customerEmail) ? opts.customerEmail : [opts.customerEmail];
+  for (const raw of ["s0548529277@gmail.com", ...customers]) {
     if (!raw) continue;
     const normalized = raw.trim().toLowerCase();
     if (!normalized || seen.has(normalized)) continue;

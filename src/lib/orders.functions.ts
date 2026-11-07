@@ -1,3 +1,4 @@
+import { isQuietForMail } from "@/lib/mail-quiet-hours";
 import { naiveHHMM, naiveLocalISO, naiveIsraelMs } from "@/lib/naive-time";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -202,6 +203,7 @@ export const placeOrder = createServerFn({ method: "POST" })
         return_at: endISO,
         contact_name: data.contact_name,
         contact_phone: data.contact_phone,
+        contact_email: data.contact_email?.trim() || null,
         camera_model: data.camera_model ?? null,
         notes: [
           data.start_time && data.end_time
@@ -323,10 +325,10 @@ export const placeOrder = createServerFn({ method: "POST" })
     const pickupTime = data.start_time ?? "09:00";
     const returnTime = data.end_time ?? "18:00";
     // A guest (anonymous) session has no email on the account — use the one she typed.
-    let customerEmail: string | undefined = data.contact_email?.trim() || undefined;
+    let customerEmail: string[] = data.contact_email?.trim() ? [data.contact_email.trim()] : [];
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      customerEmail = customerEmail ?? user?.email ?? undefined;
+      if (user?.email) customerEmail = [...customerEmail, user.email];
     } catch { /* ignore */ }
 
     try {
@@ -436,7 +438,7 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
     const { data: o, error } = await supabase
       .from("orders")
       .select(
-        "id, user_id, session_date, return_date, pickup_at, return_at, total, notes, contact_name, contact_phone, camera_model, deposit_receipt_url, balance_method, confirmation_sent_at, google_event_id, door_code",
+        "id, user_id, contact_email, session_date, return_date, pickup_at, return_at, total, notes, contact_name, contact_phone, camera_model, deposit_receipt_url, balance_method, confirmation_sent_at, google_event_id, door_code",
       )
       .eq("id", data.id)
       .maybeSingle();
@@ -501,12 +503,13 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
       image_url: l.items?.image_url ?? null,
     }));
 
-    let customerEmail: string | undefined;
+    // The account's e-mail AND the one typed into the order (saved in orders.contact_email).
+    let customerEmail: string[] = (o as any).contact_email ? [String((o as any).contact_email).trim()] : [];
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      customerEmail = user?.email ?? undefined;
+      if (user?.email) customerEmail = [...customerEmail, user.email];
     } catch {
       /* ignore */
     }
@@ -676,7 +679,7 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
             `T${String(Math.min(23, Number(pickupTime.slice(0, 2)) + 1)).padStart(2, "0")}:`,
           ),
           location: "תלמוד ירושלמי 24, בית שמש",
-          attendees: customerEmail ? [customerEmail] : [],
+          attendees: Array.from(new Set(customerEmail.map((e) => e.toLowerCase()))),
           transparent: true,
         });
         if (event) {
@@ -709,6 +712,8 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
 const REMINDER_WINDOW_SLACK_HOURS = 0.5;
 
 export async function runDueOrderReminders(): Promise<{ checked: number; sent: number }> {
+  // Owner rule: no automatic mail on Shabbat / yom tov or in the hours around it — sent on a later run.
+  if (isQuietForMail()) return { checked: 0, sent: 0 };
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   const today = new Date();
@@ -717,7 +722,7 @@ export async function runDueOrderReminders(): Promise<{ checked: number; sent: n
   const { data: candidates, error } = await supabaseAdmin
     .from("orders")
     .select(
-      "id, user_id, session_date, return_date, pickup_at, return_at, total, notes, contact_name, contact_phone, balance_method, confirmation_sent_at, reminder_sent_at, reminder_hours_before, status",
+      "id, user_id, contact_email, session_date, return_date, pickup_at, return_at, total, notes, contact_name, contact_phone, balance_method, confirmation_sent_at, reminder_sent_at, reminder_hours_before, status",
     )
     .is("reminder_sent_at", null)
     .not("reminder_hours_before", "is", null) // opt-in only
@@ -739,13 +744,15 @@ export async function runDueOrderReminders(): Promise<{ checked: number; sent: n
     const hoursBefore = Number((o as any).reminder_hours_before);
     if (!hoursBefore || hoursBefore <= 0) continue;
     const hoursUntil = (naiveIsraelMs(String(o.pickup_at)) - now) / (1000 * 60 * 60);
-    if (hoursUntil < hoursBefore - REMINDER_WINDOW_SLACK_HOURS || hoursUntil > hoursBefore + REMINDER_WINDOW_SLACK_HOURS) continue;
+    // Not too early; and if a quiet period (Shabbat) made us miss the exact window, still send until the pickup.
+    if (hoursUntil > hoursBefore + REMINDER_WINDOW_SLACK_HOURS || hoursUntil <= 0) continue;
 
     try {
       const {
         data: { user },
       } = await supabaseAdmin.auth.admin.getUserById(o.user_id);
-      const customerEmail = user?.email ?? undefined;
+      // To the account's e-mail AND the one typed into the order.
+      const customerEmail = [(o as any).contact_email, user?.email];
 
       const { data: itemRows } = await supabaseAdmin
         .from("order_items")
@@ -787,7 +794,7 @@ export async function runDueOrderReminders(): Promise<{ checked: number; sent: n
       const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
       await sendStudioAndCustomer({
         customerEmail,
-        subject: `תזכורת לאיסוף היום #${o.id.slice(0, 8)} · Sweetbaby`,
+        subject: `תזכורת: איסוף האביזרים מתקרב #${o.id.slice(0, 8)} · Sweetbaby`,
         html,
       });
 

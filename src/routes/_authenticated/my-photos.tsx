@@ -1,3 +1,4 @@
+import { HeartText } from "@/components/Heart";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -405,7 +406,7 @@ function MyPhotosPage() {
             <div className="bg-card border border-primary/10 rounded-3xl px-5 py-6 sm:px-10 sm:py-8 shadow-sm">
               <StepTracker theme="pink" steps={CLIENT_STEPS} current={g.client_step ?? 1} hint={CLIENT_STEP_HINTS[(g.client_step ?? 1) - 1]} />
             </div>
-            <p className="text-sm text-muted-foreground">{STAGE_MESSAGE[g.stage]}</p>
+            <p className="text-sm text-muted-foreground"><HeartText text={STAGE_MESSAGE[g.stage]} kind="michal" /></p>
             {(g.stage === "proofs_ready" || !!g.proof_selection_submitted_at) && g.stage !== "album_published" && g.images.length > 0 && (
               <>
                 <ProofGrid gallery={g} onRefetch={refetch} />

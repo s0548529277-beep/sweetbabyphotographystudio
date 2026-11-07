@@ -8,6 +8,7 @@
 // under small circles. Now: roomier spacing, a filled progress line, a ✓ on
 // completed steps, a ring on the current one, a "שלב X מתוך Y" header, and
 // (client view) an optional hint line saying what to do now.
+import { HeartText } from "@/components/Heart";
 import { Check } from "lucide-react";
 
 const THEMES = {
@@ -98,7 +99,7 @@ export function StepTracker({
       </div>
 
       {hint && (
-        <p className="mt-5 pt-4 border-t border-[#4a3221]/10 text-sm text-center text-[#4a3221]/75">{hint}</p>
+        <p className="mt-5 pt-4 border-t border-[#4a3221]/10 text-sm text-center text-[#4a3221]/75"><HeartText text={hint} kind="michal" /></p>
       )}
     </div>
   );

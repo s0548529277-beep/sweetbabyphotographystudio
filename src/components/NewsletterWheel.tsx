@@ -3,6 +3,7 @@
 // simpler wheel: a "spin again" segment chains into a second animated spin
 // automatically, since the server already resolved the whole sequence in
 // one call (see spinNewsletterWheel) — the client just animates through it.
+import { Heart } from "@/components/Heart";
 import { useState } from "react";
 import { Gift, PartyPopper } from "lucide-react";
 import { NEWSLETTER_WHEEL_PRIZES, findNewsletterWheelPrize, type NewsletterWheelPrize } from "@/lib/newsletter-wheel-prizes";
@@ -150,7 +151,7 @@ export function NewsletterWheel({
               <div className="font-display text-base" dir="ltr" style={{ color: HOT }}>{result.couponCode}</div>
             </div>
           ) : result.prize.kind === "credit" ? (
-            <p className="text-xs text-muted-foreground">₪{result.prize.kind === "credit" ? result.prize.amount : ""} נוספו לך כקרדיט בחשבון — זמין כבר להזמנה הבאה 💗</p>
+            <p className="text-xs text-muted-foreground">₪{result.prize.kind === "credit" ? result.prize.amount : ""} נוספו לך כקרדיט בחשבון — זמין כבר להזמנה הבאה <Heart kind="bot" /></p>
           ) : null}
         </div>
       ) : (
