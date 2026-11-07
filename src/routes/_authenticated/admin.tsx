@@ -91,6 +91,7 @@ const links: NavEntry[] = [
   { to: "/admin/clients", label: "לקוחות", icon: Users },
   { to: "/admin/whatsapp", label: "וואטסאפ", icon: MessageSquare },
   { to: "/admin/newborn-contract-text", label: "מלל הכנה+חוזה ניו-בורן", icon: FileText },
+  { to: "/admin/outdoor-contract-text", label: "חוזה צילומי חוץ", icon: FileText },
   { to: "/admin/birth-basket-text", label: "מלל מימוש סל לידה", icon: Gift },
   { to: "/admin/finance", label: "הכנסות והוצאות", icon: Wallet },
   { to: "/admin/quotes", label: "הצעות מחיר", icon: FileText },

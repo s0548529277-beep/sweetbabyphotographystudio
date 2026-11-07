@@ -70,6 +70,7 @@ import { Route as AuthenticatedAdminInspirationRouteImport } from './routes/_aut
 import { Route as AuthenticatedAdminItemsRouteImport } from './routes/_authenticated/admin.items'
 import { Route as AuthenticatedAdminLeadsRouteImport } from './routes/_authenticated/admin.leads'
 import { Route as AuthenticatedAdminNewbornContractTextRouteImport } from './routes/_authenticated/admin.newborn-contract-text'
+import { Route as AuthenticatedAdminOutdoorContractTextRouteImport } from './routes/_authenticated/admin.outdoor-contract-text'
 import { Route as AuthenticatedAdminNewbornPackagesRouteImport } from './routes/_authenticated/admin.newborn-packages'
 import { Route as AuthenticatedAdminNewsletterRouteImport } from './routes/_authenticated/admin.newsletter'
 import { Route as AuthenticatedAdminNotificationsRouteImport } from './routes/_authenticated/admin.notifications'
@@ -427,6 +428,12 @@ const AuthenticatedAdminNewbornContractTextRoute =
     path: '/newborn-contract-text',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminOutdoorContractTextRoute =
+  AuthenticatedAdminOutdoorContractTextRouteImport.update({
+    id: '/outdoor-contract-text',
+    path: '/outdoor-contract-text',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminNewbornPackagesRoute =
   AuthenticatedAdminNewbornPackagesRouteImport.update({
     id: '/newborn-packages',
@@ -671,6 +678,7 @@ export interface FileRoutesByFullPath {
   '/admin/items': typeof AuthenticatedAdminItemsRoute
   '/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/admin/newborn-contract-text': typeof AuthenticatedAdminNewbornContractTextRoute
+  '/admin/outdoor-contract-text': typeof AuthenticatedAdminOutdoorContractTextRoute
   '/admin/newborn-packages': typeof AuthenticatedAdminNewbornPackagesRouteWithChildren
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
@@ -764,6 +772,7 @@ export interface FileRoutesByTo {
   '/admin/items': typeof AuthenticatedAdminItemsRoute
   '/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/admin/newborn-contract-text': typeof AuthenticatedAdminNewbornContractTextRoute
+  '/admin/outdoor-contract-text': typeof AuthenticatedAdminOutdoorContractTextRoute
   '/admin/newborn-packages': typeof AuthenticatedAdminNewbornPackagesRouteWithChildren
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
@@ -860,6 +869,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/items': typeof AuthenticatedAdminItemsRoute
   '/_authenticated/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/_authenticated/admin/newborn-contract-text': typeof AuthenticatedAdminNewbornContractTextRoute
+  '/_authenticated/admin/outdoor-contract-text': typeof AuthenticatedAdminOutdoorContractTextRoute
   '/_authenticated/admin/newborn-packages': typeof AuthenticatedAdminNewbornPackagesRouteWithChildren
   '/_authenticated/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/_authenticated/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
@@ -956,6 +966,7 @@ export interface FileRouteTypes {
     | '/admin/items'
     | '/admin/leads'
     | '/admin/newborn-contract-text'
+    | '/admin/outdoor-contract-text'
     | '/admin/newborn-packages'
     | '/admin/newsletter'
     | '/admin/notifications'
@@ -1049,6 +1060,7 @@ export interface FileRouteTypes {
     | '/admin/items'
     | '/admin/leads'
     | '/admin/newborn-contract-text'
+    | '/admin/outdoor-contract-text'
     | '/admin/newborn-packages'
     | '/admin/newsletter'
     | '/admin/notifications'
@@ -1144,6 +1156,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/items'
     | '/_authenticated/admin/leads'
     | '/_authenticated/admin/newborn-contract-text'
+    | '/_authenticated/admin/outdoor-contract-text'
     | '/_authenticated/admin/newborn-packages'
     | '/_authenticated/admin/newsletter'
     | '/_authenticated/admin/notifications'
@@ -1657,6 +1670,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminNewbornContractTextRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/outdoor-contract-text': {
+      id: '/_authenticated/admin/outdoor-contract-text'
+      path: '/outdoor-contract-text'
+      fullPath: '/admin/outdoor-contract-text'
+      preLoaderRoute: typeof AuthenticatedAdminOutdoorContractTextRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/newborn-packages': {
       id: '/_authenticated/admin/newborn-packages'
       path: '/newborn-packages'
@@ -1993,6 +2013,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminLeadsRoute: AuthenticatedAdminLeadsRoute,
   AuthenticatedAdminNewbornContractTextRoute:
     AuthenticatedAdminNewbornContractTextRoute,
+  AuthenticatedAdminOutdoorContractTextRoute:
+    AuthenticatedAdminOutdoorContractTextRoute,
   AuthenticatedAdminNewbornPackagesRoute:
     AuthenticatedAdminNewbornPackagesRouteWithChildren,
   AuthenticatedAdminNewsletterRoute: AuthenticatedAdminNewsletterRoute,
