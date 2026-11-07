@@ -1,3 +1,4 @@
+import { heartImg } from "@/lib/email-hearts";
 import { createServerFn } from "@tanstack/react-start";
 import { toSiteMediaUrl } from "@/lib/media-url";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -737,7 +738,7 @@ export async function runDueProofSelectionReminders(): Promise<{ checked: number
           <p>שלום${profile?.full_name ? " " + profile.full_name : ""},</p>
           <p>רק תזכורת חמה — התמונות מהצילומים שלך כבר מחכות לבחירה, ועוד לא סימנת את המועדפות עלייך.</p>
           <p>אפשר לבחור כאן: <a href="https://sweetbabyphoto.shop/my-photos">https://sweetbabyphoto.shop/my-photos</a></p>
-          <p>כדי שנוכל להתקדם לעיבוד ולשלוח לך את האלבום הסופי בקרוב, נשמח שתזדרזי קצת 💛</p>
+          <p>כדי שנוכל להתקדם לעיבוד ולשלוח לך את האלבום הסופי בקרוב, נשמח שתזדרזי קצת ${heartImg("bot")}</p>
         </div>`,
       });
       // Counted as sent the moment the email itself succeeds — the dedup

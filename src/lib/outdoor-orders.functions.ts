@@ -2,6 +2,7 @@
 // pointed at outdoor_package_orders / outdoor_order_images / outdoor_gallery_access, so outdoor
 // clients get the same proof gallery, selection, notes, edited album, ZIP downloads, unlock receipt,
 // album details, step trackers and email-code gate. Added 2026-11-04; the newborn code is untouched.
+import { withEmailHearts } from "@/lib/email-hearts";
 import { createServerFn } from "@tanstack/react-start";
 import { toSiteMediaUrl } from "@/lib/media-url";
 import { z } from "zod";
@@ -489,9 +490,13 @@ export const sendOutdoorGalleryLinkByEmail = createServerFn({ method: "POST" })
     const ok = await sendGmail({
       to: order.contact_email,
       subject: "התמונות שלך מחכות לבחירה 📸 · מיכל סיבוני",
-      html: `<div dir="rtl" style="font-family:sans-serif;font-size:15px;line-height:1.7">${textToEmailHtml(text)}${
-        text.includes(link) ? "" : `<p><a href="${link}">${link}</a></p>`
-      }</div>`,
+      html: withEmailHearts(
+        `<div dir="rtl" style="font-family:sans-serif;font-size:15px;line-height:1.7">${textToEmailHtml(text)}${
+          text.includes(link) ? "" : `<p><a href="${link}">${link}</a></p>`
+        }</div>`,
+        "bot",
+        16,
+      ),
     });
     if (!ok) throw new Error("שליחת המייל נכשלה — בדקי את חיבור ה-Gmail של האתר");
     // Remembered for the "didn't open the gallery after 3 days" nudge; best-effort (drizzle 0022).

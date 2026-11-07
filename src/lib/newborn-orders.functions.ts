@@ -8,6 +8,7 @@
 // request, so it gets its own table (newborn_order_images) and its own
 // customer-facing routes (/newborn/gallery/$token), reachable without a
 // site account — just a private link mailed to her.
+import { withEmailHearts } from "@/lib/email-hearts";
 import { createServerFn } from "@tanstack/react-start";
 import { toSiteMediaUrl } from "@/lib/media-url";
 import { z } from "zod";
@@ -1222,9 +1223,13 @@ export const sendNewbornGalleryLinkByEmail = createServerFn({ method: "POST" })
     const ok = await sendGmail({
       to: order.contact_email,
       subject: "התמונות שלך מחכות לבחירה 📸 · מיכל סיבוני",
-      html: `<div dir="rtl" style="font-family:sans-serif;font-size:15px;line-height:1.7">${textToEmailHtml(text)}${
-        text.includes(link) ? "" : `<p><a href="${link}">${link}</a></p>`
-      }</div>`,
+      html: withEmailHearts(
+        `<div dir="rtl" style="font-family:sans-serif;font-size:15px;line-height:1.7">${textToEmailHtml(text)}${
+          text.includes(link) ? "" : `<p><a href="${link}">${link}</a></p>`
+        }</div>`,
+        "bot",
+        16,
+      ),
     });
     if (!ok) throw new Error("שליחת המייל נכשלה — בדקי את חיבור ה-Gmail של האתר");
     // Remembered for the "didn't open the gallery after 3 days" nudge; best-effort (drizzle 0022).

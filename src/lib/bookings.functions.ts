@@ -1,3 +1,4 @@
+import { heartImg } from "@/lib/email-hearts";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
@@ -1535,7 +1536,7 @@ export const sendBookingPaymentReminder = createServerFn({ method: "POST" })
 
     const when = `${new Date(`${b.session_date}T00:00:00`).toLocaleDateString("he-IL", { day: "numeric", month: "long" })} בשעה ${String(b.start_time).slice(0, 5)}`;
     const html = `<div dir="rtl" style="font-family:sans-serif;color:#2d3d2b;max-width:520px;margin:0 auto">
-      <h2>תזכורת להשלמת ההזמנה 💚</h2>
+      <h2>תזכורת להשלמת ההזמנה ${heartImg("bot", 18)}</h2>
       <p>שלום ${b.contact_name || ""},</p>
       <p>ההזמנה שלך לסטודיו Sweetbaby ל-${when} עדיין ממתינה לתשלום המקדמה. כדי שנוכל לשריין לך את המקום סופית — אפשר להשלים את התשלום בלחיצה:</p>
       ${buildContinueOrderHtml(`https://sweetbabyphoto.shop/deposit/booking/${b.id}`)}
