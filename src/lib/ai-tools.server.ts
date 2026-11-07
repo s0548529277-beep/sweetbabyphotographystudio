@@ -17,7 +17,7 @@ import { publicChatPhotos } from "./chat-gallery";
 // Must match GUIDANCE_FEES in bookings.functions.ts exactly — this used to
 // say premium: 150 here while the real charge (and placeBooking) used 300,
 // so the bot quoted customers a wrong price for premium guidance.
-const GUIDANCE = { basic: 0, mini: 50, plus: 100, premium: 300 } as const;
+const GUIDANCE = { basic: 0, mini: 50, plus: 100 } as const;
 
 /**
  * Tools that let the chat assistant answer availability questions for real,
@@ -238,7 +238,7 @@ export function buildAssistantTools(opts?: { isAuthenticated?: boolean; isGuest?
         hebrewYear: z.number().int().optional(),
         time: z.string().optional().describe("HH:MM שעת התחלה מבוקשת"),
         hours: z.number().optional().describe("משך בשעות, אפשר 1.5 (ברירת מחדל 1)"),
-        guidance: z.enum(["basic", "mini", "plus", "premium"]).optional(),
+        guidance: z.enum(["basic", "mini", "plus"]).optional(),
       }),
       execute: async ({ date, hebrewDay, hebrewMonth, hebrewYear, time, hours, guidance }) => {
         try {
@@ -406,7 +406,7 @@ export function buildAssistantTools(opts?: { isAuthenticated?: boolean; isGuest?
       inputSchema: z.object({
         hours: z.number().describe("משך בשעות, אפשר 1.5"),
         startTime: z.string().optional().describe("HH:MM"),
-        guidance: z.enum(["basic", "mini", "plus", "premium"]).optional(),
+        guidance: z.enum(["basic", "mini", "plus"]).optional(),
       }),
       execute: async ({ hours, startTime, guidance }) => {
         const slots = Math.max(2, Math.round(hours * 2));
@@ -506,7 +506,7 @@ ${!opts?.isAuthenticated ? "אין עדיין חיבור (לא חשבון ולא
         contactName: z.string(),
         contactPhone: z.string(),
         contactEmail: z.string().min(3).describe("אימייל תקין — חובה, כדי שיישלחו כל המיילים כמו בהזמנה רגילה"),
-        guidance: z.enum(["basic", "mini", "plus", "premium"]).optional(),
+        guidance: z.enum(["basic", "mini", "plus"]).optional(),
         sessionType: z.string().optional().describe("סוג הצילום, למשל משפחתי / ניו-בורן / חלאקה"),
         peopleCount: z.string().optional(),
         babyAge: z.string().optional(),

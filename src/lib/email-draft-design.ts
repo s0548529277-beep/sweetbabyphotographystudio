@@ -154,7 +154,7 @@ const OUTDOOR: { title: string; note: string; pkgs: Pkg[]; addons: string } = {
       lines: ["5 סטים — חוץ + סטודיו", "30 תמונות בעריכה אומנותית", "כל התמונות באיכות", "קולאז׳ מעוצב", "אלבום דיגיטלי 21/56"],
     },
   ],
-  addons: "מעבר לחבילות: 300₪ לשעה, ללא עריכת תמונות — בסטודיו או בחוץ.",
+  addons: "צילום שאינו בחבילה — בהתאמה אישית, בפנייה.",
 };
 
 function priceBlock(list: typeof NEWBORN, t: Theme): string {

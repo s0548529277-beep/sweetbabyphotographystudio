@@ -8,7 +8,7 @@ export type ContactHandoff = {
   email: string;
   /** Session type chosen in the coordination agreement (e.g. "ניו-בורן"). */
   sessionType: string;
-  /** Guidance add-on key: basic | mini | plus | premium. */
+  /** Guidance add-on key: basic | mini | plus. */
   guidance: string;
 };
 

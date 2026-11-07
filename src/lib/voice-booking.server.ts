@@ -13,7 +13,7 @@ export const PhoneBookingInput = z.object({
   contact_phone: z.string().min(5).max(40),
   contact_email: z.string().email().max(200).optional(),
   session_type: z.string().max(200).optional(),
-  guidance: z.enum(["basic", "mini", "plus", "premium"]).optional(),
+  guidance: z.enum(["basic", "mini", "plus"]).optional(),
   // Free-text request for accessories/props alongside the studio session —
   // not checked against real availability like the site's own catalog
   // flow, just passed along to the studio for manual follow-up (matching

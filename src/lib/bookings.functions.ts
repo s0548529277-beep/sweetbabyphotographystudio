@@ -42,12 +42,11 @@ export const EVENING_PACKAGE_STARTS = ["19:00", "19:30", "20:00"] as const;
 export const MORNING_PACKAGE_PRICE = 320;
 
 /** Paid guidance / mentoring add-ons chosen in the coordination agreement. */
-export const GUIDANCE_FEES = { basic: 0, mini: 50, plus: 100, premium: 300 } as const;
+export const GUIDANCE_FEES = { basic: 0, mini: 50, plus: 100 } as const;
 export const GUIDANCE_LABELS: Record<keyof typeof GUIDANCE_FEES, string> = {
   basic: "בסיסי (חינם)",
   mini: "MINI · הדרכה טכנית קצרצרה",
   plus: "PLUS · ליווי מקצועי ראשוני",
-  premium: "PREMIUM · צלמת בסטודיו — 2 סטים יפים בהתאמה אישית עד שעה",
 };
 
 /** Price of the first hour (2 slots) — also what one subscription-pass entry covers. */

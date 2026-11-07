@@ -227,7 +227,7 @@ function Booking() {
   );
 
 
-  const guidanceKey = (profile.guidance || "basic") as keyof typeof GUIDANCE_FEES;
+  const guidanceKey = (profile.guidance && profile.guidance in GUIDANCE_FEES ? profile.guidance : "basic") as keyof typeof GUIDANCE_FEES;
   const guidanceFee = GUIDANCE_FEES[guidanceKey] ?? 0;
 
   // A personal negotiated hourly rate (admin-set for this customer, see
