@@ -61,6 +61,7 @@ import { Route as AuthenticatedAdminChatLogsRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminClientManagementRouteImport } from './routes/_authenticated/admin.client-management'
 import { Route as AuthenticatedAdminClientsRouteImport } from './routes/_authenticated/admin.clients'
 import { Route as AuthenticatedAdminCouponsRouteImport } from './routes/_authenticated/admin.coupons'
+import { Route as AuthenticatedAdminQuotesRouteImport } from './routes/_authenticated/admin.quotes'
 import { Route as AuthenticatedAdminEmailAssistantRouteImport } from './routes/_authenticated/admin.email-assistant'
 import { Route as AuthenticatedAdminFinanceRouteImport } from './routes/_authenticated/admin.finance'
 import { Route as AuthenticatedAdminFunnelLeadsRouteImport } from './routes/_authenticated/admin.funnel-leads'
@@ -374,6 +375,12 @@ const AuthenticatedAdminCouponsRoute =
     path: '/coupons',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminQuotesRoute =
+  AuthenticatedAdminQuotesRouteImport.update({
+    id: '/quotes',
+    path: '/quotes',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminEmailAssistantRoute =
   AuthenticatedAdminEmailAssistantRouteImport.update({
     id: '/email-assistant',
@@ -655,6 +662,7 @@ export interface FileRoutesByFullPath {
   '/admin/client-management': typeof AuthenticatedAdminClientManagementRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/admin/coupons': typeof AuthenticatedAdminCouponsRoute
+  '/admin/quotes': typeof AuthenticatedAdminQuotesRoute
   '/admin/email-assistant': typeof AuthenticatedAdminEmailAssistantRoute
   '/admin/finance': typeof AuthenticatedAdminFinanceRoute
   '/admin/funnel-leads': typeof AuthenticatedAdminFunnelLeadsRoute
@@ -747,6 +755,7 @@ export interface FileRoutesByTo {
   '/admin/client-management': typeof AuthenticatedAdminClientManagementRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/admin/coupons': typeof AuthenticatedAdminCouponsRoute
+  '/admin/quotes': typeof AuthenticatedAdminQuotesRoute
   '/admin/email-assistant': typeof AuthenticatedAdminEmailAssistantRoute
   '/admin/finance': typeof AuthenticatedAdminFinanceRoute
   '/admin/funnel-leads': typeof AuthenticatedAdminFunnelLeadsRoute
@@ -842,6 +851,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/client-management': typeof AuthenticatedAdminClientManagementRoute
   '/_authenticated/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/_authenticated/admin/coupons': typeof AuthenticatedAdminCouponsRoute
+  '/_authenticated/admin/quotes': typeof AuthenticatedAdminQuotesRoute
   '/_authenticated/admin/email-assistant': typeof AuthenticatedAdminEmailAssistantRoute
   '/_authenticated/admin/finance': typeof AuthenticatedAdminFinanceRoute
   '/_authenticated/admin/funnel-leads': typeof AuthenticatedAdminFunnelLeadsRoute
@@ -937,6 +947,7 @@ export interface FileRouteTypes {
     | '/admin/client-management'
     | '/admin/clients'
     | '/admin/coupons'
+    | '/admin/quotes'
     | '/admin/email-assistant'
     | '/admin/finance'
     | '/admin/funnel-leads'
@@ -1029,6 +1040,7 @@ export interface FileRouteTypes {
     | '/admin/client-management'
     | '/admin/clients'
     | '/admin/coupons'
+    | '/admin/quotes'
     | '/admin/email-assistant'
     | '/admin/finance'
     | '/admin/funnel-leads'
@@ -1123,6 +1135,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/client-management'
     | '/_authenticated/admin/clients'
     | '/_authenticated/admin/coupons'
+    | '/_authenticated/admin/quotes'
     | '/_authenticated/admin/email-assistant'
     | '/_authenticated/admin/finance'
     | '/_authenticated/admin/funnel-leads'
@@ -1581,6 +1594,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCouponsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/quotes': {
+      id: '/_authenticated/admin/quotes'
+      path: '/quotes'
+      fullPath: '/admin/quotes'
+      preLoaderRoute: typeof AuthenticatedAdminQuotesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/email-assistant': {
       id: '/_authenticated/admin/email-assistant'
       path: '/email-assistant'
@@ -1920,6 +1940,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminClientManagementRoute: typeof AuthenticatedAdminClientManagementRoute
   AuthenticatedAdminClientsRoute: typeof AuthenticatedAdminClientsRoute
   AuthenticatedAdminCouponsRoute: typeof AuthenticatedAdminCouponsRoute
+  AuthenticatedAdminQuotesRoute: typeof AuthenticatedAdminQuotesRoute
   AuthenticatedAdminEmailAssistantRoute: typeof AuthenticatedAdminEmailAssistantRoute
   AuthenticatedAdminFinanceRoute: typeof AuthenticatedAdminFinanceRoute
   AuthenticatedAdminFunnelLeadsRoute: typeof AuthenticatedAdminFunnelLeadsRoute
@@ -1962,6 +1983,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
     AuthenticatedAdminClientManagementRoute,
   AuthenticatedAdminClientsRoute: AuthenticatedAdminClientsRoute,
   AuthenticatedAdminCouponsRoute: AuthenticatedAdminCouponsRoute,
+  AuthenticatedAdminQuotesRoute: AuthenticatedAdminQuotesRoute,
   AuthenticatedAdminEmailAssistantRoute: AuthenticatedAdminEmailAssistantRoute,
   AuthenticatedAdminFinanceRoute: AuthenticatedAdminFinanceRoute,
   AuthenticatedAdminFunnelLeadsRoute: AuthenticatedAdminFunnelLeadsRoute,

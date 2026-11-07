@@ -26,7 +26,7 @@ const SIG_CREAM = "#f7f3ee";
 const STUDIO_LOGO_URL = `https://sweetbabyphoto.shop${sweetbabyLogo}`;
 
 export type DraftBrand = "photographer" | "studio" | "general";
-export type PriceList = "newborn" | "outdoor" | "both" | "none";
+export type PriceList = "newborn" | "outdoor" | "both" | "studio" | "none";
 
 type Theme = {
   pageBg: string;
@@ -137,6 +137,14 @@ const NEWBORN: { title: string; note: string; pkgs: Pkg[]; addons: string } = {
   addons: "תוספות: אלבום 280₪ · תמונה ערוכה נוספת 40₪ · צילומי אחים 200₪",
 };
 
+/** Side offer for whoever asks for a photographer in the studio — a draft only, Michal sends it by hand. */
+const STUDIO_OFFER: { title: string; note: string; pkgs: Pkg[]; addons: string } = {
+  title: "הצעה לצילום בסטודיו",
+  note: "צילום ניו בורן בסטודיו הבוטיק של סוויט בייבי בבית שמש.",
+  pkgs: [{ name: "חבילת מיני לסטודיו", price: "750₪", lines: ["2 סטים", "8 תמונות מעובדות", "קולאז׳ מעוצב"], featured: true }],
+  addons: "מעוניינת בחבילה גדולה יותר? אשמח לשלוח גם את המחירון המלא.",
+};
+
 const OUTDOOR: { title: string; note: string; pkgs: Pkg[]; addons: string } = {
   title: "מחירון צילומי חוץ וסטודיו",
   note: "משפחה, חלאקה, גיל שנה וילדים — בסטודיו או בחוץ.",
@@ -158,7 +166,7 @@ const OUTDOOR: { title: string; note: string; pkgs: Pkg[]; addons: string } = {
 };
 
 function priceBlock(list: typeof NEWBORN, t: Theme): string {
-  const card = (p: Pkg) => `<td valign="top" width="33%" style="padding:5px">
+  const card = (p: Pkg) => `<td valign="top" width="${Math.floor(100 / Math.max(list.pkgs.length, 1))}%" style="padding:5px">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${p.featured ? "#fff8fa" : "#ffffff"};border:${p.featured ? "2px" : "1px"} solid ${p.featured ? t.accent : "#e2cfb6"};border-radius:14px">
       <tr><td style="padding:14px 10px 6px;text-align:center">
         ${p.featured ? `<div style="font-size:11px;color:${t.accent};font-weight:bold;margin-bottom:4px">הכי אהובה 💗</div>` : ""}
@@ -301,7 +309,8 @@ export function buildDraftHtml(opts: {
   const lists =
     opts.brand === "photographer" && opts.priceList && opts.priceList !== "none"
       ? (opts.priceList === "newborn" || opts.priceList === "both" ? priceBlock(NEWBORN, t) : "") +
-        (opts.priceList === "outdoor" || opts.priceList === "both" ? priceBlock(OUTDOOR, t) : "")
+        (opts.priceList === "outdoor" || opts.priceList === "both" ? priceBlock(OUTDOOR, t) : "") +
+        (opts.priceList === "studio" ? priceBlock(STUDIO_OFFER, t) : "")
       : "";
   const ctaButtons = [...(opts.cta ? [opts.cta] : []), ...(opts.extraCtas ?? [])];
   const cta = ctaButtons.length
@@ -354,7 +363,8 @@ export function buildDraftText(opts: {
   const lists =
     opts.brand === "photographer" && opts.priceList && opts.priceList !== "none"
       ? (opts.priceList === "newborn" || opts.priceList === "both" ? listText(NEWBORN) : "") +
-        (opts.priceList === "outdoor" || opts.priceList === "both" ? listText(OUTDOOR) : "")
+        (opts.priceList === "outdoor" || opts.priceList === "both" ? listText(OUTDOOR) : "") +
+        (opts.priceList === "studio" ? listText(STUDIO_OFFER) : "")
       : "";
   const body = opts.body.replace(/^##\s+/gm, "").replace(/^>\s?/gm, "").replace(/\*\*/g, "");
   return `${body}\n${lists}${[...(opts.cta ? [opts.cta] : []), ...(opts.extraCtas ?? [])].map((c) => `\n${c.label}: ${c.url}`).join("")}${opts.cta || opts.extraCtas?.length ? "\n" : ""}\n--\n${
