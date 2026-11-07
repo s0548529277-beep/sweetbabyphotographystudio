@@ -370,7 +370,11 @@ export function FunnelDialog() {
 
               <form onSubmit={send} className="space-y-3">
                 <p className="text-sm text-[var(--f-ink)]/80">
-                  {result.signup ? "או שאפשר להשאיר פרטים ונחזור אלייך:" : "רוצה שנחזור אלייך עם פרטים והצעה? השאירי פרטים:"}
+                  {funnel === "photography"
+                    ? "רוצה הצעה אישית ממיכל? השאירי פרטים ונחזור אלייך במייל:"
+                    : result.signup
+                      ? "או שאפשר להשאיר פרטים ונחזור אלייך:"
+                      : "רוצה שנחזור אלייך עם פרטים והצעה? השאירי פרטים:"}
                 </p>
                 <input
                   required
@@ -393,9 +397,10 @@ export function FunnelDialog() {
                 <input
                   type="email"
                   dir="ltr"
+                  required={funnel === "photography"}
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  placeholder="מייל (לא חובה)"
+                  placeholder={funnel === "photography" ? "מייל" : "מייל (לא חובה)"}
                   aria-label="מייל"
                   className={`${input} text-end`}
                 />
@@ -421,15 +426,21 @@ export function FunnelDialog() {
               <DialogTitle className="text-2xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
                 תודה, קיבלנו! 🤍
               </DialogTitle>
-              <p className="text-sm text-[var(--f-ink)]/80">נחזור אלייך בהקדם. אפשר גם לכתוב לנו עכשיו בוואטסאפ.</p>
-              <a
-                href={`https://wa.me/${PHONE_WA}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full bg-[#25d366] px-6 py-3 font-semibold text-white"
-              >
-                <MessageCircle className="h-4 w-4" /> וואטסאפ
-              </a>
+              {funnel === "photography" ? (
+                <p className="text-sm text-[var(--f-ink)]/80">מיכל תחזור אלייך במייל בהקדם.</p>
+              ) : (
+                <>
+                  <p className="text-sm text-[var(--f-ink)]/80">נחזור אלייך בהקדם. אפשר גם לכתוב לנו עכשיו בוואטסאפ.</p>
+                  <a
+                    href={`https://wa.me/${PHONE_WA}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full bg-[#25d366] px-6 py-3 font-semibold text-white"
+                  >
+                    <MessageCircle className="h-4 w-4" /> וואטסאפ
+                  </a>
+                </>
+              )}
             </div>
           )}
         </div>

@@ -77,3 +77,13 @@ test("studio: an extra hour (100 ₪ list price) earns cashback even after the r
   const cardLine = r.details.find((d) => d.includes("כרטיסי") && d.includes("קרדיט")) ?? "";
   assert.ok(cardLine.length > 0);
 });
+
+test("photography: the recommendation never shows a price or an hourly rate (sessions with Michal are quoted by e-mail)", () => {
+  for (const where of ["studio", "outdoor", "unsure"]) {
+    for (const priority of ["digital", "album", "wall"]) {
+      const r = evaluateFunnel("photography", { where, what: "kids", when: "soon", priority });
+      assert.doesNotMatch(`${r.headline} ${r.recommendation}`, /₪|שקל|לשעה|בשעה|\d{3}/);
+      assert.match(r.recommendation, /במייל/);
+    }
+  }
+});

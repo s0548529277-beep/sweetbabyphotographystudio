@@ -73,6 +73,8 @@ export const submitFunnelLead = createServerFn({ method: "POST" })
     const digits = data.phone.replace(/\D/g, "");
     if (digits.length < 8) throw new Error("מספר הטלפון אינו תקין");
     const email = data.email || "";
+    // Sessions with Michal are answered by e-mail only (no WhatsApp), so the address is mandatory there.
+    if (funnel === "photography" && !email) throw new Error("נא להשאיר כתובת מייל — מיכל תחזור אלייך במייל");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // the same switches the visitor saw decide the recommendation text (e.g. the top-up offer)
@@ -127,7 +129,11 @@ export const submitFunnelLead = createServerFn({ method: "POST" })
           <tr><td style="padding:6px 10px;color:#8a7466">המלצה</td><td style="padding:6px 10px"><b>${esc(result.headline)}</b><br>${esc(result.recommendation)}</td></tr>
         </table>
         ${journeyHtml}
-        <p style="text-align:center;margin:20px 0 6px"><a href="${wa}" style="background:#25d366;color:#fff;text-decoration:none;padding:12px 26px;border-radius:999px;font-weight:bold;display:inline-block">שליחת וואטסאפ אל ${esc(data.name)}</a></p>
+        <p style="text-align:center;margin:20px 0 6px">${
+          funnel === "photography" && email
+            ? `<a href="mailto:${esc(email)}?subject=${encodeURIComponent("צילומים עם מיכל סיבוני")}" style="background:#4a3221;color:#fff;text-decoration:none;padding:12px 26px;border-radius:999px;font-weight:bold;display:inline-block">מענה במייל אל ${esc(data.name)}</a>`
+            : `<a href="${wa}" style="background:#25d366;color:#fff;text-decoration:none;padding:12px 26px;border-radius:999px;font-weight:bold;display:inline-block">שליחת וואטסאפ אל ${esc(data.name)}</a>`
+        }</p>
         <p style="text-align:center;font-size:12px;color:#8a7466">לא נשלחה שום הודעה אוטומטית ללידה. כל הלידים: ${SITE}/admin/funnel-leads</p>
       </div>`;
       await sendGmail({

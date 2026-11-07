@@ -138,6 +138,58 @@ export const requestPhotographySession = createServerFn({ method: "POST" })
 
   });
 
+const INQUIRY_TO = "m0548529277@gmail.com";
+const inquiryEsc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+/**
+ * Public inquiry form of /studio-photography ("צילומים עם מיכל"): no prices anywhere, answered by e-mail only.
+ * Sends ONE RTL mail to Michal with a mail-reply button; nothing is sent to the visitor automatically.
+ */
+export const sendMichalInquiry = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        name: z.string().trim().min(1).max(100),
+        email: z.string().trim().email().max(200),
+        phone: z.string().trim().max(30).optional().or(z.literal("")),
+        where: z.string().max(40).optional(),
+        what: z.string().max(80).optional(),
+        when: z.string().max(200).optional(),
+        notes: z.string().max(1500).optional(),
+        /** Honeypot: real visitors never fill this. */
+        website: z.string().max(200).optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    if (data.website) return { ok: true };
+    const { sendGmail } = await import("@/integrations/google/gmail.server");
+    const row = (label: string, value?: string) =>
+      value ? `<tr><td style="padding:6px 10px;color:#8a7466;white-space:nowrap">${label}</td><td style="padding:6px 10px">${inquiryEsc(value)}</td></tr>` : "";
+    const html = `<div dir="rtl" style="direction:rtl;text-align:right;font-family:Arial,sans-serif;color:#4a3a30;max-width:600px;margin:auto;background:#faf6f1;padding:24px;border-radius:14px">
+      <h2 style="margin:0 0 14px">פנייה חדשה · צילומים עם מיכל</h2>
+      <table style="border-collapse:collapse;width:100%;background:#fff;border-radius:10px">
+        ${row("שם", data.name)}
+        ${row("מייל", data.email)}
+        ${row("טלפון", data.phone || undefined)}
+        ${row("איפה", data.where)}
+        ${row("מה לצלם", data.what)}
+        ${row("מתי", data.when)}
+        ${row("הערות", data.notes)}
+      </table>
+      <p style="text-align:center;margin:20px 0 6px"><a href="mailto:${inquiryEsc(data.email)}?subject=${encodeURIComponent("צילומים עם מיכל סיבוני")}" style="background:#4a3221;color:#fff;text-decoration:none;padding:12px 26px;border-radius:999px;font-weight:bold;display:inline-block">מענה במייל אל ${inquiryEsc(data.name)}</a></p>
+      <p style="text-align:center;font-size:12px;color:#8a7466">לא נשלחה שום הודעה אוטומטית לפונה.</p>
+    </div>`;
+    const sent = await sendGmail({
+      to: INQUIRY_TO,
+      subject: `פנייה · צילומים עם מיכל · ${data.name}`,
+      html,
+      fromName: "Sweetbaby · פניות",
+    });
+    if (!sent) throw new Error("השליחה נכשלה, נסי שוב בעוד רגע");
+    return { ok: true };
+  });
+
 /** Closes a photography booking from the thank-you page (cash on site / other) and mails the customer. */
 export const finalizePhotographySession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

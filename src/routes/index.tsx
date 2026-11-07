@@ -131,12 +131,12 @@ function Home() {
                   צילומים עם מיכל סיבוני
                 </h3>
                 <p className="text-sm text-[#2d3d2b]/70 leading-relaxed flex-grow">
-                  סשן אישי, רגוע ומקצועי בסטודיו המאובזר — כולל אפשרות לחצי שעה ובניית סטים בהתאמה.
+                  סשן אישי, רגוע ומקצועי עם מיכל — בסטודיו או בטבע, בהתאמה אישית.
                 </p>
                 <div className="mt-6 flex items-end justify-between pt-6 border-t border-[#2d3d2b]/10">
                   <div>
-                    <div className="text-[10px] uppercase tracking-wider text-[#2d3d2b]/50">החל מ-</div>
-                    <div className="text-2xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>₪300 <span className="text-xs text-[#2d3d2b]/60">/ שעה</span></div>
+                    <div className="text-[10px] uppercase tracking-wider text-[#2d3d2b]/50">הצעה אישית</div>
+                    <div className="text-xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>בפנייה אישית</div>
                   </div>
                   <div className="h-10 w-10 rounded-full border border-[#2d3d2b]/20 flex items-center justify-center group-hover:bg-[#2d3d2b] group-hover:text-[#f8ede4] transition-colors">
                     <ArrowLeft className="h-4 w-4" />

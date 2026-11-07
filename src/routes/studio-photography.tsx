@@ -1,16 +1,14 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { FunnelCta } from "@/components/FunnelDialog";
 import { heError } from "@/lib/he-errors";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Header } from "@/components/Header";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { useAuth } from "@/lib/auth";
 import { useProfilePrefill } from "@/hooks/use-profile";
 import { EmailDatalist } from "@/components/EmailDatalist";
-import { requestPhotographySession } from "@/lib/photography.functions";
-import { PHOTOGRAPHY_HOURLY_RATE, PAYMENT_LABELS } from "@/lib/photography-options";
+import { sendMichalInquiry } from "@/lib/photography.functions";
 import { usePageGallery, PAGE_IMAGE_KEYS } from "@/lib/page-images";
 
 import {
@@ -23,7 +21,6 @@ import {
   Mail,
   ExternalLink,
   ArrowLeft,
-  CalendarDays,
   Heart,
   Download,
   Baby,
@@ -43,7 +40,7 @@ export const Route = createFileRoute("/studio-photography")({
       {
         name: "description",
         content:
-          "סשן צילום בסטודיו או בטבע עם הצלמת מיכל סיבוני. חבילות ניו-בורן, משפחה ואירועים. 300 ₪ לשעה בסטודיו, וצילומי חוץ בטבע בתאום מראש.",
+          "סשן צילום בסטודיו או בטבע עם הצלמת מיכל סיבוני. צילומי ניו-בורן, משפחה, ילדים ואירועים, בהתאמה אישית.",
       },
       { property: "og:title", content: "צילומים עם מיכל סיבוני – סטודיו וחוץ" },
       {
@@ -162,28 +159,24 @@ function StudioPhotographyPage() {
   const photos = galleryByCategory[galleryCategory];
   const activeCategory = GALLERY_CATEGORIES.find((c) => c.id === galleryCategory)!;
 
-  // --- Booking a session with Michal straight into the studio calendar ---
-  const nav = useNavigate();
-  const { user } = useAuth();
+  // --- Inquiry form: no prices anywhere, answered by e-mail only ---
   const profile = useProfilePrefill();
-  const bookSession = useServerFn(requestPhotographySession);
+  const sendInquiry = useServerFn(sendMichalInquiry);
   const [sending, setSending] = useState(false);
-  const [wizard, setWizard] = useState(false);
-  const [step, setStep] = useState(1);
-  const [book, setBook] = useState({
+  const [sent, setSent] = useState(false);
+  const [inq, setInq] = useState({
     name: "",
-    phone: "",
-    date: "",
-    time: "10:00",
-    hours: "1",
-    sessionType: "משפחה",
     email: "",
-    payment: "cash",
+    phone: "",
+    where: "בסטודיו",
+    what: "משפחה",
+    when: "",
     notes: "",
+    website: "",
   });
   useEffect(() => {
     if (!profile.loaded) return;
-    setBook((b) => ({
+    setInq((b) => ({
       ...b,
       name: b.name || profile.fullName,
       phone: b.phone || profile.phone,
@@ -191,40 +184,19 @@ function StudioPhotographyPage() {
     }));
   }, [profile.loaded, profile.fullName, profile.phone, profile.email]);
 
-  const bookPrice = Math.round(PHOTOGRAPHY_HOURLY_RATE * Number(book.hours || 0));
-
-  const submitBooking = async () => {
-    if (!book.name.trim() || !book.phone.trim() || !book.date) {
-      toast.error("נא למלא שם, טלפון ותאריך.");
-      return;
-    }
-    if (!user) {
-      toast.error("יש להתחבר כדי לקבוע מועד ביומן.");
-      nav({ to: "/auth" });
+  const submitInquiry = async (e: FormEvent) => {
+    e.preventDefault();
+    if (sending) return;
+    if (!inq.name.trim() || !inq.email.trim()) {
+      toast.error("נא למלא שם ומייל.");
       return;
     }
     setSending(true);
     try {
-      const res = await bookSession({
-        data: {
-          session_date: book.date,
-          start_time: book.time,
-          hours: Number(book.hours),
-          contact_name: book.name.trim(),
-          contact_phone: book.phone.trim(),
-          contact_email: book.email.trim() || null,
-          payment_method: book.payment as "cash" | "transfer" | "bit" | "later",
-          session_type: book.sessionType,
-          location: tab,
-          notes: book.notes || null,
-        },
-      });
-      toast.success("הבקשה נקלטה ביומן הסטודיו ✓");
-      setBook((b) => ({ ...b, notes: "" }));
-      setWizard(false);
-      nav({ to: "/photo-thanks/$id", params: { id: res.id } });
-    } catch (e) {
-      toast.error(heError(e, "קביעת המועד נכשלה"));
+      await sendInquiry({ data: { ...inq, name: inq.name.trim(), email: inq.email.trim() } });
+      setSent(true);
+    } catch (err) {
+      toast.error(heError(err, "השליחה נכשלה"));
     } finally {
       setSending(false);
     }
@@ -278,16 +250,12 @@ function StudioPhotographyPage() {
               <FunnelCta funnel="photography" label="איזה סשן מתאים לי?" sub="4 שאלות קצרות והמלצה אישית" />
             </div>
             <div className="flex flex-wrap items-stretch justify-center gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setStep(1);
-                  setWizard(true);
-                }}
+              <a
+                href="#book-michal"
                 className="inline-flex items-center gap-2 bg-[#2d3d2b] text-white px-7 py-3.5 rounded-full hover:bg-[#2d3d2b]/90 transition font-semibold"
               >
-                <CalendarDays size={18} /> קביעת מועד ביומן
-              </button>
+                <Mail size={18} /> השאירי פרטים
+              </a>
               <a
                 href={gmailLink}
                 target="_blank"
@@ -346,8 +314,8 @@ function StudioPhotographyPage() {
               ? [
                   {
                     icon: Clock,
-                    title: "300 ₪ / שעה",
-                    desc: "אפשרות לחצי שעה · בניית סטים +100 ₪",
+                    title: "סשן בהתאמה אישית",
+                    desc: "משך הסשן והסטים לפי מה שחשוב לך · הצעה אישית במייל",
                   },
                   {
                     icon: Sparkles,
@@ -420,227 +388,89 @@ function StudioPhotographyPage() {
         </Link>
       </section>
 
-      {/* Book a session into the studio calendar — pink CTA + step-by-step modal */}
-      <section id="book-michal" className="max-w-4xl mx-auto px-6 pb-14 scroll-mt-24">
-        <div className="bg-[#f5d5cf]/40 rounded-3xl border border-[#2d3d2b]/10 p-6 md:p-8 text-center">
-          <div className="flex items-center justify-center gap-2 text-[#6b8a63] text-xs tracking-[0.28em] uppercase mb-2">
-            <CalendarDays size={14} /> Booking
+      {/* Inquiry form — no prices on this page; Michal answers every inquiry by e-mail. */}
+      <section id="book-michal" className="max-w-3xl mx-auto px-6 pb-14 scroll-mt-24">
+        <div className="bg-[#f5d5cf]/40 rounded-3xl border border-[#2d3d2b]/10 p-6 md:p-8">
+          <div className="text-center mb-5">
+            <div className="flex items-center justify-center gap-2 text-[#6b8a63] text-xs tracking-[0.28em] uppercase mb-2">
+              <Mail size={14} /> Inquiry
+            </div>
+            <h2 className="text-2xl md:text-3xl mb-2" style={{ fontFamily: "'DM Serif Display', serif" }}>
+              צילומים עם מיכל
+            </h2>
+            <p className="text-sm text-[#2d3d2b]/85 leading-relaxed">
+              משאירות פרטים, ומיכל חוזרת אלייך במייל עם הצעה אישית.
+            </p>
           </div>
-          <h2
-            className="text-2xl md:text-3xl mb-2"
-            style={{ fontFamily: "'DM Serif Display', serif" }}
-          >
-            קביעת צילומים עם מיכל ביומן הסטודיו
-          </h2>
-          <p className="text-sm text-[#2d3d2b]/85 mb-5 leading-relaxed">
-            בוחרים תאריך, שעה ומשך הסשן — המועד נשמר ביומן הסטודיו.{" "}
-            <strong>המועד מאושר סופית לאחר תיאום עם הצלמת.</strong> תעריף: {PHOTOGRAPHY_HOURLY_RATE}{" "}
-            ₪ לשעה.
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setStep(1);
-              setWizard(true);
-            }}
-            className="inline-flex items-center gap-2 bg-[#2d3d2b] text-white px-8 py-4 rounded-full text-base font-semibold hover:bg-[#2d3d2b]/90 transition"
-          >
-            <CalendarDays size={18} /> קביעת מועד ביומן
-          </button>
+
+          {sent ? (
+            <div className="rounded-2xl bg-white border border-[#a8c4a2]/30 p-8 text-center">
+              <div className="text-3xl mb-2" aria-hidden>🤍</div>
+              <div className="text-xl mb-1" style={{ fontFamily: "'DM Serif Display', serif" }}>תודה, הפנייה התקבלה</div>
+              <p className="text-sm text-[#2d3d2b]/80">מיכל תחזור אלייך במייל בהקדם.</p>
+            </div>
+          ) : (
+            <form onSubmit={submitInquiry} className="grid sm:grid-cols-2 gap-3">
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[#2d3d2b]/80">שם מלא *</span>
+                <input required className={bookInputCls} value={inq.name} onChange={(e) => setInq({ ...inq, name: e.target.value })} />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[#2d3d2b]/80">מייל *</span>
+                <input
+                  required
+                  className={bookInputCls}
+                  dir="ltr"
+                  type="email"
+                  list="email-suggest-studio-photography"
+                  value={inq.email}
+                  onChange={(e) => setInq({ ...inq, email: e.target.value })}
+                  placeholder="you@example.com"
+                />
+                <EmailDatalist id="email-suggest-studio-photography" value={inq.email} />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[#2d3d2b]/80">טלפון</span>
+                <input className={bookInputCls} dir="ltr" type="tel" value={inq.phone} onChange={(e) => setInq({ ...inq, phone: e.target.value })} />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[#2d3d2b]/80">איפה תרצי לצלם</span>
+                <select className={bookInputCls} value={inq.where} onChange={(e) => setInq({ ...inq, where: e.target.value })}>
+                  {["בסטודיו", "בחוץ, בטבע", "עוד לא יודעת"].map((w) => (
+                    <option key={w}>{w}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[#2d3d2b]/80">מה לצלם</span>
+                <select className={bookInputCls} value={inq.what} onChange={(e) => setInq({ ...inq, what: e.target.value })}>
+                  {["משפחה", "ילדים", "סמאש קייק / יום הולדת", "חלאקה", "בת מצווה", "אחר"].map((w) => (
+                    <option key={w}>{w}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[#2d3d2b]/80">מתי בערך</span>
+                <input className={bookInputCls} value={inq.when} onChange={(e) => setInq({ ...inq, when: e.target.value })} placeholder="למשל: בחודש הקרוב" />
+              </label>
+              <label className="flex flex-col gap-1.5 sm:col-span-2">
+                <span className="text-xs font-semibold text-[#2d3d2b]/80">הערות</span>
+                <textarea className={bookInputCls} rows={3} value={inq.notes} onChange={(e) => setInq({ ...inq, notes: e.target.value })} />
+              </label>
+              <input tabIndex={-1} autoComplete="off" aria-hidden className="hidden" value={inq.website} onChange={(e) => setInq({ ...inq, website: e.target.value })} />
+              <div className="sm:col-span-2 flex justify-center pt-1">
+                <button
+                  type="submit"
+                  disabled={sending}
+                  className="inline-flex items-center gap-2 h-12 px-10 rounded-full bg-[#2d3d2b] text-white text-sm font-semibold hover:bg-[#2d3d2b]/90 disabled:opacity-50"
+                >
+                  <Mail size={18} /> {sending ? "שולחת…" : "שליחת פנייה"}
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       </section>
-
-      {wizard && (
-        <div
-          dir="rtl"
-          className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={() => setWizard(false)}
-        >
-          <div
-            className="w-full max-w-xl max-h-[90vh] overflow-y-auto bg-[#f8ede4] rounded-3xl p-6 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="text-sm font-semibold text-[#2d3d2b]">שלב {step} מתוך 3</div>
-              <button
-                type="button"
-                aria-label="סגירה"
-                onClick={() => setWizard(false)}
-                className="h-9 w-9 rounded-full hover:bg-[#2d3d2b]/10 flex items-center justify-center"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="h-1.5 rounded-full bg-[#2d3d2b]/10 mb-6 overflow-hidden">
-              <div
-                className="h-full bg-[#2d3d2b] transition-all"
-                style={{ width: `${(step / 3) * 100}%` }}
-              />
-            </div>
-
-            {step === 1 && (
-              <div className="grid sm:grid-cols-2 gap-3">
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-xs font-semibold text-[#2d3d2b]/80">תאריך *</span>
-                  <input
-                    className={bookInputCls}
-                    type="date"
-                    value={book.date}
-                    onChange={(e) => setBook({ ...book, date: e.target.value })}
-                  />
-                </label>
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-xs font-semibold text-[#2d3d2b]/80">שעת התחלה *</span>
-                  <input
-                    className={bookInputCls}
-                    type="time"
-                    step={1800}
-                    value={book.time}
-                    onChange={(e) => setBook({ ...book, time: e.target.value })}
-                  />
-                </label>
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-xs font-semibold text-[#2d3d2b]/80">משך הסשן</span>
-                  <select
-                    className={bookInputCls}
-                    value={book.hours}
-                    onChange={(e) => setBook({ ...book, hours: e.target.value })}
-                  >
-                    {["0.5", "1", "1.5", "2", "3"].map((h) => (
-                      <option key={h} value={h}>
-                        {h} שעות · ₪{Math.round(PHOTOGRAPHY_HOURLY_RATE * Number(h))}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-xs font-semibold text-[#2d3d2b]/80">סוג צילום</span>
-                  <select
-                    className={bookInputCls}
-                    value={book.sessionType}
-                    onChange={(e) => setBook({ ...book, sessionType: e.target.value })}
-                  >
-                    {["משפחה", "הריון", "ילדים", "סמאש קייק", "אירוע", "אחר"].map((s) => (
-                      <option key={s}>{s}</option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            )}
-
-            {step === 2 && (
-              <div className="grid sm:grid-cols-2 gap-3">
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-xs font-semibold text-[#2d3d2b]/80">שם מלא *</span>
-                  <input
-                    className={bookInputCls}
-                    value={book.name}
-                    onChange={(e) => setBook({ ...book, name: e.target.value })}
-                  />
-                </label>
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-xs font-semibold text-[#2d3d2b]/80">טלפון *</span>
-                  <input
-                    className={bookInputCls}
-                    dir="ltr"
-                    type="tel"
-                    value={book.phone}
-                    onChange={(e) => setBook({ ...book, phone: e.target.value })}
-                  />
-                </label>
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-xs font-semibold text-[#2d3d2b]/80">אימייל לאישור</span>
-                  <input
-                    className={bookInputCls}
-                    dir="ltr"
-                    type="email"
-                    list="email-suggest-studio-photography"
-                    value={book.email}
-                    onChange={(e) => setBook({ ...book, email: e.target.value })}
-                    placeholder="you@example.com"
-                  />
-                  <EmailDatalist id="email-suggest-studio-photography" value={book.email} />
-                </label>
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-xs font-semibold text-[#2d3d2b]/80">אמצעי תשלום</span>
-                  <select
-                    className={bookInputCls}
-                    value={book.payment}
-                    onChange={(e) => setBook({ ...book, payment: e.target.value })}
-                  >
-                    {Object.entries(PAYMENT_LABELS).map(([k, v]) => (
-                      <option key={k} value={k}>
-                        {v}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex flex-col gap-1.5 sm:col-span-2">
-                  <span className="text-xs font-semibold text-[#2d3d2b]/80">הערות</span>
-                  <textarea
-                    className={bookInputCls}
-                    rows={2}
-                    value={book.notes}
-                    onChange={(e) => setBook({ ...book, notes: e.target.value })}
-                  />
-                </label>
-              </div>
-            )}
-
-            {step === 3 && (
-              <div className="rounded-2xl bg-white border border-[#a8c4a2]/30 p-5 text-sm text-[#2d3d2b] space-y-2">
-                <div className="font-semibold text-[#2d3d2b] text-base mb-1">סיכום לפני שליחה</div>
-                <div>
-                  תאריך: <strong>{book.date || "—"}</strong> · שעה:{" "}
-                  <strong>{book.time || "—"}</strong>
-                </div>
-                <div>
-                  משך: <strong>{book.hours} שעות</strong> · סוג: <strong>{book.sessionType}</strong>
-                </div>
-                <div>
-                  שם: <strong>{book.name || "—"}</strong> · טלפון:{" "}
-                  <strong>{book.phone || "—"}</strong>
-                </div>
-                <div>
-                  עלות משוערת: <strong>₪{bookPrice}</strong> · תשלום ב{PAYMENT_LABELS[book.payment]}
-                </div>
-                <p className="text-xs text-[#2d3d2b]/80 pt-2">
-                  המועד יישמר ביומן הסטודיו ואישור יישלח למייל. המועד מאושר סופית לאחר תיאום עם
-                  הצלמת.
-                </p>
-              </div>
-            )}
-
-            <div className="mt-6 flex items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => (step === 1 ? setWizard(false) : setStep(step - 1))}
-                className="h-12 px-6 rounded-full border border-[#2d3d2b]/20 text-sm text-[#2d3d2b] hover:bg-white"
-              >
-                {step === 1 ? "ביטול" : "חזרה"}
-              </button>
-              {step < 3 ? (
-                <button
-                  type="button"
-                  onClick={() => setStep(step + 1)}
-                  className="h-12 px-8 rounded-full bg-[#2d3d2b] text-white text-sm font-semibold hover:bg-[#2d3d2b]/90"
-                >
-                  המשך
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={submitBooking}
-                  disabled={sending}
-                  className="inline-flex items-center gap-2 h-12 px-8 rounded-full bg-[#2d3d2b] text-white text-sm font-semibold hover:bg-[#2d3d2b]/90 disabled:opacity-50"
-                >
-                  <CalendarDays size={18} /> {sending ? "שולח…" : "שליחה וקביעה ביומן"}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Gallery — divided by topic (ניו-בורן / גיל שנה / חלאקה / משפחה /
           סטודיו וחוץ / בת מצווה), per explicit request. Independent of the
