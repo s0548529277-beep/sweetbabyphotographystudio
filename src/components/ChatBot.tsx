@@ -291,8 +291,7 @@ export function ChatBot() {
       /* ignore */
     }
   };
-  // The photographer pages (/newborn, /studio-photography, /sleep-consultant) always show the small avatar-only bubble.
-  const isCompact = compact || ctx.id === "shoot";
+  const isCompact = compact;
   // Auth/admin state resolves after first render — refresh the greeting
   // while the conversation hasn't started yet.
   useEffect(() => {
