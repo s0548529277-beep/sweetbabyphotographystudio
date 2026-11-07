@@ -1,6 +1,6 @@
 /** Shared constants for the newborn-package admin order tracker (client + server safe). See newborn-orders.functions.ts and /admin/newborn-packages. */
 
-export type NewbornPackageCategoryId = "regular" | "birth_basket";
+export type NewbornPackageCategoryId = "regular" | "birth_basket" | "studio_offer";
 
 export const NEWBORN_PACKAGE_CATEGORIES: { id: NewbornPackageCategoryId; label: string }[] = [
   { id: "regular", label: "חבילות רגילות" },
@@ -8,6 +8,9 @@ export const NEWBORN_PACKAGE_CATEGORIES: { id: NewbornPackageCategoryId; label: 
   // own doc comment on how it works) — a separate, lower price tier for
   // customers redeeming that benefit rather than paying full price.
   { id: "birth_basket", label: "ניו-בורן מימוש סל לידה" },
+  // A side offer for the studio's own clients (quote sent by Michal). Deliberately NOT "regular":
+  // the public /newborn page lists only "regular" packages, so this one never appears there.
+  { id: "studio_offer", label: "הצעה ללקוחות הסטודיו" },
 ];
 
 // sets/hasCollage/hasAlbum are structured duplicates of what the `features`
@@ -55,6 +58,18 @@ export const NEWBORN_PACKAGES: NewbornPackage[] = [
     hasCollage: true,
     hasAlbum: false,
     categories: ["regular"],
+  },
+  {
+    id: "mini_studio",
+    name: "חבילה מיני — לקוחות הסטודיו",
+    price: 750,
+    features: ["2 סטים", "8 תמונות מעובדות", "קולאז' מעוצב"],
+    photosToEdit: 8,
+    sets: 2,
+    sessions: 1,
+    hasCollage: true,
+    hasAlbum: false,
+    categories: ["studio_offer"],
   },
   {
     id: "pampering",
