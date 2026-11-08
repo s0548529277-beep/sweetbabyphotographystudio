@@ -38,6 +38,8 @@ const WINDOW_END_MIN = 23 * 60 + 50;
 const SEEN_KEY = "email_drafts_seen";
 const STATUS_KEY = "email_drafts_status";
 const LAST_RUN_KEY = "email_drafts_last_run";
+/** Studio photos (public/email) shown with the newborn price cards next to the sample newborn photo. */
+const STUDIO_CARD_PHOTOS = [1, 2].map((n) => `https://sweetbabyphoto.shop/email/studio-photo-${n}.jpg`);
 const PHOTOS_KEY = "email_drafts_sample_photos";
 const OWNER_ADDRESSES = ["m0548529277@gmail.com", "s0548529277@gmail.com"];
 const OWNER_NOTIFY = "m0548529277@gmail.com";
@@ -824,7 +826,9 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
         photos: a.bigPhotos ? photoSet : photoSet.slice(0, 4),
         bigPhotos: !!a.bigPhotos,
         cardPhotos: {
-          newborn: design.cardPhotos.newborn.length ? design.cardPhotos.newborn : photos.newborn.slice(0, 3),
+          newborn: design.cardPhotos.newborn.length
+            ? design.cardPhotos.newborn
+            : [...photos.newborn.slice(0, 1), ...STUDIO_CARD_PHOTOS].slice(0, 3),
           outdoor: design.cardPhotos.outdoor.length ? design.cardPhotos.outdoor : photos.family.slice(0, 3),
         },
         cta,

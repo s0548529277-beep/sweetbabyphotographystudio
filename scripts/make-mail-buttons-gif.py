@@ -12,7 +12,7 @@ K = 3; W, H = 320, 100          # displayed at 160x50
 FONTB = "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf"
 def lerp(a, b, t): return tuple(a[i] + (b[i] - a[i]) * t for i in range(3))
 STUDIO = [(61, 90, 58), (200, 100, 128), (205, 120, 88), (96, 140, 110)]      # green, rose, terracotta, sage
-MICHAL = [(92, 70, 56), (194, 59, 109), (178, 128, 70), (150, 92, 104)]       # brown, rose, gold, mauve
+MICHAL = [(150, 118, 92), (178, 76, 106), (170, 135, 105), (160, 100, 100)]       # logo brown, logo-heart raspberry (muted), tan, dusty rose
 def hexrgb(h): return tuple(int(h.lstrip("#")[i:i+2], 16) for i in (0, 2, 4))
 def cyc(pal, p):
     n = len(pal); x = (p % 1.0) * n; i = int(x) % n; return lerp(pal[i], pal[(i + 1) % n], x - int(x))
@@ -54,7 +54,7 @@ def make(label, pal, bg_hex, name, float_amp=0, frames_n=24, soft=False, ink=(25
     ps[0].save(path, save_all=True, append_images=ps[1:], duration=[1500] + [(380 if soft else 300)] * (frames_n - 1), loop=0, optimize=False, disposal=1)
     print(name, os.path.getsize(path) // 1024, "KB")
 SOFT_STUDIO = [(207, 227, 194), (247, 210, 195), (243, 205, 216), (214, 232, 222)]
-SOFT_MICHAL = [(236, 192, 176), (234, 217, 189), (239, 199, 209), (224, 206, 214)]
+SOFT_MICHAL = [(232, 214, 196), (240, 205, 212), (235, 222, 205), (238, 210, 205)]
 # importance: primary = saturated + white text; secondary = soft pastel + dark text (all rotate slowly)
 make("לאתר הסטודיו", STUDIO, "#f8ede4", "btn-studio-site.gif")
 make("ניווט בוויז", SOFT_STUDIO, "#f8ede4", "btn-studio-waze.gif", soft=True, ink=(45, 61, 43))
