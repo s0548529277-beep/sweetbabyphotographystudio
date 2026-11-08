@@ -20,6 +20,7 @@
  * between 7:30 and 23:50 Israel time (owner request 2026-11-04), never on Shabbat. Threads already looked at are
  * remembered in app_settings (email_drafts_seen) so nothing is re-judged.
  */
+import { emailThumbUrl } from "./media-url";
 import { generateTextResilient } from "./ai-gateway.server";
 import { buildDraftHtml, buildDraftText, type DraftBrand, type PriceList } from "./email-draft-design";
 import { chatLinkUrl } from "./orderSummary";
@@ -600,6 +601,11 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
   let photos: { newborn: string[]; family: string[] } = { newborn: [], family: [] };
   try {
     photos = { ...photos, ...JSON.parse((await getSetting(db, PHOTOS_KEY)) || "{}") };
+    // Signed storage URLs sit on a host that filtered networks block -> send them through the site's /media proxy.
+    photos = {
+      newborn: (photos.newborn ?? []).map((u) => emailThumbUrl(u, 600)),
+      family: (photos.family ?? []).map((u) => emailThumbUrl(u, 600)),
+    };
   } catch {
     /* no sample photos */
   }
@@ -815,6 +821,7 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
         priceList: a.priceList,
         photos: a.bigPhotos ? photoSet : photoSet.slice(0, 4),
         bigPhotos: !!a.bigPhotos,
+        cardPhotos: { newborn: photos.newborn.slice(0, 3), outdoor: photos.family.slice(0, 3) },
         cta,
       });
       const plain = buildDraftText({ brand, body: a.body, priceList: a.priceList, cta });

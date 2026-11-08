@@ -18,7 +18,9 @@ const MICHAL_LOGO_URL = `https://sweetbabyphoto.shop${michalWordmark}`;
 // phone, mail, site and services) — re-coloured to the card colour below by scripts/make-email-signature-gif.py
 // (source: Drive "michal-siboni-signature-final-cream2.gif"; first frame = a finished frame for Outlook / blocked
 // images). Under it come her three signature buttons, exactly as in her Gmail signature.
-const SIGNATURE_GIF_URL = "https://sweetbabyphoto.shop/email/michal-signature.gif";
+const SIGNATURE_GIF_URL = "https://sweetbabyphoto.shop/email/michal-signature-color.gif";
+const STUDIO_SIGNATURE_GIF_URL = "https://sweetbabyphoto.shop/email/studio-signature.gif";
+const STUDIO_WAZE = "https://waze.com/ul?q=%D7%AA%D7%9C%D7%9E%D7%95%D7%93%20%D7%99%D7%A8%D7%95%D7%A9%D7%9C%D7%9E%D7%99%2024%2C%20%D7%91%D7%99%D7%AA%20%D7%A9%D7%9E%D7%A9&navigate=yes";
 const SITE_PHONE = "053-418-1051";
 const SITE_MAIL = "m0548529277@gmail.com";
 const SIG_BROWN = "#3e3029";
@@ -119,22 +121,22 @@ type Pkg = { name: string; price: string; lines: string[]; featured?: boolean };
 
 const NEWBORN: { title: string; note: string; pkgs: Pkg[]; addons: string } = {
   title: "מחירון ניו בורן",
-  note: "בחירת אווירה, אביזרים ובגדים לפי הטעם שלך — והתינוק מטופל בעדינות ובבטיחות.",
+  note: "בצילומים נחליט על סוג האווירה, אביזרים וביגוד לפי הטעם שלך, כך שהבייבי יהיה מובלט בצורה נעימה ורכה עד ליצירת תמונה מושלמת.",
   pkgs: [
-    { name: "חבילה מיני", price: "970₪", lines: ["2 סטים", "8 תמונות ערוכות", "קולאז׳ מעוצב"] },
+    { name: "חבילה מיני", price: "970₪", lines: ["2 סטים", "8 תמונות מעובדות", "קולאז׳ מעוצב"] },
     {
       name: "חבילה מפנקת",
       price: "1,300₪",
-      lines: ["3 סטים", "10 תמונות ערוכות", "סט הורים / אחים", "קולאז׳ מעוצב", "אלבום"],
+      lines: ["3 סטים", "10 תמונות מעובדות", "סט הורים / אחים", "קולאז׳ מעוצב", "אלבום"],
       featured: true,
     },
     {
       name: "חבילה חלומית",
       price: "1,650₪",
-      lines: ["4 סטים", "15 תמונות ערוכות", "סט הורים", "סט אחים", "קולאז׳ מעוצב", "אלבום"],
+      lines: ["4 סטים", "15 תמונות מעובדות", "סט הורים", "סט אחים", "קולאז׳ מעוצב", "אלבום"],
     },
   ],
-  addons: "תוספות: אלבום 280₪ · תמונה ערוכה נוספת 40₪ · צילומי אחים 200₪",
+  addons: "תוספות: אלבום 280₪ · תמונה נוספת 40₪ · תוספת צילומי אחים 200₪",
 };
 
 /** Side offer for whoever asks for a photographer in the studio — a draft only, Michal sends it by hand. */
@@ -149,40 +151,63 @@ const OUTDOOR: { title: string; note: string; pkgs: Pkg[]; addons: string } = {
   title: "מחירון צילומי חוץ וסטודיו",
   note: "משפחה, חלאקה, גיל שנה וילדים — בסטודיו או בחוץ.",
   pkgs: [
-    { name: "קסם", price: "1,250₪", lines: ["3 סטים", "15 תמונות בעריכה אומנותית", "כל התמונות באיכות", "קולאז׳ מעוצב"] },
+    { name: "קסם", price: "1,250₪", lines: ["3 סשנים", "15 תמונות מעובדות בעיבוד אומנותי", "כל התמונות באיכות", "קולאז׳ מעוצב"] },
     {
       name: "פופולארית",
       price: "1,750₪",
-      lines: ["שיחת סטיילינג", "4 סטים", "25 תמונות בעריכה אומנותית", "כל התמונות באיכות", "קולאז׳ מעוצב", "אלבום דיגיטלי 21/56"],
+      lines: ["שיחת סטיילינג", "4 סשנים", "25 תמונות מעובדות בעיבוד אומנותי", "כל התמונות באיכות", "קולאז׳ מעוצב", "אלבום דיגיטלי, כריכת בוק 21/56"],
       featured: true,
     },
     {
       name: "חלום",
       price: "2,350₪",
-      lines: ["5 סטים — חוץ + סטודיו", "30 תמונות בעריכה אומנותית", "כל התמונות באיכות", "קולאז׳ מעוצב", "אלבום דיגיטלי 21/56"],
+      lines: ["5 סשנים — חוץ + סטודיו", "30 תמונות מעובדות בעיבוד אומנותי", "כל התמונות באיכות", "קולאז׳ מעוצב", "אלבום דיגיטלי, כריכת בוק 21/56"],
     },
   ],
   addons: "צילום שאינו בחבילה — בהתאמה אישית, בפנייה.",
 };
 
-function priceBlock(list: typeof NEWBORN, t: Theme): string {
-  // Cards are inline-blocks (not table cells) so on a phone they wrap into one / two per row instead of being
-  // squeezed into a few letters per line (the price used to break as "1,6 / 50 / ₪").
-  const card = (p: Pkg) => `<div style="display:inline-block;vertical-align:top;width:31%;min-width:150px;box-sizing:border-box;padding:5px;direction:rtl;text-align:center">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${p.featured ? "#fff8fa" : "#ffffff"};border:${p.featured ? "2px" : "1px"} solid ${p.featured ? t.accent : "#e2cfb6"};border-radius:14px">
-      <tr><td style="padding:14px 10px 6px;text-align:center">
-        ${p.featured ? `<div style="font-size:11px;color:${t.accent};font-weight:bold;margin-bottom:4px">הכי אהובה 💗</div>` : ""}
-        <div style="font-size:16px;font-weight:bold;color:${t.accent}">${esc(p.name)}</div>
-        <div style="height:2px;width:36px;background:#a9784f;margin:8px auto"></div>
-        ${p.lines.map((l) => `<div style="font-size:13px;color:${t.text};line-height:1.6">${esc(l)}</div>`).join("")}
+const PKG_LABELS: Record<string, string[]> = {
+  newborn: ["MINI", "POPULAR", "DREAM"],
+  outdoor: ["MAGIC", "POPULAR", "DREAM"],
+  studio: ["STUDIO"],
+};
+
+/**
+ * Photographer price list in the style of the Drive design "מחירון_ילדים_מיכל_סיבוני": an arched photo on top of
+ * every card, a small English label, the package name, thin divider, the contents and an outlined price button;
+ * the featured card is dark brown with cream text. Cards are inline-blocks (not table cells) so on a phone they
+ * wrap instead of squeezing the text. Without a photo the card simply starts at the label.
+ */
+function priceBlock(list: typeof NEWBORN, t: Theme, kind: keyof typeof PKG_LABELS = "newborn", photos: string[] = []): string {
+  const DARK = "#4a3a2e";
+  const CREAM = "#f7f3ee";
+  const card = (p: Pkg, i: number) => {
+    const f = !!p.featured;
+    const fg = f ? CREAM : t.text;
+    const photo = photos.length ? photos[i % photos.length] : "";
+    const label = (PKG_LABELS[kind] ?? [])[i] ?? "";
+    return `<div style="display:inline-block;vertical-align:top;width:31%;min-width:160px;box-sizing:border-box;padding:5px;direction:rtl;text-align:center">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${f ? DARK : "#fbf8f3"};border:1px solid ${f ? DARK : "#e2cfb6"};border-radius:18px;overflow:hidden">
+      ${
+        photo
+          ? `<tr><td style="padding:10px 10px 0;text-align:center"><img src="${esc(photo)}" alt="" width="150" style="width:100%;max-width:100%;height:150px;object-fit:cover;border-radius:90px 90px 8px 8px;display:block;border:0"></td></tr>`
+          : ""
+      }
+      <tr><td style="padding:12px 10px 6px;text-align:center">
+        ${label ? `<div dir="ltr" style="font-family:Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:3px;color:${f ? "#d8c3a8" : t.soft}">${label}</div>` : ""}
+        <div style="font-size:17px;font-weight:bold;color:${f ? CREAM : SIG_BROWN};margin-top:3px">${esc(p.name)}</div>
+        <div style="height:1px;width:40px;background:${f ? "#d8c3a8" : "#a9784f"};margin:9px auto"></div>
+        ${p.lines.map((l) => `<div style="font-size:13px;color:${fg};line-height:1.65">${esc(l)}</div>`).join("")}
       </td></tr>
-      <tr><td style="padding:8px 10px 14px;text-align:center">
-        <span style="display:inline-block;white-space:nowrap;background:#8a6a52;color:#ffffff;font-weight:bold;font-size:15px;padding:5px 16px;border-radius:20px">${esc(p.price)}</span>
+      <tr><td style="padding:8px 10px 16px;text-align:center">
+        <span style="display:inline-block;white-space:nowrap;${f ? `background:${CREAM};color:${DARK};border:1px solid ${CREAM}` : `background:transparent;color:${SIG_BROWN};border:1px solid ${SIG_BROWN}`};font-weight:bold;font-size:15px;padding:5px 18px;border-radius:20px">${esc(p.price)}</span>
       </td></tr>
     </table>
   </div>`;
+  };
   return `<div style="margin:22px 0 8px">
-    <h3 style="color:${t.accent};font-size:18px;margin:0 0 2px;text-align:center;font-family:${FONT}">${esc(list.title)}</h3>
+    <h3 style="color:${SIG_BROWN};font-size:19px;margin:0 0 2px;text-align:center;font-family:${FONT}">${esc(list.title)}</h3>
     <p style="margin:0 0 10px;text-align:center;font-size:13px;color:${t.soft}">${esc(list.note)}</p>
     <div dir="rtl" style="text-align:center;font-size:0;line-height:0">${list.pkgs.map(card).join("")}</div>
     <p style="margin:8px 0 0;text-align:center;font-size:12px;color:${t.soft}">${esc(list.addons)}</p>
@@ -253,8 +278,8 @@ export function buildBrandedMailHtml(opts: { title: string; innerHtml: string; t
   const heartKind: HeartKind = "michal";
   const rtl = "direction:rtl;text-align:right";
   // Soft blush-to-sand gradient behind the card (solid colour first as the fallback for clients without gradients).
-  const html = `<div dir="rtl" style="background:#ecd0b8;background-image:linear-gradient(160deg,#f6d8d0 0%,#eccbb4 55%,#d9b898 100%);padding:28px 12px;${rtl}">
-  <table role="presentation" dir="rtl" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:${t.cardBg};border:1px solid #efe0d2;border-radius:20px;overflow:hidden;box-shadow:0 8px 28px rgba(120,86,60,0.16);font-family:${FONT};color:${t.text};${rtl}">
+  const html = `<div dir="rtl" style="background:#ecd0b8;background-image:linear-gradient(160deg,#f6d8d0 0%,#eccbb4 55%,#d9b898 100%);padding:12px 8px;${rtl}">
+  <table role="presentation" dir="rtl" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:${t.cardBg};border:1px solid #efe0d2;border-radius:12px;overflow:hidden;box-shadow:0 8px 28px rgba(120,86,60,0.16);font-family:${FONT};color:${t.text};${rtl}">
     <tr><td align="center" style="padding:30px 28px 6px"><div dir="ltr" style="font-family:Helvetica,Arial,sans-serif;font-size:24px;letter-spacing:9px;margin-right:-9px;color:${SIG_BROWN}">MICHAL SIBONI</div>
       <div style="font-size:12px;letter-spacing:2px;color:${t.soft};margin-top:8px">${esc(opts.tagline ?? "צילומי ניו בורן ומשפחה")}</div></td></tr>
     <tr><td style="padding:6px 28px 0"><div style="border-top:1px solid ${t.soft}55;text-align:center;line-height:0"><span style="position:relative;top:-1px;background:${t.cardBg};padding:0 10px;color:${t.accent};font-size:12px;line-height:1">${heartImg(heartKind, 14)}</span></div></td></tr>
@@ -268,12 +293,42 @@ export function buildBrandedMailHtml(opts: { title: string; innerHtml: string; t
   return withEmailHearts(html, heartKind, 14);
 }
 
+/**
+ * Studio-brand shell (thick gradient frame, Sweetbaby logo, studio colours, the colour-rotating studio signature and
+ * three buttons: site / Waze / mail) around ready-made inner HTML — for the studio's own mails (props orders,
+ * studio bookings). The photographer mails keep the thinner Michal look above.
+ */
+export function buildStudioMailHtml(opts: { title: string; innerHtml: string }): string {
+  const t = THEMES.studio;
+  const rtl = "direction:rtl;text-align:right";
+  const btn = (href: string, label: string, primary = false) =>
+    `<a href="${href}" style="display:inline-block;background:${primary ? t.accent : t.cardBg};color:${primary ? t.cardBg : t.accent};border:1px solid ${t.accent};font-family:Arial,sans-serif;font-size:14px;font-weight:bold;text-decoration:none;padding:9px 22px;border-radius:18px;white-space:nowrap;margin:4px">${label}</a>`;
+  const html = `<div dir="rtl" style="background:#e9dcc8;background-image:linear-gradient(160deg,#dfe8d3 0%,#f3d9d2 55%,#e9d3b9 100%);padding:26px 16px;${rtl}">
+  <table role="presentation" dir="rtl" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:${t.cardBg};border:1px solid #efddd0;border-radius:22px;overflow:hidden;box-shadow:0 8px 28px rgba(90,70,50,0.16);font-family:${FONT};color:${t.text};${rtl}">
+    <tr><td align="center" style="padding:28px 28px 6px"><img src="${STUDIO_LOGO_URL}" alt="Sweetbaby" height="52" style="height:52px;width:auto;border:0">
+      <div style="font-size:12px;letter-spacing:2px;color:${t.soft};margin-top:8px">סטודיו בוטיק לצילום · בית שמש</div></td></tr>
+    <tr><td style="padding:6px 28px 0"><div style="border-top:1px solid ${t.soft}55;text-align:center;line-height:0"><span style="position:relative;top:-1px;background:${t.cardBg};padding:0 10px;font-size:12px;line-height:1">${heartImg("bot", 14)}</span></div></td></tr>
+    <tr><td dir="rtl" style="padding:14px 30px 10px;font-size:15px;line-height:1.8;${rtl}">
+      <h2 style="margin:0 0 14px;text-align:center;font-size:21px;font-weight:bold;color:${t.accent};font-family:${FONT}">${esc(opts.title)}</h2>
+      ${opts.innerHtml}
+    </td></tr>
+    <tr><td style="padding:14px 20px 24px;font-size:13px;color:${t.soft};text-align:center;line-height:1.6">
+      <div style="line-height:0"><img src="${STUDIO_SIGNATURE_GIF_URL}" alt="Sweetbaby · תלמוד ירושלמי 24, בית שמש · 054-8529277" width="560" style="width:100%;max-width:560px;height:auto;border:0;display:inline-block"></div>
+      <div style="margin-top:14px;line-height:1.4">${btn("https://sweetbabyphoto.shop/", "לאתר הסטודיו", true)}${btn(STUDIO_WAZE, "ניווט בוויז")}${btn("mailto:s0548529277@gmail.com", "שליחת מייל")}</div>
+    </td></tr>
+  </table>
+</div>`;
+  return withEmailHearts(html, "bot", 14);
+}
+
 export function buildDraftHtml(opts: {
   brand: DraftBrand;
   body: string;
   priceList?: PriceList;
   photos?: string[];
   bigPhotos?: boolean;
+  /** Photos for the arched price-list cards (newborn / outdoor lists); no photo -> text-only cards. */
+  cardPhotos?: { newborn?: string[]; outdoor?: string[] };
   cta?: { label: string; url: string } | null;
   /** More buttons next to the main one (e.g. gallery + details + chat in the automatic first reply). */
   extraCtas?: Array<{ label: string; url: string }>;
@@ -310,9 +365,9 @@ export function buildDraftHtml(opts: {
   const heart = `<tr><td style="padding:6px 28px 0"><div style="border-top:1px solid ${t.soft}55;text-align:center;line-height:0"><span style="position:relative;top:-1px;background:${t.cardBg};padding:0 10px;color:${t.accent};font-size:12px;line-height:1">${heartImg(heartKind, 14)}</span></div></td></tr>`;
   const lists =
     opts.brand === "photographer" && opts.priceList && opts.priceList !== "none"
-      ? (opts.priceList === "newborn" || opts.priceList === "both" ? priceBlock(NEWBORN, t) : "") +
-        (opts.priceList === "outdoor" || opts.priceList === "both" ? priceBlock(OUTDOOR, t) : "") +
-        (opts.priceList === "studio" ? priceBlock(STUDIO_OFFER, t) : "")
+      ? (opts.priceList === "newborn" || opts.priceList === "both" ? priceBlock(NEWBORN, t, "newborn", opts.cardPhotos?.newborn) : "") +
+        (opts.priceList === "outdoor" || opts.priceList === "both" ? priceBlock(OUTDOOR, t, "outdoor", opts.cardPhotos?.outdoor) : "") +
+        (opts.priceList === "studio" ? priceBlock(STUDIO_OFFER, t, "studio", opts.cardPhotos?.newborn?.slice(0, 1)) : "")
       : "";
   const ctaButtons = [...(opts.cta ? [opts.cta] : []), ...(opts.extraCtas ?? [])];
   const cta = ctaButtons.length
@@ -325,7 +380,7 @@ export function buildDraftHtml(opts: {
     : "";
   const photos = opts.brand === "photographer" ? photoStrip(opts.photos ?? [], !!opts.bigPhotos) : "";
   const branded = true;
-  const html = `<div dir="rtl" style="background:${t.pageBg};padding:18px 10px">
+  const html = `<div dir="rtl" style="background:${t.pageBg};padding:7px 6px">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:${t.cardBg};border:1px solid ${t.border};border-radius:14px;overflow:hidden;font-family:${FONT};color:${t.text};direction:rtl;text-align:right">
     ${header}
     <tr><td style="padding:${opts.brand === "general" ? "30px 34px 10px" : "18px 34px 10px"};font-size:15px;line-height:1.8">

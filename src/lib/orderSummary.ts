@@ -1,4 +1,5 @@
 import { heartImg } from "@/lib/email-hearts";
+import { buildStudioMailHtml } from "@/lib/email-draft-design";
 import { ARRIVAL_TEXT_HE, STUDIO_ADDRESS_WAZE_HTML } from "@/lib/arrival";
 import { hebrewDate } from "@/lib/hebrew-date";
 import { emailThumbUrl } from "@/lib/media-url";
@@ -176,8 +177,7 @@ export function buildBookingSummaryHtml(opts: {
   const doorCodeHtml = doorCode ? buildDoorCodeHtml(doorCode) : "";
   const cashbackHtml = cashbackEarned ? buildCashbackEarnedHtml(cashbackEarned) : "";
 
-  return `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:600px;margin:auto">
-    <h2 style="color:#2d3d2b">${escapeHtml(heading)}</h2>
+  return buildStudioMailHtml({ title: heading.replace(/[\s\p{Extended_Pictographic}\u2713\u2714\uFE0F\u200D]+$/u, ""), innerHtml: `
     <p>שלום ${escapeHtml(b.contact_name ?? "")},</p>
     <p>${intro}</p>
     ${isImmediateOrder(b.session_date, b.start_time) ? buildImmediateNoticeHtml() : ""}
@@ -203,7 +203,7 @@ export function buildBookingSummaryHtml(opts: {
     ${opts.reminderActions ? buildReminderActionsHtml(b.id, b.session_date) : ""}
     ${buildChatButtonHtml({ kind: "booking", id: b.id, date: b.session_date })}
     <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: ${STUDIO_ADDRESS_WAZE_HTML} · לשאלות: s0548529277@gmail.com / 054-8529277</p>
-  </div>`;
+  ` });
 }
 
 
@@ -367,8 +367,7 @@ export function buildPropsOrderSummaryHtml(opts: {
     })
     .join("");
 
-  return `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:600px;margin:auto">
-    <h2 style="color:#2d3d2b">${escapeHtml(heading)}</h2>
+  return buildStudioMailHtml({ title: heading.replace(/[\s\p{Extended_Pictographic}\u2713\u2714\uFE0F\u200D]+$/u, ""), innerHtml: `
     <p>שלום ${escapeHtml(o.contact_name ?? "")},</p>
     <p>${intro}</p>
     ${isImmediateOrder(o.session_date, o.pickup_time) ? buildImmediateNoticeHtml() : ""}
@@ -391,5 +390,5 @@ export function buildPropsOrderSummaryHtml(opts: {
     ${continueUrl ? buildContinueOrderHtml(continueUrl) : ""}
     ${buildChatButtonHtml({ kind: "order", id: o.id, date: o.session_date })}
     <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: ${STUDIO_ADDRESS_WAZE_HTML} · לשאלות: s0548529277@gmail.com / 054-8529277</p>
-  </div>`;
+  ` });
 }
