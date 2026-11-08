@@ -1,4 +1,4 @@
-import { Heart } from "@/components/Heart";
+import { ColorHeart } from "@/components/Heart";
 import { createFileRoute, useNavigate, useRouterState, Link, Outlet } from "@tanstack/react-router";
 import { FunnelCta } from "@/components/FunnelDialog";
 import { heError } from "@/lib/he-errors";
@@ -433,7 +433,7 @@ function NewbornLandingPage() {
       });
       setBasketSent(true);
       setBasketDialogOpen(false);
-      toast.success(<>קיבלתי! מייל עם כל הפרטים בדרך אלייך, ואחזור גם בטלפון <Heart kind="michal" /></>);
+      toast.success(<>קיבלתי! מייל עם כל הפרטים בדרך אלייך, ואחזור גם בטלפון <ColorHeart kind="michal" /></>);
     } catch {
       toast.error("משהו השתבש, נסי שוב או התקשרי");
     } finally {
@@ -966,7 +966,7 @@ function NewbornLandingPage() {
           </motion.div>
         ) : (
           <div className="rounded-3xl border border-dashed border-[#d9b98a]/50 bg-white/60 p-10 text-center text-sm text-[#4a3221]/70">
-            תמונות מהסשנים בקרוב — בינתיים אפשר לקבוע מועד ולהיות מהראשונות בגלריה <Heart kind="michal" />
+            תמונות מהסשנים בקרוב — בינתיים אפשר לקבוע מועד ולהיות מהראשונות בגלריה <ColorHeart kind="michal" />
           </div>
         )}
       </section>

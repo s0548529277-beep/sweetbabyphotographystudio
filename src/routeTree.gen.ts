@@ -61,7 +61,6 @@ import { Route as AuthenticatedAdminChatLogsRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminClientManagementRouteImport } from './routes/_authenticated/admin.client-management'
 import { Route as AuthenticatedAdminClientsRouteImport } from './routes/_authenticated/admin.clients'
 import { Route as AuthenticatedAdminCouponsRouteImport } from './routes/_authenticated/admin.coupons'
-import { Route as AuthenticatedAdminQuotesRouteImport } from './routes/_authenticated/admin.quotes'
 import { Route as AuthenticatedAdminEmailAssistantRouteImport } from './routes/_authenticated/admin.email-assistant'
 import { Route as AuthenticatedAdminFinanceRouteImport } from './routes/_authenticated/admin.finance'
 import { Route as AuthenticatedAdminFunnelLeadsRouteImport } from './routes/_authenticated/admin.funnel-leads'
@@ -70,17 +69,18 @@ import { Route as AuthenticatedAdminInspirationRouteImport } from './routes/_aut
 import { Route as AuthenticatedAdminItemsRouteImport } from './routes/_authenticated/admin.items'
 import { Route as AuthenticatedAdminLeadsRouteImport } from './routes/_authenticated/admin.leads'
 import { Route as AuthenticatedAdminNewbornContractTextRouteImport } from './routes/_authenticated/admin.newborn-contract-text'
-import { Route as AuthenticatedAdminOutdoorContractTextRouteImport } from './routes/_authenticated/admin.outdoor-contract-text'
 import { Route as AuthenticatedAdminNewbornPackagesRouteImport } from './routes/_authenticated/admin.newborn-packages'
 import { Route as AuthenticatedAdminNewsletterRouteImport } from './routes/_authenticated/admin.newsletter'
 import { Route as AuthenticatedAdminNotificationsRouteImport } from './routes/_authenticated/admin.notifications'
 import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenticated/admin.orders'
+import { Route as AuthenticatedAdminOutdoorContractTextRouteImport } from './routes/_authenticated/admin.outdoor-contract-text'
 import { Route as AuthenticatedAdminOutdoorPackagesRouteImport } from './routes/_authenticated/admin.outdoor-packages'
 import { Route as AuthenticatedAdminPhotoBatchRouteImport } from './routes/_authenticated/admin.photo-batch'
 import { Route as AuthenticatedAdminPhotoClientsRouteImport } from './routes/_authenticated/admin.photo-clients'
 import { Route as AuthenticatedAdminPhotoEditorRouteImport } from './routes/_authenticated/admin.photo-editor'
 import { Route as AuthenticatedAdminPhotoResizeRouteImport } from './routes/_authenticated/admin.photo-resize'
 import { Route as AuthenticatedAdminPrizeWheelRouteImport } from './routes/_authenticated/admin.prize-wheel'
+import { Route as AuthenticatedAdminQuotesRouteImport } from './routes/_authenticated/admin.quotes'
 import { Route as AuthenticatedAdminRetouchPresetsRouteImport } from './routes/_authenticated/admin.retouch-presets'
 import { Route as AuthenticatedAdminSiteBotRouteImport } from './routes/_authenticated/admin.site-bot'
 import { Route as AuthenticatedAdminSiteBotAskRouteImport } from './routes/_authenticated/admin.site-bot-ask'
@@ -376,12 +376,6 @@ const AuthenticatedAdminCouponsRoute =
     path: '/coupons',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const AuthenticatedAdminQuotesRoute =
-  AuthenticatedAdminQuotesRouteImport.update({
-    id: '/quotes',
-    path: '/quotes',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
 const AuthenticatedAdminEmailAssistantRoute =
   AuthenticatedAdminEmailAssistantRouteImport.update({
     id: '/email-assistant',
@@ -428,12 +422,6 @@ const AuthenticatedAdminNewbornContractTextRoute =
     path: '/newborn-contract-text',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const AuthenticatedAdminOutdoorContractTextRoute =
-  AuthenticatedAdminOutdoorContractTextRouteImport.update({
-    id: '/outdoor-contract-text',
-    path: '/outdoor-contract-text',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
 const AuthenticatedAdminNewbornPackagesRoute =
   AuthenticatedAdminNewbornPackagesRouteImport.update({
     id: '/newborn-packages',
@@ -456,6 +444,12 @@ const AuthenticatedAdminOrdersRoute =
   AuthenticatedAdminOrdersRouteImport.update({
     id: '/orders',
     path: '/orders',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminOutdoorContractTextRoute =
+  AuthenticatedAdminOutdoorContractTextRouteImport.update({
+    id: '/outdoor-contract-text',
+    path: '/outdoor-contract-text',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminOutdoorPackagesRoute =
@@ -492,6 +486,12 @@ const AuthenticatedAdminPrizeWheelRoute =
   AuthenticatedAdminPrizeWheelRouteImport.update({
     id: '/prize-wheel',
     path: '/prize-wheel',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminQuotesRoute =
+  AuthenticatedAdminQuotesRouteImport.update({
+    id: '/quotes',
+    path: '/quotes',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminRetouchPresetsRoute =
@@ -669,7 +669,6 @@ export interface FileRoutesByFullPath {
   '/admin/client-management': typeof AuthenticatedAdminClientManagementRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/admin/coupons': typeof AuthenticatedAdminCouponsRoute
-  '/admin/quotes': typeof AuthenticatedAdminQuotesRoute
   '/admin/email-assistant': typeof AuthenticatedAdminEmailAssistantRoute
   '/admin/finance': typeof AuthenticatedAdminFinanceRoute
   '/admin/funnel-leads': typeof AuthenticatedAdminFunnelLeadsRoute
@@ -678,17 +677,18 @@ export interface FileRoutesByFullPath {
   '/admin/items': typeof AuthenticatedAdminItemsRoute
   '/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/admin/newborn-contract-text': typeof AuthenticatedAdminNewbornContractTextRoute
-  '/admin/outdoor-contract-text': typeof AuthenticatedAdminOutdoorContractTextRoute
   '/admin/newborn-packages': typeof AuthenticatedAdminNewbornPackagesRouteWithChildren
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
+  '/admin/outdoor-contract-text': typeof AuthenticatedAdminOutdoorContractTextRoute
   '/admin/outdoor-packages': typeof AuthenticatedAdminOutdoorPackagesRouteWithChildren
   '/admin/photo-batch': typeof AuthenticatedAdminPhotoBatchRoute
   '/admin/photo-clients': typeof AuthenticatedAdminPhotoClientsRouteWithChildren
   '/admin/photo-editor': typeof AuthenticatedAdminPhotoEditorRoute
   '/admin/photo-resize': typeof AuthenticatedAdminPhotoResizeRoute
   '/admin/prize-wheel': typeof AuthenticatedAdminPrizeWheelRoute
+  '/admin/quotes': typeof AuthenticatedAdminQuotesRoute
   '/admin/retouch-presets': typeof AuthenticatedAdminRetouchPresetsRoute
   '/admin/site-bot': typeof AuthenticatedAdminSiteBotRoute
   '/admin/site-bot-ask': typeof AuthenticatedAdminSiteBotAskRoute
@@ -763,7 +763,6 @@ export interface FileRoutesByTo {
   '/admin/client-management': typeof AuthenticatedAdminClientManagementRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/admin/coupons': typeof AuthenticatedAdminCouponsRoute
-  '/admin/quotes': typeof AuthenticatedAdminQuotesRoute
   '/admin/email-assistant': typeof AuthenticatedAdminEmailAssistantRoute
   '/admin/finance': typeof AuthenticatedAdminFinanceRoute
   '/admin/funnel-leads': typeof AuthenticatedAdminFunnelLeadsRoute
@@ -772,17 +771,18 @@ export interface FileRoutesByTo {
   '/admin/items': typeof AuthenticatedAdminItemsRoute
   '/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/admin/newborn-contract-text': typeof AuthenticatedAdminNewbornContractTextRoute
-  '/admin/outdoor-contract-text': typeof AuthenticatedAdminOutdoorContractTextRoute
   '/admin/newborn-packages': typeof AuthenticatedAdminNewbornPackagesRouteWithChildren
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
+  '/admin/outdoor-contract-text': typeof AuthenticatedAdminOutdoorContractTextRoute
   '/admin/outdoor-packages': typeof AuthenticatedAdminOutdoorPackagesRouteWithChildren
   '/admin/photo-batch': typeof AuthenticatedAdminPhotoBatchRoute
   '/admin/photo-clients': typeof AuthenticatedAdminPhotoClientsRouteWithChildren
   '/admin/photo-editor': typeof AuthenticatedAdminPhotoEditorRoute
   '/admin/photo-resize': typeof AuthenticatedAdminPhotoResizeRoute
   '/admin/prize-wheel': typeof AuthenticatedAdminPrizeWheelRoute
+  '/admin/quotes': typeof AuthenticatedAdminQuotesRoute
   '/admin/retouch-presets': typeof AuthenticatedAdminRetouchPresetsRoute
   '/admin/site-bot': typeof AuthenticatedAdminSiteBotRoute
   '/admin/site-bot-ask': typeof AuthenticatedAdminSiteBotAskRoute
@@ -860,7 +860,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/client-management': typeof AuthenticatedAdminClientManagementRoute
   '/_authenticated/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/_authenticated/admin/coupons': typeof AuthenticatedAdminCouponsRoute
-  '/_authenticated/admin/quotes': typeof AuthenticatedAdminQuotesRoute
   '/_authenticated/admin/email-assistant': typeof AuthenticatedAdminEmailAssistantRoute
   '/_authenticated/admin/finance': typeof AuthenticatedAdminFinanceRoute
   '/_authenticated/admin/funnel-leads': typeof AuthenticatedAdminFunnelLeadsRoute
@@ -869,17 +868,18 @@ export interface FileRoutesById {
   '/_authenticated/admin/items': typeof AuthenticatedAdminItemsRoute
   '/_authenticated/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/_authenticated/admin/newborn-contract-text': typeof AuthenticatedAdminNewbornContractTextRoute
-  '/_authenticated/admin/outdoor-contract-text': typeof AuthenticatedAdminOutdoorContractTextRoute
   '/_authenticated/admin/newborn-packages': typeof AuthenticatedAdminNewbornPackagesRouteWithChildren
   '/_authenticated/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/_authenticated/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/_authenticated/admin/orders': typeof AuthenticatedAdminOrdersRoute
+  '/_authenticated/admin/outdoor-contract-text': typeof AuthenticatedAdminOutdoorContractTextRoute
   '/_authenticated/admin/outdoor-packages': typeof AuthenticatedAdminOutdoorPackagesRouteWithChildren
   '/_authenticated/admin/photo-batch': typeof AuthenticatedAdminPhotoBatchRoute
   '/_authenticated/admin/photo-clients': typeof AuthenticatedAdminPhotoClientsRouteWithChildren
   '/_authenticated/admin/photo-editor': typeof AuthenticatedAdminPhotoEditorRoute
   '/_authenticated/admin/photo-resize': typeof AuthenticatedAdminPhotoResizeRoute
   '/_authenticated/admin/prize-wheel': typeof AuthenticatedAdminPrizeWheelRoute
+  '/_authenticated/admin/quotes': typeof AuthenticatedAdminQuotesRoute
   '/_authenticated/admin/retouch-presets': typeof AuthenticatedAdminRetouchPresetsRoute
   '/_authenticated/admin/site-bot': typeof AuthenticatedAdminSiteBotRoute
   '/_authenticated/admin/site-bot-ask': typeof AuthenticatedAdminSiteBotAskRoute
@@ -957,7 +957,6 @@ export interface FileRouteTypes {
     | '/admin/client-management'
     | '/admin/clients'
     | '/admin/coupons'
-    | '/admin/quotes'
     | '/admin/email-assistant'
     | '/admin/finance'
     | '/admin/funnel-leads'
@@ -966,17 +965,18 @@ export interface FileRouteTypes {
     | '/admin/items'
     | '/admin/leads'
     | '/admin/newborn-contract-text'
-    | '/admin/outdoor-contract-text'
     | '/admin/newborn-packages'
     | '/admin/newsletter'
     | '/admin/notifications'
     | '/admin/orders'
+    | '/admin/outdoor-contract-text'
     | '/admin/outdoor-packages'
     | '/admin/photo-batch'
     | '/admin/photo-clients'
     | '/admin/photo-editor'
     | '/admin/photo-resize'
     | '/admin/prize-wheel'
+    | '/admin/quotes'
     | '/admin/retouch-presets'
     | '/admin/site-bot'
     | '/admin/site-bot-ask'
@@ -1051,7 +1051,6 @@ export interface FileRouteTypes {
     | '/admin/client-management'
     | '/admin/clients'
     | '/admin/coupons'
-    | '/admin/quotes'
     | '/admin/email-assistant'
     | '/admin/finance'
     | '/admin/funnel-leads'
@@ -1060,17 +1059,18 @@ export interface FileRouteTypes {
     | '/admin/items'
     | '/admin/leads'
     | '/admin/newborn-contract-text'
-    | '/admin/outdoor-contract-text'
     | '/admin/newborn-packages'
     | '/admin/newsletter'
     | '/admin/notifications'
     | '/admin/orders'
+    | '/admin/outdoor-contract-text'
     | '/admin/outdoor-packages'
     | '/admin/photo-batch'
     | '/admin/photo-clients'
     | '/admin/photo-editor'
     | '/admin/photo-resize'
     | '/admin/prize-wheel'
+    | '/admin/quotes'
     | '/admin/retouch-presets'
     | '/admin/site-bot'
     | '/admin/site-bot-ask'
@@ -1147,7 +1147,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/client-management'
     | '/_authenticated/admin/clients'
     | '/_authenticated/admin/coupons'
-    | '/_authenticated/admin/quotes'
     | '/_authenticated/admin/email-assistant'
     | '/_authenticated/admin/finance'
     | '/_authenticated/admin/funnel-leads'
@@ -1156,17 +1155,18 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/items'
     | '/_authenticated/admin/leads'
     | '/_authenticated/admin/newborn-contract-text'
-    | '/_authenticated/admin/outdoor-contract-text'
     | '/_authenticated/admin/newborn-packages'
     | '/_authenticated/admin/newsletter'
     | '/_authenticated/admin/notifications'
     | '/_authenticated/admin/orders'
+    | '/_authenticated/admin/outdoor-contract-text'
     | '/_authenticated/admin/outdoor-packages'
     | '/_authenticated/admin/photo-batch'
     | '/_authenticated/admin/photo-clients'
     | '/_authenticated/admin/photo-editor'
     | '/_authenticated/admin/photo-resize'
     | '/_authenticated/admin/prize-wheel'
+    | '/_authenticated/admin/quotes'
     | '/_authenticated/admin/retouch-presets'
     | '/_authenticated/admin/site-bot'
     | '/_authenticated/admin/site-bot-ask'
@@ -1607,13 +1607,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCouponsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/quotes': {
-      id: '/_authenticated/admin/quotes'
-      path: '/quotes'
-      fullPath: '/admin/quotes'
-      preLoaderRoute: typeof AuthenticatedAdminQuotesRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
     '/_authenticated/admin/email-assistant': {
       id: '/_authenticated/admin/email-assistant'
       path: '/email-assistant'
@@ -1670,13 +1663,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminNewbornContractTextRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/outdoor-contract-text': {
-      id: '/_authenticated/admin/outdoor-contract-text'
-      path: '/outdoor-contract-text'
-      fullPath: '/admin/outdoor-contract-text'
-      preLoaderRoute: typeof AuthenticatedAdminOutdoorContractTextRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
     '/_authenticated/admin/newborn-packages': {
       id: '/_authenticated/admin/newborn-packages'
       path: '/newborn-packages'
@@ -1703,6 +1689,13 @@ declare module '@tanstack/react-router' {
       path: '/orders'
       fullPath: '/admin/orders'
       preLoaderRoute: typeof AuthenticatedAdminOrdersRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/outdoor-contract-text': {
+      id: '/_authenticated/admin/outdoor-contract-text'
+      path: '/outdoor-contract-text'
+      fullPath: '/admin/outdoor-contract-text'
+      preLoaderRoute: typeof AuthenticatedAdminOutdoorContractTextRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/outdoor-packages': {
@@ -1745,6 +1738,13 @@ declare module '@tanstack/react-router' {
       path: '/prize-wheel'
       fullPath: '/admin/prize-wheel'
       preLoaderRoute: typeof AuthenticatedAdminPrizeWheelRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/quotes': {
+      id: '/_authenticated/admin/quotes'
+      path: '/quotes'
+      fullPath: '/admin/quotes'
+      preLoaderRoute: typeof AuthenticatedAdminQuotesRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/retouch-presets': {
@@ -1960,7 +1960,6 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminClientManagementRoute: typeof AuthenticatedAdminClientManagementRoute
   AuthenticatedAdminClientsRoute: typeof AuthenticatedAdminClientsRoute
   AuthenticatedAdminCouponsRoute: typeof AuthenticatedAdminCouponsRoute
-  AuthenticatedAdminQuotesRoute: typeof AuthenticatedAdminQuotesRoute
   AuthenticatedAdminEmailAssistantRoute: typeof AuthenticatedAdminEmailAssistantRoute
   AuthenticatedAdminFinanceRoute: typeof AuthenticatedAdminFinanceRoute
   AuthenticatedAdminFunnelLeadsRoute: typeof AuthenticatedAdminFunnelLeadsRoute
@@ -1973,12 +1972,14 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminNewsletterRoute: typeof AuthenticatedAdminNewsletterRoute
   AuthenticatedAdminNotificationsRoute: typeof AuthenticatedAdminNotificationsRoute
   AuthenticatedAdminOrdersRoute: typeof AuthenticatedAdminOrdersRoute
+  AuthenticatedAdminOutdoorContractTextRoute: typeof AuthenticatedAdminOutdoorContractTextRoute
   AuthenticatedAdminOutdoorPackagesRoute: typeof AuthenticatedAdminOutdoorPackagesRouteWithChildren
   AuthenticatedAdminPhotoBatchRoute: typeof AuthenticatedAdminPhotoBatchRoute
   AuthenticatedAdminPhotoClientsRoute: typeof AuthenticatedAdminPhotoClientsRouteWithChildren
   AuthenticatedAdminPhotoEditorRoute: typeof AuthenticatedAdminPhotoEditorRoute
   AuthenticatedAdminPhotoResizeRoute: typeof AuthenticatedAdminPhotoResizeRoute
   AuthenticatedAdminPrizeWheelRoute: typeof AuthenticatedAdminPrizeWheelRoute
+  AuthenticatedAdminQuotesRoute: typeof AuthenticatedAdminQuotesRoute
   AuthenticatedAdminRetouchPresetsRoute: typeof AuthenticatedAdminRetouchPresetsRoute
   AuthenticatedAdminSiteBotRoute: typeof AuthenticatedAdminSiteBotRoute
   AuthenticatedAdminSiteBotAskRoute: typeof AuthenticatedAdminSiteBotAskRoute
@@ -2003,7 +2004,6 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
     AuthenticatedAdminClientManagementRoute,
   AuthenticatedAdminClientsRoute: AuthenticatedAdminClientsRoute,
   AuthenticatedAdminCouponsRoute: AuthenticatedAdminCouponsRoute,
-  AuthenticatedAdminQuotesRoute: AuthenticatedAdminQuotesRoute,
   AuthenticatedAdminEmailAssistantRoute: AuthenticatedAdminEmailAssistantRoute,
   AuthenticatedAdminFinanceRoute: AuthenticatedAdminFinanceRoute,
   AuthenticatedAdminFunnelLeadsRoute: AuthenticatedAdminFunnelLeadsRoute,
@@ -2013,13 +2013,13 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminLeadsRoute: AuthenticatedAdminLeadsRoute,
   AuthenticatedAdminNewbornContractTextRoute:
     AuthenticatedAdminNewbornContractTextRoute,
-  AuthenticatedAdminOutdoorContractTextRoute:
-    AuthenticatedAdminOutdoorContractTextRoute,
   AuthenticatedAdminNewbornPackagesRoute:
     AuthenticatedAdminNewbornPackagesRouteWithChildren,
   AuthenticatedAdminNewsletterRoute: AuthenticatedAdminNewsletterRoute,
   AuthenticatedAdminNotificationsRoute: AuthenticatedAdminNotificationsRoute,
   AuthenticatedAdminOrdersRoute: AuthenticatedAdminOrdersRoute,
+  AuthenticatedAdminOutdoorContractTextRoute:
+    AuthenticatedAdminOutdoorContractTextRoute,
   AuthenticatedAdminOutdoorPackagesRoute:
     AuthenticatedAdminOutdoorPackagesRouteWithChildren,
   AuthenticatedAdminPhotoBatchRoute: AuthenticatedAdminPhotoBatchRoute,
@@ -2028,6 +2028,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminPhotoEditorRoute: AuthenticatedAdminPhotoEditorRoute,
   AuthenticatedAdminPhotoResizeRoute: AuthenticatedAdminPhotoResizeRoute,
   AuthenticatedAdminPrizeWheelRoute: AuthenticatedAdminPrizeWheelRoute,
+  AuthenticatedAdminQuotesRoute: AuthenticatedAdminQuotesRoute,
   AuthenticatedAdminRetouchPresetsRoute: AuthenticatedAdminRetouchPresetsRoute,
   AuthenticatedAdminSiteBotRoute: AuthenticatedAdminSiteBotRoute,
   AuthenticatedAdminSiteBotAskRoute: AuthenticatedAdminSiteBotAskRoute,

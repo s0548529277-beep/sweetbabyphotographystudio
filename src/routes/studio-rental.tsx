@@ -1,4 +1,4 @@
-import { Heart } from "@/components/Heart";
+import { ColorHeart } from "@/components/Heart";
 import { heError } from "@/lib/he-errors";
 import { FunnelCta } from "@/components/FunnelDialog";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
@@ -457,7 +457,7 @@ function StudioRentalPage() {
               <div className="text-[15px] tracking-[0.18em] uppercase text-[#6b8a63] mb-1">Add-on · חינם</div>
               <h4 className="text-xl" style={{ fontFamily: "'DM Serif Display', serif" }}>צריכה גם אביזרים?</h4>
               <p className="text-sm text-[#2d3d2b]/80 mt-1 leading-relaxed">
-                <strong>כל האביזרים שבסטודיו עומדים לרשותך בזמן ההשכרה, ללא תוספת תשלום</strong> <Heart kind="bot" />
+                <strong>כל האביזרים שבסטודיו עומדים לרשותך בזמן ההשכרה, ללא תוספת תשלום</strong> <ColorHeart kind="bot" />
                 לפחות 90% מאביזרי הקטלוג נמצאים בסטודיו בכל רגע (חלק קטן עשוי להיות בהשכרה חיצונית).
               </p>
               <p className="text-[15px] text-[#2d3d2b]/60 mt-2">

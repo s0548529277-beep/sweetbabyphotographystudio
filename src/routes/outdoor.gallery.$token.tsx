@@ -1,4 +1,4 @@
-import { Heart } from "@/components/Heart";
+import { ColorHeart } from "@/components/Heart";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -247,7 +247,7 @@ function AlbumDetailsForm({ token, details, onSaved }: { token: string; details:
           notes: form.notes,
         },
       });
-      toast.success(<>הפרטים נשלחו אליי — תודה! <Heart kind="michal" /></>);
+      toast.success(<>הפרטים נשלחו אליי — תודה! <ColorHeart kind="michal" /></>);
       setEditing(false);
       onSaved();
     } catch (e: any) {
@@ -272,7 +272,7 @@ function AlbumDetailsForm({ token, details, onSaved }: { token: string; details:
           </button>
         </div>
         <p className="text-sm text-[#4a3221] flex items-center gap-1.5">
-          <Check className="h-4 w-4 shrink-0" /> תודה, קיבלנו את הפרטים — מתחילים לעצב <Heart kind="michal" />
+          <Check className="h-4 w-4 shrink-0" /> תודה, קיבלנו את הפרטים — מתחילים לעצב <ColorHeart kind="michal" />
         </p>
       </div>
     );
@@ -421,7 +421,7 @@ function ProofSection({
     try {
       await finishSelection({ data: { token, deviceKey: getGalleryDeviceKey(token), acceptExtra: extraCount > 0 } });
       onRefetch();
-      toast.success(<>תודה! הבחירה שלך נשלחה אליי <Heart kind="michal" /></>);
+      toast.success(<>תודה! הבחירה שלך נשלחה אליי <ColorHeart kind="michal" /></>);
     } catch (e: any) {
       toast.error(e?.message ?? "משהו השתבש, נסי שוב");
     } finally {
@@ -752,7 +752,7 @@ function OutdoorGalleryPage() {
 
         <div className="text-center mb-8">
           <h1 className="text-3xl md:text-4xl mb-2" style={{ fontFamily: "'DM Serif Display', serif" }}>
-            {showEdited ? <>התמונות המוכנות שלך <Heart kind="michal" /></> : "בואי נבחר תמונות"}
+            {showEdited ? <>התמונות המוכנות שלך <ColorHeart kind="michal" /></> : "בואי נבחר תמונות"}
           </h1>
           <p className="text-sm text-[#4a3221]/70">
             {showEdited ? packageName : proofsSelectedAt ? "כבר שלחת לי את הבחירה שלך — תודה!" : `לוחצים על התמונה להגדלה, ועל הלב לבחור — ${packageName}`}
@@ -761,7 +761,7 @@ function OutdoorGalleryPage() {
 
         {showingCount === 0 ? (
           <div className="rounded-2xl border border-dashed border-[#4a3221]/20 p-12 text-center text-sm text-[#4a3221]/70">
-            עדיין לא הועלו תמונות — אעדכן אותך במייל ברגע שהן יהיו מוכנות <Heart kind="michal" />
+            עדיין לא הועלו תמונות — אעדכן אותך במייל ברגע שהן יהיו מוכנות <ColorHeart kind="michal" />
           </div>
         ) : showEdited ? (
           <EditedSection edited={edited} contactName={contactName} token={token} downloads={downloads} onRefetch={onRefetch} />

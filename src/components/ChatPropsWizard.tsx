@@ -1,4 +1,4 @@
-import { Heart } from "@/components/Heart";
+import { ColorHeart } from "@/components/Heart";
 import { isImmediateOrder } from "@/lib/orderSummary";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
@@ -192,7 +192,7 @@ export function ChatPropsWizard({ onClose, onOrdered }: { onClose: () => void; o
     return (
       <div className="mt-2 space-y-2 rounded-2xl border border-primary/30 bg-secondary/40 p-3 text-sm">
         <p className="flex items-center gap-1.5 font-semibold text-primary">
-          <Check className="size-4" /> ההזמנה נוצרה <Heart kind="bot" />
+          <Check className="size-4" /> ההזמנה נוצרה <ColorHeart kind="bot" />
         </p>
         {isImmediateOrder(pickup, pickupTime) && (
           <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs font-medium leading-snug">
@@ -306,7 +306,7 @@ export function ChatPropsWizard({ onClose, onOrdered }: { onClose: () => void; o
               {creditApplied > 0 ? ` · קרדיט −₪${creditApplied}` : ""}
             </p>
             <p className="text-[#8a4a5c]">
-              <Heart kind="bot" /> צבירה לכולן: 10% מכל הזמנה מ-100 ₪ חוזרים אלייך כקרדיט להזמנה הבאה
+              <ColorHeart kind="bot" /> צבירה לכולן: 10% מכל הזמנה מ-100 ₪ חוזרים אלייך כקרדיט להזמנה הבאה
               {cart.total >= 100 ? ` (בהזמנה הזו כ-₪${Math.round(cart.total * 0.1)})` : ""}
             </p>
           </div>

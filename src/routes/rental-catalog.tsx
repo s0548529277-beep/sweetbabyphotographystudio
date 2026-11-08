@@ -1,4 +1,4 @@
-import { Heart } from "@/components/Heart";
+import { ColorHeart } from "@/components/Heart";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PROPS_HANDOFF_NOTE, PROPS_LATEST_HANDOFF } from "@/lib/props-hours";
 import { useServerFn } from "@tanstack/react-start";
@@ -337,7 +337,7 @@ function RentalCatalogPage() {
             <p
               className={`mt-2 inline-block rounded-full px-3 py-1 text-xs ${inspirationImages.length > 0 ? "bg-white/20 text-white" : "bg-[#f5d5cf]/70 text-[#2d3d2b]"}`}
             >
-              <Heart kind="bot" /> צבירה לכולן: 10% מכל הזמנה מ-100 ₪ חוזרים אלייך כקרדיט להזמנה הבאה
+              <ColorHeart kind="bot" /> צבירה לכולן: 10% מכל הזמנה מ-100 ₪ חוזרים אלייך כקרדיט להזמנה הבאה
             </p>
           </div>
         </div>

@@ -2,7 +2,7 @@
 // spins to a server-picked prize (never picked client-side, see
 // wheel.functions.ts). Drawn as plain SVG (precise pie slices + radial
 // labels) rather than a canvas/library, to keep this dependency-free.
-import { Heart } from "@/components/Heart";
+import { ColorHeart } from "@/components/Heart";
 import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -144,7 +144,7 @@ export function PrizeWheel({ bookingId, initialPrizeId }: { bookingId: string; i
               <div className="text-[11px] text-muted-foreground mt-1">להזין בעמוד התשלום בהזמנה הבאה</div>
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">הפרס נרשם אצלנו — נדאג לו בסשן/בהזמנה שלך, אין צורך לעשות כלום <Heart kind="bot" /></p>
+            <p className="text-xs text-muted-foreground">הפרס נרשם אצלנו — נדאג לו בסשן/בהזמנה שלך, אין צורך לעשות כלום <ColorHeart kind="bot" /></p>
           )}
         </div>
       ) : (

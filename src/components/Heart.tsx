@@ -9,7 +9,7 @@ export type HeartKind = "bot" | "michal";
  * about the studio / props, and Michal's own heart (from her contract) for
  * everything about the photography. Replaces the pink 💗 emoji.
  */
-export function Heart({ kind = "bot", className = "" }: { kind?: HeartKind; className?: string }) {
+export function ColorHeart({ kind = "bot", className = "" }: { kind?: HeartKind; className?: string }) {
   const michal = kind === "michal";
   return (
     <img
@@ -31,7 +31,7 @@ export function HeartText({ text, kind = "bot" }: { text: string; kind?: HeartKi
       {parts.map((p, i) => (
         <span key={i}>
           {p}
-          {i < parts.length - 1 ? <Heart kind={kind} /> : null}
+          {i < parts.length - 1 ? <ColorHeart kind={kind} /> : null}
         </span>
       ))}
     </>

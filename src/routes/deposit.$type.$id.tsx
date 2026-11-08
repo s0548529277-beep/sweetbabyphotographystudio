@@ -1,4 +1,4 @@
-import { Heart } from "@/components/Heart";
+import { ColorHeart } from "@/components/Heart";
 import { isImmediateOrder } from "@/lib/orderSummary";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { BackButton, MissingList } from "@/components/FlowHelpers";
@@ -243,7 +243,7 @@ function Deposit() {
                     <p className="text-2xl leading-none mb-1">🎉✨🎊</p>
                     <p className="text-sm font-semibold text-[#6b4f1d] mb-0.5">צברת קאשבק!</p>
                     <p className="font-display text-3xl font-extrabold text-[#8a5a12]">₪{cashbackEarned.toFixed(0)}</p>
-                    <p className="text-xs text-muted-foreground mt-1.5">זמין לשימוש בהזמנה הבאה שלך <Heart kind="bot" /></p>
+                    <p className="text-xs text-muted-foreground mt-1.5">זמין לשימוש בהזמנה הבאה שלך <ColorHeart kind="bot" /></p>
                   </div>
                 )}
                 {doorCode && (
