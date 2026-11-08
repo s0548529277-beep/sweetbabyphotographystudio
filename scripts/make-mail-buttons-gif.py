@@ -16,7 +16,7 @@ MICHAL = [(92, 70, 56), (194, 59, 109), (178, 128, 70), (150, 92, 104)]       # 
 def hexrgb(h): return tuple(int(h.lstrip("#")[i:i+2], 16) for i in (0, 2, 4))
 def cyc(pal, p):
     n = len(pal); x = (p % 1.0) * n; i = int(x) % n; return lerp(pal[i], pal[(i + 1) % n], x - int(x))
-def make(label, pal, bg_hex, name, float_amp=0, frames_n=16):
+def make(label, pal, bg_hex, name, float_amp=0, frames_n=24, soft=False, ink=(255, 255, 255)):
     BG = hexrgb(bg_hex); fr = []
     font = ImageFont.truetype(FONTB, 30 * K)
     for i in range(frames_n):
@@ -30,30 +30,35 @@ def make(label, pal, bg_hex, name, float_amp=0, frames_n=16):
         gx = np.linspace(0, 1, x1 - x0)[None, :, None]
         a = np.array(c1)[None, None, :] * (1 - gx) + np.array(c2)[None, None, :] * gx
         # soft light sweep
-        sweep = (p * 1.6 - 0.3); band = np.exp(-((gx - sweep) ** 2) / 0.012) * 38
+        sweep = (p * 1.6 - 0.3); band = 0
         a = np.clip(a + band, 0, 255)
         arr = np.repeat(a, y1 - y0, axis=0).astype(np.uint8)
         grad = Image.fromarray(arr, "RGB")
         mask = Image.new("L", grad.size, 0); ImageDraw.Draw(mask).rounded_rectangle((0, 0, grad.width - 1, grad.height - 1), radius=(y1 - y0) // 2, fill=255)
         im.paste(grad, (x0, y0), mask)
+        if soft:
+            ImageDraw.Draw(im).rounded_rectangle((x0, y0, x1 - 1, y1 - 1), radius=(y1 - y0) // 2, outline=tuple(round(v * 0.82) for v in c1), width=2 * K)
         d = ImageDraw.Draw(im)
         tw = d.textlength(label, font=font)
-        d.text(((W * K - tw) / 2 + K, (H * K - 30 * K) / 2 - 2 * K + dy + K), label, font=font, fill=tuple(round(v * 0.55) for v in c1))  # soft shadow
-        d.text(((W * K - tw) / 2, (H * K - 30 * K) / 2 - 2 * K + dy), label, font=font, fill=(255, 255, 255))
+        d.text(((W * K - tw) / 2 + K, (H * K - 30 * K) / 2 - 2 * K + dy + K), label, font=font, fill=tuple(round(v * 0.55) for v in c1)) if not soft else None  # soft shadow
+        d.text(((W * K - tw) / 2, (H * K - 30 * K) / 2 - 2 * K + dy), label, font=font, fill=ink if soft else (255, 255, 255))
         fr.append(im.resize((W, H), Image.LANCZOS))
     def to_p(im):
         arr = np.asarray(im); m = (arr == np.array(BG)).all(axis=2)
-        p = im.quantize(colors=127, method=Image.MEDIANCUT, dither=Image.NONE)
-        base = p.getpalette()[:127 * 3]; base += [0] * (127 * 3 - len(base))
-        idx = np.asarray(p).copy(); idx[m] = 127
+        p = im.quantize(colors=63, method=Image.MEDIANCUT, dither=Image.NONE)
+        base = p.getpalette()[:63 * 3]; base += [0] * (63 * 3 - len(base))
+        idx = np.asarray(p).copy(); idx[m] = 63
         o = Image.fromarray(idx.astype(np.uint8), "P"); pal2 = base + list(BG); o.putpalette(pal2 + [0] * (768 - len(pal2))); return o
     ps = [to_p(f) for f in fr]
     path = os.path.join(out, name)
-    ps[0].save(path, save_all=True, append_images=ps[1:], duration=[1200] + [110] * (frames_n - 1), loop=0, optimize=False, disposal=1)
+    ps[0].save(path, save_all=True, append_images=ps[1:], duration=[1500] + [(380 if soft else 300)] * (frames_n - 1), loop=0, optimize=False, disposal=1)
     print(name, os.path.getsize(path) // 1024, "KB")
+SOFT_STUDIO = [(207, 227, 194), (247, 210, 195), (243, 205, 216), (214, 232, 222)]
+SOFT_MICHAL = [(236, 192, 176), (234, 217, 189), (239, 199, 209), (224, 206, 214)]
+# importance: primary = saturated + white text; secondary = soft pastel + dark text (all rotate slowly)
 make("לאתר הסטודיו", STUDIO, "#f8ede4", "btn-studio-site.gif")
-make("ניווט בוויז", STUDIO, "#f8ede4", "btn-studio-waze.gif")
-make("שליחת מייל", STUDIO, "#f8ede4", "btn-studio-mail.gif")
+make("ניווט בוויז", SOFT_STUDIO, "#f8ede4", "btn-studio-waze.gif", soft=True, ink=(45, 61, 43))
+make("שליחת מייל", SOFT_STUDIO[::-1], "#f8ede4", "btn-studio-mail.gif", soft=True, ink=(45, 61, 43))
 make("לגלריה שלי", MICHAL, "#f7f3ee", "btn-michal-gallery.gif", float_amp=3)
-make("לאתר הסטודיו", MICHAL, "#f7f3ee", "btn-michal-site.gif")
-make("שליחת מייל", MICHAL, "#f7f3ee", "btn-michal-mail.gif")
+make("לאתר הסטודיו", SOFT_MICHAL, "#f7f3ee", "btn-michal-site.gif", soft=True, ink=(74, 47, 38))
+make("שליחת מייל", SOFT_MICHAL[::-1], "#f7f3ee", "btn-michal-mail.gif", soft=True, ink=(74, 47, 38))

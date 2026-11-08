@@ -1,5 +1,5 @@
 import { heartImg } from "@/lib/email-hearts";
-import { buildStudioMailHtml, RB_STUDIO } from "@/lib/email-draft-design";
+import { buildStudioMailHtml, RB_STUDIO, RB2_STUDIO } from "@/lib/email-draft-design";
 import { ARRIVAL_TEXT_HE, STUDIO_ADDRESS_WAZE_HTML } from "@/lib/arrival";
 import { hebrewDate } from "@/lib/hebrew-date";
 import { emailThumbUrl } from "@/lib/media-url";
@@ -254,8 +254,8 @@ export function chatLinkUrl(kind: ChatLinkKind, id?: string | null, date?: strin
 export function pillButton(href: string, label: string, primary = false): string {
   const bg = primary ? "#2d3d2b" : "#f8ede4";
   const fg = primary ? "#f8ede4" : "#2d3d2b";
-  const grad = primary ? `background-image:${RB_STUDIO};` : "";
-  return `<a${primary ? ' class="rb"' : ""} href="${escapeHtml(href)}" style="background:${bg};${grad}color:${primary ? "#ffffff" : fg};border:1px solid #2d3d2b;padding:10px 20px;border-radius:999px;text-decoration:none;display:inline-block;font-weight:700;font-size:15px;margin:4px">${label}</a>`;
+  const grad = `background-image:${primary ? RB_STUDIO : RB2_STUDIO};`;
+  return `<a class="${primary ? "rb" : "rb2"}" href="${escapeHtml(href)}" style="background:${bg};${grad}color:${primary ? "#ffffff" : fg};border:1px solid #2d3d2b;padding:10px 20px;border-radius:999px;text-decoration:none;display:inline-block;font-weight:700;font-size:15px;margin:4px">${label}</a>`;
 }
 
 /** "להמשיך בצ'אט" — opens the bot with this order's context. */

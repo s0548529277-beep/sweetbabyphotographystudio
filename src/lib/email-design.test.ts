@@ -27,3 +27,13 @@ test("sanitize rejects bad input", () => {
   assert.equal(d.studio.frame, "thick");
   assert.deepEqual(d.cardPhotos.newborn, ["https://ok.example/a.jpg"]);
 });
+
+test("plain pill buttons become rotating ones (dark = primary, light = soft), animated GIF links are untouched", async () => {
+  const { rotateButtons } = await import("./email-design");
+  const html = `<a href="x" style="display:inline-block;background:#2d3d2b;color:#f8ede4;border-radius:999px;padding:10px">A</a><a href="y" style="background:#f8ede4;color:#2d3d2b;border:1px solid #2d3d2b;border-radius:999px;display:inline-block">B</a><a href="z" style="display:inline-block;margin:2px"><img src="g.gif"></a>`;
+  const out = rotateButtons(html, "studio");
+  assert.match(out, /<a class="rb" href="x" style="background:#2d3d2b;background-image:linear-gradient\(120deg,#3d5a3a/);
+  assert.match(out, /<a class="rb2" href="y"/);
+  assert.ok(out.includes('<a href="z" style="display:inline-block;margin:2px">'));
+  assert.equal(rotateButtons(out, "studio"), out);
+});

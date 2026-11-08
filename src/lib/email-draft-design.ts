@@ -256,10 +256,8 @@ const SIGNATURES: Record<DraftBrand, { name: string; lines: string[]; site?: { l
   general: { name: "מיכל סיבוני", lines: ["053-418-1051"] },
 };
 
-/** Colour-rotating gradients for the dynamic-text buttons (static gradient everywhere; animated where the client allows CSS animation). */
-export const RB_STUDIO = "linear-gradient(120deg,#3d5a3a,#c86480,#cd7858,#608c6e,#3d5a3a)";
-export const RB_MICHAL = "linear-gradient(120deg,#5c4638,#c23b6d,#b28046,#965c68,#5c4638)";
-export const RB_CSS = `<style>.rb{background-size:300% 100%!important;animation:rbmove 9s linear infinite}@keyframes rbmove{0%{background-position:0 0}100%{background-position:300% 0}}</style>`;
+export { RB_STUDIO, RB_MICHAL, RB2_STUDIO, RB2_MICHAL, RB_CSS } from "@/lib/email-design";
+import { RB_STUDIO, RB_MICHAL, RB_CSS } from "@/lib/email-design";
 
 /** Animated (colour-rotating) button image — e-mail clients ignore CSS animation, a GIF wrapped in a link works everywhere. */
 function animBtn(href: string, gif: string, label: string): string {
