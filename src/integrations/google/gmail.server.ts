@@ -141,7 +141,7 @@ export async function sendGmail(message: GmailMessage): Promise<boolean> {
     return false;
   }
 
-  const mime = buildMime({ ...message, html: await applyStoredEmailDesign(message.html) });
+  const mime = buildMime({ ...message, html: await applyStoredEmailDesign(message.html, message.subject) });
   const raw = toBase64Url(new TextEncoder().encode(mime));
 
   try {
@@ -510,7 +510,7 @@ export async function createGmailHtmlDraft(opts: {
   inReplyTo?: string;
   references?: string;
 }): Promise<string | null> {
-  opts = { ...opts, html: await applyStoredEmailDesign(opts.html) };
+  opts = { ...opts, html: await applyStoredEmailDesign(opts.html, opts.subject) };
   const b64 = (s: string) => chunk76(Buffer.from(s, "utf-8").toString("base64"));
   const boundary = `sb_alt_${Date.now()}_${Math.random().toString(36).slice(2)}`;
   const headers = [

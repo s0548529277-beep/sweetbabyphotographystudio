@@ -22,10 +22,21 @@ export function resetEmailDesignCache() {
   cache = null;
 }
 
-/** Never throws: any failure returns the html as built. */
-export async function applyStoredEmailDesign(html: string): Promise<string> {
+/**
+ * Never throws: any failure returns the html as built.
+ * Safety net (owner 2026-11-08: "every mail, every automatic reply must have Michal Siboni on top and the signature at
+ * the bottom"): a mail that does not carry a shell marker is wrapped in the photographer shell (wordmark on top, colour
+ * signature + buttons below) using the subject as its heading. Full HTML documents are left alone.
+ */
+export async function applyStoredEmailDesign(html: string, subject?: string): Promise<string> {
   try {
-    if (!html || !html.includes('data-mail="')) return html;
+    if (!html) return html;
+    if (!html.includes('data-mail="')) {
+      if (/<html[\s>]/i.test(html)) return html;
+      const { buildBrandedMailHtml } = await import("./email-draft-design");
+      const title = (subject ?? "").replace(/[\s\p{Extended_Pictographic}\uFE0F\u200D]+/gu, " ").replace(/·.*$/, "").trim() || "מיכל סיבוני";
+      html = buildBrandedMailHtml({ title, innerHtml: html });
+    }
     return applyEmailDesignToHtml(html, await readEmailDesign());
   } catch {
     return html;
