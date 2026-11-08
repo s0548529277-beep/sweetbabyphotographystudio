@@ -1,3 +1,4 @@
+import { buildStudioMailHtml } from "@/lib/email-draft-design";
 import { heartImg, withEmailHearts } from "@/lib/email-hearts";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
@@ -152,14 +153,12 @@ export const grantManualCredit = createServerFn({ method: "POST" })
         const customerEmail = authUser?.user?.email;
         if (customerEmail) {
           const { sendGmail } = await import("@/integrations/google/gmail.server");
-          const html = `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:480px;margin:auto">
-            <div style="margin:20px 0;padding:20px;background:linear-gradient(135deg,#fdf3ec,#f8e9d8);border-radius:16px;border:1px solid #f0d9b8;text-align:center;box-shadow:0 6px 18px -8px rgba(201,153,74,0.35)">
+          const html = buildStudioMailHtml({ title: "זיכוי מהסטודיו", innerHtml: `<div style="margin:20px 0;padding:20px;background:linear-gradient(135deg,#fdf3ec,#f8e9d8);border-radius:16px;border:1px solid #f0d9b8;text-align:center;box-shadow:0 6px 18px -8px rgba(201,153,74,0.35)">
               <p style="margin:0 0 4px;font-size:26px;line-height:1">🎁✨🎊</p>
               <p style="margin:0 0 2px;color:#6b4f1d;font-size:14px;font-weight:600">קיבלת זיכוי מהסטודיו!</p>
               <p style="margin:0;color:#8a5a12;font-size:32px;font-weight:800;letter-spacing:0.5px">₪${data.amount.toFixed(0)}</p>
               <p style="margin:6px 0 0;color:#6b8a63;font-size:13px">יתרת הקרדיט שלך כעת: ₪${creditBalance.toFixed(0)} — זמין לשימוש בהזמנה הבאה שלך ${heartImg("bot")}</p>
-            </div>
-          </div>`;
+            </div>` });
           await sendGmail({ to: customerEmail, subject: "קיבלת זיכוי מסטודיו Sweetbaby 🎁", html });
         }
       } catch (e) {

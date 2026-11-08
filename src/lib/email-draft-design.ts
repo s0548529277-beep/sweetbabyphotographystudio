@@ -187,7 +187,7 @@ function priceBlock(list: typeof NEWBORN, t: Theme, kind: keyof typeof PKG_LABEL
     const fg = f ? CREAM : t.text;
     const photo = photos.length ? photos[i % photos.length] : "";
     const label = (PKG_LABELS[kind] ?? [])[i] ?? "";
-    return `<div style="display:inline-block;vertical-align:top;width:31%;min-width:160px;box-sizing:border-box;padding:5px;direction:rtl;text-align:center">
+    return `<div class="pc" style="display:inline-block;vertical-align:top;width:31%;min-width:160px;box-sizing:border-box;padding:5px;direction:rtl;text-align:center">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${f ? DARK : "#fbf8f3"};border:1px solid ${f ? DARK : "#e2cfb6"};border-radius:18px;overflow:hidden">
       ${
         photo
@@ -206,7 +206,9 @@ function priceBlock(list: typeof NEWBORN, t: Theme, kind: keyof typeof PKG_LABEL
     </table>
   </div>`;
   };
-  return `<div style="margin:22px 0 8px">
+  // On a phone (Gmail / Apple Mail honour this) every card takes the full width with a taller photo instead of a narrow strip.
+  const phoneCss = `<style>@media only screen and (max-width:520px){.pc{width:100%!important;min-width:0!important}.pc img{height:210px!important;border-radius:120px 120px 10px 10px!important}.pc div,.pc span{font-size:inherit}}</style>`;
+  return `<div style="margin:22px 0 8px">${phoneCss}
     <h3 style="color:${SIG_BROWN};font-size:19px;margin:0 0 2px;text-align:center;font-family:${FONT}">${esc(list.title)}</h3>
     <p style="margin:0 0 10px;text-align:center;font-size:13px;color:${t.soft}">${esc(list.note)}</p>
     <div dir="rtl" style="text-align:center;font-size:0;line-height:0">${list.pkgs.map(card).join("")}</div>

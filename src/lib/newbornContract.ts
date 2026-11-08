@@ -1,3 +1,4 @@
+import { buildBrandedMailHtml } from "@/lib/email-draft-design";
 import { heartImg } from "@/lib/email-hearts";
 import michalWordmark from "@/assets/michal-logo-wordmark.png";
 
@@ -218,27 +219,16 @@ export function renderNewbornContractHtml(filledTemplate: string): string {
     </td></tr>
     <tr><td style="padding:16px 0 0">
       <div style="border-top:1px solid ${BORDER}55;position:relative;text-align:center">
-        <span style="position:relative;top:-9px;background:${CREAM};padding:0 10px;font-size:12px">${heartImg("michal", 14)}</span>
+        <span style="position:relative;top:-9px;background:#f7f3ee;padding:0 10px;font-size:12px">${heartImg("michal", 14)}</span>
       </div>
     </td></tr>`,
     )
     .join("");
 
-  return `<div dir="rtl" style="font-family:Arial,sans-serif;color:${BROWN};max-width:600px;margin:0 auto">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BORDER};padding:14px 0">
-      <tr><td align="center">
-        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:${CREAM};border-radius:4px">
-          <tr><td style="padding:34px 34px 10px">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding-bottom:18px">
-              <img src="${WORDMARK_URL}" alt="Michal" height="46" style="height:46px;width:auto" />
-            </td></tr></table>
-            <h2 style="margin:0 0 10px;color:${ROSE};font-size:22px;text-align:center">הכנה ליום הצילומים</h2>
-            <div style="color:${BROWN};font-size:14px;line-height:1.9">${renderBody(intro)}</div>
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${sectionHtml}</table>
-            <p style="margin-top:20px;color:${BROWN_SOFT};font-size:13px;text-align:center">כתובת הסטודיו: תלמוד ירושלמי 24, ד׳3, בית שמש</p>
-          </td></tr>
-        </table>
-      </td></tr>
-    </table>
-  </div>`;
+  return buildBrandedMailHtml({
+    title: "הכנה ליום הצילומים",
+    innerHtml: `<div style="color:${BROWN};font-size:14px;line-height:1.9">${renderBody(intro)}</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${sectionHtml}</table>
+    <p style="margin-top:20px;color:${BROWN_SOFT};font-size:13px;text-align:center">כתובת הסטודיו: תלמוד ירושלמי 24, ד׳3, בית שמש</p>`,
+  });
 }

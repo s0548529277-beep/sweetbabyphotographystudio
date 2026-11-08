@@ -8,6 +8,7 @@
 // request, so it gets its own table (newborn_order_images) and its own
 // customer-facing routes (/newborn/gallery/$token), reachable without a
 // site account — just a private link mailed to her.
+import { buildBrandedMailHtml } from "@/lib/email-draft-design";
 import { withEmailHearts } from "@/lib/email-hearts";
 import { createServerFn } from "@tanstack/react-start";
 import { toSiteMediaUrl } from "@/lib/media-url";
@@ -892,13 +893,11 @@ export const sendNewbornPaymentReminderEmails = createServerFn({ method: "POST" 
           const ok = await sendGmail({
             to: o.contact_email,
             subject: "תזכורת תשלום · מיכל סיבוני",
-            html: `<div dir="rtl" style="font-family:sans-serif">
-              <p>שלום${o.contact_name ? " " + o.contact_name : ""},</p>
+            html: buildBrandedMailHtml({ title: "תזכורת תשלום", innerHtml: `<p>שלום${o.contact_name ? " " + o.contact_name : ""},</p>
               <p>סה״כ לתשלום: <b>₪${Number(o.total_price).toFixed(0)}</b><br/>
               שולם עד כה: <b>₪${Number(o.amount_paid ?? 0).toFixed(0)}</b><br/>
               יתרה לתשלום: <b>₪${balance.toFixed(0)}</b></p>
-              <p>לתיאום התשלום אפשר להשיב למייל הזה.</p>
-            </div>`,
+              <p>לתיאום התשלום אפשר להשיב למייל הזה.</p>` }),
           });
           return { orderId: o.id, sent: ok, reason: ok ? undefined : "שליחת המייל נכשלה" };
         } catch (e: any) {
@@ -1524,14 +1523,15 @@ export const requestNewbornGalleryCode = createServerFn({ method: "POST" })
     await sendGmail({
       to: order.contact_email,
       subject: `קוד הכניסה לגלריה שלך: ${code} · מיכל סיבוני`,
-      html: `<div dir="rtl" style="font-family:sans-serif;color:#4a3221;max-width:440px;margin:0 auto;text-align:center">
-        <div style="background:#fdf3ec;border:1px solid #e8d3bf;border-radius:18px;padding:26px 20px">
+      html: buildBrandedMailHtml({
+        title: "קוד הכניסה לגלריה",
+        innerHtml: `<div style="text-align:center">
           <p style="margin:0 0 6px;font-size:15px">שלום ${order.contact_name ?? ""},</p>
           <p style="margin:0 0 14px;font-size:14px">זה הקוד לכניסה לגלריית התמונות שלך:</p>
           <div style="font-size:34px;letter-spacing:8px;font-weight:700;color:#8a6338">${code}</div>
           <p style="margin:14px 0 0;font-size:12px;color:#8a6338">הקוד בתוקף ל-${GALLERY_CODE_TTL_MIN} דקות. אם לא ביקשת קוד, אפשר להתעלם מהמייל.</p>
-        </div>
-      </div>`,
+        </div>`,
+      }),
     });
     return { sent: true, maskedEmail: maskEmail(order.contact_email) };
   });

@@ -1,3 +1,4 @@
+import { buildBrandedMailHtml } from "@/lib/email-draft-design";
 import { heartImg } from "@/lib/email-hearts";
 import michalWordmark from "@/assets/michal-logo-wordmark.png";
 
@@ -59,7 +60,7 @@ function section(title: string, bodyHtml: string): string {
     </td></tr>
     <tr><td style="padding:16px 0 0">
       <div style="border-top:1px solid ${BORDER}55;position:relative;text-align:center">
-        <span style="position:relative;top:-9px;background:${CREAM};padding:0 10px;font-size:12px">${heartImg("michal", 14)}</span>
+        <span style="position:relative;top:-9px;background:#f7f3ee;padding:0 10px;font-size:12px">${heartImg("michal", 14)}</span>
       </div>
     </td></tr>`;
 }
@@ -186,15 +187,8 @@ export function buildPhotoContractHtml(input: PhotoContractInput): string {
   const sections = buildPhotoContractSections(input);
   const { confirmLink } = input;
 
-  const body = `
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BORDER};padding:14px 0">
-    <tr><td align="center">
-      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:${CREAM};border-radius:4px">
-        <tr><td style="padding:34px 34px 10px">
-
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding-bottom:18px">
-            <img src="${WORDMARK_URL}" alt="Michal" height="46" style="height:46px;width:auto" />
-          </td></tr></table>
+  const inner = `
+  
 
           <p style="margin:0 0 4px;color:${ROSE};font-size:19px;font-weight:bold">הי ${contactName || "יקרה"},</p>
           <p style="margin:0 0 4px;color:${BROWN};font-size:14px;line-height:1.8">
@@ -222,14 +216,9 @@ export function buildPhotoContractHtml(input: PhotoContractInput): string {
               <p style="margin:0 0 4px;color:${BROWN_SOFT};font-size:13px">${STUDIO_ADDRESS}</p>
               <p style="margin:0 0 4px;color:${BROWN};font-size:14px">ולצלם לכם תמונות חלומיות ✨</p>
               <p style="margin:0 0 14px;color:${BROWN};font-size:14px">שיהיה בהצלחה, באירגונים ובסייעתא דשמיא</p>
-              <img src="${WORDMARK_URL}" alt="Michal" height="34" style="height:34px;width:auto" />
             </td></tr>
           </table>
+  `;
 
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>`;
-
-  return body;
+  return buildBrandedMailHtml({ title: "החוזה שלך", innerHtml: inner });
 }

@@ -2,6 +2,7 @@
 // pointed at outdoor_package_orders / outdoor_order_images / outdoor_gallery_access, so outdoor
 // clients get the same proof gallery, selection, notes, edited album, ZIP downloads, unlock receipt,
 // album details, step trackers and email-code gate. Added 2026-11-04; the newborn code is untouched.
+import { buildBrandedMailHtml } from "@/lib/email-draft-design";
 import { withEmailHearts } from "@/lib/email-hearts";
 import { createServerFn } from "@tanstack/react-start";
 import { toSiteMediaUrl } from "@/lib/media-url";
@@ -704,14 +705,15 @@ export const requestOutdoorGalleryCode = createServerFn({ method: "POST" })
     await sendGmail({
       to: order.contact_email,
       subject: `קוד הכניסה לגלריה שלך: ${code} · מיכל סיבוני`,
-      html: `<div dir="rtl" style="font-family:sans-serif;color:#4a3221;max-width:440px;margin:0 auto;text-align:center">
-        <div style="background:#fdf3ec;border:1px solid #e8d3bf;border-radius:18px;padding:26px 20px">
+      html: buildBrandedMailHtml({
+        title: "קוד הכניסה לגלריה",
+        innerHtml: `<div style="text-align:center">
           <p style="margin:0 0 6px;font-size:15px">שלום ${order.contact_name ?? ""},</p>
           <p style="margin:0 0 14px;font-size:14px">זה הקוד לכניסה לגלריית התמונות שלך:</p>
           <div style="font-size:34px;letter-spacing:8px;font-weight:700;color:#8a6338">${code}</div>
           <p style="margin:14px 0 0;font-size:12px;color:#8a6338">הקוד בתוקף ל-${GALLERY_CODE_TTL_MIN} דקות. אם לא ביקשת קוד, אפשר להתעלם מהמייל.</p>
-        </div>
-      </div>`,
+        </div>`,
+      }),
     });
     return { sent: true, maskedEmail: maskEmail(order.contact_email) };
   });
