@@ -166,7 +166,9 @@ const OUTDOOR: { title: string; note: string; pkgs: Pkg[]; addons: string } = {
 };
 
 function priceBlock(list: typeof NEWBORN, t: Theme): string {
-  const card = (p: Pkg) => `<td valign="top" width="${Math.floor(100 / Math.max(list.pkgs.length, 1))}%" style="padding:5px">
+  // Cards are inline-blocks (not table cells) so on a phone they wrap into one / two per row instead of being
+  // squeezed into a few letters per line (the price used to break as "1,6 / 50 / ₪").
+  const card = (p: Pkg) => `<div style="display:inline-block;vertical-align:top;width:31%;min-width:150px;box-sizing:border-box;padding:5px;direction:rtl;text-align:center">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${p.featured ? "#fff8fa" : "#ffffff"};border:${p.featured ? "2px" : "1px"} solid ${p.featured ? t.accent : "#e2cfb6"};border-radius:14px">
       <tr><td style="padding:14px 10px 6px;text-align:center">
         ${p.featured ? `<div style="font-size:11px;color:${t.accent};font-weight:bold;margin-bottom:4px">הכי אהובה 💗</div>` : ""}
@@ -175,14 +177,14 @@ function priceBlock(list: typeof NEWBORN, t: Theme): string {
         ${p.lines.map((l) => `<div style="font-size:13px;color:${t.text};line-height:1.6">${esc(l)}</div>`).join("")}
       </td></tr>
       <tr><td style="padding:8px 10px 14px;text-align:center">
-        <span style="display:inline-block;background:#8a6a52;color:#ffffff;font-weight:bold;font-size:15px;padding:5px 16px;border-radius:20px">${esc(p.price)}</span>
+        <span style="display:inline-block;white-space:nowrap;background:#8a6a52;color:#ffffff;font-weight:bold;font-size:15px;padding:5px 16px;border-radius:20px">${esc(p.price)}</span>
       </td></tr>
     </table>
-  </td>`;
+  </div>`;
   return `<div style="margin:22px 0 8px">
     <h3 style="color:${t.accent};font-size:18px;margin:0 0 2px;text-align:center;font-family:${FONT}">${esc(list.title)}</h3>
     <p style="margin:0 0 10px;text-align:center;font-size:13px;color:${t.soft}">${esc(list.note)}</p>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>${list.pkgs.map(card).join("")}</tr></table>
+    <div dir="rtl" style="text-align:center;font-size:0;line-height:0">${list.pkgs.map(card).join("")}</div>
     <p style="margin:8px 0 0;text-align:center;font-size:12px;color:${t.soft}">${esc(list.addons)}</p>
   </div>`;
 }

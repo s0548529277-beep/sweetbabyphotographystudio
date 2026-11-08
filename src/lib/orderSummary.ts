@@ -80,7 +80,8 @@ function escapeHtml(value: string): string {
 }
 
 function row(label: string, value: string): string {
-  return `<tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>${label}</strong></td><td style="padding:6px 10px">${value}</td></tr>`;
+  // Stacked (label above value) so it never squeezes into a few letters per line on a phone.
+  return `<tr><td style="padding:8px 14px;border-bottom:1px solid #eadfd3"><div style="font-size:12px;color:#6b8a63;font-weight:bold;line-height:1.4">${label}</div><div style="font-size:15px;line-height:1.6">${value}</div></td></tr>`;
 }
 
 export function buildIntakeHtml(payload: Record<string, string> | null | undefined): string {
@@ -182,7 +183,7 @@ export function buildBookingSummaryHtml(opts: {
     ${isImmediateOrder(b.session_date, b.start_time) ? buildImmediateNoticeHtml() : ""}
     <h3 style="color:#2d3d2b">סיכום הזמנה</h3>
     <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">
-      <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>מספר הזמנה</strong></td><td style="padding:6px 10px;font-size:20px;font-weight:700;color:#2d3d2b" dir="ltr">#${b.id.slice(0, 8)}</td></tr>
+      <tr><td style="padding:8px 14px;border-bottom:1px solid #eadfd3"><div style="font-size:12px;color:#6b8a63;font-weight:bold;line-height:1.4">מספר הזמנה</div><div style="font-size:20px;font-weight:700;color:#2d3d2b;text-align:right" dir="ltr">#${b.id.slice(0, 8)}</div></td></tr>
       ${row("תאריך", dateWithHebrew(b.session_date))}
       ${row("שעה", `${String(b.start_time).slice(0, 5)} - ${String(b.end_time).slice(0, 5)}`)}
       ${row("מחיר כולל", `₪${b.price}`)}
@@ -362,7 +363,7 @@ export function buildPropsOrderSummaryHtml(opts: {
         l.image_url
           ? `<td style="padding:6px 0 6px 8px;width:44px"><img src="${escapeHtml(emailThumbUrl(l.image_url, 80) ?? "")}" alt="" width="40" height="40" style="width:40px;height:40px;object-fit:cover;border-radius:8px;display:block" /></td>`
           : ""
-      }<td style="padding:6px 10px">${escapeHtml(l.item_name)} (${escapeHtml(l.item_sku)})</td><td style="padding:6px 10px;text-align:center">×${l.quantity}</td><td style="padding:6px 10px;text-align:left;white-space:nowrap">${priceCell}</td></tr>`;
+      }<td style="padding:8px 10px;border-bottom:1px solid #eadfd3"><div style="font-size:15px;line-height:1.5">${escapeHtml(l.item_name)} (${escapeHtml(l.item_sku)})${l.quantity > 1 ? ` · ×${l.quantity}` : ""}</div><div style="font-size:13px;color:#6b8a63;line-height:1.5">${priceCell}</div></td></tr>`;
     })
     .join("");
 
@@ -373,7 +374,7 @@ export function buildPropsOrderSummaryHtml(opts: {
     ${isImmediateOrder(o.session_date, o.pickup_time) ? buildImmediateNoticeHtml() : ""}
     <h3 style="color:#2d3d2b">סיכום הזמנה</h3>
     <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">
-      <tr><td style="padding:6px 10px;color:#6b8a63;white-space:nowrap"><strong>מספר הזמנה</strong></td><td style="padding:6px 10px;font-size:20px;font-weight:700;color:#2d3d2b" dir="ltr">#${o.id.slice(0, 8)}</td></tr>
+      <tr><td style="padding:8px 14px;border-bottom:1px solid #eadfd3"><div style="font-size:12px;color:#6b8a63;font-weight:bold;line-height:1.4">מספר הזמנה</div><div style="font-size:20px;font-weight:700;color:#2d3d2b;text-align:right" dir="ltr">#${o.id.slice(0, 8)}</div></td></tr>
       ${row("איסוף", `${dateWithHebrew(o.session_date)}${o.pickup_time ? ` בשעה ${o.pickup_time}` : ""}`)}
       ${row("החזרה", `${dateWithHebrew(o.return_date)}${o.return_time ? ` בשעה ${o.return_time}` : ""}`)}
       ${o.balance_method ? row("אמצעי תשלום", PAYMENT_METHOD_LABELS[o.balance_method] ?? escapeHtml(o.balance_method)) : ""}
