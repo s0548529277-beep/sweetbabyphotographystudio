@@ -16,7 +16,8 @@ import {
   type FunnelQuestion,
   type LeadFunnelId,
 } from "@/lib/funnels";
-import { getFunnelSettings, submitFunnelLead } from "@/lib/funnels.functions";
+import { getFunnelOverrides, getFunnelSettings, submitFunnelLead } from "@/lib/funnels.functions";
+import { applyFunnelQuestions, applyFunnelTheme, type FunnelOverrides } from "@/lib/funnel-overrides";
 import { FUNNEL_THEMES, type FunnelTheme } from "@/lib/funnel-theme";
 import { openSignupWheel } from "@/components/NewsletterPopup";
 
@@ -31,11 +32,18 @@ export function useFunnelSettings() {
   return q.data ?? DEFAULT_FUNNEL_SETTINGS;
 }
 
+/** Edits made in /admin/funnel-editor (empty = the funnels as coded). */
+export function useFunnelOverrides(): FunnelOverrides {
+  const q = useQuery({ queryKey: ["funnel-overrides"], queryFn: () => getFunnelOverrides(), staleTime: 5 * 60_000 });
+  return q.data ?? {};
+}
+
 /** The button a page shows to start its funnel. Renders nothing while that funnel is switched off. Coloured per funnel (funnel-theme.ts). */
 export function FunnelCta({ funnel, label, sub, className = "" }: { funnel: FunnelId; label: string; sub?: string; className?: string }) {
   const settings = useFunnelSettings();
+  const fov = useFunnelOverrides();
   if (!settings[funnel]) return null;
-  const t = FUNNEL_THEMES[funnel];
+  const t = applyFunnelTheme(FUNNEL_THEMES[funnel], funnel, fov);
   return (
     <button
       type="button"
@@ -88,6 +96,7 @@ function rememberFloatClosed(id: FunnelId) {
 export function FunnelFloat() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const settings = useFunnelSettings();
+  const fovFloat = useFunnelOverrides();
   const id = FLOAT_ROUTES[pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname];
   const [shown, setShown] = useState(false);
   const [hiddenByDialog, setHiddenByDialog] = useState(false);
@@ -108,7 +117,7 @@ export function FunnelFloat() {
   }, []);
 
   if (!id || !shown || hiddenByDialog || !settings[id]) return null;
-  const t = FUNNEL_THEMES[id];
+  const t = applyFunnelTheme(FUNNEL_THEMES[id], id, fovFloat);
   return (
     <div
       dir="rtl"
@@ -182,11 +191,14 @@ export function FunnelDialog() {
     return () => window.removeEventListener(OPEN_EVENT, onOpen);
   }, [settings]);
 
-  const questions: FunnelQuestion[] = funnel ? FUNNEL_QUESTIONS[funnel] : [ENTRY_QUESTION];
+  const fov = useFunnelOverrides();
+  const questions: FunnelQuestion[] = funnel
+    ? applyFunnelQuestions(funnel, FUNNEL_QUESTIONS[funnel], fov)
+    : applyFunnelQuestions("entry", [ENTRY_QUESTION], fov);
   const q = questions[step];
   const result = funnel && phase !== "questions" ? evaluateFunnel(funnel, answers, { topup: settings.studioTopup }) : null;
   // The palette follows the funnel she is in (the entry question uses the home palette).
-  const t: FunnelTheme = FUNNEL_THEMES[funnel ?? "entry"];
+  const t: FunnelTheme = applyFunnelTheme(FUNNEL_THEMES[funnel ?? "entry"], funnel ?? "entry", fov);
   const themeVars = {
     "--f-solid": t.solid,
     "--f-solid-hover": t.solidHover,
@@ -200,6 +212,7 @@ export function FunnelDialog() {
   const choose = (optionId: string) => {
     if (!funnel) {
       const opt = ENTRY_QUESTION.options.find((o) => o.id === optionId);
+      // (hidden / renamed entry answers keep their original destination)
       if (opt?.goto) {
         setFunnel(opt.goto);
         setAnswers({});
@@ -315,6 +328,7 @@ export function FunnelDialog() {
                       answers[q.id] === o.id ? "border-[var(--f-solid)] bg-[var(--f-tint)]" : "border-[var(--f-border)]/60"
                     }`}
                   >
+                    {o.image && <img src={o.image} alt="" loading="lazy" className="mb-2 h-28 w-full rounded-xl object-cover" />}
                     <span className="block font-medium">{o.label}</span>
                     {o.hint && <span className="block text-xs text-[var(--f-ink)]/60">{o.hint}</span>}
                   </button>

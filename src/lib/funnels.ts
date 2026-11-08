@@ -25,6 +25,8 @@ export type FunnelOption = {
   id: string;
   label: string;
   hint?: string;
+  /** Optional photo on the answer card (set in /admin/funnel-editor). */
+  image?: string;
   /** Entry funnel only: this answer sends her into another funnel. */
   goto?: LeadFunnelId;
 };
@@ -311,8 +313,12 @@ export const FUNNEL_QUESTIONS: Record<LeadFunnelId, FunnelQuestion[]> = {
 export type FunnelResult = { score: number; hot: boolean; recommendation: string; headline: string; details: string[]; signup?: boolean };
 
 /** The answers must be a complete, valid set for this funnel (every question answered with one of its own options). */
-export function validateAnswers(funnel: LeadFunnelId, answers: Record<string, string>): boolean {
-  return FUNNEL_QUESTIONS[funnel].every((q) => q.options.some((o) => o.id === answers[q.id]));
+export function validateAnswers(
+  funnel: LeadFunnelId,
+  answers: Record<string, string>,
+  questions: FunnelQuestion[] = FUNNEL_QUESTIONS[funnel],
+): boolean {
+  return questions.every((q) => q.options.some((o) => o.id === answers[q.id]));
 }
 
 export function evaluateFunnel(funnel: LeadFunnelId, answers: Record<string, string>, opts: { topup?: boolean } = {}): FunnelResult {
@@ -322,8 +328,12 @@ export function evaluateFunnel(funnel: LeadFunnelId, answers: Record<string, str
 }
 
 /** Readable "question: answer" lines, for the admin and the lead email. */
-export function answerLines(funnel: LeadFunnelId, answers: Record<string, string>): { q: string; a: string }[] {
-  return FUNNEL_QUESTIONS[funnel].map((q) => ({ q: q.title, a: q.options.find((o) => o.id === answers[q.id])?.label ?? "—" }));
+export function answerLines(
+  funnel: LeadFunnelId,
+  answers: Record<string, string>,
+  questions: FunnelQuestion[] = FUNNEL_QUESTIONS[funnel],
+): { q: string; a: string }[] {
+  return questions.map((q) => ({ q: q.title, a: q.options.find((o) => o.id === answers[q.id])?.label ?? "—" }));
 }
 
 /** On/off switches: the four funnels (default ON) + `studioTopup`, the "load 750, get 1,000" offer inside the studio funnel (default OFF). */

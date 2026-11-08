@@ -86,6 +86,7 @@ const links: NavEntry[] = [
     items: [
       { to: "/admin/leads", label: "לידים ופניות", icon: Target },
       { to: "/admin/funnel-leads", label: "לידים מהמשפכים והפעלה", icon: Sparkles },
+      { to: "/admin/funnel-editor", label: "עורך משפכים", icon: Sparkles },
     ],
   },
   { to: "/admin/clients", label: "לקוחות", icon: Users },

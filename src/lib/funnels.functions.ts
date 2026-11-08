@@ -9,6 +9,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   DEFAULT_FUNNEL_SETTINGS,
   FUNNEL_LABELS,
+  FUNNEL_QUESTIONS,
   LEAD_FUNNELS,
   answerLines,
   evaluateFunnel,
@@ -17,6 +18,8 @@ import {
   type FunnelSettings,
   type LeadFunnelId,
 } from "@/lib/funnels";
+
+import { FUNNEL_OVERRIDES_KEY, applyFunnelQuestions, sanitizeFunnelOverrides, type FunnelOverrides } from "@/lib/funnel-overrides";
 
 const SETTINGS_KEY = "funnels_enabled";
 const NOTIFY_TO = "m0548529277@gmail.com";
@@ -36,6 +39,33 @@ export const getFunnelSettings = createServerFn({ method: "GET" }).handler(async
     return { ...DEFAULT_FUNNEL_SETTINGS };
   }
 });
+
+/** Public: the edits made in /admin/funnel-editor (questions, answers, photos, colours, titles). Failure = the funnels as coded. */
+export const getFunnelOverrides = createServerFn({ method: "GET" }).handler(async (): Promise<FunnelOverrides> => readOverrides());
+
+export const setFunnelOverrides = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ overrides: z.record(z.any()) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const clean = sanitizeFunnelOverrides(data.overrides);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await (supabaseAdmin as any)
+      .from("app_settings")
+      .upsert({ key: FUNNEL_OVERRIDES_KEY, value: JSON.stringify(clean), updated_at: new Date().toISOString() });
+    if (error) throw new Error("השמירה נכשלה");
+    return { ok: true, overrides: clean };
+  });
+
+async function readOverrides(): Promise<FunnelOverrides> {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await (supabaseAdmin as any).from("app_settings").select("value").eq("key", FUNNEL_OVERRIDES_KEY).maybeSingle();
+    return data?.value ? sanitizeFunnelOverrides(JSON.parse(data.value)) : {};
+  } catch {
+    return {};
+  }
+}
 
 export const setFunnelSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -69,7 +99,9 @@ export const submitFunnelLead = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     if (data.website) return { ok: true }; // bot
     const funnel = data.funnel as LeadFunnelId;
-    if (!LEAD_FUNNELS.includes(funnel) || !validateAnswers(funnel, data.answers)) throw new Error("התשובות לא תקינות");
+    const overrides = await readOverrides();
+    const questions = applyFunnelQuestions(funnel, FUNNEL_QUESTIONS[funnel], overrides);
+    if (!LEAD_FUNNELS.includes(funnel) || !validateAnswers(funnel, data.answers, questions)) throw new Error("התשובות לא תקינות");
     const digits = data.phone.replace(/\D/g, "");
     if (digits.length < 8) throw new Error("מספר הטלפון אינו תקין");
     const email = data.email || "";
@@ -115,7 +147,7 @@ export const submitFunnelLead = createServerFn({ method: "POST" })
       const { sendGmail } = await import("@/integrations/google/gmail.server");
       const local = digits.startsWith("0") ? "972" + digits.slice(1) : digits.startsWith("972") ? digits : "972" + digits;
       const wa = `https://wa.me/${local}?text=${encodeURIComponent(`היי ${data.name}, כאן הסטודיו של מיכל סיבוני 🤍 ראיתי שמילאת שאלון באתר, אשמח לעזור!`)}`;
-      const rows = answerLines(funnel, data.answers)
+      const rows = answerLines(funnel, data.answers, questions)
         .map((r) => `<tr><td style="padding:6px 10px;color:#8a7466">${esc(r.q)}</td><td style="padding:6px 10px">${esc(r.a)}</td></tr>`)
         .join("");
       const html = `<div dir="rtl" style="font-family:Arial,sans-serif;color:#4a3a30;max-width:600px;margin:auto;background:#faf6f1;padding:24px;border-radius:14px">
