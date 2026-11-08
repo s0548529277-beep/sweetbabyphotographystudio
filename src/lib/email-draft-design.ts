@@ -18,7 +18,7 @@ const MICHAL_LOGO_URL = `https://sweetbabyphoto.shop${michalWordmark}`;
 // phone, mail, site and services) — re-coloured to the card colour below by scripts/make-email-signature-gif.py
 // (source: Drive "michal-siboni-signature-final-cream2.gif"; first frame = a finished frame for Outlook / blocked
 // images). Under it come her three signature buttons, exactly as in her Gmail signature.
-const SIGNATURE_GIF_URL = "https://sweetbabyphoto.shop/email/michal-signature-color.gif";
+const SIGNATURE_GIF_URL = "https://sweetbabyphoto.shop/email/michal-signature.gif";
 const STUDIO_SIGNATURE_GIF_URL = "https://sweetbabyphoto.shop/email/studio-signature.gif";
 const STUDIO_WAZE = "https://waze.com/ul?q=%D7%AA%D7%9C%D7%9E%D7%95%D7%93%20%D7%99%D7%A8%D7%95%D7%A9%D7%9C%D7%9E%D7%99%2024%2C%20%D7%91%D7%99%D7%AA%20%D7%A9%D7%9E%D7%A9&navigate=yes";
 const SITE_PHONE = "053-418-1051";
