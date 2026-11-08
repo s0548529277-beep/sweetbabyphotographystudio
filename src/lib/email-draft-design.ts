@@ -256,16 +256,24 @@ const SIGNATURES: Record<DraftBrand, { name: string; lines: string[]; site?: { l
   general: { name: "מיכל סיבוני", lines: ["053-418-1051"] },
 };
 
+/** Colour-rotating gradients for the dynamic-text buttons (static gradient everywhere; animated where the client allows CSS animation). */
+export const RB_STUDIO = "linear-gradient(120deg,#3d5a3a,#c86480,#cd7858,#608c6e,#3d5a3a)";
+export const RB_MICHAL = "linear-gradient(120deg,#5c4638,#c23b6d,#b28046,#965c68,#5c4638)";
+export const RB_CSS = `<style>.rb{background-size:300% 100%!important;animation:rbmove 9s linear infinite}@keyframes rbmove{0%{background-position:0 0}100%{background-position:300% 0}}</style>`;
+
+/** Animated (colour-rotating) button image — e-mail clients ignore CSS animation, a GIF wrapped in a link works everywhere. */
+function animBtn(href: string, gif: string, label: string): string {
+  return `<a href="${href}" style="display:inline-block;margin:2px;text-decoration:none"><img src="https://sweetbabyphoto.shop/email/${gif}" alt="${label}" width="160" height="50" style="width:160px;height:50px;border:0;display:block"></a>`;
+}
+
 /**
  * Michal's fixed e-mail signature (animated GIF + her three buttons), as one RTL block. Used by the reply drafts
  * AND by the site's automatic mails (reminders etc.) so every mail closes the same way.
  */
 export function signatureBlockHtml(): string {
   return `<div style="line-height:0"><img src="${SIGNATURE_GIF_URL}" alt="MICHAL SIBONI · ${SITE_PHONE} · ${SITE_MAIL} · michalsiboni.co.il" width="560" style="width:100%;max-width:560px;height:auto;border:0;display:inline-block"></div>
-      <div style="margin-top:14px;line-height:1.4">
-        <a href="https://michalsiboni.co.il/" style="display:inline-block;background:${SIG_BROWN};color:${SIG_CREAM};border:1px solid ${SIG_BROWN};font-family:Arial,sans-serif;font-size:14px;font-weight:bold;text-decoration:none;padding:9px 24px;border-radius:18px;white-space:nowrap;margin:4px">לגלריה שלי</a>
-        <a href="https://sweetbabyphoto.shop/" style="display:inline-block;background:${SIG_CREAM};color:${SIG_BROWN};border:1px solid ${SIG_BROWN};font-family:Arial,sans-serif;font-size:13px;font-weight:bold;text-decoration:none;padding:8px 18px;border-radius:18px;white-space:nowrap;margin:4px">לאתר הסטודיו</a>
-        <a href="mailto:${SITE_MAIL}" style="display:inline-block;background:${SIG_CREAM};color:${SIG_BROWN};border:1px solid ${SIG_BROWN};font-family:Arial,sans-serif;font-size:13px;font-weight:bold;text-decoration:none;padding:8px 18px;border-radius:18px;white-space:nowrap;margin:4px">שליחת מייל</a>
+      <div style="margin-top:14px;line-height:0">
+        ${animBtn("https://michalsiboni.co.il/", "btn-michal-gallery.gif", "לגלריה שלי")}${animBtn("https://sweetbabyphoto.shop/", "btn-michal-site.gif", "לאתר הסטודיו")}${animBtn(`mailto:${SITE_MAIL}`, "btn-michal-mail.gif", "שליחת מייל")}
       </div>`;
 }
 
@@ -280,7 +288,7 @@ export function buildBrandedMailHtml(opts: { title: string; innerHtml: string; t
   const heartKind: HeartKind = "michal";
   const rtl = "direction:rtl;text-align:right";
   // Soft blush-to-sand gradient behind the card (solid colour first as the fallback for clients without gradients).
-  const html = `<div dir="rtl" data-mail="photographer" style="background:#ecd0b8;background-image:linear-gradient(160deg,#f6d8d0 0%,#eccbb4 55%,#d9b898 100%);padding:12px 8px;${rtl}">
+  const html = `<div dir="rtl" data-mail="photographer" style="background:#ecd0b8;background-image:linear-gradient(160deg,#f6d8d0 0%,#eccbb4 55%,#d9b898 100%);padding:12px 8px;${rtl}">${RB_CSS}
   <table role="presentation" dir="rtl" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:${t.cardBg};border:1px solid #efe0d2;border-radius:12px;overflow:hidden;box-shadow:0 8px 28px rgba(120,86,60,0.16);font-family:${FONT};color:${t.text};${rtl}">
     <tr><td align="center" style="padding:30px 28px 6px"><div dir="ltr" style="font-family:Helvetica,Arial,sans-serif;font-size:24px;letter-spacing:9px;margin-right:-9px;color:${SIG_BROWN}">MICHAL SIBONI</div>
       <div style="font-size:12px;letter-spacing:2px;color:${t.soft};margin-top:8px">${esc(opts.tagline ?? "צילומי ניו בורן ומשפחה")}</div></td></tr>
@@ -305,7 +313,7 @@ export function buildStudioMailHtml(opts: { title: string; innerHtml: string }):
   const rtl = "direction:rtl;text-align:right";
   const btn = (href: string, label: string, primary = false) =>
     `<a href="${href}" style="display:inline-block;background:${primary ? t.accent : t.cardBg};color:${primary ? t.cardBg : t.accent};border:1px solid ${t.accent};font-family:Arial,sans-serif;font-size:14px;font-weight:bold;text-decoration:none;padding:9px 22px;border-radius:18px;white-space:nowrap;margin:4px">${label}</a>`;
-  const html = `<div dir="rtl" data-mail="studio" style="background:#e9dcc8;background-image:linear-gradient(160deg,#dfe8d3 0%,#f3d9d2 55%,#e9d3b9 100%);padding:26px 16px;${rtl}">
+  const html = `<div dir="rtl" data-mail="studio" style="background:#e9dcc8;background-image:linear-gradient(160deg,#dfe8d3 0%,#f3d9d2 55%,#e9d3b9 100%);padding:26px 16px;${rtl}">${RB_CSS}
   <table role="presentation" dir="rtl" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:${t.cardBg};border:1px solid #efddd0;border-radius:22px;overflow:hidden;box-shadow:0 8px 28px rgba(90,70,50,0.16);font-family:${FONT};color:${t.text};${rtl}">
     <tr><td align="center" style="padding:28px 28px 6px"><img src="${STUDIO_LOGO_URL}" alt="Sweetbaby" height="52" style="height:52px;width:auto;border:0">
       <div style="font-size:12px;letter-spacing:2px;color:${t.soft};margin-top:8px">סטודיו בוטיק לצילום · בית שמש</div></td></tr>
@@ -316,7 +324,7 @@ export function buildStudioMailHtml(opts: { title: string; innerHtml: string }):
     </td></tr>
     <tr><td style="padding:14px 20px 24px;font-size:13px;color:${t.soft};text-align:center;line-height:1.6">
       <div style="line-height:0"><img src="${STUDIO_SIGNATURE_GIF_URL}" alt="Sweetbaby · תלמוד ירושלמי 24, בית שמש · 054-8529277" width="560" style="width:100%;max-width:560px;height:auto;border:0;display:inline-block"></div>
-      <div style="margin-top:14px;line-height:1.4">${btn("https://sweetbabyphoto.shop/", "לאתר הסטודיו", true)}${btn(STUDIO_WAZE, "ניווט בוויז")}${btn("mailto:s0548529277@gmail.com", "שליחת מייל")}</div>
+      <div style="margin-top:14px;line-height:0">${animBtn("https://sweetbabyphoto.shop/", "btn-studio-site.gif", "לאתר הסטודיו")}${animBtn(STUDIO_WAZE, "btn-studio-waze.gif", "ניווט בוויז")}${animBtn("mailto:s0548529277@gmail.com", "btn-studio-mail.gif", "שליחת מייל")}</div>
     </td></tr>
   </table>
 </div>`;
@@ -376,13 +384,13 @@ export function buildDraftHtml(opts: {
     ? `<div style="text-align:center;margin:20px 0 6px">${ctaButtons
         .map(
           (c) =>
-            `<a href="${esc(c.url)}" style="display:inline-block;background:${t.accent};color:#ffffff;padding:11px 26px;border-radius:24px;text-decoration:none;font-weight:bold;margin:4px">${esc(c.label)}</a>`,
+            `<a class="rb" href="${esc(c.url)}" style="display:inline-block;background:${t.accent};background-image:${look === "studio" ? RB_STUDIO : RB_MICHAL};color:#ffffff;padding:11px 26px;border-radius:24px;text-decoration:none;font-weight:bold;margin:4px">${esc(c.label)}</a>`,
         )
         .join("")}</div>`
     : "";
   const photos = opts.brand === "photographer" ? photoStrip(opts.photos ?? [], !!opts.bigPhotos) : "";
   const branded = true;
-  const html = `<div dir="rtl" data-mail="${look}" style="background:${t.pageBg};${look === "photographer" ? "background-image:linear-gradient(160deg,#f6d8d0 0%,#eccbb4 55%,#d9b898 100%);" : ""}padding:7px 6px;direction:rtl">
+  const html = `<div dir="rtl" data-mail="${look}" style="background:${t.pageBg};${look === "photographer" ? "background-image:linear-gradient(160deg,#f6d8d0 0%,#eccbb4 55%,#d9b898 100%);" : ""}padding:7px 6px;direction:rtl">${RB_CSS}
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:${t.cardBg};border:1px solid ${t.border};border-radius:14px;overflow:hidden;font-family:${FONT};color:${t.text};direction:rtl;text-align:right">
     ${header}
     <tr><td style="padding:${opts.brand === "general" ? "30px 34px 10px" : "18px 34px 10px"};font-size:15px;line-height:1.8">

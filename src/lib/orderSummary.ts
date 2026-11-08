@@ -1,5 +1,5 @@
 import { heartImg } from "@/lib/email-hearts";
-import { buildStudioMailHtml } from "@/lib/email-draft-design";
+import { buildStudioMailHtml, RB_STUDIO } from "@/lib/email-draft-design";
 import { ARRIVAL_TEXT_HE, STUDIO_ADDRESS_WAZE_HTML } from "@/lib/arrival";
 import { hebrewDate } from "@/lib/hebrew-date";
 import { emailThumbUrl } from "@/lib/media-url";
@@ -21,7 +21,7 @@ export const TAKBULL_PAY_URL = "https://paypage.takbull.co.il/4fk6g";
 export function buildPaymentButtonHtml(amount: number): string {
   return `<div style="margin:20px 0;text-align:center">
     <a href="${TAKBULL_PAY_URL}" target="_blank" rel="noopener noreferrer"
-       style="display:inline-block;background:#2d3d2b;color:#f8ede4;text-decoration:none;font-weight:bold;padding:14px 28px;border-radius:999px">
+       class="rb" style="display:inline-block;background:#2d3d2b;background-image:${RB_STUDIO};color:#ffffff;text-decoration:none;font-weight:bold;padding:14px 28px;border-radius:999px">
       לתשלום מאובטח באשראי · ₪${amount}
     </a>
   </div>`;
@@ -254,7 +254,8 @@ export function chatLinkUrl(kind: ChatLinkKind, id?: string | null, date?: strin
 export function pillButton(href: string, label: string, primary = false): string {
   const bg = primary ? "#2d3d2b" : "#f8ede4";
   const fg = primary ? "#f8ede4" : "#2d3d2b";
-  return `<a href="${escapeHtml(href)}" style="background:${bg};color:${fg};border:1px solid #2d3d2b;padding:10px 20px;border-radius:999px;text-decoration:none;display:inline-block;font-weight:700;font-size:15px;margin:4px">${label}</a>`;
+  const grad = primary ? `background-image:${RB_STUDIO};` : "";
+  return `<a${primary ? ' class="rb"' : ""} href="${escapeHtml(href)}" style="background:${bg};${grad}color:${primary ? "#ffffff" : fg};border:1px solid #2d3d2b;padding:10px 20px;border-radius:999px;text-decoration:none;display:inline-block;font-weight:700;font-size:15px;margin:4px">${label}</a>`;
 }
 
 /** "להמשיך בצ'אט" — opens the bot with this order's context. */
