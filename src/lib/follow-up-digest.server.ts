@@ -14,7 +14,7 @@ const STATE_KEY = "follow_up_digest_state";
 const MIN_GAP_MS = 55 * 60_000;
 const SITE = "https://sweetbabyphoto.shop";
 
-type Reason = { id?: string; weight: number; icon: string; text: string; at: string | null };
+type Reason = { id?: string; weight: number; icon: string; text: string; at: string | null; remind?: boolean };
 type Person = { key: string; name: string; phone: string; email: string; reasons: Reason[] };
 
 const esc = (s: unknown) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] as string);
@@ -83,7 +83,12 @@ export async function collectFollowUps(db: any): Promise<Person[]> {
     if (!cur.name && p.name) cur.name = String(p.name).trim();
     if (!cur.phone && p.phone) cur.phone = String(p.phone).trim();
     if (!cur.email && ek) cur.email = ek;
-    cur.reasons.push({ ...r, id: `${r.icon}:${p.id}:${r.at ?? ""}` });
+    // Hot leads that stay unanswered come back once a day ("still waiting"): the day number joins the id, so the
+    // reason counts as new in each daily digest, for at most 7 days.
+    const ageDays = r.remind && r.at ? Math.floor((Date.now() - Date.parse(r.at)) / 86_400_000) : 0;
+    if (r.remind && ageDays > 7) return;
+    const bucket = ageDays >= 1 ? `:d${ageDays}` : "";
+    cur.reasons.push({ ...r, text: ageDays >= 1 ? `⏰ עדיין מחכה (${ageDays === 1 ? "יום" : `${ageDays} ימים`}) — ${r.text}` : r.text, id: `${r.icon}:${p.id}:${r.at ?? ""}${bucket}` });
     people.set(key, cur);
   };
 
@@ -146,7 +151,10 @@ export async function collectFollowUps(db: any): Promise<Person[]> {
       const first = Date.parse(l.first_contact_at);
       const last = Date.parse(l.last_contact_at ?? l.first_contact_at);
       const src = esc(l.source === "email" || l.source === "gmail" ? "מייל" : l.source === "phone" ? "טלפון" : l.source || "פנייה");
-      if (l.status === "new" && now - first > 60 * 60_000) {
+      if (l.status === "new" && /🔥/.test(String(l.message ?? ""))) {
+        // Hot lead from the photographer site's quiz (filed by the e-mail assistant): listed at once, then daily while unanswered.
+        add({ id: l.id, name: l.name, phone: l.phone, email: l.email }, { weight: 78, remind: true, icon: "🔥", text: `ליד חם משאלון אתר הצלמת: "${clip(String(l.message).replace(/^🔥 ליד חם · /, ""), 120)}"`, at: l.first_contact_at });
+      } else if (l.status === "new" && now - first > 60 * 60_000) {
         add({ id: l.id, name: l.name, phone: l.phone, email: l.email }, { weight: 70, icon: "✉️", text: `פנייה (${src}) שעוד לא נענתה: "${clip(l.message, 140)}"`, at: l.first_contact_at });
       } else if (l.status === "follow_up") {
         add({ id: l.id, name: l.name, phone: l.phone, email: l.email }, { weight: 60, icon: "🔁", text: `סומנה "לחזור אליה": "${clip(l.message, 120)}"`, at: l.last_contact_at ?? l.first_contact_at });
@@ -165,7 +173,7 @@ export async function collectFollowUps(db: any): Promise<Person[]> {
       .gte("created_at", iso(now - 7 * 86_400_000))
       .limit(100);
     for (const l of data ?? []) {
-      add({ id: l.id, name: l.name, phone: l.phone, email: l.email }, { weight: 75, icon: "🔥", text: `ליד חם מהשאלון${l.funnel ? ` (${esc(l.funnel)})` : ""}${l.recommendation ? `: ${clip(l.recommendation, 80)}` : ""}`, at: l.created_at });
+      add({ id: l.id, name: l.name, phone: l.phone, email: l.email }, { weight: 75, remind: true, icon: "🔥", text: `ליד חם מהשאלון${l.funnel ? ` (${esc(l.funnel)})` : ""}${l.recommendation ? `: ${clip(l.recommendation, 80)}` : ""}`, at: l.created_at });
     }
   }, "funnel_leads");
 
