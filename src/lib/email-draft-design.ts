@@ -168,16 +168,17 @@ const OUTDOOR: { title: string; note: string; pkgs: Pkg[]; addons: string } = {
 };
 
 const PKG_LABELS: Record<string, string[]> = {
-  newborn: ["MINI", "POPULAR", "DREAM"],
+  newborn: ["MINI", "PAMPER", "LUXURY"],
   outdoor: ["MAGIC", "POPULAR", "DREAM"],
   studio: ["STUDIO"],
 };
 
 /**
- * Photographer price list in the style of the Drive design "מחירון_ילדים_מיכל_סיבוני": an arched photo on top of
- * every card, a small English label, the package name, thin divider, the contents and an outlined price button;
- * the featured card is dark brown with cream text. Cards are inline-blocks (not table cells) so on a phone they
- * wrap instead of squeezing the text. Without a photo the card simply starts at the label.
+ * Photographer price list in the style of the owner's newborn price-list image (11-08): an arched photo on top of
+ * every card, a small English label, the package name, a thin divider, the contents and a boxed price; the
+ * featured card is dark brown with cream text. Cards are inline-blocks (not table cells) so on a phone they wrap.
+ * Photos from `/email/newborn-card-*.jpg` are already cut into an arch (corners = card colour); any other photo
+ * gets the arch from CSS (fixed height + big top radius). Without a photo the card starts at the label.
  */
 function priceBlock(list: typeof NEWBORN, t: Theme, kind: keyof typeof PKG_LABELS = "newborn", photos: string[] = []): string {
   const DARK = "#4a3a2e";
@@ -186,33 +187,35 @@ function priceBlock(list: typeof NEWBORN, t: Theme, kind: keyof typeof PKG_LABEL
     const f = !!p.featured;
     const fg = f ? CREAM : t.text;
     const photo = photos.length ? photos[i % photos.length] : "";
+    const baked = photo.includes("/email/newborn-card-");
     const label = (PKG_LABELS[kind] ?? [])[i] ?? "";
-    return `<div class="pc" style="display:inline-block;vertical-align:top;width:31%;min-width:160px;box-sizing:border-box;padding:5px;direction:rtl;text-align:center">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${f ? DARK : "#fbf8f3"};border:1px solid ${f ? DARK : "#e2cfb6"};border-radius:18px;overflow:hidden">
-      ${
-        photo
-          ? `<tr><td style="padding:10px 10px 0;text-align:center"><img src="${esc(photo)}" alt="" width="150" style="width:100%;max-width:100%;height:150px;object-fit:cover;border-radius:90px 90px 8px 8px;display:block;border:0"></td></tr>`
-          : ""
-      }
-      <tr><td style="padding:12px 10px 6px;text-align:center">
-        ${label ? `<div dir="ltr" style="font-family:Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:3px;color:${f ? "#d8c3a8" : t.soft}">${label}</div>` : ""}
-        <div style="font-size:17px;font-weight:bold;color:${f ? CREAM : SIG_BROWN};margin-top:3px">${esc(p.name)}</div>
-        <div style="height:1px;width:40px;background:${f ? "#d8c3a8" : "#a9784f"};margin:9px auto"></div>
-        ${p.lines.map((l) => `<div style="font-size:13px;color:${fg};line-height:1.65">${esc(l)}</div>`).join("")}
+    const img = photo
+      ? `<tr><td style="padding:0;text-align:center;background:${CREAM}"><img src="${esc(photo)}" alt="" width="190"${baked ? "" : ' class="cp"'} style="width:100%;max-width:100%;${baked ? "height:auto;" : "height:170px;object-fit:cover;border-radius:999px 999px 0 0;"}display:block;border:0"></td></tr>`
+      : "";
+    return `<div class="pc" style="display:inline-block;vertical-align:top;width:31%;min-width:170px;box-sizing:border-box;padding:6px;direction:rtl;text-align:center">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${f ? DARK : "#fbf8f3"};border-radius:${photo ? "0 0" : "14px 14px"} 14px 14px;overflow:hidden">
+      ${img}
+      <tr><td style="padding:16px 10px 6px;text-align:center">
+        ${label ? `<div dir="ltr" style="font-family:Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:4px;color:${f ? "#d8c3a8" : t.soft}">${label}</div>` : ""}
+        <div style="font-size:19px;color:${f ? CREAM : SIG_BROWN};margin-top:4px">${esc(p.name)}</div>
+        <div style="height:1px;width:34px;background:${f ? "#d8c3a8" : "#c4a47e"};margin:11px auto"></div>
+        ${p.lines.map((l) => `<div style="font-size:13px;color:${fg};line-height:1.8">${esc(l)}</div>`).join("")}
       </td></tr>
-      <tr><td style="padding:8px 10px 16px;text-align:center">
-        <span style="display:inline-block;white-space:nowrap;${f ? `background:${CREAM};color:${DARK};border:1px solid ${CREAM}` : `background:transparent;color:${SIG_BROWN};border:1px solid ${SIG_BROWN}`};font-weight:bold;font-size:15px;padding:5px 18px;border-radius:20px">${esc(p.price)}</span>
+      <tr><td style="padding:10px 10px 20px;text-align:center">
+        <span style="display:inline-block;white-space:nowrap;${f ? `background:${CREAM};color:${DARK};border:1px solid ${CREAM}` : `background:transparent;color:${DARK};border:1px solid ${DARK}`};font-size:19px;padding:7px 24px;border-radius:3px"><span style="font-size:15px">&#8362;</span> ${esc(p.price.replace(/[₪\s]/g, ""))}</span>
       </td></tr>
     </table>
   </div>`;
   };
-  // On a phone (Gmail / Apple Mail honour this) every card takes the full width with a taller photo instead of a narrow strip.
-  const phoneCss = `<style>@media only screen and (max-width:520px){.pc{width:100%!important;min-width:0!important}.pc img{height:210px!important;border-radius:120px 120px 10px 10px!important}.pc div,.pc span{font-size:inherit}}</style>`;
-  return `<div style="margin:22px 0 8px">${phoneCss}
-    <h3 style="color:${SIG_BROWN};font-size:19px;margin:0 0 2px;text-align:center;font-family:${FONT}">${esc(list.title)}</h3>
-    <p style="margin:0 0 10px;text-align:center;font-size:13px;color:${t.soft}">${esc(list.note)}</p>
+  // On a phone (Gmail / Apple Mail honour this) every card takes the full width instead of a narrow strip.
+  const phoneCss = `<style>@media only screen and (max-width:520px){.pc{width:100%!important;min-width:0!important}.pc img.cp{height:230px!important}}</style>`;
+  const addons = list.addons.replace(/^תוספות:\s*/, "").split(" · ").join("  |  ");
+  return `<div style="margin:26px 0 10px">${phoneCss}
+    <div dir="ltr" style="text-align:center;font-family:Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:5px;color:${t.soft}">${kind === "outdoor" ? "FAMILY &amp; KIDS" : kind === "studio" ? "STUDIO" : "NEWBORN"}</div>
+    <h3 style="color:${SIG_BROWN};font-size:24px;font-weight:normal;margin:6px 0 6px;text-align:center;font-family:${FONT}">${esc(list.title)}</h3>
+    <p style="margin:0 auto 14px;max-width:520px;text-align:center;font-size:13px;line-height:1.7;color:${t.soft}">${esc(list.note)}</p>
     <div dir="rtl" style="text-align:center;font-size:0;line-height:0">${list.pkgs.map(card).join("")}</div>
-    <p style="margin:8px 0 0;text-align:center;font-size:12px;color:${t.soft}">${esc(list.addons)}</p>
+    <p style="margin:12px 0 0;text-align:center;font-size:12px;color:${t.soft};line-height:1.7">${esc(addons)}</p>
   </div>`;
 }
 
@@ -384,7 +387,7 @@ export function buildDraftHtml(opts: {
     ? `<div style="text-align:center;margin:20px 0 6px">${ctaButtons
         .map(
           (c) =>
-            `<a class="rb" href="${esc(c.url)}" style="display:inline-block;background:${t.accent};background-image:${look === "studio" ? RB_STUDIO : RB_MICHAL};color:#ffffff;padding:11px 26px;border-radius:24px;text-decoration:none;font-weight:bold;margin:4px">${esc(c.label)}</a>`,
+            `<a class="rb" href="${esc(c.url)}" style="display:inline-block;background:${look === "studio" ? t.accent : "#7a5a44"};background-image:${look === "studio" ? RB_STUDIO : RB_MICHAL};color:#ffffff;padding:11px 26px;border-radius:24px;text-decoration:none;font-weight:bold;margin:4px">${esc(c.label)}</a>`,
         )
         .join("")}</div>`
     : "";
