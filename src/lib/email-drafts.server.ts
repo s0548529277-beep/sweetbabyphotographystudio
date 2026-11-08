@@ -624,6 +624,45 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
     // "someone is already on it": never add a second draft to that thread.
     const draftThreads = new Set(liveDrafts.map((d) => d.message?.threadId).filter(Boolean) as string[]);
 
+    // ---------- quiz leads from the photographer site ----------
+    // The photographer site's package quiz mails every lead to Michal FROM her own address, which the rules below skip
+    // (they are her own mail). These few mails are the exception: they become an inquiry lead (so the hourly
+    // follow-up digest lists them) and never get a reply draft.
+    try {
+      const qList = await g.gmailApi<{ messages?: Array<{ id: string; threadId: string }> }>(
+        k,
+        `/users/me/messages?maxResults=15&q=${encodeURIComponent('newer_than:3d from:me (subject:"מהשאלון" OR subject:"בחרה בחבילה")')}`,
+      );
+      for (const qm of qList?.messages ?? []) {
+        if (seenSet.has(`qz:${qm.id}`)) continue;
+        const full = await g.gmailApi<any>(k, `/users/me/messages/${qm.id}?format=full`);
+        if (!full) continue;
+        const subj = g.gmailHeaderValue(full.payload?.headers, "Subject") || "";
+        const body = g.extractGmailPlainText(full.payload) || full.snippet || "";
+        remember(`qz:${qm.id}`);
+        const phone = body.match(/(?:טלפון)\s*:?\s*(\+?[\d][\d\- ]{7,16}\d)/)?.[1]?.replace(/[^\d+]/g, "") ?? null;
+        const mail = body.match(/(?:מייל)\s*:?\s*([^\s@]+@[^\s@]+\.[^\s@]+)/)?.[1] ?? null;
+        const choice = /בחרה בחבילה/.test(subj);
+        const name = (choice ? subj.match(/💗?\s*(.+?)\s+בחרה בחבילה/)?.[1] : subj.split("·")[1])?.trim() || null;
+        const pkg = (choice ? subj.match(/בחבילה:\s*(.+)$/)?.[1] : subj.split("·")[2])?.trim() || "";
+        if (!name || (!phone && !mail)) continue;
+        const hot = /ליד חם/.test(subj);
+        await upsertLead(db, {
+          name,
+          email: mail,
+          phone,
+          source: "quiz_photographer",
+          topic: "other",
+          message: `${hot ? "🔥 ליד חם · " : ""}${choice ? "בחרה בסיום השאלון" : "מילאה את שאלון התאמת החבילה באתר הצלמת"}${pkg ? ` · ${pkg}` : ""}`,
+          status: "new",
+          gmail_thread_id: qm.threadId,
+          notes: "מאתר הצלמת (שאלון) — לא נשלחה שום הודעה אליה.",
+        });
+      }
+    } catch (e) {
+      result.errors.push(`quiz mails: ${String((e as any)?.message ?? e).slice(0, 100)}`);
+    }
+
     // ---------- new inquiries ----------
     // Seen = the newest message id per thread, so a client writing again in
     // an old thread is looked at again; threads Michal answered last are
