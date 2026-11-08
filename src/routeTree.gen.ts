@@ -47,6 +47,7 @@ import { Route as BlogEssentialNewbornPropsRouteImport } from './routes/blog.ess
 import { Route as BlogSmashCakeToddlerPrepRouteImport } from './routes/blog.smash-cake-toddler-prep'
 import { Route as CollageStudioIndexRouteImport } from './routes/collage-studio.index'
 import { Route as CollageStudioTemplateIdRouteImport } from './routes/collage-studio.$templateId'
+import { Route as GoFunnelRouteImport } from './routes/go.$funnel'
 import { Route as ItemsIdRouteImport } from './routes/items.$id'
 import { Route as MediaSplatRouteImport } from './routes/media.$'
 import { Route as PhotoThanksIdRouteImport } from './routes/photo-thanks.$id'
@@ -295,6 +296,11 @@ const CollageStudioIndexRoute = CollageStudioIndexRouteImport.update({
 const CollageStudioTemplateIdRoute = CollageStudioTemplateIdRouteImport.update({
   id: '/collage-studio/$templateId',
   path: '/collage-studio/$templateId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GoFunnelRoute = GoFunnelRouteImport.update({
+  id: '/go/$funnel',
+  path: '/go/$funnel',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ItemsIdRoute = ItemsIdRouteImport.update({
@@ -661,6 +667,7 @@ export interface FileRoutesByFullPath {
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
   '/blog/smash-cake-toddler-prep': typeof BlogSmashCakeToddlerPrepRoute
   '/collage-studio/$templateId': typeof CollageStudioTemplateIdRoute
+  '/go/$funnel': typeof GoFunnelRoute
   '/items/$id': typeof ItemsIdRoute
   '/media/$': typeof MediaSplatRoute
   '/photo-thanks/$id': typeof PhotoThanksIdRoute
@@ -756,6 +763,7 @@ export interface FileRoutesByTo {
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
   '/blog/smash-cake-toddler-prep': typeof BlogSmashCakeToddlerPrepRoute
   '/collage-studio/$templateId': typeof CollageStudioTemplateIdRoute
+  '/go/$funnel': typeof GoFunnelRoute
   '/items/$id': typeof ItemsIdRoute
   '/media/$': typeof MediaSplatRoute
   '/photo-thanks/$id': typeof PhotoThanksIdRoute
@@ -854,6 +862,7 @@ export interface FileRoutesById {
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
   '/blog/smash-cake-toddler-prep': typeof BlogSmashCakeToddlerPrepRoute
   '/collage-studio/$templateId': typeof CollageStudioTemplateIdRoute
+  '/go/$funnel': typeof GoFunnelRoute
   '/items/$id': typeof ItemsIdRoute
   '/media/$': typeof MediaSplatRoute
   '/photo-thanks/$id': typeof PhotoThanksIdRoute
@@ -952,6 +961,7 @@ export interface FileRouteTypes {
     | '/blog/essential-newborn-props'
     | '/blog/smash-cake-toddler-prep'
     | '/collage-studio/$templateId'
+    | '/go/$funnel'
     | '/items/$id'
     | '/media/$'
     | '/photo-thanks/$id'
@@ -1047,6 +1057,7 @@ export interface FileRouteTypes {
     | '/blog/essential-newborn-props'
     | '/blog/smash-cake-toddler-prep'
     | '/collage-studio/$templateId'
+    | '/go/$funnel'
     | '/items/$id'
     | '/media/$'
     | '/photo-thanks/$id'
@@ -1144,6 +1155,7 @@ export interface FileRouteTypes {
     | '/blog/essential-newborn-props'
     | '/blog/smash-cake-toddler-prep'
     | '/collage-studio/$templateId'
+    | '/go/$funnel'
     | '/items/$id'
     | '/media/$'
     | '/photo-thanks/$id'
@@ -1239,6 +1251,7 @@ export interface RootRouteChildren {
   BlogEssentialNewbornPropsRoute: typeof BlogEssentialNewbornPropsRoute
   BlogSmashCakeToddlerPrepRoute: typeof BlogSmashCakeToddlerPrepRoute
   CollageStudioTemplateIdRoute: typeof CollageStudioTemplateIdRoute
+  GoFunnelRoute: typeof GoFunnelRoute
   ItemsIdRoute: typeof ItemsIdRoute
   MediaSplatRoute: typeof MediaSplatRoute
   PhotoThanksIdRoute: typeof PhotoThanksIdRoute
@@ -1520,6 +1533,13 @@ declare module '@tanstack/react-router' {
       path: '/collage-studio/$templateId'
       fullPath: '/collage-studio/$templateId'
       preLoaderRoute: typeof CollageStudioTemplateIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/go/$funnel': {
+      id: '/go/$funnel'
+      path: '/go/$funnel'
+      fullPath: '/go/$funnel'
+      preLoaderRoute: typeof GoFunnelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/items/$id': {
@@ -2129,6 +2149,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogEssentialNewbornPropsRoute: BlogEssentialNewbornPropsRoute,
   BlogSmashCakeToddlerPrepRoute: BlogSmashCakeToddlerPrepRoute,
   CollageStudioTemplateIdRoute: CollageStudioTemplateIdRoute,
+  GoFunnelRoute: GoFunnelRoute,
   ItemsIdRoute: ItemsIdRoute,
   MediaSplatRoute: MediaSplatRoute,
   PhotoThanksIdRoute: PhotoThanksIdRoute,

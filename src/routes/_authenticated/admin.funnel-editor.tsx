@@ -8,6 +8,8 @@ import { ENTRY_QUESTION, FUNNEL_LABELS, FUNNEL_QUESTIONS, type FunnelId } from "
 import { FUNNEL_THEMES } from "@/lib/funnel-theme";
 import { ALL_FUNNELS, sanitizeFunnelOverrides, type FunnelOverrides } from "@/lib/funnel-overrides";
 import { getFunnelOverrides, setFunnelOverrides } from "@/lib/funnels.functions";
+import { LANDING_DEFAULTS } from "@/routes/go.$funnel";
+import { Copy, ExternalLink } from "lucide-react";
 import galleryFiles from "@/lib/photographer-gallery-files.json";
 
 // עורך משפכים: texts, answers, photos, own questions and colours of the four funnels. Scoring / recommendations stay in code.
@@ -154,6 +156,35 @@ function FunnelEditor() {
           ))}
         </div>
         <button type="button" className="rounded-lg border px-3 py-1.5 text-sm" onClick={() => update((o) => { delete f(o).theme; })}>איפוס עיצוב</button>
+      </section>
+
+      <section className="space-y-3 rounded-2xl border bg-card p-4">
+        <h2 className="text-lg">דף נחיתה וקישורים</h2>
+        <input className={inp} placeholder={LANDING_DEFAULTS[fid].headline} defaultValue={cur.landing?.headline ?? ""} key={fid + "h"} onBlur={(e) => update((o) => { (f(o).landing ??= {}).headline = e.target.value; })} />
+        <textarea className={inp} rows={2} placeholder={LANDING_DEFAULTS[fid].text} defaultValue={cur.landing?.text ?? ""} key={fid + "t"} onBlur={(e) => update((o) => { (f(o).landing ??= {}).text = e.target.value; })} />
+        <label className="block space-y-1 text-sm">
+          נקודות עם סימן V (שורה לכל נקודה, עד 5; ריק = ברירת המחדל)
+          <textarea className={inp} rows={3} key={fid + "b"} defaultValue={(cur.landing?.bullets ?? []).join("\n")} onBlur={(e) => update((o) => { (f(o).landing ??= {}).bullets = e.target.value.split("\n").map((x) => x.trim()).filter(Boolean); })} />
+        </label>
+        <ImagePicker value={cur.landing?.image} onChange={(v) => update((o) => { (f(o).landing ??= {}).image = v ?? undefined; })} />
+        <div className="space-y-1.5">
+          {[{ id: "", label: "קישור רגיל" }, { id: "instagram", label: "אינסטגרם" }, { id: "facebook", label: "פייסבוק" }, { id: "whatsapp", label: "וואטסאפ / סטטוס" }, { id: "google", label: "גוגל" }, { id: "email", label: "ניוזלטר" }].map((s2) => {
+            const base2 = `https://sweetbabyphoto.shop/go/${fid}`;
+            const url = s2.id ? `${base2}?utm_source=${s2.id}&utm_medium=social&utm_campaign=${fid}` : base2;
+            return (
+              <div key={s2.id || "plain"} className="flex items-center gap-2 text-sm">
+                <span className="w-28 shrink-0">{s2.label}</span>
+                <input readOnly dir="ltr" className="min-w-0 flex-1 rounded-lg border bg-muted/40 px-2 py-1 text-xs" value={url} onFocus={(e) => e.currentTarget.select()} />
+                <button type="button" className="rounded-lg border p-1.5" aria-label="העתקה" onClick={() => navigator.clipboard.writeText(url).then(() => toast.success("הקישור הועתק"))}>
+                  <Copy className="size-4" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        <a href={`/go/${fid}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm underline">
+          <ExternalLink className="size-4" /> פתיחת הדף
+        </a>
       </section>
 
       {base.map((q) => {

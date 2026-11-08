@@ -23,8 +23,12 @@ export type FThemeOverride = {
   floatLabel?: string;
   floatSub?: string;
 };
+export type FLanding = { headline?: string; text?: string; image?: string; bullets?: string[] };
 export type FunnelOverrides = Partial<
-  Record<FunnelId, { theme?: FThemeOverride; questions?: Record<string, FQuestionOverride>; custom?: FCustomQuestion[] }>
+  Record<
+    FunnelId,
+    { theme?: FThemeOverride; questions?: Record<string, FQuestionOverride>; custom?: FCustomQuestion[]; landing?: FLanding }
+  >
 >;
 
 const COLOR = /^#[0-9a-fA-F]{6}$/;
@@ -45,6 +49,17 @@ export function sanitizeFunnelOverrides(raw: unknown): FunnelOverrides {
       for (const [k, max] of [["emoji", 8], ["title", 50], ["floatLabel", 60], ["floatSub", 80]] as const)
         if (clean(f.theme[k], max)) t[k] = clean(f.theme[k], max);
       if (Object.keys(t).length) o.theme = t;
+    }
+    if (f.landing && typeof f.landing === "object") {
+      const l: FLanding = {};
+      if (clean(f.landing.headline, 90)) l.headline = clean(f.landing.headline, 90);
+      if (clean(f.landing.text, 400)) l.text = clean(f.landing.text, 400);
+      if (typeof f.landing.image === "string" && IMAGE.test(f.landing.image)) l.image = f.landing.image;
+      if (Array.isArray(f.landing.bullets)) {
+        const b = f.landing.bullets.map((x: unknown) => clean(x, 80)).filter(Boolean).slice(0, 5);
+        if (b.length) l.bullets = b;
+      }
+      if (Object.keys(l).length) o.landing = l;
     }
     if (f.questions && typeof f.questions === "object") {
       const qs: Record<string, FQuestionOverride> = {};
