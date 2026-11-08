@@ -26,7 +26,7 @@ const HEX = /^#[0-9a-fA-F]{6}$/;
 const hex = (v: unknown, d: string) => (typeof v === "string" && HEX.test(v.trim()) ? v.trim().toLowerCase() : d);
 const urls = (v: unknown) =>
   (Array.isArray(v) ? v : [])
-    .filter((u): u is string => typeof u === "string" && /^https:\/\/\S{4,500}$/.test(u.trim()))
+    .filter((u): u is string => typeof u === "string" && /^https:\/\/\S{4,900}$/.test(u.trim()))
     .map((u) => u.trim())
     .slice(0, 3);
 

@@ -33,7 +33,7 @@ export type FunnelOverrides = Partial<
 
 const COLOR = /^#[0-9a-fA-F]{6}$/;
 const SAFE_ID = /^[a-z0-9_-]{1,40}$/i;
-const IMAGE = /^(\/|https:\/\/)[^\s"'<>]{1,400}$/;
+const IMAGE = /^(\/|https:\/\/)[^\s"'<>]{1,900}$/;
 const clean = (s: unknown, max: number) => (typeof s === "string" ? s.trim().slice(0, max) : "");
 
 export function sanitizeFunnelOverrides(raw: unknown): FunnelOverrides {
