@@ -226,12 +226,11 @@ export function isImmediateOrder(date: string | null | undefined, time?: string 
 }
 
 export const IMMEDIATE_ORDER_NOTE =
-  "בגלל שההזמנה בתוך 24 שעות, אנא התקשרי אלינו בהקדם לוודא שהכול תקין: 054-8529277.";
+  "ההזמנה בתוך 24 שעות — אנא התקשרי אלינו לוודא שהכול תקין: 054-8529277.";
 
 export function buildImmediateNoticeHtml(): string {
   return `<div style="border:2px solid #c9593f;background:#fff3ee;border-radius:12px;padding:12px 16px;margin:14px 0;color:#2d3d2b;line-height:1.7">
-      <strong>📞 בגלל שההזמנה בתוך 24 שעות — אנא התקשרי אלינו לוודא שהכול תקין</strong><br/>
-      מכיוון שמועד ההזמנה בתוך 24 השעות הקרובות, חשוב שתתקשרי אלינו בהקדם כדי לוודא שאין תקלה: <strong dir="ltr">054-8529277</strong>.
+      <strong>📞 ההזמנה בתוך 24 שעות — אנא התקשרי אלינו לוודא שהכול תקין:</strong> <strong dir="ltr">054-8529277</strong>
     </div>`;
 }
 
