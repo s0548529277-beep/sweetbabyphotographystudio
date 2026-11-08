@@ -346,6 +346,8 @@ export function buildDraftHtml(opts: {
    * follow-up and automatic); pass `false` to fall back to the small static-logo signature.
    */
   siteSignature?: boolean;
+  /** Raw HTML placed under the body / buttons, inside the card (e.g. the rotating-photos GIF). */
+  extraHtml?: string;
 }): string {
   // Personal replies ("general": suppliers, colleagues, everything else) look exactly like the photographer's
   // — soft contract-style frame, Michal's animated signature logo, her heart. Only the studio brand differs.
@@ -399,6 +401,7 @@ export function buildDraftHtml(opts: {
       ${bodyToHtml(opts.body, t)}
       ${lists}
       ${cta}
+      ${opts.extraHtml ?? ""}
     </td></tr>
     ${heart}
     <tr><td style="padding:${branded ? "14px 28px 26px" : "16px 28px 20px"};${branded ? "" : `border-top:1px solid ${t.border};`}font-size:13px;color:${t.soft};text-align:center;line-height:1.6">

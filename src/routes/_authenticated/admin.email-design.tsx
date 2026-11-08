@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Loader2, RotateCcw } from "lucide-react";
 import { DEFAULT_EMAIL_DESIGN, applyEmailDesignToHtml, sanitizeEmailDesign, type BrandDesign, type EmailDesign } from "@/lib/email-design";
 import { buildBrandedMailHtml, buildDraftHtml, buildStudioMailHtml } from "@/lib/email-draft-design";
-import { getEmailDesign, setEmailDesign } from "@/lib/email-design.functions";
+import { createMichalBlankDraft, getEmailDesign, setEmailDesign } from "@/lib/email-design.functions";
 import { GalleryImagePicker } from "@/components/GalleryImagePicker";
 
 // עיצוב מיילים: colours + frame of the two mail looks (studio / photographer) and the photos of the price-list cards.
@@ -69,6 +69,8 @@ function Preview({ html, title }: { html: string; title: string }) {
 function EmailDesignAdmin() {
   const load = useServerFn(getEmailDesign);
   const save = useServerFn(setEmailDesign);
+  const makeDraft = useServerFn(createMichalBlankDraft);
+  const [drafting, setDrafting] = useState(false);
   const { data, isLoading } = useQuery({ queryKey: ["email-design-admin"], queryFn: () => load() });
   const [d, setD] = useState<EmailDesign>(DEFAULT_EMAIL_DESIGN);
   const [dirty, setDirty] = useState(false);
@@ -164,6 +166,24 @@ function EmailDesignAdmin() {
         <Preview title="דוגמה: מייל צלמת" html={previews.photographer} />
       </div>
       <Preview title="דוגמה: טיוטת מחירונים של הצלמת" html={previews.prices} />
+      <button
+        type="button"
+        disabled={drafting}
+        onClick={async () => {
+          setDrafting(true);
+          try {
+            await makeDraft();
+            toast.success("נוצרה טיוטה ריקה ב-Gmail של מיכל (בטיוטות)");
+          } catch (e: any) {
+            toast.error(e?.message || "יצירת הטיוטה נכשלה");
+          } finally {
+            setDrafting(false);
+          }
+        }}
+        className="me-2 rounded-lg border px-3 py-1.5 text-sm disabled:opacity-50"
+      >
+        {drafting ? "יוצרת…" : "יצירת טיוטה ריקה של מיכל ב-Gmail"}
+      </button>
       <button type="button" onClick={() => { setD(sanitizeEmailDesign(null)); setDirty(true); }} className="rounded-lg border px-3 py-1.5 text-sm">
         איפוס הכל לברירת המחדל
       </button>

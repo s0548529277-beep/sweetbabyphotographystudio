@@ -32,3 +32,27 @@ export const setEmailDesign = createServerFn({ method: "POST" })
     resetEmailDesignCache();
     return { ok: true, design: clean };
   });
+
+/** Admin button: creates an EMPTY reply draft in Michal's Gmail ("היי," + room to write, wordmark on top, rotating photos, signature, buttons). */
+export const createMichalBlankDraft = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const g = await import("@/integrations/google/gmail.server");
+    const { buildDraftHtml, buildDraftText } = await import("@/lib/email-draft-design");
+    const acc = (await g.resolveGmailAccount("m0548529277@gmail.com")) ?? (await g.resolveGmailAccount());
+    if (!acc) throw new Error("חשבון Gmail לא מחובר");
+    const slideshow = `<div style="text-align:center;margin:18px 0 6px;line-height:0"><img src="https://sweetbabyphoto.shop/email/michal-photos.gif" alt="" width="480" style="width:100%;max-width:480px;height:auto;border:0;border-radius:14px;display:inline-block"></div>`;
+    const html = buildDraftHtml({ brand: "photographer", body: "היי,", extraHtml: `<p style="margin:0 0 70px">&nbsp;</p>${slideshow}` });
+    const id = await g.createGmailHtmlDraft({
+      connKey: acc.connKey,
+      fromEmail: acc.email,
+      fromName: "מיכל סיבוני",
+      to: "",
+      subject: "",
+      html,
+      text: buildDraftText({ brand: "photographer", body: "היי," }),
+    });
+    if (!id) throw new Error("יצירת הטיוטה נכשלה");
+    return { ok: true as const, id };
+  });
