@@ -1,3 +1,4 @@
+import { buildStudioMailHtml } from "@/lib/email-draft-design";
 import { isQuietForMail } from "@/lib/mail-quiet-hours";
 import { heartImg } from "@/lib/email-hearts";
 import { createServerFn } from "@tanstack/react-start";
@@ -673,13 +674,11 @@ export const placeRecurringBooking = createServerFn({ method: "POST" })
       const skippedLines = skipped.length
         ? `<p>לא נוצרו (תפוסים/לא זמינים): ${skipped.map((s) => new Date(s.date).toLocaleDateString("he-IL")).join(", ")}</p>`
         : "";
-      const html = `<div dir="rtl" style="font-family:sans-serif">
-        <h2>סדרת שריונים שבועית התקבלה 📋</h2>
+      const html = buildStudioMailHtml({ title: `סדרת שריונים שבועית התקבלה`, innerHtml: `
         <p>נקבעו ${created.length} מפגשים שבועיים, ₪${price} כל אחד. <strong>עדיין לא מאושרים</strong> — יש לשלם מקדמה של ₪90 לכל מפגש (או את מלוא הסכום למפגש שהוא היום) כדי לאשר אותו סופית, דרך "השריונים שלי" בעמוד /account.</p>
         <ul>${dateLines}</ul>
         ${skippedLines}
-        ${buildContinueOrderHtml("https://sweetbabyphoto.shop/account")}
-      </div>`;
+        ${buildContinueOrderHtml("https://sweetbabyphoto.shop/account")}` });
       const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
       await sendStudioAndCustomer({ customerEmail, subject: `סדרת שריונים שבועית · Sweetbaby`, html });
     } catch (e) {
@@ -1489,12 +1488,10 @@ export async function runDueAbandonedHoldReminders(): Promise<{ checked: number;
       // reads — nothing to send to, and nothing to mark as reminded since
       // trying again next pass can't help either, so still mark it below.
       if (customerEmail && !isPlaceholderEmail(customerEmail)) {
-        const html = `<div dir="rtl" style="font-family:sans-serif;color:#2d3d2b;max-width:520px;margin:0 auto">
-          <h2>המקום שלך עדיין שמור! ⏳</h2>
+        const html = buildStudioMailHtml({ title: `המקום שלך עדיין שמור!`, innerHtml: `
           <p>שלום ${b.contact_name || ""},</p>
           <p>בחרת תור בסטודיו Sweetbaby ל-${new Date(`${b.session_date}T00:00:00`).toLocaleDateString("he-IL", { day: "numeric", month: "long" })} בשעה ${String(b.start_time).slice(0, 5)} — המקום עדיין שמור לך, אבל רק לעוד כ-${Math.max(1, Math.round(minutesLeft))} דקות לפני שהוא משתחרר.</p>
-          ${buildContinueOrderHtml(`https://sweetbabyphoto.shop/deposit/booking/${b.id}`)}
-        </div>`;
+          ${buildContinueOrderHtml(`https://sweetbabyphoto.shop/deposit/booking/${b.id}`)}` });
         const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
         await sendStudioAndCustomer({ customerEmail, subject: "המקום שלך בסטודיו עדיין שמור — רק לכמה דקות ⏳", html });
       }
@@ -1540,13 +1537,11 @@ export const sendBookingPaymentReminder = createServerFn({ method: "POST" })
     if (!customerEmail) return { sent: false as const, reason: "no_email" as const };
 
     const when = `${new Date(`${b.session_date}T00:00:00`).toLocaleDateString("he-IL", { day: "numeric", month: "long" })} בשעה ${String(b.start_time).slice(0, 5)}`;
-    const html = `<div dir="rtl" style="font-family:sans-serif;color:#2d3d2b;max-width:520px;margin:0 auto">
-      <h2>תזכורת להשלמת ההזמנה ${heartImg("bot", 18)}</h2>
+    const html = buildStudioMailHtml({ title: `תזכורת להשלמת ההזמנה`, innerHtml: `
       <p>שלום ${b.contact_name || ""},</p>
       <p>ההזמנה שלך לסטודיו Sweetbaby ל-${when} עדיין ממתינה לתשלום המקדמה. כדי שנוכל לשריין לך את המקום סופית — אפשר להשלים את התשלום בלחיצה:</p>
       ${buildContinueOrderHtml(`https://sweetbabyphoto.shop/deposit/booking/${b.id}`)}
-      <p style="color:#6b8a63;font-size:13px">יש שאלה? אפשר להתקשר או לכתוב: 054-8529277</p>
-    </div>`;
+      <p style="color:#6b8a63;font-size:13px">יש שאלה? אפשר להתקשר או לכתוב: 054-8529277</p>` });
     const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
     await sendStudioAndCustomer({ customerEmail, subject: "תזכורת: השלמת תשלום המקדמה · Sweetbaby", html });
     return { sent: true as const };

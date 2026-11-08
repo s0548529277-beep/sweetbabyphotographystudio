@@ -12,6 +12,7 @@
 // is also when the customer's "your pass is active" email actually goes
 // out. See runDuePendingPassApprovalNudges below for the repeated
 // "please approve this" reminder while it waits.
+import { buildStudioMailHtml } from "@/lib/email-draft-design";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -101,16 +102,12 @@ export const purchaseSubscriptionPass = createServerFn({ method: "POST" })
       });
 
       const { sendGmail } = await import("@/integrations/google/gmail.server");
-      const studioHtml = `<div dir="rtl" style="font-family:sans-serif;color:#2d3d2b;max-width:480px;margin:0 auto">
-        <h2>בקשה לכרטיסייה ממתינה לאישורך 🎟️</h2>
+      const studioHtml = buildStudioMailHtml({ title: `בקשה לכרטיסייה ממתינה לאישורך`, innerHtml: `
         <p>${profile?.full_name ?? "לקוחה"} ביקשה לרכוש ${plan.name} (₪${plan.price}) באשראי.</p>
-        <p>יש לאשר תשלום מול Takbull ואז לאשר את הכרטיסייה ב-/admin/subscriptions כדי שתופעל.</p>
-      </div>`;
-      const customerHtml = `<div dir="rtl" style="font-family:sans-serif;color:#2d3d2b;max-width:480px;margin:0 auto">
-        <h2>הבקשה שלך התקבלה! 🎟️</h2>
+        <p>יש לאשר תשלום מול Takbull ואז לאשר את הכרטיסייה ב-/admin/subscriptions כדי שתופעל.</p>` });
+      const customerHtml = buildStudioMailHtml({ title: `הבקשה שלך התקבלה!`, innerHtml: `
         <p>${plan.name} — ${plan.total_entries} כניסות, בתוקף עד ${expiresAt.toLocaleDateString("he-IL")} (מתחיל מרגע האישור).</p>
-        <p>הבקשה ממתינה כעת לאישור הצוות — יישלח אליך מייל אישור ברגע שהכרטיסייה תופעל.</p>
-      </div>`;
+        <p>הבקשה ממתינה כעת לאישור הצוות — יישלח אליך מייל אישור ברגע שהכרטיסייה תופעל.</p>` });
       await Promise.all([
         sendGmail({ to: STUDIO_EMAIL, subject: `כרטיסייה ממתינה לאישור — ${plan.name}`, html: studioHtml }),
         customerEmail ? sendGmail({ to: customerEmail, subject: `הבקשה שלך לכרטיסייה התקבלה — ${plan.name}`, html: customerHtml }) : Promise.resolve(),
@@ -160,10 +157,8 @@ export async function runDuePendingPassApprovalNudges(): Promise<{ checked: numb
     if (hoursSince < APPROVAL_NUDGE_INTERVAL_HOURS) continue;
     try {
       const { sendGmail } = await import("@/integrations/google/gmail.server");
-      const html = `<div dir="rtl" style="font-family:sans-serif;color:#2d3d2b;max-width:480px;margin:0 auto">
-        <h2>🔔 תזכורת: כרטיסייה ממתינה לאישורך</h2>
-        <p>${p.plan_name} (₪${p.price_paid}) עדיין ממתינה לאישורך — אם התשלום התקבל, אפשר לאשר ב-<a href="https://sweetbabyphoto.shop/admin/subscriptions">פאנל הניהול</a>.</p>
-      </div>`;
+      const html = buildStudioMailHtml({ title: `תזכורת: כרטיסייה ממתינה לאישורך`, innerHtml: `
+        <p>${p.plan_name} (₪${p.price_paid}) עדיין ממתינה לאישורך — אם התשלום התקבל, אפשר לאשר ב-<a href="https://sweetbabyphoto.shop/admin/subscriptions">פאנל הניהול</a>.</p>` });
       await sendGmail({ to: STUDIO_EMAIL, subject: `🔔 תזכורת: כרטיסייה ממתינה לאישור — ${p.plan_name}`, html });
       await supabaseAdmin
         .from("subscription_passes")

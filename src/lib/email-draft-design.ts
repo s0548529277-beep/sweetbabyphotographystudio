@@ -278,7 +278,7 @@ export function buildBrandedMailHtml(opts: { title: string; innerHtml: string; t
   const heartKind: HeartKind = "michal";
   const rtl = "direction:rtl;text-align:right";
   // Soft blush-to-sand gradient behind the card (solid colour first as the fallback for clients without gradients).
-  const html = `<div dir="rtl" style="background:#ecd0b8;background-image:linear-gradient(160deg,#f6d8d0 0%,#eccbb4 55%,#d9b898 100%);padding:12px 8px;${rtl}">
+  const html = `<div dir="rtl" data-mail="photographer" style="background:#ecd0b8;background-image:linear-gradient(160deg,#f6d8d0 0%,#eccbb4 55%,#d9b898 100%);padding:12px 8px;${rtl}">
   <table role="presentation" dir="rtl" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:${t.cardBg};border:1px solid #efe0d2;border-radius:12px;overflow:hidden;box-shadow:0 8px 28px rgba(120,86,60,0.16);font-family:${FONT};color:${t.text};${rtl}">
     <tr><td align="center" style="padding:30px 28px 6px"><div dir="ltr" style="font-family:Helvetica,Arial,sans-serif;font-size:24px;letter-spacing:9px;margin-right:-9px;color:${SIG_BROWN}">MICHAL SIBONI</div>
       <div style="font-size:12px;letter-spacing:2px;color:${t.soft};margin-top:8px">${esc(opts.tagline ?? "צילומי ניו בורן ומשפחה")}</div></td></tr>
@@ -303,7 +303,7 @@ export function buildStudioMailHtml(opts: { title: string; innerHtml: string }):
   const rtl = "direction:rtl;text-align:right";
   const btn = (href: string, label: string, primary = false) =>
     `<a href="${href}" style="display:inline-block;background:${primary ? t.accent : t.cardBg};color:${primary ? t.cardBg : t.accent};border:1px solid ${t.accent};font-family:Arial,sans-serif;font-size:14px;font-weight:bold;text-decoration:none;padding:9px 22px;border-radius:18px;white-space:nowrap;margin:4px">${label}</a>`;
-  const html = `<div dir="rtl" style="background:#e9dcc8;background-image:linear-gradient(160deg,#dfe8d3 0%,#f3d9d2 55%,#e9d3b9 100%);padding:26px 16px;${rtl}">
+  const html = `<div dir="rtl" data-mail="studio" style="background:#e9dcc8;background-image:linear-gradient(160deg,#dfe8d3 0%,#f3d9d2 55%,#e9d3b9 100%);padding:26px 16px;${rtl}">
   <table role="presentation" dir="rtl" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:${t.cardBg};border:1px solid #efddd0;border-radius:22px;overflow:hidden;box-shadow:0 8px 28px rgba(90,70,50,0.16);font-family:${FONT};color:${t.text};${rtl}">
     <tr><td align="center" style="padding:28px 28px 6px"><img src="${STUDIO_LOGO_URL}" alt="Sweetbaby" height="52" style="height:52px;width:auto;border:0">
       <div style="font-size:12px;letter-spacing:2px;color:${t.soft};margin-top:8px">סטודיו בוטיק לצילום · בית שמש</div></td></tr>
@@ -380,7 +380,7 @@ export function buildDraftHtml(opts: {
     : "";
   const photos = opts.brand === "photographer" ? photoStrip(opts.photos ?? [], !!opts.bigPhotos) : "";
   const branded = true;
-  const html = `<div dir="rtl" style="background:${t.pageBg};padding:7px 6px">
+  const html = `<div dir="rtl" data-mail="${look}" style="background:${t.pageBg};${look === "photographer" ? "background-image:linear-gradient(160deg,#f6d8d0 0%,#eccbb4 55%,#d9b898 100%);" : ""}padding:7px 6px;direction:rtl">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:${t.cardBg};border:1px solid ${t.border};border-radius:14px;overflow:hidden;font-family:${FONT};color:${t.text};direction:rtl;text-align:right">
     ${header}
     <tr><td style="padding:${opts.brand === "general" ? "30px 34px 10px" : "18px 34px 10px"};font-size:15px;line-height:1.8">

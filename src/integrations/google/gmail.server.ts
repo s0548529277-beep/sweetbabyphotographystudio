@@ -3,6 +3,8 @@
 // The gateway refreshes the Google OAuth token automatically, so no
 // refresh-token maintenance is needed here.
 
+import { applyStoredEmailDesign } from "@/lib/email-design.server";
+
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
 
 function toBase64Url(bytes: Uint8Array): string {
@@ -139,7 +141,7 @@ export async function sendGmail(message: GmailMessage): Promise<boolean> {
     return false;
   }
 
-  const mime = buildMime(message);
+  const mime = buildMime({ ...message, html: await applyStoredEmailDesign(message.html) });
   const raw = toBase64Url(new TextEncoder().encode(mime));
 
   try {
@@ -508,6 +510,7 @@ export async function createGmailHtmlDraft(opts: {
   inReplyTo?: string;
   references?: string;
 }): Promise<string | null> {
+  opts = { ...opts, html: await applyStoredEmailDesign(opts.html) };
   const b64 = (s: string) => chunk76(Buffer.from(s, "utf-8").toString("base64"));
   const boundary = `sb_alt_${Date.now()}_${Math.random().toString(36).slice(2)}`;
   const headers = [

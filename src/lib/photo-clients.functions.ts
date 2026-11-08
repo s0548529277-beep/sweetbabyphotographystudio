@@ -1,3 +1,4 @@
+import { buildBrandedMailHtml } from "@/lib/email-draft-design";
 import { isQuietForMail } from "@/lib/mail-quiet-hours";
 import { heartImg } from "@/lib/email-hearts";
 import { createServerFn } from "@tanstack/react-start";
@@ -265,12 +266,13 @@ export const createPhotoClient = createServerFn({ method: "POST" })
         await sendGmail({
           to: email,
           subject: "נפתח לך חשבון · Sweetbaby",
-          html: `<div dir="rtl" style="font-family:sans-serif">
-            <p>שלום${name ? " " + name : ""},</p>
+          html: buildBrandedMailHtml({
+            title: "נפתח לך חשבון",
+            innerHtml: `<p>שלום${name ? " " + name : ""},</p>
             <p>פתחנו לך חשבון באתר הסטודיו של מיכל סיבוני, כדי שתוכלי לראות שם את התמונות שלך.</p>
             <p>אימייל: <b dir="ltr">${email}</b><br/>סיסמה זמנית: <b dir="ltr">${TEMP_PASSWORD}</b></p>
-            <p>מומלץ להחליף אותה לאחר הכניסה הראשונה.</p>
-          </div>`,
+            <p>מומלץ להחליף אותה לאחר הכניסה הראשונה.</p>`,
+          }),
         });
       } catch (e) {
         // Best-effort — the account/workflow are already created either

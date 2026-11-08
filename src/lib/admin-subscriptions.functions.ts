@@ -5,6 +5,7 @@
 // access there, same pattern as every other admin.*.tsx page in this app)
 // — this file exists only for the one operation that needs the
 // service-role-only atomic RPC: manually adjusting a pass's entry count.
+import { buildStudioMailHtml } from "@/lib/email-draft-design";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -90,11 +91,9 @@ export const adminApproveSubscriptionPass = createServerFn({ method: "POST" })
       const customerEmail = user?.email;
       if (customerEmail) {
         const { sendGmail } = await import("@/integrations/google/gmail.server");
-        const html = `<div dir="rtl" style="font-family:sans-serif;color:#2d3d2b;max-width:480px;margin:0 auto">
-          <h2>הכרטיסייה שלך אושרה ופעילה! 🎟️</h2>
+        const html = buildStudioMailHtml({ title: `הכרטיסייה שלך אושרה ופעילה!`, innerHtml: `
           <p>${pass.plan_name} — ${pass.total_entries} כניסות, בתוקף עד ${new Date(pass.expires_at).toLocaleDateString("he-IL")}.</p>
-          <p>כל כניסה מכסה את השעה הראשונה בהשכרת סטודיו לפי שעה — שעות נוספות בתשלום רגיל.</p>
-        </div>`;
+          <p>כל כניסה מכסה את השעה הראשונה בהשכרת סטודיו לפי שעה — שעות נוספות בתשלום רגיל.</p>` });
         await sendGmail({ to: customerEmail, subject: `הכרטיסייה שלך אושרה — ${pass.plan_name}`, html });
       }
     } catch (e) {

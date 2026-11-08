@@ -21,6 +21,7 @@
  * remembered in app_settings (email_drafts_seen) so nothing is re-judged.
  */
 import { emailThumbUrl } from "./media-url";
+import { readEmailDesign } from "./email-design.server";
 import { generateTextResilient } from "./ai-gateway.server";
 import { buildDraftHtml, buildDraftText, type DraftBrand, type PriceList } from "./email-draft-design";
 import { chatLinkUrl } from "./orderSummary";
@@ -610,6 +611,7 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
     /* no sample photos */
   }
 
+  const design = await readEmailDesign();
   try {
     const labels = await ensureLabels(g, k);
     const readyId = labels.get(LABEL_READY);
@@ -821,7 +823,10 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
         priceList: a.priceList,
         photos: a.bigPhotos ? photoSet : photoSet.slice(0, 4),
         bigPhotos: !!a.bigPhotos,
-        cardPhotos: { newborn: photos.newborn.slice(0, 3), outdoor: photos.family.slice(0, 3) },
+        cardPhotos: {
+          newborn: design.cardPhotos.newborn.length ? design.cardPhotos.newborn : photos.newborn.slice(0, 3),
+          outdoor: design.cardPhotos.outdoor.length ? design.cardPhotos.outdoor : photos.family.slice(0, 3),
+        },
         cta,
       });
       const plain = buildDraftText({ brand, body: a.body, priceList: a.priceList, cta });

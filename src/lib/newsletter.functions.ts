@@ -1,3 +1,4 @@
+import { buildStudioMailHtml } from "@/lib/email-draft-design";
 import { heartImg, withEmailHearts } from "@/lib/email-hearts";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
@@ -72,12 +73,10 @@ async function sendWelcomeEmail(email: string, coupon: IssuedCoupon | null) {
          <div style="font-size:13px;color:#6b5b53;margin-top:6px">${discountLine(coupon)} · קוד חד-פעמי — כדאי לנצל אותו בהזמנה הראשונה שלך! 🎁</div>
        </div>`
     : "";
-  const html = `<div dir="rtl" style="font-family:sans-serif;color:#2d3d2b;max-width:520px;margin:0 auto">
-    <h2>ברוכה הבאה למשפחת Sweetbaby! ${heartImg("bot", 18)}</h2>
+  const html = buildStudioMailHtml({ title: `ברוכה הבאה למשפחת Sweetbaby!`, innerHtml: `
     <p>שמחות שהצטרפת לניוזלטר שלנו — עדכונים, מבצעים והשראה לצילומים ישירות אלייך.</p>
     ${codeBlock}
-    <p style="font-size:13px;color:#6b5b53">אפשר להשתמש בקוד בהשכרת סטודיו או בהשכרת אביזרים, בעמוד התשלום.</p>
-  </div>`;
+    <p style="font-size:13px;color:#6b5b53">אפשר להשתמש בקוד בהשכרת סטודיו או בהשכרת אביזרים, בעמוד התשלום.</p>` });
   try {
     const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
     await sendStudioAndCustomer({ customerEmail: email, subject: "ברוכה הבאה ל-Sweetbaby 💗 + קוד הנחה אישי", html });

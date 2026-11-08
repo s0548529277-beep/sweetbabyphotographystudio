@@ -63,6 +63,7 @@ import { Route as AuthenticatedAdminClientManagementRouteImport } from './routes
 import { Route as AuthenticatedAdminClientsRouteImport } from './routes/_authenticated/admin.clients'
 import { Route as AuthenticatedAdminCouponsRouteImport } from './routes/_authenticated/admin.coupons'
 import { Route as AuthenticatedAdminEmailAssistantRouteImport } from './routes/_authenticated/admin.email-assistant'
+import { Route as AuthenticatedAdminEmailDesignRouteImport } from './routes/_authenticated/admin.email-design'
 import { Route as AuthenticatedAdminFinanceRouteImport } from './routes/_authenticated/admin.finance'
 import { Route as AuthenticatedAdminFunnelEditorRouteImport } from './routes/_authenticated/admin.funnel-editor'
 import { Route as AuthenticatedAdminFunnelLeadsRouteImport } from './routes/_authenticated/admin.funnel-leads'
@@ -389,6 +390,12 @@ const AuthenticatedAdminEmailAssistantRoute =
     path: '/email-assistant',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminEmailDesignRoute =
+  AuthenticatedAdminEmailDesignRouteImport.update({
+    id: '/email-design',
+    path: '/email-design',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminFinanceRoute =
   AuthenticatedAdminFinanceRouteImport.update({
     id: '/finance',
@@ -684,6 +691,7 @@ export interface FileRoutesByFullPath {
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/admin/coupons': typeof AuthenticatedAdminCouponsRoute
   '/admin/email-assistant': typeof AuthenticatedAdminEmailAssistantRoute
+  '/admin/email-design': typeof AuthenticatedAdminEmailDesignRoute
   '/admin/finance': typeof AuthenticatedAdminFinanceRoute
   '/admin/funnel-editor': typeof AuthenticatedAdminFunnelEditorRoute
   '/admin/funnel-leads': typeof AuthenticatedAdminFunnelLeadsRoute
@@ -780,6 +788,7 @@ export interface FileRoutesByTo {
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/admin/coupons': typeof AuthenticatedAdminCouponsRoute
   '/admin/email-assistant': typeof AuthenticatedAdminEmailAssistantRoute
+  '/admin/email-design': typeof AuthenticatedAdminEmailDesignRoute
   '/admin/finance': typeof AuthenticatedAdminFinanceRoute
   '/admin/funnel-editor': typeof AuthenticatedAdminFunnelEditorRoute
   '/admin/funnel-leads': typeof AuthenticatedAdminFunnelLeadsRoute
@@ -879,6 +888,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/clients': typeof AuthenticatedAdminClientsRoute
   '/_authenticated/admin/coupons': typeof AuthenticatedAdminCouponsRoute
   '/_authenticated/admin/email-assistant': typeof AuthenticatedAdminEmailAssistantRoute
+  '/_authenticated/admin/email-design': typeof AuthenticatedAdminEmailDesignRoute
   '/_authenticated/admin/finance': typeof AuthenticatedAdminFinanceRoute
   '/_authenticated/admin/funnel-editor': typeof AuthenticatedAdminFunnelEditorRoute
   '/_authenticated/admin/funnel-leads': typeof AuthenticatedAdminFunnelLeadsRoute
@@ -978,6 +988,7 @@ export interface FileRouteTypes {
     | '/admin/clients'
     | '/admin/coupons'
     | '/admin/email-assistant'
+    | '/admin/email-design'
     | '/admin/finance'
     | '/admin/funnel-editor'
     | '/admin/funnel-leads'
@@ -1074,6 +1085,7 @@ export interface FileRouteTypes {
     | '/admin/clients'
     | '/admin/coupons'
     | '/admin/email-assistant'
+    | '/admin/email-design'
     | '/admin/finance'
     | '/admin/funnel-editor'
     | '/admin/funnel-leads'
@@ -1172,6 +1184,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/clients'
     | '/_authenticated/admin/coupons'
     | '/_authenticated/admin/email-assistant'
+    | '/_authenticated/admin/email-design'
     | '/_authenticated/admin/finance'
     | '/_authenticated/admin/funnel-editor'
     | '/_authenticated/admin/funnel-leads'
@@ -1647,6 +1660,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminEmailAssistantRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/email-design': {
+      id: '/_authenticated/admin/email-design'
+      path: '/email-design'
+      fullPath: '/admin/email-design'
+      preLoaderRoute: typeof AuthenticatedAdminEmailDesignRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/finance': {
       id: '/_authenticated/admin/finance'
       path: '/finance'
@@ -2001,6 +2021,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminClientsRoute: typeof AuthenticatedAdminClientsRoute
   AuthenticatedAdminCouponsRoute: typeof AuthenticatedAdminCouponsRoute
   AuthenticatedAdminEmailAssistantRoute: typeof AuthenticatedAdminEmailAssistantRoute
+  AuthenticatedAdminEmailDesignRoute: typeof AuthenticatedAdminEmailDesignRoute
   AuthenticatedAdminFinanceRoute: typeof AuthenticatedAdminFinanceRoute
   AuthenticatedAdminFunnelEditorRoute: typeof AuthenticatedAdminFunnelEditorRoute
   AuthenticatedAdminFunnelLeadsRoute: typeof AuthenticatedAdminFunnelLeadsRoute
@@ -2046,6 +2067,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminClientsRoute: AuthenticatedAdminClientsRoute,
   AuthenticatedAdminCouponsRoute: AuthenticatedAdminCouponsRoute,
   AuthenticatedAdminEmailAssistantRoute: AuthenticatedAdminEmailAssistantRoute,
+  AuthenticatedAdminEmailDesignRoute: AuthenticatedAdminEmailDesignRoute,
   AuthenticatedAdminFinanceRoute: AuthenticatedAdminFinanceRoute,
   AuthenticatedAdminFunnelEditorRoute: AuthenticatedAdminFunnelEditorRoute,
   AuthenticatedAdminFunnelLeadsRoute: AuthenticatedAdminFunnelLeadsRoute,
