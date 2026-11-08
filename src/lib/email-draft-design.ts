@@ -317,7 +317,7 @@ export function buildStudioMailHtml(opts: { title: string; innerHtml: string }):
       <div style="font-size:12px;letter-spacing:2px;color:${t.soft};margin-top:8px">סטודיו בוטיק לצילום · בית שמש</div></td></tr>
     <tr><td style="padding:6px 28px 0"><div style="border-top:1px solid ${t.soft}55;text-align:center;line-height:0"><span style="position:relative;top:-1px;background:${t.cardBg};padding:0 10px;font-size:12px;line-height:1">${heartImg("bot", 14)}</span></div></td></tr>
     <tr><td dir="rtl" style="padding:14px 30px 10px;font-size:15px;line-height:1.8;${rtl}">
-      <h2 style="margin:0 0 14px;text-align:center;font-size:21px;font-weight:bold;color:${t.accent};font-family:${FONT}">${esc(opts.title)}</h2>
+      ${opts.title ? `<h2 style="margin:0 0 14px;text-align:center;font-size:21px;font-weight:bold;color:${t.accent};font-family:${FONT}">${esc(opts.title)}</h2>` : ""}
       ${opts.innerHtml}
     </td></tr>
     <tr><td style="padding:14px 20px 24px;font-size:13px;color:${t.soft};text-align:center;line-height:1.6">
@@ -387,6 +387,9 @@ export function buildDraftHtml(opts: {
         .join("")}</div>`
     : "";
   const photos = opts.brand === "photographer" ? photoStrip(opts.photos ?? [], !!opts.bigPhotos) : "";
+  // Studio drafts use the same new studio shell as the order / booking mails (thick gradient frame, Sweetbaby
+  // logo, animated studio signature + buttons).
+  if (look === "studio") return buildStudioMailHtml({ title: "", innerHtml: `${bodyToHtml(opts.body, t)}${cta}` });
   const branded = true;
   const html = `<div dir="rtl" data-mail="${look}" style="background:${t.pageBg};${look === "photographer" ? "background-image:linear-gradient(160deg,#f6d8d0 0%,#eccbb4 55%,#d9b898 100%);" : ""}padding:7px 6px;direction:rtl">${RB_CSS}
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:${t.cardBg};border:1px solid ${t.border};border-radius:14px;overflow:hidden;font-family:${FONT};color:${t.text};direction:rtl;text-align:right">
