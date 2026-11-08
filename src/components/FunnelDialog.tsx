@@ -3,7 +3,7 @@
 import { useEffect, useState, type CSSProperties, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { MessageCircle, ArrowRight, Check, X, Gift } from "lucide-react";
+import { ArrowRight, Check, X, Gift } from "lucide-react";
 import { useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -21,7 +21,6 @@ import { FUNNEL_THEMES, type FunnelTheme } from "@/lib/funnel-theme";
 import { openSignupWheel } from "@/components/NewsletterPopup";
 
 const OPEN_EVENT = "sweetbaby-open-funnel";
-const PHONE_WA = "972548529277";
 
 export function openFunnel(id: FunnelId) {
   window.dispatchEvent(new CustomEvent<FunnelId>(OPEN_EVENT, { detail: id }));
@@ -426,21 +425,9 @@ export function FunnelDialog() {
               <DialogTitle className="text-2xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
                 תודה, קיבלנו! 🤍
               </DialogTitle>
-              {funnel === "photography" ? (
-                <p className="text-sm text-[var(--f-ink)]/80">מיכל תחזור אלייך במייל בהקדם.</p>
-              ) : (
-                <>
-                  <p className="text-sm text-[var(--f-ink)]/80">נחזור אלייך בהקדם. אפשר גם לכתוב לנו עכשיו בוואטסאפ.</p>
-                  <a
-                    href={`https://wa.me/${PHONE_WA}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-full bg-[#25d366] px-6 py-3 font-semibold text-white"
-                  >
-                    <MessageCircle className="h-4 w-4" /> וואטסאפ
-                  </a>
-                </>
-              )}
+              <p className="text-sm text-[var(--f-ink)]/80">
+                {funnel === "photography" ? "מיכל תחזור אלייך במייל בהקדם." : "נחזור אלייך בהקדם."}
+              </p>
             </div>
           )}
         </div>

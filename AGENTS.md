@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-08 (09:0x Israel) — Claude (chat, via GitHub, owner: "there is no WhatsApp right now — remove it"):** `FunnelDialog.tsx`: removed the WhatsApp button and text from the funnel thank-you screen (studio / entry / newborn funnels); it now only says we will get back soon. The lead notification email and `/admin/funnel-leads` still have WhatsApp buttons TO the lead (admin side, untouched). tsc checked.
+
 - **2026-11-08 (08:5x Israel) — Claude (chat, owner: "publish" — the heart change never went live):** ROOT CAUSE of the stuck publishes (deploys 1e89d161 / 907489f5 / 39db1ac5 never replaced the old bundle): my `Heart` component (`src/components/Heart.tsx`) clashed with the lucide `Heart` icon already imported in `newborn.tsx`, `newborn.gallery.$token.tsx`, `outdoor.gallery.$token.tsx`, `rental-catalog.tsx` -> TS2300 duplicate identifier, the Lovable build failed. FIX: the component is now `ColorHeart` (the lucide `Heart` icon is untouched); `HeartText` unchanged. This time `bun install` worked in the sandbox, so `npx tsc --noEmit` (clean) and `npx vite build` (OK) were actually run. Lesson: run tsc before publishing; the earlier entries saying "syntax check only" were the reason this slipped through. Published right after this entry (see next line if present).
 
 - **2026-11-07 (23:2x Israel) — Claude (chat):** PUBLISHED commit 4eb393c via the Lovable connector (deploy 8c97eb2f-9eae-4db0-a9a5-0df648a17089, status pending when logged; not checked live). Carries the new `/admin/outdoor-contract-text` page (entry below) plus everything pushed before it.
