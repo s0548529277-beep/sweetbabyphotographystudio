@@ -16,7 +16,9 @@ import {
 } from "@/components/ui/select";
 import { heError } from "@/lib/he-errors";
 import {
+  HOURLY_SESSION_PRICING,
   PART_OPTIONS,
+  hourlySessionPrice,
   formatDateIL,
   fromYmd,
   hebrewDayLabel,
@@ -42,9 +44,12 @@ type Form = {
   part: string;
   notes: string;
   amount: string;
+  /** Extra half hours beyond the first hour (only for priced hourly session types). */
+  extraHalves: string;
 };
 
 function emptyForm(date: string, type: string): Form {
+  const price = hourlySessionPrice(type, 0);
   return {
     name: "",
     phone: "",
@@ -55,7 +60,8 @@ function emptyForm(date: string, type: string): Form {
     slot: "",
     part: "",
     notes: "",
-    amount: "",
+    amount: price != null ? String(price) : "",
+    extraHalves: "0",
   };
 }
 
@@ -95,6 +101,24 @@ export function JournalTab({
   }, [preset]);
 
   const set = (patch: Partial<Form>) => setForm((f) => ({ ...f, ...patch }));
+
+  // Priced hourly type: the amount follows the type and the extra half hours
+  // (still editable by hand afterwards).
+  const pickType = (type: string) => {
+    setForm((f) => {
+      const price = hourlySessionPrice(type, Number(f.extraHalves));
+      if (price != null) return { ...f, type, amount: String(price) };
+      // Leaving a priced type: clear the auto amount so it is not carried over.
+      const wasPriced = hourlySessionPrice(f.type, Number(f.extraHalves)) != null;
+      return { ...f, type, extraHalves: "0", amount: wasPriced ? "" : f.amount };
+    });
+  };
+  const pickExtraHalves = (v: string) => {
+    setForm((f) => {
+      const price = hourlySessionPrice(f.type, Number(v));
+      return { ...f, extraHalves: v, ...(price != null ? { amount: String(price) } : {}) };
+    });
+  };
 
   // Typing an existing client's name links the session to her and fills her details.
   const onName = (name: string) => {
@@ -136,6 +160,7 @@ export function JournalTab({
       part: s.part_label ?? "",
       notes: s.notes ?? "",
       amount: "",
+      extraHalves: "0",
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -201,7 +226,11 @@ export function JournalTab({
           .insert({
             client_id: clientId,
             session_id: sessionId,
-            title: `צילום ${form.type} · ${formatDateIL(form.date)}`,
+            title: `צילום ${form.type}${
+              HOURLY_SESSION_PRICING[form.type] && Number(form.extraHalves) > 0
+                ? ` (+${Number(form.extraHalves)} חצאי שעה)`
+                : ""
+            } · ${formatDateIL(form.date)}`,
             total_amount: amount,
             paid_amount: 0,
           })
@@ -344,13 +373,19 @@ export function JournalTab({
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label>סוג צילום</Label>
-              <Select value={form.type} onValueChange={(v) => set({ type: v })}>
+              <Select value={form.type} onValueChange={pickType}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {Array.from(
-                    new Set([...data.settings.sessionTypes, form.type].filter(Boolean)),
+                    new Set(
+                      [
+                        ...data.settings.sessionTypes,
+                        ...Object.keys(HOURLY_SESSION_PRICING),
+                        form.type,
+                      ].filter(Boolean),
+                    ),
                   ).map((t) => (
                     <SelectItem key={t} value={t}>
                       {t}
@@ -378,6 +413,29 @@ export function JournalTab({
               </Select>
             </div>
           </div>
+          {HOURLY_SESSION_PRICING[form.type] && (
+            <div>
+              <Label>משך הצילום</Label>
+              <Select value={form.extraHalves} onValueChange={pickExtraHalves}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[0, 1, 2, 3, 4, 5, 6].map((n) => (
+                    <SelectItem key={n} value={String(n)}>
+                      {n === 0
+                        ? `שעה — ₪${HOURLY_SESSION_PRICING[form.type].base}`
+                        : `שעה + ${n === 1 ? "חצי שעה" : `${n} חצאי שעה`} — ₪${hourlySessionPrice(form.type, n)}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="mt-1 text-xs text-newborn-ink/60">
+                ₪{HOURLY_SESSION_PRICING[form.type].base} לשעה, וכל חצי שעה נוספת ₪
+                {HOURLY_SESSION_PRICING[form.type].extraHalfHour}. הסכום מתמלא לבד ואפשר לשנות אותו.
+              </p>
+            </div>
+          )}
           <div>
             <Label>זמן / מיקום</Label>
             <Select

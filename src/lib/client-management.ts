@@ -62,6 +62,23 @@ export function statusMeta(s: string) {
 
 export const PART_OPTIONS = ["", "1/1", "1/2", "2/2", "1/3", "2/3", "3/3"];
 
+/**
+ * Session types that carry a fixed price in the journal form: the base price
+ * covers one hour, every extra half hour adds `extraHalfHour`.
+ * (Photographer hour, no editing — 300 ₪ + 150 ₪ per additional half hour.)
+ */
+export const HOURLY_SESSION_TYPE = "שעת צילום ללא עיבוד";
+export const HOURLY_SESSION_PRICING: Record<string, { base: number; extraHalfHour: number }> = {
+  [HOURLY_SESSION_TYPE]: { base: 300, extraHalfHour: 150 },
+};
+
+/** Price for a priced session type with N extra half hours, or null for ordinary types. */
+export function hourlySessionPrice(type: string, extraHalfHours: number): number | null {
+  const p = HOURLY_SESSION_PRICING[type];
+  if (!p) return null;
+  return p.base + Math.max(0, Math.floor(extraHalfHours || 0)) * p.extraHalfHour;
+}
+
 export type CmSettings = {
   sessionTypes: string[];
   timeSlots: string[];
@@ -84,7 +101,7 @@ export type CmSettings = {
 };
 
 export const DEFAULT_CM_SETTINGS: CmSettings = {
-  sessionTypes: ["ניו בורן", "חלאקה", "סמאש קייק", "משפחה", "גיל שנה", "צילומי חוץ"],
+  sessionTypes: ["ניו בורן", "חלאקה", "סמאש קייק", "משפחה", "גיל שנה", "צילומי חוץ", HOURLY_SESSION_TYPE],
   timeSlots: [
     "צילומי סטודיו בוקר",
     "צילומי סטודיו צהריים",
