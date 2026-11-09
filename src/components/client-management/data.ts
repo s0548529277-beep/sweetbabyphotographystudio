@@ -39,6 +39,8 @@ export type NewbornLite = {
   session_time: string | null;
   total_price: number | null;
   amount_paid: number | null;
+  package_id?: string | null;
+  delivered_at?: string | null;
 };
 
 export function useCmData() {
@@ -101,7 +103,7 @@ export function useCmData() {
     queryFn: async () => {
       const { data, error } = await db
         .from("newborn_package_orders")
-        .select("id, contact_name, contact_phone, contact_email, session_date, session_time, total_price, amount_paid")
+        .select("id, contact_name, contact_phone, contact_email, session_date, session_time, total_price, amount_paid, package_id, delivered_at")
         .order("session_date", { ascending: true });
       if (error) return [] as NewbornLite[];
       return (data ?? []) as NewbornLite[];

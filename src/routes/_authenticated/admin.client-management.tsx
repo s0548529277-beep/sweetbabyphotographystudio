@@ -29,7 +29,7 @@ import { ClientsTab } from "@/components/client-management/ClientsTab";
 import { PaymentsTab } from "@/components/client-management/PaymentsTab";
 import { SettingsTab } from "@/components/client-management/SettingsTab";
 
-import { AllTracksPanel } from "@/components/client-management/AllTracksPanel";
+import { UnifiedClientsTable } from "@/components/client-management/UnifiedClientsTable";
 import { PhotoSectionTabs } from "@/components/PhotoSectionTabs";
 
 export const Route = createFileRoute("/_authenticated/admin/client-management")({
@@ -330,47 +330,7 @@ function Overview({
         </Panel>
       </div>
 
-      <Panel
-        title="👶 צילומי ניו-בורן קרובים"
-        action={
-          <Button size="sm" variant="ghost" asChild>
-            <Link to="/admin/newborn-packages">ללקוחות ניו-בורן ›</Link>
-          </Button>
-        }
-      >
-        {(() => {
-          const nb = data.newborn.filter((o) => o.session_date && o.session_date >= today).slice(0, 8);
-          return nb.length ? (
-            <div className="grid gap-2 md:grid-cols-2">
-              {nb.map((o) => (
-                <Link
-                  key={o.id}
-                  to="/admin/newborn-packages/$orderId"
-                  params={{ orderId: o.id }}
-                  className="flex items-center justify-between gap-2 rounded-2xl border border-amber-200/60 bg-amber-50/50 px-4 py-2.5 hover:bg-amber-50"
-                >
-                  <div>
-                    <div className="text-sm font-medium text-newborn-ink">{o.contact_name}</div>
-                    <div className="text-xs text-newborn-ink/55">
-                      {formatDateIL(o.session_date)}
-                      {o.session_time ? ` · ${o.session_time.slice(0, 5)}` : ""}
-                    </div>
-                  </div>
-                  {Number(o.total_price ?? 0) > Number(o.amount_paid ?? 0) && (
-                    <span className="text-sm font-semibold tabular-nums text-newborn-rose">
-                      {shekel(Number(o.total_price ?? 0) - Number(o.amount_paid ?? 0))}
-                    </span>
-                  )}
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <EmptyState>אין צילומי ניו-בורן קרובים</EmptyState>
-          );
-        })()}
-      </Panel>
-
-      <AllTracksPanel newborn={data.newborn as any[]} />
+      <UnifiedClientsTable data={data} onOpenCmClient={() => onTab("clients")} />
 
       {needsReminder.length > 0 && (
         <Panel title="⚠️ לא יקבלו תזכורת אוטומטית">

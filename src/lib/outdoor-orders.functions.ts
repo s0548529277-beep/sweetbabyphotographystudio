@@ -1212,3 +1212,73 @@ export const submitOutdoorUnlockReceiptByToken = createServerFn({ method: "POST"
     }
     return { ok: true };
   });
+
+// ---------------------------------------------------------------------
+// Payments for outdoor orders — same two capabilities the newborn page has
+// (added 2026-11-09, owner: "if newborn has an option outdoor lacks, add it"):
+// set the running total paid, and a bulk "payment reminder" e-mail.
+// ---------------------------------------------------------------------
+
+const outdoorPaymentSchema = z.object({
+  id: z.string().uuid(),
+  amount_paid: z.number().nonnegative().max(1000000),
+});
+
+/** Sets the TOTAL paid so far (not a delta); last_payment_at is stamped "now". Mirrors updateNewbornOrderPayment. */
+export const updateOutdoorOrderPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => outdoorPaymentSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await (context.supabase as any)
+      .from("outdoor_package_orders")
+      .update({ amount_paid: data.amount_paid, last_payment_at: new Date().toISOString() })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const outdoorPaymentReminderSchema = z.object({
+  orderIds: z.array(z.string().uuid()).min(1).max(200),
+});
+
+/** Bulk "מייל תשלום ללקוחות" for outdoor orders. Skips (never fails the batch on) an order with no e-mail, no price or no open balance. */
+export const sendOutdoorPaymentReminderEmails = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => outdoorPaymentReminderSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data: orders, error } = await (context.supabase as any)
+      .from("outdoor_package_orders")
+      .select("id, contact_name, contact_email, total_price, amount_paid")
+      .in("id", data.orderIds);
+    if (error) throw new Error(error.message);
+
+    const { sendGmail } = await import("@/integrations/google/gmail.server");
+    const results = await Promise.all(
+      (orders ?? []).map(async (o: any) => {
+        if (!o.contact_email) return { orderId: o.id, sent: false, reason: "אין אימייל ללקוחה" };
+        if (o.total_price == null) return { orderId: o.id, sent: false, reason: "לא הוגדר סכום כולל" };
+        const balance = Number(o.total_price) - Number(o.amount_paid ?? 0);
+        if (balance <= 0) return { orderId: o.id, sent: false, reason: "אין יתרה פתוחה" };
+        try {
+          const ok = await sendGmail({
+            to: o.contact_email,
+            subject: "תזכורת תשלום · מיכל סיבוני",
+            html: buildBrandedMailHtml({
+              title: "תזכורת תשלום",
+              innerHtml: `<p>שלום${o.contact_name ? " " + o.contact_name : ""},</p>
+              <p>סה״כ לתשלום: <b>₪${Number(o.total_price).toFixed(0)}</b><br/>
+              שולם עד כה: <b>₪${Number(o.amount_paid ?? 0).toFixed(0)}</b><br/>
+              יתרה לתשלום: <b>₪${balance.toFixed(0)}</b></p>
+              <p>לתיאום התשלום אפשר להשיב למייל הזה.</p>`,
+            }),
+          });
+          return { orderId: o.id, sent: ok, reason: ok ? undefined : "שליחת המייל נכשלה" };
+        } catch (e: any) {
+          return { orderId: o.id, sent: false, reason: e?.message ?? "שליחת המייל נכשלה" };
+        }
+      }),
+    );
+    return { results };
+  });

@@ -12,11 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Trees, Mail, MapPin, Images } from "lucide-react";
+import { Plus, Pencil, Trash2, Trees, Mail, MapPin, Images, Search, Download } from "lucide-react";
 import { heError } from "@/lib/he-errors";
 import { sendOutdoorContract } from "@/lib/outdoor-packages.functions";
 
 import { PhotoSectionTabs } from "@/components/PhotoSectionTabs";
+import { OutdoorPaymentsView, OutdoorTableView, exportOutdoorCsv } from "@/components/OutdoorOrdersViews";
 
 export const Route = createFileRoute("/_authenticated/admin/outdoor-packages")({
   component: OutdoorPackagesAdmin,
@@ -47,6 +48,7 @@ type Order = {
   package_name: string | null;
   package_description: string | null;
   total_price: number | null;
+  amount_paid: number | null;
   contact_name: string;
   contact_phone: string;
   contact_email: string | null;
@@ -105,6 +107,9 @@ function OutdoorPackagesAdmin() {
   const [orderForm, setOrderForm] = useState<OrderForm>(emptyOrder);
   const [orderSaving, setOrderSaving] = useState(false);
   const [sendingContractId, setSendingContractId] = useState<string | null>(null);
+  // Same views the newborn page has: רשימה (the original table) / טבלה / תשלומים.
+  const [view, setView] = useState<"list" | "table" | "payments">("list");
+  const [search, setSearch] = useState("");
 
   const packages = useQuery({
     queryKey: ["admin-outdoor-package-types"],
@@ -128,6 +133,14 @@ function OutdoorPackagesAdmin() {
       if (error) throw error;
       return (data ?? []) as Order[];
     },
+  });
+
+  const shownOrders = (orders.data ?? []).filter((o) => {
+    const term = search.trim().toLowerCase();
+    if (!term) return true;
+    return [o.contact_name, o.contact_phone, o.contact_email, o.package_name, o.children_names, o.notes].some((v) =>
+      (v ?? "").toLowerCase().includes(term),
+    );
   });
 
   const openNewPkg = () => {
@@ -347,6 +360,52 @@ function OutdoorPackagesAdmin() {
           </Button>
         </div>
 
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {(
+            [
+              ["list", "רשימה"],
+              ["table", "טבלה"],
+              ["payments", "תשלומים"],
+            ] as const
+          ).map(([k, label]) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setView(k)}
+              className={`rounded-full px-4 py-1.5 text-sm transition ${
+                view === k ? "bg-primary text-primary-foreground shadow" : "bg-card text-primary/70 hover:bg-cream/60"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+          <div className="relative min-w-[200px] flex-1">
+            <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="חיפוש לפי שם, טלפון, מייל, חבילה…"
+              className="rounded-full bg-card pr-9"
+            />
+          </div>
+          <span className="text-sm text-muted-foreground">{shownOrders.length} לקוחות</span>
+          <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={() => exportOutdoorCsv(shownOrders as any)}>
+            <Download className="h-4 w-4" /> ייצוא לאקסל
+          </Button>
+        </div>
+
+        {view === "table" && <OutdoorTableView rows={shownOrders as any} />}
+        {view === "payments" && (
+          <OutdoorPaymentsView
+            rows={shownOrders as any}
+            onSaved={() => {
+              qc.invalidateQueries({ queryKey: ["admin-outdoor-orders"] });
+              qc.invalidateQueries({ queryKey: ["outdoor-orders-overview"] });
+            }}
+          />
+        )}
+
+        {view === "list" && (
         <div className="mt-3 bg-card rounded-2xl border border-primary/5 overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-cream/60 text-right">
@@ -361,7 +420,7 @@ function OutdoorPackagesAdmin() {
               </tr>
             </thead>
             <tbody>
-              {(orders.data ?? []).map((o) => (
+              {shownOrders.map((o) => (
                 <tr key={o.id} className="border-t border-primary/5">
                   <td className="p-3">
                     <div className="font-medium">{o.contact_name}</div>
@@ -377,7 +436,20 @@ function OutdoorPackagesAdmin() {
                   </td>
                   <td className="p-3">
                     {o.package_name ?? "—"}
-                    {o.total_price != null && <div className="text-forest/60 text-xs">₪{o.total_price}</div>}
+                    {o.total_price != null && (
+                      <div className="text-forest/60 text-xs">
+                        ₪{o.total_price}
+                        {Number(o.total_price) > 0 && (
+                          <>
+                            {" · שולם ₪"}
+                            {Number(o.amount_paid ?? 0)}
+                            {Number(o.total_price) - Number(o.amount_paid ?? 0) > 0
+                              ? ` · יתרה ₪${Number(o.total_price) - Number(o.amount_paid ?? 0)}`
+                              : " · שולם במלואו"}
+                          </>
+                        )}
+                      </div>
+                    )}
                   </td>
                   <td className="p-3">{o.styling_call_date ?? "—"}</td>
                   <td className="p-3">
@@ -446,6 +518,7 @@ function OutdoorPackagesAdmin() {
             </tbody>
           </table>
         </div>
+        )}
       </div>
 
       {/* Package type dialog */}
