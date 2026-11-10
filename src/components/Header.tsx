@@ -18,6 +18,7 @@ const nav: { to: string; label: string; hash?: string; soon?: boolean }[] = [
   { to: "/studio-photography", label: "צילומים עם מיכל" },
   { to: "/studio-rental", label: "השכרת סטודיו" },
   { to: "/rental-catalog", label: "קטלוג אביזרים להשכרה" },
+  { to: "/set-builder", label: "בונה סטים" },
   // Points straight at the full Studio gallery (/collage-studio), not the
   // older, simpler /collage-maker — per explicit follow-up request: the
   // powerful editor (free drag, multiple photos, stickers, backgrounds)

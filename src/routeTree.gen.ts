@@ -26,6 +26,7 @@ import { Route as PaymentFailedRouteImport } from './routes/payment-failed'
 import { Route as PhotoRetouchRouteImport } from './routes/photo-retouch'
 import { Route as RentalCatalogRouteImport } from './routes/rental-catalog'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SetBuilderRouteImport } from './routes/set-builder'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SleepConsultantRouteImport } from './routes/sleep-consultant'
 import { Route as StartRouteImport } from './routes/start'
@@ -189,6 +190,11 @@ const RentalCatalogRoute = RentalCatalogRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetBuilderRoute = SetBuilderRouteImport.update({
+  id: '/set-builder',
+  path: '/set-builder',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -655,6 +661,7 @@ export interface FileRoutesByFullPath {
   '/photo-retouch': typeof PhotoRetouchRoute
   '/rental-catalog': typeof RentalCatalogRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/set-builder': typeof SetBuilderRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sleep-consultant': typeof SleepConsultantRoute
   '/start': typeof StartRoute
@@ -753,6 +760,7 @@ export interface FileRoutesByTo {
   '/photo-retouch': typeof PhotoRetouchRoute
   '/rental-catalog': typeof RentalCatalogRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/set-builder': typeof SetBuilderRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sleep-consultant': typeof SleepConsultantRoute
   '/start': typeof StartRoute
@@ -852,6 +860,7 @@ export interface FileRoutesById {
   '/photo-retouch': typeof PhotoRetouchRoute
   '/rental-catalog': typeof RentalCatalogRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/set-builder': typeof SetBuilderRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sleep-consultant': typeof SleepConsultantRoute
   '/start': typeof StartRoute
@@ -952,6 +961,7 @@ export interface FileRouteTypes {
     | '/photo-retouch'
     | '/rental-catalog'
     | '/reset-password'
+    | '/set-builder'
     | '/sitemap.xml'
     | '/sleep-consultant'
     | '/start'
@@ -1050,6 +1060,7 @@ export interface FileRouteTypes {
     | '/photo-retouch'
     | '/rental-catalog'
     | '/reset-password'
+    | '/set-builder'
     | '/sitemap.xml'
     | '/sleep-consultant'
     | '/start'
@@ -1148,6 +1159,7 @@ export interface FileRouteTypes {
     | '/photo-retouch'
     | '/rental-catalog'
     | '/reset-password'
+    | '/set-builder'
     | '/sitemap.xml'
     | '/sleep-consultant'
     | '/start'
@@ -1248,6 +1260,7 @@ export interface RootRouteChildren {
   PhotoRetouchRoute: typeof PhotoRetouchRoute
   RentalCatalogRoute: typeof RentalCatalogRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SetBuilderRoute: typeof SetBuilderRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SleepConsultantRoute: typeof SleepConsultantRoute
   StartRoute: typeof StartRoute
@@ -1399,6 +1412,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/set-builder': {
+      id: '/set-builder'
+      path: '/set-builder'
+      fullPath: '/set-builder'
+      preLoaderRoute: typeof SetBuilderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -2155,6 +2175,7 @@ const rootRouteChildren: RootRouteChildren = {
   PhotoRetouchRoute: PhotoRetouchRoute,
   RentalCatalogRoute: RentalCatalogRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SetBuilderRoute: SetBuilderRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SleepConsultantRoute: SleepConsultantRoute,
   StartRoute: StartRoute,
