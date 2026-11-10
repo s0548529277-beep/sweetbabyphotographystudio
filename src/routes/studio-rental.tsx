@@ -4,7 +4,7 @@ import { FunnelCta } from "@/components/FunnelDialog";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Clock, CreditCard, CalendarDays, Sparkles, ArrowLeft, X, MapPin, Star, AlertTriangle, PlayCircle } from "lucide-react";import { Header } from "@/components/Header";
+import { Clock, CreditCard, CalendarDays, Sparkles, ArrowLeft, X, MapPin, Star, AlertTriangle, PlayCircle, Coffee } from "lucide-react";import { Header } from "@/components/Header";
 import { StudioGuideModal } from "@/components/StudioGuideModal";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/lib/auth";
@@ -42,12 +42,13 @@ type IntakeForm = {
   sessionType: string; sessionDate: string; peopleCount: string; babyAge: string;
   cameraBrand: string; cameraNeed: string; flashExperience: string; needProps: string; specialRequests: string;
   guidance: string;
+  familyRoom: string;
   agreed: boolean;
 };
 const emptyForm: IntakeForm = {
   clientName: "", phone: "", email: "", sessionType: "", sessionDate: "",
   peopleCount: "", babyAge: "", cameraBrand: "", cameraNeed: "", flashExperience: "",
-  needProps: "", specialRequests: "", guidance: "basic", agreed: false,
+  needProps: "", specialRequests: "", guidance: "basic", familyRoom: "", agreed: false,
 };
 
 const guidanceOptions = [
@@ -117,6 +118,7 @@ const quickFacts = [
   { icon: CreditCard, label: "180 ₪ שעה ראשונה" },
   { icon: CalendarDays, label: "מקדמה 90 ₪ לשריון" },
   { icon: Sparkles, label: "Godox AD200 PRO" },
+  { icon: Coffee, label: "חדר משפחה · פינת קפה ושירותים" },
 ];
 
 
@@ -138,6 +140,7 @@ const STUDIO_FAQS: { q: string; a: string }[] = [
   { q: "הסטודיו מתאים לתינוקות?", a: "כן. יש מיזוג ומפזר חום ייעודי לניו-בורן, ושידת החתלה חדשה עם עיטופים ובדים." },
   { q: "אילו רקעים ורצפות יש?", a: "רקעי נייר בירוק, לבן, כחול, חום בהיר, חום כהה וצהוב, ורצפות פורמייקה, עץ, פרקט וקורות עץ ללא תוספת. שימוש ברקע נייר גם כרצפה בתוספת 50 ₪, בתיאום מראש." },
   { q: "איפה הסטודיו נמצא?", a: "ברחוב תלמוד ירושלמי 24, בית שמש. דרכי הגעה מפורטות מופיעות בעמוד הזה." },
+  { q: "יש חדר משפחה עם פינת קפה ושירותים?", a: "כן. בסטודיו יש חדר משפחה עם פינת קפה ושירותים. החדר אינו פנוי בכל מועד, ולכן בשאלון שואלים אם יש עניין בו — אם הוא תפוס במועד שבחרת, נשלח לך הודעה." },
   { q: "יש הטבה ללקוחות חוזרות?", a: "כל לקוחה רשומה צוברת אוטומטית 10% קרדיט מכל הזמנה של 100 ₪ ומעלה, לניצול בהזמנה הבאה." },
 ];
 
@@ -205,6 +208,7 @@ function StudioRentalPage() {
     ...(!form.phone.trim() ? ["מספר טלפון"] : []),
     ...(!form.email.trim() ? ["כתובת אימייל"] : []),
     ...(!form.sessionType.trim() ? ["סוג הצילום"] : []),
+    ...(!form.familyRoom ? ["האם מעוניינת בחדר המשפחה"] : []),
     ...(!form.agreed ? ["אישור הסכם תיאום הציפיות (תיבת הסימון למעלה)"] : []),
   ];
 
@@ -216,6 +220,10 @@ function StudioRentalPage() {
     }
     if (!form.sessionType.trim()) {
       toast.error("נא לבחור את סוג הצילום.");
+      return;
+    }
+    if (!form.familyRoom) {
+      toast.error("נא לענות אם יש עניין בחדר המשפחה.");
       return;
     }
     if (!form.agreed) {
@@ -245,6 +253,7 @@ function StudioRentalPage() {
           flashExperience: form.flashExperience,
           needProps: guidanceLabel ? `${guidanceLabel.tag} · ${guidanceLabel.title}${guidanceLabel.price ? ` (+₪${guidanceLabel.price})` : ""}` : "",
           specialRequests: form.specialRequests,
+          familyRoom: form.familyRoom === "yes" ? "מעוניינת בחדר משפחה (פינת קפה ושירותים)" : "לא מעוניינת בחדר משפחה",
 
           agreed: true,
         },
@@ -678,6 +687,28 @@ function StudioRentalPage() {
                       </button>
                     );
                   })}
+                </div>
+              </Field>
+
+              <Field label="חדר משפחה עם פינת קפה ושירותים — מעוניינת? *" full>
+                <p className="mb-2 text-[15px] leading-relaxed text-[#2d3d2b]/75">
+                  בסטודיו יש חדר משפחה עם פינת קפה ושירותים. לעיתים החדר אינו פנוי, ואם יתברר שהוא תפוס במועד שבחרת — נשלח לך הודעה.
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {[{ k: "yes", t: "כן, מעוניינת בחדר המשפחה" }, { k: "no", t: "לא, תודה" }].map((o) => (
+                    <button
+                      type="button"
+                      key={o.k}
+                      onClick={() => upd("familyRoom", o.k)}
+                      className={`text-right rounded-2xl border p-3 text-sm font-medium transition ${
+                        form.familyRoom === o.k
+                          ? "border-[#6b8a63] bg-[#a8c4a2]/25 shadow-sm"
+                          : "border-[#2d3d2b]/15 bg-white/70 hover:border-[#6b8a63]/50"
+                      }`}
+                    >
+                      {o.t}
+                    </button>
+                  ))}
                 </div>
               </Field>
 

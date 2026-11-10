@@ -14,6 +14,7 @@ const intakeSchema = z.object({
   flashExperience: z.string().max(200).optional().default(""),
   needProps: z.string().max(500).optional().default(""),
   specialRequests: z.string().max(2000).optional().default(""),
+  familyRoom: z.string().max(120).optional().default(""),
   agreed: z.literal(true),
 });
 
