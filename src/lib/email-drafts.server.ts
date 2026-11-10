@@ -674,6 +674,51 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
       result.errors.push(`quiz mails: ${String((e as any)?.message ?? e).slice(0, 100)}`);
     }
 
+    // ---------- family-room confirmations (the room booked for a client at Yaner Clinics) ----------
+    // When Claude books the room it mails a confirmation FROM Michal's address. Subject starts with "אישור חדר משפחה";
+    // body lines: "הזמנה: #<first 8 characters of the booking id>", "תאריך: DD.MM.YYYY", "שעות: 18:00, 19:00".
+    // The hours are saved on the studio booking so the client's personal area and the admin show them.
+    // Never sends anything; a mail that cannot be matched to exactly one booking is reported in the run errors.
+    try {
+      const fList = await g.gmailApi<{ messages?: Array<{ id: string; threadId: string }> }>(
+        k,
+        `/users/me/messages?maxResults=15&q=${encodeURIComponent('newer_than:7d from:me subject:"אישור חדר משפחה"')}`,
+      );
+      for (const fm of fList?.messages ?? []) {
+        if (seenSet.has(`fr:${fm.id}`)) continue;
+        const full = await g.gmailApi<any>(k, `/users/me/messages/${fm.id}?format=full`);
+        if (!full) continue;
+        const body = g.extractGmailPlainText(full.payload) || full.snippet || "";
+        remember(`fr:${fm.id}`);
+        const idPrefix = body.match(/הזמנה\s*:?\s*#?\s*([0-9a-f]{8})\b/i)?.[1]?.toLowerCase() ?? null;
+        const slots = body.match(/שעות\s*:?\s*([^\n\r]+)/)?.[1]?.trim().slice(0, 200) ?? "";
+        const dm = body.match(/תאריך\s*:?\s*(\d{1,2})[./](\d{1,2})[./](\d{4})/);
+        const mailDate = dm ? `${dm[3]}-${dm[2].padStart(2, "0")}-${dm[1].padStart(2, "0")}` : null;
+        if (!slots || (!idPrefix && !mailDate)) {
+          result.errors.push(`family room mail ${fm.id.slice(0, 8)}: missing hours or booking reference`);
+          continue;
+        }
+        const { data: cand } = await db
+          .from("bookings")
+          .select("id, session_date")
+          .gte("session_date", new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10));
+        const rows = (cand ?? []) as Array<{ id: string; session_date: string }>;
+        const hit = idPrefix
+          ? rows.filter((r) => r.id.toLowerCase().startsWith(idPrefix))
+          : rows.filter((r) => r.session_date === mailDate);
+        if (hit.length !== 1) {
+          result.errors.push(`family room mail ${fm.id.slice(0, 8)}: ${hit.length} matching bookings`);
+          continue;
+        }
+        await db
+          .from("bookings")
+          .update({ family_room_slots: slots, family_room_booked_at: new Date().toISOString() })
+          .eq("id", hit[0].id);
+      }
+    } catch (e) {
+      result.errors.push(`family room mails: ${String((e as any)?.message ?? e).slice(0, 100)}`);
+    }
+
     // ---------- new inquiries ----------
     // Seen = the newest message id per thread, so a client writing again in
     // an old thread is looked at again; threads Michal answered last are
