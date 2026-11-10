@@ -118,7 +118,6 @@ const quickFacts = [
   { icon: CreditCard, label: "180 ₪ שעה ראשונה" },
   { icon: CalendarDays, label: "מקדמה 90 ₪ לשריון" },
   { icon: Sparkles, label: "Godox AD200 PRO" },
-  { icon: Coffee, label: "חדר משפחה · פינת קפה ושירותים" },
 ];
 
 
@@ -162,6 +161,7 @@ function StudioRentalPage() {
   const [showForm, setShowForm] = useState(false);
 
   const [form, setForm] = useState<IntakeForm>(emptyForm);
+  const [showFamilyRoom, setShowFamilyRoom] = useState(false);
  const [submitting, setSubmitting] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [showReel, setShowReel] = useState(false);
@@ -332,6 +332,65 @@ function StudioRentalPage() {
                 <span>תלמוד ירושלמי 24</span>
               </div>
            </div>
+
+            {/* New: small round badge -> small popup with the family room (coffee corner + restrooms), no extra charge */}
+            <button
+              type="button"
+              onClick={() => setShowFamilyRoom(true)}
+              aria-label="חדש: חדר משפחה עם פינת קפה ושירותים, ללא תוספת תשלום"
+              className="mt-4 inline-flex items-center gap-3 rounded-full bg-white/85 backdrop-blur border border-[#6b8a63]/40 pr-2 pl-4 py-1.5 text-right shadow-sm hover:shadow transition"
+            >
+              <span className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#a8c4a2] to-[#6b8a63] text-white">
+                <Coffee className="h-6 w-6" />
+                <span className="absolute -top-1 -left-1 rounded-full bg-[#e8b4bc] px-1.5 py-0.5 text-[11px] font-bold leading-none text-[#2d3d2b]">חדש</span>
+              </span>
+              <span className="text-xs leading-snug text-[#2d3d2b]/85">
+                <strong className="block text-sm">חדר משפחה · קפה ושירותים</strong>
+                ללא תוספת תשלום, בזמן הצילום
+              </span>
+            </button>
+
+            {showFamilyRoom && (
+              <div
+                className="fixed inset-0 z-[110] bg-[#2d3d2b]/60 backdrop-blur-sm flex items-center justify-center p-4"
+                onClick={() => setShowFamilyRoom(false)}
+              >
+                <div
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="חדר משפחה עם פינת קפה ושירותים"
+                  className="relative w-full max-w-sm rounded-3xl bg-[#fbf7f0] p-4 shadow-2xl text-[#2d3d2b]"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setShowFamilyRoom(false)}
+                    aria-label="סגירה"
+                    className="absolute top-3 left-3 rounded-full bg-white/90 p-1.5 border border-[#2d3d2b]/10"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                  <div className="text-center">
+                    <span className="inline-block rounded-full bg-[#e8b4bc] px-2.5 py-0.5 text-xs font-bold">חדש</span>
+                    <h3 className="mt-1 font-display text-xl">חדר משפחה עם פינת קפה ושירותים</h3>
+                    <p className="mt-1 text-sm text-[#2d3d2b]/75 leading-relaxed">
+                      חדר מעוצב שעומד לרשות המשפחה בזמן הצילום, ללא תוספת תשלום. החדר אינו פנוי בכל מועד, ואם הוא תפוס — נשלח הודעה.
+                    </p>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <img src="/family-room/family-room-1.jpg" alt="פינת הקפה בחדר המשפחה" loading="lazy" className="h-32 w-full rounded-2xl object-cover" />
+                    <img src="/family-room/family-room-2.jpg" alt="פינת הישיבה בחדר המשפחה" loading="lazy" className="h-32 w-full rounded-2xl object-cover" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setShowFamilyRoom(false); setShowForm(true); }}
+                    className="mt-3 w-full rounded-full bg-[#2d3d2b] py-2.5 text-sm font-medium text-white"
+                  >
+                    למילוי השאלון ובקשת החדר
+                  </button>
+                </div>
+              </div>
+            )}
           </motion.div>
         </div>
       </section>
