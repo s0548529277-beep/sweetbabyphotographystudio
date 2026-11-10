@@ -980,7 +980,9 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
     }),
   );
 
-  if (result.created.length) {
+  // Owner request (2026-11-10): no more "✍️ N טיוטות תשובה מחכות לך" notice mail.
+  // The notice is still sent when an automatic first reply went out ("🤖 נשלח מענה אוטומטי…").
+  if (result.created.some((c) => c.autoSent)) {
     const line = (c: EmailDraftRunResult["created"][number]) =>
       `<li style="margin:6px 0"><b>${c.to}</b> — ${c.summary} <span style="color:#8a6a52">(${
         c.brand === "photographer" ? "מותג צלמת" : c.brand === "studio" ? "מותג סטודיו" : "כללי"
