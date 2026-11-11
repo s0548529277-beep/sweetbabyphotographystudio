@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-11 (Israel) — Claude (chat, via Lovable DB `query_database`, owner: "no — translate the English ones"):** DATA ONLY. Translated to Hebrew the 159 active `items.description` values that were purely English (SKUs 106–324: wraps, hats, teddy bears, pillows, baskets, buckets, macrame, rompers etc.); meaning kept as written (some English descriptions did not match the item name — left as is, only translated). Sign texts stay in English inside the Hebrew line (e.g. "Welcome on board", "Grateful Thankful Blessed"). Guarded by `description ~ [A-Za-z] and !~ [א-ת]`; afterwards 0 English-only descriptions remain. No code/schema change.
+
 - **2026-11-11 (02:3x Israel) — Claude (chat, owner: "yes" — verify the studio site in Search Console):** added `public/googleb8b36c0bdc626ef4.html` (Google Search Console ownership file for `https://sweetbabyphoto.shop/`, URL-prefix property added in the owner's Search Console). DO NOT DELETE the file or verification is lost. After verifying: submit `https://sweetbabyphoto.shop/sitemap.xml` and request indexing for the 3 new blog articles.
 
 - **2026-11-11 (Israel) — Claude (chat, owner: "check it is not cut oddly"):** live check showed the card description was cut to ~66px (313 of 353 clipped) because it sat in the narrow column next to the add button. Now it is a full-width block under the name/price/button row with `line-clamp-2` (`rental-catalog.tsx`). tsc clean; PUBLISHED right after (see below if present).
