@@ -26,6 +26,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { getShowItemDescriptions, setShowItemDescriptions } from "@/lib/item-descriptions.functions";
 import {
   Plus,
   Pencil,
@@ -186,6 +187,17 @@ function nextSkuFor(prefix: string, existing: string[]) {
 
 function ItemsAdmin() {
   const qc = useQueryClient();
+  const showDescQ = useQuery({ queryKey: ["show-item-descriptions"], queryFn: () => getShowItemDescriptions() });
+  const showDescriptions = showDescQ.data !== false;
+  const toggleDescriptions = async () => {
+    try {
+      await setShowItemDescriptions({ data: { show: !showDescriptions } });
+      qc.invalidateQueries({ queryKey: ["show-item-descriptions"] });
+      toast.success(showDescriptions ? "התיאורים הוסתרו מהקטלוג (במיילים הם נשארים)" : "התיאורים מוצגים בקטלוג");
+    } catch (e: any) {
+      toast.error(e?.message || "השמירה נכשלה");
+    }
+  };
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<ItemForm>(empty);
   const [uploading, setUploading] = useState(false);
@@ -840,6 +852,14 @@ function ItemsAdmin() {
           className="max-w-sm rounded-full"
         />
         <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            className="rounded-full gap-2"
+            onClick={toggleDescriptions}
+            title="לא מוחק את התיאורים — רק מסתיר אותם מכרטיסי הקטלוג. במיילים הם תמיד מופיעים"
+          >
+            {showDescriptions ? "הסתר את כל התיאורים בקטלוג" : "הצג את כל התיאורים בקטלוג"}
+          </Button>
           <Button variant="outline" className="rounded-full gap-2" onClick={exportCsv}>
             <Download className="h-4 w-4" /> ייצוא CSV
           </Button>

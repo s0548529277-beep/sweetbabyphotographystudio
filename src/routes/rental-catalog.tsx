@@ -49,6 +49,8 @@ export const Route = createFileRoute("/rental-catalog")({
 import { PropInspirationImage } from "@/components/PropInspirationImage";
 import { mergedInspiration, useItemInspiration } from "@/lib/item-inspiration";
 import { PAGE_IMAGE_KEYS, usePageGalleryWithAspect } from "@/lib/page-images";
+import { useQuery } from "@tanstack/react-query";
+import { getShowItemDescriptions } from "@/lib/item-descriptions.functions";
 import { useCatalogCategories, useCatalogStatus, type CatalogCategory, type CatalogItem } from "@/lib/catalog";
 import {
   makeHebrewMatcher,
@@ -73,6 +75,8 @@ function RentalCatalogPage() {
   // Live catalog — admin edits (name/price/category/image) show up here.
   const categories = useCatalogCategories();
   const catalogStatus = useCatalogStatus();
+  const showDescQuery = useQuery({ queryKey: ["show-item-descriptions"], queryFn: () => getShowItemDescriptions(), staleTime: 60_000 });
+  const showDesc = showDescQuery.data !== false;
   const { lines, add, remove, subtotal, count } = useCart();
   const { has: isWished, toggle: toggleWishlist } = useWishlist();
   const { user } = useAuth();
@@ -684,7 +688,7 @@ function RentalCatalogPage() {
                               )}
                             </button>
                            </div>
-                           {it.description && (
+                           {showDesc && it.description && (
                              <div
                                className="text-[11px] leading-snug text-primary/60 mt-2 line-clamp-2"
                                title={it.description}
