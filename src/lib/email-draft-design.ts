@@ -192,17 +192,17 @@ function priceBlock(list: typeof NEWBORN, t: Theme, kind: keyof typeof PKG_LABEL
     const img = photo
       ? `<tr><td style="padding:0;text-align:center;background:${CREAM}"><img src="${esc(photo)}" alt="" width="190"${baked ? "" : ' class="cp"'} style="width:100%;max-width:100%;${baked ? "height:auto;" : "height:170px;object-fit:cover;border-radius:999px 999px 0 0;"}display:block;border:0"></td></tr>`
       : "";
-    return `<div class="pc" style="display:inline-block;vertical-align:top;width:31%;min-width:170px;box-sizing:border-box;padding:6px;direction:rtl;text-align:center">
+    return `<div class="pc" style="display:inline-block;vertical-align:top;width:31%;min-width:170px;box-sizing:border-box;padding:6px;direction:rtl;text-align:center;font-size:15px;line-height:1.5;-webkit-text-size-adjust:100%;text-size-adjust:100%">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${f ? DARK : "#fbf8f3"};border-radius:${photo ? "0 0" : "14px 14px"} 14px 14px;overflow:hidden">
       ${img}
       <tr><td style="padding:16px 10px 6px;text-align:center">
-        ${label ? `<div dir="ltr" style="font-family:Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:4px;color:${f ? "#d8c3a8" : t.soft}">${label}</div>` : ""}
-        <div style="font-size:19px;color:${f ? CREAM : SIG_BROWN};margin-top:4px">${esc(p.name)}</div>
+        ${label ? `<div dir="ltr" style="font-family:Helvetica,Arial,sans-serif;font-size:11px;line-height:1.5;letter-spacing:4px;color:${f ? "#d8c3a8" : t.soft}">${label}</div>` : ""}
+        <div style="font-size:19px;line-height:1.4;color:${f ? CREAM : SIG_BROWN};margin-top:4px">${esc(p.name)}</div>
         <div style="height:1px;width:34px;background:${f ? "#d8c3a8" : "#c4a47e"};margin:11px auto"></div>
         ${p.lines.map((l) => `<div style="font-size:13px;color:${fg};line-height:1.8">${esc(l)}</div>`).join("")}
       </td></tr>
       <tr><td style="padding:10px 10px 20px;text-align:center">
-        <span style="display:inline-block;white-space:nowrap;${f ? `background:${CREAM};color:${DARK};border:1px solid ${CREAM}` : `background:transparent;color:${DARK};border:1px solid ${DARK}`};font-size:19px;padding:7px 24px;border-radius:3px"><span style="font-size:15px">&#8362;</span> ${esc(p.price.replace(/[₪\s]/g, ""))}</span>
+        <span style="display:inline-block;white-space:nowrap;${f ? `background:${CREAM};color:${DARK};border:1px solid ${CREAM}` : `background:transparent;color:${DARK};border:1px solid ${DARK}`};font-size:19px;line-height:1.4;padding:7px 24px;border-radius:3px"><span style="font-size:15px;line-height:1.4">&#8362;</span> ${esc(p.price.replace(/[₪\s]/g, ""))}</span>
       </td></tr>
     </table>
   </div>`;
@@ -214,7 +214,7 @@ function priceBlock(list: typeof NEWBORN, t: Theme, kind: keyof typeof PKG_LABEL
     <div dir="ltr" style="text-align:center;font-family:Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:5px;color:${t.soft}">${kind === "outdoor" ? "FAMILY &amp; KIDS" : kind === "studio" ? "STUDIO" : "NEWBORN"}</div>
     <h3 style="color:${SIG_BROWN};font-size:24px;font-weight:normal;margin:6px 0 6px;text-align:center;font-family:${FONT}">${esc(list.title)}</h3>
     <p style="margin:0 auto 14px;max-width:520px;text-align:center;font-size:13px;line-height:1.7;color:${t.soft}">${esc(list.note)}</p>
-    <div dir="rtl" style="text-align:center;font-size:0;line-height:0">${list.pkgs.map(card).join("")}</div>
+    <div dir="rtl" style="text-align:center;font-size:0;line-height:0;-webkit-text-size-adjust:100%">${list.pkgs.map(card).join("")}</div>
     <p style="margin:12px 0 0;text-align:center;font-size:12px;color:${t.soft};line-height:1.7">${esc(addons)}</p>
   </div>`;
 }
