@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-11 (02:3x Israel) — Claude (chat, owner: "yes" — verify the studio site in Search Console):** added `public/googleb8b36c0bdc626ef4.html` (Google Search Console ownership file for `https://sweetbabyphoto.shop/`, URL-prefix property added in the owner's Search Console). DO NOT DELETE the file or verification is lost. After verifying: submit `https://sweetbabyphoto.shop/sitemap.xml` and request indexing for the 3 new blog articles.
+
 - **2026-11-11 (Israel) — Claude (chat, owner: "check it is not cut oddly"):** live check showed the card description was cut to ~66px (313 of 353 clipped) because it sat in the narrow column next to the add button. Now it is a full-width block under the name/price/button row with `line-clamp-2` (`rental-catalog.tsx`). tsc clean; PUBLISHED right after (see below if present).
 
 - **2026-11-11 (Israel) — Claude (chat, owner: "publish"):** PUBLISHED head b31d040 via the Lovable connector (deploy 198e760a-c1d3-465a-ab15-c6149e219ebf, status pending when logged; not checked live). Carries the item-description entry above plus earlier unpublished work.
