@@ -273,6 +273,7 @@ function RentalCatalogPage() {
         name: it.name || it.alt,
         price: it.price,
         image_url: it.img || null,
+        description: it.description,
       });
     }
   };
@@ -651,6 +652,14 @@ function RentalCatalogPage() {
                                   {it.name}
                                 </div>
                               )}
+                              {it.description && (
+                                <div
+                                  className="text-[11px] text-primary/60 truncate mt-0.5"
+                                  title={it.description}
+                                >
+                                  {it.description}
+                                </div>
+                              )}
                               <div className="font-display text-peach-deep text-lg leading-none mt-1">
                                 ₪{it.price}
                               </div>
@@ -879,7 +888,7 @@ function RentalCatalogPage() {
                 skusText || "(אין)",
                 "",
                 "פירוט פריטים:",
-                ...lines.map((l) => `• ${l.name} (מק״ט ${l.sku}) — ₪${l.price} × ${l.quantity}`),
+                ...lines.map((l) => `• ${l.name} (מק״ט ${l.sku}) — ₪${l.price} × ${l.quantity}${l.description ? `\n   ${l.description}` : ""}`),
                 `סה״כ: ₪${subtotal.toFixed(0)}`,
                 "",
                 `7. אופן תשלום: ${form.payment}`,
@@ -1074,7 +1083,7 @@ function RentalCatalogPage() {
               skusText || "(אין)",
               "",
               "פירוט פריטים:",
-              ...lines.map((l) => `• ${l.name} (מק״ט ${l.sku}) — ₪${l.price} × ${l.quantity}`),
+              ...lines.map((l) => `• ${l.name} (מק״ט ${l.sku}) — ₪${l.price} × ${l.quantity}${l.description ? `\n   ${l.description}` : ""}`),
               `סה״כ: ₪${subtotal.toFixed(0)}`,
               "",
               `7. אופן תשלום: ${form.payment}`,

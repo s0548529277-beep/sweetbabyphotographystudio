@@ -9,6 +9,8 @@ export type CatalogItem = {
   price: number;
   img: string;
   alt: string;
+  /** Short catalog description (items.description), shown on the card and in order mails. */
+  description?: string | null;
   hasHand?: boolean;
   /** Admin-set tags (items.tags), e.g. "חלאקה" — searched together with the name. */
   tags?: string[];
@@ -127,6 +129,7 @@ export function useCatalogCategories(): CatalogCategory[] {
           price: Number(row.price ?? item.price),
           img: row.image_url || item.img,
           alt: row.description || item.alt,
+          description: row.description || null,
           tags: row.tags ?? [],
         });
       }
@@ -141,6 +144,7 @@ export function useCatalogCategories(): CatalogCategory[] {
         price: Number(row.price ?? 0),
         img: row.image_url || "",
         alt: row.description || row.name,
+        description: row.description || null,
         tags: row.tags ?? [],
       });
     }

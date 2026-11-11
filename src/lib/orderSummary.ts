@@ -301,6 +301,8 @@ export type SummaryOrderLine = {
   price: number; // line total (already ×quantity and ×day-multiplier)
   /** Catalog photo (items.image_url) — shown as a small thumbnail so the item is recognizable at a glance, without having to look up the SKU. Omitted/null just renders no thumbnail. */
   image_url?: string | null;
+  /** Short catalog description (items.description), shown under the name. */
+  description?: string | null;
 };
 
 export type SummaryOrder = {
@@ -363,7 +365,7 @@ export function buildPropsOrderSummaryHtml(opts: {
         l.image_url
           ? `<td style="padding:6px 0 6px 8px;width:44px"><img src="${escapeHtml(emailThumbUrl(l.image_url, 80) ?? "")}" alt="" width="40" height="40" style="width:40px;height:40px;object-fit:cover;border-radius:8px;display:block" /></td>`
           : ""
-      }<td style="padding:8px 10px;border-bottom:1px solid #eadfd3"><div style="font-size:15px;line-height:1.5">${escapeHtml(l.item_name)} (${escapeHtml(l.item_sku)})${l.quantity > 1 ? ` · ×${l.quantity}` : ""}</div><div style="font-size:13px;color:#6b8a63;line-height:1.5">${priceCell}</div></td></tr>`;
+      }<td style="padding:8px 10px;border-bottom:1px solid #eadfd3"><div style="font-size:15px;line-height:1.5">${escapeHtml(l.item_name)} (${escapeHtml(l.item_sku)})${l.quantity > 1 ? ` · ×${l.quantity}` : ""}</div>${l.description ? `<div style="font-size:12px;color:#8a7f73;line-height:1.4">${escapeHtml(l.description)}</div>` : ""}<div style="font-size:13px;color:#6b8a63;line-height:1.5">${priceCell}</div></td></tr>`;
     })
     .join("");
 

@@ -7,6 +7,8 @@ export type CartLine = {
   sku: string;
   price: number;
   image_url: string | null;
+  /** Short catalog description (optional; older saved carts lack it). */
+  description?: string | null;
   quantity: number;
 };
 

@@ -67,7 +67,7 @@ export const placeOrder = createServerFn({ method: "POST" })
     const skus = data.lines.map((l) => l.sku);
     const { data: items, error: itemsErr } = await supabase
       .from("items")
-      .select("id, name, sku, price, active, stock_quantity, image_url")
+      .select("id, name, sku, price, active, stock_quantity, image_url, description")
       .in("sku", skus);
     if (itemsErr) throw new Error(itemsErr.message);
 
@@ -93,6 +93,7 @@ export const placeOrder = createServerFn({ method: "POST" })
         price,
         stock: Number(server.stock_quantity ?? 1),
         image_url: server.image_url as string | null,
+        description: (server as any).description as string | null,
       };
     });
 
@@ -338,6 +339,7 @@ export const placeOrder = createServerFn({ method: "POST" })
         quantity: l.quantity,
         price: l.price * l.quantity,
         image_url: l.image_url,
+        description: l.description,
       }));
       const html = buildPropsOrderSummaryHtml({
         heading: "בקשת הזמנה התקבלה 📦",
@@ -493,7 +495,7 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
 
     const { data: itemRows } = await supabase
       .from("order_items")
-      .select("item_name, item_sku, quantity, price, items(image_url)")
+      .select("item_name, item_sku, quantity, price, items(image_url, description)")
       .eq("order_id", o.id);
     const lines: SummaryOrderLine[] = (itemRows ?? []).map((l: any) => ({
       item_name: l.item_name,
@@ -501,6 +503,7 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
       quantity: l.quantity,
       price: Number(l.price) * Number(l.quantity),
       image_url: l.items?.image_url ?? null,
+      description: l.items?.description ?? null,
     }));
 
     // The account's e-mail AND the one typed into the order (saved in orders.contact_email).
@@ -756,7 +759,7 @@ export async function runDueOrderReminders(): Promise<{ checked: number; sent: n
 
       const { data: itemRows } = await supabaseAdmin
         .from("order_items")
-        .select("item_name, item_sku, quantity, price, items(image_url)")
+        .select("item_name, item_sku, quantity, price, items(image_url, description)")
         .eq("order_id", o.id);
       const lines: SummaryOrderLine[] = (itemRows ?? []).map((l: any) => ({
         item_name: l.item_name,
@@ -764,6 +767,7 @@ export async function runDueOrderReminders(): Promise<{ checked: number; sent: n
         quantity: l.quantity,
         price: Number(l.price) * Number(l.quantity),
         image_url: l.items?.image_url ?? null,
+      description: l.items?.description ?? null,
       }));
 
       const pickupTime = o.pickup_at
