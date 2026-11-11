@@ -26,6 +26,9 @@ const staticEntries: SitemapEntry[] = [
   { path: "/blog/essential-newborn-props", changefreq: "monthly", priority: "0.7" },
   { path: "/blog/chalakah-photoshoot-guide", changefreq: "monthly", priority: "0.7" },
   { path: "/blog/smash-cake-toddler-prep", changefreq: "monthly", priority: "0.7" },
+  { path: "/blog/newborn-photo-safety", changefreq: "monthly", priority: "0.7" },
+  { path: "/blog/newborn-photo-timing", changefreq: "monthly", priority: "0.7" },
+  { path: "/blog/newborn-photo-crying-baby", changefreq: "monthly", priority: "0.7" },
 ];
 
 function createSupabaseFetch(supabaseKey: string): typeof fetch {

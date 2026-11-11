@@ -47,4 +47,37 @@ export const BLOG_POSTS: BlogPost[] = [
     readMinutes: 5,
     image: smashCakeOg.url,
   },
+  {
+    slug: "newborn-photo-safety",
+    to: "/blog/newborn-photo-safety",
+    title: "הדבר הכי חשוב בצילומי ניו בורן (לפני היופי)",
+    excerpt:
+      "בטיחות התינוק קודם לכל: שיטת הספוטר, תנוחות שמורכבות מכמה תמונות, ומה כדאי לשאול כל צלמת.",
+    category: "מדריכים",
+    date: "2026-11-11",
+    readMinutes: 3,
+    image: newbornOg,
+  },
+  {
+    slug: "newborn-photo-timing",
+    to: "/blog/newborn-photo-timing",
+    title: "למה לצלם ניו בורן בשבועיים הראשונים?",
+    excerpt:
+      "בין 7 ל-14 ימים מהלידה התינוק ישן עמוק וגמיש. למה זה עובד, ואיך לשריין תאריך כבר בהריון.",
+    category: "מדריכים",
+    date: "2026-11-11",
+    readMinutes: 4,
+    image: newbornOg,
+  },
+  {
+    slug: "newborn-photo-crying-baby",
+    to: "/blog/newborn-photo-crying-baby",
+    title: "מה אם התינוק שלי יבכה כל הזמן בצילום?",
+    excerpt:
+      "צילום ניו בורן לוקח 2-3 שעות בדיוק בשביל זה: זמן להזנה, חיבוק והרגעה, בקצב של התינוק.",
+    category: "מדריכים",
+    date: "2026-11-11",
+    readMinutes: 3,
+    image: newbornOg,
+  },
 ];

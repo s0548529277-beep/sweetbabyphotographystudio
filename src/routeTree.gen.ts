@@ -46,6 +46,9 @@ import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogChalakahPhotoshootGuideRouteImport } from './routes/blog.chalakah-photoshoot-guide'
 import { Route as BlogEssentialNewbornPropsRouteImport } from './routes/blog.essential-newborn-props'
 import { Route as BlogSmashCakeToddlerPrepRouteImport } from './routes/blog.smash-cake-toddler-prep'
+import { Route as BlogNewbornPhotoSafetyRouteImport } from './routes/blog.newborn-photo-safety'
+import { Route as BlogNewbornPhotoTimingRouteImport } from './routes/blog.newborn-photo-timing'
+import { Route as BlogNewbornPhotoCryingBabyRouteImport } from './routes/blog.newborn-photo-crying-baby'
 import { Route as CollageStudioIndexRouteImport } from './routes/collage-studio.index'
 import { Route as CollageStudioTemplateIdRouteImport } from './routes/collage-studio.$templateId'
 import { Route as GoFunnelRouteImport } from './routes/go.$funnel'
@@ -295,6 +298,21 @@ const BlogSmashCakeToddlerPrepRoute =
     path: '/blog/smash-cake-toddler-prep',
     getParentRoute: () => rootRouteImport,
   } as any)
+const BlogNewbornPhotoSafetyRoute = BlogNewbornPhotoSafetyRouteImport.update({
+  id: '/blog/newborn-photo-safety',
+  path: '/blog/newborn-photo-safety',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogNewbornPhotoTimingRoute = BlogNewbornPhotoTimingRouteImport.update({
+  id: '/blog/newborn-photo-timing',
+  path: '/blog/newborn-photo-timing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogNewbornPhotoCryingBabyRoute = BlogNewbornPhotoCryingBabyRouteImport.update({
+  id: '/blog/newborn-photo-crying-baby',
+  path: '/blog/newborn-photo-crying-baby',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CollageStudioIndexRoute = CollageStudioIndexRouteImport.update({
   id: '/collage-studio/',
   path: '/collage-studio/',
@@ -680,6 +698,9 @@ export interface FileRoutesByFullPath {
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
   '/blog/smash-cake-toddler-prep': typeof BlogSmashCakeToddlerPrepRoute
+  '/blog/newborn-photo-safety': typeof BlogNewbornPhotoSafetyRoute
+  '/blog/newborn-photo-timing': typeof BlogNewbornPhotoTimingRoute
+  '/blog/newborn-photo-crying-baby': typeof BlogNewbornPhotoCryingBabyRoute
   '/collage-studio/$templateId': typeof CollageStudioTemplateIdRoute
   '/go/$funnel': typeof GoFunnelRoute
   '/items/$id': typeof ItemsIdRoute
@@ -778,6 +799,9 @@ export interface FileRoutesByTo {
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
   '/blog/smash-cake-toddler-prep': typeof BlogSmashCakeToddlerPrepRoute
+  '/blog/newborn-photo-safety': typeof BlogNewbornPhotoSafetyRoute
+  '/blog/newborn-photo-timing': typeof BlogNewbornPhotoTimingRoute
+  '/blog/newborn-photo-crying-baby': typeof BlogNewbornPhotoCryingBabyRoute
   '/collage-studio/$templateId': typeof CollageStudioTemplateIdRoute
   '/go/$funnel': typeof GoFunnelRoute
   '/items/$id': typeof ItemsIdRoute
@@ -879,6 +903,9 @@ export interface FileRoutesById {
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
   '/blog/smash-cake-toddler-prep': typeof BlogSmashCakeToddlerPrepRoute
+  '/blog/newborn-photo-safety': typeof BlogNewbornPhotoSafetyRoute
+  '/blog/newborn-photo-timing': typeof BlogNewbornPhotoTimingRoute
+  '/blog/newborn-photo-crying-baby': typeof BlogNewbornPhotoCryingBabyRoute
   '/collage-studio/$templateId': typeof CollageStudioTemplateIdRoute
   '/go/$funnel': typeof GoFunnelRoute
   '/items/$id': typeof ItemsIdRoute
@@ -980,6 +1007,9 @@ export interface FileRouteTypes {
     | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
     | '/blog/smash-cake-toddler-prep'
+    | '/blog/newborn-photo-safety'
+    | '/blog/newborn-photo-timing'
+    | '/blog/newborn-photo-crying-baby'
     | '/collage-studio/$templateId'
     | '/go/$funnel'
     | '/items/$id'
@@ -1078,6 +1108,9 @@ export interface FileRouteTypes {
     | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
     | '/blog/smash-cake-toddler-prep'
+    | '/blog/newborn-photo-safety'
+    | '/blog/newborn-photo-timing'
+    | '/blog/newborn-photo-crying-baby'
     | '/collage-studio/$templateId'
     | '/go/$funnel'
     | '/items/$id'
@@ -1178,6 +1211,9 @@ export interface FileRouteTypes {
     | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
     | '/blog/smash-cake-toddler-prep'
+    | '/blog/newborn-photo-safety'
+    | '/blog/newborn-photo-timing'
+    | '/blog/newborn-photo-crying-baby'
     | '/collage-studio/$templateId'
     | '/go/$funnel'
     | '/items/$id'
@@ -1276,6 +1312,9 @@ export interface RootRouteChildren {
   BlogChalakahPhotoshootGuideRoute: typeof BlogChalakahPhotoshootGuideRoute
   BlogEssentialNewbornPropsRoute: typeof BlogEssentialNewbornPropsRoute
   BlogSmashCakeToddlerPrepRoute: typeof BlogSmashCakeToddlerPrepRoute
+  BlogNewbornPhotoSafetyRoute: typeof BlogNewbornPhotoSafetyRoute
+  BlogNewbornPhotoTimingRoute: typeof BlogNewbornPhotoTimingRoute
+  BlogNewbornPhotoCryingBabyRoute: typeof BlogNewbornPhotoCryingBabyRoute
   CollageStudioTemplateIdRoute: typeof CollageStudioTemplateIdRoute
   GoFunnelRoute: typeof GoFunnelRoute
   ItemsIdRoute: typeof ItemsIdRoute
@@ -1552,6 +1591,27 @@ declare module '@tanstack/react-router' {
       path: '/blog/smash-cake-toddler-prep'
       fullPath: '/blog/smash-cake-toddler-prep'
       preLoaderRoute: typeof BlogSmashCakeToddlerPrepRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/newborn-photo-safety': {
+      id: '/blog/newborn-photo-safety'
+      path: '/blog/newborn-photo-safety'
+      fullPath: '/blog/newborn-photo-safety'
+      preLoaderRoute: typeof BlogNewbornPhotoSafetyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/newborn-photo-timing': {
+      id: '/blog/newborn-photo-timing'
+      path: '/blog/newborn-photo-timing'
+      fullPath: '/blog/newborn-photo-timing'
+      preLoaderRoute: typeof BlogNewbornPhotoTimingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/newborn-photo-crying-baby': {
+      id: '/blog/newborn-photo-crying-baby'
+      path: '/blog/newborn-photo-crying-baby'
+      fullPath: '/blog/newborn-photo-crying-baby'
+      preLoaderRoute: typeof BlogNewbornPhotoCryingBabyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/collage-studio/': {
@@ -2191,6 +2251,9 @@ const rootRouteChildren: RootRouteChildren = {
   BlogChalakahPhotoshootGuideRoute: BlogChalakahPhotoshootGuideRoute,
   BlogEssentialNewbornPropsRoute: BlogEssentialNewbornPropsRoute,
   BlogSmashCakeToddlerPrepRoute: BlogSmashCakeToddlerPrepRoute,
+  BlogNewbornPhotoSafetyRoute: BlogNewbornPhotoSafetyRoute,
+  BlogNewbornPhotoTimingRoute: BlogNewbornPhotoTimingRoute,
+  BlogNewbornPhotoCryingBabyRoute: BlogNewbornPhotoCryingBabyRoute,
   CollageStudioTemplateIdRoute: CollageStudioTemplateIdRoute,
   GoFunnelRoute: GoFunnelRoute,
   ItemsIdRoute: ItemsIdRoute,
