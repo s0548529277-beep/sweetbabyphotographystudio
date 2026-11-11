@@ -11,7 +11,7 @@ out = sys.argv[1]; os.makedirs(out, exist_ok=True)
 K = 3; W, H = 320, 100          # displayed at 160x50
 FONTB = "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf"
 def lerp(a, b, t): return tuple(a[i] + (b[i] - a[i]) * t for i in range(3))
-STUDIO = [(61, 90, 58), (200, 100, 128), (205, 120, 88), (96, 140, 110)]      # green, rose, terracotta, sage
+STUDIO = [(45, 61, 43), (76, 100, 72), (150, 88, 112), (45, 61, 43)]      # logo green -> sage-green -> deep rose (price cards + Noa bot colours)
 MICHAL = [(161, 130, 102), (167, 136, 108), (172, 141, 113), (163, 132, 104)]       # exactly the logo brown #a18266 (owner 11-11), only a whisper of movement
 def hexrgb(h): return tuple(int(h.lstrip("#")[i:i+2], 16) for i in (0, 2, 4))
 def cyc(pal, p):
@@ -53,7 +53,7 @@ def make(label, pal, bg_hex, name, float_amp=0, frames_n=24, soft=False, ink=(25
     path = os.path.join(out, name)
     ps[0].save(path, save_all=True, append_images=ps[1:], duration=[1500] + [(380 if soft else 300)] * (frames_n - 1), loop=0, optimize=False, disposal=1)
     print(name, os.path.getsize(path) // 1024, "KB")
-SOFT_STUDIO = [(207, 227, 194), (247, 210, 195), (243, 205, 216), (214, 232, 222)]
+SOFT_STUDIO = [(248, 196, 192), (245, 213, 207), (232, 196, 216), (200, 224, 182)]   # blush, peach, pink, sage (Noa heart)
 SOFT_MICHAL = [(239, 228, 211), (230, 211, 187), (243, 235, 221), (233, 218, 198)]
 # importance: primary = saturated + white text; secondary = soft pastel + dark text (all rotate slowly)
 make("לאתר הסטודיו", STUDIO, "#f8ede4", "btn-studio-site.gif")

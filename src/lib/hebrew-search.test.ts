@@ -9,7 +9,17 @@ import { makeHebrewMatcher, makeTopicMatcher, normHebrew, suggestQuery, THEME_TO
 // are not in this file, so every check is "at least N", never an exact count.
 type Cat = { title: string; items: Array<{ sku: string; name?: string; alt?: string }> };
 const catalog = JSON.parse(readFileSync(new URL("../data/studio-catalog.json", import.meta.url), "utf-8")) as Cat[];
-const items = catalog.flatMap((c) => c.items.map((i) => ({ sku: i.sku, text: `${i.name ?? ""} ${i.alt ?? ""} ${c.title}` })));
+// The bundled file was cut down to 2 categories on 2026-11-05 (the real catalog now lives in the DB), so the checks
+// also run against a fixed sample of typical item names that must stay findable.
+const SAMPLE_TEXTS = [
+  "עגלה מעץ לתינוק אביזרי עץ", "סמאש קייק עוגה ראשונה", "חלאקה לגיל שנה", "כיסא ילדים מעץ", "כסא נדנדה וינטג׳",
+  "רקע בד לבן", "רקעים לצילום ניו בורן", "מיטה לבובה אביזרים", "סל קש לתינוק", "אביזרים לצילומי ניו בורן בנים כחול",
+  "כובע לתינוק ניו-בורן בנים", "בד עטיפה ניו-בורן בנים",
+];
+const items = [
+  ...catalog.flatMap((c) => c.items.map((i) => ({ sku: i.sku, text: `${i.name ?? ""} ${i.alt ?? ""} ${c.title}` }))),
+  ...SAMPLE_TEXTS.map((text, n) => ({ sku: `SAMPLE-${n}`, text })),
+];
 const count = (query: string) => {
   const m = makeHebrewMatcher(query);
   return items.filter((i) => m(i.text)).length;
