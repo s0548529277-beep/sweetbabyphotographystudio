@@ -277,7 +277,7 @@ import { RB_STUDIO, RB_MICHAL, RB_CSS } from "@/lib/email-design";
 
 /** Animated (colour-rotating) button image — e-mail clients ignore CSS animation, a GIF wrapped in a link works everywhere. */
 function animBtn(href: string, gif: string, label: string): string {
-  return `<a href="${href}" style="display:inline-block;margin:2px;text-decoration:none"><img src="https://sweetbabyphoto.shop/email/${gif}" alt="${label}" width="160" height="50" style="width:160px;height:50px;border:0;display:block"></a>`;
+  return `<a href="${href}" style="display:inline-block;margin:2px;text-decoration:none;width:30%;max-width:160px;vertical-align:top"><img src="https://sweetbabyphoto.shop/email/${gif}" alt="${label}" width="160" height="50" style="width:100%;max-width:160px;height:auto;border:0;display:block"></a>`;
 }
 
 /**
