@@ -94,7 +94,20 @@ export function esc(s: string): string {
  */
 export function bodyToHtml(body: string, t: Theme): string {
   const blocks = body.replace(/\r/g, "").split(/\n{2,}/);
-  const inline = (s: string) => esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  const WRAP = "overflow-wrap:anywhere;word-break:break-word;";
+  const inline = (s: string) =>
+    esc(s)
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      // placeholders for the owner ("[[מיכל: …]]") are shown as a highlighted note, never as mail text
+      .replace(
+        /\[\[(.+?)\]\]/g,
+        `<span style="background:#fff3c4;color:#7a5a00;border-radius:6px;padding:1px 6px;font-weight:bold">✎ לפני שליחה: $1</span>`,
+      )
+      // long links wrap instead of running off the card
+      .replace(
+        /(https?:\/\/[^\s<]+)/g,
+        `<a href="$1" style="color:${t.accent};${WRAP}direction:ltr;unicode-bidi:isolate">$1</a>`,
+      );
   return blocks
     .map((b) => {
       const lines = b.split("\n").filter((l) => l.trim());
@@ -112,7 +125,7 @@ export function bodyToHtml(body: string, t: Theme): string {
           .map((l) => inline(l.replace(/^>\s?/, "")))
           .join("<br>")}</div>`;
       }
-      return `<p style="margin:0 0 12px">${lines.map(inline).join("<br>")}</p>`;
+      return `<p style="margin:0 0 12px;${WRAP}">${lines.map(inline).join("<br>")}</p>`;
     })
     .join("");
 }
@@ -187,7 +200,7 @@ function priceBlock(list: typeof NEWBORN, t: Theme, kind: keyof typeof PKG_LABEL
     const f = !!p.featured;
     const fg = f ? CREAM : t.text;
     const photo = photos.length ? photos[i % photos.length] : "";
-    const baked = photo.includes("/email/newborn-card-");
+    const baked = photo.includes("/email/newborn-card-") || photo.includes("/email/outdoor-card-");
     const label = (PKG_LABELS[kind] ?? [])[i] ?? "";
     const img = photo
       ? `<tr><td style="padding:0;text-align:center;background:${CREAM}"><img src="${esc(photo)}" alt="" width="190"${baked ? "" : ' class="cp"'} style="width:100%;max-width:100%;${baked ? "height:auto;" : "height:170px;object-fit:cover;border-radius:999px 999px 0 0;"}display:block;border:0"></td></tr>`

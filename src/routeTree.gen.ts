@@ -45,10 +45,10 @@ import { Route as ApiTrackDwellRouteImport } from './routes/api.track-dwell'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogChalakahPhotoshootGuideRouteImport } from './routes/blog.chalakah-photoshoot-guide'
 import { Route as BlogEssentialNewbornPropsRouteImport } from './routes/blog.essential-newborn-props'
-import { Route as BlogSmashCakeToddlerPrepRouteImport } from './routes/blog.smash-cake-toddler-prep'
+import { Route as BlogNewbornPhotoCryingBabyRouteImport } from './routes/blog.newborn-photo-crying-baby'
 import { Route as BlogNewbornPhotoSafetyRouteImport } from './routes/blog.newborn-photo-safety'
 import { Route as BlogNewbornPhotoTimingRouteImport } from './routes/blog.newborn-photo-timing'
-import { Route as BlogNewbornPhotoCryingBabyRouteImport } from './routes/blog.newborn-photo-crying-baby'
+import { Route as BlogSmashCakeToddlerPrepRouteImport } from './routes/blog.smash-cake-toddler-prep'
 import { Route as CollageStudioIndexRouteImport } from './routes/collage-studio.index'
 import { Route as CollageStudioTemplateIdRouteImport } from './routes/collage-studio.$templateId'
 import { Route as GoFunnelRouteImport } from './routes/go.$funnel'
@@ -292,10 +292,10 @@ const BlogEssentialNewbornPropsRoute =
     path: '/blog/essential-newborn-props',
     getParentRoute: () => rootRouteImport,
   } as any)
-const BlogSmashCakeToddlerPrepRoute =
-  BlogSmashCakeToddlerPrepRouteImport.update({
-    id: '/blog/smash-cake-toddler-prep',
-    path: '/blog/smash-cake-toddler-prep',
+const BlogNewbornPhotoCryingBabyRoute =
+  BlogNewbornPhotoCryingBabyRouteImport.update({
+    id: '/blog/newborn-photo-crying-baby',
+    path: '/blog/newborn-photo-crying-baby',
     getParentRoute: () => rootRouteImport,
   } as any)
 const BlogNewbornPhotoSafetyRoute = BlogNewbornPhotoSafetyRouteImport.update({
@@ -308,11 +308,12 @@ const BlogNewbornPhotoTimingRoute = BlogNewbornPhotoTimingRouteImport.update({
   path: '/blog/newborn-photo-timing',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BlogNewbornPhotoCryingBabyRoute = BlogNewbornPhotoCryingBabyRouteImport.update({
-  id: '/blog/newborn-photo-crying-baby',
-  path: '/blog/newborn-photo-crying-baby',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const BlogSmashCakeToddlerPrepRoute =
+  BlogSmashCakeToddlerPrepRouteImport.update({
+    id: '/blog/smash-cake-toddler-prep',
+    path: '/blog/smash-cake-toddler-prep',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const CollageStudioIndexRoute = CollageStudioIndexRouteImport.update({
   id: '/collage-studio/',
   path: '/collage-studio/',
@@ -697,10 +698,10 @@ export interface FileRoutesByFullPath {
   '/api/track-dwell': typeof ApiTrackDwellRoute
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
-  '/blog/smash-cake-toddler-prep': typeof BlogSmashCakeToddlerPrepRoute
+  '/blog/newborn-photo-crying-baby': typeof BlogNewbornPhotoCryingBabyRoute
   '/blog/newborn-photo-safety': typeof BlogNewbornPhotoSafetyRoute
   '/blog/newborn-photo-timing': typeof BlogNewbornPhotoTimingRoute
-  '/blog/newborn-photo-crying-baby': typeof BlogNewbornPhotoCryingBabyRoute
+  '/blog/smash-cake-toddler-prep': typeof BlogSmashCakeToddlerPrepRoute
   '/collage-studio/$templateId': typeof CollageStudioTemplateIdRoute
   '/go/$funnel': typeof GoFunnelRoute
   '/items/$id': typeof ItemsIdRoute
@@ -798,10 +799,10 @@ export interface FileRoutesByTo {
   '/api/track-dwell': typeof ApiTrackDwellRoute
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
-  '/blog/smash-cake-toddler-prep': typeof BlogSmashCakeToddlerPrepRoute
+  '/blog/newborn-photo-crying-baby': typeof BlogNewbornPhotoCryingBabyRoute
   '/blog/newborn-photo-safety': typeof BlogNewbornPhotoSafetyRoute
   '/blog/newborn-photo-timing': typeof BlogNewbornPhotoTimingRoute
-  '/blog/newborn-photo-crying-baby': typeof BlogNewbornPhotoCryingBabyRoute
+  '/blog/smash-cake-toddler-prep': typeof BlogSmashCakeToddlerPrepRoute
   '/collage-studio/$templateId': typeof CollageStudioTemplateIdRoute
   '/go/$funnel': typeof GoFunnelRoute
   '/items/$id': typeof ItemsIdRoute
@@ -902,10 +903,10 @@ export interface FileRoutesById {
   '/api/track-dwell': typeof ApiTrackDwellRoute
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
-  '/blog/smash-cake-toddler-prep': typeof BlogSmashCakeToddlerPrepRoute
+  '/blog/newborn-photo-crying-baby': typeof BlogNewbornPhotoCryingBabyRoute
   '/blog/newborn-photo-safety': typeof BlogNewbornPhotoSafetyRoute
   '/blog/newborn-photo-timing': typeof BlogNewbornPhotoTimingRoute
-  '/blog/newborn-photo-crying-baby': typeof BlogNewbornPhotoCryingBabyRoute
+  '/blog/smash-cake-toddler-prep': typeof BlogSmashCakeToddlerPrepRoute
   '/collage-studio/$templateId': typeof CollageStudioTemplateIdRoute
   '/go/$funnel': typeof GoFunnelRoute
   '/items/$id': typeof ItemsIdRoute
@@ -1006,10 +1007,10 @@ export interface FileRouteTypes {
     | '/api/track-dwell'
     | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
-    | '/blog/smash-cake-toddler-prep'
+    | '/blog/newborn-photo-crying-baby'
     | '/blog/newborn-photo-safety'
     | '/blog/newborn-photo-timing'
-    | '/blog/newborn-photo-crying-baby'
+    | '/blog/smash-cake-toddler-prep'
     | '/collage-studio/$templateId'
     | '/go/$funnel'
     | '/items/$id'
@@ -1107,10 +1108,10 @@ export interface FileRouteTypes {
     | '/api/track-dwell'
     | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
-    | '/blog/smash-cake-toddler-prep'
+    | '/blog/newborn-photo-crying-baby'
     | '/blog/newborn-photo-safety'
     | '/blog/newborn-photo-timing'
-    | '/blog/newborn-photo-crying-baby'
+    | '/blog/smash-cake-toddler-prep'
     | '/collage-studio/$templateId'
     | '/go/$funnel'
     | '/items/$id'
@@ -1210,10 +1211,10 @@ export interface FileRouteTypes {
     | '/api/track-dwell'
     | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
-    | '/blog/smash-cake-toddler-prep'
+    | '/blog/newborn-photo-crying-baby'
     | '/blog/newborn-photo-safety'
     | '/blog/newborn-photo-timing'
-    | '/blog/newborn-photo-crying-baby'
+    | '/blog/smash-cake-toddler-prep'
     | '/collage-studio/$templateId'
     | '/go/$funnel'
     | '/items/$id'
@@ -1311,10 +1312,10 @@ export interface RootRouteChildren {
   ApiTrackDwellRoute: typeof ApiTrackDwellRoute
   BlogChalakahPhotoshootGuideRoute: typeof BlogChalakahPhotoshootGuideRoute
   BlogEssentialNewbornPropsRoute: typeof BlogEssentialNewbornPropsRoute
-  BlogSmashCakeToddlerPrepRoute: typeof BlogSmashCakeToddlerPrepRoute
+  BlogNewbornPhotoCryingBabyRoute: typeof BlogNewbornPhotoCryingBabyRoute
   BlogNewbornPhotoSafetyRoute: typeof BlogNewbornPhotoSafetyRoute
   BlogNewbornPhotoTimingRoute: typeof BlogNewbornPhotoTimingRoute
-  BlogNewbornPhotoCryingBabyRoute: typeof BlogNewbornPhotoCryingBabyRoute
+  BlogSmashCakeToddlerPrepRoute: typeof BlogSmashCakeToddlerPrepRoute
   CollageStudioTemplateIdRoute: typeof CollageStudioTemplateIdRoute
   GoFunnelRoute: typeof GoFunnelRoute
   ItemsIdRoute: typeof ItemsIdRoute
@@ -1586,11 +1587,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogEssentialNewbornPropsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/blog/smash-cake-toddler-prep': {
-      id: '/blog/smash-cake-toddler-prep'
-      path: '/blog/smash-cake-toddler-prep'
-      fullPath: '/blog/smash-cake-toddler-prep'
-      preLoaderRoute: typeof BlogSmashCakeToddlerPrepRouteImport
+    '/blog/newborn-photo-crying-baby': {
+      id: '/blog/newborn-photo-crying-baby'
+      path: '/blog/newborn-photo-crying-baby'
+      fullPath: '/blog/newborn-photo-crying-baby'
+      preLoaderRoute: typeof BlogNewbornPhotoCryingBabyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blog/newborn-photo-safety': {
@@ -1607,11 +1608,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogNewbornPhotoTimingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/blog/newborn-photo-crying-baby': {
-      id: '/blog/newborn-photo-crying-baby'
-      path: '/blog/newborn-photo-crying-baby'
-      fullPath: '/blog/newborn-photo-crying-baby'
-      preLoaderRoute: typeof BlogNewbornPhotoCryingBabyRouteImport
+    '/blog/smash-cake-toddler-prep': {
+      id: '/blog/smash-cake-toddler-prep'
+      path: '/blog/smash-cake-toddler-prep'
+      fullPath: '/blog/smash-cake-toddler-prep'
+      preLoaderRoute: typeof BlogSmashCakeToddlerPrepRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/collage-studio/': {
@@ -2250,10 +2251,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTrackDwellRoute: ApiTrackDwellRoute,
   BlogChalakahPhotoshootGuideRoute: BlogChalakahPhotoshootGuideRoute,
   BlogEssentialNewbornPropsRoute: BlogEssentialNewbornPropsRoute,
-  BlogSmashCakeToddlerPrepRoute: BlogSmashCakeToddlerPrepRoute,
+  BlogNewbornPhotoCryingBabyRoute: BlogNewbornPhotoCryingBabyRoute,
   BlogNewbornPhotoSafetyRoute: BlogNewbornPhotoSafetyRoute,
   BlogNewbornPhotoTimingRoute: BlogNewbornPhotoTimingRoute,
-  BlogNewbornPhotoCryingBabyRoute: BlogNewbornPhotoCryingBabyRoute,
+  BlogSmashCakeToddlerPrepRoute: BlogSmashCakeToddlerPrepRoute,
   CollageStudioTemplateIdRoute: CollageStudioTemplateIdRoute,
   GoFunnelRoute: GoFunnelRoute,
   ItemsIdRoute: ItemsIdRoute,

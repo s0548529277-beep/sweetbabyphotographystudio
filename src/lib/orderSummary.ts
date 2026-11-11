@@ -8,7 +8,11 @@ import { emailThumbUrl } from "@/lib/media-url";
 function dateWithHebrew(isoDate: string | null | undefined): string {
   if (!isoDate) return "";
   const heb = hebrewDate(isoDate);
-  return heb ? `${isoDate} · ${heb}` : isoDate;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(isoDate);
+  if (!m) return heb ? `${isoDate} · ${heb}` : isoDate;
+  const day = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "שבת"][new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])).getUTCDay()];
+  const shown = `יום ${day} ${m[3]}.${m[2]}.${m[1]}`;
+  return heb ? `${shown} · ${heb}` : shown;
 }
 
 // Shared with PayOnlineButton.tsx (the in-site iframe version of the same
@@ -185,7 +189,7 @@ export function buildBookingSummaryHtml(opts: {
     <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">
       <tr><td style="padding:8px 14px;border-bottom:1px solid #eadfd3"><div style="font-size:12px;color:#6b8a63;font-weight:bold;line-height:1.4">מספר הזמנה</div><div style="font-size:20px;font-weight:700;color:#2d3d2b;text-align:right" dir="ltr">#${b.id.slice(0, 8)}</div></td></tr>
       ${row("תאריך", dateWithHebrew(b.session_date))}
-      ${row("שעה", `${String(b.start_time).slice(0, 5)} - ${String(b.end_time).slice(0, 5)}`)}
+      ${row("שעה", `<bdi dir="ltr">${String(b.start_time).slice(0, 5)}–${String(b.end_time).slice(0, 5)}</bdi>`)}
       ${row("מחיר כולל", `₪${b.price}`)}
       ${b.deposit_amount != null ? row(continueUrl || paymentAmount != null ? "מקדמה לתשלום (טרם שולמה)" : "מקדמה ששולמה", `₪${b.deposit_amount}`) : ""}
       ${b.balance_method ? row("אמצעי תשלום", PAYMENT_METHOD_LABELS[b.balance_method] ?? escapeHtml(b.balance_method)) : ""}
@@ -365,7 +369,7 @@ export function buildPropsOrderSummaryHtml(opts: {
         l.image_url
           ? `<td style="padding:6px 0 6px 8px;width:44px"><img src="${escapeHtml(emailThumbUrl(l.image_url, 80) ?? "")}" alt="" width="40" height="40" style="width:40px;height:40px;object-fit:cover;border-radius:8px;display:block" /></td>`
           : ""
-      }<td style="padding:8px 10px;border-bottom:1px solid #eadfd3"><div style="font-size:15px;line-height:1.5">${escapeHtml(l.item_name)} (${escapeHtml(l.item_sku)})${l.quantity > 1 ? ` · ×${l.quantity}` : ""}</div>${l.description ? `<div style="font-size:12px;color:#8a7f73;line-height:1.4">${escapeHtml(l.description)}</div>` : ""}<div style="font-size:13px;color:#6b8a63;line-height:1.5">${priceCell}</div></td></tr>`;
+      }<td style="padding:8px 10px;border-bottom:1px solid #eadfd3"><div style="font-size:15px;line-height:1.5">${escapeHtml(l.item_name)}</div><div style="font-size:12px;color:#8a7f73;line-height:1.4">${l.quantity > 1 ? `${l.quantity} יחידות · ` : ""}מק״ט <bdi dir="ltr">${escapeHtml(l.item_sku)}</bdi></div>${l.description ? `<div style="font-size:12px;color:#8a7f73;line-height:1.4">${escapeHtml(l.description)}</div>` : ""}<div style="font-size:13px;color:#6b8a63;line-height:1.5">${priceCell}</div></td></tr>`;
     })
     .join("");
 

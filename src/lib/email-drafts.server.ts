@@ -41,6 +41,8 @@ const LAST_RUN_KEY = "email_drafts_last_run";
 /** Studio photos (public/email) shown with the newborn price cards next to the sample newborn photo. */
 /** Newborn price-list photos (cut from the owner's price-list image, already arched): mini, pampered, luxury. */
 const NEWBORN_CARD_PHOTOS = ["mini", "pamper", "luxury"].map((n) => `https://sweetbabyphoto.shop/email/newborn-card-${n}.jpg`);
+/** Outdoor price-list photos (cut from the owner's outdoor price-list image, already arched): dream, popular, magic. */
+const OUTDOOR_CARD_PHOTOS = ["dream", "popular", "magic"].map((n) => `https://sweetbabyphoto.shop/email/outdoor-card-${n}.jpg`);
 const PHOTOS_KEY = "email_drafts_sample_photos";
 const OWNER_ADDRESSES = ["m0548529277@gmail.com", "s0548529277@gmail.com"];
 const OWNER_NOTIFY = "m0548529277@gmail.com";
@@ -520,7 +522,7 @@ async function analyze(subject: string, text: string, past: string, isSiteForm: 
 "clientName": "שם פרטי", "clientEmail": "", "clientPhone": "",
 "question": "שורה קצרה: מה היא שאלה",
 "priceList": "newborn"|"outdoor"|"both"|"studio"|"none" — רק אם שאלו על מחירים/חבילות ובמותג photographer; "studio" כשמבקשים צלמת בסטודיו / צילום בסטודיו עם מיכל (ראי הנחיה בידע),
-"photos": "newborn"|"family"|"none" — תמונות לדוגמה בראש המייל (רק photographer ורק ללקוחה ששואלת על צילומים),
+"photos": "newborn"|"family"|"none" — תמונות לדוגמה בראש המייל (רק photographer ורק ללקוחה ששואלת על צילומים). "newborn" = תינוקות; "family" = ילדים גדולים ומשפחות — לשאלה על ניו בורן / סל לידה תמיד "newborn", לעולם לא "family",
 "bigPhotos": true אם היא אמרה שהאתר חסום / ביקשה לראות תמונות,
 "cta": "gallery"|"photography"|"studio"|"booking"|"props"|"collage"|null — כפתור רק אם הוא הצעד הבא הטבעי בדיוק למה שנשאלה, ורק ללקוחה; אחרת null (ברירת מחדל null),
 "subject": "נושא למייל חדש (רק לטופס מהאתר)",
@@ -864,7 +866,10 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
             url: CTA_URLS[ctaKey],
           }
         : null;
-      const photoSet = a.photos === "newborn" ? photos.newborn : a.photos === "family" ? photos.family : [];
+      /* Newborn / birth-basket inquirers always get BABY photos, whatever the model picked (the "family" set is older children). */
+      const babyTopic = a.topic === "newborn" || a.topic === "birth_basket";
+      const photoKind = babyTopic && a.photos !== "none" ? "newborn" : a.photos;
+      const photoSet = photoKind === "newborn" ? photos.newborn : photoKind === "family" ? photos.family : [];
       const html = buildDraftHtml({
         brand,
         body: a.body,
@@ -875,7 +880,7 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
           newborn: design.cardPhotos.newborn.length
             ? design.cardPhotos.newborn
             : NEWBORN_CARD_PHOTOS,
-          outdoor: design.cardPhotos.outdoor.length ? design.cardPhotos.outdoor : photos.family.slice(0, 3),
+          outdoor: design.cardPhotos.outdoor.length ? design.cardPhotos.outdoor : OUTDOOR_CARD_PHOTOS,
         },
         cta,
       });
