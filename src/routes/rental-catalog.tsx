@@ -639,7 +639,8 @@ function RentalCatalogPage() {
                         )}
 
                         {!inspiration && (
-                          <div className="p-3 flex items-center justify-between gap-2">
+                          <div className="p-3">
+                           <div className="flex items-center justify-between gap-2">
                             <div className="min-w-0">
                               <div className="text-[10px] tracking-widest text-forest/60 uppercase">
                                 מק״ט {it.sku}
@@ -650,14 +651,6 @@ function RentalCatalogPage() {
                                   title={it.name}
                                 >
                                   {it.name}
-                                </div>
-                              )}
-                              {it.description && (
-                                <div
-                                  className="text-[11px] text-primary/60 truncate mt-0.5"
-                                  title={it.description}
-                                >
-                                  {it.description}
                                 </div>
                               )}
                               <div className="font-display text-peach-deep text-lg leading-none mt-1">
@@ -690,6 +683,15 @@ function RentalCatalogPage() {
                                 <Plus className="h-4 w-4" />
                               )}
                             </button>
+                           </div>
+                           {it.description && (
+                             <div
+                               className="text-[11px] leading-snug text-primary/60 mt-2 line-clamp-2"
+                               title={it.description}
+                             >
+                               {it.description}
+                             </div>
+                           )}
                           </div>
                         )}
                       </div>

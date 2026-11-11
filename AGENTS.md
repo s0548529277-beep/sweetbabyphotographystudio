@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-11 (Israel) — Claude (chat, owner: "check it is not cut oddly"):** live check showed the card description was cut to ~66px (313 of 353 clipped) because it sat in the narrow column next to the add button. Now it is a full-width block under the name/price/button row with `line-clamp-2` (`rental-catalog.tsx`). tsc clean; PUBLISHED right after (see below if present).
+
 - **2026-11-11 (Israel) — Claude (chat, owner: "publish"):** PUBLISHED head b31d040 via the Lovable connector (deploy 198e760a-c1d3-465a-ab15-c6149e219ebf, status pending when logged; not checked live). Carries the item-description entry above plus earlier unpublished work.
 
 - **2026-11-11 (Israel) — Claude (chat, via GitHub, owner: "not too long, and in the order-confirmation and order-request mails add the description too"):** item `description` now shown (1 truncated line) on rental-catalog cards (`rental-catalog.tsx`), carried in `CatalogItem.description` (`lib/catalog.ts`) and `CartLine.description` (`lib/cart.tsx`); added under the item name in the order-confirmation HTML (`orderSummary.ts` `SummaryOrderLine.description`; `orders.functions.ts` fetches `items(image_url, description)` in both summary senders + at order creation) and in the two "request" mail bodies (`rental-catalog.tsx`, line 2 under each item). tsc clean for touched files; not tested on a live mail/order.
