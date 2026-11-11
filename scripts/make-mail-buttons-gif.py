@@ -12,7 +12,7 @@ K = 3; W, H = 320, 100          # displayed at 160x50
 FONTB = "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf"
 def lerp(a, b, t): return tuple(a[i] + (b[i] - a[i]) * t for i in range(3))
 STUDIO = [(61, 90, 58), (200, 100, 128), (205, 120, 88), (96, 140, 110)]      # green, rose, terracotta, sage
-MICHAL = [(122, 90, 68), (150, 118, 92), (169, 139, 110), (138, 106, 80)]       # brown with a touch of cream-tan (owner 11-08)
+MICHAL = [(161, 130, 102), (167, 136, 108), (172, 141, 113), (163, 132, 104)]       # exactly the logo brown #a18266 (owner 11-11), only a whisper of movement
 def hexrgb(h): return tuple(int(h.lstrip("#")[i:i+2], 16) for i in (0, 2, 4))
 def cyc(pal, p):
     n = len(pal); x = (p % 1.0) * n; i = int(x) % n; return lerp(pal[i], pal[(i + 1) % n], x - int(x))
