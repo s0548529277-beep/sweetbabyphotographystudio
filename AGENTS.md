@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-11 (Israel) — Claude (chat, owner: "publish"):** PUBLISHED head b31d040 via the Lovable connector (deploy 198e760a-c1d3-465a-ab15-c6149e219ebf, status pending when logged; not checked live). Carries the item-description entry above plus earlier unpublished work.
+
 - **2026-11-11 (Israel) — Claude (chat, via GitHub, owner: "not too long, and in the order-confirmation and order-request mails add the description too"):** item `description` now shown (1 truncated line) on rental-catalog cards (`rental-catalog.tsx`), carried in `CatalogItem.description` (`lib/catalog.ts`) and `CartLine.description` (`lib/cart.tsx`); added under the item name in the order-confirmation HTML (`orderSummary.ts` `SummaryOrderLine.description`; `orders.functions.ts` fetches `items(image_url, description)` in both summary senders + at order creation) and in the two "request" mail bodies (`rental-catalog.tsx`, line 2 under each item). tsc clean for touched files; not tested on a live mail/order.
 
 - **2026-11-11 (Israel) — Claude (chat, via Lovable DB `query_database`, owner: "can you add a description?" — by each item's image, all empty ones, easy to edit, nothing deleted):** DATA ONLY, no code/schema change. Filled `items.description` for 169 active props whose description was empty (guarded `where description is null or ''`, no `updated_at` change, nothing overwritten). ~106 written from the real photo, 63 name-only (60 items have a solid-colour placeholder image + 10 with no image). Left empty on purpose: NEWBORN-009/011/012/014/015/017/018 (junk "DSC…" names). Editable per item in admin items page (`description` field). Not tested on the live site.
