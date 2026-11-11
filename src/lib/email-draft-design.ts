@@ -205,7 +205,7 @@ function priceBlock(list: typeof NEWBORN, t: Theme, kind: keyof typeof PKG_LABEL
     const img = photo
       ? `<tr><td style="padding:0;text-align:center;background:${CREAM}"><img src="${esc(photo)}" alt="" width="190"${baked ? "" : ' class="cp"'} style="width:100%;max-width:100%;${baked ? "height:auto;" : "height:170px;object-fit:cover;border-radius:999px 999px 0 0;"}display:block;border:0"></td></tr>`
       : "";
-    return `<div class="pc" style="display:inline-block;vertical-align:top;width:31%;min-width:170px;box-sizing:border-box;padding:6px;direction:rtl;text-align:center;font-size:15px;line-height:1.5;-webkit-text-size-adjust:100%;text-size-adjust:100%">
+    return `<div class="pc" style="display:inline-block;vertical-align:top;width:31%;min-width:150px;box-sizing:border-box;padding:6px;direction:rtl;text-align:center;font-size:15px;line-height:1.5;-webkit-text-size-adjust:100%;text-size-adjust:100%">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${f ? DARK : "#fbf8f3"};border-radius:${photo ? "0 0" : "14px 14px"} 14px 14px;overflow:hidden">
       ${img}
       <tr><td style="padding:16px 10px 6px;text-align:center">
