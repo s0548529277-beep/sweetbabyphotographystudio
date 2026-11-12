@@ -11,7 +11,7 @@ export function ownText(body: string): string {
   const out: string[] = [];
   for (const raw of body.split(/\r?\n/)) {
     const line = raw.replace(/[‎‏‪-‮]/g, "").trim();
-    if (/^>/.test(line) || /^(בתאריך|ב־|ביום).{0,80}(כתב|כתבה)/.test(line) || /^On .{0,100}wrote:?$/i.test(line) || /^-{2,}\s*(Forwarded|Original)/i.test(line)) break;
+    if (/^>/.test(line) || /^(בתאריך|ב־|ביום).{0,80}(כתב|כתבה|מאת)/.test(line) || /^On .{0,100}wrote:?$/i.test(line) || /^-{2,}\s*(Forwarded|Original)/i.test(line)) break;
     out.push(raw);
   }
   return out.join("\n").trim();
@@ -44,10 +44,20 @@ export function hourlySlots(start: string, end: string): string {
   return out.join(", ");
 }
 
-export function parseFamilyRoomReply(body: string): { decision: "booked" | "not_booked" | null; hours: string; idPrefix: string | null } {
+export function parseFamilyRoomReply(body: string): {
+  decision: "booked" | "not_booked" | null;
+  hours: string;
+  idPrefix: string | null;
+  /** Session date (YYYY-MM-DD) and client name from the quoted "room to book" notification, which has no order id. */
+  date: string | null;
+  name: string | null;
+} {
   const mine = ownText(body);
   const decision = NEGATIVE.test(mine) ? "not_booked" : POSITIVE.test(mine) ? "booked" : null;
   const idPrefix =
     body.match(/הזמנה\s*:?\s*#?\s*([0-9a-f]{8})\b/i)?.[1]?.toLowerCase() ?? body.match(/#([0-9a-f]{8})\b/i)?.[1]?.toLowerCase() ?? null;
-  return { decision, hours: decision === "booked" ? hoursFromText(mine) : "", idPrefix };
+  const dm = body.match(/תאריך\s*:?\s*(\d{1,2})[./](\d{1,2})[./](\d{4})/);
+  const date = dm ? `${dm[3]}-${dm[2].padStart(2, "0")}-${dm[1].padStart(2, "0")}` : null;
+  const name = body.match(/(?:^|\n)[>\s]*1\.\s*([^\n\r]{2,60})/)?.[1]?.trim() ?? null;
+  return { decision, hours: decision === "booked" ? hoursFromText(mine) : "", idPrefix, date, name };
 }

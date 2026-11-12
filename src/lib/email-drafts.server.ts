@@ -693,7 +693,7 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
       const { isQuietForMail } = await import("./mail-quiet-hours");
       const fList = await g.gmailApi<{ messages?: Array<{ id: string; threadId: string }> }>(
         k,
-        `/users/me/messages?maxResults=15&q=${encodeURIComponent('newer_than:7d from:me (subject:"אישור חדר משפחה" OR subject:"חדר משפחה לא נקבע" OR קבעתי OR "לא נקבע" OR תפוס)')}`,
+        `/users/me/messages?maxResults=15&q=${encodeURIComponent('newer_than:7d (from:me OR from:xv05832@gmail.com) (subject:"אישור חדר משפחה" OR subject:"חדר משפחה לא נקבע" OR קבעתי OR "לא נקבע" OR תפוס)')}`,
       );
       for (const fm of fList?.messages ?? []) {
         const saved = seenSet.has(`fr:${fm.id}`);
@@ -709,6 +709,7 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
         let slots: string;
         let notBooked: boolean;
         let mailDate: string | null = null;
+        let mailName: string | null = null;
         if (conv) {
           idPrefix = body.match(/הזמנה\s*:?\s*#?\s*([0-9a-f]{8})\b/i)?.[1]?.toLowerCase() ?? null;
           slots = body.match(/שעות\s*:?\s*([^\n\r]+)/)?.[1]?.trim().slice(0, 200) ?? "";
@@ -723,12 +724,14 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
           }
         } else {
           const fr = parseFamilyRoomReply(body);
-          if (!fr.decision || !fr.idPrefix) {
+          if (!fr.decision || (!fr.idPrefix && !fr.date)) {
             remember(`fr:${fm.id}`);
             remember(`frm:${fm.id}`);
             continue; // not about the family room — stay silent
           }
           idPrefix = fr.idPrefix;
+          mailDate = fr.date;
+          mailName = fr.name;
           notBooked = fr.decision === "not_booked";
           slots = fr.hours; // empty = the whole session, filled in below once the booking is known
         }
@@ -737,9 +740,15 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
           .select("id, user_id, session_date, start_time, end_time, contact_name, contact_email")
           .gte("session_date", new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10));
         const rows = (cand ?? []) as Array<{ id: string; user_id: string; session_date: string; start_time: string; end_time: string; contact_name: string | null; contact_email: string | null }>;
-        const hit = idPrefix
+        const norm = (x: string | null | undefined) => String(x ?? "").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+        let hit = idPrefix
           ? rows.filter((r) => r.id.toLowerCase().startsWith(idPrefix!))
           : rows.filter((r) => r.session_date === mailDate);
+        // The studio-rental notification to the room booker carries no order id, only "1. <name>" + date: narrow by name.
+        if (!idPrefix && hit.length > 1 && mailName) {
+          const n = norm(mailName);
+          hit = hit.filter((r) => norm(r.contact_name) === n || norm(r.contact_name).includes(n) || n.includes(norm(r.contact_name)));
+        }
         if (hit.length !== 1) {
           remember(`fr:${fm.id}`);
           remember(`frm:${fm.id}`);
