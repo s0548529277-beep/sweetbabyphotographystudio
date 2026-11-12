@@ -214,7 +214,7 @@ export function renderNewbornContractHtml(filledTemplate: string): string {
     .map(
       (s) => `
     <tr><td style="padding:22px 0 0">
-      <h3 style="margin:0 0 8px;color:${ROSE};font-size:17px;font-weight:bold">${escapeHtml(s.title)}</h3>
+      <h3 style="margin:0 0 10px;padding-bottom:6px;border-bottom:2px solid ${ROSE};color:#3e3029;font-size:19px;line-height:1.4;font-weight:800">${escapeHtml(s.title)}</h3>
       <div style="color:${BROWN};font-size:14px;line-height:1.9">${renderBody(s.body)}</div>
     </td></tr>
     <tr><td style="padding:16px 0 0">

@@ -73,7 +73,7 @@ export function applyEmailDesignToHtml(html: string, design: EmailDesign): strin
 // Colour-rotating gradients for the dynamic-text buttons: static gradient everywhere, slowly animated where the e-mail
 // client allows CSS animation (Apple Mail / iOS). Primary buttons are saturated, secondary ones soft pastel.
 export const RB_STUDIO = "linear-gradient(135deg,#f5d5cf,#f5d5cf 45%,#d8ddca)";
-export const RB_MICHAL = "linear-gradient(#a18266,#a18266)";
+export const RB_MICHAL = "linear-gradient(#4a2f26,#4a2f26)";
 export const RB2_STUDIO = "linear-gradient(135deg,#f5d5cf,#f5d5cf 45%,#d8ddca)";
 export const RB2_MICHAL = "linear-gradient(135deg,#efe4d3,#e6d3bb)";
 export const RB_CSS = ""; // static buttons (owner 11-12): no animation

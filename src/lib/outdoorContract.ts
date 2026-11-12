@@ -53,7 +53,7 @@ function heDateLine(iso: string): string {
 function section(title: string, bodyHtml: string): string {
   return `
     <tr><td style="padding:22px 0 0">
-      <h3 style="margin:0 0 8px;color:${ROSE};font-size:17px;font-weight:bold">${title}</h3>
+      <h3 style="margin:0 0 10px;padding-bottom:6px;border-bottom:2px solid ${ROSE};color:#3e3029;font-size:19px;line-height:1.4;font-weight:800">${title}</h3>
       <div style="color:${BROWN};font-size:14px;line-height:1.9">${bodyHtml}</div>
     </td></tr>
     <tr><td style="padding:16px 0 0">
@@ -206,10 +206,10 @@ export function buildOutdoorContractHtml(input: OutdoorContractInput): string {
             ${sections.map((x) => section(x.title, x.html)).join("")}
 
             <tr><td style="padding:22px 0 0">
-              <h3 style="margin:0 0 8px;color:${ROSE};font-size:17px;font-weight:bold">אישור</h3>
+              <h3 style="margin:0 0 10px;padding-bottom:6px;border-bottom:2px solid ${ROSE};color:#3e3029;font-size:19px;line-height:1.4;font-weight:800">אישור</h3>
               <div style="color:${BROWN};font-size:14px;line-height:1.9">
                 <p style="margin:4px 0">כדי לאשר — יש להיכנס לקישור, לסמן ״קראתי״ ליד כל סעיף, ובסוף ללחוץ על שליחה. זו החתימה הדיגיטלית שלך:</p>
-                <p style="margin:12px 0;text-align:center"><a href="${confirmLink}" style="display:inline-block;background:#a18266;background-image:linear-gradient(120deg,#a18266,#a98b6e,#ad8e70,#a38468,#a18266);color:#fff;text-decoration:none;padding:12px 26px;border-radius:999px;font-weight:bold">לקריאה ואישור ההסכם</a></p>
+                <p style="margin:12px 0;text-align:center"><a href="${confirmLink}" style="display:inline-block;background:#4a2f26;background-image:linear-gradient(#4a2f26,#4a2f26);color:#fff;text-decoration:none;padding:12px 26px;border-radius:999px;font-weight:bold">לקריאה ואישור ההסכם</a></p>
                 <p style="margin:8px 0 0;font-size:13px;text-align:center">אם הכפתור לא מופיע — אפשר להעתיק את הקישור הזה לדפדפן:</p>
                 <p style="margin:4px 0;font-size:13px;text-align:center;direction:ltr;word-break:break-all">${confirmLink}</p>
               </div>

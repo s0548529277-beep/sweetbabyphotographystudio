@@ -59,6 +59,6 @@ SOFT_MICHAL = [(239, 228, 211), (230, 211, 187)]
 make("לאתר הסטודיו", CHAT, "#f8ede4", "btn-studio-site.gif", soft=True, ink=(45, 61, 43))
 make("ניווט בוויז", CHAT, "#f8ede4", "btn-studio-waze.gif", soft=True, ink=(45, 61, 43))
 make("שליחת מייל", CHAT, "#f8ede4", "btn-studio-mail.gif", soft=True, ink=(45, 61, 43))
-make("לגלריה שלי", [(161, 130, 102), (161, 130, 102)], "#f7f3ee", "btn-michal-gallery.gif")
+make("לגלריה שלי", [(74, 47, 38), (74, 47, 38)], "#f7f3ee", "btn-michal-gallery.gif")
 make("לאתר הסטודיו", SOFT_MICHAL, "#f7f3ee", "btn-michal-site.gif", soft=True, ink=(74, 47, 38))
 make("שליחת מייל", SOFT_MICHAL, "#f7f3ee", "btn-michal-mail.gif", soft=True, ink=(74, 47, 38))

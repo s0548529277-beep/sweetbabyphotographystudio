@@ -407,7 +407,7 @@ export function buildDraftHtml(opts: {
     ? `<div style="text-align:center;margin:20px 0 6px">${ctaButtons
         .map(
           (c) =>
-            `<a class="rb" href="${esc(c.url)}" style="display:inline-block;background:${look === "studio" ? "#f5d5cf" : "#a18266"};background-image:${look === "studio" ? RB_STUDIO : RB_MICHAL};color:${look === "studio" ? "#2d3d2b" : "#ffffff"};padding:11px 26px;border-radius:24px;text-decoration:none;font-weight:bold;margin:4px">${esc(c.label)}</a>`,
+            `<a class="rb" href="${esc(c.url)}" style="display:inline-block;background:${look === "studio" ? "#f5d5cf" : "#4a2f26"};background-image:${look === "studio" ? RB_STUDIO : RB_MICHAL};color:${look === "studio" ? "#2d3d2b" : "#ffffff"};padding:11px 26px;border-radius:24px;text-decoration:none;font-weight:bold;margin:4px">${esc(c.label)}</a>`,
         )
         .join("")}</div>`
     : "";
