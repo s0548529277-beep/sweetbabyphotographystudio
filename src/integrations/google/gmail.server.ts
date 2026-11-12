@@ -36,6 +36,21 @@ function encodeHeader(value: string): string {
   return words.join("\r\n ");
 }
 
+/** Address header (To/Cc): the display name of each "Name <addr>" entry is RFC 2047-encoded when it has non-ASCII letters
+ *  (a raw Hebrew name was shown as mojibake like "×”×“×¡" in Gmail); plain addresses and ASCII names stay as they are. */
+function encodeAddressList(value: string): string {
+  return String(value ?? "")
+    .split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/)
+    .map((part) => {
+      const m = part.trim().match(/^"?([^"<]*?)"?\s*<([^>]+)>$/);
+      if (!m) return part.trim();
+      const name = m[1].replace(/[\u200e\u200f\u202a-\u202e]/g, "").trim();
+      if (!name) return `<${m[2]}>`;
+      return /^[\x20-\x7e]*$/.test(name) ? `"${name.replace(/"/g, "")}" <${m[2]}>` : `${encodeHeader(name)} <${m[2]}>`;
+    })
+    .join(", ");
+}
+
 function chunk76(b64: string): string {
   return b64.replace(/(.{76})/g, "$1\r\n");
 }
@@ -89,7 +104,7 @@ function stripPinkHearts(subject: string): string {
 function buildMime({ to, subject, html, fromName = "Sweetbaby", attachments = [] }: GmailMessage): string {
   const headers = [
     `From: ${encodeHeader(fromName)} <s0548529277@gmail.com>`,
-    `To: ${to}`,
+    `To: ${encodeAddressList(to)}`,
     `Subject: ${encodeHeader(stripPinkHearts(subject))}`,
     "MIME-Version: 1.0",
   ];
@@ -456,7 +471,7 @@ export async function createGmailDraft(opts: {
   const bodyB64 = chunk76(Buffer.from(html, "utf-8").toString("base64"));
   const mime = [
     `From: ${opts.fromEmail}`,
-    `To: ${opts.to}`,
+    `To: ${encodeAddressList(opts.to)}`,
     `Subject: ${encodeHeader(stripPinkHearts(opts.subject))}`,
     "MIME-Version: 1.0",
     'Content-Type: text/html; charset="UTF-8"',
@@ -529,7 +544,7 @@ export async function createGmailHtmlDraft(opts: {
   const boundary = `sb_alt_${Date.now()}_${Math.random().toString(36).slice(2)}`;
   const headers = [
     `From: ${opts.fromName ? `${encodeHeader(opts.fromName)} ` : ""}<${opts.fromEmail}>`,
-    `To: ${opts.to}`,
+    `To: ${encodeAddressList(opts.to)}`,
     `Subject: ${encodeHeader(stripPinkHearts(opts.subject))}`,
     ...(opts.inReplyTo ? [`In-Reply-To: ${opts.inReplyTo}`, `References: ${opts.references || opts.inReplyTo}`] : []),
     "MIME-Version: 1.0",
