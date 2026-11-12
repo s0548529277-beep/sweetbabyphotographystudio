@@ -25,6 +25,7 @@ import { readEmailDesign } from "./email-design.server";
 import { generateTextResilient } from "./ai-gateway.server";
 import { buildDraftHtml, buildDraftText, type DraftBrand, type PriceList } from "./email-draft-design";
 import { chatLinkUrl } from "./orderSummary";
+import { parseFamilyRoomReply, hourlySlots } from "./family-room-reply";
 
 const MAX_NEW = 3;
 const MAX_FOLLOWUPS = 2;
@@ -686,11 +687,13 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
     // (booked: approved hours + entrance + code; not booked: plain note + "change date" button) — never on Shabbat / the hours around it
     // (it then waits for the next run). Each mail is handled once: `fr:` = saved, `frm:` = client mail sent. A mail that cannot be matched
     // to exactly one booking is reported in the run errors and nothing is sent.
+    // FREE TEXT also works (2026-11-12): any mail from her containing "קבעתי" / "לא קבעתי" / "תפוס" whose quoted order summary carries "#<8 chars>"
+    // of a booking whose client asked for the room; no hours named = the whole session; hours/range named = only those (`family-room-reply.ts`).
     try {
       const { isQuietForMail } = await import("./mail-quiet-hours");
       const fList = await g.gmailApi<{ messages?: Array<{ id: string; threadId: string }> }>(
         k,
-        `/users/me/messages?maxResults=15&q=${encodeURIComponent('newer_than:7d from:me (subject:"אישור חדר משפחה" OR subject:"חדר משפחה לא נקבע")')}`,
+        `/users/me/messages?maxResults=15&q=${encodeURIComponent('newer_than:7d from:me (subject:"אישור חדר משפחה" OR subject:"חדר משפחה לא נקבע" OR קבעתי OR "לא נקבע" OR תפוס)')}`,
       );
       for (const fm of fList?.messages ?? []) {
         const saved = seenSet.has(`fr:${fm.id}`);
@@ -699,16 +702,35 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
         if (!full) continue;
         const body = g.extractGmailPlainText(full.payload) || full.snippet || "";
         const subj = g.gmailHeaderValue(full.payload?.headers, "Subject") || "";
-        const idPrefix = body.match(/הזמנה\s*:?\s*#?\s*([0-9a-f]{8})\b/i)?.[1]?.toLowerCase() ?? null;
-        const slots = body.match(/שעות\s*:?\s*([^\n\r]+)/)?.[1]?.trim().slice(0, 200) ?? "";
-        const notBooked = /חדר משפחה לא נקבע/.test(subj) || (!slots && /לא (נקבע|קבעתי)/.test(body));
-        const dm = body.match(/תאריך\s*:?\s*(\d{1,2})[./](\d{1,2})[./](\d{4})/);
-        const mailDate = dm ? `${dm[3]}-${dm[2].padStart(2, "0")}-${dm[1].padStart(2, "0")}` : null;
-        if ((!notBooked && !slots) || (!idPrefix && !mailDate)) {
-          remember(`fr:${fm.id}`);
-          remember(`frm:${fm.id}`);
-          result.errors.push(`family room mail ${fm.id.slice(0, 8)}: missing hours or booking reference`);
-          continue;
+        // Two ways to answer: the fixed subjects below (strict, reports problems), or a FREE-TEXT reply such as just "קבעתי"
+        // (owner request 2026-11-12) — then the order id comes from the quoted mail and the client must have asked for the room.
+        const conv = /אישור חדר משפחה|חדר משפחה לא נקבע/.test(subj);
+        let idPrefix: string | null;
+        let slots: string;
+        let notBooked: boolean;
+        let mailDate: string | null = null;
+        if (conv) {
+          idPrefix = body.match(/הזמנה\s*:?\s*#?\s*([0-9a-f]{8})\b/i)?.[1]?.toLowerCase() ?? null;
+          slots = body.match(/שעות\s*:?\s*([^\n\r]+)/)?.[1]?.trim().slice(0, 200) ?? "";
+          notBooked = /חדר משפחה לא נקבע/.test(subj) || (!slots && /לא (נקבע|קבעתי)/.test(body));
+          const dm = body.match(/תאריך\s*:?\s*(\d{1,2})[./](\d{1,2})[./](\d{4})/);
+          mailDate = dm ? `${dm[3]}-${dm[2].padStart(2, "0")}-${dm[1].padStart(2, "0")}` : null;
+          if ((!notBooked && !slots) || (!idPrefix && !mailDate)) {
+            remember(`fr:${fm.id}`);
+            remember(`frm:${fm.id}`);
+            result.errors.push(`family room mail ${fm.id.slice(0, 8)}: missing hours or booking reference`);
+            continue;
+          }
+        } else {
+          const fr = parseFamilyRoomReply(body);
+          if (!fr.decision || !fr.idPrefix) {
+            remember(`fr:${fm.id}`);
+            remember(`frm:${fm.id}`);
+            continue; // not about the family room — stay silent
+          }
+          idPrefix = fr.idPrefix;
+          notBooked = fr.decision === "not_booked";
+          slots = fr.hours; // empty = the whole session, filled in below once the booking is known
         }
         const { data: cand } = await db
           .from("bookings")
@@ -716,13 +738,29 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
           .gte("session_date", new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10));
         const rows = (cand ?? []) as Array<{ id: string; user_id: string; session_date: string; start_time: string; end_time: string; contact_name: string | null; contact_email: string | null }>;
         const hit = idPrefix
-          ? rows.filter((r) => r.id.toLowerCase().startsWith(idPrefix))
+          ? rows.filter((r) => r.id.toLowerCase().startsWith(idPrefix!))
           : rows.filter((r) => r.session_date === mailDate);
         if (hit.length !== 1) {
           remember(`fr:${fm.id}`);
           remember(`frm:${fm.id}`);
-          result.errors.push(`family room mail ${fm.id.slice(0, 8)}: ${hit.length} matching bookings`);
+          if (conv) result.errors.push(`family room mail ${fm.id.slice(0, 8)}: ${hit.length} matching bookings`);
           continue;
+        }
+        if (!conv) {
+          // Free text: only for a client who actually asked for the room in her questionnaire.
+          const { data: intake } = await db
+            .from("studio_intake_forms")
+            .select("payload")
+            .eq("user_id", hit[0].user_id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (!String(intake?.payload?.familyRoom ?? "").startsWith("מעוניינת")) {
+            remember(`fr:${fm.id}`);
+            remember(`frm:${fm.id}`);
+            continue;
+          }
+          if (!notBooked && !slots) slots = hourlySlots(hit[0].start_time, hit[0].end_time);
         }
         const bk = hit[0];
         if (!saved) {
