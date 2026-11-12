@@ -983,6 +983,7 @@ async function finalizeBookingConfirmation(
 
     const html = buildBookingSummaryHtml({
       heading: "אישור הזמנה — השכרת סטודיו ✓",
+      familyRoomSlots: (b as any).family_room_slots ?? null,
       intro:
         "קיבלנו את התשלום/האסמכתא, וההזמנה מאושרת — התאריך שוריין עבורך בפועל ביומן הסטודיו. למטה תמצאי סיכום מלא של ההזמנה, פרטי הגעה, וקובץ האסמכתא ששלחת מצורף להמשך תיעוד. מחכות לפגוש אותך!",
       booking: {
@@ -1382,6 +1383,7 @@ export async function runDueBookingReminders(): Promise<{ checked: number; sent:
       const reservedItemDetails = await resolveReservedItemDetails(supabaseAdmin, b.reserved_items as string[] | null);
       const html = buildBookingSummaryHtml({
         heading: "תזכורת: הצילומים שלך מתקרבים ⏰",
+        familyRoomSlots: (b as any).family_room_slots ?? null,
         reminderActions: true,
         intro: `רק תזכורת חמה — הצילומים שלך בסטודיו Sweetbaby מתקיימים בעוד כ-${hoursBefore} שעות. למטה סיכום ההזמנה ופרטי ההגעה, שיהיה קל להתארגן.`,
         booking: {

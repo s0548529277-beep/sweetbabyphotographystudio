@@ -361,6 +361,20 @@ export function FunnelDialog() {
                 )}
               </div>
 
+              {funnel === "studio" && (
+                <div className="overflow-hidden rounded-2xl border-2 border-[var(--f-border)] bg-white shadow-sm">
+                  <div className="grid grid-cols-2 gap-1 p-1.5">
+                    <img src="/family-room/family-room-2.jpg" alt="פינת הישיבה בחדר המשפחה" loading="lazy" className="h-24 w-full rounded-xl object-cover" />
+                    <img src="/family-room/family-room-1.jpg" alt="פינת הקפה בחדר המשפחה" loading="lazy" className="h-24 w-full rounded-xl object-cover" />
+                  </div>
+                  <div className="p-3 pt-1">
+                    <span className="inline-block rounded-full bg-[#e8b4bc] px-2.5 py-0.5 text-xs font-bold text-[#2d3d2b]">חדש</span>
+                    <div className="mt-1 font-semibold">חדר משפחה להמתנה בזמן צילום הילד</div>
+                    <p className="mt-0.5 text-sm text-[var(--f-ink)]/80">פינת ישיבה, פינת קפה ושירותים — ללא תוספת תשלום. אין התחייבות לזמינות: מי שחשוב לה, מוודאים מראש שהחדר פנוי.</p>
+                  </div>
+                </div>
+              )}
+
               {result.signup && (
                 <div className="rounded-2xl border-2 border-dashed border-[var(--f-solid)] bg-[var(--f-tint)] p-4 text-center">
                   <div className="text-3xl" aria-hidden>

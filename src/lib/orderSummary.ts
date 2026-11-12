@@ -108,22 +108,26 @@ export function buildIntakeHtml(payload: Record<string, string> | null | undefin
  * (`familyRoom` = "מעוניינת בחדר משפחה …" / "לא מעוניינת …"). Photos are the same two used on
  * the studio page (public/family-room).
  */
-export function buildFamilyRoomHtml(payload?: Record<string, string> | null): string {
+/** Door code of the family room (entrance from the building lobby, immediately on the right). Owner confirmed by message on 2026-11-12: "9531 איקס" (the last character = X; an earlier answer said 9532, her final message corrected it to 9531). */
+export const FAMILY_ROOM_DOOR_CODE = "9531X";
+
+export function buildFamilyRoomHtml(payload?: Record<string, string> | null, confirmedSlots?: string | null): string {
   const answer = String(payload?.familyRoom ?? "");
   const wants = answer.startsWith("מעוניינת");
   const declined = answer.startsWith("לא מעוניינת");
   const lead = wants
-    ? "ביקשת חדר משפחה — נבדוק זמינות למועד שבחרת ונעדכן אותך. אם החדר תפוס, נשלח לך הודעה."
+    ? "ביקשת חדר משפחה — נבדוק זמינות למועד שבחרת ונשלח לך אישור. החדר לפעמים תפוס, ולכן עד שתקבלי אישור אין התחייבות לזמינות."
     : declined
       ? "אם בכל זאת תרצו להשתמש בחדר המשפחה — פשוט כתבי לנו ונבדוק אם הוא פנוי."
-      : "אפשר לבקש את חדר המשפחה — פשוט כתבי לנו ונבדוק אם הוא פנוי במועד שלך.";
+      : "אפשר לבקש את חדר המשפחה — פשוט כתבי לנו ונבדוק אם הוא פנוי במועד שלך. אם זה חשוב לך, כדאי לקבל מאיתנו אישור זמינות לפני הצילום.";
   const img = (n: number, alt: string) =>
-    `<td width="50%" style="padding:3px"><img src="https://sweetbabyphoto.shop/family-room/family-room-${n}.jpg" alt="${alt}" width="250" style="width:100%;max-width:250px;height:150px;object-fit:cover;border-radius:10px;display:block" /></td>`;
+    `<img src="https://sweetbabyphoto.shop/family-room/family-room-${n}.jpg" alt="${alt}" width="96" height="64" style="width:96px;height:64px;object-fit:cover;border-radius:8px;display:inline-block;margin:2px 0 0 6px" />`;
   return `<h3 style="color:#2d3d2b;margin-top:24px">חדש: חדר משפחה בסטודיו ☕</h3>
     <div style="background:#faf7f4;border-radius:8px;padding:12px 16px;line-height:1.7">
-      <p style="margin:0 0 6px">בסטודיו יש חדר משפחה מעוצב — עם פינת ישיבה, <strong>פינת קפה ושירותים</strong> — שעומד לרשות המשפחה בזמן הצילום, <strong>ללא תוספת תשלום</strong>. כך שהמשפחה יכולה לשבת בנחת ולהתרענן בזמן שהצילומים מתקיימים.</p>
-      <p style="margin:0 0 8px">${lead} <span style="color:#6b8a63">(החדר אינו פנוי בכל מועד.)</span></p>
-      <table role="presentation" style="width:100%;border-collapse:collapse"><tr>${img(1, "פינת הקפה בחדר המשפחה")}${img(2, "פינת הישיבה בחדר המשפחה")}</tr></table>
+      <p style="margin:0 0 6px">בסטודיו יש חדר משפחה מעוצב — עם פינת ישיבה, <strong>פינת קפה ושירותים</strong> — שבו המשפחה ממתינה בזמן צילום הילד, <strong>ללא תוספת תשלום</strong>. כך אפשר לשבת בנחת ולהתרענן בזמן שהצילומים מתקיימים.</p>
+      <p style="margin:0 0 8px">${lead} <span style="color:#6b8a63">(אין התחייבות לזמינות החדר.)</span></p>
+      <div>${img(1, "פינת הקפה בחדר המשפחה")}${img(2, "פינת הישיבה בחדר המשפחה")}</div>
+      ${confirmedSlots ? `<div style="margin-top:10px;padding:10px 12px;background:#eef3ea;border-radius:8px"><strong>החדר אושר עבורך${confirmedSlots.trim() ? ` בשעות: <bdi dir="ltr">${escapeHtml(confirmedSlots)}</bdi>` : ""}.</strong><br/>כניסה: מהלובי של הבניין, מיד בצד ימין. קוד: <bdi dir="ltr"><strong>${FAMILY_ROOM_DOOR_CODE}</strong></bdi><br/><span style="color:#6b8a63;font-size:13px">החדר שייך לבניין ולא לסטודיו — נא לשמור עליו נקי ולצאת בסיום השעות שאושרו.</span></div>` : ""}
     </div>`;
 }
 
@@ -180,6 +184,8 @@ export function buildBookingSummaryHtml(opts: {
   continueUrl?: string;
   /** Reminder emails: add-props / arrival-directions / change-date buttons. */
   reminderActions?: boolean;
+  /** Hours of the family room once it was booked/approved for this client (bookings.family_room_slots) — only then the entrance + code are shown. */
+  familyRoomSlots?: string | null;
 }): string {
   const { heading, intro, booking, intakePayload, includeArrival = true, includeIntake = true, footerNote, paymentAmount, doorCode, cashbackEarned, continueUrl } = opts;
   const b = booking;
@@ -228,7 +234,7 @@ export function buildBookingSummaryHtml(opts: {
     ${paymentHtml}
     ${doorCodeHtml}
     ${includeIntake ? buildIntakeHtml(intakePayload) : ""}
-    ${includeArrival ? buildFamilyRoomHtml(intakePayload) : ""}
+    ${includeArrival ? buildFamilyRoomHtml(intakePayload, opts.familyRoomSlots) : ""}
     ${includeArrival ? buildArrivalHtml() : ""}
     ${footerNote ? `<p style="color:#6b8a63;font-size:13px;margin-top:16px">${footerNote}</p>` : ""}
     ${continueUrl ? buildContinueOrderHtml(continueUrl) : ""}
