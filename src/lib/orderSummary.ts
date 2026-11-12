@@ -108,6 +108,69 @@ export function buildIntakeHtml(payload: Record<string, string> | null | undefin
  * (`familyRoom` = "מעוניינת בחדר משפחה …" / "לא מעוניינת …"). Photos are the same two used on
  * the studio page (public/family-room).
  */
+/** Entrance + code block (only for a client whose family room was approved). */
+export function familyRoomAccessHtml(confirmedSlots?: string | null): string {
+  return `<div style="margin-top:10px;padding:10px 12px;background:#eef3ea;border-radius:8px"><strong>החדר אושר עבורך${confirmedSlots?.trim() ? ` בשעות: <bdi dir="ltr">${escapeHtml(confirmedSlots)}</bdi>` : ""}.</strong><br/>כניסה: מהלובי של הבניין, מיד בצד ימין. קוד: <bdi dir="ltr"><strong>${FAMILY_ROOM_DOOR_CODE}</strong></bdi><br/><span style="color:#6b8a63;font-size:13px">החדר שייך לבניין ולא לסטודיו — נא לשמור עליו נקי ולצאת בסיום השעות שאושרו.</span></div>`;
+}
+
+/** True when the booked family-room hours cover fewer hours than the studio session (so the mail says "only part of the hours"). Unparseable text => false (we then just list what the owner wrote, never claim more). */
+export function familyRoomIsPartial(slots: string, start: string, end: string): boolean {
+  const toMin = (t: string) => {
+    const m = t.match(/(\d{1,2}):(\d{2})/);
+    return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+  };
+  const s0 = toMin(String(start));
+  const e0 = toMin(String(end));
+  if (s0 == null || e0 == null || e0 <= s0) return false;
+  const need = Math.ceil((e0 - s0) / 60);
+  const range = slots.match(/(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})/);
+  if (range) {
+    const a = toMin(range[1])!;
+    const b = toMin(range[2])!;
+    return b > a && Math.ceil((b - a) / 60) < need;
+  }
+  const tokens = slots.match(/\d{1,2}:\d{2}/g) ?? [];
+  return tokens.length > 0 && tokens.length < need;
+}
+
+/**
+ * The mail the client gets right after the owner answers that the family room was booked ("אישור חדר משפחה")
+ * or that it could not be booked ("חדר משפחה לא נקבע"). Studio-mail design. Booked: only the approved hours, entrance + code,
+ * and a note when it covers just part of the session. Not booked: say so plainly + a "change the date" button.
+ */
+export function buildFamilyRoomResultHtml(opts: {
+  booked: boolean;
+  slots?: string | null;
+  booking: { id: string; contact_name?: string | null; session_date: string; start_time: string; end_time: string };
+}): string {
+  const b = opts.booking;
+  const name = escapeHtml(b.contact_name ?? "");
+  const when = dateWithHebrew(b.session_date);
+  if (!opts.booked) {
+    return buildStudioMailHtml({
+      title: "חדר המשפחה — עדכון",
+      innerHtml: `<p>שלום ${name},</p>
+      <p>לצערנו <strong>לא הצלחנו לקבוע את חדר המשפחה</strong> לצילום שלך בתאריך ${when} — החדר תפוס. הצילום בסטודיו עצמו נשאר כמתוכנן.</p>
+      <p>אם החדר חשוב לך מאוד, אפשר לבחור מועד אחר שבו הוא פנוי:</p>
+      <div style="text-align:center;margin:18px 0 6px">${pillButton(chatLinkUrl("reschedule", b.id, b.session_date), "שינוי מועד", true)}</div>
+      <p style="color:#6b8a63;font-size:13px">לשאלות: s0548529277@gmail.com / 054-8529277</p>`,
+    });
+  }
+  const slots = (opts.slots ?? "").trim();
+  const partial = slots ? familyRoomIsPartial(slots, b.start_time, b.end_time) : false;
+  const img = (n: number, alt: string) =>
+    `<img src="https://sweetbabyphoto.shop/family-room/family-room-${n}.jpg" alt="${alt}" width="96" height="64" style="width:96px;height:64px;object-fit:cover;border-radius:8px;display:inline-block;margin:2px 0 0 6px" />`;
+  return buildStudioMailHtml({
+    title: "חדר המשפחה נקבע",
+    innerHtml: `<p>שלום ${name},</p>
+    <p>${partial ? "קבענו לך את חדר המשפחה <strong>רק בחלק משעות הצילום</strong>" : "קבענו לך את חדר המשפחה"} לצילום בתאריך ${when} — חדר להמתנה בזמן צילום הילד, עם פינת ישיבה, פינת קפה ושירותים.</p>
+    ${familyRoomAccessHtml(slots)}
+    ${partial ? `<p style="font-size:14px">בשעות האחרות החדר לא פנוי. הצילום בסטודיו נשאר כמתוכנן. אם חשוב לך חדר לכל השעות, אפשר לשנות מועד:</p><div style="text-align:center;margin:10px 0">${pillButton(chatLinkUrl("reschedule", b.id, b.session_date), "שינוי מועד")}</div>` : ""}
+    <div style="margin-top:10px">${img(1, "פינת הקפה בחדר המשפחה")}${img(2, "פינת הישיבה בחדר המשפחה")}</div>
+    <p style="color:#6b8a63;font-size:13px;margin-top:14px">כתובת הסטודיו: ${STUDIO_ADDRESS_WAZE_HTML} · לשאלות: s0548529277@gmail.com / 054-8529277</p>`,
+  });
+}
+
 /** Door code of the family room (entrance from the building lobby, immediately on the right). Owner confirmed by message on 2026-11-12: "9531 איקס" (the last character = X; an earlier answer said 9532, her final message corrected it to 9531). */
 export const FAMILY_ROOM_DOOR_CODE = "9531X";
 
@@ -127,7 +190,7 @@ export function buildFamilyRoomHtml(payload?: Record<string, string> | null, con
       <p style="margin:0 0 6px">בסטודיו יש חדר משפחה מעוצב — עם פינת ישיבה, <strong>פינת קפה ושירותים</strong> — שבו המשפחה ממתינה בזמן צילום הילד, <strong>ללא תוספת תשלום</strong>. כך אפשר לשבת בנחת ולהתרענן בזמן שהצילומים מתקיימים.</p>
       <p style="margin:0 0 8px">${lead} <span style="color:#6b8a63">(אין התחייבות לזמינות החדר.)</span></p>
       <div>${img(1, "פינת הקפה בחדר המשפחה")}${img(2, "פינת הישיבה בחדר המשפחה")}</div>
-      ${confirmedSlots ? `<div style="margin-top:10px;padding:10px 12px;background:#eef3ea;border-radius:8px"><strong>החדר אושר עבורך${confirmedSlots.trim() ? ` בשעות: <bdi dir="ltr">${escapeHtml(confirmedSlots)}</bdi>` : ""}.</strong><br/>כניסה: מהלובי של הבניין, מיד בצד ימין. קוד: <bdi dir="ltr"><strong>${FAMILY_ROOM_DOOR_CODE}</strong></bdi><br/><span style="color:#6b8a63;font-size:13px">החדר שייך לבניין ולא לסטודיו — נא לשמור עליו נקי ולצאת בסיום השעות שאושרו.</span></div>` : ""}
+      ${confirmedSlots ? familyRoomAccessHtml(confirmedSlots) : ""}
     </div>`;
 }
 

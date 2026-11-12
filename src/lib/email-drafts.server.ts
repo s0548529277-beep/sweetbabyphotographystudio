@@ -677,46 +677,79 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
       result.errors.push(`quiz mails: ${String((e as any)?.message ?? e).slice(0, 100)}`);
     }
 
-    // ---------- family-room confirmations (the room booked for a client at Yaner Clinics) ----------
-    // When Claude books the room it mails a confirmation FROM Michal's address. Subject starts with "אישור חדר משפחה";
-    // body lines: "הזמנה: #<first 8 characters of the booking id>", "תאריך: DD.MM.YYYY", "שעות: 18:00, 19:00".
-    // The hours are saved on the studio booking so the client's personal area and the admin show them.
-    // Never sends anything; a mail that cannot be matched to exactly one booking is reported in the run errors.
+    // ---------- family-room answers (the room booked — or not — for a client at Yaner Clinics) ----------
+    // The owner (or Claude, when it books the room) mails FROM Michal's address:
+    //   subject "אישור חדר משפחה"   -> booked; body lines: "הזמנה: #<first 8 chars of the booking id>", "תאריך: DD.MM.YYYY", "שעות: 18:00, 19:00"
+    //                                  (only the hours that really were booked — a part of the session is fine)
+    //   subject "חדר משפחה לא נקבע"  -> could not be booked; same "הזמנה:" / "תאריך:" lines, no hours needed.
+    // The hours are saved on the studio booking (client area + admin). Then ONE studio-design mail goes to the client at once
+    // (booked: approved hours + entrance + code; not booked: plain note + "change date" button) — never on Shabbat / the hours around it
+    // (it then waits for the next run). Each mail is handled once: `fr:` = saved, `frm:` = client mail sent. A mail that cannot be matched
+    // to exactly one booking is reported in the run errors and nothing is sent.
     try {
+      const { isQuietForMail } = await import("./mail-quiet-hours");
       const fList = await g.gmailApi<{ messages?: Array<{ id: string; threadId: string }> }>(
         k,
-        `/users/me/messages?maxResults=15&q=${encodeURIComponent('newer_than:7d from:me subject:"אישור חדר משפחה"')}`,
+        `/users/me/messages?maxResults=15&q=${encodeURIComponent('newer_than:7d from:me (subject:"אישור חדר משפחה" OR subject:"חדר משפחה לא נקבע")')}`,
       );
       for (const fm of fList?.messages ?? []) {
-        if (seenSet.has(`fr:${fm.id}`)) continue;
+        const saved = seenSet.has(`fr:${fm.id}`);
+        if (saved && seenSet.has(`frm:${fm.id}`)) continue;
         const full = await g.gmailApi<any>(k, `/users/me/messages/${fm.id}?format=full`);
         if (!full) continue;
         const body = g.extractGmailPlainText(full.payload) || full.snippet || "";
-        remember(`fr:${fm.id}`);
+        const subj = g.gmailHeaderValue(full.payload?.headers, "Subject") || "";
         const idPrefix = body.match(/הזמנה\s*:?\s*#?\s*([0-9a-f]{8})\b/i)?.[1]?.toLowerCase() ?? null;
         const slots = body.match(/שעות\s*:?\s*([^\n\r]+)/)?.[1]?.trim().slice(0, 200) ?? "";
+        const notBooked = /חדר משפחה לא נקבע/.test(subj) || (!slots && /לא (נקבע|קבעתי)/.test(body));
         const dm = body.match(/תאריך\s*:?\s*(\d{1,2})[./](\d{1,2})[./](\d{4})/);
         const mailDate = dm ? `${dm[3]}-${dm[2].padStart(2, "0")}-${dm[1].padStart(2, "0")}` : null;
-        if (!slots || (!idPrefix && !mailDate)) {
+        if ((!notBooked && !slots) || (!idPrefix && !mailDate)) {
+          remember(`fr:${fm.id}`);
+          remember(`frm:${fm.id}`);
           result.errors.push(`family room mail ${fm.id.slice(0, 8)}: missing hours or booking reference`);
           continue;
         }
         const { data: cand } = await db
           .from("bookings")
-          .select("id, session_date")
+          .select("id, user_id, session_date, start_time, end_time, contact_name, contact_email")
           .gte("session_date", new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10));
-        const rows = (cand ?? []) as Array<{ id: string; session_date: string }>;
+        const rows = (cand ?? []) as Array<{ id: string; user_id: string; session_date: string; start_time: string; end_time: string; contact_name: string | null; contact_email: string | null }>;
         const hit = idPrefix
           ? rows.filter((r) => r.id.toLowerCase().startsWith(idPrefix))
           : rows.filter((r) => r.session_date === mailDate);
         if (hit.length !== 1) {
+          remember(`fr:${fm.id}`);
+          remember(`frm:${fm.id}`);
           result.errors.push(`family room mail ${fm.id.slice(0, 8)}: ${hit.length} matching bookings`);
           continue;
         }
-        await db
-          .from("bookings")
-          .update({ family_room_slots: slots, family_room_booked_at: new Date().toISOString() })
-          .eq("id", hit[0].id);
+        const bk = hit[0];
+        if (!saved) {
+          await db
+            .from("bookings")
+            .update(notBooked ? { family_room_slots: null, family_room_booked_at: null } : { family_room_slots: slots, family_room_booked_at: new Date().toISOString() })
+            .eq("id", bk.id);
+          remember(`fr:${fm.id}`);
+        }
+        if (isQuietForMail()) continue; // Shabbat window: keep `frm:` unset, the next run sends it
+        const { data: u } = await db.auth.admin.getUserById(bk.user_id);
+        const { isPlaceholderEmail } = await import("@/lib/auth.functions");
+        const pick = (e?: string | null) => (e && e.trim() && !isPlaceholderEmail(e.trim()) ? e.trim() : undefined);
+        const to = pick(bk.contact_email) ?? pick(u?.user?.email);
+        if (!to) {
+          remember(`frm:${fm.id}`);
+          result.errors.push(`family room mail ${fm.id.slice(0, 8)}: booking ${bk.id.slice(0, 8)} has no customer e-mail`);
+          continue;
+        }
+        const { buildFamilyRoomResultHtml } = await import("./orderSummary");
+        const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
+        await sendStudioAndCustomer({
+          customerEmail: to,
+          subject: notBooked ? "חדר המשפחה — עדכון" : "חדר המשפחה נקבע",
+          html: buildFamilyRoomResultHtml({ booked: !notBooked, slots, booking: bk }),
+        });
+        remember(`frm:${fm.id}`);
       }
     } catch (e) {
       result.errors.push(`family room mails: ${String((e as any)?.message ?? e).slice(0, 100)}`);
