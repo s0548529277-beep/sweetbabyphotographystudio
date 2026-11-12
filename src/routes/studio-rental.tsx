@@ -395,6 +395,39 @@ function StudioRentalPage() {
         </div>
       </section>
 
+      {/* NEW: family room — visible section (owner request 2026-11-12) */}
+      <section className="container-page pb-6" dir="rtl" aria-labelledby="family-room-title">
+        <motion.div
+          initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.25 }} variants={fadeUp}
+          className="max-w-3xl mx-auto overflow-hidden rounded-3xl border border-[#6b8a63]/30 bg-gradient-to-br from-[#fbf7f0] to-[#f1f4ec]"
+        >
+          <div className="grid md:grid-cols-2">
+            <div className="grid grid-cols-2 gap-1.5 p-3 md:order-2">
+              <img src="/family-room/family-room-2.jpg" alt="פינת הישיבה בחדר המשפחה" loading="lazy" className="h-44 md:h-56 w-full rounded-2xl object-cover" />
+              <img src="/family-room/family-room-1.jpg" alt="פינת הקפה בחדר המשפחה" loading="lazy" className="h-44 md:h-56 w-full rounded-2xl object-cover" />
+            </div>
+            <div className="p-5 md:order-1 flex flex-col justify-center text-[#2d3d2b]">
+              <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[#e8b4bc] px-3 py-0.5 text-xs font-bold">
+                <Coffee className="h-3.5 w-3.5" /> חדש
+              </span>
+              <h2 id="family-room-title" className="mt-2 text-2xl" style={{ fontFamily: "'DM Serif Display', serif" }}>
+                חדר משפחה בסטודיו
+              </h2>
+              <p className="mt-2 text-sm text-[#2d3d2b]/80 leading-relaxed">
+                המשפחה לא צריכה לחכות בחוץ: עומד לרשותה חדר מעוצב עם פינת ישיבה, <strong>פינת קפה ושירותים</strong> — בזמן הצילום ו<strong>ללא תוספת תשלום</strong>.
+              </p>
+              <p className="mt-1.5 text-xs text-[#2d3d2b]/60">החדר אינו פנוי בכל מועד — מבקשים אותו בשאלון, ואם הוא תפוס נשלחת הודעה.</p>
+              <button
+                type="button"
+                onClick={() => setShowForm(true)}
+                className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-[#2d3d2b] px-5 py-2.5 text-sm font-semibold text-[#f8ede4]"
+              >
+                לקביעת מועד ובקשת החדר <ArrowLeft className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </section>
 
       {/* PRICING */}
       <section className="container-page pb-6" dir="rtl">

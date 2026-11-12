@@ -70,6 +70,7 @@ export const INTAKE_LABELS: Array<[label: string, key: string]> = [
   ["ניסיון פלאש/סטודיו", "flashExperience"],
   ["אביזרים בהשכרה", "needProps"],
   ["בקשות מיוחדות", "specialRequests"],
+  ["חדר משפחה", "familyRoom"],
 ];
 
 /** How a customer paid: shared across studio-booking and props-order emails. */
@@ -98,6 +99,32 @@ export function buildIntakeHtml(payload: Record<string, string> | null | undefin
   return `<h3 style="color:#2d3d2b;margin-top:24px">שאלון תיאום ציפיות</h3>
     <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">${rows}</table>
     <p style="font-size:12px;color:#6b8a63">הלקוחה אישרה שקראה והסכימה לכללי הסטודיו: מחירון וחישוב שעות, מדיניות ביטולים, ניקיון, אחריות ונזקים.</p>`;
+}
+
+/**
+ * "חדש: חדר משפחה" block for studio-booking mails (owner request 2026-11-12): the family
+ * can wait / sit in a designed room with a coffee corner and restrooms during the shoot,
+ * no extra charge, subject to availability. Wording adapts to the intake answer
+ * (`familyRoom` = "מעוניינת בחדר משפחה …" / "לא מעוניינת …"). Photos are the same two used on
+ * the studio page (public/family-room).
+ */
+export function buildFamilyRoomHtml(payload?: Record<string, string> | null): string {
+  const answer = String(payload?.familyRoom ?? "");
+  const wants = answer.startsWith("מעוניינת");
+  const declined = answer.startsWith("לא מעוניינת");
+  const lead = wants
+    ? "ביקשת חדר משפחה — נבדוק זמינות למועד שבחרת ונעדכן אותך. אם החדר תפוס, נשלח לך הודעה."
+    : declined
+      ? "אם בכל זאת תרצו להשתמש בחדר המשפחה — פשוט כתבי לנו ונבדוק אם הוא פנוי."
+      : "אפשר לבקש את חדר המשפחה — פשוט כתבי לנו ונבדוק אם הוא פנוי במועד שלך.";
+  const img = (n: number, alt: string) =>
+    `<td width="50%" style="padding:3px"><img src="https://sweetbabyphoto.shop/family-room/family-room-${n}.jpg" alt="${alt}" width="250" style="width:100%;max-width:250px;height:150px;object-fit:cover;border-radius:10px;display:block" /></td>`;
+  return `<h3 style="color:#2d3d2b;margin-top:24px">חדש: חדר משפחה בסטודיו ☕</h3>
+    <div style="background:#faf7f4;border-radius:8px;padding:12px 16px;line-height:1.7">
+      <p style="margin:0 0 6px">בסטודיו יש חדר משפחה מעוצב — עם פינת ישיבה, <strong>פינת קפה ושירותים</strong> — שעומד לרשות המשפחה בזמן הצילום, <strong>ללא תוספת תשלום</strong>. כך שהמשפחה יכולה לשבת בנחת ולהתרענן בזמן שהצילומים מתקיימים.</p>
+      <p style="margin:0 0 8px">${lead} <span style="color:#6b8a63">(החדר אינו פנוי בכל מועד.)</span></p>
+      <table role="presentation" style="width:100%;border-collapse:collapse"><tr>${img(1, "פינת הקפה בחדר המשפחה")}${img(2, "פינת הישיבה בחדר המשפחה")}</tr></table>
+    </div>`;
 }
 
 export function buildArrivalHtml(): string {
@@ -201,6 +228,7 @@ export function buildBookingSummaryHtml(opts: {
     ${paymentHtml}
     ${doorCodeHtml}
     ${includeIntake ? buildIntakeHtml(intakePayload) : ""}
+    ${includeArrival ? buildFamilyRoomHtml(intakePayload) : ""}
     ${includeArrival ? buildArrivalHtml() : ""}
     ${footerNote ? `<p style="color:#6b8a63;font-size:13px;margin-top:16px">${footerNote}</p>` : ""}
     ${continueUrl ? buildContinueOrderHtml(continueUrl) : ""}
