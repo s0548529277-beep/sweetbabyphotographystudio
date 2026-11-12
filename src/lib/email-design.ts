@@ -72,11 +72,11 @@ export function applyEmailDesignToHtml(html: string, design: EmailDesign): strin
 // ---- Rotating-colour buttons -------------------------------------------------------------------------------
 // Colour-rotating gradients for the dynamic-text buttons: static gradient everywhere, slowly animated where the e-mail
 // client allows CSS animation (Apple Mail / iOS). Primary buttons are saturated, secondary ones soft pastel.
-export const RB_STUDIO = "linear-gradient(120deg,#2d3d2b,#4c6448,#965870,#2d3d2b)";
-export const RB_MICHAL = "linear-gradient(120deg,#a18266,#a98b6e,#ad8e70,#a38468,#a18266)";
-export const RB2_STUDIO = "linear-gradient(120deg,#f8c4c0,#f5d5cf,#e8c4d8,#c8e0b6,#f8c4c0)";
-export const RB2_MICHAL = "linear-gradient(120deg,#efe4d3,#e6d3bb,#f3ebdd,#e9dac6,#efe4d3)";
-export const RB_CSS = `<style>.rb{background-size:300% 100%!important;animation:rbmove 14s linear infinite}.rb2{background-size:300% 100%!important;animation:rbmove 22s linear infinite}@keyframes rbmove{0%{background-position:0 0}100%{background-position:300% 0}}</style>`;
+export const RB_STUDIO = "linear-gradient(135deg,#f5d5cf,#f5d5cf 45%,#d8ddca)";
+export const RB_MICHAL = "linear-gradient(#a18266,#a18266)";
+export const RB2_STUDIO = "linear-gradient(135deg,#f5d5cf,#f5d5cf 45%,#d8ddca)";
+export const RB2_MICHAL = "linear-gradient(135deg,#efe4d3,#e6d3bb)";
+export const RB_CSS = ""; // static buttons (owner 11-12): no animation
 
 function lum(hexColour: string): number {
   const n = parseInt(hexColour.slice(1), 16);
@@ -93,7 +93,7 @@ export function rotateButtons(html: string, which: "studio" | "photographer"): s
     const bg = /(?:^|;)\s*background:\s*(#[0-9a-fA-F]{6})/.exec(style)?.[1];
     const primary = !!bg && lum(bg) < 0.55;
     const rest = style.replace(/(^|;)\s*background:[^;]*;?/g, "$1").replace(/(^|;)\s*color:[^;]*;?/g, "$1");
-    const ink = primary ? "#ffffff" : which === "studio" ? "#2d3d2b" : "#4a2f26";
+    const ink = which === "studio" ? "#2d3d2b" : primary ? "#ffffff" : "#4a2f26";
     const cls = /class=/.test(pre + post) ? "" : ` class="${primary ? "rb" : "rb2"}"`;
     return `<a${cls}${pre}style="background:${bg ?? "#f3e3dc"};background-image:${primary ? prim : soft};color:${ink};${rest.replace(/^;+/, "")}"${post}>`;
   });

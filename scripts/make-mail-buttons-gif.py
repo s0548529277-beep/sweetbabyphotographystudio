@@ -16,13 +16,13 @@ MICHAL = [(161, 130, 102), (167, 136, 108), (172, 141, 113), (163, 132, 104)]   
 def hexrgb(h): return tuple(int(h.lstrip("#")[i:i+2], 16) for i in (0, 2, 4))
 def cyc(pal, p):
     n = len(pal); x = (p % 1.0) * n; i = int(x) % n; return lerp(pal[i], pal[(i + 1) % n], x - int(x))
-def make(label, pal, bg_hex, name, float_amp=0, frames_n=24, soft=False, ink=(255, 255, 255)):
+def make(label, pal, bg_hex, name, float_amp=0, frames_n=1, soft=False, ink=(255, 255, 255)):
     BG = hexrgb(bg_hex); fr = []
     font = ImageFont.truetype(FONTB, 30 * K)
     for i in range(frames_n):
         p = i / frames_n
-        c1, c2 = cyc(pal, p), cyc(pal, p + 0.25)
-        dy = round(float_amp * math.sin(2 * math.pi * p * 2) * K)
+        c1, c2 = pal[0], pal[-1]  # STATIC: first -> last colour, no rotation
+        dy = 0
         im = Image.new("RGB", (W * K, H * K), BG)
         # gradient pill
         x0, y0, x1, y1 = 10 * K, 22 * K + dy, (W - 10) * K, (H - 22) * K + dy
@@ -53,12 +53,12 @@ def make(label, pal, bg_hex, name, float_amp=0, frames_n=24, soft=False, ink=(25
     path = os.path.join(out, name)
     ps[0].save(path, save_all=True, append_images=ps[1:], duration=[1500] + [(380 if soft else 300)] * (frames_n - 1), loop=0, optimize=False, disposal=1)
     print(name, os.path.getsize(path) // 1024, "KB")
-SOFT_STUDIO = [(248, 196, 192), (245, 213, 207), (232, 196, 216), (200, 224, 182)]   # blush, peach, pink, sage (Noa heart)
-SOFT_MICHAL = [(239, 228, 211), (230, 211, 187), (243, 235, 221), (233, 218, 198)]
-# importance: primary = saturated + white text; secondary = soft pastel + dark text (all rotate slowly)
-make("לאתר הסטודיו", STUDIO, "#f8ede4", "btn-studio-site.gif")
-make("ניווט בוויז", SOFT_STUDIO, "#f8ede4", "btn-studio-waze.gif", soft=True, ink=(45, 61, 43))
-make("שליחת מייל", SOFT_STUDIO[::-1], "#f8ede4", "btn-studio-mail.gif", soft=True, ink=(45, 61, 43))
-make("לגלריה שלי", MICHAL, "#f7f3ee", "btn-michal-gallery.gif", float_amp=3)
+# STATIC buttons (owner 11-12: nothing moves). Studio = the delicate chat-launcher look: blush #f5d5cf -> sage 40% #d8ddca, forest text.
+CHAT = [(245, 213, 207), (216, 221, 202)]
+SOFT_MICHAL = [(239, 228, 211), (230, 211, 187)]
+make("לאתר הסטודיו", CHAT, "#f8ede4", "btn-studio-site.gif", soft=True, ink=(45, 61, 43))
+make("ניווט בוויז", CHAT, "#f8ede4", "btn-studio-waze.gif", soft=True, ink=(45, 61, 43))
+make("שליחת מייל", CHAT, "#f8ede4", "btn-studio-mail.gif", soft=True, ink=(45, 61, 43))
+make("לגלריה שלי", [(161, 130, 102), (161, 130, 102)], "#f7f3ee", "btn-michal-gallery.gif")
 make("לאתר הסטודיו", SOFT_MICHAL, "#f7f3ee", "btn-michal-site.gif", soft=True, ink=(74, 47, 38))
-make("שליחת מייל", SOFT_MICHAL[::-1], "#f7f3ee", "btn-michal-mail.gif", soft=True, ink=(74, 47, 38))
+make("שליחת מייל", SOFT_MICHAL, "#f7f3ee", "btn-michal-mail.gif", soft=True, ink=(74, 47, 38))
