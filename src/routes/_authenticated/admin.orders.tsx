@@ -1,3 +1,4 @@
+import { familyRoomStatus } from "@/lib/family-room-status";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -323,9 +324,12 @@ function OrdersAdmin() {
                     <td className="p-3 whitespace-nowrap">
                       {r.date ? new Date(r.date).toLocaleDateString("he-IL") : "—"}
                       {r.time && <span className="text-muted-foreground text-xs block" dir="ltr">{r.time}</span>}
-                      {r.kind === "booking" && r.raw?.family_room_slots && (
-                        <span className="text-xs block text-[#6b8a63]">🛋 חדר משפחה: {r.raw.family_room_slots}</span>
-                      )}
+                      {r.kind === "booking" && (() => {
+                        const fr = familyRoomStatus(r.raw ?? {});
+                        return fr ? (
+                          <span className={`text-xs block ${fr.kind === "none" ? "text-red-600" : fr.kind === "partial" ? "text-amber-700" : "text-[#6b8a63]"}`}>🛋 חדר משפחה: {fr.text}</span>
+                        ) : null;
+                      })()}
                     </td>
                     <td className="p-3 font-display text-peach-deep">₪{r.total.toFixed(0)}</td>
                     <td className="p-3">

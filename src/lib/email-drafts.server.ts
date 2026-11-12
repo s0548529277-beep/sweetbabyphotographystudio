@@ -777,7 +777,7 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
         if (!saved) {
           await db
             .from("bookings")
-            .update(notBooked ? { family_room_slots: null, family_room_booked_at: null } : { family_room_slots: slots, family_room_booked_at: new Date().toISOString() })
+            .update(notBooked ? { family_room_slots: null, family_room_booked_at: new Date().toISOString() } : { family_room_slots: slots, family_room_booked_at: new Date().toISOString() })
             .eq("id", bk.id);
           remember(`fr:${fm.id}`);
         }

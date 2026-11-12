@@ -1,3 +1,4 @@
+import { familyRoomStatus } from "@/lib/family-room-status";
 import { heError } from "@/lib/he-errors";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -438,11 +439,14 @@ function Account() {
                         <div className="text-xs text-muted-foreground mt-1">
                           {b.package === "morning" ? `מבצע ניו-בורן 3 שעות (${Number(String(b.start_time).slice(0, 2)) < 15 ? "בוקר" : "ערב"})` : `${b.slots} חצאי שעות`} · סטטוס: {STATUS_HE[b.status] ?? b.status}
                         </div>
-                        {b.family_room_slots && (
-                          <div className="text-xs mt-1 text-primary/80">
-                            🛋 חדר משפחה (פינת קפה ושירותים) נקבע לשעות: {b.family_room_slots}
-                          </div>
-                        )}
+                        {(() => {
+                          const fr = familyRoomStatus(b);
+                          return fr ? (
+                            <div className={`text-xs mt-1 ${fr.kind === "none" ? "text-muted-foreground" : "text-primary/80"}`}>
+                              🛋 חדר משפחה (פינת קפה ושירותים): {fr.text}
+                            </div>
+                          ) : null;
+                        })()}
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="font-display text-2xl text-peach-deep">₪{Number(b.price).toFixed(0)}</div>
