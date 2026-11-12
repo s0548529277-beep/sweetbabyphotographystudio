@@ -13,6 +13,8 @@ import { heartImg, withEmailHearts, type HeartKind } from "@/lib/email-hearts";
 
 // Absolute URLs — email clients can't resolve relative/build-hashed paths
 // (same approach as the contract emails, photoContract.ts).
+/** "MICHAL SIBONI" as an image in the SAME font as the animated signature (Montserrat, light, wide-spaced) — mail clients ignore web fonts. */
+const WORDMARK_IMG = `<div style="line-height:0"><img src="https://sweetbabyphoto.shop/email/michal-wordmark.png" alt="MICHAL SIBONI" width="250" style="width:250px;max-width:75%;height:auto;border:0;display:inline-block"></div>`;
 const MICHAL_LOGO_URL = `https://sweetbabyphoto.shop${michalWordmark}`;
 // Michal's FIXED email signature (the animated GIF from her Gmail signature: circle photo + "MICHAL SIBONI",
 // phone, mail, site and services) — re-coloured to the card colour below by scripts/make-email-signature-gif.py
@@ -277,7 +279,12 @@ import { RB_STUDIO, RB_MICHAL, RB_CSS } from "@/lib/email-design";
 
 /** Animated (colour-rotating) button image — e-mail clients ignore CSS animation, a GIF wrapped in a link works everywhere. */
 function animBtn(href: string, gif: string, label: string): string {
-  return `<a href="${href}" style="display:inline-block;margin:2px;text-decoration:none;width:30%;max-width:160px;vertical-align:top"><img src="https://sweetbabyphoto.shop/email/${gif}" alt="${label}" width="160" height="50" style="width:100%;max-width:160px;height:auto;border:0;display:block"></a>`;
+  return `<td width="33%" align="center" valign="top" style="padding:0 2px;line-height:0"><a href="${href}" style="display:block;text-decoration:none"><img src="https://sweetbabyphoto.shop/email/${gif}" alt="${label}" width="160" height="50" style="width:100%;max-width:160px;height:auto;border:0;display:block;margin:0 auto"></a></td>`;
+}
+
+/** Three animated buttons in ONE row (a table: works in Gmail Android, which ignores percentage widths on inline links). */
+function animBtnRow(...btns: string[]): string {
+  return `<table role="presentation" dir="rtl" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;table-layout:fixed"><tr>${btns.join("")}</tr></table>`;
 }
 
 /**
@@ -287,7 +294,7 @@ function animBtn(href: string, gif: string, label: string): string {
 export function signatureBlockHtml(): string {
   return `<div style="line-height:0"><img src="${SIGNATURE_GIF_URL}" alt="MICHAL SIBONI · ${SITE_PHONE} · ${SITE_MAIL} · michalsiboni.co.il" width="560" style="width:100%;max-width:560px;height:auto;border:0;display:inline-block"></div>
       <div style="margin-top:14px;line-height:0">
-        ${animBtn("https://michalsiboni.co.il/", "btn-michal-gallery.gif", "לגלריה שלי")}${animBtn("https://sweetbabyphoto.shop/", "btn-michal-site.gif", "לאתר הסטודיו")}${animBtn(`mailto:${SITE_MAIL}`, "btn-michal-mail.gif", "שליחת מייל")}
+        ${animBtnRow(animBtn("https://michalsiboni.co.il/", "btn-michal-gallery.gif", "לגלריה שלי"), animBtn("https://sweetbabyphoto.shop/", "btn-michal-site.gif", "לאתר הסטודיו"), animBtn(`mailto:${SITE_MAIL}`, "btn-michal-mail.gif", "שליחת מייל"))}
       </div>`;
 }
 
@@ -304,7 +311,7 @@ export function buildBrandedMailHtml(opts: { title: string; innerHtml: string; t
   // Soft blush-to-sand gradient behind the card (solid colour first as the fallback for clients without gradients).
   const html = `<div dir="rtl" data-mail="photographer" style="background:#ecd0b8;background-image:linear-gradient(160deg,#f6d8d0 0%,#eccbb4 55%,#d9b898 100%);padding:12px 8px;${rtl}">${RB_CSS}
   <table role="presentation" dir="rtl" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:${t.cardBg};border:1px solid #efe0d2;border-radius:12px;overflow:hidden;box-shadow:0 8px 28px rgba(120,86,60,0.16);font-family:${FONT};color:${t.text};${rtl}">
-    <tr><td align="center" style="padding:30px 28px 6px"><div dir="ltr" style="font-family:Helvetica,Arial,sans-serif;font-size:24px;letter-spacing:9px;margin-right:-9px;color:${SIG_BROWN}">MICHAL SIBONI</div>
+    <tr><td align="center" style="padding:30px 28px 6px">${WORDMARK_IMG}
       <div style="font-size:12px;letter-spacing:2px;color:${t.soft};margin-top:8px">${esc(opts.tagline ?? "צילומי ניו בורן ומשפחה")}</div></td></tr>
     <tr><td style="padding:6px 28px 0"><div style="border-top:1px solid ${t.soft}55;text-align:center;line-height:0"><span style="position:relative;top:-1px;background:${t.cardBg};padding:0 10px;color:${t.accent};font-size:12px;line-height:1">${heartImg(heartKind, 14)}</span></div></td></tr>
     <tr><td dir="rtl" style="padding:14px 34px 10px;font-size:15px;line-height:1.8;${rtl}">
@@ -338,7 +345,7 @@ export function buildStudioMailHtml(opts: { title: string; innerHtml: string }):
     </td></tr>
     <tr><td style="padding:14px 20px 24px;font-size:13px;color:${t.soft};text-align:center;line-height:1.6">
       <div style="line-height:0"><img src="${STUDIO_SIGNATURE_GIF_URL}" alt="Sweetbaby · תלמוד ירושלמי 24, בית שמש · 054-8529277" width="560" style="width:100%;max-width:560px;height:auto;border:0;display:inline-block"></div>
-      <div style="margin-top:14px;line-height:0">${animBtn("https://sweetbabyphoto.shop/", "btn-studio-site.gif", "לאתר הסטודיו")}${animBtn(STUDIO_WAZE, "btn-studio-waze.gif", "ניווט בוויז")}${animBtn("mailto:s0548529277@gmail.com", "btn-studio-mail.gif", "שליחת מייל")}</div>
+      <div style="margin-top:14px;line-height:0">${animBtnRow(animBtn("https://sweetbabyphoto.shop/", "btn-studio-site.gif", "לאתר הסטודיו"), animBtn(STUDIO_WAZE, "btn-studio-waze.gif", "ניווט בוויז"), animBtn("mailto:s0548529277@gmail.com", "btn-studio-mail.gif", "שליחת מייל"))}</div>
     </td></tr>
   </table>
 </div>`;
@@ -383,7 +390,7 @@ export function buildDraftHtml(opts: {
   const header = opts.brand === "general" ? "" : `<tr><td align="center" style="padding:30px 28px 6px">${
     look === "studio"
       ? logo(52)
-      : `<div dir="ltr" style="font-family:Helvetica,Arial,sans-serif;font-size:24px;letter-spacing:9px;margin-right:-9px;color:${SIG_BROWN}">MICHAL SIBONI</div>`
+      : `${WORDMARK_IMG}`
   }
           <div style="font-size:12px;letter-spacing:2px;color:${t.soft};margin-top:8px">${
             look === "studio" ? "סטודיו בוטיק לצילום · בית שמש" : "צילומי ניו בורן ומשפחה"
