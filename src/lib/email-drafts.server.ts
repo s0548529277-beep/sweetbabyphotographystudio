@@ -716,6 +716,8 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
           notBooked = /חדר משפחה לא נקבע/.test(subj) || (!slots && /לא (נקבע|קבעתי)/.test(body));
           const dm = body.match(/תאריך\s*:?\s*(\d{1,2})[./](\d{1,2})[./](\d{4})/);
           mailDate = dm ? `${dm[3]}-${dm[2].padStart(2, "0")}-${dm[1].padStart(2, "0")}` : null;
+          // Automatic Yaner task (2026-11-12): no order id, only "שם: <client>" + date -> narrowed by name below.
+          mailName = body.match(/(?:^|\n)\s*שם\s*:\s*([^\n\r]{2,60})/)?.[1]?.trim() ?? null;
           if ((!notBooked && !slots) || (!idPrefix && !mailDate)) {
             remember(`fr:${fm.id}`);
             remember(`frm:${fm.id}`);
