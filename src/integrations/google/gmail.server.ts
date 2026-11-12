@@ -14,12 +14,26 @@ function toBase64Url(bytes: Uint8Array): string {
 }
 
 function encodeHeader(value: string): string {
-  // RFC 2047 encoded-word so Hebrew subjects render correctly.
-  const b64 = toBase64Url(new TextEncoder().encode(value))
-    .replace(/-/g, "+")
-    .replace(/_/g, "/");
-  const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-  return `=?UTF-8?B?${padded}?=`;
+  // RFC 2047: plain ASCII stays as is; anything else is split into encoded-words of at most 45 UTF-8 bytes
+  // (never in the middle of a character) joined by header folding, so long Hebrew subjects/names are not shown raw.
+  if (/^[\x20-\x7e]*$/.test(value)) return value;
+  const enc = new TextEncoder();
+  const words: string[] = [];
+  let cur: number[] = [];
+  const flush = () => {
+    if (!cur.length) return;
+    let bin = "";
+    for (const b of cur) bin += String.fromCharCode(b);
+    words.push(`=?UTF-8?B?${btoa(bin)}?=`);
+    cur = [];
+  };
+  for (const ch of Array.from(value)) {
+    const bytes = Array.from(enc.encode(ch));
+    if (cur.length + bytes.length > 45) flush();
+    cur.push(...bytes);
+  }
+  flush();
+  return words.join("\r\n ");
 }
 
 function chunk76(b64: string): string {
@@ -443,7 +457,7 @@ export async function createGmailDraft(opts: {
   const mime = [
     `From: ${opts.fromEmail}`,
     `To: ${opts.to}`,
-    `Subject: ${encodeHeader(opts.subject)}`,
+    `Subject: ${encodeHeader(stripPinkHearts(opts.subject))}`,
     "MIME-Version: 1.0",
     'Content-Type: text/html; charset="UTF-8"',
     "Content-Transfer-Encoding: base64",
@@ -516,7 +530,7 @@ export async function createGmailHtmlDraft(opts: {
   const headers = [
     `From: ${opts.fromName ? `${encodeHeader(opts.fromName)} ` : ""}<${opts.fromEmail}>`,
     `To: ${opts.to}`,
-    `Subject: ${encodeHeader(opts.subject)}`,
+    `Subject: ${encodeHeader(stripPinkHearts(opts.subject))}`,
     ...(opts.inReplyTo ? [`In-Reply-To: ${opts.inReplyTo}`, `References: ${opts.references || opts.inReplyTo}`] : []),
     "MIME-Version: 1.0",
     `Content-Type: multipart/alternative; boundary="${boundary}"`,
