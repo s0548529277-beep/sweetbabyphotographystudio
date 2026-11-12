@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-12 (21:3x Israel) — Claude (chat, owner: publish):** PUBLISHED commit adf847e via the Lovable connector (deploy c4d5f918-3f38-4520-812a-47478161c7fe, status pending when logged; not checked live). Carries the Netanel-reply fix above.
+
 - **2026-11-12 (21:2x Israel) — Claude (chat, via GitHub, owner: "look, in the other session the Yaner notification went to Netanel and he answers"):** FOUND in Gmail: the room-booking notification ("התראה: השכרת סטודיו חדשה, לקבוע חדר בינר") goes from Michal's address to Netanel (xv05832@gmail.com); HE replies ("קבעתי את 2 השעות שביקשת" for מלכי סופר 17.11 18-20, "קבעתי" for רעיה טאייבי 15.11 16-18). The family-room ingestion did NOT see these: it only read mails `from:me`, and the notification has no order id. FIX: `email-drafts.server.ts` Gmail query is now `(from:me OR from:xv05832@gmail.com)`; `parseFamilyRoomReply` also returns `date` (from the quoted "תאריך: DD.MM.YYYY") and `name` (quoted "1. <name>"); with no order id the booking is matched by session date, narrowed by client name when several share the date; `ownText` also cuts at the Hebrew-Gmail quote line "בתאריך … מאת …". Same rules as before (client's intake must start with "מעוניינת", no hours named = whole session, not on Shabbat, once per mail). Test added (7 pass), tsc clean. The two existing replies will be picked up by the next hourly run after publish.
 
 - **2026-11-12 (20:4x Israel) — Claude (chat):** PUBLISHED commit f0c0832 via the Lovable connector (deploy c62df919-03fd-4f25-bca3-a584b27ee314, status pending when logged; not checked live). Carries the free-text "קבעתי" support above.
