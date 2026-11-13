@@ -15,6 +15,7 @@ import {
   updatePhotoClientDetails,
   updatePhotoClientSteps,
   sendPhotoClientContract,
+  previewPhotoClientContract,
   syncAlbumToDrive,
   sendDriveAlbumLinkToClient,
   getAllPhotosUnlockReceiptUrl,
@@ -30,6 +31,7 @@ import { UnlockApprovalCard } from "@/components/UnlockApprovalCard";
 import { StepTracker } from "@/components/StepTracker";
 import { CLIENT_STEPS, PRODUCTION_STEPS } from "@/lib/gallery-steps";
 import { Button } from "@/components/ui/button";
+import { ContractPreviewButton } from "@/components/ContractPreviewButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -306,6 +308,7 @@ function PackageDetails({ workflow, workflowId, onSaved }: { workflow: any; work
   const [sendingContract, setSendingContract] = useState(false);
   const updateDetails = useServerFn(updatePhotoClientDetails);
   const sendContractFn = useServerFn(sendPhotoClientContract);
+  const previewContractFn = useServerFn(previewPhotoClientContract);
 
   // Keep the form in sync if the workflow data refetches with different values.
   useEffect(() => setForm(toPackageForm(workflow)), [workflow]);
@@ -454,6 +457,7 @@ function PackageDetails({ workflow, workflowId, onSaved }: { workflow: any; work
         <Button type="button" size="sm" variant="outline" onClick={sendContract} disabled={sendingContract} className="rounded-full gap-1.5">
           <Send className="h-3.5 w-3.5" /> {sendingContract ? "שולח..." : "שליחת חוזה ללקוחה"}
         </Button>
+        <ContractPreviewButton load={() => previewContractFn({ data: { workflowId } })} />
       </div>
       <p className="text-[11px] text-muted-foreground">
         שולח את חוזה הצילומים המלא למייל הלקוחה (ולעותק אצלך), עם מועד הצילומים ופרטי החבילה שנשמרו למעלה. יש לשמור פרטים מעודכנים לפני השליחה.

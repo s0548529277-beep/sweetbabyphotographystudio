@@ -381,6 +381,7 @@ export async function prepareChatTurn(data: ChatTurnData) {
     },
     isAdmin,
     realUserId,
+    isRealAccount,
     // Admin: short loop so a failing query can't retry until the request
     // times out (2026-10-28, 499s). Customers unchanged.
     maxSteps: isAdmin ? 4 : 8,
@@ -398,8 +399,10 @@ export async function finishChatTurn(args: {
   steps: any[];
   isAdmin: boolean;
   realUserId: string | null;
+  /** False for a guest / anonymous visitor. */
+  isRealAccount?: boolean;
 }): Promise<ChatUi> {
-  const { data, text, steps, isAdmin, realUserId } = args;
+  const { data, text, steps, isAdmin, realUserId, isRealAccount } = args;
   const toolCalls = steps.flatMap((st: any) => st.toolCalls ?? []);
   // 2026-11-02 speed fix: product images lookup, the chat-log upsert and the
   // "important chat" notification are independent DB calls that used to run
@@ -436,7 +439,8 @@ export async function finishChatTurn(args: {
     // with no extra AI call needed to judge "importance" separately. One
     // notification per session (deduped below), not one per turn — a long
     // back-and-forth would otherwise flood the admin inbox.
-    if (toolCalls.length > 0) {
+    // Owner request 2026-11-13: no alert for an ANONYMOUS visitor (no account, no name) — there is nobody to answer.
+    if (toolCalls.length > 0 && ((realUserId && isRealAccount) || data.userName)) {
       try {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: already } = await supabaseAdmin
@@ -488,6 +492,7 @@ export const chatWithBot = createServerFn({ method: "POST" })
       steps: result.steps ?? [],
       isAdmin: turn.isAdmin,
       realUserId: turn.realUserId,
+      isRealAccount: turn.isRealAccount,
     });
     return { reply: text.trim() ? text : emptyReplyFallback(ui), ui, isAdmin: turn.isAdmin };
   });

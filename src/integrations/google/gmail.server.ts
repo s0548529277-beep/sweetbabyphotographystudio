@@ -68,6 +68,11 @@ export type GmailMessage = {
   html: string;
   fromName?: string;
   attachments?: GmailAttachment[];
+  /** Reply inside an existing Gmail thread (send threadId + the Message-ID of the previous mail in `inReplyTo`). */
+  threadId?: string;
+  inReplyTo?: string;
+  /** Our own Message-ID for this mail (so the next mail can reply to it). */
+  messageId?: string;
 };
 
 /** Plain-text twin of an HTML mail (HTML-only mails are a spam signal). */
@@ -101,11 +106,13 @@ function stripPinkHearts(subject: string): string {
   return subject.replace(/\s*💗\s*/g, " ").replace(/\s{2,}/g, " ").trim();
 }
 
-function buildMime({ to, subject, html, fromName = "Sweetbaby", attachments = [] }: GmailMessage): string {
+function buildMime({ to, subject, html, fromName = "Sweetbaby", attachments = [], inReplyTo, messageId }: GmailMessage): string {
   const headers = [
     `From: ${encodeHeader(fromName)} <s0548529277@gmail.com>`,
     `To: ${encodeAddressList(to)}`,
     `Subject: ${encodeHeader(stripPinkHearts(subject))}`,
+    ...(messageId ? [`Message-ID: ${messageId}`] : []),
+    ...(inReplyTo ? [`In-Reply-To: ${inReplyTo}`, `References: ${inReplyTo}`] : []),
     "MIME-Version: 1.0",
   ];
 
@@ -163,11 +170,16 @@ function buildMime({ to, subject, html, fromName = "Sweetbaby", attachments = []
  * (never throws, so a mail problem can't break an order/booking).
  */
 export async function sendGmail(message: GmailMessage): Promise<boolean> {
+  return (await sendGmailDetailed(message)).ok;
+}
+
+/** Same as sendGmail, but also returns the Gmail threadId of the sent mail (for replying in the same thread later). */
+export async function sendGmailDetailed(message: GmailMessage): Promise<{ ok: boolean; threadId?: string }> {
   const lovableKey = process.env.LOVABLE_API_KEY;
   const connKey = process.env.GOOGLE_MAIL_API_KEY;
   if (!lovableKey || !connKey) {
     console.error("[SWEETBABY] gmail skipped — missing LOVABLE_API_KEY/GOOGLE_MAIL_API_KEY");
-    return false;
+    return { ok: false };
   }
 
   const mime = buildMime({ ...message, html: await applyStoredEmailDesign(message.html, message.subject) });
@@ -181,16 +193,22 @@ export async function sendGmail(message: GmailMessage): Promise<boolean> {
         Authorization: `Bearer ${lovableKey}`,
         "X-Connection-Api-Key": connKey,
       },
-      body: JSON.stringify({ raw }),
+      body: JSON.stringify(message.threadId ? { raw, threadId: message.threadId } : { raw }),
     });
     if (!res.ok) {
       console.error("[SWEETBABY] gmail send error", message.to, res.status, await res.text());
-      return false;
+      return { ok: false };
     }
-    return true;
+    let threadId: string | undefined;
+    try {
+      threadId = ((await res.json()) as any)?.threadId;
+    } catch {
+      // response body not needed for a plain send
+    }
+    return { ok: true, threadId };
   } catch (e) {
     console.error("[SWEETBABY] gmail send failed", message.to, e);
-    return false;
+    return { ok: false };
   }
 }
 

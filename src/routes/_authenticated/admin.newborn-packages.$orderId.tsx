@@ -16,6 +16,7 @@ import {
   bulkDeleteNewbornOrderImages,
   adminToggleNewbornProofSelection,
   resendNewbornContract,
+  previewNewbornContract,
   sendNewbornGalleryLinkByEmail,
   resetNewbornZipDownloads,
   updateNewbornPhotoSettings,
@@ -38,6 +39,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { ContractPreviewButton } from "@/components/ContractPreviewButton";
 import { Textarea } from "@/components/ui/textarea";
 
 // A dedicated gallery-management page per newborn order — its own table
@@ -482,6 +484,7 @@ function ShareLinkCard({
   onResend: () => void;
 }) {
   const sendEmailFn = useServerFn(sendNewbornGalleryLinkByEmail);
+  const previewContractFn = useServerFn(previewNewbornContract);
   const createPreviewKey = useServerFn(createNewbornGalleryPreviewKey);
   // The client gallery asks new devices for an email code; this opens it for
   // Michal without mailing the client (window opened first so popups aren't blocked).
@@ -580,6 +583,7 @@ function ShareLinkCard({
         <button type="button" onClick={onResend} disabled={resending} className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 px-3 h-7 hover:bg-cream disabled:opacity-60">
           {resending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />} שליחה מחדש
         </button>
+        <ContractPreviewButton load={() => previewContractFn({ data: { id: orderId } })} />
         {contractConfirmedAt ? <span className="text-primary font-medium">אישרה שקראה את החוזה ✓</span> : <span>עדיין לא אישרה שקראה את החוזה</span>}
         {proofsSelectedAt && <span className="text-primary font-medium">סיימה לבחור תמונות ✓</span>}
       </div>

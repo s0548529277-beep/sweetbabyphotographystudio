@@ -10,13 +10,37 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { newContractToken } from "@/lib/contract-token";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { buildOutdoorContractHtml } from "@/lib/outdoorContract";
+import { buildOutdoorContractHtml, buildOutdoorContractSections } from "@/lib/outdoorContract";
 
 const STUDIO_EMAIL = "s0548529277@gmail.com";
 
 async function assertAdmin(supabase: any, userId: string) {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
   if (!data?.some((r: any) => r.role === "admin")) throw new Error("אין הרשאת ניהול");
+}
+
+/** What is missing before an outdoor contract may go out (empty = fine). */
+function outdoorContractMissing(order: any): string[] {
+  const missing: string[] = [];
+  if (!order.session_date) missing.push("תאריך צילום");
+  if (!order.package_name) missing.push("חבילה");
+  if (!(Number(order.total_price) > 0)) missing.push("מחיר");
+  return missing;
+}
+
+const OUTDOOR_CONTRACT_COLUMNS =
+  "id, contact_name, contact_email, package_name, package_description, total_price, session_date, session_time, contract_token, contract_confirmed_at";
+
+function outdoorContractInput(order: any, confirmLink: string) {
+  return {
+    confirmLink,
+    contactName: order.contact_name,
+    sessionDate: order.session_date,
+    sessionTime: order.session_time ?? null,
+    packageName: order.package_name ?? null,
+    packageDescription: order.package_description ?? null,
+    totalPrice: order.total_price != null ? Number(order.total_price) : null,
+  };
 }
 
 /** Sends the fixed "תיאום ציפיות" contract to the order's client (and the studio), filled in with that order's own package/date/time, then stamps contract_sent_at. */
@@ -27,12 +51,13 @@ export const sendOutdoorContract = createServerFn({ method: "POST" })
     await assertAdmin(context.supabase, context.userId);
     const { data: order, error } = await (context.supabase as any)
       .from("outdoor_package_orders")
-      .select("id, contact_name, contact_email, package_name, package_description, total_price, session_date, session_time, contract_token")
+      .select(OUTDOOR_CONTRACT_COLUMNS)
       .eq("id", data.id)
       .single();
     if (error || !order) throw new Error(error?.message ?? "הזמנה לא נמצאה");
     if (!order.contact_email) throw new Error("לא נמצאה כתובת מייל ללקוחה הזו");
-    if (!order.session_date) throw new Error("יש להגדיר תאריך צילום לפני שליחת החוזה");
+    const missing = outdoorContractMissing(order);
+    if (missing.length) throw new Error(`לא ניתן לשלוח חוזה — חסר: ${missing.join(", ")}`);
 
     let contractToken = (order.contract_token as string | null) ?? null;
     if (!contractToken) {
@@ -40,15 +65,9 @@ export const sendOutdoorContract = createServerFn({ method: "POST" })
       await (context.supabase as any).from("outdoor_package_orders").update({ contract_token: contractToken }).eq("id", data.id);
     }
 
-    const html = buildOutdoorContractHtml({
-      confirmLink: `https://sweetbabyphoto.shop/contract/outdoor/${contractToken}`,
-      contactName: order.contact_name,
-      sessionDate: order.session_date,
-      sessionTime: order.session_time ?? null,
-      packageName: order.package_name ?? null,
-      packageDescription: order.package_description ?? null,
-      totalPrice: order.total_price != null ? Number(order.total_price) : null,
-    });
+    const html = buildOutdoorContractHtml(
+      outdoorContractInput(order, `https://sweetbabyphoto.shop/contract/outdoor/${contractToken}`),
+    );
 
     const { sendGmail } = await import("@/integrations/google/gmail.server");
     const subject = `תיאום ציפיות — החוזה שלך · מיכל סיבוני 💗`;
@@ -60,7 +79,41 @@ export const sendOutdoorContract = createServerFn({ method: "POST" })
       .from("outdoor_package_orders")
       .update({ contract_sent_at: new Date().toISOString() })
       .eq("id", data.id);
+    // Keep the text that was sent (not after she signed) so the signing page shows exactly this.
+    if (!order.contract_confirmed_at) {
+      try {
+        await (context.supabase as any)
+          .from("outdoor_package_orders")
+          .update({
+            contract_snapshot: JSON.stringify(buildOutdoorContractSections(outdoorContractInput(order, ""))),
+            contract_snapshot_at: new Date().toISOString(),
+          })
+          .eq("id", data.id);
+      } catch {
+        // column not live yet — the signing page builds the text from the current details
+      }
+    }
     return { ok: true };
+  });
+
+/** Admin preview: the contract e-mail exactly as it would go out, without sending anything. */
+export const previewOutdoorContract = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data: order, error } = await (context.supabase as any)
+      .from("outdoor_package_orders")
+      .select(OUTDOOR_CONTRACT_COLUMNS)
+      .eq("id", data.id)
+      .single();
+    if (error || !order) throw new Error(error?.message ?? "הזמנה לא נמצאה");
+    const missing = outdoorContractMissing(order);
+    if (!order.contact_email) missing.push("כתובת מייל");
+    const html = order.session_date
+      ? buildOutdoorContractHtml(outdoorContractInput(order, "https://sweetbabyphoto.shop/contract/outdoor/…"))
+      : "";
+    return { html, missing };
   });
 
 // Nudges the studio owner about an upcoming styling call once, a day

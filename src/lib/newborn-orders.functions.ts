@@ -1351,6 +1351,24 @@ export const approveNewbornAllPhotosUnlock = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Admin preview: the contract e-mail exactly as it would go out, without sending anything. */
+export const previewNewbornContract = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data: order, error } = await (context.supabase as any)
+      .from("newborn_package_orders")
+      .select("*")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error || !order) throw new Error(error?.message ?? "ההזמנה לא נמצאה");
+    const missing = newbornContractMissing(order);
+    if (!order.contact_email) missing.push("כתובת מייל");
+    const html = await buildNewbornContractHtml(context.supabase, order);
+    return { html, missing };
+  });
+
 /** Best-effort resend, e.g. if the automatic send-on-create failed or she wants to remind the client to reply/confirm. */
 export const resendNewbornContract = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

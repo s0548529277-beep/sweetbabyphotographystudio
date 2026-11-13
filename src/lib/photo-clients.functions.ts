@@ -451,6 +451,54 @@ export const getPhotoClientDetail = createServerFn({ method: "POST" })
     };
   });
 
+/** What is missing before a photo-session contract may go out (empty = fine). */
+function photoContractMissing(workflow: any): string[] {
+  const missing: string[] = [];
+  if (!workflow.session_date) missing.push("מועד צילומים");
+  if (!(Number(workflow.photos_to_edit) > 0)) missing.push("מספר תמונות בחבילה");
+  if (!(Number(workflow.total_price) > 0)) missing.push("מחיר");
+  return missing;
+}
+
+/** Loads the workflow + the client's name/e-mail and the contract input (without the confirm link). Throws a clear Hebrew reason if it cannot be sent. */
+async function loadPhotoContractParts(supabaseAdmin: any, workflowId: string, opts: { requireEmail: boolean }) {
+  const { data: workflow, error: wErr } = await supabaseAdmin
+    .from("photo_client_workflows")
+    .select("*")
+    .eq("id", workflowId)
+    .single();
+  if (wErr || !workflow) throw new Error(wErr?.message ?? "לקוחה לא נמצאה");
+
+  let contactName = "";
+  if (workflow.booking_id) {
+    const { data: booking } = await supabaseAdmin
+      .from("bookings")
+      .select("contact_name")
+      .eq("id", workflow.booking_id)
+      .maybeSingle();
+    contactName = booking?.contact_name || "";
+  }
+  if (!contactName) {
+    const { data: profile } = await supabaseAdmin.from("profiles").select("full_name").eq("id", workflow.user_id).maybeSingle();
+    contactName = profile?.full_name || "";
+  }
+
+  const { data: userRes, error: userErr } = await supabaseAdmin.auth.admin.getUserById(workflow.user_id);
+  const contactEmail: string | null = userErr ? null : userRes?.user?.email ?? null;
+  if (opts.requireEmail && !contactEmail) throw new Error("לא נמצאה כתובת מייל ללקוחה הזו — אי אפשר לשלוח חוזה.");
+
+  const input = (confirmLink: string) => ({
+    confirmLink,
+    contactName,
+    sessionDate: (workflow.session_date as string | null) ?? "",
+    sessionTime: (workflow.session_time as string | null)?.slice(0, 5) ?? null,
+    photosToEdit: workflow.photos_to_edit as number | null,
+    totalPrice: workflow.total_price as number | null,
+    albumUpgrades: workflow.album_upgrades as string | null,
+  });
+  return { workflow, contactName, contactEmail, input, missing: photoContractMissing(workflow) };
+}
+
 /**
  * Sends the studio's real photo-session contract to one client — the fixed
  * terms (see photoContract.ts) filled in with THIS client's saved date/
@@ -468,33 +516,12 @@ export const sendPhotoClientContract = createServerFn({ method: "POST" })
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: workflow, error: wErr } = await supabaseAdmin
-      .from("photo_client_workflows")
-      .select("*")
-      .eq("id", data.workflowId)
-      .single();
-    if (wErr || !workflow) throw new Error(wErr?.message ?? "לקוחה לא נמצאה");
-
-    const sessionDate = (workflow.session_date as string | null) ?? null;
-    if (!sessionDate) throw new Error("יש לשמור קודם מועד צילומים בפרטי החבילה לפני שליחת החוזה.");
-
-    let contactName = "";
-    if (workflow.booking_id) {
-      const { data: booking } = await supabaseAdmin
-        .from("bookings")
-        .select("contact_name")
-        .eq("id", workflow.booking_id)
-        .maybeSingle();
-      contactName = booking?.contact_name || "";
-    }
-    if (!contactName) {
-      const { data: profile } = await supabaseAdmin.from("profiles").select("full_name").eq("id", workflow.user_id).maybeSingle();
-      contactName = profile?.full_name || "";
-    }
-
-    const { data: userRes, error: userErr } = await supabaseAdmin.auth.admin.getUserById(workflow.user_id);
-    const contactEmail = userErr ? null : userRes?.user?.email ?? null;
-    if (!contactEmail) throw new Error("לא נמצאה כתובת מייל ללקוחה הזו — אי אפשר לשלוח חוזה.");
+    const { workflow, contactName, contactEmail, input, missing } = await loadPhotoContractParts(
+      supabaseAdmin,
+      data.workflowId,
+      { requireEmail: true },
+    );
+    if (missing.length) throw new Error(`לא ניתן לשלוח חוזה — חסר בפרטי החבילה: ${missing.join(", ")}`);
 
     // Token for the section-by-section signing page (/contract/photo/$token),
     // created once and reused on a resend so an older email's link still works.
@@ -504,20 +531,12 @@ export const sendPhotoClientContract = createServerFn({ method: "POST" })
       await (supabaseAdmin as any).from("photo_client_workflows").update({ contract_token: contractToken }).eq("id", workflow.id);
     }
 
-    const { buildPhotoContractHtml } = await import("@/lib/photoContract");
-    const html = buildPhotoContractHtml({
-      confirmLink: `https://sweetbabyphoto.shop/contract/photo/${contractToken}`,
-      contactName,
-      sessionDate,
-      sessionTime: (workflow.session_time as string | null)?.slice(0, 5) ?? null,
-      photosToEdit: workflow.photos_to_edit as number | null,
-      totalPrice: workflow.total_price as number | null,
-      albumUpgrades: workflow.album_upgrades as string | null,
-    });
+    const { buildPhotoContractHtml, buildPhotoContractSections } = await import("@/lib/photoContract");
+    const html = buildPhotoContractHtml(input(`https://sweetbabyphoto.shop/contract/photo/${contractToken}`));
 
     const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
     await sendStudioAndCustomer({
-      customerEmail: contactEmail,
+      customerEmail: contactEmail!,
       subject: `חוזה והסכם צילומים · Sweetbaby${contactName ? ` — ${contactName}` : ""}`,
       html,
     });
@@ -525,8 +544,40 @@ export const sendPhotoClientContract = createServerFn({ method: "POST" })
       .from("photo_client_workflows")
       .update({ contract_sent_at: new Date().toISOString() })
       .eq("id", workflow.id);
+    // Keep the text that was sent (not after she signed) so the signing page shows exactly this.
+    if (!(workflow as any).contract_confirmed_at) {
+      try {
+        await (supabaseAdmin as any)
+          .from("photo_client_workflows")
+          .update({
+            contract_snapshot: JSON.stringify(buildPhotoContractSections(input(""))),
+            contract_snapshot_at: new Date().toISOString(),
+          })
+          .eq("id", workflow.id);
+      } catch {
+        // column not live yet — the signing page builds the text from the current details
+      }
+    }
 
     return { ok: true, sentTo: contactEmail };
+  });
+
+/** Admin preview: the contract e-mail exactly as it would go out, without sending anything. */
+export const previewPhotoClientContract = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => workflowIdSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { workflow, contactEmail, input, missing } = await loadPhotoContractParts(supabaseAdmin, data.workflowId, {
+      requireEmail: false,
+    });
+    if (!contactEmail) missing.push("כתובת מייל");
+    const { buildPhotoContractHtml } = await import("@/lib/photoContract");
+    const html = workflow.session_date
+      ? buildPhotoContractHtml(input("https://sweetbabyphoto.shop/contract/photo/…"))
+      : "";
+    return { html, missing };
   });
 
 const paymentReminderSchema = z.object({ workflowIds: z.array(z.string().uuid()).min(1).max(200) });

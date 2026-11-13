@@ -26,7 +26,7 @@ import {
   approveOutdoorAllPhotosUnlock,
   createOutdoorGalleryPreviewKey,
 } from "@/lib/outdoor-orders.functions";
-import { sendOutdoorContract } from "@/lib/outdoor-packages.functions";
+import { sendOutdoorContract, previewOutdoorContract } from "@/lib/outdoor-packages.functions";
 import { heError } from "@/lib/he-errors";
 import { PhotoTriagePanel } from "@/components/PhotoTriagePanel";
 import { DriveSyncCard } from "@/components/DriveSyncCard";
@@ -37,6 +37,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { ContractPreviewButton } from "@/components/ContractPreviewButton";
 import { Textarea } from "@/components/ui/textarea";
 
 // A dedicated gallery-management page per newborn order — its own table
@@ -481,6 +482,7 @@ function ShareLinkCard({
   onResend: () => void;
 }) {
   const sendEmailFn = useServerFn(sendOutdoorGalleryLinkByEmail);
+  const previewContractFn = useServerFn(previewOutdoorContract);
   const createPreviewKey = useServerFn(createOutdoorGalleryPreviewKey);
   // The client gallery asks new devices for an email code; this opens it for
   // Michal without mailing the client (window opened first so popups aren't blocked).
@@ -579,6 +581,7 @@ function ShareLinkCard({
         <button type="button" onClick={onResend} disabled={resending} className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 px-3 h-7 hover:bg-cream disabled:opacity-60">
           {resending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />} שליחה מחדש
         </button>
+        <ContractPreviewButton load={() => previewContractFn({ data: { id: orderId } })} />
         {contractConfirmedAt ? <span className="text-primary font-medium">אישרה שקראה את החוזה ✓</span> : <span>עדיין לא אישרה שקראה את החוזה</span>}
         {proofsSelectedAt && <span className="text-primary font-medium">סיימה לבחור תמונות ✓</span>}
       </div>

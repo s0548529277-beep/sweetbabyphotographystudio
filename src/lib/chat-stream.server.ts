@@ -120,6 +120,7 @@ export async function handleChatStream(request: Request): Promise<Response> {
           steps,
           isAdmin: turn.isAdmin,
           realUserId: turn.realUserId,
+        isRealAccount: turn.isRealAccount,
         });
         send({ t: "f", reply: text.trim() ? text : emptyReplyFallback(ui), ui, isAdmin: turn.isAdmin });
       } catch (e) {

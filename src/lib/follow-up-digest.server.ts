@@ -2,7 +2,7 @@
 // Collects everything that is waiting for a human answer from the places leads arrive:
 //   - phone: voice-bot "leave a message" notifications (admin_notifications.voice_message)
 //   - phone/site: "photography with Michal" requests (admin_notifications.photography_request)
-//   - chat: site-chat conversations flagged as real intent (admin_notifications.site_chat_important)
+//   (anonymous site-chat conversations are NOT listed: no contact details, nothing to act on — owner request 2026-11-13)
 //   - mail + manual: inquiry_leads (the e-mail assistant files e-mail inquiries there) that nobody answered
 //   - funnel leads marked hot, booking drafts abandoned mid-way, studio bookings whose deposit is unpaid
 // People are merged by phone/e-mail so one person = one line with all her reasons. Sent at most once per
@@ -62,13 +62,15 @@ function waLink(p: string): string {
   return `https://wa.me/${intl}`;
 }
 
-async function loadState(db: any): Promise<{ at: string | null; ids: string[] }> {
+type DigestState = { at: string | null; ids: string[]; threadId: string | null; msgId: string | null; day: string | null };
+
+async function loadState(db: any): Promise<DigestState> {
   const { data } = await db.from("app_settings").select("value").eq("key", STATE_KEY).maybeSingle();
   try {
     const v = JSON.parse(data?.value || "{}");
-    return { at: v.at ?? null, ids: Array.isArray(v.ids) ? v.ids : [] };
+    return { at: v.at ?? null, ids: Array.isArray(v.ids) ? v.ids : [], threadId: v.threadId ?? null, msgId: v.msgId ?? null, day: v.day ?? null };
   } catch {
-    return { at: null, ids: [] };
+    return { at: null, ids: [], threadId: null, msgId: null, day: null };
   }
 }
 
@@ -108,12 +110,11 @@ export async function collectFollowUps(db: any): Promise<Person[]> {
     const { data } = await db
       .from("admin_notifications")
       .select("id, type, title, body, created_at")
-      .in("type", ["voice_message", "photography_request", "site_chat_important"])
+      .in("type", ["voice_message", "photography_request"])
       .is("read_at", null)
       .gte("created_at", iso(now - 3 * 86_400_000))
       .order("created_at", { ascending: false })
       .limit(300);
-    const chatSeen = new Set<string>();
     for (const n of data ?? []) {
       const b = (n.body ?? {}) as any;
       if (n.type === "voice_message") {
@@ -126,14 +127,6 @@ export async function collectFollowUps(db: any): Promise<Person[]> {
         add(
           { id: n.id, name, phone: b.phone, email: b.email },
           { weight: 90, icon: "📷", text: `ביקשה צילומים עם מיכל${b.session_type ? ` (${esc(b.session_type)})` : ""}${b.date ? ` ל-${esc(b.date)}${b.start_time ? ` ${esc(b.start_time)}` : ""}` : ""}${b.price ? ` · ₪${esc(b.price)}` : ""}`, at: n.created_at },
-        );
-      } else {
-        const sid = String(b.session_id ?? n.id);
-        if (chatSeen.has(sid) || Date.parse(n.created_at) < now - 86_400_000) continue;
-        chatSeen.add(sid);
-        add(
-          { id: `chat-${sid}` },
-          { weight: 30, icon: "💬", text: `שיחת צ׳אט עם כוונה ממשית (אין פרטי קשר): "${clip(b.snippet, 120)}"`, at: n.created_at },
         );
       }
     }
@@ -264,18 +257,30 @@ export async function runHourlyFollowUpDigest(opts: { force?: boolean } = {}): P
   const allIds = all.flatMap((p) => p.reasons.map((r) => r.id as string));
   if (news.length === 0) {
     // Nothing new: stay silent, but forget items that were handled so they can come back if they reappear.
-    await db.from("app_settings").upsert({ key: STATE_KEY, value: JSON.stringify({ at: state.at, ids: allIds }), updated_at: new Date().toISOString() });
+    await db.from("app_settings").upsert({ key: STATE_KEY, value: JSON.stringify({ ...state, ids: allIds }), updated_at: new Date().toISOString() });
     return { sent: false, reason: "nothing_new", people: 0 };
   }
   const stillWaiting = all.length - news.length;
-  const { sendGmail } = await import("@/integrations/google/gmail.server");
-  const ok = await sendGmail({
+  // One Gmail thread per day: every hourly summary is a reply to the previous one (same subject +
+  // threadId + In-Reply-To), so the inbox shows one conversation instead of a mail per hour.
+  const { sendGmailDetailed } = await import("@/integrations/google/gmail.server");
+  const day = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
+  const reply = !!state.threadId && !!state.msgId && state.day === day;
+  const msgId = `<digest-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@sweetbabyphoto.shop>`;
+  const dayLabel = new Date().toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem", day: "numeric", month: "numeric" });
+  const res = await sendGmailDetailed({
     to: DIGEST_TO,
-    subject: `📋 חדש: למי לחזור (${news.length})`,
+    subject: `📋 למי לחזור — ${dayLabel}`,
     html: renderHtml(news, stillWaiting),
     fromName: "Sweetbaby · סיכום שעתי",
+    messageId: msgId,
+    ...(reply ? { threadId: state.threadId!, inReplyTo: state.msgId! } : {}),
   });
-  if (!ok) return { sent: false, reason: "send_failed", people: news.length };
-  await db.from("app_settings").upsert({ key: STATE_KEY, value: JSON.stringify({ at: new Date().toISOString(), ids: allIds }), updated_at: new Date().toISOString() });
+  if (!res.ok) return { sent: false, reason: "send_failed", people: news.length };
+  await db.from("app_settings").upsert({
+    key: STATE_KEY,
+    value: JSON.stringify({ at: new Date().toISOString(), ids: allIds, threadId: res.threadId ?? (reply ? state.threadId : null), msgId, day }),
+    updated_at: new Date().toISOString(),
+  });
   return { sent: true, people: news.length };
 }

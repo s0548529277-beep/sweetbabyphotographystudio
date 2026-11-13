@@ -27,6 +27,18 @@ type Loaded = {
   prefillChildren: string;
 };
 
+/** The sections saved when the contract was sent (JSON), or null when there is none / it is unreadable. */
+function snapshotSections(raw: unknown): ContractSection[] | null {
+  if (typeof raw !== "string" || !raw) return null;
+  try {
+    const v = JSON.parse(raw);
+    if (Array.isArray(v) && v.length && v.every((x) => typeof x?.title === "string" && typeof x?.html === "string")) return v;
+  } catch {
+    // fall through
+  }
+  return null;
+}
+
 async function loadByToken(kind: "photo" | "outdoor", token: string): Promise<Loaded | null> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const db = supabaseAdmin as any;
@@ -48,7 +60,7 @@ async function loadByToken(kind: "photo" | "outdoor", token: string): Promise<Lo
       prefillChildren: [order.children_count ? `${order.children_count} ילדים` : "", order.children_names ?? ""]
         .filter(Boolean)
         .join(" — "),
-      sections: buildOutdoorContractSections({
+      sections: snapshotSections(order.contract_snapshot) ?? buildOutdoorContractSections({
         contactName: order.contact_name ?? "",
         sessionDate: order.session_date,
         sessionTime: order.session_time ?? null,
@@ -78,7 +90,7 @@ async function loadByToken(kind: "photo" | "outdoor", token: string): Promise<Lo
     contactName,
     confirmedAt: wf.contract_confirmed_at ?? null,
     prefillChildren: "",
-    sections: buildPhotoContractSections({
+    sections: snapshotSections(wf.contract_snapshot) ?? buildPhotoContractSections({
       contactName,
       sessionDate: wf.session_date,
       sessionTime: (wf.session_time as string | null)?.slice(0, 5) ?? null,
