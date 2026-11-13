@@ -702,6 +702,12 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
         if (!full) continue;
         const body = g.extractGmailPlainText(full.payload) || full.snippet || "";
         const subj = g.gmailHeaderValue(full.payload?.headers, "Subject") || "";
+        // The site's own client mails ("חדר המשפחה נקבע" / "חדר המשפחה — עדכון", copy to the studio = "from me") must never be read back as answers.
+        if (/^\s*(Re:\s*)?חדר המשפחה\s*(נקבע|—|-)/i.test(subj) || /אישור הזמנה|תזכורת/.test(subj)) {
+          remember(`fr:${fm.id}`);
+          remember(`frm:${fm.id}`);
+          continue;
+        }
         // Two ways to answer: the fixed subjects below (strict, reports problems), or a FREE-TEXT reply such as just "קבעתי"
         // (owner request 2026-11-12) — then the order id comes from the quoted mail and the client must have asked for the room.
         const conv = /אישור חדר משפחה|חדר משפחה לא נקבע/.test(subj);
@@ -739,9 +745,9 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
         }
         const { data: cand } = await db
           .from("bookings")
-          .select("id, user_id, session_date, start_time, end_time, contact_name, contact_email")
+          .select("id, user_id, session_date, start_time, end_time, contact_name, contact_email, family_room_booked_at")
           .gte("session_date", new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10));
-        const rows = (cand ?? []) as Array<{ id: string; user_id: string; session_date: string; start_time: string; end_time: string; contact_name: string | null; contact_email: string | null }>;
+        const rows = (cand ?? []) as Array<{ id: string; user_id: string; session_date: string; start_time: string; end_time: string; contact_name: string | null; contact_email: string | null; family_room_booked_at: string | null }>;
         const norm = (x: string | null | undefined) => String(x ?? "").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
         let hit = idPrefix
           ? rows.filter((r) => r.id.toLowerCase().startsWith(idPrefix!))
@@ -774,6 +780,13 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
           if (!notBooked && !slots) slots = hourlySlots(hit[0].start_time, hit[0].end_time);
         }
         const bk = hit[0];
+        // Free-text answers act once per booking: if this booking was already handled (hours saved or "not booked" marked), later mails
+        // (her thank-you reply that quotes "קבעתי", copies, etc.) are only remembered — they must not trigger another client mail.
+        if (!conv && !saved && bk.family_room_booked_at) {
+          remember(`fr:${fm.id}`);
+          remember(`frm:${fm.id}`);
+          continue;
+        }
         if (!saved) {
           await db
             .from("bookings")
