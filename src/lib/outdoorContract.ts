@@ -53,13 +53,12 @@ function heDateLine(iso: string): string {
 function section(title: string, bodyHtml: string): string {
   return `
     <tr><td style="padding:22px 0 0">
-      <h3 style="margin:0 0 10px;padding-bottom:6px;border-bottom:2px solid ${ROSE};color:#3e3029;font-size:19px;line-height:1.4;font-weight:800">${title}</h3>
-      <div style="color:${BROWN};font-size:14px;line-height:1.9">${bodyHtml}</div>
+      <h3 style="margin:0 0 10px;padding-bottom:6px;border-bottom:2px solid ${ROSE};color:#3e3029;font-size:19px;line-height:1.4;font-weight:800;font-family:'Century Gothic','Avenir Next',Montserrat,Verdana,Arial,sans-serif;">${title}</h3>
+      <div style="color:${BROWN};font-size:14px;line-height:1.9;font-family:'Century Gothic','Avenir Next',Montserrat,Verdana,Arial,sans-serif;">${bodyHtml}</div>
     </td></tr>
     <tr><td style="padding:16px 0 0">
-      <div style="border-top:1px solid ${BORDER}55;position:relative;text-align:center">
-        <span style="position:relative;top:-9px;background:#f7f3ee;padding:0 10px;font-size:12px">${heartImg("michal", 14)}</span>
-      </div>
+      <div style="text-align:right;line-height:0;font-size:0">${heartImg("michal", 14)}</div>
+      <div style="border-top:2px solid #8b7840;line-height:0;font-size:0;height:0">&nbsp;</div>
     </td></tr>`;
 }
 
@@ -206,8 +205,8 @@ export function buildOutdoorContractHtml(input: OutdoorContractInput): string {
             ${sections.map((x) => section(x.title, x.html)).join("")}
 
             <tr><td style="padding:22px 0 0">
-              <h3 style="margin:0 0 10px;padding-bottom:6px;border-bottom:2px solid ${ROSE};color:#3e3029;font-size:19px;line-height:1.4;font-weight:800">אישור</h3>
-              <div style="color:${BROWN};font-size:14px;line-height:1.9">
+              <h3 style="margin:0 0 10px;padding-bottom:6px;border-bottom:2px solid ${ROSE};color:#3e3029;font-size:19px;line-height:1.4;font-weight:800;font-family:'Century Gothic','Avenir Next',Montserrat,Verdana,Arial,sans-serif;">אישור</h3>
+              <div style="color:${BROWN};font-size:14px;line-height:1.9;font-family:'Century Gothic','Avenir Next',Montserrat,Verdana,Arial,sans-serif;">
                 <p style="margin:4px 0">כדי לאשר — יש להיכנס לקישור, לסמן ״קראתי״ ליד כל סעיף, ובסוף ללחוץ על שליחה. זו החתימה הדיגיטלית שלך:</p>
                 <p style="margin:12px 0;text-align:center"><a href="${confirmLink}" style="display:inline-block;background:#4a2f26;background-image:linear-gradient(#4a2f26,#4a2f26);color:#fff;text-decoration:none;padding:12px 26px;border-radius:999px;font-weight:bold">לקריאה ואישור ההסכם</a></p>
                 <p style="margin:8px 0 0;font-size:13px;text-align:center">אם הכפתור לא מופיע — אפשר להעתיק את הקישור הזה לדפדפן:</p>

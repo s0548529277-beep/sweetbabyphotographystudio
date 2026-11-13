@@ -59,7 +59,7 @@ export const DEFAULT_NEWBORN_CONTRACT_TEMPLATE = `היי {{contact_name}} היק
 
 ## לבייבי — הכנות ליום הצילום
 - לקלח את הבייבי בבוקר הצילומים
-- בקבוק של חלב שאוב / תמ"ל
+- להביא מראש 2 בקבוקים של חלב שאוב / תמ"ל
 - מוצץ
 - שמיכה חמה
 - טיטולים בשפע ומגבונים — לא לשכוח!
@@ -214,20 +214,19 @@ export function renderNewbornContractHtml(filledTemplate: string): string {
     .map(
       (s) => `
     <tr><td style="padding:22px 0 0">
-      <h3 style="margin:0 0 10px;padding-bottom:6px;border-bottom:2px solid ${ROSE};color:#3e3029;font-size:19px;line-height:1.4;font-weight:800">${escapeHtml(s.title)}</h3>
-      <div style="color:${BROWN};font-size:14px;line-height:1.9">${renderBody(s.body)}</div>
+      <h3 style="margin:0 0 10px;padding-bottom:6px;border-bottom:2px solid ${ROSE};color:#3e3029;font-size:19px;line-height:1.4;font-weight:800;font-family:'Century Gothic','Avenir Next',Montserrat,Verdana,Arial,sans-serif;">${escapeHtml(s.title)}</h3>
+      <div style="color:${BROWN};font-size:14px;line-height:1.9;font-family:'Century Gothic','Avenir Next',Montserrat,Verdana,Arial,sans-serif;">${renderBody(s.body)}</div>
     </td></tr>
     <tr><td style="padding:16px 0 0">
-      <div style="border-top:1px solid ${BORDER}55;position:relative;text-align:center">
-        <span style="position:relative;top:-9px;background:#f7f3ee;padding:0 10px;font-size:12px">${heartImg("michal", 14)}</span>
-      </div>
+      <div style="text-align:right;line-height:0;font-size:0">${heartImg("michal", 14)}</div>
+      <div style="border-top:2px solid #8b7840;line-height:0;font-size:0;height:0">&nbsp;</div>
     </td></tr>`,
     )
     .join("");
 
   return buildBrandedMailHtml({
     title: "הכנה ליום הצילומים",
-    innerHtml: `<div style="color:${BROWN};font-size:14px;line-height:1.9">${renderBody(intro)}</div>
+    innerHtml: `<div style="color:${BROWN};font-size:14px;line-height:1.9;font-family:'Century Gothic','Avenir Next',Montserrat,Verdana,Arial,sans-serif;">${renderBody(intro)}</div>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${sectionHtml}</table>
     <p style="margin-top:20px;color:${BROWN_SOFT};font-size:13px;text-align:center">כתובת הסטודיו: תלמוד ירושלמי 24, ד׳3, בית שמש</p>`,
   });
