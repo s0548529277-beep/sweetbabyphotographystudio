@@ -260,6 +260,13 @@
       "when": 1793726000395,
       "tag": "0036_booking_family_room",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1793729600395,
+      "tag": "0037_newborn_contract_snapshot",
+      "breakpoints": true
     }
   ]
 }

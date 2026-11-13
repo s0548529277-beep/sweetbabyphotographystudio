@@ -166,7 +166,24 @@ async function buildNewbornContractFilled(supabase: any, order: NewbornContractO
   return filled;
 }
 
-/** Best-effort contract email on order creation — never blocks the order itself, matching every other post-create sync in this file. */
+/** What is missing before a contract may go out (empty = fine). The session time is allowed to be empty ("תיקבע בתיאום"). */
+export function newbornContractMissing(order: {
+  session_date: string | null;
+  package_id: string;
+  total_price: number;
+}): string[] {
+  const missing: string[] = [];
+  if (!order.session_date) missing.push("תאריך צילום");
+  if (!findNewbornPackage(order.package_id)) missing.push("חבילה");
+  if (!(Number(order.total_price) > 0)) missing.push("מחיר");
+  return missing;
+}
+
+/**
+ * Best-effort contract email on order creation — never blocks the order itself, matching every other post-create sync in this file.
+ * Refuses to send (returns false) when date / package / price are missing, so no contract goes out with an empty or stale line.
+ * Saves the filled contract text as the order's snapshot (unless she already signed): the signing page then shows exactly what was sent.
+ */
 async function sendNewbornContractEmail(
   supabase: any,
   order: {
@@ -178,14 +195,31 @@ async function sendNewbornContractEmail(
     package_id: string;
     total_price: number;
     access_token: string | null;
+    contract_confirmed_at?: string | null;
   },
 ) {
   try {
+    const missing = newbornContractMissing(order);
+    if (missing.length) {
+      console.error("[SWEETBABY] newborn contract not sent, missing:", missing.join(", "));
+      return false;
+    }
     const { sendGmail } = await import("@/integrations/google/gmail.server");
     const subject = `הכנה ליום הצילומים — החוזה שלך · מיכל סיבוני 💗`;
-    const html = await buildNewbornContractHtml(supabase, order);
+    const filled = await buildNewbornContractFilled(supabase, order);
+    const html = renderNewbornContractHtml(filled);
     const recipients = [order.contact_email, NEWBORN_STUDIO_EMAIL].filter((e): e is string => !!e);
     await Promise.all(recipients.map((to) => sendGmail({ to, subject, html })));
+    if (!order.contract_confirmed_at) {
+      try {
+        await supabase
+          .from("newborn_package_orders")
+          .update({ contract_snapshot: filled, contract_snapshot_at: new Date().toISOString() })
+          .eq("id", order.id);
+      } catch {
+        // columns not live yet — the signing page falls back to building the text from the template
+      }
+    }
     return true;
   } catch (e) {
     console.error("[SWEETBABY] newborn contract email failed", e);
@@ -1329,6 +1363,8 @@ export const resendNewbornContract = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .maybeSingle();
     if (error || !order) throw new Error(error?.message ?? "ההזמנה לא נמצאה");
+    const missing = newbornContractMissing(order);
+    if (missing.length) throw new Error(`לא ניתן לשלוח חוזה — חסר: ${missing.join(", ")}`);
     const sent = await sendNewbornContractEmail(context.supabase, order);
     if (sent) {
       await (context.supabase as any)
@@ -1597,7 +1633,7 @@ export const getNewbornContractStatusByToken = createServerFn({ method: "POST" }
     const order = await orderByToken(data.token);
     if (!order) throw new Error("קישור לא תקין");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const sections = newbornContractSigningSections(await buildNewbornContractFilled(supabaseAdmin, order));
+    const sections = newbornContractSigningSections((order.contract_snapshot as string | null) || (await buildNewbornContractFilled(supabaseAdmin, order)));
     return {
       contactName: order.contact_name as string,
       confirmedAt: order.contract_confirmed_at as string | null,
@@ -1617,7 +1653,7 @@ export const confirmNewbornContractByToken = createServerFn({ method: "POST" })
     const order = await orderByToken(data.token);
     if (!order) throw new Error("קישור לא תקין");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const sections = newbornContractSigningSections(await buildNewbornContractFilled(supabaseAdmin, order));
+    const sections = newbornContractSigningSections((order.contract_snapshot as string | null) || (await buildNewbornContractFilled(supabaseAdmin, order)));
     const groups = groupContractSections(sections);
     if (data.readCount < groups.length) throw new Error("יש לסמן ״קראתי״ בכל הסעיפים לפני השליחה");
     const alreadyConfirmed = !!order.contract_confirmed_at;
