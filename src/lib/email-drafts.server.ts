@@ -703,7 +703,7 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
         const body = g.extractGmailPlainText(full.payload) || full.snippet || "";
         const subj = g.gmailHeaderValue(full.payload?.headers, "Subject") || "";
         // The site's own client mails ("חדר המשפחה נקבע" / "חדר המשפחה — עדכון", copy to the studio = "from me") must never be read back as answers.
-        if (/^\s*(Re:\s*)?חדר המשפחה\s*(נקבע|—|-)/i.test(subj) || /אישור הזמנה|תזכורת/.test(subj)) {
+        if (/לצילום של מיכל/.test(subj) || /^\s*(Re:\s*)?חדר המשפחה\s*(נקבע|—|-)/i.test(subj) || /אישור הזמנה|תזכורת/.test(subj)) {
           remember(`fr:${fm.id}`);
           remember(`frm:${fm.id}`);
           continue;
