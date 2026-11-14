@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-15 (01:2x Israel) — Claude (chat, owner: "פרסם"):** PUBLISHED head 9d6dbde via the Lovable connector (deploy 2e300116-299b-4921-b355-b73360f4ca36, status pending when logged; not checked live). Carries the topic-based shell for unmarked mails (studio vs photographer). Still to check: the next owner notice (e.g. a WhatsApp or waitlist mail) arrives in the studio design.
+
 - **2026-11-15 (01:2x Israel) — Claude (chat, owner: "תעביר לעיצוב מלא ופרסם"):** the remaining plain mails (owner notices: contract signed, album details, selection done, birth-basket interest, voice / WhatsApp / visitor / waitlist / funnel / subscription / digest notices) all go through the safety net in `email-design.server.ts` `applyStoredEmailDesign`, which used to wrap EVERY unmarked mail in the PHOTOGRAPHER shell. Now the shell follows the topic: new exported `unmarkedMailIsPhotographer(subject)` — photography subjects (חוזה, אלבום, גלריה, ניו-בורן, צילומי חוץ, בחירה/תמונות, סל לידה, שאלון, צילומים עם מיכל…) = photographer shell (MICHAL SIBONI + signature), everything else (studio, props, bookings, leads, notices) = STUDIO shell (`buildStudioMailHtml`: Sweetbaby logo, studio signature, site/Waze/mail buttons). Marked mails are unchanged. Test `email-design-shell.test.ts`. tsc + `bun test src/lib` (82) + vite build OK; no real mail sent. PUBLISHED right after (see next entry).
 
 - **2026-11-15 (01:1x Israel) — Claude (chat, owner: "פרסם"):** PUBLISHED head e67e7fd via the Lovable connector (deploy 4ff4b840-7651-4af1-b980-7b10ba6d2e70, status pending when logged; not checked live). Carries the price-change alert in the studio copy subject, plus the other session's flow indicator / min-100 / props 2-step work already merged into main.
