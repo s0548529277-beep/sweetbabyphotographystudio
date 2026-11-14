@@ -31,7 +31,7 @@ import { startNoAiBooking, continueNoAiBooking, currentNbQuestion, isNbStage, NB
 // validation for free — Yemot itself rejects anything outside
 // digitsAllowed before it ever reaches us — just without the native
 // readback+confirm layered on top.
-const MENU_DTMF_TAP: YemotTapOptions = { digitsAllowed: [1, 2, 3, 4, 5, 6, 9], minDigits: 1, maxDigits: 1 };
+const MENU_DTMF_TAP: YemotTapOptions = { digitsAllowed: [1, 2, 3, 4, 5, 6, 7, 8, 9], minDigits: 1, maxDigits: 1 };
 const LEAVE_MSG_DTMF_CONFIRM_TAP: YemotTapOptions = { digitsAllowed: [1, 2], minDigits: 1, maxDigits: 1 };
 const DTMF_MENU_STAGES = new Set(["menu_dtmf", "leaving_message_dtmf_confirm"]);
 
@@ -462,6 +462,23 @@ async function handle(request: Request): Promise<Response> {
     };
 
     if (stage === "menu_dtmf") {
+      // Hidden door-code options (owner request 2026-11-14), NOT in the menu text:
+      // 8 = random 4-digit code valid 10 minutes, 7 = random 4-digit code valid 3 hours.
+      // ONLY for the owner's two numbers; anyone else just hears the menu again.
+      if (rawDigits === "7" || rawDigits === "8") {
+        const digitsOnly = (callerPhone || "").replace(/\D/g, "");
+        const local = digitsOnly.startsWith("972") ? "0" + digitsOnly.slice(3) : digitsOnly;
+        if (local === "0548529277" || local === "0583270184") {
+          const minutes = rawDigits === "8" ? 10 : 180;
+          const { issueAdHocDoorCode } = await import("@/integrations/ttlock/client.server");
+          const r = await issueAdHocDoorCode({ label: `פתיחה בטלפון (${minutes} דקות)`, validForMinutes: minutes, digits: 4 });
+          if (!r) return yemotSayAndHangup("יצירת הקוד נכשלה, נסו שוב בעוד רגע.");
+          const spoken = r.code.split("").join(" ");
+          const validity = rawDigits === "8" ? "עשר דקות" : "שלוש שעות";
+          return yemotSayAndHangup(`הקוד הוא ${spoken}. אני חוזרת, ${spoken}. הקוד בתוקף ל${validity}. הקישו סולמית אחרי הקוד.`);
+        }
+        return await respondMenuDtmfWithInfo(rawDigits, phrases.menu_prompt_dtmf);
+      }
       // Keypad order (owner request 2026-11-04): 1 = leave a message, 2 = studio booking, 5 = props
       // (3 = directions, 4 = guide, 6 = personal messages, 9 = AI chat are unchanged).
       if (rawDigits === "2") return await respondNbStart(rawDigits, "dtmf", phrases.studio_blurb);

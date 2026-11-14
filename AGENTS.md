@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-14 (20:5x Israel) — Claude (chat, owner: hidden phone options 7/8 on the Yemot line):** `api.yemot.ivr.ts` keypad menu (`menu_dtmf`): digits 7 and 8 are allowed but NOT mentioned in the menu text. ONLY callers 0548529277 and 0583270184 (caller ID, 972 prefix normalised): **8** = random 4-digit TTLock code valid 10 minutes, **7** = random 4-digit code valid 3 hours; the code is read out digit by digit twice, then the call ends. Anyone else pressing 7/8 just hears the menu again. `issueAdHocDoorCode` (`ttlock/client.server.ts`) got an optional `digits` (default 6, unchanged for the admin voice flow). "One-time" is a time window only (TTLock single-use is unverified, same caveat as before). Caller-ID based (no PIN) per owner request. tsc clean; not tested on a real call; not published.
+
 - **2026-11-14 (19:2x Israel) — Claude (chat, owner: "פרסם"):** PUBLISHED head b4eb99a via the Lovable connector (deploy b61c4502-5f46-45d4-8b4a-788a35e994d9, status pending when logged; not checked live). Carries the family-room guard for mails with "לצילום של מיכל" in the subject. Still to check: no new "חדר המשפחה נקבע" copies in the studio inbox.
 
 - **2026-11-13 (12:xx Israel) — Claude (chat, owner: publish):** PUBLISHED head 3bb8dc8 via the Lovable connector (deploy e6df4ea7-6e59-4dd1-a24d-7eb676e5cc6d, status pending when logged; not checked live). Carries the previous entry (outdoor/photo contract snapshot + checks, preview button, digest as one daily thread, no anonymous chat alerts).

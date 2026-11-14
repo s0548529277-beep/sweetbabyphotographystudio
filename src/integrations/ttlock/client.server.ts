@@ -409,11 +409,12 @@ export async function issueDoorCodeForBooking(opts: {
  * doc comment (addType Gateway-vs-Bluetooth split, in particular) — this
  * hasn't been confirmed against a real call yet either.
  */
-export async function issueAdHocDoorCode(opts: { label: string; validForMinutes: number }): Promise<DoorCodeResult | null> {
+export async function issueAdHocDoorCode(opts: { label: string; validForMinutes: number; digits?: number }): Promise<DoorCodeResult | null> {
   try {
     const { access_token: accessToken } = await getAccessToken();
     const lockId = await getLockId(accessToken);
-    const code = String(Math.floor(100_000 + Math.random() * 900_000)); // random 6-digit, distinct from the phone-derived scheme
+    const nd = Math.min(9, Math.max(4, opts.digits ?? 6));
+    const code = String(Math.floor(10 ** (nd - 1) + Math.random() * 9 * 10 ** (nd - 1))); // random N-digit (default 6), distinct from the phone-derived scheme
     const now = Date.now();
     const keyboardPwdId = await addPasscode({
       lockId,
