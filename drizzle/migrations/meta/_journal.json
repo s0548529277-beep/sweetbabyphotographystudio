@@ -281,6 +281,13 @@
       "when": 1793736800395,
       "tag": "0039_customer_blocked",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1794166400000,
+      "tag": "0040_order_edit_requests",
+      "breakpoints": true
     }
   ]
 }

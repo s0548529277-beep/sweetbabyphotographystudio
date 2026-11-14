@@ -3,9 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/auth" });
+    // Remember where she was going (e.g. the "edit order" button in the mail) so the login returns her there.
+    if (error || !data.user) throw redirect({ to: "/auth", search: { redirect: location.href } });
     return { user: data.user };
   },
   component: () => <Outlet />,

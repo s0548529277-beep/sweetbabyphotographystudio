@@ -38,6 +38,7 @@ import { Route as TrackRouteImport } from './routes/track'
 import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedEditOrderRouteImport } from './routes/_authenticated/edit-order'
 import { Route as AuthenticatedMyPhotosRouteImport } from './routes/_authenticated/my-photos'
 import { Route as ApiChatStreamRouteImport } from './routes/api.chat-stream'
 import { Route as ApiSendBookingRemindersRouteImport } from './routes/api.send-booking-reminders'
@@ -254,6 +255,11 @@ const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedEditOrderRoute = AuthenticatedEditOrderRouteImport.update({
+  id: '/edit-order',
+  path: '/edit-order',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedMyPhotosRoute = AuthenticatedMyPhotosRouteImport.update({
@@ -699,6 +705,7 @@ export interface FileRoutesByFullPath {
   '/wishlist': typeof WishlistRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/edit-order': typeof AuthenticatedEditOrderRoute
   '/my-photos': typeof AuthenticatedMyPhotosRoute
   '/api/chat-stream': typeof ApiChatStreamRoute
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
@@ -801,6 +808,7 @@ export interface FileRoutesByTo {
   '/track': typeof TrackRoute
   '/wishlist': typeof WishlistRoute
   '/account': typeof AuthenticatedAccountRoute
+  '/edit-order': typeof AuthenticatedEditOrderRoute
   '/my-photos': typeof AuthenticatedMyPhotosRoute
   '/api/chat-stream': typeof ApiChatStreamRoute
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
@@ -906,6 +914,7 @@ export interface FileRoutesById {
   '/wishlist': typeof WishlistRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/edit-order': typeof AuthenticatedEditOrderRoute
   '/_authenticated/my-photos': typeof AuthenticatedMyPhotosRoute
   '/api/chat-stream': typeof ApiChatStreamRoute
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
@@ -1011,6 +1020,7 @@ export interface FileRouteTypes {
     | '/wishlist'
     | '/account'
     | '/admin'
+    | '/edit-order'
     | '/my-photos'
     | '/api/chat-stream'
     | '/api/send-booking-reminders'
@@ -1113,6 +1123,7 @@ export interface FileRouteTypes {
     | '/track'
     | '/wishlist'
     | '/account'
+    | '/edit-order'
     | '/my-photos'
     | '/api/chat-stream'
     | '/api/send-booking-reminders'
@@ -1217,6 +1228,7 @@ export interface FileRouteTypes {
     | '/wishlist'
     | '/_authenticated/account'
     | '/_authenticated/admin'
+    | '/_authenticated/edit-order'
     | '/_authenticated/my-photos'
     | '/api/chat-stream'
     | '/api/send-booking-reminders'
@@ -1549,6 +1561,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/edit-order': {
+      id: '/_authenticated/edit-order'
+      path: '/edit-order'
+      fullPath: '/edit-order'
+      preLoaderRoute: typeof AuthenticatedEditOrderRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/my-photos': {
@@ -2213,6 +2232,7 @@ const AuthenticatedAdminRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
+  AuthenticatedEditOrderRoute: typeof AuthenticatedEditOrderRoute
   AuthenticatedMyPhotosRoute: typeof AuthenticatedMyPhotosRoute
   AuthenticatedOrdersIdReceiptRoute: typeof AuthenticatedOrdersIdReceiptRoute
 }
@@ -2220,6 +2240,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccountRoute: AuthenticatedAccountRoute,
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedEditOrderRoute: AuthenticatedEditOrderRoute,
   AuthenticatedMyPhotosRoute: AuthenticatedMyPhotosRoute,
   AuthenticatedOrdersIdReceiptRoute: AuthenticatedOrdersIdReceiptRoute,
 }

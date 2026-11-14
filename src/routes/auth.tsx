@@ -48,7 +48,11 @@ function AuthPage() {
   const [resetNewPassword, setResetNewPassword] = useState("");
 
   useEffect(() => {
-    if (user) nav({ to: (redirect as any) || "/account" });
+    if (user) {
+      // A full path with a query string (from the _authenticated guard) cannot go through typed `to`.
+      if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) window.location.assign(redirect);
+      else nav({ to: (redirect as any) || "/account" });
+    }
   }, [user, nav, redirect]);
 
   const doSignIn = useServerFn(signInWithPhoneOrEmail);

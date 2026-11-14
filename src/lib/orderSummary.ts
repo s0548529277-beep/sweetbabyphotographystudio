@@ -301,7 +301,7 @@ export function buildBookingSummaryHtml(opts: {
     ${includeArrival ? buildArrivalHtml() : ""}
     ${footerNote ? `<p style="color:#6b8a63;font-size:13px;margin-top:16px">${footerNote}</p>` : ""}
     ${continueUrl ? buildContinueOrderHtml(continueUrl) : ""}
-    ${opts.reminderActions ? buildReminderActionsHtml(b.id, b.session_date) : ""}
+    ${opts.reminderActions ? buildReminderActionsHtml(b.id, b.session_date) : buildEditOrderButtonHtml("booking", b.id)}
     ${buildChatButtonHtml({ kind: "booking", id: b.id, date: b.session_date })}
     <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: ${STUDIO_ADDRESS_WAZE_HTML} · לשאלות: s0548529277@gmail.com / 054-8529277</p>
   ` });
@@ -367,10 +367,31 @@ export function buildChatButtonHtml(opts: { kind: ChatLinkKind; id?: string | nu
     </div>`;
 }
 
+// ---------- "edit order" button (owner request 2026-11-14) ----------
+
+/** Page where the customer edits her own studio booking / props order (login required). */
+export function editOrderUrl(kind: "booking" | "order", id: string): string {
+  return `${SITE}/edit-order?kind=${kind}&id=${encodeURIComponent(id)}`;
+}
+
+/**
+ * "עריכת הזמנה" button for every studio-booking and props-order mail. The URL is printed as plain text under it
+ * too, because some mail clients strip links/buttons (same reason as buildContinueOrderHtml).
+ */
+export function buildEditOrderButtonHtml(kind: "booking" | "order", id: string): string {
+  const url = editOrderUrl(kind, id);
+  return `<div style="text-align:center;margin:22px 0 6px">
+      ${pillButton(url, "עריכת הזמנה ✏️", true)}
+      <p style="margin:8px 0 0;color:#6b8a63;font-size:12px">שינוי מועד או פרטים. עריכה פחות מ-24 שעות לפני המועד טעונה אישור מנהל.</p>
+      <p dir="ltr" style="font-size:11px;margin:4px 0 0;word-break:break-all;color:#8a7f73">${escapeHtml(url)}</p>
+    </div>`;
+}
+
 /** Reminder-email actions: add props · arrival directions · change the date. */
 export function buildReminderActionsHtml(id: string, date: string): string {
   return `<div style="text-align:center;margin:22px 0 6px">
       <p style="margin:0 0 8px;color:#2d3d2b;font-size:15px;font-weight:700">מה אפשר לעשות עכשיו, בלחיצה:</p>
+      ${pillButton(editOrderUrl("booking", id), "עריכת הזמנה ✏️", true)}
       ${pillButton(`${SITE}/rental-catalog`, "הוספת אביזרים")}
       ${pillButton(chatLinkUrl("arrival", id, date), "הוראות הגעה")}
       ${pillButton(chatLinkUrl("reschedule", id, date), "שינוי מועד")}
@@ -491,6 +512,7 @@ export function buildPropsOrderSummaryHtml(opts: {
     ${includeArrival ? buildArrivalHtml() : ""}
     ${footerNote ? `<p style="color:#6b8a63;font-size:13px;margin-top:16px">${footerNote}</p>` : ""}
     ${continueUrl ? buildContinueOrderHtml(continueUrl) : ""}
+    ${buildEditOrderButtonHtml("order", o.id)}
     ${buildChatButtonHtml({ kind: "order", id: o.id, date: o.session_date })}
     <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: ${STUDIO_ADDRESS_WAZE_HTML} · לשאלות: s0548529277@gmail.com / 054-8529277</p>
   ` });

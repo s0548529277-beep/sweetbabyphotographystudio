@@ -450,6 +450,11 @@ function Account() {
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="font-display text-2xl text-peach-deep">₪{Number(b.price).toFixed(0)}</div>
+                        {(b.status === "pending" || b.status === "confirmed") && (
+                          <Link to="/edit-order" search={{ kind: "booking", id: b.id }}>
+                            <Button variant="outline" size="sm" className="rounded-full text-xs">עריכה</Button>
+                          </Link>
+                        )}
                         {b.status === "pending" && (
                           <Button variant="outline" size="sm" className="rounded-full text-xs" disabled={cancelling === b.id} onClick={() => doCancelBooking(b.id)}>
                             {cancelling === b.id ? "מבטל…" : "ביטול"}
@@ -492,6 +497,11 @@ function Account() {
                     <div className="flex items-center gap-3">
                       <Badge variant="secondary" className="rounded-full">{STATUS_HE[o.status] ?? o.status}</Badge>
                       <div className="font-display text-2xl text-peach-deep">₪{Number(o.total).toFixed(0)}</div>
+                      {(o.status === "pending" || o.status === "confirmed") && (
+                        <Link to="/edit-order" search={{ kind: "order", id: o.id }}>
+                          <Button variant="outline" size="sm" className="rounded-full text-xs">עריכה</Button>
+                        </Link>
+                      )}
                       {o.status === "pending" && (
                         <Button variant="outline" size="sm" className="rounded-full text-xs" disabled={cancelling === o.id} onClick={() => doCancelOrder(o.id)}>
                           {cancelling === o.id ? "מבטל…" : "ביטול"}

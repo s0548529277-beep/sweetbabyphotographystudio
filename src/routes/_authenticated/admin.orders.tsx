@@ -13,6 +13,7 @@ import {
   PHOTO_WORKFLOW_LINKED_PREFIX,
 } from "@/lib/admin-orders.functions";
 import { heError } from "@/lib/he-errors";
+import { EditRequestsPanel } from "@/components/EditRequestsPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -261,6 +262,7 @@ function OrdersAdmin() {
 
   return (
     <div className="space-y-4">
+      <EditRequestsPanel />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-2">
           {tabs.map((t) => {
