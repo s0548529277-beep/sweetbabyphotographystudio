@@ -592,7 +592,23 @@ async function applyOrderEdit(id: string, changes: OrderChanges, who: string): P
       },
       doorCode,
     });
-    await sendStudioAndCustomer({ customerEmail: emails, subject: `ההזמנה עודכנה — השכרת אביזרים #${String(o.id).slice(0, 8)} · Sweetbaby`, html });
+    const baseSubject = `ההזמנה עודכנה — השכרת אביזרים #${String(o.id).slice(0, 8)} · Sweetbaby`;
+    if (v.delta !== 0) {
+      // Price changed: ONLY the studio copy carries the alert in the subject; the customer's subject stays plain.
+      const { sendGmail } = await import("@/integrations/google/gmail.server");
+      const studio = "s0548529277@gmail.com";
+      const sign = v.delta > 0 ? "+" : "-";
+      await sendGmail({ to: studio, subject: `⚠️ המחיר שונה (${sign}₪${Math.abs(v.delta)}) — ${baseSubject}`, html });
+      const seen = new Set<string>([studio]);
+      for (const raw of (Array.isArray(emails) ? emails : [emails])) {
+        const addr = raw?.trim();
+        if (!addr || seen.has(addr.toLowerCase())) continue;
+        seen.add(addr.toLowerCase());
+        await sendGmail({ to: addr, subject: baseSubject, html });
+      }
+    } else {
+      await sendStudioAndCustomer({ customerEmail: emails, subject: baseSubject, html });
+    }
   } catch (e) {
     console.error("[SWEETBABY] edit-order update mail failed (order)", e);
   }
