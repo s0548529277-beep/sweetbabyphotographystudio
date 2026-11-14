@@ -50,6 +50,7 @@ function EditOrder() {
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<null | "applied" | "pending_approval">(null);
+  const [appliedWithin24, setAppliedWithin24] = useState(false);
 
   useEffect(() => {
     const d = q.data;
@@ -68,6 +69,7 @@ function EditOrder() {
           : { kind, id, pickup_time: pickup || undefined, return_time: ret || undefined, note: note || undefined };
       const r = await submitFn({ data: payload });
       setResult(r.status);
+      setAppliedWithin24(!!r.within24h && r.status === "applied");
       q.refetch();
     } catch (e) {
       toast.error(heError(e, "העריכה נכשלה"));
@@ -101,6 +103,11 @@ function EditOrder() {
           <div className="bg-card rounded-2xl p-6 border border-primary/10">
             <div className="font-display text-2xl text-primary mb-2">ההזמנה עודכנה ✓</div>
             <p className="text-sm text-muted-foreground">שלחנו לך מייל עם הפרטים המעודכנים.</p>
+            {appliedWithin24 && (
+              <div className="mt-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-sm p-3">
+                📞 ההזמנה בתוך 24 שעות — אנא התקשרי אלינו לוודא שהכול תקין: <span dir="ltr">054-8529277</span>
+              </div>
+            )}
             <div className="mt-4"><Link to="/account"><Button className="rounded-full">לאזור האישי</Button></Link></div>
           </div>
         ) : result === "pending_approval" || d.pending ? (
@@ -120,7 +127,11 @@ function EditOrder() {
           <div className="bg-card rounded-2xl p-6 border border-primary/10 space-y-5">
             {d.within24h && (
               <div className="rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-sm p-3">
-                המועד בעוד פחות מ-{EDIT_APPROVAL_WINDOW_HOURS} שעות — העריכה תישלח לאישור מנהל ולא תתבצע מיד.
+                {d.kind === "order" ? (
+                  <>המועד בעוד פחות מ-{EDIT_APPROVAL_WINDOW_HOURS} שעות — השינוי יתבצע מיד, אך אנא התקשרי אלינו לוודא שהכול תקין: <span dir="ltr">054-8529277</span>. נשלח לך מייל שההזמנה עודכנה.</>
+                ) : (
+                  <>המועד בעוד פחות מ-{EDIT_APPROVAL_WINDOW_HOURS} שעות — העריכה תישלח לאישור מנהל ולא תתבצע מיד.</>
+                )}
               </div>
             )}
 
@@ -170,7 +181,7 @@ function EditOrder() {
 
             <div className="flex flex-wrap gap-3">
               <Button className="rounded-full" disabled={busy} onClick={submit}>
-                {busy ? "שולח…" : d.within24h ? "שליחת בקשה לאישור מנהל" : "שמירת השינויים"}
+                {busy ? "שולח…" : d.within24h && d.kind === "booking" ? "שליחת בקשה לאישור מנהל" : "שמירת השינויים"}
               </Button>
               <Link to="/account"><Button variant="outline" className="rounded-full">ביטול</Button></Link>
             </div>

@@ -277,7 +277,7 @@ async function applyBookingEdit(id: string, changes: BookingChanges, who: string
     const html = buildBookingSummaryHtml({
       heading: "ההזמנה עודכנה ✓",
       intro: v.moved
-        ? "ההזמנה עודכנה לפי הבקשה שלך. למטה הפרטים המעודכנים — כדאי לעבור עליהם ולוודא שהכול נכון."
+        ? "ההזמנה עודכנה לפי הבקשה שלך. למטה הפרטים המעודכנים — כדאי לעבור עליהם ולוודא שהכול נכון. אם האיסוף בתוך 24 שעות, אנא התקשרי אלינו לוודא שהכול תקין: 054-8529277."
         : "ההערה שלך נוספה להזמנה. למטה סיכום ההזמנה.",
       booking: {
         id: b.id,
@@ -496,7 +496,7 @@ const submitSchema = z.object({
 export const submitOrderEdit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => submitSchema.parse(d))
-  .handler(async ({ data, context }): Promise<{ status: "applied" | "pending_approval" }> => {
+  .handler(async ({ data, context }): Promise<{ status: "applied" | "pending_approval"; within24h?: boolean }> => {
     const { supabase, userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const db: any = supabaseAdmin;
@@ -536,7 +536,8 @@ export const submitOrderEdit = createServerFn({ method: "POST" })
       status: row.status,
     };
 
-    if (policy.needs) {
+    // Studio bookings need admin approval within 24h; props orders apply at once (the page + the mail warn to call).
+    if (policy.needs && data.kind === "booking") {
       const { data: dup } = await db
         .from("order_edit_requests")
         .select("id")
@@ -569,7 +570,7 @@ export const submitOrderEdit = createServerFn({ method: "POST" })
       auto_applied: true,
       decided_at: new Date().toISOString(),
     });
-    return { status: "applied" };
+    return { status: "applied", within24h: policy.needs };
   });
 
 /* ------------------------------------------------------------------ */

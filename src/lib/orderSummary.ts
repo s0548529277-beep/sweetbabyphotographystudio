@@ -382,7 +382,7 @@ export function buildEditOrderButtonHtml(kind: "booking" | "order", id: string):
   const url = editOrderUrl(kind, id);
   return `<div style="text-align:center;margin:22px 0 6px">
       ${pillButton(url, "עריכת הזמנה ✏️", true)}
-      <p style="margin:8px 0 0;color:#6b8a63;font-size:12px">שינוי מועד או פרטים. עריכה פחות מ-24 שעות לפני המועד טעונה אישור מנהל.</p>
+      <p style="margin:8px 0 0;color:#6b8a63;font-size:12px">שינוי מועד או פרטים. עריכת סטודיו פחות מ-24 שעות לפני המועד טעונה אישור מנהל; באביזרים — בתוך 24 שעות נבקש שתתקשרי אלינו לוודא שהכול תקין.</p>
       <p dir="ltr" style="font-size:11px;margin:4px 0 0;word-break:break-all;color:#8a7f73">${escapeHtml(url)}</p>
     </div>`;
 }
