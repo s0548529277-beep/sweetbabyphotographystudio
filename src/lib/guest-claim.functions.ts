@@ -36,7 +36,7 @@ export const getGuestClaimInfo = createServerFn({ method: "POST" })
       phone: String(row.contact_phone ?? ""),
       email: String(row.contact_email ?? ""),
       creditNow: Number((loy as any)?.credit_balance ?? 0),
-      creditExpected: total >= 100 ? Math.round(total * 0.1) : 0,
+      creditExpected: Math.round(total * 0.1),
     };
   });
 

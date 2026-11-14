@@ -47,7 +47,7 @@ export async function guestSignupBlock(userId: string, kind: ClaimKind, id: stri
     if (!(await isGuestUser(userId))) return "";
     const { buildGuestSignupHtml } = await import("@/lib/orderSummary");
     const token = await guestClaimToken(kind, id);
-    const credit = total >= 100 ? Math.round(total * 0.1) : 0;
+    const credit = Math.round(total * 0.1);
     return buildGuestSignupHtml(`https://sweetbabyphoto.shop/claim/${kind}/${id}?t=${token}`, credit);
   } catch (e) {
     console.error("[SWEETBABY] guest signup block failed", e);
