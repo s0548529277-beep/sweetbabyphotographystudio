@@ -1,4 +1,5 @@
 import { heError } from "@/lib/he-errors";
+import { FlowProgress, flowStepsFor } from "@/components/FlowProgress";
 import { BackButton, MissingList } from "@/components/FlowHelpers";
 import { isWithinPropsHandoffHours, PROPS_HANDOFF_NOTE, PROPS_LATEST_HANDOFF } from "@/lib/props-hours";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
@@ -20,6 +21,7 @@ import { GuestContinueButton } from "@/components/GuestContinueButton";
 import { useServerFn } from "@tanstack/react-start";
 import { placeOrder, checkItemsAvailability } from "@/lib/orders.functions";
 import { toast } from "sonner";
+import { MIN_PROPS_ORDER } from "@/lib/order-limits";
 import { Lock, Camera, CalendarDays, CheckCircle2, AlertTriangle, Tag, X } from "lucide-react";
 
 export const Route = createFileRoute("/checkout")({
@@ -121,7 +123,18 @@ function Checkout() {
   const creditApplied = useCredit ? Math.min(creditBalance, afterCoupon) : 0;
   const finalTotal = Math.max(0, afterCoupon - creditApplied);
 
-  const disabled = lines.length === 0 || subtotal < 50;
+  const disabled = lines.length === 0 || subtotal < MIN_PROPS_ORDER;
+
+  // Israeli phone check (mobile 05x / landline, with or without +972) — shown inline and in the "what is missing" list.
+  const phoneDigits = form.contact_phone.replace(/[\s\-()]/g, "");
+  const phoneOk = /^(?:\+?972|0)(?:[23489]\d{7}|5\d{8}|7\d{8})$/.test(phoneDigits);
+  const phoneBad = form.contact_phone.trim() !== "" && !phoneOk;
+
+  // Pickup/return hour: the field itself never keeps a time after the latest hand-off hour.
+  const clampHandoff = (v: string) => {
+    if (v && v > PROPS_LATEST_HANDOFF) { toast.info(PROPS_HANDOFF_NOTE); return PROPS_LATEST_HANDOFF; }
+    return v;
+  };
 
   // Auto-check availability whenever dates change
   useEffect(() => {
@@ -150,6 +163,9 @@ function Checkout() {
           <div className="max-w-md mx-auto mb-4 text-forest">
             <BackButton fallback="/cart" label="חזרה לעגלה" />
           </div>
+          <div className="max-w-md mx-auto mb-5">
+            <FlowProgress steps={flowStepsFor("props")} current={2} />
+          </div>
           <div className="max-w-md mx-auto text-center glass-card rounded-3xl p-10">
             <Lock className="h-8 w-8 text-primary/40 mx-auto mb-3" />
             <h2 className="font-display text-3xl text-primary mb-2">התחברות או מצב אורח</h2>
@@ -170,7 +186,7 @@ function Checkout() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (disabled || !form.terms_accepted || !form.session_date || !form.return_date || anyUnavailable) return;
+    if (disabled || !form.terms_accepted || !form.session_date || !form.return_date || anyUnavailable || !phoneOk) return;
     if (!isWithinPropsHandoffHours(form.start_time) || !isWithinPropsHandoffHours(form.end_time)) {
       toast.error(PROPS_HANDOFF_NOTE);
       return;
@@ -210,6 +226,7 @@ function Checkout() {
         <div className="mb-5 text-forest">
           <BackButton fallback="/cart" label="חזרה לעגלה" />
         </div>
+        <FlowProgress steps={flowStepsFor("props")} current={2} className="mb-6 max-w-2xl" />
         <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-3">Checkout</div>
         <h1 className="font-display text-5xl text-primary mb-10">סיכום ההזמנה</h1>
 
@@ -224,15 +241,16 @@ function Checkout() {
                 </div>
                 <div>
                   <Label>טלפון *</Label>
-                  <Input required type="tel" dir="ltr" value={form.contact_phone} onChange={(e) => setForm({ ...form, contact_phone: e.target.value })} className="mt-1" />
+                  <Input required type="tel" dir="ltr" inputMode="tel" aria-invalid={phoneBad} value={form.contact_phone} onChange={(e) => setForm({ ...form, contact_phone: e.target.value })} className={`mt-1 ${phoneBad ? "border-destructive" : ""}`} />
+                  {phoneBad && <p className="mt-1 text-xs text-destructive">נא להזין מספר טלפון ישראלי תקין, למשל 054-1234567</p>}
                 </div>
                 <div>
                   <Label className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> תאריך איסוף *</Label>
-                  <Input required type="date" min={new Date().toISOString().slice(0,10)} value={form.session_date} onChange={(e) => setForm({ ...form, session_date: e.target.value })} className="mt-1" />
+                  <Input required type="date" min={new Date().toISOString().slice(0,10)} value={form.session_date} onChange={(e) => { const v = e.target.value; setForm((f) => ({ ...f, session_date: v, return_date: !f.return_date || f.return_date < v ? v : f.return_date })); }} className="mt-1" />
                 </div>
                 <div>
                   <Label>שעת איסוף *</Label>
-                  <Input required type="time" max={PROPS_LATEST_HANDOFF} value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} className="mt-1" />
+                  <Input required type="time" max={PROPS_LATEST_HANDOFF} value={form.start_time} onChange={(e) => setForm({ ...form, start_time: clampHandoff(e.target.value) })} className="mt-1" />
                 </div>
                 <div>
                   <Label className="flex items-center gap-1"><CalendarDays className="h-3 w-3" /> תאריך החזרה *</Label>
@@ -240,11 +258,11 @@ function Checkout() {
                 </div>
                 <div>
                   <Label>שעת החזרה *</Label>
-                  <Input required type="time" max={PROPS_LATEST_HANDOFF} value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} className="mt-1" />
+                  <Input required type="time" max={PROPS_LATEST_HANDOFF} value={form.end_time} onChange={(e) => setForm({ ...form, end_time: clampHandoff(e.target.value) })} className="mt-1" />
                 </div>
                 <div className="md:col-span-2 -mt-2 flex flex-wrap items-center gap-2 text-[11px]">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blush/40 text-primary font-medium">
-                    <AlertTriangle className="h-3 w-3" /> תמחור לפי 24 שעות · מכפיל נוכחי: ×{dayMultiplier}
+                    <AlertTriangle className="h-3 w-3" /> תמחור לפי יחידות של 24 שעות · {dayMultiplier} {dayMultiplier === 1 ? "יחידה" : "יחידות"}{form.session_date && form.return_date ? ` = ₪${chargedTotal.toFixed(0)}` : ""}
                   </span>
                   <span className="text-muted-foreground">{PROPS_HANDOFF_NOTE} · חובה לעדכן מראש אם צפוי איחור — כל 24ש נוספות = תשלום כפול.</span>
                 </div>
@@ -313,7 +331,7 @@ function Checkout() {
                   <div key={l.id} className="flex justify-between text-primary-foreground/80">
                     <span className="truncate ml-2">{l.name} × {l.quantity}</span>
                     <span className="text-left">
-                      {dayMultiplier > 1 && (
+                      {form.session_date && form.return_date && (
                         <span className="block text-[10px] text-primary-foreground/50">
                           ₪{l.price.toFixed(0)} ליום × {dayMultiplier} ימים{l.quantity > 1 ? ` × ${l.quantity}` : ""} =
                         </span>
@@ -379,7 +397,7 @@ function Checkout() {
                 {useCredit ? "✓ " : ""}השתמשי בקרדיט שלך (₪{creditBalance.toFixed(0)})
               </button>
             )}
-            <div className="text-[11px] text-primary-foreground/60 mt-2">מינימום 50₪ · תשלום מלא בסיום ההזמנה (מזומן/אשראי/העברה/Bit).</div>
+            <div className="text-[11px] text-primary-foreground/60 mt-2">מינימום {MIN_PROPS_ORDER}₪ · תשלום מלא בסיום ההזמנה (מזומן/אשראי/העברה/Bit).</div>
             <label className="flex items-start gap-2 text-sm cursor-pointer bg-primary-foreground/10 rounded-2xl p-4 border border-blush/40 mt-4">
               <Checkbox checked={form.terms_accepted} onCheckedChange={(v) => setForm({ ...form, terms_accepted: !!v })} className="mt-0.5" />
               <span className="font-medium">אני מאשר/ת שקראתי את הכללים ואני מסכימה לתנאי ההשכרה *</span>
@@ -389,7 +407,8 @@ function Checkout() {
               className="mt-3"
               items={[
                 ...(lines.length === 0 ? ["להוסיף לעגלה לפחות אביזר אחד"] : []),
-                ...(lines.length > 0 && subtotal < 50 ? ["להגיע למינימום הזמנה של ₪50"] : []),
+                ...(lines.length > 0 && subtotal < MIN_PROPS_ORDER ? [`להגיע למינימום הזמנה של ₪${MIN_PROPS_ORDER} (חסרים עוד ₪${(MIN_PROPS_ORDER - subtotal).toFixed(0)})`] : []),
+                ...(form.contact_phone.trim() && !phoneOk ? ["מספר טלפון תקין (למשל 054-1234567)"] : []),
                 ...(!form.session_date ? ["לבחור תאריך איסוף"] : []),
                 ...(!form.return_date ? ["לבחור תאריך החזרה"] : []),
                 ...(anyUnavailable ? ["חלק מהאביזרים תפוסים בתאריכים שנבחרו — אפשר לשנות תאריכים או להסיר אותם מהעגלה"] : []),
@@ -398,7 +417,7 @@ function Checkout() {
             />
             <Button
               type="submit"
-              disabled={disabled || busy || !form.terms_accepted || !form.session_date || !form.return_date || anyUnavailable}
+              disabled={disabled || busy || !form.terms_accepted || !form.session_date || !form.return_date || anyUnavailable || !phoneOk}
               className="w-full mt-3 rounded-full h-12 bg-blush text-primary hover:bg-blush-deep"
             >
               {busy ? "שולח…" : "אישור הזמנה"}

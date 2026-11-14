@@ -1,4 +1,5 @@
 import { isQuietForMail } from "@/lib/mail-quiet-hours";
+import { MIN_PROPS_ORDER } from "@/lib/order-limits";
 import { naiveHHMM, naiveLocalISO, naiveIsraelMs } from "@/lib/naive-time";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -99,7 +100,7 @@ export const placeOrder = createServerFn({ method: "POST" })
       };
     });
 
-    if (total < 50) throw new Error("מינימום הזמנה 50 ש״ח");
+    if (total < MIN_PROPS_ORDER) throw new Error(`מינימום הזמנה ${MIN_PROPS_ORDER} ש״ח`);
 
     // Optional discount code (e.g. BYBY10 / SWEETBABY10 → 10%), same coupons
     // table used by studio-rental checkout.

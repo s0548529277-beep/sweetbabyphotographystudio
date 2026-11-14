@@ -1,4 +1,5 @@
 import { ColorHeart } from "@/components/Heart";
+import { MIN_PROPS_ORDER } from "@/lib/order-limits";
 import { isImmediateOrder } from "@/lib/orderSummary";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
@@ -20,7 +21,7 @@ import { PROPS_LATEST_HANDOFF } from "@/lib/props-hours";
  * Every step has a "back" button and an explanation under a disabled "continue".
  */
 const STEPS = ["תאריכי השכרה", "הפריטים שלי", "פרטים ותנאים", "סיכום ואישור"] as const;
-const MIN_ORDER = 50;
+const MIN_ORDER = MIN_PROPS_ORDER;
 const todayIso = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
 
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
@@ -306,8 +307,8 @@ export function ChatPropsWizard({ onClose, onOrdered }: { onClose: () => void; o
               {creditApplied > 0 ? ` · קרדיט −₪${creditApplied}` : ""}
             </p>
             <p className="text-[#8a4a5c]">
-              <ColorHeart kind="bot" /> צבירה לכולן: 10% מכל הזמנה מ-100 ₪ חוזרים אלייך כקרדיט להזמנה הבאה
-              {cart.total >= 100 ? ` (בהזמנה הזו כ-₪${Math.round(cart.total * 0.1)})` : ""}
+              <ColorHeart kind="bot" /> צבירה לכולן: 10% מכל הזמנה חוזרים אלייך כקרדיט להזמנה הבאה
+              {` (בהזמנה הזו כ-₪${Math.round(cart.total * 0.1)})`}
             </p>
           </div>
           <Field label="קוד קופון (אופציונלי)">

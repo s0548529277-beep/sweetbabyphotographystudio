@@ -1,4 +1,5 @@
 import { ColorHeart } from "@/components/Heart";
+import { FlowProgress, flowStepsFor } from "@/components/FlowProgress";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
@@ -17,6 +18,10 @@ import {
 } from "@/components/ui/dialog";
 import { Minus, Plus, Trash2, ShoppingBag, Tag, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { checkItemsAvailability } from "@/lib/orders.functions";
+import { MIN_PROPS_ORDER } from "@/lib/order-limits";
+import { PROPS_LATEST_HANDOFF, PROPS_HANDOFF_NOTE } from "@/lib/props-hours";
 import { BackButton, MissingList } from "@/components/FlowHelpers";
 
 
@@ -38,6 +43,45 @@ function Cart() {
   const [couponInput, setCouponInput] = useState("");
   const [applying, setApplying] = useState(false);
   const [showOrderForm, setShowOrderForm] = useState(false);
+
+  // Rental window chosen in the catalog (same localStorage key the catalog writes and checkout reads). She can change it here.
+  type RentalWindow = { from: string; to: string; timeFrom: string; timeTo: string };
+  const [win, setWin] = useState<RentalWindow | null>(null);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("sb_rental_window");
+      if (!raw) return;
+      const w = JSON.parse(raw) as Partial<RentalWindow>;
+      if (w.from) setWin({ from: w.from, to: w.to || w.from, timeFrom: w.timeFrom || "09:00", timeTo: w.timeTo || "18:00" });
+    } catch { /* ignore */ }
+  }, []);
+  const updateWin = (patch: Partial<RentalWindow>) => {
+    setWin((prev) => {
+      const next: RentalWindow = { from: "", to: "", timeFrom: "09:00", timeTo: "18:00", ...prev, ...patch };
+      if (patch.from && (!next.to || next.to < next.from)) next.to = next.from;
+      if (next.to && next.from && next.to < next.from) next.to = next.from;
+      if (next.timeFrom > PROPS_LATEST_HANDOFF) next.timeFrom = PROPS_LATEST_HANDOFF;
+      if (next.timeTo > PROPS_LATEST_HANDOFF) next.timeTo = PROPS_LATEST_HANDOFF;
+      try { localStorage.setItem("sb_rental_window", JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+
+  // Live availability of the cart items for the chosen dates (same source as the catalog / checkout).
+  const checkAvail = useServerFn(checkItemsAvailability);
+  const [availability, setAvailability] = useState<Record<string, { available: number }> | null>(null);
+  const skuKey = lines.map((l) => l.sku).join(",");
+  useEffect(() => {
+    if (!win?.from || !win.to || win.to < win.from || lines.length === 0) { setAvailability(null); return; }
+    let cancelled = false;
+    checkAvail({ data: { skus: lines.map((l) => l.sku), from: win.from, to: win.to } })
+      .then((r) => { if (!cancelled) setAvailability(r); })
+      .catch(() => { if (!cancelled) setAvailability(null); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [win?.from, win?.to, skuKey]);
+  const isTaken = (sku: string, qty: number) => availability != null && (availability[sku]?.available ?? 0) < qty;
+  const anyTaken = lines.some((l) => isTaken(l.sku, l.quantity));
   // Open studio bookings (deposit not paid yet, not cancelled, still ahead) of the signed-in / guest customer.
   const [openBookings, setOpenBookings] = useState<Array<{ id: string; session_date: string; start_time: string; end_time: string | null; price: number | null }>>([]);
   useEffect(() => {
@@ -59,8 +103,7 @@ function Cart() {
   }, [user]);
   const [form, setForm] = useState({
     orderType: "הזמנת אביזרים",
-    email: user?.email ?? "", name: "", phone: "", referral: "", pickup: "",
-    payment: "מזומן במקום", amount: "", agree: false, suggestion: "",
+    email: user?.email ?? "", name: "", phone: "", pickup: "", agree: false,
   });
 
   // Auth resolves asynchronously — sync in an effect too, in case the form
@@ -84,6 +127,7 @@ function Cart() {
         <div className="mb-5 text-forest">
           <BackButton fallback="/rental-catalog" label="חזרה לקטלוג" />
         </div>
+        <FlowProgress steps={flowStepsFor("props")} current={1} className="mb-6 max-w-2xl" />
         <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-3">Your Cart</div>
         <h1 className="font-display text-5xl text-primary mb-10">העגלה שלי</h1>
 
@@ -118,6 +162,32 @@ function Cart() {
         ) : (
           <div className="grid lg:grid-cols-[1fr_380px] gap-10">
             <div className="space-y-4">
+              <div className="bg-card rounded-2xl p-5 border border-primary/5">
+                <div className="font-display text-lg text-primary mb-1">מתי צריך את האביזרים?</div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  {win?.from ? "אפשר לשנות כאן — הזמינות של כל אביזר בעגלה מתעדכנת מיד." : "בחרי תאריכים כדי לראות אילו אביזרים פנויים."}
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div>
+                    <Label className="text-xs">תאריך איסוף</Label>
+                    <Input type="date" min={new Date().toISOString().slice(0, 10)} value={win?.from ?? ""} onChange={(e) => updateWin({ from: e.target.value })} className="mt-1" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">שעת איסוף</Label>
+                    <Input type="time" max={PROPS_LATEST_HANDOFF} value={win?.timeFrom ?? "09:00"} onChange={(e) => updateWin({ timeFrom: e.target.value })} className="mt-1" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">תאריך החזרה</Label>
+                    <Input type="date" min={win?.from || new Date().toISOString().slice(0, 10)} value={win?.to ?? ""} onChange={(e) => updateWin({ to: e.target.value })} className="mt-1" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">שעת החזרה</Label>
+                    <Input type="time" max={PROPS_LATEST_HANDOFF} value={win?.timeTo ?? "18:00"} onChange={(e) => updateWin({ timeTo: e.target.value })} className="mt-1" />
+                  </div>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-2">{PROPS_HANDOFF_NOTE}</p>
+              </div>
+
               {lines.map((l) => (
                 <div key={l.id} className="flex gap-4 items-center bg-card rounded-2xl p-4 border border-primary/5">
                   <div className="h-24 w-24 rounded-xl overflow-hidden bg-cream shrink-0">
@@ -127,6 +197,11 @@ function Cart() {
                     <div className="font-display text-lg text-primary truncate">{l.name}</div>
                     <div className="text-xs text-muted-foreground tracking-widest">מק״ט {l.sku}</div>
                     <div className="font-display text-peach-deep text-lg mt-1">₪{l.price.toFixed(0)}</div>
+                    {availability != null && (
+                      <div className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-[11px] font-medium ${isTaken(l.sku, l.quantity) ? "bg-destructive/10 text-destructive" : "bg-[#eef4ea] text-[#4a6b43]"}`}>
+                        {isTaken(l.sku, l.quantity) ? "תפוס בתאריכים שבחרת" : "פנוי בתאריכים שבחרת"}
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" aria-label={`הפחת כמות עבור ${l.name}`} onClick={() => setQty(l.id, l.quantity - 1)}>
@@ -193,19 +268,18 @@ function Cart() {
                 <div className="h-px bg-[#2d3d2b]/15 my-3" />
                 <Row k="סה״כ" v={`₪${total.toFixed(0)}`} big />
                 <p className="rounded-xl bg-white/60 px-3 py-2 text-xs leading-relaxed">
-                  <ColorHeart kind="bot" /> צבירה לכולן: 10% מכל הזמנה מ-100 ₪ חוזרים אלייך כקרדיט להזמנה הבאה
-                  {total >= 100 ? ` — בהזמנה הזו תצברי כ-₪${Math.round(total * 0.1)}` : ` (חסרים עוד ₪${Math.ceil(100 - total)} כדי לצבור)`}.
+                  <ColorHeart kind="bot" /> צבירה לכולן: 10% מכל הזמנה חוזרים אלייך כקרדיט להזמנה הבאה — בהזמנה הזו תצברי כ-₪{Math.round(total * 0.1)}.
                 </p>
-                {total < 50 && (
+                {total < MIN_PROPS_ORDER && (
                   <div className="mt-3">
                     <div className="h-2 rounded-full bg-[#2d3d2b]/10 overflow-hidden">
                       <div
                         className="h-full rounded-full bg-[#2d3d2b] transition-all"
-                        style={{ width: `${Math.min(100, (total / 50) * 100)}%` }}
+                        style={{ width: `${Math.min(100, (total / MIN_PROPS_ORDER) * 100)}%` }}
                       />
                     </div>
                     <p className="text-[#2d3d2b]/80 text-xs mt-2">
-                      מינימום להזמנה 50 ש״ח — יש להוסיף ₪{(50 - total).toFixed(0)}.
+                      חסרים עוד ₪{(MIN_PROPS_ORDER - total).toFixed(0)} להזמנה (מינימום ₪{MIN_PROPS_ORDER}).
                     </p>
                   </div>
                 )}
@@ -214,25 +288,42 @@ function Cart() {
                 className="mt-6"
                 items={[
                   ...(lines.length === 0 ? ["להוסיף לעגלה לפחות אביזר אחד"] : []),
-                  ...(lines.length > 0 && total < 50 ? [`להגיע למינימום הזמנה של ₪50 (חסרים עוד ₪${(50 - total).toFixed(0)})`] : []),
+                  ...(lines.length > 0 && total < MIN_PROPS_ORDER ? [`להגיע למינימום הזמנה של ₪${MIN_PROPS_ORDER} (חסרים עוד ₪${(MIN_PROPS_ORDER - total).toFixed(0)})`] : []),
+                  ...(anyTaken ? ["חלק מהאביזרים תפוסים בתאריכים שבחרת — אפשר לשנות תאריך או להסיר אותם מהעגלה"] : []),
                 ]}
               />
-              <Link to="/checkout" className="block">
-                <Button
-                  className="w-full mt-3 rounded-full h-12 bg-[#2d3d2b] text-[#f5d5cf] hover:bg-[#2d3d2b]/90"
-                  disabled={lines.length === 0 || total < 50}
-                >
-                  המשך לתשלום
-                </Button>
-              </Link>
-              <Button
-                variant="outline"
-                className="w-full mt-2 rounded-full h-11 bg-white text-[#2d3d2b] border-[#2d3d2b]/15 hover:bg-white/80"
+              <div className="relative mt-5">
+                <span className="absolute -top-2.5 right-4 z-10 rounded-full bg-[#e8b4bc] px-3 py-0.5 text-[10px] font-semibold text-[#2d3d2b] shadow-sm">
+                  מומלץ
+                </span>
+                {lines.length === 0 || total < MIN_PROPS_ORDER || anyTaken ? (
+                  <Button className="w-full rounded-full h-12 bg-[#2d3d2b] text-[#f5d5cf]" disabled>
+                    המשך להזמנה
+                  </Button>
+                ) : (
+                  <Link to="/checkout" className="block">
+                    <Button className="w-full rounded-full h-12 bg-[#2d3d2b] text-[#f5d5cf] hover:bg-[#2d3d2b]/90">
+                      המשך להזמנה
+                    </Button>
+                  </Link>
+                )}
+                <p className="mt-1.5 text-center text-[11px] text-[#4a6b43]">שריון מיידי של הפריטים לתאריך שנבחר.</p>
+              </div>
+              <button
+                type="button"
                 disabled={lines.length === 0}
-                onClick={() => setShowOrderForm(true)}
+                onClick={() => {
+                  if (win?.from && !form.pickup) {
+                    const fmt = (d: string) => d.split("-").reverse().join(".");
+                    setForm((f) => ({ ...f, pickup: `${fmt(win.from)}${win.to && win.to !== win.from ? ` – ${fmt(win.to)}` : ""} · ${win.timeFrom}–${win.timeTo}` }));
+                  }
+                  setShowOrderForm(true);
+                }}
+                className="block w-full text-center text-xs text-[#2d3d2b]/60 underline underline-offset-2 mt-4 hover:text-[#2d3d2b] disabled:opacity-40"
               >
-                ✉️ שליחת הסל במייל (Gmail)
-              </Button>
+                עדיין לא מוכנה? שליחת הסל במייל (בלי שריון)
+              </button>
+              <p className="mt-1 text-center text-[11px] text-[#2d3d2b]/50">שליחה במייל לא שומרת את האביזרים — הם עלולים להיתפס עד שנחזור אלייך.</p>
               <Link to="/rental-catalog" className="block text-center text-xs text-[#2d3d2b]/60 mt-4 hover:text-[#2d3d2b]">
                 המשך קניה
               </Link>
@@ -263,10 +354,9 @@ function Cart() {
                 `1. מייל: ${form.email}`,
                 `2. שם: ${form.name}`,
                 `3. טלפון: ${form.phone}`,
-                `4. איך הגעת אלינו: ${form.referral}`,
-                `5. מתי נתראה (תאריך + שעות איסוף): ${form.pickup}`,
+                `4. מתי נתראה (תאריך + שעות איסוף): ${form.pickup}`,
                 "",
-                "6. מק״טים של האביזרים להשכרה:",
+                "5. מק״טים של האביזרים להשכרה:",
                 skusText || "(אין)",
                 "",
                 "פירוט פריטים:",
@@ -274,10 +364,7 @@ function Cart() {
                 ...(coupon ? [`קוד קופון: ${coupon.code} — הנחה ₪${discount.toFixed(0)}`] : []),
                 `סה״כ: ₪${total.toFixed(0)}`,
                 "",
-                `7. אופן תשלום: ${form.payment}`,
-                `8. סכום: ${form.amount}`,
-                `9. אישור כללי השכרה: ${form.agree ? "כן, אני מאשרת" : "לא"}`,
-                `11. הצעה לשיפור: ${form.suggestion || "—"}`,
+                `אישור כללי השכרה: ${form.agree ? "כן, אני מאשרת" : "לא"}`,
               ].join("\n");
               const url = `https://mail.google.com/mail/?view=cm&fs=1&to=s0548529277@gmail.com&su=${encodeURIComponent(`${form.orderType} — Sweetbaby`)}&body=${encodeURIComponent(body)}`;
               window.open(url, "_blank", "noopener,noreferrer");
@@ -316,16 +403,15 @@ function Cart() {
               </div>
               <div><Label>2. שם *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1" /></div>
               <div><Label>3. טלפון *</Label><Input required type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="mt-1" /></div>
-              <div><Label>4. איך הגעת אלינו? 📍</Label><Input value={form.referral} onChange={(e) => setForm({ ...form, referral: e.target.value })} placeholder="חברה, אינסטגרם, גוגל…" className="mt-1" /></div>
-              <div><Label>5. מתי נתראה? (תאריך + טווח שעות איסוף)</Label><Input value={form.pickup} onChange={(e) => setForm({ ...form, pickup: e.target.value })} placeholder="לדוגמה: 20.7 בין 10:00–12:00" className="mt-1" /></div>
+              <div><Label>4. מתי נתראה? (תאריך + טווח שעות איסוף)</Label><Input value={form.pickup} onChange={(e) => setForm({ ...form, pickup: e.target.value })} placeholder="לדוגמה: 20.7 בין 10:00–12:00" className="mt-1" /></div>
 
               <div className="rounded-2xl bg-white/70 border border-primary/10 p-4 text-xs text-forest/80 leading-relaxed">
-                <b>6. מק״טים של האביזרים להשכרה</b> (ממולא אוטומטית מהסל):
+                <b>5. מק״טים של האביזרים להשכרה</b> (ממולא אוטומטית מהסל):
                 <div className="mt-2 font-mono text-primary">
                   {lines.length ? lines.map((l) => `${l.sku} × ${l.quantity}`).join(", ") : "— אין פריטים בסל —"}
                 </div>
                 <ul className="list-disc pr-5 mt-3 space-y-1">
-                  <li>מינימום להזמנה: 50 ₪.</li>
+                  <li>מינימום להזמנה: {MIN_PROPS_ORDER} ₪.</li>
                   <li>איסוף והחזרה תוך 24 שעות — כל יום נוסף מחויב בעלות השכרה נוספת.</li>
                   <li>איסוף והחזרת אביזרים עד השעה 22:00.</li>
                   <li>האביזרים באחריות מלאה של השוכר — נזק יחויב לפי מחיר מלא.</li>
@@ -333,32 +419,20 @@ function Cart() {
                 </ul>
               </div>
 
-              <div>
-                <Label>7. איך את משלמת?</Label>
-                <select value={form.payment} onChange={(e) => setForm({ ...form, payment: e.target.value })} className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm">
-                  <option>מזומן במקום</option>
-                  <option>העברה</option>
-                  <option>BIT / PAYBOX</option>
-                </select>
-              </div>
-              <div><Label>8. מה הסכום?</Label><Input value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder={`מוצע: ₪${total.toFixed(0)}`} className="mt-1" /></div>
-
               <label className="flex items-start gap-2 text-sm text-forest/80 bg-white/70 border border-primary/10 rounded-2xl p-3">
                 <input type="checkbox" checked={form.agree} onChange={(e) => setForm({ ...form, agree: e.target.checked })} className="mt-1" required />
-                <span>9. אני מאשרת כי קראתי בעיון את כללי השכרת האביזרים, מחירי ההשכרה והמדיניות, ואני מסכימה לפעול לפיהם במלואם.*</span>
+                <span>6. אני מאשרת כי קראתי בעיון את כללי השכרת האביזרים, מחירי ההשכרה והמדיניות, ואני מסכימה לפעול לפיהם במלואם.*</span>
               </label>
 
-              <div><Label>11. יש לך הצעה לשיפור? (לא חובה)</Label><Textarea rows={3} value={form.suggestion} onChange={(e) => setForm({ ...form, suggestion: e.target.value })} className="mt-1" /></div>
-
               <div className="text-[11px] text-forest/60 text-center pt-2">
-                10. לכל שאלה: 054-8529277 · s0548529277@gmail.com
+                לכל שאלה: 054-8529277 · s0548529277@gmail.com
               </div>
             </div>
 
             <MissingList
               className="mt-6"
               items={[
-                ...(!form.agree ? ["לסמן אישור של כללי ההשכרה והמדיניות (סעיף 9)"] : []),
+                ...(!form.agree ? ["לסמן אישור של כללי ההשכרה והמדיניות (סעיף 6)"] : []),
                 ...(lines.length === 0 ? ["להוסיף לעגלה לפחות אביזר אחד"] : []),
               ]}
             />

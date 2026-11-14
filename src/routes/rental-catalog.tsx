@@ -1,4 +1,5 @@
 import { ColorHeart } from "@/components/Heart";
+import { MIN_PROPS_ORDER } from "@/lib/order-limits";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PROPS_HANDOFF_NOTE, PROPS_LATEST_HANDOFF } from "@/lib/props-hours";
 import { useServerFn } from "@tanstack/react-start";
@@ -337,12 +338,12 @@ function RentalCatalogPage() {
             <p
               className={`max-w-xl md:mx-0 mx-auto ${inspirationImages.length > 0 ? "text-white/85" : "text-muted-foreground"}`}
             >
-              {allItems.length}+ אביזרים · {categories.length} קטגוריות · מינימום הזמנה 50 ₪
+              {allItems.length}+ אביזרים · {categories.length} קטגוריות · מינימום הזמנה {MIN_PROPS_ORDER} ₪
             </p>
             <p
               className={`mt-2 inline-block rounded-full px-3 py-1 text-xs ${inspirationImages.length > 0 ? "bg-white/20 text-white" : "bg-[#f5d5cf]/70 text-[#2d3d2b]"}`}
             >
-              <ColorHeart kind="bot" /> צבירה לכולן: 10% מכל הזמנה מ-100 ₪ חוזרים אלייך כקרדיט להזמנה הבאה
+              <ColorHeart kind="bot" /> צבירה לכולן: 10% מכל הזמנה חוזרים אלייך כקרדיט להזמנה הבאה
             </p>
           </div>
         </div>
@@ -760,9 +761,9 @@ function RentalCatalogPage() {
               <span className="text-sm text-[#2d3d2b]/80">{count} פריטים</span>
               <span className="font-display text-3xl text-[#2d3d2b]">₪{subtotal.toFixed(0)}</span>
             </div>
-            {subtotal > 0 && subtotal < 50 && (
+            {subtotal > 0 && subtotal < MIN_PROPS_ORDER && (
               <p className="text-[#2d3d2b]/80 text-xs mt-2">
-                מינימום 50 ₪ — הוסיפו ₪{(50 - subtotal).toFixed(0)}.
+                מינימום {MIN_PROPS_ORDER} ₪ — הוסיפו ₪{(MIN_PROPS_ORDER - subtotal).toFixed(0)}.
               </p>
             )}
             <div className="relative mt-6">
@@ -772,7 +773,7 @@ function RentalCatalogPage() {
               <Link to="/checkout" className="block">
                 <button
                   type="button"
-                  disabled={lines.length === 0 || subtotal < 50}
+                  disabled={lines.length === 0 || subtotal < MIN_PROPS_ORDER}
                   className="w-full h-12 rounded-full bg-[#2d3d2b] text-[#f5d5cf] font-medium hover:bg-[#2d3d2b]/90 disabled:opacity-40 flex items-center justify-center gap-2"
                 >
                   המשך להזמנה
@@ -990,7 +991,7 @@ function RentalCatalogPage() {
                     : "— אין פריטים בסל —"}
                 </div>
                 <ul className="list-disc pr-5 mt-3 space-y-1">
-                  <li>מינימום להזמנה: 50 ₪.</li>
+                  <li>מינימום להזמנה: {MIN_PROPS_ORDER} ₪.</li>
                   <li>איסוף והחזרה תוך 24 שעות — כל יום נוסף מחויב בעלות השכרה נוספת.</li>
                   <li>{PROPS_HANDOFF_NOTE}.</li>
                   <li>האביזרים באחריות מלאה של השוכר — נזק יחויב לפי מחיר מלא.</li>
@@ -1169,7 +1170,7 @@ function RentalCatalogPage() {
             </div>
             <div className="mt-4 font-semibold">כללי השכרת אביזרים:</div>
             <ul className="list-disc pr-5 mt-2 space-y-1">
-              <li>מינימום להזמנה: 50 ₪.</li>
+              <li>מינימום להזמנה: {MIN_PROPS_ORDER} ₪.</li>
               <li>איסוף והחזרה תוך 24 שעות — כל יום נוסף מחויב בעלות השכרה נוספת.</li>
                   <li>{PROPS_HANDOFF_NOTE}.</li>
               <li>האביזרים באחריות מלאה של השוכר — נזק יחויב לפי מחיר מלא.</li>

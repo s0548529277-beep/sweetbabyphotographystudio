@@ -1,4 +1,5 @@
 import { ColorHeart } from "@/components/Heart";
+import { FlowProgress, flowStepsFor } from "@/components/FlowProgress";
 import { isImmediateOrder } from "@/lib/orderSummary";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { BackButton, MissingList } from "@/components/FlowHelpers";
@@ -204,7 +205,7 @@ function Deposit() {
               <BackButton fallback={isStudio ? "/booking" : "/checkout"} label={isStudio ? "חזרה ליומן" : "חזרה להזמנה"} />
             </div>
           )}
-          <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-3">Step 3 · Payment</div>
+          <FlowProgress steps={flowStepsFor(isStudio ? "studio" : "props")} current={3} allDone={done} className="mb-6 max-w-2xl" />
           <h1 className="font-display text-5xl text-primary mb-6">{done ? "ההזמנה אושרה ✓" : "סיום תשלום"}</h1>
           {isImmediateOrder(record?.session_date ?? record?.scheduled_date, record?.start_time ?? pickupTime) && (
             <div className="mb-6 rounded-2xl border-2 border-destructive/50 bg-destructive/10 p-4 text-sm leading-relaxed">
