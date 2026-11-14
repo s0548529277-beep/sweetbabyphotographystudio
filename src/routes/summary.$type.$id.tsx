@@ -87,7 +87,7 @@ function SummaryPage() {
       <Header />
       <section className="container-page py-14 flex-1">
         <div className="max-w-5xl mx-auto">
-          <FlowProgress steps={flowStepsFor(type === "booking" ? "studio" : "props")} current={3} className="mb-6 max-w-2xl" />
+          <FlowProgress steps={flowStepsFor(type === "booking" ? "studio" : "props")} current={type === "booking" ? 3 : 2} className="mb-6 max-w-2xl" onStepClick={(n) => { if (type === "booking" && n === 1) nav({ to: "/studio-rental" }); else nav({ to: "/edit-order", search: { kind: type === "booking" ? "booking" : "order", id } }); }} />
           <h1 className="font-display text-5xl text-primary mb-3">סיכום ותשלום</h1>
           <p className="text-muted-foreground max-w-2xl mb-10">
             {type === "booking"

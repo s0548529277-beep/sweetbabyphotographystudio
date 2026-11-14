@@ -1,6 +1,6 @@
 import { ColorHeart } from "@/components/Heart";
 import { FlowProgress, flowStepsFor } from "@/components/FlowProgress";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -19,9 +19,11 @@ import {
 import { Minus, Plus, Trash2, ShoppingBag, Tag, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { checkItemsAvailability } from "@/lib/orders.functions";
+import { checkItemsAvailability, placeOrder } from "@/lib/orders.functions";
+import { useProfilePrefill } from "@/hooks/use-profile";
+import { heError } from "@/lib/he-errors";
 import { MIN_PROPS_ORDER } from "@/lib/order-limits";
-import { PROPS_LATEST_HANDOFF, PROPS_HANDOFF_NOTE } from "@/lib/props-hours";
+import { PROPS_LATEST_HANDOFF, PROPS_HANDOFF_NOTE, isWithinPropsHandoffHours } from "@/lib/props-hours";
 import { BackButton, MissingList } from "@/components/FlowHelpers";
 
 
@@ -38,8 +40,17 @@ export const Route = createFileRoute("/cart")({
 });
 
 function Cart() {
-  const { lines, remove, setQty, subtotal, count, coupon, applyCoupon, removeCoupon, discount, total } = useCart();
+  const { lines, remove, setQty, subtotal, count, coupon, applyCoupon, removeCoupon, discount, total, clear: clearCart } = useCart();
   const { user } = useAuth();
+  const nav = useNavigate();
+  const place = useServerFn(placeOrder);
+  const profile = useProfilePrefill();
+  const [quick, setQuick] = useState({ name: "", phone: "", agree: false });
+  const [quickBusy, setQuickBusy] = useState(false);
+  useEffect(() => {
+    if (!profile.loaded) return;
+    setQuick((q) => ({ ...q, name: q.name || profile.fullName, phone: q.phone || profile.phone }));
+  }, [profile.loaded, profile.fullName, profile.phone]);
   const [couponInput, setCouponInput] = useState("");
   const [applying, setApplying] = useState(false);
   const [showOrderForm, setShowOrderForm] = useState(false);
@@ -82,6 +93,39 @@ function Cart() {
   }, [win?.from, win?.to, skuKey]);
   const isTaken = (sku: string, qty: number) => availability != null && (availability[sku]?.available ?? 0) < qty;
   const anyTaken = lines.some((l) => isTaken(l.sku, l.quantity));
+  const phoneDigits = quick.phone.replace(/[\s\-()]/g, "");
+  const quickPhoneOk = /^(?:\+?972|0)(?:[23489]\d{7}|5\d{8}|7\d{8})$/.test(phoneDigits);
+  const datesOk = !!(win?.from && win.to && win.to >= win.from);
+  const canQuick = !!user && datesOk && lines.length > 0 && total >= MIN_PROPS_ORDER && !anyTaken;
+  const quickOrder = async () => {
+    if (!win || !canQuick || !quick.agree || !quick.name.trim() || !quickPhoneOk) return;
+    if (!isWithinPropsHandoffHours(win.timeFrom) || !isWithinPropsHandoffHours(win.timeTo)) { toast.error(PROPS_HANDOFF_NOTE); return; }
+    setQuickBusy(true);
+    try {
+      const res = await place({
+        data: {
+          lines: lines.map((l) => ({ id: l.id, name: l.name, sku: l.sku, price: l.price, quantity: l.quantity })),
+          contact_name: quick.name.trim(),
+          contact_phone: quick.phone.trim(),
+          camera_model: null,
+          session_date: win.from,
+          start_time: win.timeFrom || undefined,
+          return_date: win.to,
+          end_time: win.timeTo || undefined,
+          notes: "",
+          coupon: coupon?.code ?? null,
+          terms_accepted: true as const,
+        },
+      });
+      toast.success("ההזמנה נשמרה!");
+      clearCart();
+      nav({ to: "/deposit/$type/$id", params: { type: "order", id: res.id } });
+    } catch (err) {
+      toast.error(heError(err, "שגיאה בשליחת ההזמנה"));
+    } finally {
+      setQuickBusy(false);
+    }
+  };
   // Open studio bookings (deposit not paid yet, not cancelled, still ahead) of the signed-in / guest customer.
   const [openBookings, setOpenBookings] = useState<Array<{ id: string; session_date: string; start_time: string; end_time: string | null; price: number | null }>>([]);
   useEffect(() => {
@@ -289,6 +333,7 @@ function Cart() {
                 items={[
                   ...(lines.length === 0 ? ["להוסיף לעגלה לפחות אביזר אחד"] : []),
                   ...(lines.length > 0 && total < MIN_PROPS_ORDER ? [`להגיע למינימום הזמנה של ₪${MIN_PROPS_ORDER} (חסרים עוד ₪${(MIN_PROPS_ORDER - total).toFixed(0)})`] : []),
+                  ...(lines.length > 0 && !datesOk ? ["לבחור תאריכי איסוף והחזרה"] : []),
                   ...(anyTaken ? ["חלק מהאביזרים תפוסים בתאריכים שבחרת — אפשר לשנות תאריך או להסיר אותם מהעגלה"] : []),
                 ]}
               />
@@ -296,15 +341,38 @@ function Cart() {
                 <span className="absolute -top-2.5 right-4 z-10 rounded-full bg-[#e8b4bc] px-3 py-0.5 text-[10px] font-semibold text-[#2d3d2b] shadow-sm">
                   מומלץ
                 </span>
-                {lines.length === 0 || total < MIN_PROPS_ORDER || anyTaken ? (
+                {canQuick && (
+                  <div className="mb-3 space-y-2 rounded-2xl bg-white/60 p-3 text-xs">
+                    <Input value={quick.name} onChange={(e) => setQuick({ ...quick, name: e.target.value })} placeholder="שם מלא *" className="h-9 bg-white" />
+                    <Input value={quick.phone} dir="ltr" inputMode="tel" onChange={(e) => setQuick({ ...quick, phone: e.target.value })} placeholder="טלפון *" className={`h-9 bg-white ${quick.phone.trim() && !quickPhoneOk ? "border-destructive" : ""}`} />
+                    <label className="flex items-start gap-2 leading-relaxed text-[#2d3d2b]/80">
+                      <input type="checkbox" checked={quick.agree} onChange={(e) => setQuick({ ...quick, agree: e.target.checked })} className="mt-0.5" />
+                      <span>קראתי ואני מסכימה לתנאי ההשכרה (למטה).</span>
+                    </label>
+                  </div>
+                )}
+                {lines.length === 0 || total < MIN_PROPS_ORDER || anyTaken || !datesOk ? (
                   <Button className="w-full rounded-full h-12 bg-[#2d3d2b] text-[#f5d5cf]" disabled>
-                    המשך להזמנה
+                    {lines.length > 0 && !datesOk ? "בחרי תאריכים להמשך" : "המשך להזמנה"}
+                  </Button>
+                ) : canQuick ? (
+                  <Button
+                    onClick={quickOrder}
+                    disabled={quickBusy || !quick.agree || !quick.name.trim() || !quickPhoneOk}
+                    className="w-full rounded-full h-12 bg-[#2d3d2b] text-[#f5d5cf] hover:bg-[#2d3d2b]/90"
+                  >
+                    {quickBusy ? "שומרת…" : "שריון והמשך לתשלום"}
                   </Button>
                 ) : (
                   <Link to="/checkout" className="block">
                     <Button className="w-full rounded-full h-12 bg-[#2d3d2b] text-[#f5d5cf] hover:bg-[#2d3d2b]/90">
                       המשך להזמנה
                     </Button>
+                  </Link>
+                )}
+                {canQuick && (
+                  <Link to="/checkout" className="mt-2 block text-center text-[11px] text-[#2d3d2b]/60 underline underline-offset-2">
+                    קרדיט, דגם מצלמה או הערות? לדף ההזמנה המלא
                   </Link>
                 )}
                 <p className="mt-1.5 text-center text-[11px] text-[#4a6b43]">שריון מיידי של הפריטים לתאריך שנבחר.</p>

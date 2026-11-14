@@ -5,11 +5,11 @@ import { Check } from "lucide-react";
  * studio booking and the props order, and no "jump" between the questionnaire and the next pages).
  * Both flows have the same 3 steps, matching the "3 שלבים" text on /studio-rental:
  *   studio: שאלון והסכם -> בחירת מועד -> סיכום ותשלום   (/studio-rental -> /booking -> /summary + /deposit)
- *   props:  עגלה -> פרטים ותאריכים -> סיכום ותשלום       (/cart -> /checkout -> /summary + /deposit)
+ *   props:  עגלה ותאריכים -> סיכום ותשלום              (/cart [quick order] or /checkout -> /deposit)
  * (The admin / gallery trackers use the bigger `StepTracker` — this one is for the order pages only.)
  */
 export const STUDIO_FLOW_STEPS = ["שאלון והסכם", "בחירת מועד", "סיכום ותשלום"] as const;
-export const PROPS_FLOW_STEPS = ["עגלה", "פרטים ותאריכים", "סיכום ותשלום"] as const;
+export const PROPS_FLOW_STEPS = ["עגלה ותאריכים", "סיכום ותשלום"] as const;
 
 export function flowStepsFor(kind: "studio" | "props"): readonly string[] {
   return kind === "studio" ? STUDIO_FLOW_STEPS : PROPS_FLOW_STEPS;
@@ -20,6 +20,8 @@ export function FlowProgress({
   current,
   allDone = false,
   className = "",
+  onStepClick,
+  canGo,
 }: {
   steps: readonly string[];
   /** 1-based current step. */
@@ -27,6 +29,9 @@ export function FlowProgress({
   /** Everything finished (e.g. the order was approved) — every step shows a check mark. */
   allDone?: boolean;
   className?: string;
+  /** Makes steps clickable. By default only COMPLETED steps are (back); `canGo` can also allow forward steps that are already filled. */
+  onStepClick?: (step: number) => void;
+  canGo?: (step: number) => boolean;
 }) {
   const total = steps.length;
   const cur = Math.min(Math.max(current, 1), total);
@@ -53,6 +58,10 @@ export function FlowProgress({
                   style={{ right: "calc(50% + 18px)", left: "calc(-50% + 18px)" }}
                 />
               )}
+              {(() => {
+                const clickable = !!onStepClick && !allDone && n !== cur && (canGo ? canGo(n) : n < cur);
+                const body = (
+                  <>
               <span
                 aria-current={active ? "step" : undefined}
                 className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-semibold transition-colors ${
@@ -72,6 +81,21 @@ export function FlowProgress({
               >
                 {label}
               </span>
+                  </>
+                );
+                return clickable ? (
+                  <button
+                    type="button"
+                    onClick={() => onStepClick!(n)}
+                    aria-label={`${n < cur ? "חזרה" : "מעבר"} לשלב: ${label}`}
+                    className="flex flex-col items-center rounded-lg px-1 py-0.5 outline-none transition-opacity hover:opacity-75 focus-visible:ring-2 focus-visible:ring-[#6b8a63]"
+                  >
+                    {body}
+                  </button>
+                ) : (
+                  body
+                );
+              })()}
             </li>
           );
         })}

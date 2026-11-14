@@ -3,6 +3,7 @@ import { heError } from "@/lib/he-errors";
 import { FunnelCta } from "@/components/FunnelDialog";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { FlowProgress, STUDIO_FLOW_STEPS } from "@/components/FlowProgress";
 import { motion } from "framer-motion";
 import { Clock, CreditCard, CalendarDays, Sparkles, ArrowLeft, X, MapPin, Star, AlertTriangle, PlayCircle, Coffee } from "lucide-react";import { Header } from "@/components/Header";
@@ -170,6 +171,24 @@ function StudioRentalPage() {
   const { user } = useAuth();
   const profile = useProfilePrefill();
   const submitIntake = useServerFn(submitStudioIntake);
+  // Returning customer: a questionnaire she already signed in the last 90 days lets her go straight to choosing a date.
+  const [lastIntakeAt, setLastIntakeAt] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user) { setLastIntakeAt(null); return; }
+    let cancelled = false;
+    (supabase as any)
+      .from("studio_intake_forms")
+      .select("created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .then(({ data, error }: any) => {
+        if (cancelled || error || !data?.[0]?.created_at) return;
+        const age = Date.now() - new Date(data[0].created_at).getTime();
+        if (age >= 0 && age < 90 * 24 * 3600 * 1000) setLastIntakeAt(data[0].created_at);
+      });
+    return () => { cancelled = true; };
+  }, [user]);
   const upd = <K extends keyof IntakeForm>(k: K, v: IntakeForm[K]) => setForm((f) => ({ ...f, [k]: v }));
 
   // Prefill from the customer's personal area.
@@ -507,6 +526,25 @@ function StudioRentalPage() {
                 התהליך כולו מתבצע כאן באתר — בסיום תקבלי מייל אחד מסודר עם ההסכם, פרטי השריון והתשלום.
               </p>
             </div>
+
+            {lastIntakeAt && (
+              <div className="mt-6 rounded-2xl border border-[#6b8a63]/40 bg-[#eef4ea] p-4 text-center text-sm text-[#2d3d2b]">
+                <div className="font-semibold">✓ מילאת שאלון והסכם ב-{new Date(lastIntakeAt).toLocaleDateString("he-IL")}</div>
+                <div className="mt-1 text-[#2d3d2b]/70">אפשר לעבור ישר לבחירת מועד, בלי למלא שוב.</div>
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { try { sessionStorage.setItem("sb_intake_just_done", "1"); } catch { /* ignore */ } nav({ to: "/booking" }); }}
+                    className="rounded-full bg-[#2d3d2b] px-5 py-2 text-xs font-semibold text-[#f8ede4]"
+                  >
+                    המשך לבחירת מועד
+                  </button>
+                  <button type="button" onClick={() => setShowForm(true)} className="text-xs underline underline-offset-2 text-[#2d3d2b]/70">
+                    יש שינוי? עדכון השאלון
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="mt-7 grid md:grid-cols-3 gap-3 md:gap-4">
               {[

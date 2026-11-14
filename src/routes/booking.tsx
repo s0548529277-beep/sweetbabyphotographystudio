@@ -450,7 +450,7 @@ function Booking() {
       });
       clearBookingProgress();
       toast.success("הבקשה נשלחה! התאריך שמור לך לשעה — נשלים את התשלום עכשיו כדי לשריין אותו סופית.");
-      nav({ to: "/summary/$type/$id", params: { type: "booking", id: res.id } });
+      nav({ to: "/deposit/$type/$id", params: { type: "booking", id: res.id } });
     } catch (err) {
       toast.error(heError(err, "שגיאה בשריון"));
     } finally {
@@ -467,7 +467,7 @@ function Booking() {
             <BackButton fallback="/studio-rental" />
           </div>
           <div className="max-w-md mx-auto mb-5">
-            <FlowProgress steps={STUDIO_FLOW_STEPS} current={2} />
+            <FlowProgress steps={STUDIO_FLOW_STEPS} current={2} onStepClick={() => nav({ to: "/studio-rental" })} />
           </div>
           <div className="max-w-md mx-auto text-center bg-white rounded-3xl p-10 border border-[#2d3d2b]/10 shadow-sm">
             <Lock className="h-8 w-8 text-[#6b8a63] mx-auto mb-3" />
@@ -497,7 +497,7 @@ function Booking() {
           <BackButton fallback="/studio-rental" label="חזרה לפרטי הסטודיו" />
         </div>
         <div className="max-w-3xl mb-6">
-          <FlowProgress steps={STUDIO_FLOW_STEPS} current={2} />
+          <FlowProgress steps={STUDIO_FLOW_STEPS} current={2} onStepClick={() => nav({ to: "/studio-rental" })} />
           {intakeJustDone && (
             <div role="status" className="mt-4 rounded-2xl border border-[#6b8a63]/40 bg-[#eef4ea] px-4 py-3 text-sm text-[#2d3d2b]">
               ✓ השאלון וההסכם נשמרו. עכשיו בוחרות תאריך ושעה פנויים ביומן.

@@ -164,7 +164,7 @@ function Checkout() {
             <BackButton fallback="/cart" label="חזרה לעגלה" />
           </div>
           <div className="max-w-md mx-auto mb-5">
-            <FlowProgress steps={flowStepsFor("props")} current={2} />
+            <FlowProgress steps={flowStepsFor("props")} current={1} />
           </div>
           <div className="max-w-md mx-auto text-center glass-card rounded-3xl p-10">
             <Lock className="h-8 w-8 text-primary/40 mx-auto mb-3" />
@@ -211,7 +211,7 @@ function Checkout() {
       });
       toast.success("ההזמנה נשמרה!");
       clear();
-      nav({ to: "/summary/$type/$id", params: { type: "order", id: res.id } });
+      nav({ to: "/deposit/$type/$id", params: { type: "order", id: res.id } });
     } catch (err) {
       toast.error(heError(err, "שגיאה בשליחת ההזמנה"));
     } finally {
@@ -226,7 +226,7 @@ function Checkout() {
         <div className="mb-5 text-forest">
           <BackButton fallback="/cart" label="חזרה לעגלה" />
         </div>
-        <FlowProgress steps={flowStepsFor("props")} current={2} className="mb-6 max-w-2xl" />
+        <FlowProgress steps={flowStepsFor("props")} current={1} className="mb-6 max-w-2xl" />
         <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-3">Checkout</div>
         <h1 className="font-display text-5xl text-primary mb-10">סיכום ההזמנה</h1>
 
