@@ -946,6 +946,8 @@ export type Database = {
       }
       customer_loyalty: {
         Row: {
+          blocked: boolean
+          blocked_note: string | null
           can_book_recurring: boolean
           cashback_credit_balance: number
           cashback_expires_at: string | null
@@ -958,6 +960,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          blocked?: boolean
+          blocked_note?: string | null
           can_book_recurring?: boolean
           cashback_credit_balance?: number
           cashback_expires_at?: string | null
@@ -970,6 +974,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          blocked?: boolean
+          blocked_note?: string | null
           can_book_recurring?: boolean
           cashback_credit_balance?: number
           cashback_expires_at?: string | null

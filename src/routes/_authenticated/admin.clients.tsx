@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { listClientEmails, setClientPassword, updateClientProfile, setCustomerLoyalty, grantManualCredit } from "@/lib/admin-clients.functions";
+import { listClientEmails, setClientPassword, updateClientProfile, setCustomerLoyalty, grantManualCredit, setCustomerBlocked } from "@/lib/admin-clients.functions";
 import { startManualPhotoWorkflow } from "@/lib/photo-clients.functions";
 import { Camera, Package, Pencil, Gift, Tag, Wand2, ImagePlus, Ticket, FileSpreadsheet } from "lucide-react";
 import { toCSV, downloadCSV } from "@/lib/csv";
@@ -297,6 +297,21 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
       return !!data;
     },
   });
+  const saveBlocked = useServerFn(setCustomerBlocked);
+  const [blockBusy, setBlockBusy] = useState(false);
+  const [blockNote, setBlockNote] = useState("");
+  const toggleBlocked = async (blocked: boolean) => {
+    setBlockBusy(true);
+    try {
+      await saveBlocked({ data: { user_id: client.id, blocked, note: blocked ? blockNote || null : null } });
+      toast.success(blocked ? "הלקוחה נחסמה — תראה רק הודעת תקלה" : "החסימה הוסרה");
+      loyalty.refetch();
+    } catch (e) {
+      toast.error(heError(e, "עדכון החסימה נכשל"));
+    } finally {
+      setBlockBusy(false);
+    }
+  };
   const [retouchBusy, setRetouchBusy] = useState(false);
   const toggleRetouchAccess = async (enabled: boolean) => {
     if (!normalizedEmail) return toast.error("ללקוחה הזו אין אימייל רשום");
@@ -447,6 +462,21 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
           disabled={!normalizedEmail || retouchAccess.isLoading || retouchBusy}
           onCheckedChange={toggleRetouchAccess}
         />
+      </div>
+
+      <div className={`rounded-xl p-3 space-y-2 ${(loyalty.data as any)?.blocked ? "bg-red-50 border border-red-300" : "bg-card"}`}>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-medium">חסימת לקוחה (אביזרים + סטודיו)</div>
+            <div className="text-[11px] text-muted-foreground">לקוחה חסומה לא יכולה להזמין אביזרים או סטודיו (גם דרך הבוט והטלפון, וגם מחשבון נוסף עם אותו טלפון) ורואה רק "יש תקלה כרגע".</div>
+          </div>
+          <Switch checked={!!(loyalty.data as any)?.blocked} disabled={blockBusy || loyalty.isLoading} onCheckedChange={toggleBlocked} />
+        </div>
+        {!(loyalty.data as any)?.blocked ? (
+          <Input placeholder="הערה פנימית (למשל: לא החזירה אביזרים)" value={blockNote} onChange={(e) => setBlockNote(e.target.value)} />
+        ) : (
+          <div className="text-xs text-red-700">חסומה{(loyalty.data as any)?.blocked_note ? ` — ${(loyalty.data as any).blocked_note}` : ""}</div>
+        )}
       </div>
 
       <div className="rounded-xl bg-card p-3 space-y-2">

@@ -60,6 +60,8 @@ export const placeOrder = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => inputSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const { assertNotBlocked } = await import("./customer-block.server");
+    await assertNotBlocked({ userId, phone: (data as any).contact_phone });
 
     const startDate = data.session_date;
     const endDate = data.return_date >= data.session_date ? data.return_date : data.session_date;

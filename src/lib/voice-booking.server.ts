@@ -41,6 +41,8 @@ const FIXED_PHONE_ACCOUNT_PIN = "1234";
  */
 export async function createPhoneBooking(input: PhoneBookingInput) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { assertNotBlocked } = await import("./customer-block.server");
+  await assertNotBlocked({ phone: input.contact_phone });
 
   const [h, m] = input.start_time.split(":").map(Number);
   const startMin = h * 60 + m;

@@ -112,6 +112,21 @@ export const setCustomerLoyalty = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Blocks / unblocks a customer from prop orders and studio bookings (they only see a generic "technical problem"). */
+export const setCustomerBlocked = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ user_id: z.string().uuid(), blocked: z.boolean(), note: z.string().max(300).optional().nullable() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("customer_loyalty").upsert(
+      { user_id: data.user_id, blocked: data.blocked, blocked_note: data.blocked ? data.note ?? null : null, updated_at: new Date().toISOString() },
+      { onConflict: "user_id" },
+    );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 /**
  * Immediately grants (or removes, if amount is negative) a one-off manual
  * credit adjustment to a customer's balance — independent of the ongoing

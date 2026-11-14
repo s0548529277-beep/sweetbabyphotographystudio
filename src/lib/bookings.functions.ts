@@ -130,6 +130,8 @@ export const placeBooking = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => inputSchema.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const { assertNotBlocked } = await import("./customer-block.server");
+    await assertNotBlocked({ userId, phone: (data as any).contact_phone });
 
     // End time
     const [h, m] = data.start_time.split(":").map(Number);
@@ -536,6 +538,8 @@ export const placeRecurringBooking = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => recurringInputSchema.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const { assertNotBlocked } = await import("./customer-block.server");
+    await assertNotBlocked({ userId, phone: (data as any).contact_phone });
     const { fetchAvailabilityBatch } = await import("./availability.server");
 
     const { data: loyaltyRow } = await supabase
