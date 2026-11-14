@@ -164,6 +164,7 @@ type OrderPlan = {
   moved: boolean;
   removed: OrderLine[];
   kept: OrderLine[];
+  added: Array<{ item_id: string; name: string; sku: string; unit: number; stock: number }>;
   oldMult: number;
   newMult: number;
   /** New unit price per kept line id (only when the rental-day multiplier changed). */
@@ -188,6 +189,7 @@ async function validateOrderChanges(db: any, row: any, changes: OrderChanges): P
   const datesChanged = pickupDate !== oldPickupDate || returnDate !== oldReturnDate;
   const timesChanged = pickup !== oldPickup || ret !== oldReturn;
   const removeSkus = changes.remove_skus ? changes.remove_skus.split(",").filter(Boolean) : [];
+  const addSkus = changes.add_skus ? changes.add_skus.split(",").filter(Boolean) : [];
 
   if (timesChanged || datesChanged) {
     if (changes.pickup_time && !isWithinPropsHandoffHours(changes.pickup_time)) throw new Error(PROPS_HANDOFF_NOTE);
@@ -214,7 +216,7 @@ async function validateOrderChanges(db: any, row: any, changes: OrderChanges): P
   }
   const removed = lines.filter((l) => l.item_sku && removeSkus.includes(l.item_sku));
   const kept = lines.filter((l) => !removed.includes(l));
-  if (removeSkus.length > 0 && kept.length === 0) {
+  if (removeSkus.length > 0 && kept.length === 0 && addSkus.length === 0) {
     throw new Error("אי אפשר להסיר את כל הפריטים — לביטול ההזמנה נא לפנות לצוות הסטודיו.");
   }
 
@@ -226,6 +228,19 @@ async function validateOrderChanges(db: any, row: any, changes: OrderChanges): P
     const unit = newMult !== oldMult ? Math.round(base * newMult) : l.price;
     if (unit !== l.price) newPrices.set(l.id, unit);
     newRaw += unit * l.quantity;
+  }
+  // Items to add: active catalog items that are not already in the order, 1 unit each, priced for the NEW rental days.
+  const added: OrderPlan["added"] = [];
+  if (addSkus.length) {
+    const { data: found } = await db.from("items").select("id, name, sku, price, active, stock_quantity").in("sku", addSkus);
+    for (const sku of addSkus) {
+      const it = (found ?? []).find((x: any) => x.sku === sku);
+      if (!it || !it.active) throw new Error("אחד הפריטים להוספה לא זמין");
+      if (lines.some((l) => l.item_sku === sku)) throw new Error(`"${it.name}" כבר נמצא בהזמנה — לשינוי כמות נא לפנות לצוות.`);
+      const unit = Math.round(Number(it.price) * newMult);
+      added.push({ item_id: it.id, name: it.name, sku, unit, stock: Number(it.stock_quantity ?? 1) });
+      newRaw += unit;
+    }
   }
   const oldRaw = lines.reduce((sum, l) => sum + l.price * l.quantity, 0);
   const delta = Math.round(newRaw - oldRaw);
@@ -251,7 +266,13 @@ async function validateOrderChanges(db: any, row: any, changes: OrderChanges): P
     }
   }
 
-  return { pickup, ret, pickupDate, returnDate, datesChanged, moved: timesChanged || datesChanged, removed, kept, oldMult, newMult, newPrices, delta };
+  for (const a of added) {
+    const { data: reserved, error: rerr } = await db.rpc("count_item_reservations", { _item_id: a.item_id, _from: pickupDate, _to: returnDate });
+    if (rerr) throw new Error(rerr.message);
+    if (Number(reserved ?? 0) + 1 > a.stock) throw new Error(`הפריט "${a.name}" לא זמין בתאריכים של ההזמנה`);
+  }
+
+  return { pickup, ret, pickupDate, returnDate, datesChanged, moved: timesChanged || datesChanged, removed, kept, added, oldMult, newMult, newPrices, delta };
 }
 
 /** Only the fields that really differ from the stored row (plus the note). */
@@ -266,6 +287,7 @@ function diffChanges(kind: EditKind, row: any, input: any): BookingChanges & Ord
     if (input.pickup_date && input.pickup_date !== String(row.session_date ?? "").slice(0, 10)) out.pickup_date = input.pickup_date;
     if (input.return_date && input.return_date !== String(row.return_date ?? "").slice(0, 10)) out.return_date = input.return_date;
     if (Array.isArray(input.remove_skus) && input.remove_skus.length) out.remove_skus = [...new Set<string>(input.remove_skus)].sort().join(",");
+    if (Array.isArray(input.add_skus) && input.add_skus.length) out.add_skus = [...new Set<string>(input.add_skus)].sort().join(",");
   }
   if (input.note && String(input.note).trim()) out.note = String(input.note).trim();
   return out;
@@ -387,7 +409,7 @@ async function applyOrderEdit(id: string, changes: OrderChanges, who: string): P
   const v = await validateOrderChanges(db, o, changes);
   const pickupDate = v.pickupDate;
   const returnDate = v.returnDate;
-  const hasLineChange = v.removed.length > 0 || v.newPrices.size > 0;
+  const hasLineChange = v.removed.length > 0 || v.added.length > 0 || v.newPrices.size > 0;
 
   const update: Record<string, unknown> = {};
   if (v.moved) {
@@ -408,10 +430,11 @@ async function applyOrderEdit(id: string, changes: OrderChanges, who: string): P
     if (o.deposit_status === "pending") update.deposit_amount = newTotal;
     priceNote = `המחיר שונה ב-${v.delta > 0 ? "+" : ""}₪${v.delta} (סה״כ ₪${newTotal})${o.deposit_status === "pending" ? "" : " — התשלום כבר שולם: לבדוק תשלום/החזר"}`;
   }
-  if (changes.note || priceNote || v.removed.length) {
+  if (changes.note || priceNote || v.removed.length || v.added.length) {
     const parts = [
       changes.note,
       v.removed.length ? `הוסרו פריטים: ${v.removed.map((l) => l.item_name).join(", ")}` : null,
+      v.added.length ? `נוספו פריטים: ${v.added.map((a) => a.name).join(", ")}` : null,
       priceNote,
     ].filter(Boolean).join(" · ");
     update.notes = appendNote(o.notes, parts, who);
@@ -419,7 +442,7 @@ async function applyOrderEdit(id: string, changes: OrderChanges, who: string): P
   if (Object.keys(update).length === 0 && !hasLineChange) return;
 
   // Availability + lines first (restored on failure), then the order row.
-  if (v.datesChanged || v.removed.length) {
+  if (v.datesChanged || v.removed.length || v.added.length) {
     const { data: oldRows } = await db.from("item_availability").select("*").eq("order_id", id);
     const restore = async () => {
       await db.from("item_availability").delete().eq("order_id", id);
@@ -427,7 +450,11 @@ async function applyOrderEdit(id: string, changes: OrderChanges, who: string): P
     };
     try {
       await db.from("item_availability").delete().eq("order_id", id);
-      for (const l of v.kept) {
+      const toPlace = [
+        ...v.kept.map((l) => ({ item_id: l.item_id, quantity: l.quantity, item_name: l.item_name })),
+        ...v.added.map((a) => ({ item_id: a.item_id as string | null, quantity: 1, item_name: a.name })),
+      ];
+      for (const l of toPlace) {
         if (!l.item_id) continue;
         const { data: it } = await db.from("items").select("stock_quantity").eq("id", l.item_id).maybeSingle();
         const stock = Number(it?.stock_quantity ?? 1);
@@ -453,6 +480,12 @@ async function applyOrderEdit(id: string, changes: OrderChanges, who: string): P
   if (v.removed.length) {
     const { error: derr } = await db.from("order_items").delete().in("id", v.removed.map((l) => l.id));
     if (derr) throw new Error(derr.message);
+  }
+  if (v.added.length) {
+    const { error: aerr } = await db.from("order_items").insert(
+      v.added.map((a) => ({ order_id: id, item_id: a.item_id, item_name: a.name, item_sku: a.sku, quantity: 1, price: a.unit })),
+    );
+    if (aerr) throw new Error(aerr.message);
   }
   for (const [lineId, unit] of v.newPrices) {
     await db.from("order_items").update({ price: unit }).eq("id", lineId);
@@ -631,6 +664,23 @@ export const getEditableOrder = createServerFn({ method: "POST" })
     };
   });
 
+/** Catalog search for "add an item" on the props edit page (active items only). */
+export const searchAddableItems = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ q: z.string().trim().min(1).max(40) }).parse(d))
+  .handler(async ({ data }): Promise<{ items: Array<{ sku: string; name: string; price: number }> }> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const q = data.q.replace(/[%,()]/g, " ").trim();
+    const { data: rows } = await (supabaseAdmin as any)
+      .from("items")
+      .select("sku, name, price")
+      .eq("active", true)
+      .or(`name.ilike.%${q}%,sku.ilike.%${q}%`)
+      .order("name")
+      .limit(15);
+    return { items: (rows ?? []).map((r: any) => ({ sku: String(r.sku), name: String(r.name), price: Number(r.price) })) };
+  });
+
 /** Live preview for the edit page: price change / refusal reason for a props-order edit, nothing is saved. */
 export const previewOrderEdit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -641,9 +691,9 @@ export const previewOrderEdit = createServerFn({ method: "POST" })
     const row = await loadOwnRow(supabase, "order", data.id, userId);
     try {
       const changes = diffChanges("order", row, data);
-      if (!changes.pickup_date && !changes.return_date && !changes.pickup_time && !changes.return_time && !changes.remove_skus) return { ok: true, delta: 0 };
+      if (!changes.pickup_date && !changes.return_date && !changes.pickup_time && !changes.return_time && !changes.remove_skus && !changes.add_skus) return { ok: true, delta: 0 };
       const v = await validateOrderChanges(supabaseAdmin as any, row, changes);
-      return { ok: true, delta: v.delta, newTotal: Math.max(0, Number(row.total) + v.delta), needsApproval: v.delta !== 0 };
+      return { ok: true, delta: v.delta, newTotal: Math.max(0, Number(row.total) + v.delta), needsApproval: false };
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : "לא ניתן לבצע את השינוי" };
     }
@@ -659,6 +709,7 @@ const submitSchema = z.object({
   pickup_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   return_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   remove_skus: z.array(z.string().trim().min(1).max(40)).max(50).optional(),
+  add_skus: z.array(z.string().trim().min(1).max(40)).max(30).optional(),
   note: z.string().trim().max(500).optional(),
 });
 
@@ -692,7 +743,10 @@ export const submitOrderEdit = createServerFn({ method: "POST" })
       if (v.pickup && v.pickupDate) newStartMs = sessionStartMs(v.pickupDate, v.pickup);
       priceDelta = v.delta;
       if (v.delta !== 0) changes.price_delta = String(v.delta);
-      itemNames = Object.fromEntries(v.removed.filter((l) => l.item_sku).map((l) => [l.item_sku as string, l.item_name]));
+      itemNames = {
+        ...Object.fromEntries(v.removed.filter((l) => l.item_sku).map((l) => [l.item_sku as string, l.item_name])),
+        ...Object.fromEntries(v.added.map((a) => [a.sku, a.name])),
+      };
     }
 
     const policy = editNeedsApproval({ oldStartMs: currentStartMs(data.kind, row) as number, newStartMs });
@@ -712,9 +766,9 @@ export const submitOrderEdit = createServerFn({ method: "POST" })
 
     // Studio bookings need admin approval within 24h. Props orders apply at once (the page + the mail warn to call) —
     // EXCEPT an edit that changes the price (other dates / removed items): money changes always go to the admin.
-    const priceApproval = data.kind === "order" && priceDelta !== 0;
-    if ((policy.needs && data.kind === "booking") || priceApproval) {
-      const reason2 = policy.needs && data.kind === "booking" ? policy.reason : `השינוי משנה את המחיר (${priceDelta > 0 ? "+" : ""}₪${priceDelta})`;
+    // (Owner 2026-11-15: a price change on a props order needs NO approval anymore; it is applied and noted.)
+    if (policy.needs && data.kind === "booking") {
+      const reason2 = policy.reason;
       const { data: dup } = await db
         .from("order_edit_requests")
         .select("id")
@@ -835,6 +889,10 @@ function changeLines(kind: EditKind, changes: Record<string, string>, original: 
   if (changes.remove_skus) {
     const names = changes.remove_skus.split(",").map((k) => original.item_names?.[k] ?? k);
     lines.push(`${CHANGE_LABELS.remove_skus}: ${names.join(", ")}`);
+  }
+  if (changes.add_skus) {
+    const names = changes.add_skus.split(",").map((k) => original.item_names?.[k] ?? k);
+    lines.push(`${CHANGE_LABELS.add_skus}: ${names.join(", ")}`);
   }
   if (changes.price_delta) lines.push(`${CHANGE_LABELS.price_delta}: ${Number(changes.price_delta) > 0 ? "+" : ""}₪${changes.price_delta}`);
   if (changes.note) lines.push(`${CHANGE_LABELS.note}: ${changes.note}`);

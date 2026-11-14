@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { heError } from "@/lib/he-errors";
-import { getEditableOrder, submitOrderEdit, previewOrderEdit, getFreeBookingStarts } from "@/lib/order-edit.functions";
+import { getEditableOrder, submitOrderEdit, previewOrderEdit, getFreeBookingStarts, searchAddableItems } from "@/lib/order-edit.functions";
 import { EDIT_APPROVAL_WINDOW_HOURS } from "@/lib/order-edit";
 import { PROPS_LATEST_HANDOFF } from "@/lib/props-hours";
 
@@ -36,6 +36,7 @@ function EditOrder() {
   const getFn = useServerFn(getEditableOrder);
   const submitFn = useServerFn(submitOrderEdit);
   const previewFn = useServerFn(previewOrderEdit);
+  const searchFn = useServerFn(searchAddableItems);
   const freeFn = useServerFn(getFreeBookingStarts);
   const validId = /^[0-9a-f-]{36}$/i.test(id);
   const q = useQuery({
@@ -52,6 +53,9 @@ function EditOrder() {
   const [pickupDate, setPickupDate] = useState("");
   const [returnDate, setReturnDate] = useState("");
   const [removed, setRemoved] = useState<string[]>([]);
+  const [added, setAdded] = useState<Array<{ sku: string; name: string; price: number }>>([]);
+  const [addQ, setAddQ] = useState("");
+  const [addResults, setAddResults] = useState<Array<{ sku: string; name: string; price: number }>>([]);
   const [preview, setPreview] = useState<null | { ok: boolean; error?: string; delta?: number; newTotal?: number; needsApproval?: boolean }>(null);
   const [freeTimes, setFreeTimes] = useState<string[] | null>(null);
   const [note, setNote] = useState("");
@@ -78,20 +82,30 @@ function EditOrder() {
     return () => { cancelled = true; };
   }, [kind, validId, id, date]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    const t = addQ.trim();
+    if (t.length < 2) { setAddResults([]); return; }
+    let cancelled = false;
+    const h = setTimeout(() => {
+      searchFn({ data: { q: t } }).then((r) => { if (!cancelled) setAddResults(r.items); }).catch(() => { if (!cancelled) setAddResults([]); });
+    }, 300);
+    return () => { cancelled = true; clearTimeout(h); };
+  }, [addQ]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Props: live check of the price change / availability for what she picked.
   useEffect(() => {
     const o = q.data?.order;
     if (kind !== "order" || !o) return;
-    const changed = pickupDate !== o.session_date || returnDate !== o.return_date || pickup !== (o.pickup_time ?? "") || ret !== (o.return_time ?? "") || removed.length > 0;
+    const changed = pickupDate !== o.session_date || returnDate !== o.return_date || pickup !== (o.pickup_time ?? "") || ret !== (o.return_time ?? "") || removed.length > 0 || added.length > 0;
     if (!changed) { setPreview(null); return; }
     let cancelled = false;
     const t = setTimeout(() => {
-      previewFn({ data: { kind, id, pickup_date: pickupDate || undefined, return_date: returnDate || undefined, pickup_time: pickup || undefined, return_time: ret || undefined, remove_skus: removed.length ? removed : undefined } })
+      previewFn({ data: { kind, id, pickup_date: pickupDate || undefined, return_date: returnDate || undefined, pickup_time: pickup || undefined, return_time: ret || undefined, remove_skus: removed.length ? removed : undefined, add_skus: added.length ? added.map((a) => a.sku) : undefined } })
         .then((r) => { if (!cancelled) setPreview(r); })
         .catch((e) => { if (!cancelled) setPreview({ ok: false, error: heError(e, "לא ניתן לבדוק את השינוי") }); });
     }, 400);
     return () => { cancelled = true; clearTimeout(t); };
-  }, [kind, id, q.data, pickupDate, returnDate, pickup, ret, removed]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [kind, id, q.data, pickupDate, returnDate, pickup, ret, removed, added]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const submit = async () => {
     if (!q.data) return;
@@ -105,6 +119,7 @@ function EditOrder() {
               pickup_time: pickup || undefined, return_time: ret || undefined,
               pickup_date: pickupDate || undefined, return_date: returnDate || undefined,
               remove_skus: removed.length ? removed : undefined,
+              add_skus: added.length ? added.map((a) => a.sku) : undefined,
               note: note || undefined,
             };
       const r = await submitFn({ data: payload });
@@ -238,15 +253,39 @@ function EditOrder() {
                         </label>
                       ))}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">אפשר להסיר פריטים; הוספת פריטים — דרך הצוות או הצ׳אט.</p>
                   </div>
                 )}
+                <div>
+                  <Label htmlFor="eo-add">הוספת פריט להזמנה</Label>
+                  <Input id="eo-add" placeholder="חיפוש פריט לפי שם או מק״ט" value={addQ} onChange={(e) => setAddQ(e.target.value)} />
+                  {addResults.length > 0 && (
+                    <div className="mt-1 rounded-xl border divide-y max-h-56 overflow-auto">
+                      {addResults.filter((r) => !added.some((a) => a.sku === r.sku) && !d.order!.lines.some((l) => l.sku === r.sku)).map((r) => (
+                        <button key={r.sku} type="button" className="w-full text-right px-3 py-2 text-sm hover:bg-muted flex justify-between gap-2"
+                          onClick={() => { setAdded((a) => [...a, r]); setAddQ(""); setAddResults([]); }}>
+                          <span>{r.name}</span><span className="text-muted-foreground">₪{r.price}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {added.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {added.map((a) => (
+                        <button key={a.sku} type="button" className="rounded-full bg-primary/10 text-primary text-sm px-3 py-1"
+                          onClick={() => setAdded((x) => x.filter((y) => y.sku !== a.sku))}>
+                          {a.name} ✕
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">המחיר מתעדכן לפי ימי ההשכרה, ונבדקת זמינות בתאריכים שלך.</p>
+                </div>
                 {preview && (
                   <div className={`rounded-xl border text-sm p-3 ${preview.ok ? "bg-amber-50 border-amber-200 text-amber-900" : "bg-red-50 border-red-200 text-red-800"}`}>
                     {!preview.ok ? preview.error : preview.delta ? (
                       <>
                         השינוי {preview.delta > 0 ? "מייקר" : "מוזיל"} את ההזמנה ב-₪{Math.abs(preview.delta)} (סה״כ חדש: ₪{preview.newTotal}).
-                        שינוי במחיר נשלח לאישור מנהל, וההזמנה נשארת כפי שהיא עד האישור.
+                        השינוי במחיר יתעדכן בהזמנה מיד.
                       </>
                     ) : "אין שינוי במחיר."}
                   </div>

@@ -44,6 +44,8 @@ export type OrderChanges = {
   return_date?: string;
   /** SKUs of order lines to remove, comma separated (sorted). */
   remove_skus?: string;
+  /** SKUs of catalog items to ADD (1 unit each), comma separated (sorted). */
+  add_skus?: string;
   /** Informational only (filled by the server for the admin): the price change in ₪, e.g. "-40". */
   price_delta?: string;
   note?: string;
@@ -57,6 +59,7 @@ export const CHANGE_LABELS: Record<string, string> = {
   pickup_date: "תאריך איסוף",
   return_date: "תאריך החזרה",
   remove_skus: "הסרת פריטים",
+  add_skus: "הוספת פריטים",
   price_delta: "שינוי מחיר",
   note: "הערה",
 };
