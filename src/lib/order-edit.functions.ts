@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { MIN_PROPS_ORDER } from "@/lib/order-limits";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
@@ -244,7 +245,7 @@ async function validateOrderChanges(db: any, row: any, changes: OrderChanges): P
   }
   const oldRaw = lines.reduce((sum, l) => sum + l.price * l.quantity, 0);
   const delta = Math.round(newRaw - oldRaw);
-  if (delta !== 0 && newRaw < 50) throw new Error("מינימום הזמנה 50 ש״ח");
+  if (delta !== 0 && newRaw < MIN_PROPS_ORDER) throw new Error(`מינימום הזמנה ${MIN_PROPS_ORDER} ש״ח`);
 
   // Availability for the new dates: other orders' reservations (the order's own rows do not count against itself).
   if (datesChanged) {
