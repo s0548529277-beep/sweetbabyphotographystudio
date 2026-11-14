@@ -340,19 +340,6 @@ function Deposit() {
                   ))}
                 </div>
 
-                {/* Secure card payment — studio rental and prop rental alike. */}
-                <div className="rounded-2xl border border-border p-4">
-                  <PayOnlineButton
-                    className="w-full"
-                    label={`תשלום מאובטח באשראי · ₪${payNow}`}
-                    note="החלון נפתח בתוך האתר. מיד לאחר התשלום אפשר לצרף כאן את אישור התשלום ולסיים את ההזמנה."
-                  />
-                </div>
-
-
-
-
-
                 {method === "cash" ? (
 
                   <div className="mt-2 p-5 rounded-2xl bg-blush/40 text-primary text-sm space-y-2">
@@ -365,8 +352,17 @@ function Deposit() {
                   </div>
                 ) : (
                   method === "card" ? (
-                  <div className="mt-2 p-5 rounded-2xl bg-blush/40 text-primary text-sm">
-                    שילמתי באשראי דרך הכפתור למעלה — אפשר לצרף צילום מסך של אישור התשלום (מומלץ), או לאשר למטה שהתשלום בוצע. התאריך משתריין רק לאחר אחת מהשתיים.
+                  <div className="mt-2 space-y-3">
+                    <div className="rounded-2xl border border-border p-4">
+                      <PayOnlineButton
+                        className="w-full"
+                        label={`תשלום מאובטח באשראי · ₪${payNow}`}
+                        note="החלון נפתח בתוך האתר. מיד לאחר התשלום אפשר לצרף כאן את אישור התשלום ולסיים את ההזמנה."
+                      />
+                    </div>
+                    <div className="p-4 rounded-2xl bg-blush/40 text-primary text-sm">
+                      אחרי התשלום באשראי — אפשר לצרף צילום מסך של אישור התשלום (מומלץ), או לאשר למטה שהתשלום בוצע. התאריך משתריין רק לאחר אחת מהשתיים.
+                    </div>
                   </div>
                 ) : method === "bit" ? (
                   <div className="space-y-3 pt-2">
