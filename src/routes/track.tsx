@@ -56,7 +56,7 @@ function Track() {
               <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-2">Track B</div>
               <h2 className="font-display text-3xl text-primary mb-3">השכרת אביזרים</h2>
               <p className="text-muted-foreground text-sm mb-8 leading-relaxed">
-                בחירת אביזרים מהקטלוג לפי מק"ט. סל מינימום 50₪, זמינות אוטומטית לפי תאריך הצילום.
+                בחירת אביזרים מהקטלוג לפי מק"ט. סל מינימום 100₪, זמינות אוטומטית לפי תאריך הצילום.
               </p>
               <ul className="text-sm text-forest space-y-2 mb-8">
                 <li>· חסימת מלאי אוטומטית לתאריך</li>

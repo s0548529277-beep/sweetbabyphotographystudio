@@ -61,7 +61,7 @@ export const STUDIO_CARDS = [
 /** "טעינה": pay 750, get 1,000 of studio credit. Only offered while the admin switch `studioTopup` is on (/admin/funnel-leads). */
 export const STUDIO_TOPUP = { pay: 750, get: 1000 } as const;
 /** The club: every registered customer collects 10% of each order of 100 ₪ or more as credit; returning photographers also get 10% off any amount. */
-export const STUDIO_CASHBACK_NOTE = "כל הזמנה בסטודיו מ-100 ₪ צוברת 10% קרדיט להזמנה הבאה";
+export const STUDIO_CASHBACK_NOTE = "כל הזמנה בסטודיו צוברת 10% קרדיט להזמנה הבאה";
 export const STUDIO_RETURNING_NOTE = "צלמות חוזרות מקבלות גם 10% הנחה בכל סכום";
 
 const STUDIO_VISITS: Record<string, number> = { v0: 1, v1: 2, v2: 4, v3: 8, v4: 12 };

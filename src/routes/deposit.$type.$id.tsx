@@ -1,4 +1,5 @@
 import { ColorHeart } from "@/components/Heart";
+import { FlowProgress, flowStepsFor } from "@/components/FlowProgress";
 import { isImmediateOrder } from "@/lib/orderSummary";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { BackButton, MissingList } from "@/components/FlowHelpers";
@@ -204,7 +205,7 @@ function Deposit() {
               <BackButton fallback={isStudio ? "/booking" : "/checkout"} label={isStudio ? "חזרה ליומן" : "חזרה להזמנה"} />
             </div>
           )}
-          <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-3">Step 3 · Payment</div>
+          <FlowProgress steps={flowStepsFor(isStudio ? "studio" : "props")} current={isStudio ? 3 : 2} allDone={done} className="mb-6 max-w-2xl" onStepClick={(n) => { if (isStudio && n === 1) nav({ to: "/studio-rental" }); else nav({ to: "/edit-order", search: { kind: isStudio ? "booking" : "order", id } }); }} />
           <h1 className="font-display text-5xl text-primary mb-6">{done ? "ההזמנה אושרה ✓" : "סיום תשלום"}</h1>
           {isImmediateOrder(record?.session_date ?? record?.scheduled_date, record?.start_time ?? pickupTime) && (
             <div className="mb-6 rounded-2xl border-2 border-destructive/50 bg-destructive/10 p-4 text-sm leading-relaxed">
@@ -282,6 +283,17 @@ function Deposit() {
               <ArrivalDirections />
             </div>
           ) : (
+            <>
+            {record && (
+              <div className="glass-card mb-6 rounded-3xl p-5 text-sm">
+                <div className="mb-2 font-display text-xl text-primary">{isStudio ? "שריון סטודיו" : "השכרת אביזרים"}</div>
+                <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 text-primary/80">
+                  {record.contact_name && <div>שם: <b>{record.contact_name}</b></div>}
+                  {timeText && <div>{isStudio ? "מועד" : "איסוף"}: <b dir="ltr">{timeText}</b></div>}
+                  <div>סה״כ: <b>₪{total}</b>{isStudio && balanceLeft > 0 ? ` · יתרה ₪${balanceLeft} ביום הצילום` : ""}</div>
+                </div>
+              </div>
+            )}
 
             <div className="grid md:grid-cols-2 gap-6">
               <div className="glass-card rounded-3xl p-6 space-y-4">
@@ -462,6 +474,7 @@ function Deposit() {
                 </p>
               </div>
             </div>
+            </>
           )}
         </div>
       </section>

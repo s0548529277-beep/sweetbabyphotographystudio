@@ -3,6 +3,8 @@ import { heError } from "@/lib/he-errors";
 import { FunnelCta } from "@/components/FunnelDialog";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { FlowProgress, STUDIO_FLOW_STEPS } from "@/components/FlowProgress";
 import { motion } from "framer-motion";
 import { Clock, CreditCard, CalendarDays, Sparkles, ArrowLeft, X, MapPin, Star, AlertTriangle, PlayCircle, Coffee } from "lucide-react";import { Header } from "@/components/Header";
 import { StudioGuideModal } from "@/components/StudioGuideModal";
@@ -140,7 +142,7 @@ const STUDIO_FAQS: { q: string; a: string }[] = [
   { q: "אילו רקעים ורצפות יש?", a: "רקעי נייר בירוק, לבן, כחול, חום בהיר, חום כהה וצהוב, ורצפות פורמייקה, עץ, פרקט וקורות עץ ללא תוספת. שימוש ברקע נייר גם כרצפה בתוספת 50 ₪, בתיאום מראש." },
   { q: "איפה הסטודיו נמצא?", a: "ברחוב תלמוד ירושלמי 24, בית שמש. דרכי הגעה מפורטות מופיעות בעמוד הזה." },
   { q: "יש חדר משפחה עם פינת קפה ושירותים?", a: "כן. בסטודיו יש חדר משפחה עם פינת קפה ושירותים. אין התחייבות לזמינות החדר — לפעמים הוא תפוס. מי שחשוב לה שהחדר יהיה פנוי, מוודאים זמינות מראש לפני שקובעים." },
-  { q: "יש הטבה ללקוחות חוזרות?", a: "כל לקוחה רשומה צוברת אוטומטית 10% קרדיט מכל הזמנה של 100 ₪ ומעלה, לניצול בהזמנה הבאה." },
+  { q: "יש הטבה ללקוחות חוזרות?", a: "כל לקוחה רשומה צוברת אוטומטית 10% קרדיט מכל הזמנה, לניצול בהזמנה הבאה." },
 ];
 
 const STUDIO_FAQ_JSONLD = {
@@ -169,6 +171,24 @@ function StudioRentalPage() {
   const { user } = useAuth();
   const profile = useProfilePrefill();
   const submitIntake = useServerFn(submitStudioIntake);
+  // Returning customer: a questionnaire she already signed in the last 90 days lets her go straight to choosing a date.
+  const [lastIntakeAt, setLastIntakeAt] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user) { setLastIntakeAt(null); return; }
+    let cancelled = false;
+    (supabase as any)
+      .from("studio_intake_forms")
+      .select("created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .then(({ data, error }: any) => {
+        if (cancelled || error || !data?.[0]?.created_at) return;
+        const age = Date.now() - new Date(data[0].created_at).getTime();
+        if (age >= 0 && age < 90 * 24 * 3600 * 1000) setLastIntakeAt(data[0].created_at);
+      });
+    return () => { cancelled = true; };
+  }, [user]);
   const upd = <K extends keyof IntakeForm>(k: K, v: IntakeForm[K]) => setForm((f) => ({ ...f, [k]: v }));
 
   // Prefill from the customer's personal area.
@@ -265,8 +285,9 @@ function StudioRentalPage() {
         sessionType: form.sessionType,
         guidance: form.guidance,
       });
-      toast.success("ההסכם נשמר ✓ ממשיכות לשלב 2 — בחירת תאריך ושעה ביומן.");
-      setShowForm(false);
+      // Tell /booking the questionnaire was just saved, so it opens at the top with a "step 1 done" notice instead of
+      // a sudden page swap (owner: odd jump from the questionnaire to the next page).
+      try { sessionStorage.setItem("sb_intake_just_done", "1"); } catch { /* ignore */ }
       nav({ to: "/booking" });
     } catch (e) {
       toast.error(heError(e, "שליחה נכשלה"));
@@ -444,7 +465,7 @@ function StudioRentalPage() {
                 <span className="text-xs text-[#2d3d2b]/60">/ שעה ראשונה</span>
               </div>
               <p className="mt-2 text-[14px] text-[#2d3d2b]/75">כל שעה נוספת 100 ₪ · חצאי שעות בחישוב יחסי · מינימום שעה</p>
-              <p className="mt-1 text-[13px] text-[#6b8a63] font-medium">10% צבירה אוטומטית להזמנה מ-100 ₪ ומעלה, לניצול בהזמנה הבאה</p>
+              <p className="mt-1 text-[13px] text-[#6b8a63] font-medium">10% צבירה אוטומטית על כל הזמנה, לניצול בהזמנה הבאה</p>
               <button type="button" onClick={() => setShowForm(true)} className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#2d3d2b] text-[#f8ede4] px-4 py-2 text-xs font-semibold">
                 לקביעת מועד <ArrowLeft className="h-3.5 w-3.5" />
               </button>
@@ -466,7 +487,7 @@ function StudioRentalPage() {
                 <span className="text-xs text-[#2d3d2b]/60">/ 3 שעות</span>
               </div>
               <p className="mt-2 text-[14px] text-[#2d3d2b]/80">בוקר 8:00–14:00 או ערב אחרי 19:00 (עד 23:00) · חיסכון משמעותי מול תעריף שעתי</p>
-              <p className="mt-1 text-[13px] text-[#2d3d2b] font-medium">10% צבירה אוטומטית להזמנה מ-100 ₪ ומעלה, לניצול בהזמנה הבאה</p>
+              <p className="mt-1 text-[13px] text-[#2d3d2b] font-medium">10% צבירה אוטומטית על כל הזמנה, לניצול בהזמנה הבאה</p>
               <button type="button" onClick={() => setShowForm(true)} className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#2d3d2b] text-[#f8ede4] px-4 py-2 text-xs font-semibold">
                 לקביעת מועד <ArrowLeft className="h-3.5 w-3.5" />
               </button>
@@ -505,6 +526,25 @@ function StudioRentalPage() {
                 התהליך כולו מתבצע כאן באתר — בסיום תקבלי מייל אחד מסודר עם ההסכם, פרטי השריון והתשלום.
               </p>
             </div>
+
+            {lastIntakeAt && (
+              <div className="mt-6 rounded-2xl border border-[#6b8a63]/40 bg-[#eef4ea] p-4 text-center text-sm text-[#2d3d2b]">
+                <div className="font-semibold">✓ מילאת שאלון והסכם ב-{new Date(lastIntakeAt).toLocaleDateString("he-IL")}</div>
+                <div className="mt-1 text-[#2d3d2b]/70">אפשר לעבור ישר לבחירת מועד, בלי למלא שוב.</div>
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { try { sessionStorage.setItem("sb_intake_just_done", "1"); } catch { /* ignore */ } nav({ to: "/booking" }); }}
+                    className="rounded-full bg-[#2d3d2b] px-5 py-2 text-xs font-semibold text-[#f8ede4]"
+                  >
+                    המשך לבחירת מועד
+                  </button>
+                  <button type="button" onClick={() => setShowForm(true)} className="text-xs underline underline-offset-2 text-[#2d3d2b]/70">
+                    יש שינוי? עדכון השאלון
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="mt-7 grid md:grid-cols-3 gap-3 md:gap-4">
               {[
@@ -675,8 +715,9 @@ function StudioRentalPage() {
             <h2 className="text-2xl md:text-3xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
               הסכם תיאום ציפיות
             </h2>
-            <p className="mt-2 text-sm text-[#2d3d2b]/75 leading-relaxed">
-              שלב 1 מתוך 3. <strong>אישור ההסכם הוא תנאי לפתיחת היומן</strong> — מיד לאחר השליחה נעבור לבחירת תאריך ושעה.
+            <FlowProgress steps={STUDIO_FLOW_STEPS} current={1} className="mt-4" />
+            <p className="mt-4 text-sm text-[#2d3d2b]/75 leading-relaxed">
+              <strong>אישור ההסכם הוא תנאי לפתיחת היומן</strong> — מיד לאחר השליחה נעבור לבחירת תאריך ושעה.
             </p>
 
             {/* RULES — full agreement text */}

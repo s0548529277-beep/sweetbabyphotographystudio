@@ -35,6 +35,7 @@ import { useCatalogItems, type CatalogItem } from "@/lib/catalog";
 import { GuestContinueButton } from "@/components/GuestContinueButton";
 import { saveBookingProgress, clearBookingProgress } from "@/lib/booking-draft";
 import { BackButton, MissingList } from "@/components/FlowHelpers";
+import { FlowProgress, STUDIO_FLOW_STEPS } from "@/components/FlowProgress";
 
 
 
@@ -148,6 +149,18 @@ function Booking() {
 
   // Live prop availability for the chosen date — same source of truth as the
   // rental-catalog / checkout inventory (items + item_availability).
+  // Arrived straight from the /studio-rental questionnaire: open at the top and show that step 1 is done (no sudden jump).
+  const [intakeJustDone, setIntakeJustDone] = useState(false);
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem("sb_intake_just_done")) {
+        sessionStorage.removeItem("sb_intake_just_done");
+        setIntakeJustDone(true);
+      }
+    } catch { /* ignore */ }
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, []);
+
   useEffect(() => {
     if (!date) { setPropAvail(null); return; }
     const iso = toLocalISODate(date);
@@ -437,7 +450,7 @@ function Booking() {
       });
       clearBookingProgress();
       toast.success("הבקשה נשלחה! התאריך שמור לך לשעה — נשלים את התשלום עכשיו כדי לשריין אותו סופית.");
-      nav({ to: "/summary/$type/$id", params: { type: "booking", id: res.id } });
+      nav({ to: "/deposit/$type/$id", params: { type: "booking", id: res.id } });
     } catch (err) {
       toast.error(heError(err, "שגיאה בשריון"));
     } finally {
@@ -452,6 +465,9 @@ function Booking() {
         <section className="container-page py-24 flex-1" dir="rtl">
           <div className="max-w-md mx-auto mb-4 text-[#2d3d2b]">
             <BackButton fallback="/studio-rental" />
+          </div>
+          <div className="max-w-md mx-auto mb-5">
+            <FlowProgress steps={STUDIO_FLOW_STEPS} current={2} onStepClick={() => nav({ to: "/studio-rental" })} />
           </div>
           <div className="max-w-md mx-auto text-center bg-white rounded-3xl p-10 border border-[#2d3d2b]/10 shadow-sm">
             <Lock className="h-8 w-8 text-[#6b8a63] mx-auto mb-3" />
@@ -479,6 +495,14 @@ function Booking() {
       <section className="container-page py-10 md:py-14 flex-1">
         <div className="mb-5 text-[#2d3d2b]">
           <BackButton fallback="/studio-rental" label="חזרה לפרטי הסטודיו" />
+        </div>
+        <div className="max-w-3xl mb-6">
+          <FlowProgress steps={STUDIO_FLOW_STEPS} current={2} onStepClick={() => nav({ to: "/studio-rental" })} />
+          {intakeJustDone && (
+            <div role="status" className="mt-4 rounded-2xl border border-[#6b8a63]/40 bg-[#eef4ea] px-4 py-3 text-sm text-[#2d3d2b]">
+              ✓ השאלון וההסכם נשמרו. עכשיו בוחרות תאריך ושעה פנויים ביומן.
+            </div>
+          )}
         </div>
         {/* Header */}
         <div className="max-w-3xl mb-8">
