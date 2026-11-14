@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-14 (21:xx Israel) — Claude (chat, owner: "פרסם ושלח למיכל"):** PUBLISHED head 3b93b77 via the Lovable connector (deploy 589ccb3a-7827-4fec-bae9-e2479973a6d9, status pending when logged; not checked live). Carries the contract-mail PDF design + rights and publishing section. Notice mail sent to Michal.
+
 - **2026-11-14 (21:xx Israel) — Claude (chat, owner: "כן זה שצירפתי העיצוב הטוב ותוסיף את הסעיף אם בחירה" + "ותשלח למיכל שעשית"):** contract MAILS (newborn / outdoor / photo) restyled like the PDF contract: NEW `src/lib/contract-mail-style.ts` (bold dark-brown headings `#3e3029`, grey-brown body `#6b5d55`, thin cream divider `#e3d6c4`, NO heart / mustard line); NEW section "זכויות ואישור פרסום" before "אישור" in all three (copyright wording written by Claude — the PDF text was not readable, owner to check it — plus the choices from `PUBLISH_OPTIONS`; the choice itself is still made on the signing page, which is unchanged). Newborn: the section is inserted only when the template has an "אישור" section (default does). The signing-page sections and snapshots are unchanged; mails already sent keep the old look. tsc + `bun test src/lib` (74) + vite build OK; not tested on a real mail; not published. Summary mail sent to Michal.
 
 - **2026-11-14 (21:xx Israel) — Claude (chat, owner: "פרסם ושלח פירוט למייל"):** PUBLISHED head 11577cc via the Lovable connector (deploy fe496f1c-177c-4736-9f20-6677cec586d4, status pending when logged; not checked live). Carries customer blocking (props + studio). Detail mail sent to m0548529277@gmail.com (id 1a1db6a8305489f9).
