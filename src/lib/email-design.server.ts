@@ -28,14 +28,19 @@ export function resetEmailDesignCache() {
  * the bottom"): a mail that does not carry a shell marker is wrapped in the photographer shell (wordmark on top, colour
  * signature + buttons below) using the subject as its heading. Full HTML documents are left alone.
  */
+/** Which shell an unmarked mail gets: photography topics (contracts, galleries, albums, newborn / outdoor / photo clients) = photographer, everything else (studio, props, bookings, leads, notices) = studio. */
+export function unmarkedMailIsPhotographer(subject: string): boolean {
+  return /חוזה|אלבום|גלריה|גלריית|ניו[\s-]?בורן|צילומי חוץ|בחירת תמונות|בחירה|תמונות|סל לידה|צילומים עם מיכל|שאלון|לקוחות צילום|הכנה ליום הצילומים/.test(subject);
+}
+
 export async function applyStoredEmailDesign(html: string, subject?: string): Promise<string> {
   try {
     if (!html) return html;
     if (!html.includes('data-mail="')) {
       if (/<html[\s>]/i.test(html)) return html;
-      const { buildBrandedMailHtml } = await import("./email-draft-design");
+      const { buildBrandedMailHtml, buildStudioMailHtml } = await import("./email-draft-design");
       const title = (subject ?? "").replace(/[\s\p{Extended_Pictographic}\uFE0F\u200D]+/gu, " ").replace(/·.*$/, "").trim() || "מיכל סיבוני";
-      html = buildBrandedMailHtml({ title, innerHtml: html });
+      html = unmarkedMailIsPhotographer(subject ?? "") ? buildBrandedMailHtml({ title, innerHtml: html }) : buildStudioMailHtml({ title, innerHtml: html });
     }
     return applyEmailDesignToHtml(html, await readEmailDesign());
   } catch {
