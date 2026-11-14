@@ -465,6 +465,7 @@ export const placeBooking = createServerFn({ method: "POST" })
       const reservedItemDetails = await resolveReservedItemDetails(supabase, data.reserved_items);
       const html = buildBookingSummaryHtml({
         heading: "בקשת השריון התקבלה 📋",
+        guestSignupHtml: await (await import("@/lib/guest-claim.server")).guestSignupBlock(userId, "booking", booking.id, Number(price)),
         intro: `קיבלנו את בקשת השריון שלך לסטודיו Sweetbaby. <strong>התאריך עדיין לא סופי</strong> — כדי לאשר ולשריין אותו בפועל, יש להשלים את תשלום המקדמה (או לצרף אסמכתא לתשלום) בעמוד הבא <strong>תוך ${PENDING_HOLD_MINUTES / 60} שעה</strong>, אחרת התאריך עלול להשתחרר ללקוחות אחרות. ברגע שהתשלום יאושר, יישלח אליך אישור שריון נוסף עם סיכום מלא.`,
         booking: {
           id: booking.id,
@@ -987,6 +988,7 @@ async function finalizeBookingConfirmation(
 
     const html = buildBookingSummaryHtml({
       heading: "אישור הזמנה — השכרת סטודיו ✓",
+        guestSignupHtml: await (await import("@/lib/guest-claim.server")).guestSignupBlock(b.user_id, "booking", b.id, Number(b.price ?? 0)),
       familyRoomSlots: (b as any).family_room_slots ?? null,
       intro:
         "קיבלנו את התשלום/האסמכתא, וההזמנה מאושרת — התאריך שוריין עבורך בפועל ביומן הסטודיו. למטה תמצאי סיכום מלא של ההזמנה, פרטי הגעה, וקובץ האסמכתא ששלחת מצורף להמשך תיעוד. מחכות לפגוש אותך!",

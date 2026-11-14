@@ -346,6 +346,7 @@ export const placeOrder = createServerFn({ method: "POST" })
       }));
       const html = buildPropsOrderSummaryHtml({
         heading: "בקשת הזמנה התקבלה 📦",
+        guestSignupHtml: await (await import("@/lib/guest-claim.server")).guestSignupBlock(userId, "order", order.id, Number(total)),
         intro:
           "קיבלנו את בקשת ההזמנה שלך להשכרת אביזרים מסטודיו Sweetbaby. <strong>ההזמנה עדיין לא סופית</strong> — כדי לאשר אותה בפועל, יש להשלים את התשלום (או לצרף אסמכתא לתשלום) בעמוד הבא. ברגע שהתשלום יאושר, יישלח אליך אישור הזמנה נוסף עם סיכום מלא.",
         order: {
@@ -588,6 +589,7 @@ export const confirmOrderDeposit = createServerFn({ method: "POST" })
 
       const html = buildPropsOrderSummaryHtml({
         heading: "אישור הזמנה — השכרת אביזרים ✓",
+        guestSignupHtml: await (await import("@/lib/guest-claim.server")).guestSignupBlock(o.user_id, "order", o.id, Number(o.total ?? 0)),
         intro:
           "קיבלנו את התשלום/האסמכתא, וההזמנה מאושרת. למטה תמצאי סיכום מלא של ההזמנה, פרטי הגעה, וקובץ האסמכתא ששלחת מצורף להמשך תיעוד. נא לתאם טלפונית שעת איסוף מדויקת · 054-8529277.",
         order: {

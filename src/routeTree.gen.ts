@@ -101,6 +101,7 @@ import { Route as AuthenticatedAdminWhatsappRouteImport } from './routes/_authen
 import { Route as ApiVoiceIncomingRouteImport } from './routes/api.voice.incoming'
 import { Route as ApiVoiceRespondRouteImport } from './routes/api.voice.respond'
 import { Route as ApiYemotIvrRouteImport } from './routes/api.yemot.ivr'
+import { Route as ClaimKindIdRouteImport } from './routes/claim.$kind.$id'
 import { Route as ContractKindTokenRouteImport } from './routes/contract.$kind.$token'
 import { Route as DepositTypeIdRouteImport } from './routes/deposit.$type.$id'
 import { Route as NewbornConfirmTokenRouteImport } from './routes/newborn.confirm.$token'
@@ -615,6 +616,11 @@ const ApiYemotIvrRoute = ApiYemotIvrRouteImport.update({
   path: '/api/yemot/ivr',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClaimKindIdRoute = ClaimKindIdRouteImport.update({
+  id: '/claim/$kind/$id',
+  path: '/claim/$kind/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ContractKindTokenRoute = ContractKindTokenRouteImport.update({
   id: '/contract/$kind/$token',
   path: '/contract/$kind/$token',
@@ -767,6 +773,7 @@ export interface FileRoutesByFullPath {
   '/api/voice/incoming': typeof ApiVoiceIncomingRoute
   '/api/voice/respond': typeof ApiVoiceRespondRoute
   '/api/yemot/ivr': typeof ApiYemotIvrRoute
+  '/claim/$kind/$id': typeof ClaimKindIdRoute
   '/contract/$kind/$token': typeof ContractKindTokenRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/newborn/confirm/$token': typeof NewbornConfirmTokenRoute
@@ -870,6 +877,7 @@ export interface FileRoutesByTo {
   '/api/voice/incoming': typeof ApiVoiceIncomingRoute
   '/api/voice/respond': typeof ApiVoiceRespondRoute
   '/api/yemot/ivr': typeof ApiYemotIvrRoute
+  '/claim/$kind/$id': typeof ClaimKindIdRoute
   '/contract/$kind/$token': typeof ContractKindTokenRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/newborn/confirm/$token': typeof NewbornConfirmTokenRoute
@@ -976,6 +984,7 @@ export interface FileRoutesById {
   '/api/voice/incoming': typeof ApiVoiceIncomingRoute
   '/api/voice/respond': typeof ApiVoiceRespondRoute
   '/api/yemot/ivr': typeof ApiYemotIvrRoute
+  '/claim/$kind/$id': typeof ClaimKindIdRoute
   '/contract/$kind/$token': typeof ContractKindTokenRoute
   '/deposit/$type/$id': typeof DepositTypeIdRoute
   '/newborn/confirm/$token': typeof NewbornConfirmTokenRoute
@@ -1082,6 +1091,7 @@ export interface FileRouteTypes {
     | '/api/voice/incoming'
     | '/api/voice/respond'
     | '/api/yemot/ivr'
+    | '/claim/$kind/$id'
     | '/contract/$kind/$token'
     | '/deposit/$type/$id'
     | '/newborn/confirm/$token'
@@ -1185,6 +1195,7 @@ export interface FileRouteTypes {
     | '/api/voice/incoming'
     | '/api/voice/respond'
     | '/api/yemot/ivr'
+    | '/claim/$kind/$id'
     | '/contract/$kind/$token'
     | '/deposit/$type/$id'
     | '/newborn/confirm/$token'
@@ -1290,6 +1301,7 @@ export interface FileRouteTypes {
     | '/api/voice/incoming'
     | '/api/voice/respond'
     | '/api/yemot/ivr'
+    | '/claim/$kind/$id'
     | '/contract/$kind/$token'
     | '/deposit/$type/$id'
     | '/newborn/confirm/$token'
@@ -1351,6 +1363,7 @@ export interface RootRouteChildren {
   ApiVoiceIncomingRoute: typeof ApiVoiceIncomingRoute
   ApiVoiceRespondRoute: typeof ApiVoiceRespondRoute
   ApiYemotIvrRoute: typeof ApiYemotIvrRoute
+  ClaimKindIdRoute: typeof ClaimKindIdRoute
   ContractKindTokenRoute: typeof ContractKindTokenRoute
   DepositTypeIdRoute: typeof DepositTypeIdRoute
   OutdoorGalleryTokenRoute: typeof OutdoorGalleryTokenRoute
@@ -2004,6 +2017,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiYemotIvrRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/claim/$kind/$id': {
+      id: '/claim/$kind/$id'
+      path: '/claim/$kind/$id'
+      fullPath: '/claim/$kind/$id'
+      preLoaderRoute: typeof ClaimKindIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/contract/$kind/$token': {
       id: '/contract/$kind/$token'
       path: '/contract/$kind/$token'
@@ -2308,6 +2328,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiVoiceIncomingRoute: ApiVoiceIncomingRoute,
   ApiVoiceRespondRoute: ApiVoiceRespondRoute,
   ApiYemotIvrRoute: ApiYemotIvrRoute,
+  ClaimKindIdRoute: ClaimKindIdRoute,
   ContractKindTokenRoute: ContractKindTokenRoute,
   DepositTypeIdRoute: DepositTypeIdRoute,
   OutdoorGalleryTokenRoute: OutdoorGalleryTokenRoute,

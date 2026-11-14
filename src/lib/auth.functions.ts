@@ -116,18 +116,10 @@ export const signInWithPhoneOrEmail = createServerFn({ method: "POST" })
  * the new account in immediately and hands back a session, same shape as
  * signInWithPhoneOrEmail above.
  */
-export const signUpWithPhoneOrEmail = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) =>
-    z
-      .object({
-        fullName: z.string().min(1).max(120),
-        phone: z.string().min(5).max(40),
-        email: z.string().email().max(200).optional(),
-        password: z.string().min(MIN_PIN).max(100),
-      })
-      .parse(d),
-  )
-  .handler(async ({ data }): Promise<{ ok: true; session: AuthSession } | { ok: false; error: string }> => {
+export type SignUpInput = { fullName: string; phone: string; email?: string; password: string };
+
+/** Shared by the normal sign-up and the guest quick-registration (`guest-claim.functions.ts`). Returns the new user id too. */
+export async function signUpCore(data: SignUpInput): Promise<{ ok: true; session: AuthSession; userId: string } | { ok: false; error: string }> {
     // Same reasoning as signInWithPhoneOrEmail's own try/catch: a real
     // Supabase/network outage throws here rather than returning a graceful
     // {error}, and this whole handler used to have no top-level try/catch —
@@ -171,11 +163,27 @@ export const signUpWithPhoneOrEmail = createServerFn({ method: "POST" })
         console.error("[SWEETBABY] post-signup sign-in failed", signInErr);
         return { ok: false, error: "החשבון נוצר אבל הכניסה האוטומטית נכשלה — נסי להתחבר ידנית." };
       }
-      return { ok: true, session: { access_token: signInData.session.access_token, refresh_token: signInData.session.refresh_token } };
+      return { ok: true, session: { access_token: signInData.session.access_token, refresh_token: signInData.session.refresh_token }, userId: created.user.id };
     } catch (e) {
       console.error("[SWEETBABY] signUpWithPhoneOrEmail failed unexpectedly (possible connectivity issue)", e);
       return { ok: false, error: "תקלה זמנית בהרשמה — נסי שוב בעוד רגע." };
     }
+}
+
+export const signUpWithPhoneOrEmail = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        fullName: z.string().min(1).max(120),
+        phone: z.string().min(5).max(40),
+        email: z.string().email().max(200).optional(),
+        password: z.string().min(MIN_PIN).max(100),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }): Promise<{ ok: true; session: AuthSession } | { ok: false; error: string }> => {
+    const r = await signUpCore(data);
+    return r.ok ? { ok: true, session: r.session } : r;
   });
 
 // ---------- password reset via a real phone call ----------

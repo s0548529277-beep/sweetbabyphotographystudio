@@ -245,6 +245,8 @@ export function buildBookingSummaryHtml(opts: {
   cashbackEarned?: number;
   /** Request-received emails only: direct link back to the page where the customer finishes the order/payment. */
   continueUrl?: string;
+  /** Pre-built guest quick-registration block (see buildGuestSignupHtml) — empty for registered customers. */
+  guestSignupHtml?: string;
   /** Reminder emails: add-props / arrival-directions / change-date buttons. */
   reminderActions?: boolean;
   /** Hours of the family room once it was booked/approved for this client (bookings.family_room_slots) — only then the entrance + code are shown. */
@@ -301,6 +303,7 @@ export function buildBookingSummaryHtml(opts: {
     ${includeArrival ? buildArrivalHtml() : ""}
     ${footerNote ? `<p style="color:#6b8a63;font-size:13px;margin-top:16px">${footerNote}</p>` : ""}
     ${continueUrl ? buildContinueOrderHtml(continueUrl) : ""}
+    ${opts.guestSignupHtml ?? ""}
     ${opts.reminderActions ? buildReminderActionsHtml(b.id, b.session_date) : buildEditOrderButtonHtml("booking", b.id)}
     ${buildChatButtonHtml({ kind: "booking", id: b.id, date: b.session_date })}
     <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: ${STUDIO_ADDRESS_WAZE_HTML} · לשאלות: s0548529277@gmail.com / 054-8529277</p>
@@ -413,6 +416,24 @@ export function buildContinueOrderHtml(url: string): string {
     </div>`;
 }
 
+/**
+ * Guest quick-registration block (only for orders placed as a guest): the credit she earns would otherwise be tied to a
+ * temporary session she cannot get back into. The link opens /claim/<kind>/<id>?t=<token>.
+ */
+export function buildGuestSignupHtml(url: string, credit: number): string {
+  const safe = escapeHtml(url);
+  const creditLine = credit > 0
+    ? `<p style="margin:0 0 10px;font-size:15px;color:#2d3d2b"><strong>בהזמנה הזו את צוברת כ-₪${credit} קרדיט</strong> להזמנה הבאה (10% מההזמנה), אחרי אישור התשלום.</p>`
+    : "";
+  return `<div style="margin:22px 0;padding:16px;border-radius:14px;background:#eef4ea;border:1px solid #6b8a63;text-align:center">
+      <p style="margin:0 0 6px;font-size:16px;font-weight:700;color:#2d3d2b">הזמנת כאורחת — שלא תפסידי את הקרדיט 💗</p>
+      ${creditLine}
+      <p style="margin:0 0 12px;font-size:13px;color:#2d3d2b;opacity:.8">הרשמה מהירה, בלי למלא את הכול מחדש: ההזמנה והקרדיט עוברים לחשבון שלך.</p>
+      <a href="${safe}" style="background:#2d3d2b;color:#f8ede4;padding:12px 28px;border-radius:999px;text-decoration:none;display:inline-block;font-weight:700;font-size:16px">הרשמה מהירה ושמירת הקרדיט ←</a>
+      <p dir="ltr" style="font-size:11px;margin:10px 0 0;word-break:break-all;color:#2d3d2b">${safe}</p>
+    </div>`;
+}
+
 // ---------- Props/equipment-rental order summary ----------
 
 /** One rented item line, as stored on order_items. */
@@ -467,6 +488,8 @@ export function buildPropsOrderSummaryHtml(opts: {
   cashbackEarned?: number;
   /** Request-received emails only: direct link back to the page where the customer finishes the order/payment. */
   continueUrl?: string;
+  /** Pre-built guest quick-registration block (see buildGuestSignupHtml) — empty for registered customers. */
+  guestSignupHtml?: string;
 }): string {
   const { heading, intro, order: o, includeArrival = true, footerNote, doorCode, cashbackEarned, continueUrl } = opts;
   const doorCodeHtml = doorCode ? buildDoorCodeHtml(doorCode, PROPS_DOOR_CODE_NOTE) : "";
@@ -512,6 +535,7 @@ export function buildPropsOrderSummaryHtml(opts: {
     ${includeArrival ? buildArrivalHtml() : ""}
     ${footerNote ? `<p style="color:#6b8a63;font-size:13px;margin-top:16px">${footerNote}</p>` : ""}
     ${continueUrl ? buildContinueOrderHtml(continueUrl) : ""}
+    ${opts.guestSignupHtml ?? ""}
     ${buildEditOrderButtonHtml("order", o.id)}
     ${buildChatButtonHtml({ kind: "order", id: o.id, date: o.session_date })}
     <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: ${STUDIO_ADDRESS_WAZE_HTML} · לשאלות: s0548529277@gmail.com / 054-8529277</p>

@@ -84,6 +84,15 @@ function Deposit() {
   const confirmOrder = useServerFn(confirmOrderDeposit);
   const fetchWheelEnabled = useServerFn(isWheelEnabled);
   const [wheelEnabled, setWheelEnabled] = useState(false);
+  // Props order lines — shown in the summary card only when she opens the list.
+  const [orderLines, setOrderLines] = useState<Array<{ id: string; item_name: string; item_sku: string; quantity: number; price: number }>>([]);
+  useEffect(() => {
+    if (isStudio) return;
+    (supabase.from("order_items") as any)
+      .select("id, item_name, item_sku, quantity, price")
+      .eq("order_id", id)
+      .then(({ data }: any) => setOrderLines(data ?? []));
+  }, [isStudio, id, user?.id]);
 
   useEffect(() => {
     const table = type === "booking" ? "bookings" : "orders";
@@ -292,6 +301,23 @@ function Deposit() {
                   {timeText && <div>{isStudio ? "מועד" : "איסוף"}: <b dir="ltr">{timeText}</b></div>}
                   <div>סה״כ: <b>₪{total}</b>{isStudio && balanceLeft > 0 ? ` · יתרה ₪${balanceLeft} ביום הצילום` : ""}</div>
                 </div>
+                {!isStudio && orderLines.length > 0 && (
+                  <details className="group mt-3 rounded-2xl border border-primary/10 bg-white/60 px-4 py-2">
+                    <summary className="cursor-pointer select-none list-none text-primary font-medium flex items-center justify-between">
+                      <span>רשימת הפריטים ({orderLines.reduce((a, l) => a + l.quantity, 0)})</span>
+                      <span className="text-xs text-muted-foreground group-open:hidden">הצגה ▾</span>
+                      <span className="hidden text-xs text-muted-foreground group-open:inline">הסתרה ▴</span>
+                    </summary>
+                    <ul className="mt-2 divide-y divide-border text-sm">
+                      {orderLines.map((l) => (
+                        <li key={l.id} className="flex items-center justify-between gap-3 py-2">
+                          <span className="min-w-0 truncate">{l.item_name} <span className="text-xs text-muted-foreground" dir="ltr">· {l.item_sku}{l.quantity > 1 ? ` ×${l.quantity}` : ""}</span></span>
+                          <span className="font-display" dir="ltr">₪{Number(l.price) * l.quantity}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
               </div>
             )}
 
