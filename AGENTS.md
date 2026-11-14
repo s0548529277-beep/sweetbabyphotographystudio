@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-15 (01:2x Israel) — Claude (chat, owner: "פרסם"):** PUBLISHED head 1f70b1a via the Lovable connector (deploy 5d16029d-35e1-46e0-b45a-0c3c94efc660, status pending when logged; not checked live). Carries the clickable indicator, props 2-step quick order, studio skip-intake, payment-page summary + collapsed item list, guest quick-registration, single card button. Still to check: one guest test order (mail block, `/claim`, credit moved) and one props quick order from the cart.
+
 - **2026-11-15 (01:2x Israel) — Claude (chat, owner: "איחוד כפתור כפול תעשה" + "פרסם"):** `/deposit`: the secure-card button (`PayOnlineButton`) is no longer always shown above the payment details; it now appears only when the payment method "אשראי" is chosen (studio and props), so card is one choice, not two. Guest credit: removed the 100 ₪ guard/wording from the guest quick-registration (`guest-claim.*`). tsc OK; PUBLISHED right after (see next entry if present).
 
 - **2026-11-15 (01:2x Israel) — Claude (chat, owner: "פרסם"):** PUBLISHED head 9d6dbde via the Lovable connector (deploy 2e300116-299b-4921-b355-b73360f4ca36, status pending when logged; not checked live). Carries the topic-based shell for unmarked mails (studio vs photographer). Still to check: the next owner notice (e.g. a WhatsApp or waitlist mail) arrives in the studio design.
