@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-15 (01:xx Israel) — Claude (chat, owner: "תעדכן בוט ובכל מקום"):** added ONE line describing the site order steps (studio 3 steps, props 3 steps with dates in the cart, request mail on creation, confirmation mail only after the deposit, min 100, "send cart by e-mail" does not reserve) to the site-chat bot prompt (`ai.functions.ts`, before the chat-order line) and to the e-mail draft assistant KNOWLEDGE (`email-drafts.server.ts`). Voice bot and the chat wizards (`ChatBookingWizard` / `ChatPropsWizard`, their own 4-step lists) untouched. NOT done: the proposed 2-step props flow and clickable indicator (owner has not approved yet). tsc OK; not published.
+
 - **2026-11-15 (Israel) — Claude (chat, owner: "פרסם ותבדוק שהכל מעודכן בכל מקום"):** PUBLISHED head 0ac60a7 via the Lovable connector (deploy 96f4fa4f-f1e8-4431-9361-40ac98052ae0, status pending when logged; not checked live — the live site is not reachable from the sandbox). Carries the FlowProgress indicator, the cart dates/availability, the checkout polish and MIN_PROPS_ORDER = 100. CHECKED: code has no leftover "מינימום 50" or "מ-100 ומעלה" wording; live DB (`voice_bot_phrases`, `app_settings`, `site_texts`, `bot_knowledge_notes`) has no override with the old minimum or cashback-threshold wording. Not clicked live.
 
 - **2026-11-15 (01:xx Israel) — Claude (chat, owner: "סיים ופרסם"):** PUBLISHED head a39ab2d via the Lovable connector (deploy f6e3fdb9-76de-408a-9474-f0ecb03e6bd8, status pending when logged; not checked live). Carries add-item + price changes without approval. Still to check: one real props edit (add item, other days, removed item) and that the price/availability updates.
