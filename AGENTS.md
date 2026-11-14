@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-14 (21:xx Israel) — Claude (chat, owner: "פרסם ותנסה דרך כרום ושלח לי למייל דוגמא"):** PUBLISHED head after the editable-preview commit via the Lovable connector (deploy cdfc66d8-d50d-4071-8947-7da6df1be4cc, status pending when logged; not checked live). Chrome test of the preview was NOT possible: the owner's Chrome is not signed in to the admin (redirected to /auth; Claude never types passwords). Instead an example outdoor contract (sample data, rendered from `buildOutdoorContractHtml`) was mailed to m0548529277@gmail.com as an HTML attachment. Open request: a ONE-TIME edit in the preview that is sent only to that client (needs a server fn that sends custom HTML; caution: the signing page shows the stored sections, so edited wording would not match it) — not built, awaiting owner's choice.
+
 - **2026-11-14 (21:xx Israel) — Claude (chat, owner: "תבדוק ותעשה שיהיה אפשר לערוך מילים בתצוגה מקדימה"):** `ContractPreviewButton.tsx`: new buttons "עריכת מילים בתצוגה" (makes the preview iframe editable) and "העתקת הנוסח". Edits are VIEW-ONLY: not saved, not sent (a custom-text send would need a server change; newborn wording is edited in `/admin/newborn-contract-text`). The preview itself was not clicked live (admin login). tsc OK; not published.
 
 - **2026-11-14 (21:xx Israel) — Claude (chat, owner: "פרסם ושלח למיכל"):** PUBLISHED head 3b93b77 via the Lovable connector (deploy 589ccb3a-7827-4fec-bae9-e2479973a6d9, status pending when logged; not checked live). Carries the contract-mail PDF design + rights and publishing section. Notice mail sent to Michal.
