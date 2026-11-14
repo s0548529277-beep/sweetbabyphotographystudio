@@ -36,12 +36,27 @@ export function editNeedsApproval(opts: { oldStartMs: number; newStartMs: number
 /** What a customer may change in a studio booking (same duration, so the price stays). */
 export type BookingChanges = { session_date?: string; start_time?: string; note?: string };
 /** What a customer may change in a props order (same dates, so the rental days/price stay). */
-export type OrderChanges = { pickup_time?: string; return_time?: string; note?: string };
+export type OrderChanges = {
+  pickup_time?: string;
+  return_time?: string;
+  /** New pickup / return DATES (YYYY-MM-DD). Any price change makes the edit need admin approval. */
+  pickup_date?: string;
+  return_date?: string;
+  /** SKUs of order lines to remove, comma separated (sorted). */
+  remove_skus?: string;
+  /** Informational only (filled by the server for the admin): the price change in ₪, e.g. "-40". */
+  price_delta?: string;
+  note?: string;
+};
 
 export const CHANGE_LABELS: Record<string, string> = {
   session_date: "תאריך הצילום",
   start_time: "שעת התחלה",
   pickup_time: "שעת איסוף",
   return_time: "שעת החזרה",
+  pickup_date: "תאריך איסוף",
+  return_date: "תאריך החזרה",
+  remove_skus: "הסרת פריטים",
+  price_delta: "שינוי מחיר",
   note: "הערה",
 };

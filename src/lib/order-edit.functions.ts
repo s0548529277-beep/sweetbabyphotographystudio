@@ -37,7 +37,7 @@ async function assertAdmin(supabase: any, userId: string) {
 const BOOKING_COLS =
   "id, user_id, status, deposit_status, session_date, start_time, end_time, slots, package, price, deposit_amount, balance_amount, balance_method, notes, reserved_items, contact_name, contact_phone, contact_email, google_event_id, door_code, ttlock_lock_id, ttlock_keyboard_pwd_id, family_room_slots";
 const ORDER_COLS =
-  "id, user_id, status, session_date, return_date, pickup_at, return_at, total, notes, balance_method, contact_name, contact_phone, contact_email, camera_model, google_event_id, door_code, ttlock_lock_id, ttlock_keyboard_pwd_id";
+  "id, user_id, status, deposit_status, deposit_amount, session_date, return_date, pickup_at, return_at, total, notes, balance_method, contact_name, contact_phone, contact_email, camera_model, google_event_id, door_code, ttlock_lock_id, ttlock_keyboard_pwd_id";
 
 async function loadRow(db: any, kind: EditKind, id: string): Promise<any> {
   const { data, error } = await db
@@ -154,30 +154,104 @@ async function validateBookingChanges(db: any, row: any, changes: BookingChanges
   return { newDate, newStart, newEnd, moved };
 }
 
-async function validateOrderChanges(row: any, changes: OrderChanges): Promise<{ pickup: string | null; ret: string | null; moved: boolean }> {
+type OrderLine = { id: string; item_id: string | null; item_name: string; item_sku: string | null; quantity: number; price: number };
+type OrderPlan = {
+  pickup: string | null;
+  ret: string | null;
+  pickupDate: string;
+  returnDate: string;
+  datesChanged: boolean;
+  moved: boolean;
+  removed: OrderLine[];
+  kept: OrderLine[];
+  oldMult: number;
+  newMult: number;
+  /** New unit price per kept line id (only when the rental-day multiplier changed). */
+  newPrices: Map<string, number>;
+  /** Change of the order price in ₪ (negative = cheaper). */
+  delta: number;
+};
+
+const israelToday = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
+
+async function validateOrderChanges(db: any, row: any, changes: OrderChanges): Promise<OrderPlan> {
   const { isWithinPropsHandoffHours, PROPS_HANDOFF_NOTE } = await import("@/lib/props-hours");
+  const { computeDayMultiplier } = await import("@/lib/orders.functions");
   const oldPickup = naiveHHMM(row.pickup_at);
   const oldReturn = naiveHHMM(row.return_at);
+  const oldPickupDate = String(row.session_date ?? row.pickup_at ?? "").slice(0, 10);
+  const oldReturnDate = String(row.return_date ?? row.return_at ?? "").slice(0, 10);
   const pickup = changes.pickup_time ?? oldPickup;
   const ret = changes.return_time ?? oldReturn;
-  const moved = pickup !== oldPickup || ret !== oldReturn;
-  if (!moved) return { pickup, ret, moved };
-  if (changes.pickup_time && !isWithinPropsHandoffHours(changes.pickup_time)) throw new Error(PROPS_HANDOFF_NOTE);
-  if (changes.return_time && !isWithinPropsHandoffHours(changes.return_time)) throw new Error(PROPS_HANDOFF_NOTE);
-  const pickupDate = String(row.session_date ?? row.pickup_at ?? "").slice(0, 10);
-  const returnDate = String(row.return_date ?? row.return_at ?? "").slice(0, 10);
-  if (pickupDate && returnDate && pickupDate === returnDate && pickup && ret && ret <= pickup) {
-    throw new Error("שעת ההחזרה חייבת להיות אחרי שעת האיסוף");
+  const pickupDate = changes.pickup_date ?? oldPickupDate;
+  const returnDate = changes.return_date ?? oldReturnDate;
+  const datesChanged = pickupDate !== oldPickupDate || returnDate !== oldReturnDate;
+  const timesChanged = pickup !== oldPickup || ret !== oldReturn;
+  const removeSkus = changes.remove_skus ? changes.remove_skus.split(",").filter(Boolean) : [];
+
+  if (timesChanged || datesChanged) {
+    if (changes.pickup_time && !isWithinPropsHandoffHours(changes.pickup_time)) throw new Error(PROPS_HANDOFF_NOTE);
+    if (changes.return_time && !isWithinPropsHandoffHours(changes.return_time)) throw new Error(PROPS_HANDOFF_NOTE);
+    if (pickupDate && returnDate && returnDate < pickupDate) throw new Error("תאריך ההחזרה חייב להיות אחרי תאריך האיסוף");
+    if (pickupDate && returnDate && pickupDate === returnDate && pickup && ret && ret <= pickup) {
+      throw new Error("שעת ההחזרה חייבת להיות אחרי שעת האיסוף");
+    }
+    if (datesChanged && pickupDate < israelToday()) throw new Error("תאריך האיסוף כבר עבר");
   }
-  if (pickup && ret && pickupDate && returnDate) {
-    const { computeDayMultiplier } = await import("@/lib/orders.functions");
-    const before = computeDayMultiplier(`${pickupDate}T${oldPickup ?? "09:00"}:00`, `${returnDate}T${oldReturn ?? "18:00"}:00`);
-    const after = computeDayMultiplier(`${pickupDate}T${pickup}:00`, `${returnDate}T${ret}:00`);
-    if (before !== after) {
-      throw new Error("השינוי הזה משנה את מספר ימי ההשכרה (ואת המחיר) — לשינוי כזה נא לפנות לצוות הסטודיו או בצ׳אט.");
+
+  const oldMult = computeDayMultiplier(`${oldPickupDate}T${oldPickup ?? "09:00"}:00`, `${oldReturnDate}T${oldReturn ?? "18:00"}:00`);
+  const newMult = computeDayMultiplier(`${pickupDate}T${pickup ?? "09:00"}:00`, `${returnDate}T${ret ?? "18:00"}:00`);
+
+  const { data: lineRows, error: lerr } = await db
+    .from("order_items")
+    .select("id, item_id, item_name, item_sku, quantity, price")
+    .eq("order_id", row.id);
+  if (lerr) throw new Error(lerr.message);
+  const lines: OrderLine[] = (lineRows ?? []).map((l: any) => ({ ...l, quantity: Number(l.quantity), price: Number(l.price) }));
+
+  for (const sku of removeSkus) {
+    if (!lines.some((l) => l.item_sku === sku)) throw new Error("אחד הפריטים להסרה לא נמצא בהזמנה");
+  }
+  const removed = lines.filter((l) => l.item_sku && removeSkus.includes(l.item_sku));
+  const kept = lines.filter((l) => !removed.includes(l));
+  if (removeSkus.length > 0 && kept.length === 0) {
+    throw new Error("אי אפשר להסיר את כל הפריטים — לביטול ההזמנה נא לפנות לצוות הסטודיו.");
+  }
+
+  // Lines store unit price x rental-day multiplier; keep the base price and re-multiply when the days change.
+  const newPrices = new Map<string, number>();
+  let newRaw = 0;
+  for (const l of kept) {
+    const base = l.price / Math.max(1, oldMult);
+    const unit = newMult !== oldMult ? Math.round(base * newMult) : l.price;
+    if (unit !== l.price) newPrices.set(l.id, unit);
+    newRaw += unit * l.quantity;
+  }
+  const oldRaw = lines.reduce((sum, l) => sum + l.price * l.quantity, 0);
+  const delta = Math.round(newRaw - oldRaw);
+  if (delta !== 0 && newRaw < 50) throw new Error("מינימום הזמנה 50 ש״ח");
+
+  // Availability for the new dates: other orders' reservations (the order's own rows do not count against itself).
+  if (datesChanged) {
+    for (const l of kept) {
+      if (!l.item_id) continue;
+      const { data: it } = await db.from("items").select("stock_quantity, name").eq("id", l.item_id).maybeSingle();
+      const stock = Number(it?.stock_quantity ?? 1);
+      const { data: reserved, error: rerr } = await db.rpc("count_item_reservations", { _item_id: l.item_id, _from: pickupDate, _to: returnDate });
+      if (rerr) throw new Error(rerr.message);
+      const { count: own } = await db
+        .from("item_availability")
+        .select("id", { count: "exact", head: true })
+        .eq("order_id", row.id)
+        .eq("item_id", l.item_id)
+        .lte("start_date", returnDate)
+        .gte("end_date", pickupDate);
+      const busy = Math.max(0, Number(reserved ?? 0) - Number(own ?? 0));
+      if (busy + l.quantity > stock) throw new Error(`הפריט "${l.item_name}" לא זמין בתאריכים החדשים`);
     }
   }
-  return { pickup, ret, moved };
+
+  return { pickup, ret, pickupDate, returnDate, datesChanged, moved: timesChanged || datesChanged, removed, kept, oldMult, newMult, newPrices, delta };
 }
 
 /** Only the fields that really differ from the stored row (plus the note). */
@@ -189,6 +263,9 @@ function diffChanges(kind: EditKind, row: any, input: any): BookingChanges & Ord
   } else {
     if (input.pickup_time && input.pickup_time !== naiveHHMM(row.pickup_at)) out.pickup_time = input.pickup_time;
     if (input.return_time && input.return_time !== naiveHHMM(row.return_at)) out.return_time = input.return_time;
+    if (input.pickup_date && input.pickup_date !== String(row.session_date ?? "").slice(0, 10)) out.pickup_date = input.pickup_date;
+    if (input.return_date && input.return_date !== String(row.return_date ?? "").slice(0, 10)) out.return_date = input.return_date;
+    if (Array.isArray(input.remove_skus) && input.remove_skus.length) out.remove_skus = [...new Set<string>(input.remove_skus)].sort().join(",");
   }
   if (input.note && String(input.note).trim()) out.note = String(input.note).trim();
   return out;
@@ -277,7 +354,7 @@ async function applyBookingEdit(id: string, changes: BookingChanges, who: string
     const html = buildBookingSummaryHtml({
       heading: "ההזמנה עודכנה ✓",
       intro: v.moved
-        ? "ההזמנה עודכנה לפי הבקשה שלך. למטה הפרטים המעודכנים — כדאי לעבור עליהם ולוודא שהכול נכון. אם האיסוף בתוך 24 שעות, אנא התקשרי אלינו לוודא שהכול תקין: 054-8529277."
+        ? "ההזמנה עודכנה לפי הבקשה שלך. למטה הפרטים המעודכנים — כדאי לעבור עליהם ולוודא שהכול נכון."
         : "ההערה שלך נוספה להזמנה. למטה סיכום ההזמנה.",
       booking: {
         id: b.id,
@@ -307,21 +384,84 @@ async function applyOrderEdit(id: string, changes: OrderChanges, who: string): P
   const db: any = supabaseAdmin;
   const o = await loadRow(db, "order", id);
   if (!EDITABLE_STATUSES.includes(String(o.status))) throw new Error("ההזמנה כבר לא ניתנת לעריכה");
-  const v = await validateOrderChanges(o, changes);
-  const pickupDate = String(o.session_date ?? o.pickup_at ?? "").slice(0, 10);
-  const returnDate = String(o.return_date ?? o.return_at ?? "").slice(0, 10);
+  const v = await validateOrderChanges(db, o, changes);
+  const pickupDate = v.pickupDate;
+  const returnDate = v.returnDate;
+  const hasLineChange = v.removed.length > 0 || v.newPrices.size > 0;
 
   const update: Record<string, unknown> = {};
   if (v.moved) {
+    if (v.datesChanged) {
+      update.session_date = pickupDate;
+      update.scheduled_date = pickupDate;
+      update.return_date = returnDate;
+    }
     if (v.pickup && pickupDate) update.pickup_at = `${pickupDate}T${v.pickup}:00`;
     if (v.ret && returnDate) update.return_at = `${returnDate}T${v.ret}:00`;
     update.reminder_sent_at = null;
     update.reminder_4h_sent_at = null;
   }
-  if (changes.note) update.notes = appendNote(o.notes, changes.note, who);
-  if (Object.keys(update).length === 0) return;
-  const { error } = await db.from("orders").update(update).eq("id", id);
-  if (error) throw new Error(error.message);
+  let priceNote: string | null = null;
+  if (v.delta !== 0) {
+    const newTotal = Math.max(0, Number(o.total) + v.delta);
+    update.total = newTotal;
+    if (o.deposit_status === "pending") update.deposit_amount = newTotal;
+    priceNote = `המחיר שונה ב-${v.delta > 0 ? "+" : ""}₪${v.delta} (סה״כ ₪${newTotal})${o.deposit_status === "pending" ? "" : " — התשלום כבר שולם: לבדוק תשלום/החזר"}`;
+  }
+  if (changes.note || priceNote || v.removed.length) {
+    const parts = [
+      changes.note,
+      v.removed.length ? `הוסרו פריטים: ${v.removed.map((l) => l.item_name).join(", ")}` : null,
+      priceNote,
+    ].filter(Boolean).join(" · ");
+    update.notes = appendNote(o.notes, parts, who);
+  }
+  if (Object.keys(update).length === 0 && !hasLineChange) return;
+
+  // Availability + lines first (restored on failure), then the order row.
+  if (v.datesChanged || v.removed.length) {
+    const { data: oldRows } = await db.from("item_availability").select("*").eq("order_id", id);
+    const restore = async () => {
+      await db.from("item_availability").delete().eq("order_id", id);
+      if (oldRows?.length) await db.from("item_availability").insert(oldRows);
+    };
+    try {
+      await db.from("item_availability").delete().eq("order_id", id);
+      for (const l of v.kept) {
+        if (!l.item_id) continue;
+        const { data: it } = await db.from("items").select("stock_quantity").eq("id", l.item_id).maybeSingle();
+        const stock = Number(it?.stock_quantity ?? 1);
+        const { data: reserved } = await db.rpc("count_item_reservations", { _item_id: l.item_id, _from: pickupDate, _to: returnDate });
+        let slot = Number(reserved ?? 0);
+        for (let i = 0; i < l.quantity; i++) {
+          let placed = false;
+          for (let attempt = slot; attempt < stock + 8 && !placed; attempt++) {
+            const { error } = await db.from("item_availability").insert({
+              item_id: l.item_id, order_id: id, date: pickupDate, start_date: pickupDate, end_date: returnDate, slot_index: attempt,
+            });
+            if (!error) { placed = true; slot = attempt + 1; }
+            else if (!((error as any).code === "23505" || /duplicate|unique/i.test(error.message ?? ""))) throw new Error(error.message);
+          }
+          if (!placed) throw new Error(`הפריט "${l.item_name}" לא זמין בתאריכים החדשים`);
+        }
+      }
+    } catch (e) {
+      await restore();
+      throw e;
+    }
+  }
+  if (v.removed.length) {
+    const { error: derr } = await db.from("order_items").delete().in("id", v.removed.map((l) => l.id));
+    if (derr) throw new Error(derr.message);
+  }
+  for (const [lineId, unit] of v.newPrices) {
+    await db.from("order_items").update({ price: unit }).eq("id", lineId);
+  }
+
+  if (Object.keys(update).length > 0) {
+    const { error } = await db.from("orders").update(update).eq("id", id);
+    if (error) throw new Error(error.message);
+  }
 
   const emails = await customerEmailsOf(db, "order", o);
   let doorCode: string | null = o.door_code ?? null;
@@ -401,17 +541,17 @@ async function applyOrderEdit(id: string, changes: OrderChanges, who: string): P
     const ret = (update.return_at as string | undefined) ?? o.return_at;
     const html = buildPropsOrderSummaryHtml({
       heading: "ההזמנה עודכנה ✓",
-      intro: v.moved
-        ? "ההזמנה עודכנה לפי הבקשה שלך. למטה הפרטים המעודכנים — כדאי לעבור עליהם ולוודא שהכול נכון."
+      intro: v.moved || hasLineChange
+        ? "ההזמנה עודכנה לפי הבקשה שלך. למטה הפרטים המעודכנים — כדאי לעבור עליהם ולוודא שהכול נכון. אם האיסוף בתוך 24 שעות, אנא התקשרי אלינו לוודא שהכול תקין: 054-8529277."
         : "ההערה שלך נוספה להזמנה. למטה סיכום ההזמנה.",
       order: {
         id: o.id,
         contact_name: o.contact_name,
-        session_date: o.session_date ?? "",
+        session_date: pickupDate,
         pickup_time: pick ? naiveHHMM(String(pick)) : null,
-        return_date: o.return_date ?? "",
+        return_date: returnDate,
         return_time: ret ? naiveHHMM(String(ret)) : null,
-        total: o.total,
+        total: (update.total as number | undefined) ?? o.total,
         notes: (update.notes as string | undefined) ?? o.notes,
         balance_method: o.balance_method,
         day_multiplier: pick && ret ? computeDayMultiplier(String(pick), String(ret)) : 1,
@@ -441,6 +581,12 @@ export const getEditableOrder = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const row = await loadOwnRow(supabase, data.kind, data.id, userId);
     const reason = blockedReason(data.kind, row);
+    let orderLinesForPage: Array<{ sku: string | null; name: string; quantity: number }> = [];
+    if (data.kind === "order") {
+      const { supabaseAdmin: adm } = await import("@/integrations/supabase/client.server");
+      const { data: ls } = await (adm as any).from("order_items").select("item_sku, item_name, quantity").eq("order_id", data.id);
+      orderLinesForPage = (ls ?? []).map((l: any) => ({ sku: l.item_sku ?? null, name: l.item_name, quantity: Number(l.quantity) }));
+    }
     const start = currentStartMs(data.kind, row);
     const within24h = start != null ? editNeedsApproval({ oldStartMs: start, newStartMs: start }).needs : false;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -478,9 +624,29 @@ export const getEditableOrder = createServerFn({ method: "POST" })
               return_date: String(row.return_date ?? "").slice(0, 10),
               pickup_time: naiveHHMM(row.pickup_at),
               return_time: naiveHHMM(row.return_at),
+              total: Number(row.total ?? 0),
+              lines: orderLinesForPage,
             }
           : null,
     };
+  });
+
+/** Live preview for the edit page: price change / refusal reason for a props-order edit, nothing is saved. */
+export const previewOrderEdit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => submitSchema.parse(d))
+  .handler(async ({ data, context }): Promise<{ ok: boolean; error?: string; delta?: number; newTotal?: number; needsApproval?: boolean }> => {
+    const { supabase, userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const row = await loadOwnRow(supabase, "order", data.id, userId);
+    try {
+      const changes = diffChanges("order", row, data);
+      if (!changes.pickup_date && !changes.return_date && !changes.pickup_time && !changes.return_time && !changes.remove_skus) return { ok: true, delta: 0 };
+      const v = await validateOrderChanges(supabaseAdmin as any, row, changes);
+      return { ok: true, delta: v.delta, newTotal: Math.max(0, Number(row.total) + v.delta), needsApproval: v.delta !== 0 };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : "לא ניתן לבצע את השינוי" };
+    }
   });
 
 const submitSchema = z.object({
@@ -490,6 +656,9 @@ const submitSchema = z.object({
   start_time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
   pickup_time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
   return_time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  pickup_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  return_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  remove_skus: z.array(z.string().trim().min(1).max(40)).max(50).optional(),
   note: z.string().trim().max(500).optional(),
 });
 
@@ -513,13 +682,17 @@ export const submitOrderEdit = createServerFn({ method: "POST" })
 
     // Validate first, so a request that could never be approved is not filed (and the customer hears why now).
     let newStartMs = currentStartMs(data.kind, row) as number;
+    let priceDelta = 0;
+    let itemNames: Record<string, string> = {};
     if (data.kind === "booking") {
       const v = await validateBookingChanges(db, row, changes);
       newStartMs = sessionStartMs(v.newDate, v.newStart);
     } else {
-      const v = await validateOrderChanges(row, changes);
-      const pd = String(row.session_date ?? row.pickup_at ?? "").slice(0, 10);
-      if (v.pickup && pd) newStartMs = sessionStartMs(pd, v.pickup);
+      const v = await validateOrderChanges(db, row, changes);
+      if (v.pickup && v.pickupDate) newStartMs = sessionStartMs(v.pickupDate, v.pickup);
+      priceDelta = v.delta;
+      if (v.delta !== 0) changes.price_delta = String(v.delta);
+      itemNames = Object.fromEntries(v.removed.filter((l) => l.item_sku).map((l) => [l.item_sku as string, l.item_name]));
     }
 
     const policy = editNeedsApproval({ oldStartMs: currentStartMs(data.kind, row) as number, newStartMs });
@@ -534,10 +707,14 @@ export const submitOrderEdit = createServerFn({ method: "POST" })
       pickup_time: naiveHHMM(row.pickup_at),
       return_time: naiveHHMM(row.return_at),
       status: row.status,
+      item_names: itemNames,
     };
 
-    // Studio bookings need admin approval within 24h; props orders apply at once (the page + the mail warn to call).
-    if (policy.needs && data.kind === "booking") {
+    // Studio bookings need admin approval within 24h. Props orders apply at once (the page + the mail warn to call) —
+    // EXCEPT an edit that changes the price (other dates / removed items): money changes always go to the admin.
+    const priceApproval = data.kind === "order" && priceDelta !== 0;
+    if ((policy.needs && data.kind === "booking") || priceApproval) {
+      const reason2 = policy.needs && data.kind === "booking" ? policy.reason : `השינוי משנה את המחיר (${priceDelta > 0 ? "+" : ""}₪${priceDelta})`;
       const { data: dup } = await db
         .from("order_edit_requests")
         .select("id")
@@ -550,11 +727,32 @@ export const submitOrderEdit = createServerFn({ method: "POST" })
 
       const { data: req, error } = await db
         .from("order_edit_requests")
-        .insert({ kind: data.kind, target_id: data.id, user_id: userId, changes, original, reason: policy.reason, status: "pending" })
+        .insert({ kind: data.kind, target_id: data.id, user_id: userId, changes, original, reason: reason2, status: "pending" })
         .select("id")
         .single();
       if (error) throw new Error(error.message);
-      await notifyAdminOfRequest(db, req.id, data.kind, data.id, changes, original, policy.reason);
+      await notifyAdminOfRequest(db, req.id, data.kind, data.id, changes, original, reason2);
+      // Tell the customer her request arrived (nothing changes until the admin decides).
+      try {
+        const emails = await customerEmailsOf(db, data.kind, row);
+        if (emails.length) {
+          const { buildStudioMailHtml } = await import("@/lib/email-draft-design");
+          const { sendGmail } = await import("@/integrations/google/gmail.server");
+          const html = buildStudioMailHtml({
+            title: "קיבלנו את בקשת העריכה שלך",
+            innerHtml: `
+              <p>שלום ${esc(row.contact_name ?? "")},</p>
+              <p>בקשת העריכה להזמנה #${esc(String(data.id).slice(0, 8))} התקבלה והועברה לאישור. עד שתאושר ההזמנה נשארת כפי שהיא, ונעדכן אותך במייל ברגע שתטופל.</p>
+              <p>${esc(reason2 ?? "")}</p>
+              <p>לשאלות דחופות: <strong dir="ltr">054-8529277</strong></p>`,
+          });
+          for (const to of emails) {
+            await sendGmail({ to, subject: `קיבלנו את בקשת העריכה להזמנה #${String(data.id).slice(0, 8)} · Sweetbaby`, html });
+          }
+        }
+      } catch (e) {
+        console.error("[SWEETBABY] edit request acknowledgement mail failed", e);
+      }
       return { status: "pending_approval" };
     }
 
@@ -573,6 +771,53 @@ export const submitOrderEdit = createServerFn({ method: "POST" })
     return { status: "applied", within24h: policy.needs };
   });
 
+/** Start times (30-min steps) that are free for this studio booking on a date, same length and package. */
+export const getFreeBookingStarts = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }).parse(d))
+  .handler(async ({ data, context }): Promise<{ times: string[] }> => {
+    const { supabase, userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db: any = supabaseAdmin;
+    const row = await loadOwnRow(supabase, "booking", data.id, userId);
+    const { isMorningPackage } = await import("@/lib/bookings.functions");
+    const { bookingBlocksSlot } = await import("@/lib/availability.server");
+    const hhmm = (t: string) => { const [h, m] = String(t).slice(0, 5).split(":").map(Number); return h * 60 + m; };
+    const busy: Array<[number, number]> = [];
+    const { data: existing } = await db
+      .from("bookings")
+      .select("id, start_time, end_time, status, deposit_status, created_at, notes")
+      .eq("session_date", data.date)
+      .neq("status", "cancelled")
+      .neq("id", row.id);
+    for (const b of (existing ?? []).filter((x: any) => bookingBlocksSlot(x))) busy.push([hhmm(b.start_time), hhmm(b.end_time)]);
+    try {
+      const { listGoogleCalendarBusy } = await import("@/integrations/google/calendar.server");
+      const gbusy = await listGoogleCalendarBusy(data.date, data.date);
+      const ownS = hhmm(row.start_time);
+      const ownE = hhmm(row.end_time);
+      for (const [bs, be] of gbusy[data.date] ?? []) {
+        if (row.google_event_id && row.session_date === data.date && bs === ownS && be === ownE) continue;
+        busy.push([bs, be]);
+      }
+    } catch (e) {
+      console.error("[SWEETBABY] edit-order free starts: calendar read failed", e);
+    }
+    const oldStart = String(row.start_time).slice(0, 5);
+    const times: string[] = [];
+    for (let m = 7 * 60; m <= 21 * 60; m += 30) {
+      const start = `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+      const end = addMinutesHHMM(start, Number(row.slots) * 30);
+      if (end <= start) continue;
+      if (sessionStartMs(data.date, start) <= Date.now()) continue;
+      if (isMorningPackage(Number(row.slots), start) !== isMorningPackage(Number(row.slots), oldStart)) continue;
+      const e = hhmm(end);
+      if (busy.some(([bs, be]) => m < be && e > bs)) continue;
+      times.push(start);
+    }
+    return { times };
+  });
+
 /* ------------------------------------------------------------------ */
 /* Admin: notification + review                                                                   */
 /* ------------------------------------------------------------------ */
@@ -585,6 +830,13 @@ function changeLines(kind: EditKind, changes: Record<string, string>, original: 
   if (changes.start_time) lines.push(`${CHANGE_LABELS.start_time}: ${original.start_time ?? "—"} ← ${changes.start_time}`);
   if (changes.pickup_time) lines.push(`${CHANGE_LABELS.pickup_time}: ${original.pickup_time ?? "—"} ← ${changes.pickup_time}`);
   if (changes.return_time) lines.push(`${CHANGE_LABELS.return_time}: ${original.return_time ?? "—"} ← ${changes.return_time}`);
+  if (changes.pickup_date) lines.push(`${CHANGE_LABELS.pickup_date}: ${original.session_date ?? "—"} ← ${changes.pickup_date}`);
+  if (changes.return_date) lines.push(`${CHANGE_LABELS.return_date}: ${original.return_date ?? "—"} ← ${changes.return_date}`);
+  if (changes.remove_skus) {
+    const names = changes.remove_skus.split(",").map((k) => original.item_names?.[k] ?? k);
+    lines.push(`${CHANGE_LABELS.remove_skus}: ${names.join(", ")}`);
+  }
+  if (changes.price_delta) lines.push(`${CHANGE_LABELS.price_delta}: ${Number(changes.price_delta) > 0 ? "+" : ""}₪${changes.price_delta}`);
   if (changes.note) lines.push(`${CHANGE_LABELS.note}: ${changes.note}`);
   return lines;
 }

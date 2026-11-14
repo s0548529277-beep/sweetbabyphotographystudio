@@ -203,6 +203,24 @@ export async function collectFollowUps(db: any): Promise<Person[]> {
     }
   }, "bookings");
 
+  // Customer edit requests (studio within 24h / props price change) that nobody approved or rejected for over an hour.
+  await safe(async () => {
+    const { data } = await db
+      .from("order_edit_requests")
+      .select("id, kind, target_id, original, reason, created_at")
+      .eq("status", "pending")
+      .lte("created_at", iso(now - 60 * 60_000))
+      .gte("created_at", iso(now - 7 * 86_400_000))
+      .limit(40);
+    for (const r of data ?? []) {
+      const o = r.original ?? {};
+      add(
+        { id: r.id, name: o.contact_name, phone: o.contact_phone, email: o.contact_email },
+        { weight: 88, icon: "✏️", text: `בקשת עריכת ${r.kind === "booking" ? "שריון סטודיו" : "הזמנת אביזרים"} מחכה לאישור שלך (${clip(r.reason ?? "", 80)}) — ב-/admin/orders`, at: r.created_at },
+      );
+    }
+  }, "order_edit_requests");
+
   return [...people.values()].sort((a, b) => Math.max(...b.reasons.map((r) => r.weight)) - Math.max(...a.reasons.map((r) => r.weight)));
 }
 
