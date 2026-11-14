@@ -51,6 +51,8 @@ async function loadByToken(kind: "photo" | "outdoor", token: string): Promise<Lo
       .maybeSingle();
     if (!order || !order.session_date) return null;
     const { buildOutdoorContractSections } = await import("@/lib/outdoorContract");
+    const { loadContractOverrides } = await import("@/lib/contract-overrides");
+    const overrides = await loadContractOverrides(db, "outdoor");
     return {
       table: "outdoor_package_orders",
       id: order.id,
@@ -68,6 +70,7 @@ async function loadByToken(kind: "photo" | "outdoor", token: string): Promise<Lo
         packageDescription: order.package_description ?? null,
         totalPrice: order.total_price != null ? Number(order.total_price) : null,
         confirmLink: "",
+        overrides,
       }),
     };
   }
@@ -84,6 +87,8 @@ async function loadByToken(kind: "photo" | "outdoor", token: string): Promise<Lo
     contactName = profile?.full_name || "";
   }
   const { buildPhotoContractSections } = await import("@/lib/photoContract");
+  const { loadContractOverrides } = await import("@/lib/contract-overrides");
+  const photoOverrides = await loadContractOverrides(db, "photo");
   return {
     table: "photo_client_workflows",
     id: wf.id,
@@ -98,6 +103,7 @@ async function loadByToken(kind: "photo" | "outdoor", token: string): Promise<Lo
       totalPrice: wf.total_price ?? null,
       albumUpgrades: wf.album_upgrades ?? null,
       confirmLink: "",
+      overrides: photoOverrides,
     }),
   };
 }

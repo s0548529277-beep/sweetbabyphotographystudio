@@ -484,6 +484,7 @@ function ShareLinkCard({
   onResend: () => void;
 }) {
   const sendEmailFn = useServerFn(sendNewbornGalleryLinkByEmail);
+  const sendEditedContractFn = useServerFn(resendNewbornContract);
   const previewContractFn = useServerFn(previewNewbornContract);
   const createPreviewKey = useServerFn(createNewbornGalleryPreviewKey);
   // The client gallery asks new devices for an email code; this opens it for
@@ -583,7 +584,10 @@ function ShareLinkCard({
         <button type="button" onClick={onResend} disabled={resending} className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 px-3 h-7 hover:bg-cream disabled:opacity-60">
           {resending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />} שליחה מחדש
         </button>
-        <ContractPreviewButton load={() => previewContractFn({ data: { id: orderId } })} />
+        <ContractPreviewButton
+          load={(edits) => previewContractFn({ data: { id: orderId, ...(edits ?? {}) } })}
+          send={(edits) => sendEditedContractFn({ data: { id: orderId, ...edits } })}
+        />
         {contractConfirmedAt ? <span className="text-primary font-medium">אישרה שקראה את החוזה ✓</span> : <span>עדיין לא אישרה שקראה את החוזה</span>}
         {proofsSelectedAt && <span className="text-primary font-medium">סיימה לבחור תמונות ✓</span>}
       </div>

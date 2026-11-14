@@ -197,6 +197,7 @@ async function sendNewbornContractEmail(
     access_token: string | null;
     contract_confirmed_at?: string | null;
   },
+  customFilled?: string,
 ) {
   try {
     const missing = newbornContractMissing(order);
@@ -206,7 +207,7 @@ async function sendNewbornContractEmail(
     }
     const { sendGmail } = await import("@/integrations/google/gmail.server");
     const subject = `הכנה ליום הצילומים — החוזה שלך · מיכל סיבוני 💗`;
-    const filled = await buildNewbornContractFilled(supabase, order);
+    const filled = customFilled ?? (await buildNewbornContractFilled(supabase, order));
     const html = renderNewbornContractHtml(filled);
     const recipients = [order.contact_email, NEWBORN_STUDIO_EMAIL].filter((e): e is string => !!e);
     await Promise.all(recipients.map((to) => sendGmail({ to, subject, html })));
@@ -1354,7 +1355,9 @@ export const approveNewbornAllPhotosUnlock = createServerFn({ method: "POST" })
 /** Admin preview: the contract e-mail exactly as it would go out, without sending anything. */
 export const previewNewbornContract = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string().uuid(), customText: z.string().max(40000).optional() }).parse(d),
+  )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { data: order, error } = await (context.supabase as any)
@@ -1365,14 +1368,17 @@ export const previewNewbornContract = createServerFn({ method: "POST" })
     if (error || !order) throw new Error(error?.message ?? "ההזמנה לא נמצאה");
     const missing = newbornContractMissing(order);
     if (!order.contact_email) missing.push("כתובת מייל");
-    const html = await buildNewbornContractHtml(context.supabase, order);
-    return { html, missing };
+    const filledText = data.customText?.trim() ? data.customText : await buildNewbornContractFilled(context.supabase, order);
+    const html = renderNewbornContractHtml(filledText);
+    return { html, missing, filledText };
   });
 
 /** Best-effort resend, e.g. if the automatic send-on-create failed or she wants to remind the client to reply/confirm. */
 export const resendNewbornContract = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string().uuid(), customText: z.string().min(20).max(40000).optional() }).parse(d),
+  )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { data: order, error } = await (context.supabase as any)
@@ -1383,7 +1389,10 @@ export const resendNewbornContract = createServerFn({ method: "POST" })
     if (error || !order) throw new Error(error?.message ?? "ההזמנה לא נמצאה");
     const missing = newbornContractMissing(order);
     if (missing.length) throw new Error(`לא ניתן לשלוח חוזה — חסר: ${missing.join(", ")}`);
-    const sent = await sendNewbornContractEmail(context.supabase, order);
+    if (data.customText && !data.customText.includes("/contract/newborn/")) {
+      throw new Error("בנוסח הערוך חסר קישור האישור — אי אפשר לשלוח בלעדיו");
+    }
+    const sent = await sendNewbornContractEmail(context.supabase, order, data.customText);
     if (sent) {
       await (context.supabase as any)
         .from("newborn_package_orders")

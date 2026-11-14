@@ -461,7 +461,11 @@ function photoContractMissing(workflow: any): string[] {
 }
 
 /** Loads the workflow + the client's name/e-mail and the contract input (without the confirm link). Throws a clear Hebrew reason if it cannot be sent. */
-async function loadPhotoContractParts(supabaseAdmin: any, workflowId: string, opts: { requireEmail: boolean }) {
+async function loadPhotoContractParts(
+  supabaseAdmin: any,
+  workflowId: string,
+  opts: { requireEmail: boolean; sectionEdits?: Record<string, string> },
+) {
   const { data: workflow, error: wErr } = await supabaseAdmin
     .from("photo_client_workflows")
     .select("*")
@@ -487,8 +491,11 @@ async function loadPhotoContractParts(supabaseAdmin: any, workflowId: string, op
   const contactEmail: string | null = userErr ? null : userRes?.user?.email ?? null;
   if (opts.requireEmail && !contactEmail) throw new Error("לא נמצאה כתובת מייל ללקוחה הזו — אי אפשר לשלוח חוזה.");
 
+  const { loadContractOverrides } = await import("@/lib/contract-overrides");
+  const overrides = { ...(await loadContractOverrides(supabaseAdmin, "photo")), ...(opts.sectionEdits ?? {}) };
   const input = (confirmLink: string) => ({
     confirmLink,
+    overrides,
     contactName,
     sessionDate: (workflow.session_date as string | null) ?? "",
     sessionTime: (workflow.session_time as string | null)?.slice(0, 5) ?? null,
@@ -509,9 +516,11 @@ async function loadPhotoContractParts(supabaseAdmin: any, workflowId: string, op
  * vary per client and aren't known until the admin has actually entered
  * them for this workflow.
  */
+const contractEditsSchema = workflowIdSchema.extend({ sectionEdits: z.record(z.string().max(4000)).optional() });
+
 export const sendPhotoClientContract = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => workflowIdSchema.parse(d))
+  .inputValidator((d: unknown) => contractEditsSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -519,7 +528,7 @@ export const sendPhotoClientContract = createServerFn({ method: "POST" })
     const { workflow, contactName, contactEmail, input, missing } = await loadPhotoContractParts(
       supabaseAdmin,
       data.workflowId,
-      { requireEmail: true },
+      { requireEmail: true, sectionEdits: data.sectionEdits },
     );
     if (missing.length) throw new Error(`לא ניתן לשלוח חוזה — חסר בפרטי החבילה: ${missing.join(", ")}`);
 
@@ -565,19 +574,28 @@ export const sendPhotoClientContract = createServerFn({ method: "POST" })
 /** Admin preview: the contract e-mail exactly as it would go out, without sending anything. */
 export const previewPhotoClientContract = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => workflowIdSchema.parse(d))
+  .inputValidator((d: unknown) => contractEditsSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { workflow, contactEmail, input, missing } = await loadPhotoContractParts(supabaseAdmin, data.workflowId, {
       requireEmail: false,
+      sectionEdits: data.sectionEdits,
     });
     if (!contactEmail) missing.push("כתובת מייל");
-    const { buildPhotoContractHtml } = await import("@/lib/photoContract");
+    const { buildPhotoContractHtml, buildPhotoContractSections } = await import("@/lib/photoContract");
+    const { sectionHtmlToText, CONTRACT_LOCKED_TITLES } = await import("@/lib/contract-overrides");
     const html = workflow.session_date
       ? buildPhotoContractHtml(input("https://sweetbabyphoto.shop/contract/photo/…"))
       : "";
-    return { html, missing };
+    const sections = workflow.session_date
+      ? buildPhotoContractSections(input("")).map((x) => ({
+          title: x.title,
+          text: sectionHtmlToText(x.html),
+          locked: CONTRACT_LOCKED_TITLES.photo.includes(x.title),
+        }))
+      : [];
+    return { html, missing, sections };
   });
 
 const paymentReminderSchema = z.object({ workflowIds: z.array(z.string().uuid()).min(1).max(200) });

@@ -11,6 +11,7 @@ import { z } from "zod";
 import { newContractToken } from "@/lib/contract-token";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { buildOutdoorContractHtml, buildOutdoorContractSections } from "@/lib/outdoorContract";
+import { loadContractOverrides, sectionHtmlToText, CONTRACT_LOCKED_TITLES, type ContractOverrides } from "@/lib/contract-overrides";
 
 const STUDIO_EMAIL = "s0548529277@gmail.com";
 
@@ -31,9 +32,10 @@ function outdoorContractMissing(order: any): string[] {
 const OUTDOOR_CONTRACT_COLUMNS =
   "id, contact_name, contact_email, package_name, package_description, total_price, session_date, session_time, contract_token, contract_confirmed_at";
 
-function outdoorContractInput(order: any, confirmLink: string) {
+function outdoorContractInput(order: any, confirmLink: string, overrides?: ContractOverrides) {
   return {
     confirmLink,
+    overrides,
     contactName: order.contact_name,
     sessionDate: order.session_date,
     sessionTime: order.session_time ?? null,
@@ -46,7 +48,9 @@ function outdoorContractInput(order: any, confirmLink: string) {
 /** Sends the fixed "תיאום ציפיות" contract to the order's client (and the studio), filled in with that order's own package/date/time, then stamps contract_sent_at. */
 export const sendOutdoorContract = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string().uuid(), sectionEdits: z.record(z.string().max(4000)).optional() }).parse(d),
+  )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { data: order, error } = await (context.supabase as any)
@@ -65,8 +69,9 @@ export const sendOutdoorContract = createServerFn({ method: "POST" })
       await (context.supabase as any).from("outdoor_package_orders").update({ contract_token: contractToken }).eq("id", data.id);
     }
 
+    const overrides = { ...(await loadContractOverrides(context.supabase, "outdoor")), ...(data.sectionEdits ?? {}) };
     const html = buildOutdoorContractHtml(
-      outdoorContractInput(order, `https://sweetbabyphoto.shop/contract/outdoor/${contractToken}`),
+      outdoorContractInput(order, `https://sweetbabyphoto.shop/contract/outdoor/${contractToken}`, overrides),
     );
 
     const { sendGmail } = await import("@/integrations/google/gmail.server");
@@ -85,7 +90,7 @@ export const sendOutdoorContract = createServerFn({ method: "POST" })
         await (context.supabase as any)
           .from("outdoor_package_orders")
           .update({
-            contract_snapshot: JSON.stringify(buildOutdoorContractSections(outdoorContractInput(order, ""))),
+            contract_snapshot: JSON.stringify(buildOutdoorContractSections(outdoorContractInput(order, "", overrides))),
             contract_snapshot_at: new Date().toISOString(),
           })
           .eq("id", data.id);
@@ -99,7 +104,9 @@ export const sendOutdoorContract = createServerFn({ method: "POST" })
 /** Admin preview: the contract e-mail exactly as it would go out, without sending anything. */
 export const previewOutdoorContract = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string().uuid(), sectionEdits: z.record(z.string().max(4000)).optional() }).parse(d),
+  )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { data: order, error } = await (context.supabase as any)
@@ -110,10 +117,18 @@ export const previewOutdoorContract = createServerFn({ method: "POST" })
     if (error || !order) throw new Error(error?.message ?? "הזמנה לא נמצאה");
     const missing = outdoorContractMissing(order);
     if (!order.contact_email) missing.push("כתובת מייל");
+    const overrides = { ...(await loadContractOverrides(context.supabase, "outdoor")), ...(data.sectionEdits ?? {}) };
     const html = order.session_date
-      ? buildOutdoorContractHtml(outdoorContractInput(order, "https://sweetbabyphoto.shop/contract/outdoor/…"))
+      ? buildOutdoorContractHtml(outdoorContractInput(order, "https://sweetbabyphoto.shop/contract/outdoor/…", overrides))
       : "";
-    return { html, missing };
+    const sections = order.session_date
+      ? buildOutdoorContractSections(outdoorContractInput(order, "", overrides)).map((x) => ({
+          title: x.title,
+          text: sectionHtmlToText(x.html),
+          locked: CONTRACT_LOCKED_TITLES.outdoor.includes(x.title),
+        }))
+      : [];
+    return { html, missing, sections };
   });
 
 // Nudges the studio owner about an upcoming styling call once, a day

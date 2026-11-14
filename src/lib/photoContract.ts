@@ -1,5 +1,6 @@
 import { buildBrandedMailHtml } from "@/lib/email-draft-design";
 import { heartImg } from "@/lib/email-hearts";
+import { applyContractOverrides, type ContractOverrides } from "@/lib/contract-overrides";
 import { contractSectionRows, contractHeadingStyle, contractBodyStyle, publishSectionBodyHtml, PUBLISH_SECTION_TITLE } from "@/lib/contract-mail-style";
 import michalWordmark from "@/assets/michal-logo-wordmark.png";
 
@@ -44,6 +45,8 @@ export type PhotoContractInput = {
   extraPhotoPrice?: number;
   /** Link to the section-by-section signing page (/contract/photo/<token>). */
   confirmLink: string;
+  /** Permanent wording edits (see contract-overrides.ts). */
+  overrides?: ContractOverrides;
 };
 
 function heDateLine(iso: string): string {
@@ -67,6 +70,10 @@ export type ContractSection = { title: string; html: string };
  * request 2026-10-26). Approval itself is not a section.
  */
 export function buildPhotoContractSections(input: PhotoContractInput): ContractSection[] {
+  return applyContractOverrides("photo", basePhotoSections(input), input.overrides);
+}
+
+function basePhotoSections(input: PhotoContractInput): ContractSection[] {
   const {
     contactName,
     sessionDate,

@@ -457,7 +457,10 @@ function PackageDetails({ workflow, workflowId, onSaved }: { workflow: any; work
         <Button type="button" size="sm" variant="outline" onClick={sendContract} disabled={sendingContract} className="rounded-full gap-1.5">
           <Send className="h-3.5 w-3.5" /> {sendingContract ? "שולח..." : "שליחת חוזה ללקוחה"}
         </Button>
-        <ContractPreviewButton load={() => previewContractFn({ data: { workflowId } })} />
+        <ContractPreviewButton
+          load={(edits) => previewContractFn({ data: { workflowId, ...(edits ?? {}) } })}
+          send={(edits) => sendContractFn({ data: { workflowId, ...edits } })}
+        />
       </div>
       <p className="text-[11px] text-muted-foreground">
         שולח את חוזה הצילומים המלא למייל הלקוחה (ולעותק אצלך), עם מועד הצילומים ופרטי החבילה שנשמרו למעלה. יש לשמור פרטים מעודכנים לפני השליחה.

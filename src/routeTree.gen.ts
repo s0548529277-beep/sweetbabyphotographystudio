@@ -65,6 +65,7 @@ import { Route as AuthenticatedAdminCalendarRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminChatLogsRouteImport } from './routes/_authenticated/admin.chat-logs'
 import { Route as AuthenticatedAdminClientManagementRouteImport } from './routes/_authenticated/admin.client-management'
 import { Route as AuthenticatedAdminClientsRouteImport } from './routes/_authenticated/admin.clients'
+import { Route as AuthenticatedAdminContractTextRouteImport } from './routes/_authenticated/admin.contract-text'
 import { Route as AuthenticatedAdminCouponsRouteImport } from './routes/_authenticated/admin.coupons'
 import { Route as AuthenticatedAdminEmailAssistantRouteImport } from './routes/_authenticated/admin.email-assistant'
 import { Route as AuthenticatedAdminEmailDesignRouteImport } from './routes/_authenticated/admin.email-design'
@@ -403,6 +404,12 @@ const AuthenticatedAdminClientsRoute =
     path: '/clients',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminContractTextRoute =
+  AuthenticatedAdminContractTextRouteImport.update({
+    id: '/contract-text',
+    path: '/contract-text',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminCouponsRoute =
   AuthenticatedAdminCouponsRouteImport.update({
     id: '/coupons',
@@ -718,6 +725,7 @@ export interface FileRoutesByFullPath {
   '/admin/chat-logs': typeof AuthenticatedAdminChatLogsRoute
   '/admin/client-management': typeof AuthenticatedAdminClientManagementRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
+  '/admin/contract-text': typeof AuthenticatedAdminContractTextRoute
   '/admin/coupons': typeof AuthenticatedAdminCouponsRoute
   '/admin/email-assistant': typeof AuthenticatedAdminEmailAssistantRoute
   '/admin/email-design': typeof AuthenticatedAdminEmailDesignRoute
@@ -819,6 +827,7 @@ export interface FileRoutesByTo {
   '/admin/chat-logs': typeof AuthenticatedAdminChatLogsRoute
   '/admin/client-management': typeof AuthenticatedAdminClientManagementRoute
   '/admin/clients': typeof AuthenticatedAdminClientsRoute
+  '/admin/contract-text': typeof AuthenticatedAdminContractTextRoute
   '/admin/coupons': typeof AuthenticatedAdminCouponsRoute
   '/admin/email-assistant': typeof AuthenticatedAdminEmailAssistantRoute
   '/admin/email-design': typeof AuthenticatedAdminEmailDesignRoute
@@ -923,6 +932,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/chat-logs': typeof AuthenticatedAdminChatLogsRoute
   '/_authenticated/admin/client-management': typeof AuthenticatedAdminClientManagementRoute
   '/_authenticated/admin/clients': typeof AuthenticatedAdminClientsRoute
+  '/_authenticated/admin/contract-text': typeof AuthenticatedAdminContractTextRoute
   '/_authenticated/admin/coupons': typeof AuthenticatedAdminCouponsRoute
   '/_authenticated/admin/email-assistant': typeof AuthenticatedAdminEmailAssistantRoute
   '/_authenticated/admin/email-design': typeof AuthenticatedAdminEmailDesignRoute
@@ -1027,6 +1037,7 @@ export interface FileRouteTypes {
     | '/admin/chat-logs'
     | '/admin/client-management'
     | '/admin/clients'
+    | '/admin/contract-text'
     | '/admin/coupons'
     | '/admin/email-assistant'
     | '/admin/email-design'
@@ -1128,6 +1139,7 @@ export interface FileRouteTypes {
     | '/admin/chat-logs'
     | '/admin/client-management'
     | '/admin/clients'
+    | '/admin/contract-text'
     | '/admin/coupons'
     | '/admin/email-assistant'
     | '/admin/email-design'
@@ -1231,6 +1243,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/chat-logs'
     | '/_authenticated/admin/client-management'
     | '/_authenticated/admin/clients'
+    | '/_authenticated/admin/contract-text'
     | '/_authenticated/admin/coupons'
     | '/_authenticated/admin/email-assistant'
     | '/_authenticated/admin/email-design'
@@ -1727,6 +1740,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminClientsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/contract-text': {
+      id: '/_authenticated/admin/contract-text'
+      path: '/contract-text'
+      fullPath: '/admin/contract-text'
+      preLoaderRoute: typeof AuthenticatedAdminContractTextRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/coupons': {
       id: '/_authenticated/admin/coupons'
       path: '/coupons'
@@ -2100,6 +2120,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminChatLogsRoute: typeof AuthenticatedAdminChatLogsRoute
   AuthenticatedAdminClientManagementRoute: typeof AuthenticatedAdminClientManagementRoute
   AuthenticatedAdminClientsRoute: typeof AuthenticatedAdminClientsRoute
+  AuthenticatedAdminContractTextRoute: typeof AuthenticatedAdminContractTextRoute
   AuthenticatedAdminCouponsRoute: typeof AuthenticatedAdminCouponsRoute
   AuthenticatedAdminEmailAssistantRoute: typeof AuthenticatedAdminEmailAssistantRoute
   AuthenticatedAdminEmailDesignRoute: typeof AuthenticatedAdminEmailDesignRoute
@@ -2146,6 +2167,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminClientManagementRoute:
     AuthenticatedAdminClientManagementRoute,
   AuthenticatedAdminClientsRoute: AuthenticatedAdminClientsRoute,
+  AuthenticatedAdminContractTextRoute: AuthenticatedAdminContractTextRoute,
   AuthenticatedAdminCouponsRoute: AuthenticatedAdminCouponsRoute,
   AuthenticatedAdminEmailAssistantRoute: AuthenticatedAdminEmailAssistantRoute,
   AuthenticatedAdminEmailDesignRoute: AuthenticatedAdminEmailDesignRoute,
