@@ -1,5 +1,6 @@
 import { buildBrandedMailHtml } from "@/lib/email-draft-design";
 import { heartImg } from "@/lib/email-hearts";
+import { contractSectionRows, contractBodyStyle, publishSectionBodyHtml, PUBLISH_SECTION_TITLE } from "@/lib/contract-mail-style";
 import michalWordmark from "@/assets/michal-logo-wordmark.png";
 
 /**
@@ -210,23 +211,18 @@ export function newbornContractSigningSections(filledTemplate: string): { title:
 export function renderNewbornContractHtml(filledTemplate: string): string {
   const { intro, sections } = splitNewbornSections(filledTemplate);
 
-  const sectionHtml = sections
-    .map(
-      (s) => `
-    <tr><td style="padding:22px 0 0">
-      <h3 style="margin:0 0 10px;padding-bottom:6px;border-bottom:2px solid ${ROSE};color:#3e3029;font-size:19px;line-height:1.4;font-weight:800;font-family:'Century Gothic','Avenir Next',Montserrat,Verdana,Arial,sans-serif;">${escapeHtml(s.title)}</h3>
-      <div style="color:${BROWN};font-size:14px;line-height:1.9;font-family:'Century Gothic','Avenir Next',Montserrat,Verdana,Arial,sans-serif;">${renderBody(s.body)}</div>
-    </td></tr>
-    <tr><td style="padding:16px 0 0">
-      <div style="text-align:right;line-height:0;font-size:0">${heartImg("michal", 14)}</div>
-      <div style="border-top:2px solid #8b7840;line-height:0;font-size:0;height:0">&nbsp;</div>
-    </td></tr>`,
-    )
+  const publishRows = contractSectionRows(PUBLISH_SECTION_TITLE, publishSectionBodyHtml());
+  const sectionHtml = [
+    ...sections.flatMap((s) =>
+      s.title === "אישור" ? [publishRows, contractSectionRows(escapeHtml(s.title), renderBody(s.body))] : [contractSectionRows(escapeHtml(s.title), renderBody(s.body))],
+    ),
+  ]
     .join("");
+
 
   return buildBrandedMailHtml({
     title: "הכנה ליום הצילומים",
-    innerHtml: `<div style="color:${BROWN};font-size:14px;line-height:1.9;font-family:'Century Gothic','Avenir Next',Montserrat,Verdana,Arial,sans-serif;">${renderBody(intro)}</div>
+    innerHtml: `<div style="${contractBodyStyle()}">${renderBody(intro)}</div>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${sectionHtml}</table>
     <p style="margin-top:20px;color:${BROWN_SOFT};font-size:13px;text-align:center">כתובת הסטודיו: תלמוד ירושלמי 24, ד׳3, בית שמש</p>`,
   });
