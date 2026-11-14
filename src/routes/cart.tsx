@@ -63,7 +63,8 @@ function Cart() {
       const raw = localStorage.getItem("sb_rental_window");
       if (!raw) return;
       const w = JSON.parse(raw) as Partial<RentalWindow>;
-      if (w.from) setWin({ from: w.from, to: w.to || w.from, timeFrom: w.timeFrom || "09:00", timeTo: w.timeTo || "18:00" });
+      const _t=new Date();const todayIso=`${_t.getFullYear()}-${String(_t.getMonth()+1).padStart(2,"0")}-${String(_t.getDate()).padStart(2,"0")}`;
+      if (w.from && w.from >= todayIso) setWin({ from: w.from, to: w.to || w.from, timeFrom: w.timeFrom || "09:00", timeTo: w.timeTo || "18:00" });
     } catch { /* ignore */ }
   }, []);
   const updateWin = (patch: Partial<RentalWindow>) => {

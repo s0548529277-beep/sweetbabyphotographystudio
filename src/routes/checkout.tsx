@@ -81,7 +81,8 @@ function Checkout() {
       const raw = localStorage.getItem("sb_rental_window");
       if (!raw) return;
       const w = JSON.parse(raw) as { from?: string; to?: string; timeFrom?: string; timeTo?: string };
-      if (!w.from) return;
+      const _t=new Date();const todayIso=`${_t.getFullYear()}-${String(_t.getMonth()+1).padStart(2,"0")}-${String(_t.getDate()).padStart(2,"0")}`;
+      if (!w.from || w.from < todayIso) return; // ignore a stale (past) window left in localStorage
       setForm((f) => ({
         ...f,
         session_date: f.session_date || w.from || "",
