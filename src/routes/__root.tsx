@@ -97,6 +97,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { name: "google-site-verification", content: "bVKoRuVHLJqkskLUll1ptQdDR3AEbZGYiB02z0Nm7sw" },
+      // Meta (Facebook) Business domain verification — needed for business verification / WhatsApp (2026-11-15). Keep.
+      { name: "facebook-domain-verification", content: "pc4ygv0lybj0lk0grco83o72oz5tqw" },
       { title: "סטודיו לצילום להשכרה - סוויט בייבי - צלמת מיכל סיבוני" },
       { name: "description", content: "סטודיו לצילום להשכרה סוויט בייבי — התמונה הראשונה שלי. סטודיו בוטיק להשכרה בבית שמש, השכרת אביזרים לצילומי ניו-בורן, חלאקה, סמאש קייק ועוד, וסשן צילום עם הצלמת מיכל סיבוני." },
       { property: "og:title", content: "סטודיו לצילום להשכרה - סוויט בייבי - צלמת מיכל סיבוני" },

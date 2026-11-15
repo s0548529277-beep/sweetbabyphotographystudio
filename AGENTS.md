@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-15 (22:0x Israel) — Claude (chat, owner: fix WhatsApp — Meta account restricted until the business is verified):** added `<meta name="facebook-domain-verification" content="pc4ygv0lybj0lk0grco83o72oz5tqw">` to `__root.tsx` head (next to the Google one; KEEP it, removing it un-verifies the domain). In Meta Business (portfolio "צלמת" 1096327573256656, via the owner's Chrome): business details set to legal name "מיכל אפרת שיר עשור", address/phone; domain sweetbabyphoto.shop added under Brand safety > Domains; business verification started with "domain verification" + the עוסק פטור certificate (address on it: טורי זהב 26, גני מודיעין; zip 7192900 is a guess from the old 71929). WhatsApp outbound errors before that: 131031 (locked, until 22.10), then 131047 (24h window) — the account shows "restricted: verify your business". No other code change.
+
 - **2026-11-15 (20:5x Israel) — Claude (chat, owner: "ופרסם"):** PUBLISHED head 56c28f0 via the Lovable connector (deploy 9ca106ce-ea90-4044-8c18-2f448b194c28, status pending when logged; not checked live). Carries the removal of the props chip from the bot nudge.
 
 - **2026-11-15 (20:5x Israel) — Claude (chat, owner: "remove the button that pops up from the bot to order props"):** `ChatBot.tsx`: `CHIP_PROPS` ("להזמין אביזרים") removed from every page's popping nudge chips (`chips:` lists); the quick-chip row INSIDE the open chat still offers it (line with `[...ctx.chips, ...]`). Same session: checked Yaner (Beit Shemesh) for 15-17.11 via Chrome — all events already covered by Netanel's bookings, nothing booked, no mail sent. tsc run; not published.
