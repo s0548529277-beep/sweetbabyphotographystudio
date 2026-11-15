@@ -2313,6 +2313,7 @@ export type Database = {
       }
       photo_client_images: {
         Row: {
+          client_note: string | null
           created_at: string
           id: string
           image_url: string
@@ -2326,6 +2327,7 @@ export type Database = {
           workflow_id: string
         }
         Insert: {
+          client_note?: string | null
           created_at?: string
           id?: string
           image_url: string
@@ -2339,6 +2341,7 @@ export type Database = {
           workflow_id: string
         }
         Update: {
+          client_note?: string | null
           created_at?: string
           id?: string
           image_url?: string
@@ -2363,6 +2366,8 @@ export type Database = {
       }
       photo_client_workflows: {
         Row: {
+          contract_snapshot: string | null
+          contract_snapshot_at: string | null
           album_upgrades: string | null
           all_photos_unlocked: boolean
           amount_paid: number
@@ -2397,6 +2402,8 @@ export type Database = {
           wants_editing: boolean | null
         }
         Insert: {
+          contract_snapshot?: string | null
+          contract_snapshot_at?: string | null
           album_upgrades?: string | null
           all_photos_unlocked?: boolean
           amount_paid?: number
@@ -2431,6 +2438,8 @@ export type Database = {
           wants_editing?: boolean | null
         }
         Update: {
+          contract_snapshot?: string | null
+          contract_snapshot_at?: string | null
           album_upgrades?: string | null
           all_photos_unlocked?: boolean
           amount_paid?: number

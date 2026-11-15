@@ -393,7 +393,7 @@ export const getPhotoClientDetail = createServerFn({ method: "POST" })
     // this entire page. "*" just omits a missing column from the row
     // instead of erroring, and every field below already casts through
     // `workflow as any` with `?? defaults` for exactly this reason.
-    const { data: workflow, error: wErr } = await (supabaseAdmin as any)
+    const { data: workflow, error: wErr } = await supabaseAdmin
       .from("photo_client_workflows")
       .select("*")
       .eq("id", data.workflowId)
@@ -537,7 +537,7 @@ export const sendPhotoClientContract = createServerFn({ method: "POST" })
     let contractToken = (workflow as any).contract_token as string | null;
     if (!contractToken) {
       contractToken = newContractToken();
-      await (supabaseAdmin as any).from("photo_client_workflows").update({ contract_token: contractToken }).eq("id", workflow.id);
+      await supabaseAdmin.from("photo_client_workflows").update({ contract_token: contractToken }).eq("id", workflow.id);
     }
 
     const { buildPhotoContractHtml, buildPhotoContractSections } = await import("@/lib/photoContract");
@@ -549,14 +549,14 @@ export const sendPhotoClientContract = createServerFn({ method: "POST" })
       subject: `חוזה והסכם צילומים · Sweetbaby${contactName ? ` — ${contactName}` : ""}`,
       html,
     });
-    await (supabaseAdmin as any)
+    await supabaseAdmin
       .from("photo_client_workflows")
       .update({ contract_sent_at: new Date().toISOString() })
       .eq("id", workflow.id);
     // Keep the text that was sent (not after she signed) so the signing page shows exactly this.
     if (!(workflow as any).contract_confirmed_at) {
       try {
-        await (supabaseAdmin as any)
+        await supabaseAdmin
           .from("photo_client_workflows")
           .update({
             contract_snapshot: JSON.stringify(buildPhotoContractSections(input(""))),
@@ -830,7 +830,7 @@ export async function runDueProofSelectionReminders(): Promise<{ checked: number
       // api.yemot.ivr.ts), so this must check markError explicitly — a
       // try/catch around the call alone would never see a missing-column
       // failure here.
-      const { error: markError } = await (supabaseAdmin as any)
+      const { error: markError } = await supabaseAdmin
         .from("photo_client_workflows")
         .update({ proof_reminder_sent_at: new Date().toISOString() })
         .eq("id", w.id);
@@ -866,7 +866,7 @@ export const updatePhotoClientSteps = createServerFn({ method: "POST" })
     if (data.clientStep != null) update.client_step = data.clientStep;
     if (data.productionStep != null) update.production_step = data.productionStep;
     if (Object.keys(update).length === 0) return { ok: true };
-    const { error } = await (supabaseAdmin as any).from("photo_client_workflows").update(update).eq("id", data.workflowId);
+    const { error } = await supabaseAdmin.from("photo_client_workflows").update(update as never).eq("id", data.workflowId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -893,7 +893,7 @@ export const addPhotoClientImage = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await (supabaseAdmin as any).from("photo_client_images").insert({
+    const { error } = await supabaseAdmin.from("photo_client_images").insert({
       workflow_id: data.workflowId,
       kind: data.kind,
       storage_path: data.storagePath,
@@ -934,7 +934,7 @@ export const deletePhotoClientImage = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: img } = await (supabaseAdmin as any)
+    const { data: img } = await supabaseAdmin
       .from("photo_client_images")
       .select("storage_path, original_storage_path")
       .eq("id", data.imageId)
@@ -955,7 +955,7 @@ export const bulkDeletePhotoClientImages = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: imgs } = await (supabaseAdmin as any)
+    const { data: imgs } = await supabaseAdmin
       .from("photo_client_images")
       .select("storage_path, original_storage_path")
       .in("id", data.imageIds);
@@ -1007,7 +1007,7 @@ export const syncAlbumToDrive = createServerFn({ method: "POST" })
     }
     const subFolderName = `${contactName || "לקוחה"} · ${data.workflowId.slice(0, 8)}`;
 
-    const { data: images, error: imgErr } = await (supabaseAdmin as any)
+    const { data: images, error: imgErr } = await supabaseAdmin
       .from("photo_client_images")
       .select("original_image_url, image_url, sort_order")
       .eq("workflow_id", data.workflowId)
@@ -1035,7 +1035,7 @@ export const syncAlbumToDrive = createServerFn({ method: "POST" })
 
     const link = await getShareableAlbumFolderLink(DRIVE_ALBUMS_PARENT_FOLDER, subFolderName);
     const now = new Date().toISOString();
-    await (supabaseAdmin as any).from("photo_client_workflows").update({ drive_folder_url: link, drive_synced_at: now }).eq("id", data.workflowId);
+    await supabaseAdmin.from("photo_client_workflows").update({ drive_folder_url: link, drive_synced_at: now }).eq("id", data.workflowId);
 
     return { ok: true, uploaded, total: images.length, link };
   });
@@ -1050,7 +1050,7 @@ export const sendDriveAlbumLinkToClient = createServerFn({ method: "POST" })
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: workflow, error: wErr } = await (supabaseAdmin as any)
+    const { data: workflow, error: wErr } = await supabaseAdmin
       .from("photo_client_workflows")
       .select("id, user_id, booking_id, drive_folder_url")
       .eq("id", data.workflowId)
@@ -1108,7 +1108,7 @@ export const getMyPhotoGalleries = createServerFn({ method: "POST" })
     // very-new column (client_step) that hasn't landed on the live
     // database yet would error out this ENTIRE query, breaking /my-photos
     // for every customer. "*" degrades gracefully instead.
-    const { data: workflows, error } = await (supabase as any)
+    const { data: workflows, error } = await supabase
       .from("photo_client_workflows")
       .select("*")
       .eq("user_id", userId)
@@ -1136,7 +1136,7 @@ export const getMyPhotoGalleries = createServerFn({ method: "POST" })
           // both kinds — always full quality regardless of what the grid
           // displays. For "proof" this backs the paid "ללא סימן מים"
           // unlock ZIP; for "edited" it's the regular album ZIP.
-          const { data: imgs } = await (supabase as any)
+          const { data: imgs } = await supabase
             .from("photo_client_images")
             .select("id, kind, image_url, original_image_url, selected, sort_order, client_note")
             .eq("workflow_id", w.id)
@@ -1183,7 +1183,7 @@ export const toggleProofSelection = createServerFn({ method: "POST" })
     if (imgErr || !img) throw new Error("תמונה לא נמצאה");
     if (img.kind !== "proof") throw new Error("אפשר לסמן רק תמונות הוכחה");
 
-    const { data: wf, error: wfErr } = await (supabaseAdmin as any)
+    const { data: wf, error: wfErr } = await supabaseAdmin
       .from("photo_client_workflows")
       .select("id, stage, user_id, max_proof_selections, proof_selection_submitted_at, guided_selection_enabled")
       .eq("id", img.workflow_id)
@@ -1223,20 +1223,20 @@ export const setProofNote = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => noteSchema.parse(d))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: img } = await (supabaseAdmin as any)
+    const { data: img } = await supabaseAdmin
       .from("photo_client_images")
       .select("id, kind, workflow_id")
       .eq("id", data.imageId)
       .single();
     if (!img || img.kind !== "proof") throw new Error("תמונה לא נמצאה");
-    const { data: wf } = await (supabaseAdmin as any)
+    const { data: wf } = await supabaseAdmin
       .from("photo_client_workflows")
       .select("id, user_id, proof_selection_submitted_at")
       .eq("id", img.workflow_id)
       .single();
     if (!wf || wf.user_id !== context.userId) throw new Error("אין הרשאה");
     if (wf.proof_selection_submitted_at) throw new Error("הבחירה כבר נשלחה — אפשר לכתוב לי הערות בוואטסאפ");
-    const { error } = await (supabaseAdmin as any)
+    const { error } = await supabaseAdmin
       .from("photo_client_images")
       .update({ client_note: data.note.trim() || null })
       .eq("id", data.imageId);
@@ -1263,7 +1263,7 @@ export const submitProofSelection = createServerFn({ method: "POST" })
     const { userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: wf, error: wfErr } = await (supabaseAdmin as any)
+    const { data: wf, error: wfErr } = await supabaseAdmin
       .from("photo_client_workflows")
       .select("id, stage, user_id, booking_id, proof_selection_submitted_at, max_proof_selections")
       .eq("id", data.workflowId)
@@ -1298,7 +1298,7 @@ export const submitProofSelection = createServerFn({ method: "POST" })
     // (the usual Lovable/Drizzle migration lag), and a missing column must
     // never block the actual proof-selection submission, which is what
     // every customer is doing right now when this runs.
-    const { error: updErr } = await (supabaseAdmin as any)
+    const { error: updErr } = await supabaseAdmin
       .from("photo_client_workflows")
       .update({ proof_selection_submitted_at: now, stage: "edited_uploaded", updated_at: now })
       .eq("id", wf.id);
@@ -1308,7 +1308,7 @@ export const submitProofSelection = createServerFn({ method: "POST" })
     // step 2 ("בחירת תמונות") is exactly what she just finished. Best-effort
     // and separate from the update above for exactly the reason in the
     // comment there.
-    const { error: stepErr } = await (supabaseAdmin as any).from("photo_client_workflows").update({ client_step: 3 }).eq("id", wf.id);
+    const { error: stepErr } = await supabaseAdmin.from("photo_client_workflows").update({ client_step: 3 }).eq("id", wf.id);
     if (stepErr) console.error("[SWEETBABY] client_step advance failed (column may not be live yet)", stepErr);
 
     let contactName = "";
@@ -1382,7 +1382,7 @@ export const submitAllPhotosUnlockReceipt = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: wf, error: wfErr } = await (supabaseAdmin as any)
+    const { data: wf, error: wfErr } = await supabaseAdmin
       .from("photo_client_workflows")
       .select("id, user_id, booking_id, all_photos_unlocked")
       .eq("id", data.workflowId)
@@ -1392,7 +1392,7 @@ export const submitAllPhotosUnlockReceipt = createServerFn({ method: "POST" })
     if (wf.all_photos_unlocked) return { ok: true };
 
     const now = new Date().toISOString();
-    const { error } = await (supabaseAdmin as any)
+    const { error } = await supabaseAdmin
       .from("photo_client_workflows")
       .update({ unlock_receipt_path: data.receiptPath, unlock_receipt_submitted_at: now })
       .eq("id", wf.id);
@@ -1422,7 +1422,7 @@ export const getAllPhotosUnlockReceiptUrl = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: wf } = await (supabaseAdmin as any).from("photo_client_workflows").select("unlock_receipt_path").eq("id", data.workflowId).maybeSingle();
+    const { data: wf } = await supabaseAdmin.from("photo_client_workflows").select("unlock_receipt_path").eq("id", data.workflowId).maybeSingle();
     if (!wf?.unlock_receipt_path) return { url: null };
     const { data: signed } = await supabaseAdmin.storage.from("receipts").createSignedUrl(wf.unlock_receipt_path, 60 * 60);
     return { url: signed?.signedUrl ?? null };
@@ -1435,7 +1435,7 @@ export const approveAllPhotosUnlock = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await (supabaseAdmin as any).from("photo_client_workflows").update({ all_photos_unlocked: true }).eq("id", data.workflowId);
+    const { error } = await supabaseAdmin.from("photo_client_workflows").update({ all_photos_unlocked: true }).eq("id", data.workflowId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
