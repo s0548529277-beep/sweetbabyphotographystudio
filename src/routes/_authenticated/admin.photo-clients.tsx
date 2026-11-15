@@ -298,7 +298,7 @@ function NewClientDialog({ onCreated, sendOnly = false }: { onCreated: (workflow
 
 /** "מסך ראשי" tab — the landing view: a few summary tiles plus today's shoots, mostly re-reading the same `rows` the other tabs already fetch (no separate query). */
 function DashboardView({ rows }: { rows: Row[] }) {
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
   const openBalanceTotal = rows.reduce((s, r) => s + Math.max(0, r.balance ?? 0), 0);
   const clientsWithOpenBalance = rows.filter((r) => (r.balance ?? 0) > 0).length;
   const upcoming = rows.filter((r) => r.session_date && r.session_date.slice(0, 10) >= todayKey);

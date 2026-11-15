@@ -116,7 +116,7 @@ function ClientsAdmin() {
         { key: "joined", label: "הצטרפות" },
       ],
     );
-    downloadCSV(`לקוחות-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+    downloadCSV(`לקוחות-${new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" })}.csv`, csv);
   };
 
   return (

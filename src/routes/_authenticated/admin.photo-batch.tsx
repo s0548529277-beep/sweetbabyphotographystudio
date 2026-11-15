@@ -100,7 +100,7 @@ function PhotoBatchAdmin() {
       const url = URL.createObjectURL(zipBlob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `תמונות-מעובדות-${new Date().toISOString().slice(0, 10)}.zip`;
+      a.download = `תמונות-מעובדות-${new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" })}.zip`;
       document.body.appendChild(a);
       a.click();
       a.remove();

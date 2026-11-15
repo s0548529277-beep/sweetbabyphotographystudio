@@ -147,7 +147,7 @@ function exportTxnsCSV(rows: Txn[]) {
       { key: "personal", label: "אישי / עסק" },
     ],
   );
-  downloadCSV(`כספים-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+  downloadCSV(`כספים-${new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" })}.csv`, csv);
 }
 
 function FinanceAdmin() {
@@ -157,7 +157,7 @@ function FinanceAdmin() {
     title: "",
     amount: "",
     category: "אחר",
-    spent_on: new Date().toISOString().slice(0, 10),
+    spent_on: new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" }),
     is_personal: false,
   });
   const [income, setIncome] = useState({
@@ -165,7 +165,7 @@ function FinanceAdmin() {
     amount: "",
     client: "",
     category: TYPE_PHOTO,
-    received_on: new Date().toISOString().slice(0, 10),
+    received_on: new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" }),
     is_personal: false,
   });
 
@@ -177,7 +177,7 @@ function FinanceAdmin() {
     title: "",
     amount: "",
     category: "אחר",
-    spent_on: new Date().toISOString().slice(0, 10),
+    spent_on: new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" }),
     vendor_name: "",
     vendor_email: "",
     vendor_phone: "",
@@ -441,7 +441,7 @@ function FinanceAdmin() {
         importDeleted,
       );
     };
-    const dateFor = (r: ImportRow) => r.date || new Date().toISOString().slice(0, 10);
+    const dateFor = (r: ImportRow) => r.date || new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
     const titleFor = (r: ImportRow) => r.desc || "יובא מאקסל";
 
     const expenseRows = selected

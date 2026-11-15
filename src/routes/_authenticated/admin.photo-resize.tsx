@@ -230,7 +230,7 @@ function PhotoResizeAdmin() {
       const url = URL.createObjectURL(zipBlob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `תמונות-מוקטנות-${new Date().toISOString().slice(0, 10)}.zip`;
+      a.download = `תמונות-מוקטנות-${new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" })}.zip`;
       document.body.appendChild(a);
       a.click();
       a.remove();

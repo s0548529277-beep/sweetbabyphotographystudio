@@ -303,7 +303,7 @@ export const placeBooking = createServerFn({ method: "POST" })
       console.error("[SWEETBABY] calendar conflict check failed", e);
     }
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
     const sameDay = data.session_date === today;
     const deposit = sameDay ? price : 90;
 
@@ -579,7 +579,7 @@ export const placeRecurringBooking = createServerFn({ method: "POST" })
     const seriesId = crypto.randomUUID();
     const created: { id: string; date: string }[] = [];
     const skipped: { date: string; reason: string }[] = [];
-    const today = new Date().toISOString().slice(0, 10);
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
 
     const base = new Date(`${data.start_date}T00:00:00`);
 

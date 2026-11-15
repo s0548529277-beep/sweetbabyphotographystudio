@@ -38,7 +38,7 @@ export async function lookupCallerProfile(callerPhone: string): Promise<CallerPr
     const match = (candidates ?? []).find((p: any) => lastDigits(String(p.phone ?? "")) === digits);
     if (!match) return null;
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
     const [{ data: booking }, { data: order }] = await Promise.all([
       supabaseAdmin
         .from("bookings")
@@ -121,7 +121,7 @@ export type CallerAccountSummary = {
  */
 export async function getCallerAccountSummary(userId: string): Promise<CallerAccountSummary> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
 
   const [bookingsRes, ordersRes, loyaltyRes, passesRes] = await Promise.all([
     supabaseAdmin

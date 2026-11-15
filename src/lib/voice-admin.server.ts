@@ -80,7 +80,7 @@ export type AdminVoiceSnapshot = {
  */
 export async function getAdminVoiceSnapshot(): Promise<AdminVoiceSnapshot> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
 
   const [todayB, upcomingB, recentO, unreadN] = await Promise.all([
     supabaseAdmin

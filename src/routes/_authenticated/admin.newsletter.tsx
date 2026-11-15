@@ -48,7 +48,7 @@ function NewsletterAdmin() {
       { key: "source", label: "מקור" },
       { key: "created_at", label: "תאריך הרשמה" },
     ]);
-    downloadCSV(`newsletter-signups-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+    downloadCSV(`newsletter-signups-${new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" })}.csv`, csv);
   };
 
   const importSiteEmails = async () => {

@@ -195,7 +195,7 @@ export async function createPhoneBooking(input: PhoneBookingInput) {
     userId = anonAuth.user.id;
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
   const sameDay = input.session_date === today;
   const deposit = sameDay ? price : 90;
 

@@ -215,7 +215,7 @@ function Cart() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div>
                     <Label className="text-xs">תאריך איסוף</Label>
-                    <Input type="date" min={new Date().toISOString().slice(0, 10)} value={win?.from ?? ""} onChange={(e) => updateWin({ from: e.target.value })} className="mt-1" />
+                    <Input type="date" min={new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" })} value={win?.from ?? ""} onChange={(e) => updateWin({ from: e.target.value })} className="mt-1" />
                   </div>
                   <div>
                     <Label className="text-xs">שעת איסוף</Label>
@@ -223,7 +223,7 @@ function Cart() {
                   </div>
                   <div>
                     <Label className="text-xs">תאריך החזרה</Label>
-                    <Input type="date" min={win?.from || new Date().toISOString().slice(0, 10)} value={win?.to ?? ""} onChange={(e) => updateWin({ to: e.target.value })} className="mt-1" />
+                    <Input type="date" min={win?.from || new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" })} value={win?.to ?? ""} onChange={(e) => updateWin({ to: e.target.value })} className="mt-1" />
                   </div>
                   <div>
                     <Label className="text-xs">שעת החזרה</Label>

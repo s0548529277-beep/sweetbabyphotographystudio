@@ -149,7 +149,7 @@ function LeadsAdmin() {
   const unpaid = useQuery({
     queryKey: ["admin-unpaid-bookings"],
     queryFn: async () => {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
       const cutoff = new Date(Date.now() - 12 * 3600 * 1000).toISOString();
       const { data } = await (supabase as any)
         .from("bookings")

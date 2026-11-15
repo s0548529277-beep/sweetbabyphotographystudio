@@ -719,7 +719,7 @@ function ItemsAdmin() {
       { key: "stock_quantity", label: "כמות במלאי" },
       { key: "sort_order", label: "סדר תצוגה" },
     ]);
-    downloadCSV(`catalog-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+    downloadCSV(`catalog-${new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" })}.csv`, csv);
   };
 
   // Same columns as exportCsv (מק״ט, קטגוריה, שם, מחיר, קישור לתמונה, כמות

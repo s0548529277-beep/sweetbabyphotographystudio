@@ -210,7 +210,7 @@ function EditOrder() {
                 )}
                 <div>
                   <Label htmlFor="eo-date">תאריך הצילום</Label>
-                  <Input id="eo-date" type="date" value={date} min={new Date().toISOString().slice(0, 10)} disabled={d.booking.hasReservedItems} onChange={(e) => setDate(e.target.value)} />
+                  <Input id="eo-date" type="date" value={date} min={new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" })} disabled={d.booking.hasReservedItems} onChange={(e) => setDate(e.target.value)} />
                   {!d.booking.hasReservedItems && freeDates && freeDates.length > 0 && (
                     <div className="mt-2">
                       <p className="text-xs text-muted-foreground mb-1">תאריכים פנויים בחודש וחצי הקרובים (לחיצה בוחרת):</p>
@@ -243,7 +243,7 @@ function EditOrder() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label htmlFor="eo-pd">תאריך איסוף</Label>
-                    <Input id="eo-pd" type="date" value={pickupDate} min={new Date().toISOString().slice(0, 10)} onChange={(e) => { setPickupDate(e.target.value); if (returnDate && e.target.value > returnDate) setReturnDate(e.target.value); }} />
+                    <Input id="eo-pd" type="date" value={pickupDate} min={new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" })} onChange={(e) => { setPickupDate(e.target.value); if (returnDate && e.target.value > returnDate) setReturnDate(e.target.value); }} />
                   </div>
                   <div>
                     <Label htmlFor="eo-rd">תאריך החזרה</Label>

@@ -139,7 +139,7 @@ function OrdersAdmin() {
   });
 
   const rows = (q.data ?? []).filter((r) => tab === "all" || r.kind === tab);
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
 
   const doSetStatus = useServerFn(adminSetStatus);
   const setStatus = async (row: Row, status: string) => {

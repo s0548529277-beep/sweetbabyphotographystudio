@@ -59,7 +59,7 @@ function Overview() {
   });
   const recentNotifs = (notifs.data ?? []).slice(0, 8);
 
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
   const today = useQuery({
     queryKey: ["admin-today", todayKey],
     queryFn: async () => {

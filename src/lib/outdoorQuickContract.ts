@@ -64,7 +64,7 @@ export function buildQuickOutdoorSections(i: QuickOutdoorInput): ContractSection
 
   const base_sections = buildOutdoorContractSections({
     contactName: i.clientName,
-    sessionDate: i.date || new Date().toISOString().slice(0, 10),
+    sessionDate: i.date || new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" }),
     sessionTime: i.time || null,
     packageName: i.packageName || null,
     packageDescription: null,

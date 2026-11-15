@@ -367,7 +367,7 @@ function RentalCatalogPage() {
                     מתאריך
                     <input
                       type="date"
-                      min={new Date().toISOString().slice(0, 10)}
+                      min={new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" })}
                       value={dateFrom}
                       onChange={(e) => setDateFrom(e.target.value)}
                       className="mt-1 w-full min-w-0 h-11 px-3 rounded-full bg-white border border-primary/15 text-sm"
@@ -389,7 +389,7 @@ function RentalCatalogPage() {
                     עד תאריך
                     <input
                       type="date"
-                      min={dateFrom || new Date().toISOString().slice(0, 10)}
+                      min={dateFrom || new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" })}
                       value={dateTo}
                       onChange={(e) => setDateTo(e.target.value)}
                       className="mt-1 w-full min-w-0 h-11 px-3 rounded-full bg-white border border-primary/15 text-sm"
