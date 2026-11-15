@@ -18,7 +18,7 @@
 
 ## Work log
 
-- **2026-11-15 (13:3x Israel) — Claude (chat, owner: "תמשיך" = `as any` job, step 3):** `photo-clients.functions.ts`: removed the `workflow as any` field reads (types.ts already matched the live `photo_client_workflows` columns); left only the 4 `{ data: [] as any[] }` fallbacks. tsc + 82 tests OK; not published. Next: `newborn-orders.functions.ts` (90 casts).
+- **2026-11-15 (13:4x Israel) — Claude (chat, owner: "פרסם"):** PUBLISHED head 03aa585 via the Lovable connector (deploy fd821d33-34aa-42b1-9ba7-1ee2bbdf84bf, status pending when logged; not checked live). Carries the blank-template draft cleanup plus the other session's typed photo-clients / Supabase types work.\n\n- **2026-11-15 (13:3x Israel) — Claude (chat, owner: "תמשיך" = `as any` job, step 3):** `photo-clients.functions.ts`: removed the `workflow as any` field reads (types.ts already matched the live `photo_client_workflows` columns); left only the 4 `{ data: [] as any[] }` fallbacks. tsc + 82 tests OK; not published. Next: `newborn-orders.functions.ts` (90 casts).
 
 - **2026-11-15 (13:1x Israel) — Claude (chat, owner: "תמשיך" = `as any` job, step 2):** `photo-clients.functions.ts`: removed all `(supabaseAdmin|supabase|admin|db as any)` casts (39 -> 14 `as any` left, mostly `workflow as any` field reads and `[] as any[]`; `photo_client_workflows` in `types.ts` still lacks several live columns — contract_token, drive_*, client_step etc. — next step: add them from `information_schema`, then drop those casts). `types.ts`: added `contract_snapshot(_at)` to `photo_client_workflows` and `client_note` to `photo_client_images`. One `.update(update as never)` for a computed-key object. tsc + 82 tests OK; not published.
 
