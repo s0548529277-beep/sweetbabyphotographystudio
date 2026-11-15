@@ -174,7 +174,7 @@ export async function sendGmail(message: GmailMessage): Promise<boolean> {
 }
 
 /** Same as sendGmail, but also returns the Gmail threadId of the sent mail (for replying in the same thread later). */
-export async function sendGmailDetailed(message: GmailMessage): Promise<{ ok: boolean; threadId?: string }> {
+export async function sendGmailDetailed(message: GmailMessage): Promise<{ ok: boolean; threadId?: string; id?: string }> {
   const lovableKey = process.env.LOVABLE_API_KEY;
   const connKey = process.env.GOOGLE_MAIL_API_KEY;
   if (!lovableKey || !connKey) {
@@ -200,12 +200,15 @@ export async function sendGmailDetailed(message: GmailMessage): Promise<{ ok: bo
       return { ok: false };
     }
     let threadId: string | undefined;
+    let id: string | undefined;
     try {
-      threadId = ((await res.json()) as any)?.threadId;
+      const j = (await res.json()) as any;
+      threadId = j?.threadId;
+      id = j?.id;
     } catch {
       // response body not needed for a plain send
     }
-    return { ok: true, threadId };
+    return { ok: true, threadId, id };
   } catch (e) {
     console.error("[SWEETBABY] gmail send failed", message.to, e);
     return { ok: false };

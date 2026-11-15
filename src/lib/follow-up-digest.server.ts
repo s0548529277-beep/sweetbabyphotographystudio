@@ -295,9 +295,27 @@ export async function runHourlyFollowUpDigest(opts: { force?: boolean } = {}): P
     ...(reply ? { threadId: state.threadId!, inReplyTo: state.msgId! } : {}),
   });
   if (!res.ok) return { sent: false, reason: "send_failed", people: news.length };
+  // Gmail replaces the Message-ID we set with its own, so read the REAL threadId + Message-ID of the mail we just
+  // sent; the next hourly mail replies to those (otherwise each one starts a new thread).
+  let realThread: string | null = res.threadId ?? null;
+  let realMsgId: string = msgId;
+  if (res.id) {
+    try {
+      const g = await import("@/integrations/google/gmail.server");
+      const m = await g.gmailApi<any>(
+        process.env.GOOGLE_MAIL_API_KEY ?? "",
+        `/users/me/messages/${res.id}?format=metadata&metadataHeaders=Message-ID&metadataHeaders=Message-Id`,
+      );
+      if (m?.threadId) realThread = m.threadId;
+      const h = g.gmailHeaderValue(m?.payload?.headers, "Message-ID") || g.gmailHeaderValue(m?.payload?.headers, "Message-Id");
+      if (h) realMsgId = h;
+    } catch {
+      // keep the fallback values
+    }
+  }
   await db.from("app_settings").upsert({
     key: STATE_KEY,
-    value: JSON.stringify({ at: new Date().toISOString(), ids: allIds, threadId: res.threadId ?? (reply ? state.threadId : null), msgId, day }),
+    value: JSON.stringify({ at: new Date().toISOString(), ids: allIds, threadId: realThread ?? (reply ? state.threadId : null), msgId: realMsgId, day }),
     updated_at: new Date().toISOString(),
   });
   return { sent: true, people: news.length };
