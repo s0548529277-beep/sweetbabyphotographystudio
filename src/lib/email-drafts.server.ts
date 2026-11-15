@@ -281,6 +281,41 @@ async function cleanupAnsweredThreads(
   return { threads, deletedDraftIds };
 }
 
+/**
+ * Owner 2026-11-15: a thread showed TWO boxes — the written draft and an empty "template" draft (Gmail makes an empty
+ * reply draft when a reply is opened). In a thread where the assistant's written draft exists, any extra draft that
+ * is completely empty (no text at all) is deleted. A draft with any text is never touched.
+ */
+async function removeEmptyTemplateDrafts(
+  g: typeof import("@/integrations/google/gmail.server"),
+  connKey: string,
+  readyId: string,
+  drafts: DraftRef[],
+): Promise<Set<string>> {
+  const removed = new Set<string>();
+  const draftByMsg = new Map(drafts.filter((d) => d.message?.id).map((d) => [d.message!.id!, d.id]));
+  const list = await g.gmailApi<{ threads?: Array<{ id: string }> }>(
+    connKey,
+    `/users/me/threads?labelIds=${encodeURIComponent(readyId)}&maxResults=50`,
+  );
+  for (const t of list?.threads ?? []) {
+    const th = await g.gmailApi<{ messages?: Array<{ id: string; labelIds?: string[]; snippet?: string }> }>(
+      connKey,
+      `/users/me/threads/${t.id}?format=minimal`,
+    );
+    const ds = (th?.messages ?? []).filter((m) => m.labelIds?.includes("DRAFT"));
+    if (ds.length < 2) continue;
+    const empty = ds.filter((m) => !(m.snippet ?? "").trim());
+    if (empty.length === 0 || empty.length === ds.length) continue; // keep at least one written draft
+    for (const m of empty) {
+      const id = draftByMsg.get(m.id);
+      if (!id) continue;
+      if ((await g.gmailApi(connKey, `/users/me/drafts/${id}`, { method: "DELETE" })) !== null) removed.add(id);
+    }
+  }
+  return removed;
+}
+
 async function upsertLead(db: any, p: Record<string, unknown>) {
   try {
     let existing: any = null;
@@ -635,6 +670,12 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
       } catch (e: any) {
         result.errors.push(`ניקוי: ${String(e?.message ?? e).slice(0, 120)}`);
       }
+      try {
+        const gone = await removeEmptyTemplateDrafts(g, k, readyId, liveDrafts);
+        if (gone.size) liveDrafts = liveDrafts.filter((d) => !gone.has(d.id));
+      } catch (e: any) {
+        result.errors.push(`ניקוי טיוטות ריקות: ${String(e?.message ?? e).slice(0, 120)}`);
+      }
     }
     // Any open draft in a thread — made here, by Claude chat or by her — means
     // "someone is already on it": never add a second draft to that thread.
@@ -947,27 +988,6 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
         } else {
           a.flags = ["ניסיון מענה אוטומטי נכשל — הפנייה דחופה, לענות ידנית", ...(a.flags ?? [])];
         }
-      }
-      if (autoSent) {
-        // The bot's automatic reply already went out: a second draft of the same answer would only be a duplicate
-        // (owner 2026-11-15). The lead below still records it, so the hourly digest tells her to follow up personally.
-        remember(seenId);
-        made++;
-        result.created.push({ to: addrOf(to), summary: a.summary, brand, kind: "new", flags: a.flags, autoSent });
-        if (a.isClient) {
-          await upsertLead(db, {
-            name: a.clientName || nameOf(from) || null,
-            email: isSiteForm ? to : fromAddr,
-            phone: a.clientPhone || null,
-            source: isSiteForm ? "site_form" : "email",
-            topic: a.topic || "other",
-            message: a.question || a.summary,
-            status: "new",
-            gmail_thread_id: threadId,
-            notes: `${AUTO_REPLY_NOTE}. ${new Date().toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem" })}`,
-          });
-        }
-        continue;
       }
       const ctaKey = a.cta && CTA_URLS[a.cta] ? a.cta : null;
       const cta = ctaKey
