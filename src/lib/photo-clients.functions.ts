@@ -439,13 +439,13 @@ export const getPhotoClientDetail = createServerFn({ method: "POST" })
         wants_editing: workflow.wants_editing as boolean | null,
         max_proof_selections: workflow.max_proof_selections as number | null,
         proof_selection_submitted_at: workflow.proof_selection_submitted_at as string | null,
-        drive_folder_url: (workflow as any).drive_folder_url as string | null,
-        drive_synced_at: (workflow as any).drive_synced_at as string | null,
-        guided_selection_enabled: (workflow as any).guided_selection_enabled as boolean,
-        all_photos_unlocked: (workflow as any).all_photos_unlocked as boolean,
-        unlock_receipt_submitted_at: (workflow as any).unlock_receipt_submitted_at as string | null,
-        client_step: ((workflow as any).client_step ?? 1) as number,
-        production_step: ((workflow as any).production_step ?? 1) as number,
+        drive_folder_url: workflow.drive_folder_url as string | null,
+        drive_synced_at: workflow.drive_synced_at as string | null,
+        guided_selection_enabled: workflow.guided_selection_enabled as boolean,
+        all_photos_unlocked: workflow.all_photos_unlocked as boolean,
+        unlock_receipt_submitted_at: workflow.unlock_receipt_submitted_at as string | null,
+        client_step: (workflow.client_step ?? 1) as number,
+        production_step: (workflow.production_step ?? 1) as number,
       },
       images: images ?? [],
     };
@@ -534,7 +534,7 @@ export const sendPhotoClientContract = createServerFn({ method: "POST" })
 
     // Token for the section-by-section signing page (/contract/photo/$token),
     // created once and reused on a resend so an older email's link still works.
-    let contractToken = (workflow as any).contract_token as string | null;
+    let contractToken = workflow.contract_token as string | null;
     if (!contractToken) {
       contractToken = newContractToken();
       await supabaseAdmin.from("photo_client_workflows").update({ contract_token: contractToken }).eq("id", workflow.id);
@@ -554,7 +554,7 @@ export const sendPhotoClientContract = createServerFn({ method: "POST" })
       .update({ contract_sent_at: new Date().toISOString() })
       .eq("id", workflow.id);
     // Keep the text that was sent (not after she signed) so the signing page shows exactly this.
-    if (!(workflow as any).contract_confirmed_at) {
+    if (!workflow.contract_confirmed_at) {
       try {
         await supabaseAdmin
           .from("photo_client_workflows")
