@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-15 (22:5x Israel) — Claude (chat, owner: "פרסם ותבדוק מה שראית ברשימת השינויים"):** PUBLISHED head f0de005 via the Lovable connector (deploy aa3f6cb6-125c-4c98-8f04-c07cce59bbd3, status pending when logged; not checked live). Carries the removal of the duplicate family-room badge. CHECK of the editor's "Build unsuccessful / Preview is out of date" marks: local `tsc` and `vite build` pass on this head; the connector lists every recent commit as completed (only the newest was pending). Likely preview staleness for GitHub-pushed commits, not a broken build; not proven.
+
 - **2026-11-15 (22:5x Israel) — Claude (chat, owner: "יש כפילות מידע בעמוד הסטודיו על חדר משפחה"):** `studio-rental.tsx`: removed the small round "חדש" badge + its popup (same photos/text as the visible family-room section); the section under the hero, the FAQ entry and the questionnaire question stay. tsc OK; not clicked live; not published.
 
 - **2026-11-15 (22:5x Israel) — Claude (chat, owner: "maybe they already approved"):** Meta answered (mail 20:27Z) "more info needed: the legal business name must appear on the website". `Footer.tsx` copyright line now adds "בבעלות מיכל אפרת שיר עשור" (KEEP while Meta verifies). Owner must re-submit in Meta Business > Security center after publish. Published.
