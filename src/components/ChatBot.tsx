@@ -177,7 +177,7 @@ function pageContext(pathname: string): PageCtx {
       headline: "רוצה לשריין את הסטודיו?",
       sub: "אני בודקת תאריכים פנויים ומסדרת איתך את כל ההזמנה — בקלות 💗",
       intro: "רואה שאת מתעניינת בהשכרת הסטודיו. אפשר לבחור איתי תאריך, לחשב מחיר ולשריין — הכל כאן, בלי למלא טפסים לבד.",
-      chips: [CHIP_BOOK_STUDIO, CHIP_PROPS],
+      chips: [CHIP_BOOK_STUDIO],
     };
   }
   if (pathname.startsWith("/rental-catalog") || pathname.startsWith("/items/")) {
@@ -186,7 +186,7 @@ function pageContext(pathname: string): PageCtx {
       headline: "מחפשת אביזר מסוים?",
       sub: "תכתבי לי מה בראש — אבדוק מה פנוי בתאריך שלך ואוסיף לעגלה",
       intro: "אני יכולה למצוא אביזרים לפי תיאור, לבדוק מה פנוי בתאריך שלך ולהוסיף לעגלה — פשוט תספרי לי מה את מחפשת.",
-      chips: [CHIP_PROPS, CHIP_BOOK_STUDIO],
+      chips: [CHIP_BOOK_STUDIO],
     };
   }
   if (pathname.startsWith("/studio-photography") || pathname === "/newborn" || pathname.startsWith("/sleep-consultant")) {
@@ -204,7 +204,7 @@ function pageContext(pathname: string): PageCtx {
       headline: "תקועה באמצע? אני כאן",
       sub: "אעזור להשלים את ההזמנה צעד אחרי צעד",
       intro: "אם משהו לא ברור באמצע ההזמנה — תכתבי לי ואעזור להשלים אותה, בלי לחזור להתחלה.",
-      chips: [CHIP_FINISH, CHIP_PROPS],
+      chips: [CHIP_FINISH],
     };
   }
   if (pathname === "/") {
@@ -213,7 +213,7 @@ function pageContext(pathname: string): PageCtx {
       headline: "אפשר לעשות הכל דרכי 💗",
       sub: "סטודיו, אביזרים או צילומים — אני מזמינה איתך בקלות",
       intro: "אפשר לקבוע דרכי סטודיו, צילומים עם מיכל והשכרת אביזרים — תבחרי מה מעניין אותך ואני אסדר הכל איתך.",
-      chips: [CHIP_BOOK_STUDIO, CHIP_BOOK_SHOOT, CHIP_PROPS],
+      chips: [CHIP_BOOK_STUDIO, CHIP_BOOK_SHOOT],
     };
   }
   return {
@@ -221,7 +221,7 @@ function pageContext(pathname: string): PageCtx {
     headline: "אני כאן לעזור 💗",
     sub: "אפשר לבצע איתי את כל ההזמנה — אולי תופתעו כמה זה קל",
     intro: "אפשר לקבוע דרכי סטודיו, צילומים או אביזרים, לבדוק זמינות ולקבל מחיר מדויק.",
-    chips: [CHIP_BOOK_STUDIO, CHIP_BOOK_SHOOT, CHIP_PROPS],
+    chips: [CHIP_BOOK_STUDIO, CHIP_BOOK_SHOOT],
   };
 }
 
