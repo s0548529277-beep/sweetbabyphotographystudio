@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 import { runDueBookingReminders, runDueAbandonedHoldReminders, notifyPendingPhoneBookingConfirmations, notifyPendingPropsRequests } from "@/lib/bookings.functions";
-import { runDueOrderReminders, runExpireStalePendingOrders } from "@/lib/orders.functions";
+import { runDueOrderReminders } from "@/lib/orders.functions";
 import { runDueProofSelectionReminders } from "@/lib/photo-clients.functions";
 import { runDuePendingPassApprovalNudges } from "@/lib/subscription-purchase.functions";
 import { runDataBackupIfDue } from "@/lib/data-backup.server";
@@ -72,7 +72,7 @@ export const Route = createFileRoute("/api/send-booking-reminders")({
         };
         await stamp("scheduler_last_call", new Date().toISOString());
 
-        const [followUpDigest, bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds, pendingPassApprovals, dataBackup, recurringExpenses, outdoorStylingCallReminders, clientManagement, emailDrafts, postSessionThanks, unfinishedBookings, preSessionReminders, expireStaleOrders] = await Promise.all([
+        const [followUpDigest, bookings, orders, pendingPhoneCalls, pendingPropsCalls, proofReminders, abandonedHolds, pendingPassApprovals, dataBackup, recurringExpenses, outdoorStylingCallReminders, clientManagement, emailDrafts, postSessionThanks, unfinishedBookings, preSessionReminders] = await Promise.all([
           // Hourly "who to call back and why" summary mail — see follow-up-digest.server.ts.
           safe("followUpDigest", async () => (await import("@/lib/follow-up-digest.server")).runHourlyFollowUpDigest()),
           safe("bookings", () => runDueBookingReminders()),
@@ -93,7 +93,6 @@ export const Route = createFileRoute("/api/send-booking-reminders")({
           safe("postSessionThanks", () => runDuePostSessionThanks()),
           safe("unfinishedBookings", () => runDueUnfinishedBookingFollowUps()),
           safe("preSessionReminders", () => runDuePreSessionReminders()),
-          safe("expireStaleOrders", () => runExpireStalePendingOrders()),
         ]);
         // Heartbeat: lets the admin dashboard warn when the external scheduler stops calling this route.
         await stamp("scheduler_last_run", new Date().toISOString());
