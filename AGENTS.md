@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-15 (20:5x Israel) — Claude (chat, owner: "ופרסם"):** PUBLISHED head 56c28f0 via the Lovable connector (deploy 9ca106ce-ea90-4044-8c18-2f448b194c28, status pending when logged; not checked live). Carries the removal of the props chip from the bot nudge.
+
 - **2026-11-15 (20:5x Israel) — Claude (chat, owner: "remove the button that pops up from the bot to order props"):** `ChatBot.tsx`: `CHIP_PROPS` ("להזמין אביזרים") removed from every page's popping nudge chips (`chips:` lists); the quick-chip row INSIDE the open chat still offers it (line with `[...ctx.chips, ...]`). Same session: checked Yaner (Beit Shemesh) for 15-17.11 via Chrome — all events already covered by Netanel's bookings, nothing booked, no mail sent. tsc run; not published.
 
 - **2026-11-15 (19:5x Israel) — Claude (chat, owner screenshot: "arrange it so I do not have to move the scrollbar every time to reach all the fields"):** `/admin/orders` (`admin.orders.tsx`): the 9-column table is now 6 columns and no longer has a horizontal scrollbar: type badge + created date share a cell, the phone sits under the customer name, the status select (narrower, w-32) and the "שולם" / delete buttons share one cell, cell padding reduced, dates/times may wrap. Expanded-row and empty-row `colSpan` changed 9 -> 6. No logic change. Syntax check only (esbuild); not clicked live; not published.
