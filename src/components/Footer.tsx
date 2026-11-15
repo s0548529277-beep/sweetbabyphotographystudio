@@ -31,7 +31,7 @@ export function Footer() {
           <InstallAppButton className="text-background" />
         </div>
         <div className="flex flex-col md:flex-row justify-between gap-4 pt-8 text-[11px] tracking-[0.28em] uppercase text-background/50">
-          <span>© {new Date().getFullYear()} Sweetbaby Studio</span>
+          <span>© {new Date().getFullYear()} Sweetbaby Studio · <span className="normal-case tracking-normal">בבעלות מיכל אפרת שיר עשור</span></span>
           <Link to="/terms" className="inline-block py-2 hover:text-background transition-colors">
             תנאים והגבלות
           </Link>
