@@ -948,6 +948,27 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
           a.flags = ["ניסיון מענה אוטומטי נכשל — הפנייה דחופה, לענות ידנית", ...(a.flags ?? [])];
         }
       }
+      if (autoSent) {
+        // The bot's automatic reply already went out: a second draft of the same answer would only be a duplicate
+        // (owner 2026-11-15). The lead below still records it, so the hourly digest tells her to follow up personally.
+        remember(seenId);
+        made++;
+        result.created.push({ to: addrOf(to), summary: a.summary, brand, kind: "new", flags: a.flags, autoSent });
+        if (a.isClient) {
+          await upsertLead(db, {
+            name: a.clientName || nameOf(from) || null,
+            email: isSiteForm ? to : fromAddr,
+            phone: a.clientPhone || null,
+            source: isSiteForm ? "site_form" : "email",
+            topic: a.topic || "other",
+            message: a.question || a.summary,
+            status: "new",
+            gmail_thread_id: threadId,
+            notes: `${AUTO_REPLY_NOTE}. ${new Date().toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem" })}`,
+          });
+        }
+        continue;
+      }
       const ctaKey = a.cta && CTA_URLS[a.cta] ? a.cta : null;
       const cta = ctaKey
         ? {
