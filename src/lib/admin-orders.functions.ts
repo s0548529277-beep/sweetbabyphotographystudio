@@ -683,3 +683,23 @@ export const adminDeleteRecord = createServerFn({ method: "POST" })
 
     return { ok: true };
   });
+
+/** One-click "paid in cash" (or any manual payment) for an order / booking whose deposit is still unmarked. Admin only. */
+export const adminMarkDepositPaid = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ kind: z.enum(["order", "booking"]), id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const table = data.kind === "order" ? "orders" : "bookings";
+    const { data: row } = await supabaseAdmin.from(table).select("id, status, deposit_status, notes").eq("id", data.id).maybeSingle();
+    if (!row) throw new Error("הרשומה לא נמצאה");
+    if ((row as any).status === "cancelled") throw new Error("הרשומה מבוטלת");
+    if ((row as any).deposit_status === "paid") return { ok: true, already: true };
+    const stamp = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
+    const note = `סומן כשולם ידנית באדמין (${stamp})`;
+    const notes = [(row as any).notes, note].filter(Boolean).join("\n");
+    const { error } = await supabaseAdmin.from(table).update({ deposit_status: "paid", notes }).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true, already: false };
+  });

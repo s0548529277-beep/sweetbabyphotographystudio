@@ -312,7 +312,7 @@ function SiteBotAdmin() {
             className={activeOpen ? "flex-1 resize-none min-h-10 max-h-32" : "flex-1"}
           />
           {activeOpen ? (
-            <Button onClick={sendFollowUp} disabled={busy} size="icon" className="rounded-full shrink-0">
+            <Button onClick={sendFollowUp} disabled={busy} size="icon" className="rounded-full shrink-0" aria-label="שליחה" title="שליחה">
               <Send className="h-4 w-4" />
             </Button>
           ) : (

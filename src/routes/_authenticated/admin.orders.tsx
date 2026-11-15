@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   adminDeleteRecord,
   adminSetStatus,
+  adminMarkDepositPaid,
   adminPartialCancelOrderItem,
   adminUpdateBookingHours,
   adminUpdateOrderDates,
@@ -152,6 +153,35 @@ function OrdersAdmin() {
       toast.error(heError(e, "עדכון הסטטוס נכשל"));
     }
   };
+
+  const doMarkPaid = useServerFn(adminMarkDepositPaid);
+  const markPaid = async (row: Row) => {
+    if (!confirm(`לסמן את ${row.kind === "booking" ? "השריון" : "ההזמנה"} של ${row.name} כשולם?`)) return;
+    try {
+      await doMarkPaid({ data: { kind: row.kind, id: row.id } });
+      toast.success("סומן כשולם");
+      qc.invalidateQueries({ queryKey: ["admin-all-orders"] });
+    } catch (e) {
+      toast.error(heError(e, "הסימון נכשל"));
+    }
+  };
+
+  // Studio bookings that overlap another live booking on the same day (double booking warning).
+  const overlapIds = (() => {
+    const live = (q.data ?? []).filter((r) => r.kind === "booking" && r.status !== "cancelled" && r.date && r.raw?.start_time && r.raw?.end_time);
+    const ids = new Set<string>();
+    for (let i = 0; i < live.length; i++) {
+      for (let j = i + 1; j < live.length; j++) {
+        const a = live[i], b = live[j];
+        if (a.date !== b.date) continue;
+        if (String(a.raw.start_time) < String(b.raw.end_time) && String(b.raw.start_time) < String(a.raw.end_time)) {
+          ids.add(a.id);
+          ids.add(b.id);
+        }
+      }
+    }
+    return ids;
+  })();
 
   const doDelete = useServerFn(adminDeleteRecord);
   const deleteRow = async (row: Row, force = false) => {
@@ -321,7 +351,15 @@ function OrdersAdmin() {
                       </Badge>
                     </td>
                     <td className="p-3 whitespace-nowrap">{new Date(r.created_at).toLocaleDateString("he-IL")}</td>
-                    <td className="p-3 font-medium">{r.name}</td>
+                    <td className="p-3 font-medium">
+                      {r.name}
+                      {r.status !== "cancelled" && r.date && r.date < todayKey && (r.raw?.deposit_status === "pending" || r.raw?.deposit_status === "cash_pending" || r.status === "pending") && (
+                        <span className="block text-[11px] font-normal text-muted-foreground">⏳ עבר התאריך — עדיין לא סומן כשולם/הושלם</span>
+                      )}
+                      {overlapIds.has(r.id) && (
+                        <span className="block text-[11px] font-normal text-red-600">⚠ חופפת בשעות להזמנה נוספת באותו יום</span>
+                      )}
+                    </td>
                     <td className="p-3" dir="ltr">{r.phone}</td>
                     <td className="p-3 whitespace-nowrap">
                       {r.date ? new Date(r.date).toLocaleDateString("he-IL") : "—"}
@@ -343,6 +381,11 @@ function OrdersAdmin() {
                       </Select>
                     </td>
                     <td className="p-2">
+                      {r.status !== "cancelled" && ["pending", "cash_pending", "submitted"].includes(String(r.raw?.deposit_status)) && (
+                        <Button size="sm" variant="outline" className="rounded-full h-8 text-xs whitespace-nowrap" onClick={() => markPaid(r)}>
+                          שולם
+                        </Button>
+                      )}
                       {r.status === "cancelled" && (
                         <Button
                           size="icon"

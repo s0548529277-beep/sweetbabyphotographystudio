@@ -399,10 +399,10 @@ function SubscriptionsAdmin() {
                   </td>
                   <td className="p-3">
                     <div className="flex items-center gap-1">
-                      <Button size="icon" variant="ghost" onClick={() => openEditPlan(p)}>
+                      <Button size="icon" variant="ghost" onClick={() => openEditPlan(p)} aria-label="עריכת מסלול" title="עריכת מסלול">
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" onClick={() => removePlan(p)}>
+                      <Button size="icon" variant="ghost" onClick={() => removePlan(p)} aria-label="מחיקת מסלול" title="מחיקת מסלול">
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>
@@ -524,7 +524,7 @@ function SubscriptionsAdmin() {
                           <History className="h-3.5 w-3.5" /> פרטים
                         </Button>
                         {p.status === "active" && (
-                          <Button size="icon" variant="ghost" onClick={() => cancelPass(p)}>
+                          <Button size="icon" variant="ghost" onClick={() => cancelPass(p)} aria-label="ביטול כרטיסיה" title="ביטול כרטיסיה">
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         )}

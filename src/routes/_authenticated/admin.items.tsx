@@ -1465,7 +1465,7 @@ function ItemsAdmin() {
 
                 <td className="p-3 text-left">
                   <div className="inline-flex gap-1">
-                    <Button size="icon" variant="ghost" onClick={() => editItem(i)}>
+                    <Button size="icon" variant="ghost" onClick={() => editItem(i)} aria-label="עריכת פריט" title="עריכת פריט">
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
@@ -1473,6 +1473,7 @@ function ItemsAdmin() {
                       variant="ghost"
                       className="text-destructive"
                       onClick={() => del(i.id)}
+                      aria-label="מחיקת פריט" title="מחיקת פריט"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
