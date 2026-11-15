@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-15 (22:5x Israel) — Claude (chat, owner: "יש כפילות מידע בעמוד הסטודיו על חדר משפחה"):** `studio-rental.tsx`: removed the small round "חדש" badge + its popup (same photos/text as the visible family-room section); the section under the hero, the FAQ entry and the questionnaire question stay. tsc OK; not clicked live; not published.
+
 - **2026-11-15 (22:5x Israel) — Claude (chat, owner: "maybe they already approved"):** Meta answered (mail 20:27Z) "more info needed: the legal business name must appear on the website". `Footer.tsx` copyright line now adds "בבעלות מיכל אפרת שיר עשור" (KEEP while Meta verifies). Owner must re-submit in Meta Business > Security center after publish. Published.
 
 - **2026-11-15 (22:4x Israel) — Claude (chat):** Meta business verification SUBMITTED by the owner (domain method + עוסק פטור certificate as "מסמך מס של העסק"); Meta review takes ~2 days. The address shown in the request had zip 719290 (6 digits, guessed). After approval: check WhatsApp sending; outside the 24h window an approved template is still needed. No code change.
