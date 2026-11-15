@@ -1721,6 +1721,51 @@ export type Database = {
         }
         Relationships: []
       }
+      order_edit_requests: {
+        Row: {
+          admin_note: string | null
+          auto_applied: boolean
+          changes: Json
+          created_at: string
+          decided_at: string | null
+          id: string
+          kind: string
+          original: Json
+          reason: string | null
+          status: string
+          target_id: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          auto_applied?: boolean
+          changes: Json
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          kind: string
+          original?: Json
+          reason?: string | null
+          status?: string
+          target_id: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          auto_applied?: boolean
+          changes?: Json
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          kind?: string
+          original?: Json
+          reason?: string | null
+          status?: string
+          target_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string
@@ -1898,75 +1943,279 @@ export type Database = {
         }
         Relationships: []
       }
+      outdoor_gallery_access: {
+        Row: {
+          attempts: number
+          created_at: string
+          expires_at: string | null
+          id: string
+          kind: string
+          label: string | null
+          last_used_at: string | null
+          order_id: string
+          secret_hash: string
+          used_at: string | null
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          kind: string
+          label?: string | null
+          last_used_at?: string | null
+          order_id: string
+          secret_hash: string
+          used_at?: string | null
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          kind?: string
+          label?: string | null
+          last_used_at?: string | null
+          order_id?: string
+          secret_hash?: string
+          used_at?: string | null
+        }
+        Relationships: []
+      }
+      outdoor_order_images: {
+        Row: {
+          client_note: string | null
+          created_at: string
+          file_name: string | null
+          id: string
+          image_url: string
+          kind: string
+          order_id: string
+          original_image_url: string | null
+          original_storage_path: string | null
+          selected: boolean
+          sort_order: number
+          storage_path: string
+          watermarked: boolean
+        }
+        Insert: {
+          client_note?: string | null
+          created_at?: string
+          file_name?: string | null
+          id?: string
+          image_url: string
+          kind: string
+          order_id: string
+          original_image_url?: string | null
+          original_storage_path?: string | null
+          selected?: boolean
+          sort_order?: number
+          storage_path: string
+          watermarked?: boolean
+        }
+        Update: {
+          client_note?: string | null
+          created_at?: string
+          file_name?: string | null
+          id?: string
+          image_url?: string
+          kind?: string
+          order_id?: string
+          original_image_url?: string | null
+          original_storage_path?: string | null
+          selected?: boolean
+          sort_order?: number
+          storage_path?: string
+          watermarked?: boolean
+        }
+        Relationships: []
+      }
       outdoor_package_orders: {
         Row: {
+          access_token: string | null
+          album_birth_date: string | null
+          album_birth_time: string | null
+          album_birth_weight: string | null
+          album_caption_language: string | null
+          album_child_name: string | null
+          album_design_done_at: string | null
+          album_details_submitted_at: string | null
+          album_hospital: string | null
+          album_notes: string | null
+          all_photos_unlocked: boolean
+          amount_paid: number
           children_count: number | null
           children_names: string | null
+          client_step: number
+          client_viewed_at: string | null
           contact_email: string | null
           contact_name: string
           contact_phone: string
           contract_answers: Json | null
           contract_confirmed_at: string | null
           contract_sent_at: string | null
+          contract_snapshot: string | null
+          contract_snapshot_at: string | null
           contract_token: string | null
           created_at: string
+          date_deposit_at: string | null
+          delivered_at: string | null
           deposit_paid: boolean
+          drive_folder_url: string | null
+          drive_synced_at: string | null
+          edited_zip_downloads: number
+          editing_done_at: string | null
+          extra_photos_count: number
+          gallery_opened_at: string | null
+          gallery_sent_at: string | null
+          guided_selection_enabled: boolean
           id: string
+          last_payment_at: string | null
+          max_proof_selections: number | null
           notes: string | null
           package_description: string | null
           package_name: string | null
           package_type_id: string | null
+          payment_done_at: string | null
+          photos_sent_at: string | null
+          printing_done_at: string | null
+          production_step: number
+          proofs_selected_at: string | null
+          proofs_zip_downloads: number
+          reminder_sent_at: string | null
           session_date: string | null
           session_time: string | null
+          shoot_done_at: string | null
           styling_call_date: string | null
           styling_call_reminder_sent_at: string | null
           total_price: number | null
+          unlock_receipt_path: string | null
+          unlock_receipt_submitted_at: string | null
+          view_nudge_sent_at: string | null
         }
         Insert: {
+          access_token?: string | null
+          album_birth_date?: string | null
+          album_birth_time?: string | null
+          album_birth_weight?: string | null
+          album_caption_language?: string | null
+          album_child_name?: string | null
+          album_design_done_at?: string | null
+          album_details_submitted_at?: string | null
+          album_hospital?: string | null
+          album_notes?: string | null
+          all_photos_unlocked?: boolean
+          amount_paid?: number
           children_count?: number | null
           children_names?: string | null
+          client_step?: number
+          client_viewed_at?: string | null
           contact_email?: string | null
           contact_name: string
           contact_phone: string
           contract_answers?: Json | null
           contract_confirmed_at?: string | null
           contract_sent_at?: string | null
+          contract_snapshot?: string | null
+          contract_snapshot_at?: string | null
           contract_token?: string | null
           created_at?: string
+          date_deposit_at?: string | null
+          delivered_at?: string | null
           deposit_paid?: boolean
+          drive_folder_url?: string | null
+          drive_synced_at?: string | null
+          edited_zip_downloads?: number
+          editing_done_at?: string | null
+          extra_photos_count?: number
+          gallery_opened_at?: string | null
+          gallery_sent_at?: string | null
+          guided_selection_enabled?: boolean
           id?: string
+          last_payment_at?: string | null
+          max_proof_selections?: number | null
           notes?: string | null
           package_description?: string | null
           package_name?: string | null
           package_type_id?: string | null
+          payment_done_at?: string | null
+          photos_sent_at?: string | null
+          printing_done_at?: string | null
+          production_step?: number
+          proofs_selected_at?: string | null
+          proofs_zip_downloads?: number
+          reminder_sent_at?: string | null
           session_date?: string | null
           session_time?: string | null
+          shoot_done_at?: string | null
           styling_call_date?: string | null
           styling_call_reminder_sent_at?: string | null
           total_price?: number | null
+          unlock_receipt_path?: string | null
+          unlock_receipt_submitted_at?: string | null
+          view_nudge_sent_at?: string | null
         }
         Update: {
+          access_token?: string | null
+          album_birth_date?: string | null
+          album_birth_time?: string | null
+          album_birth_weight?: string | null
+          album_caption_language?: string | null
+          album_child_name?: string | null
+          album_design_done_at?: string | null
+          album_details_submitted_at?: string | null
+          album_hospital?: string | null
+          album_notes?: string | null
+          all_photos_unlocked?: boolean
+          amount_paid?: number
           children_count?: number | null
           children_names?: string | null
+          client_step?: number
+          client_viewed_at?: string | null
           contact_email?: string | null
           contact_name?: string
           contact_phone?: string
           contract_answers?: Json | null
           contract_confirmed_at?: string | null
           contract_sent_at?: string | null
+          contract_snapshot?: string | null
+          contract_snapshot_at?: string | null
           contract_token?: string | null
           created_at?: string
+          date_deposit_at?: string | null
+          delivered_at?: string | null
           deposit_paid?: boolean
+          drive_folder_url?: string | null
+          drive_synced_at?: string | null
+          edited_zip_downloads?: number
+          editing_done_at?: string | null
+          extra_photos_count?: number
+          gallery_opened_at?: string | null
+          gallery_sent_at?: string | null
+          guided_selection_enabled?: boolean
           id?: string
+          last_payment_at?: string | null
+          max_proof_selections?: number | null
           notes?: string | null
           package_description?: string | null
           package_name?: string | null
           package_type_id?: string | null
+          payment_done_at?: string | null
+          photos_sent_at?: string | null
+          printing_done_at?: string | null
+          production_step?: number
+          proofs_selected_at?: string | null
+          proofs_zip_downloads?: number
+          reminder_sent_at?: string | null
           session_date?: string | null
           session_time?: string | null
+          shoot_done_at?: string | null
           styling_call_date?: string | null
           styling_call_reminder_sent_at?: string | null
           total_price?: number | null
+          unlock_receipt_path?: string | null
+          unlock_receipt_submitted_at?: string | null
+          view_nudge_sent_at?: string | null
         }
         Relationships: [
           {

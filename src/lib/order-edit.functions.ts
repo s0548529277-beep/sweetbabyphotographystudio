@@ -634,13 +634,13 @@ export const getEditableOrder = createServerFn({ method: "POST" })
     let orderLinesForPage: Array<{ sku: string | null; name: string; quantity: number }> = [];
     if (data.kind === "order") {
       const { supabaseAdmin: adm } = await import("@/integrations/supabase/client.server");
-      const { data: ls } = await (adm as any).from("order_items").select("item_sku, item_name, quantity").eq("order_id", data.id);
+      const { data: ls } = await adm.from("order_items").select("item_sku, item_name, quantity").eq("order_id", data.id);
       orderLinesForPage = (ls ?? []).map((l: any) => ({ sku: l.item_sku ?? null, name: l.item_name, quantity: Number(l.quantity) }));
     }
     const start = currentStartMs(data.kind, row);
     const within24h = start != null ? editNeedsApproval({ oldStartMs: start, newStartMs: start }).needs : false;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: pending } = await (supabaseAdmin as any)
+    const { data: pending } = await supabaseAdmin
       .from("order_edit_requests")
       .select("id, changes, created_at")
       .eq("kind", data.kind)
@@ -688,7 +688,7 @@ export const searchAddableItems = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<{ items: Array<{ sku: string; name: string; price: number }> }> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const q = data.q.replace(/[%,()]/g, " ").trim();
-    const { data: rows } = await (supabaseAdmin as any)
+    const { data: rows } = await supabaseAdmin
       .from("items")
       .select("sku, name, price")
       .eq("active", true)
@@ -953,7 +953,7 @@ export const listOrderEditRequests = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await (supabaseAdmin as any)
+    const { data, error } = await supabaseAdmin
       .from("order_edit_requests")
       .select("id, kind, target_id, changes, original, reason, status, auto_applied, admin_note, created_at, decided_at")
       .eq("auto_applied", false)
