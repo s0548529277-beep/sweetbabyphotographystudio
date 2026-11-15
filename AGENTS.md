@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-15 (22:4x Israel) — Claude (chat):** Meta business verification SUBMITTED by the owner (domain method + עוסק פטור certificate as "מסמך מס של העסק"); Meta review takes ~2 days. The address shown in the request had zip 719290 (6 digits, guessed). After approval: check WhatsApp sending; outside the 24h window an approved template is still needed. No code change.
+
 - **2026-11-15 (22:0x Israel) — Claude (chat, owner: fix WhatsApp — Meta account restricted until the business is verified):** added `<meta name="facebook-domain-verification" content="pc4ygv0lybj0lk0grco83o72oz5tqw">` to `__root.tsx` head (next to the Google one; KEEP it, removing it un-verifies the domain). In Meta Business (portfolio "צלמת" 1096327573256656, via the owner's Chrome): business details set to legal name "מיכל אפרת שיר עשור", address/phone; domain sweetbabyphoto.shop added under Brand safety > Domains; business verification started with "domain verification" + the עוסק פטור certificate (address on it: טורי זהב 26, גני מודיעין; zip 7192900 is a guess from the old 71929). WhatsApp outbound errors before that: 131031 (locked, until 22.10), then 131047 (24h window) — the account shows "restricted: verify your business". No other code change.
 
 - **2026-11-15 (20:5x Israel) — Claude (chat, owner: "ופרסם"):** PUBLISHED head 56c28f0 via the Lovable connector (deploy 9ca106ce-ea90-4044-8c18-2f448b194c28, status pending when logged; not checked live). Carries the removal of the props chip from the bot nudge.
