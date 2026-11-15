@@ -316,19 +316,18 @@ function OrdersAdmin() {
         </Button>
       </div>
 
-      <div className="bg-card rounded-2xl border border-primary/5 overflow-x-auto">
+      {/* Compact 6-column layout so every field fits the screen without a horizontal scrollbar
+          (type + created date share a cell, phone sits under the name, status + action share a cell). */}
+      <div className="bg-card rounded-2xl border border-primary/5">
         <table className="w-full text-sm">
           <thead className="bg-cream/60 text-right">
             <tr>
-              <th className="p-3" />
-              <th className="p-3 font-medium">סוג</th>
-              <th className="p-3 font-medium">נוצר</th>
-              <th className="p-3 font-medium">לקוח</th>
-              <th className="p-3 font-medium">טלפון</th>
-              <th className="p-3 font-medium">תאריך צילום</th>
-              <th className="p-3 font-medium">סה״כ</th>
-              <th className="p-3 font-medium">סטטוס</th>
-              <th className="p-3" />
+              <th className="p-2 w-10" />
+              <th className="p-2 font-medium">סוג / נוצר</th>
+              <th className="p-2 font-medium">לקוח / טלפון</th>
+              <th className="p-2 font-medium">תאריך צילום</th>
+              <th className="p-2 font-medium">סה״כ</th>
+              <th className="p-2 font-medium">סטטוס</th>
             </tr>
           </thead>
           <tbody>
@@ -339,20 +338,21 @@ function OrdersAdmin() {
               return (
                 <>
                   <tr key={key} className={`border-t border-border ${r.date && r.date < todayKey ? "bg-rose-50/70" : ""}`}>
-                    <td className="p-2">
+                    <td className="p-1">
                       <Button size="icon" variant="ghost" onClick={() => setExpanded(expanded === key ? null : key)}>
                         {expanded === key ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                       </Button>
                     </td>
-                    <td className="p-3">
+                    <td className="p-2 align-top">
                       <Badge variant="secondary" className="gap-1 text-[11px]">
                         {r.kind === "booking" ? <Camera className="h-3 w-3" /> : <Package className="h-3 w-3" />}
                         {r.kind === "booking" ? "סטודיו" : "אביזרים"}
                       </Badge>
+                      <span className="block text-[11px] text-muted-foreground mt-1">נוצר {new Date(r.created_at).toLocaleDateString("he-IL")}</span>
                     </td>
-                    <td className="p-3 whitespace-nowrap">{new Date(r.created_at).toLocaleDateString("he-IL")}</td>
-                    <td className="p-3 font-medium">
+                    <td className="p-2 align-top font-medium">
                       {r.name}
+                      <span className="block text-xs font-normal text-muted-foreground" dir="ltr" style={{ textAlign: "right" }}>{r.phone}</span>
                       {r.status !== "cancelled" && r.date && r.date < todayKey && (r.raw?.deposit_status === "pending" || r.raw?.deposit_status === "cash_pending" || r.status === "pending") && (
                         <span className="block text-[11px] font-normal text-muted-foreground">⏳ עבר התאריך — עדיין לא סומן כשולם/הושלם</span>
                       )}
@@ -360,10 +360,9 @@ function OrdersAdmin() {
                         <span className="block text-[11px] font-normal text-red-600">⚠ חופפת בשעות להזמנה נוספת באותו יום</span>
                       )}
                     </td>
-                    <td className="p-3" dir="ltr">{r.phone}</td>
-                    <td className="p-3 whitespace-nowrap">
+                    <td className="p-2 align-top">
                       {r.date ? new Date(r.date).toLocaleDateString("he-IL") : "—"}
-                      {r.time && <span className="text-muted-foreground text-xs block" dir="ltr">{r.time}</span>}
+                      {r.time && <span className="text-muted-foreground text-xs block" dir="ltr" style={{ textAlign: "right" }}>{r.time}</span>}
                       {r.kind === "booking" && (() => {
                         const fr = familyRoomStatus(r.raw ?? {});
                         return fr ? (
@@ -371,37 +370,37 @@ function OrdersAdmin() {
                         ) : null;
                       })()}
                     </td>
-                    <td className="p-3 font-display text-peach-deep">₪{r.total.toFixed(0)}</td>
-                    <td className="p-3">
-                      <Select value={r.status} onValueChange={(v) => setStatus(r, v)}>
-                        <SelectTrigger className="h-8 w-40"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {statusList.map((s) => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </td>
-                    <td className="p-2">
-                      {r.status !== "cancelled" && ["pending", "cash_pending", "submitted"].includes(String(r.raw?.deposit_status)) && (
-                        <Button size="sm" variant="outline" className="rounded-full h-8 text-xs whitespace-nowrap" onClick={() => markPaid(r)}>
-                          שולם
-                        </Button>
-                      )}
-                      {r.status === "cancelled" && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => deleteRow(r)}
-                          aria-label="מחיקה"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
+                    <td className="p-2 align-top font-display text-peach-deep whitespace-nowrap">₪{r.total.toFixed(0)}</td>
+                    <td className="p-2 align-top">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Select value={r.status} onValueChange={(v) => setStatus(r, v)}>
+                          <SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {statusList.map((s) => <SelectItem key={s.v} value={s.v}>{s.l}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        {r.status !== "cancelled" && ["pending", "cash_pending", "submitted"].includes(String(r.raw?.deposit_status)) && (
+                          <Button size="sm" variant="outline" className="rounded-full h-8 text-xs whitespace-nowrap" onClick={() => markPaid(r)}>
+                            שולם
+                          </Button>
+                        )}
+                        {r.status === "cancelled" && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => deleteRow(r)}
+                            aria-label="מחיקה"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                   {expanded === key && (
                     <tr className="bg-cream/40">
-                      <td colSpan={9} className="p-4">
+                      <td colSpan={6} className="p-4">
                         <div className="grid md:grid-cols-2 gap-4">
                           <div>
                             <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">פריטים</div>
@@ -610,7 +609,7 @@ function OrdersAdmin() {
               );
             })}
             {rows.length === 0 && (
-              <tr><td colSpan={9} className="p-16 text-center text-muted-foreground">אין הזמנות עדיין.</td></tr>
+              <tr><td colSpan={6} className="p-16 text-center text-muted-foreground">אין הזמנות עדיין.</td></tr>
             )}
           </tbody>
         </table>
