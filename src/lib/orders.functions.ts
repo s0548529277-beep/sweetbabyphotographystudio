@@ -333,7 +333,9 @@ export const placeOrder = createServerFn({ method: "POST" })
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.email) customerEmail = [...customerEmail, user.email];
-    } catch { /* ignore */ }
+    } catch (e) {
+      console.warn("[SWEETBABY] could not read account e-mail for order mail", e);
+    }
 
     try {
       const lines: SummaryOrderLine[] = orderLines.map((l) => ({
