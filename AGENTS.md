@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-15 (12:5x Israel) — Claude (chat, owner: "פרסם" + "תפעיל עבודה עכשיו"):** PUBLISHED head c533094 via the Lovable connector (deploy 57dbfea7-f466-469d-a1ee-28d90ce9f076, status pending when logged; not checked live). Carries the past-date marker, one-click "שולם", overlap warning, aria-labels, catch log. Starting the `as any` / types job next.
+
 - **2026-11-15 (11:2x Israel) — Claude (chat, owner: handle `as any` / empty `catch` screen by screen, carefully):** REVIEWED every empty `catch` in `src` (17, not 25): 16 are browser-storage / `JSON.parse` guards (`cart.tsx`, `wishlist.tsx`, `contact-handoff.ts`, `studio-rental.tsx`, `checkout.tsx`, `cart.tsx` route, `start.tsx`, `booking.tsx`, `previewAuthStorage.ts`) where silence is correct (storage can throw, a fallback exists) — left as is. The only server-side one (`orders.functions.ts`, reading the account e-mail for the order mail) now logs `console.warn`. `as any` (~600, mostly untyped Supabase tables / `order_edit_requests` etc.) NOT changed: the right fix is regenerating `integrations/supabase/types.ts` from the live DB, then removing casts per file — a separate careful job (best at night). tsc OK; not published.
 - **2026-11-15 (11:3x Israel) — Claude (chat, owner: "טפל ופרסם"):** PUBLISHED head 836ea28 via the Lovable connector (deploy 18ee869e-cccc-4c3b-8365-f768c0b5b79f, status pending when logged; not checked live). Carries the no-duplicate-draft and digest-thread fixes.
 
