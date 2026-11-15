@@ -286,6 +286,13 @@ async function cleanupAnsweredThreads(
  * reply draft when a reply is opened). In a thread where the assistant's written draft exists, any extra draft that
  * is completely empty (no text at all) is deleted. A draft with any text is never touched.
  */
+/** Empty draft, or the designed blank template ("היי," + signature only, made by the admin "blank draft" button). */
+function isBlankTemplateSnippet(snippet: string): boolean {
+  const t = snippet.replace(/\s+/g, " ").trim();
+  if (!t) return true;
+  return /^MICHAL SIBONI.{0,80}?היי,\s*(MICHAL SIBONI\s*)?053/.test(t);
+}
+
 async function removeEmptyTemplateDrafts(
   g: typeof import("@/integrations/google/gmail.server"),
   connKey: string,
@@ -305,7 +312,7 @@ async function removeEmptyTemplateDrafts(
     );
     const ds = (th?.messages ?? []).filter((m) => m.labelIds?.includes("DRAFT"));
     if (ds.length < 2) continue;
-    const empty = ds.filter((m) => !(m.snippet ?? "").trim());
+    const empty = ds.filter((m) => isBlankTemplateSnippet(m.snippet ?? ""));
     if (empty.length === 0 || empty.length === ds.length) continue; // keep at least one written draft
     for (const m of empty) {
       const id = draftByMsg.get(m.id);
