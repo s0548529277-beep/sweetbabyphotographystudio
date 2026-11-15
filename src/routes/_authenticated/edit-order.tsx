@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { heError } from "@/lib/he-errors";
-import { getEditableOrder, submitOrderEdit, previewOrderEdit, getFreeBookingStarts, searchAddableItems } from "@/lib/order-edit.functions";
+import { getEditableOrder, submitOrderEdit, previewOrderEdit, getFreeBookingStarts, getFreeBookingDates, searchAddableItems } from "@/lib/order-edit.functions";
 import { EDIT_APPROVAL_WINDOW_HOURS } from "@/lib/order-edit";
 import { PROPS_LATEST_HANDOFF } from "@/lib/props-hours";
 
@@ -38,6 +38,8 @@ function EditOrder() {
   const previewFn = useServerFn(previewOrderEdit);
   const searchFn = useServerFn(searchAddableItems);
   const freeFn = useServerFn(getFreeBookingStarts);
+  const freeDatesFn = useServerFn(getFreeBookingDates);
+  const [freeDates, setFreeDates] = useState<string[] | null>(null);
   const validId = /^[0-9a-f-]{36}$/i.test(id);
   const q = useQuery({
     queryKey: ["editable-order", kind, id],
@@ -57,6 +59,13 @@ function EditOrder() {
   const [addQ, setAddQ] = useState("");
   const [addResults, setAddResults] = useState<Array<{ sku: string; name: string; price: number }>>([]);
   const [preview, setPreview] = useState<null | { ok: boolean; error?: string; delta?: number; newTotal?: number; needsApproval?: boolean }>(null);
+  useEffect(() => {
+    if (!id || kind !== "booking") return;
+    let off = false;
+    freeDatesFn({ data: { id } }).then((r) => { if (!off) setFreeDates(r.dates); }).catch(() => { if (!off) setFreeDates([]); });
+    return () => { off = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, kind]);
   const [freeTimes, setFreeTimes] = useState<string[] | null>(null);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -202,6 +211,19 @@ function EditOrder() {
                 <div>
                   <Label htmlFor="eo-date">תאריך הצילום</Label>
                   <Input id="eo-date" type="date" value={date} min={new Date().toISOString().slice(0, 10)} disabled={d.booking.hasReservedItems} onChange={(e) => setDate(e.target.value)} />
+                  {!d.booking.hasReservedItems && freeDates && freeDates.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-xs text-muted-foreground mb-1">תאריכים פנויים בחודש וחצי הקרובים (לחיצה בוחרת):</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {freeDates.slice(0, 24).map((fd) => (
+                          <button key={fd} type="button" onClick={() => setDate(fd)} className={`text-xs rounded-full border px-2.5 py-1 ${date === fd ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"}`}>
+                            {new Date(`${fd}T12:00:00`).toLocaleDateString("he-IL", { weekday: "short", day: "numeric", month: "numeric" })}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {freeDates && freeDates.length === 0 && <p className="text-xs text-muted-foreground mt-1">לא נמצאו תאריכים פנויים בחודש וחצי הקרובים לאורך הזה — נשמח לעזור בצ׳אט.</p>}
                 </div>
                 <div>
                   <Label htmlFor="eo-start">שעת התחלה (משך השריון נשאר {d.booking.start_time}–{d.booking.end_time})</Label>

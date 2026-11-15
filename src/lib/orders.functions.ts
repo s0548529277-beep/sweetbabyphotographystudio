@@ -348,7 +348,7 @@ export const placeOrder = createServerFn({ method: "POST" })
         heading: "בקשת הזמנה התקבלה 📦",
         guestSignupHtml: await (await import("@/lib/guest-claim.server")).guestSignupBlock(userId, "order", order.id, Number(total)),
         intro:
-          "קיבלנו את בקשת ההזמנה שלך להשכרת אביזרים מסטודיו Sweetbaby. <strong>ההזמנה עדיין לא סופית</strong> — כדי לאשר אותה בפועל, יש להשלים את התשלום (או לצרף אסמכתא לתשלום) בעמוד הבא. ברגע שהתשלום יאושר, יישלח אליך אישור הזמנה נוסף עם סיכום מלא.",
+          ("קיבלנו את בקשת ההזמנה שלך להשכרת אביזרים מסטודיו Sweetbaby. <strong>ההזמנה עדיין לא סופית</strong> — כדי לאשר אותה בפועל, יש להשלים את התשלום (או לצרף אסמכתא לתשלום) בעמוד הבא. ברגע שהתשלום יאושר, יישלח אליך אישור הזמנה נוסף עם סיכום מלא.").replace(/בעמוד הבא/g, /הוזמן דרך אשף/.test(String(data.notes ?? "")) ? "בקישור שלמטה" : "בעמוד הבא"),
         order: {
           id: order.id,
           contact_name: data.contact_name,
@@ -898,3 +898,30 @@ export const checkItemsAvailability = createServerFn({ method: "POST" })
     }
     return result;
   });
+
+/**
+ * Cancels props orders that were opened but never moved forward: still pending,
+ * no payment/receipt/cash marked (deposit_status = 'pending') and older than 3 days.
+ * Frees their item reservations. Orders with a submitted receipt or cash promise are left for the admin.
+ */
+export async function runExpireStalePendingOrders(): Promise<{ checked: number; cancelled: number }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const db = supabaseAdmin as any;
+  const cutoff = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: rows } = await db
+    .from("orders")
+    .select("id, notes")
+    .eq("status", "pending")
+    .eq("deposit_status", "pending")
+    .lt("created_at", cutoff)
+    .limit(100);
+  let cancelled = 0;
+  for (const r of rows ?? []) {
+    const note = `${r.notes ? r.notes + "\n" : ""}[בוטלה אוטומטית — לא הושלם תשלום תוך 3 ימים]`;
+    const { error } = await db.from("orders").update({ status: "cancelled", notes: note }).eq("id", r.id).eq("status", "pending");
+    if (error) continue;
+    await db.from("item_availability").delete().eq("order_id", r.id);
+    cancelled++;
+  }
+  return { checked: (rows ?? []).length, cancelled };
+}

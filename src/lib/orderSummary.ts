@@ -19,6 +19,15 @@ function dateWithHebrew(isoDate: string | null | undefined): string {
 // link) — one hosted payment page for both the on-site checkout flow and
 // any email that needs to hand a customer a payment link directly (e.g. a
 // phone booking, where there's no browser session to send her back to).
+/** Notes lines written by the system (chat wizard, edits) are internal; the customer's mail shows only what she wrote. */
+export function customerVisibleNotes(notes?: string | null): string {
+  return String(notes ?? "")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l && !/^(הוזמן דרך אשף|מקדמה:|עריכת לקוחה|\[)/.test(l))
+    .join("\n");
+}
+
 export const TAKBULL_PAY_URL = "https://paypage.takbull.co.il/4fk6g";
 
 /** A prominent "pay now" button for emails that can't rely on the customer being on the site (e.g. a phone booking). */
@@ -292,7 +301,7 @@ export function buildBookingSummaryHtml(opts: {
       ${b.deposit_amount != null ? row(continueUrl || paymentAmount != null ? "מקדמה לתשלום (טרם שולמה)" : "מקדמה ששולמה", `₪${b.deposit_amount}`) : ""}
       ${b.balance_method ? row("אמצעי תשלום", PAYMENT_METHOD_LABELS[b.balance_method] ?? escapeHtml(b.balance_method)) : ""}
       ${row("יתרה לתשלום בסטודיו", `₪${balance}`)}
-      ${b.notes ? row("הערות", escapeHtml(String(b.notes))) : ""}
+      ${customerVisibleNotes(b.notes) ? row("הערות", escapeHtml(customerVisibleNotes(b.notes))) : ""}
     </table>
     ${cashbackHtml}
     ${itemsHtml}
@@ -524,7 +533,7 @@ export function buildPropsOrderSummaryHtml(opts: {
       ${row("איסוף", `${dateWithHebrew(o.session_date)}${o.pickup_time ? ` בשעה ${o.pickup_time}` : ""}`)}
       ${row("החזרה", `${dateWithHebrew(o.return_date)}${o.return_time ? ` בשעה ${o.return_time}` : ""}`)}
       ${o.balance_method ? row("אמצעי תשלום", PAYMENT_METHOD_LABELS[o.balance_method] ?? escapeHtml(o.balance_method)) : ""}
-      ${o.notes ? row("הערות", escapeHtml(String(o.notes))) : ""}
+      ${customerVisibleNotes(o.notes) ? row("הערות", escapeHtml(customerVisibleNotes(o.notes))) : ""}
     </table>
     <h3 style="color:#2d3d2b;margin-top:24px">פריטים</h3>
     <table style="width:100%;border-collapse:collapse;background:#faf7f4;border-radius:8px">${itemsRows}</table>

@@ -1018,3 +1018,59 @@ export const reviewOrderEditRequest = createServerFn({ method: "POST" })
     }
     return { ok: true };
   });
+
+/** Dates in the next ~45 days that still have at least one free start for this booking (same length / package). */
+export const getFreeBookingDates = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }): Promise<{ dates: string[] }> => {
+    const { supabase, userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db: any = supabaseAdmin;
+    const row = await loadOwnRow(supabase, "booking", data.id, userId);
+    const { isMorningPackage } = await import("@/lib/bookings.functions");
+    const { bookingBlocksSlot } = await import("@/lib/availability.server");
+    const hhmm = (t: string) => { const [h, m] = String(t).slice(0, 5).split(":").map(Number); return h * 60 + m; };
+    const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const from = new Date();
+    const to = new Date(Date.now() + 45 * 24 * 3600 * 1000);
+    const fromIso = iso(from), toIso = iso(to);
+    const { data: existing } = await db
+      .from("bookings")
+      .select("id, session_date, start_time, end_time, status, deposit_status, created_at, notes")
+      .gte("session_date", fromIso).lte("session_date", toIso)
+      .neq("status", "cancelled").neq("id", row.id);
+    const byDate: Record<string, Array<[number, number]>> = {};
+    for (const b of (existing ?? []).filter((x: any) => bookingBlocksSlot(x))) (byDate[b.session_date] ??= []).push([hhmm(b.start_time), hhmm(b.end_time)]);
+    try {
+      const { listGoogleCalendarBusy } = await import("@/integrations/google/calendar.server");
+      const gbusy = await listGoogleCalendarBusy(fromIso, toIso);
+      const ownS = hhmm(row.start_time), ownE = hhmm(row.end_time);
+      for (const [day, list] of Object.entries(gbusy)) for (const [bs, be] of list) {
+        if (row.google_event_id && row.session_date === day && bs === ownS && be === ownE) continue;
+        (byDate[day] ??= []).push([bs, be]);
+      }
+    } catch (e) {
+      console.error("[SWEETBABY] edit-order free dates: calendar read failed", e);
+    }
+    const oldStart = String(row.start_time).slice(0, 5);
+    const dates: string[] = [];
+    for (let i = 0; i <= 45; i++) {
+      const day = iso(new Date(from.getTime() + i * 24 * 3600 * 1000));
+      if (new Date(`${day}T12:00:00`).getDay() === 6) continue; // Shabbat
+      const busy = byDate[day] ?? [];
+      let ok = false;
+      for (let m = 7 * 60; m <= 21 * 60 && !ok; m += 30) {
+        const start = `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+        const end = addMinutesHHMM(start, Number(row.slots) * 30);
+        if (end <= start) continue;
+        if (sessionStartMs(day, start) <= Date.now()) continue;
+        if (isMorningPackage(Number(row.slots), start) !== isMorningPackage(Number(row.slots), oldStart)) continue;
+        const e = hhmm(end);
+        if (busy.some(([bs, be]) => m < be && e > bs)) continue;
+        ok = true;
+      }
+      if (ok) dates.push(day);
+    }
+    return { dates };
+  });

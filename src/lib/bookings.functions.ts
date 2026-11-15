@@ -466,7 +466,7 @@ export const placeBooking = createServerFn({ method: "POST" })
       const html = buildBookingSummaryHtml({
         heading: "בקשת השריון התקבלה 📋",
         guestSignupHtml: await (await import("@/lib/guest-claim.server")).guestSignupBlock(userId, "booking", booking.id, Number(price)),
-        intro: `קיבלנו את בקשת השריון שלך לסטודיו Sweetbaby. <strong>התאריך עדיין לא סופי</strong> — כדי לאשר ולשריין אותו בפועל, יש להשלים את תשלום המקדמה (או לצרף אסמכתא לתשלום) בעמוד הבא <strong>תוך ${PENDING_HOLD_MINUTES / 60} שעה</strong>, אחרת התאריך עלול להשתחרר ללקוחות אחרות. ברגע שהתשלום יאושר, יישלח אליך אישור שריון נוסף עם סיכום מלא.`,
+        intro: /אשלם בהמשך/.test(String(data.notes ?? "")) ? `קיבלנו את בקשת השריון שלך לסטודיו Sweetbaby. <strong>התאריך עדיין לא סופי</strong> — כדי לאשר ולשריין אותו בפועל, יש להשלים את תשלום המקדמה (או לצרף אסמכתא) בקישור שלמטה. עד אז התאריך עלול להשתחרר ללקוחות אחרות. ברגע שהתשלום יאושר, יישלח אליך אישור שריון נוסף עם סיכום מלא.` : `קיבלנו את בקשת השריון שלך לסטודיו Sweetbaby. <strong>התאריך עדיין לא סופי</strong> — כדי לאשר ולשריין אותו בפועל, יש להשלים את תשלום המקדמה (או לצרף אסמכתא לתשלום) בעמוד הבא <strong>תוך ${PENDING_HOLD_MINUTES / 60} שעה</strong>, אחרת התאריך עלול להשתחרר ללקוחות אחרות. ברגע שהתשלום יאושר, יישלח אליך אישור שריון נוסף עם סיכום מלא.`,
         booking: {
           id: booking.id,
           contact_name: data.contact_name,

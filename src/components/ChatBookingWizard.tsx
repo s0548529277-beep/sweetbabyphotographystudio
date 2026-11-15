@@ -98,6 +98,7 @@ export function ChatBookingWizard({
   const [flash, setFlash] = useState(saved.flash ?? "");
   const [props, setProps] = useState(saved.props ?? "");
   const [special, setSpecial] = useState(saved.special ?? "");
+  const [familyRoom, setFamilyRoom] = useState<"" | "yes" | "no">("");
 
   const [name, setName] = useState(saved.name ?? "");
   const [phone, setPhone] = useState(saved.phone ?? "");
@@ -208,6 +209,7 @@ export function ChatBookingWizard({
     else if (date && hours && !time) missing.push("בחרי שעת התחלה");
   } else if (step === 1) {
     if (!sessionType) missing.push("בחרי סוג צילום (שאר השדות אופציונליים)");
+    if (!familyRoom) missing.push("האם מעוניינת בחדר משפחה?");
   } else if (step === 2) {
     if (!name.trim()) missing.push("חסר שם מלא");
     if (!phoneOk) missing.push("חסר טלפון תקין");
@@ -258,6 +260,7 @@ export function ChatBookingWizard({
             flashExperience: flash,
             needProps: props,
             specialRequests: special,
+            familyRoom: familyRoom === "yes" ? "מעוניינת בחדר משפחה (פינת קפה ושירותים)" : "לא מעוניינת בחדר משפחה",
             agreed: true,
           },
         });
@@ -432,6 +435,13 @@ export function ChatBookingWizard({
               ))}
             </div>
             <p className="text-[11px] text-muted-foreground">{GUIDANCE_LABELS[guidance]}</p>
+          </Field>
+          <Field label="חדר משפחה להמתנה בזמן הצילום (פינת קפה ושירותים, ללא תוספת תשלום)">
+            <div className="flex flex-wrap gap-1.5">
+              <Chip active={familyRoom === "yes"} onClick={() => setFamilyRoom("yes")}>מעוניינת</Chip>
+              <Chip active={familyRoom === "no"} onClick={() => setFamilyRoom("no")}>לא צריך</Chip>
+            </div>
+            <p className="text-[11px] text-muted-foreground">אין התחייבות לזמינות — אם תבחרי "מעוניינת" נבדוק זמינות ונעדכן אותך.</p>
           </Field>
           <Field label="בקשות מיוחדות (אופציונלי)">
             <Input value={special} onChange={(e) => setSpecial(e.target.value)} className="h-9 text-sm" />
