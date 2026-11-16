@@ -10,6 +10,7 @@ import { toCSV, downloadCSV } from "@/lib/csv";
 import { toast } from "sonner";
 import { importSiteEmailsToNewsletter, importPastedLeadsToNewsletter } from "@/lib/newsletter.functions";
 import { useAuth } from "@/lib/auth";
+import { GalleryImagePicker } from "@/components/GalleryImagePicker";
 import { renderNewsletterHtml, type NewsletterDraft } from "@/lib/newsletter-template";
 import {
   getNewsletterDraft,
@@ -271,12 +272,12 @@ function SendTab() {
   const onTest = () => run(async () => { await test({ data: { draft: d, to } }); toast.success(`מייל בדיקה נשלח אל ${to}`); }, "שליחת הבדיקה נכשלה");
   const onSend = () =>
     run(async () => {
-      await save({ data: d });
-      const { campaignId, total } = await start({ data: d });
-      if (!confirm(`לשלוח את הניוזלטר ל-${total} נרשמים?`)) {
+      if (!confirm(`לשלוח את הניוזלטר ל-${q.data?.activeCount ?? 0} נרשמים?`)) {
         toast.info("השליחה בוטלה");
         return;
       }
+      await save({ data: d });
+      const { campaignId, total } = await start({ data: d });
       let offset = 0;
       let sent = 0;
       let failed = 0;
@@ -301,7 +302,12 @@ function SendTab() {
           התבנית מוכנה בעיצוב מיילי הסטודיו (מסגרת, לוגו וחתימה). מעדכנים את הטקסט, שולחים בדיקה לעצמך, ואז שולחים לכל הנרשמים הפעילים ({q.data?.activeCount ?? 0}).
           בתחתית כל מייל יש קישור להסרה מהרשימה.
         </p>
-        {FIELDS.map((f) => (
+        {FIELDS.map((f) => f.key === "imageUrl" ? (
+          <div key={f.key} className="block">
+            <span className="mb-1 block text-sm">תמונה (אפשר להשאיר ריק)</span>
+            <GalleryImagePicker value={d.imageUrl || null} onChange={(v) => set("imageUrl", v ?? "")} />
+          </div>
+        ) : (
           <label key={f.key} className="block">
             <span className="mb-1 block text-sm">{f.label}</span>
             {f.multiline ? (
