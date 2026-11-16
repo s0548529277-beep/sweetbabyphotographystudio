@@ -12,6 +12,7 @@ import { getVisitorJourneys } from "@/lib/visitor-tracking.functions";
 import { VisitorJourneyPanel } from "@/components/VisitorJourneyPanel";
 import type { VisitorJourney } from "@/lib/visitor-journey";
 import { Target, Plus, MessageCircle, Mail, Phone } from "lucide-react";
+import { LEAD_STAGES, LEAD_STATUS_KEYS, OPEN_LEAD_STAGES } from "@/lib/lead-status";
 
 // Inquiry leads (table public.inquiry_leads — NOT public.leads, which is the
 // older newsletter sign-up table). Filled automatically every hour by the
@@ -40,13 +41,7 @@ type Lead = {
   created_at: string;
 };
 
-const STATUS: Record<string, { label: string; cls: string }> = {
-  new: { label: "חדשה – לא נענתה", cls: "bg-rose-100 text-rose-800" },
-  replied: { label: "נענתה", cls: "bg-sky-100 text-sky-800" },
-  follow_up: { label: "נשלח מעקב", cls: "bg-amber-100 text-amber-800" },
-  booked: { label: "סגרה ✓", cls: "bg-emerald-100 text-emerald-800" },
-  not_relevant: { label: "לא רלוונטי", cls: "bg-stone-200 text-stone-600" },
-};
+const STATUS: Record<string, { label: string; cls: string }> = Object.fromEntries(LEAD_STAGES.map((x) => [x.key, { label: x.label, cls: x.cls }]));
 
 const TOPIC: Record<string, string> = {
   newborn: "ניו בורן",
@@ -260,8 +255,8 @@ function LeadsAdmin() {
   const journeyOf = (key: string) => journeys.data?.[key];
 
   const counts = useMemo(() => {
-    const c = { new: 0, replied: 0, follow_up: 0, booked: 0, not_relevant: 0 } as Record<
-      "new" | "replied" | "follow_up" | "booked" | "not_relevant",
+    const c = { new: 0, replied: 0, in_talk: 0, follow_up: 0, booked: 0, not_relevant: 0 } as Record<
+      "new" | "replied" | "in_talk" | "follow_up" | "booked" | "not_relevant",
       number
     >;
     for (const l of all) if (l.status in c) c[l.status as keyof typeof c] += 1;
@@ -291,12 +286,17 @@ function LeadsAdmin() {
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
     return all.filter((l) => {
-      if (statusFilter === "open" && !["new", "replied", "follow_up"].includes(l.status)) return false;
+      if (statusFilter === "open" && !OPEN_LEAD_STAGES.includes(l.status)) return false;
       if (statusFilter !== "open" && statusFilter !== "all" && l.status !== statusFilter) return false;
       if (topicFilter !== "all" && l.topic !== topicFilter) return false;
       if (q && !`${l.name ?? ""} ${l.email ?? ""} ${l.phone ?? ""} ${l.message ?? ""} ${l.notes ?? ""}`.toLowerCase().includes(q))
         return false;
       return true;
+    }).sort((a, b) => {
+      // several stages on screen: group by stage (open first, then closed, then not relevant), newest first inside a stage
+      const ia = LEAD_STATUS_KEYS.indexOf(a.status), ib = LEAD_STATUS_KEYS.indexOf(b.status);
+      if (ia !== ib) return ia - ib;
+      return Date.parse(b.first_contact_at) - Date.parse(a.first_contact_at);
     });
   }, [all, statusFilter, topicFilter, search]);
 
@@ -528,13 +528,15 @@ function LeadsAdmin() {
       )}
 
       {/* Summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
         {[
           { k: "all", label: "סה״כ פניות", v: counts.total },
           { k: "new", label: "לא נענו", v: counts.new },
           { k: "replied", label: "נענו", v: counts.replied },
+          { k: "in_talk", label: "בשיחה", v: counts.in_talk },
           { k: "follow_up", label: "נשלח מעקב", v: counts.follow_up },
-          { k: "booked", label: "סגרו", v: counts.booked },
+          { k: "booked", label: "סגרו ✓", v: counts.booked },
+          { k: "not_relevant", label: "לא רלוונטי", v: counts.not_relevant },
           { k: "conv", label: "אחוז סגירה", v: `${counts.conversion}%` },
         ].map((c) => (
           <button
@@ -577,7 +579,7 @@ function LeadsAdmin() {
       {/* Filters */}
       <div className="flex flex-wrap gap-2 items-center">
         <select className="border rounded-md h-9 px-2 bg-background text-sm" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-          <option value="open">פתוחות (לא סגרו)</option>
+          <option value="open">פתוחות (בטיפול)</option>
           <option value="all">הכל</option>
           {Object.entries(STATUS).map(([k, v]) => (
             <option key={k} value={k}>{v.label}</option>

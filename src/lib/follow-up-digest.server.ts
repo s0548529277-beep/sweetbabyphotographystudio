@@ -14,7 +14,7 @@ const STATE_KEY = "follow_up_digest_state";
 const MIN_GAP_MS = 55 * 60_000;
 const SITE = "https://sweetbabyphoto.shop";
 
-type Reason = { id?: string; weight: number; icon: string; text: string; at: string | null; remind?: boolean };
+type Reason = { id?: string; weight: number; icon: string; text: string; at: string | null; remind?: boolean; leadId?: string };
 type Person = { key: string; name: string; phone: string; email: string; reasons: Reason[] };
 
 const esc = (s: unknown) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] as string);
@@ -224,8 +224,29 @@ export async function collectFollowUps(db: any): Promise<Person[]> {
   return [...people.values()].sort((a, b) => Math.max(...b.reasons.map((r) => r.weight)) - Math.max(...a.reasons.map((r) => r.weight)));
 }
 
-function renderHtml(people: Person[], stillWaiting: number): string {
+const BUTTON_STAGES: { key: string; label: string; bg: string; fg: string }[] = [
+  { key: "in_talk", label: "בשיחה", bg: "#ede9fe", fg: "#5b21b6" },
+  { key: "replied", label: "נענתה", bg: "#e0f2fe", fg: "#075985" },
+  { key: "follow_up", label: "מעקב", bg: "#fef3c7", fg: "#92400e" },
+  { key: "booked", label: "סגרה ✓", bg: "#d1fae5", fg: "#065f46" },
+  { key: "not_relevant", label: "לא רלוונטי", bg: "#e7e5e4", fg: "#57534e" },
+];
+
+async function stageButtons(leadIds: string[]): Promise<Record<string, string>> {
+  const { leadStatusUrl } = await import("@/lib/lead-status.server");
+  const out: Record<string, string> = {};
+  for (const id of leadIds) {
+    const links = await Promise.all(
+      BUTTON_STAGES.map(async (b) => `<a href="${await leadStatusUrl(id, b.key)}" style="display:inline-block;margin:3px 0 3px 6px;padding:5px 12px;border-radius:999px;background:${b.bg};color:${b.fg};font-size:13px;font-weight:700;text-decoration:none">${b.label}</a>`),
+    );
+    out[id] = `<div style="margin-top:8px;font-size:12px;color:#6b8a63">שלב הליד:<br>${links.join("")}</div>`;
+  }
+  return out;
+}
+
+async function renderHtml(people: Person[], stillWaiting: number): Promise<string> {
   const fresh = new Set<string>();
+  const buttons = await stageButtons([...new Set(people.flatMap((p) => p.reasons.map((r) => r.leadId).filter(Boolean) as string[]))]);
   const rows = people
     .map((p) => {
       const isNew = false;
@@ -243,6 +264,7 @@ function renderHtml(people: Person[], stillWaiting: number): string {
         <div style="font-size:16px;font-weight:700;color:#2d3d2b">${esc(p.name || "ללא שם")}${isNew ? ' <span style="font-size:11px;background:#d98b7a;color:#fff;border-radius:999px;padding:2px 8px;margin-right:6px">חדש</span>' : ""}</div>
         <div style="margin:4px 0 6px;font-size:14px">${contact || '<span style="color:#8a9a85">אין פרטי קשר — שיחת צ׳אט אנונימית</span>'}</div>
         <ul style="margin:0;padding:0 18px;font-size:14px;color:#2d3d2b">${reasons}</ul>
+        ${[...new Set(p.reasons.map((r) => r.leadId).filter(Boolean) as string[])].map((id) => buttons[id] ?? "").join("")}
       </div>`;
     })
     .join("");
@@ -250,7 +272,7 @@ function renderHtml(people: Person[], stillWaiting: number): string {
     <h2 style="margin-bottom:4px">📋 למי לחזור עכשיו</h2>
     <p style="margin:0 0 8px;color:#6b8a63">${people.length} ${people.length === 1 ? "חדשה" : "חדשות"} מאז הסיכום הקודם. מסודר לפי דחיפות.${stillWaiting ? ` עוד ${stillWaiting} מהסיכומים הקודמים עדיין מחכות — לא חוזר עליהן כאן.` : ""}</p>
     ${rows}
-    <p style="color:#6b8a63;font-size:12px;margin-top:18px">פניות וטלפונים: <a href="${SITE}/admin/leads">${SITE}/admin/leads</a> · התראות: <a href="${SITE}/admin/notifications">${SITE}/admin/notifications</a><br>כשסימנת הודעה כנקראה או שינית סטטוס לליד — היא יוצאת מהרשימה. הסיכום נשלח פעם בשעה, ורק עם מה שנוסף מאז הסיכום הקודם.</p>
+    <p style="color:#6b8a63;font-size:12px;margin-top:18px">פניות וטלפונים: <a href="${SITE}/admin/leads">${SITE}/admin/leads</a> · התראות: <a href="${SITE}/admin/notifications">${SITE}/admin/notifications</a><br>כשסימנת הודעה כנקראה או שינית סטטוס לליד (גם בכפתורי השלב כאן) — היא יוצאת מהרשימה. הסיכום נשלח פעם בשעה, ורק עם מה שנוסף מאז הסיכום הקודם.</p>
   </div>`;
 }
 
@@ -289,7 +311,7 @@ export async function runHourlyFollowUpDigest(opts: { force?: boolean } = {}): P
   const res = await sendGmailDetailed({
     to: DIGEST_TO,
     subject: `📋 למי לחזור — ${dayLabel}`,
-    html: renderHtml(news, stillWaiting),
+    html: await renderHtml(news, stillWaiting),
     fromName: "Sweetbaby · סיכום שעתי",
     messageId: msgId,
     ...(reply ? { threadId: state.threadId!, inReplyTo: state.msgId! } : {}),
