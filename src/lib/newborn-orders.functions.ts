@@ -349,7 +349,7 @@ type BookingBlockResult = {
   confirmed?: { date: string; start: string; end: string };
 };
 
-async function syncNewbornBookingBlock(
+export async function syncNewbornBookingBlock(
   db: any,
   adminUserId: string,
   order: {
