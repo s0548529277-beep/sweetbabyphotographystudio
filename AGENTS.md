@@ -31,6 +31,8 @@
 
 - **2026-11-16 (Israel) — Claude (chat, owner: "פרסם"):** PUBLISHED head 34a5f0b via the Lovable connector (deploy 42dfd208-a0bc-4f85-943f-14ec1dde4f6d, status pending when logged; not checked live). Carries the compact 6-column `/admin/orders` table (no horizontal scrollbar).
 
+- **2026-11-16 (22:0x Israel) — Claude (chat, owner: "נמשיך שוב"):** SETTING ONLY. Meta business verification RE-SUBMITTED via the owner's unfiltered Chrome (sole proprietorship, registered; same name/address/phone/site; zip changed to 7192900, still a guess); owner ticked the reCAPTCHA herself. Status in Security center: "בבדיקה" (Meta says ~2 business days). Footer legal-name line must stay.
+
 - **2026-11-15 (22:5x Israel) — Claude (chat, owner: "פרסם ותבדוק מה שראית ברשימת השינויים"):** PUBLISHED head f0de005 via the Lovable connector (deploy aa3f6cb6-125c-4c98-8f04-c07cce59bbd3, status pending when logged; not checked live). Carries the removal of the duplicate family-room badge. CHECK of the editor's "Build unsuccessful / Preview is out of date" marks: local `tsc` and `vite build` pass on this head; the connector lists every recent commit as completed (only the newest was pending). Likely preview staleness for GitHub-pushed commits, not a broken build; not proven.
 
 - **2026-11-15 (22:5x Israel) — Claude (chat, owner: "יש כפילות מידע בעמוד הסטודיו על חדר משפחה"):** `studio-rental.tsx`: removed the small round "חדש" badge + its popup (same photos/text as the visible family-room section); the section under the hero, the FAQ entry and the questionnaire question stay. tsc OK; not clicked live; not published.
