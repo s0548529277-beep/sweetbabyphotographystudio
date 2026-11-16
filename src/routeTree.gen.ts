@@ -41,10 +41,10 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedEditOrderRouteImport } from './routes/_authenticated/edit-order'
 import { Route as AuthenticatedMyPhotosRouteImport } from './routes/_authenticated/my-photos'
 import { Route as ApiChatStreamRouteImport } from './routes/api.chat-stream'
+import { Route as ApiLeadStatusRouteImport } from './routes/api.lead-status'
 import { Route as ApiPhotographerSyncRouteImport } from './routes/api.photographer-sync'
 import { Route as ApiSendBookingRemindersRouteImport } from './routes/api.send-booking-reminders'
 import { Route as ApiTrackDwellRouteImport } from './routes/api.track-dwell'
-import { Route as ApiLeadStatusRouteImport } from './routes/api.lead-status'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogChalakahPhotoshootGuideRouteImport } from './routes/blog.chalakah-photoshoot-guide'
 import { Route as BlogEssentialNewbornPropsRouteImport } from './routes/blog.essential-newborn-props'
@@ -276,6 +276,11 @@ const ApiChatStreamRoute = ApiChatStreamRouteImport.update({
   path: '/api/chat-stream',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLeadStatusRoute = ApiLeadStatusRouteImport.update({
+  id: '/api/lead-status',
+  path: '/api/lead-status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPhotographerSyncRoute = ApiPhotographerSyncRouteImport.update({
   id: '/api/photographer-sync',
   path: '/api/photographer-sync',
@@ -289,11 +294,6 @@ const ApiSendBookingRemindersRoute = ApiSendBookingRemindersRouteImport.update({
 const ApiTrackDwellRoute = ApiTrackDwellRouteImport.update({
   id: '/api/track-dwell',
   path: '/api/track-dwell',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiLeadStatusRoute = ApiLeadStatusRouteImport.update({
-  id: '/api/lead-status',
-  path: '/api/lead-status',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlogIndexRoute = BlogIndexRouteImport.update({
@@ -732,10 +732,10 @@ export interface FileRoutesByFullPath {
   '/edit-order': typeof AuthenticatedEditOrderRoute
   '/my-photos': typeof AuthenticatedMyPhotosRoute
   '/api/chat-stream': typeof ApiChatStreamRoute
+  '/api/lead-status': typeof ApiLeadStatusRoute
   '/api/photographer-sync': typeof ApiPhotographerSyncRoute
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
   '/api/track-dwell': typeof ApiTrackDwellRoute
-  '/api/lead-status': typeof ApiLeadStatusRoute
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
   '/blog/newborn-photo-crying-baby': typeof BlogNewbornPhotoCryingBabyRoute
@@ -839,10 +839,10 @@ export interface FileRoutesByTo {
   '/edit-order': typeof AuthenticatedEditOrderRoute
   '/my-photos': typeof AuthenticatedMyPhotosRoute
   '/api/chat-stream': typeof ApiChatStreamRoute
+  '/api/lead-status': typeof ApiLeadStatusRoute
   '/api/photographer-sync': typeof ApiPhotographerSyncRoute
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
   '/api/track-dwell': typeof ApiTrackDwellRoute
-  '/api/lead-status': typeof ApiLeadStatusRoute
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
   '/blog/newborn-photo-crying-baby': typeof BlogNewbornPhotoCryingBabyRoute
@@ -949,10 +949,10 @@ export interface FileRoutesById {
   '/_authenticated/edit-order': typeof AuthenticatedEditOrderRoute
   '/_authenticated/my-photos': typeof AuthenticatedMyPhotosRoute
   '/api/chat-stream': typeof ApiChatStreamRoute
+  '/api/lead-status': typeof ApiLeadStatusRoute
   '/api/photographer-sync': typeof ApiPhotographerSyncRoute
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
   '/api/track-dwell': typeof ApiTrackDwellRoute
-  '/api/lead-status': typeof ApiLeadStatusRoute
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
   '/blog/essential-newborn-props': typeof BlogEssentialNewbornPropsRoute
   '/blog/newborn-photo-crying-baby': typeof BlogNewbornPhotoCryingBabyRoute
@@ -1059,10 +1059,10 @@ export interface FileRouteTypes {
     | '/edit-order'
     | '/my-photos'
     | '/api/chat-stream'
+    | '/api/lead-status'
     | '/api/photographer-sync'
     | '/api/send-booking-reminders'
     | '/api/track-dwell'
-    | '/api/lead-status'
     | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
     | '/blog/newborn-photo-crying-baby'
@@ -1166,10 +1166,10 @@ export interface FileRouteTypes {
     | '/edit-order'
     | '/my-photos'
     | '/api/chat-stream'
+    | '/api/lead-status'
     | '/api/photographer-sync'
     | '/api/send-booking-reminders'
     | '/api/track-dwell'
-    | '/api/lead-status'
     | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
     | '/blog/newborn-photo-crying-baby'
@@ -1275,10 +1275,10 @@ export interface FileRouteTypes {
     | '/_authenticated/edit-order'
     | '/_authenticated/my-photos'
     | '/api/chat-stream'
+    | '/api/lead-status'
     | '/api/photographer-sync'
     | '/api/send-booking-reminders'
     | '/api/track-dwell'
-    | '/api/lead-status'
     | '/blog/chalakah-photoshoot-guide'
     | '/blog/essential-newborn-props'
     | '/blog/newborn-photo-crying-baby'
@@ -1381,10 +1381,10 @@ export interface RootRouteChildren {
   TrackRoute: typeof TrackRoute
   WishlistRoute: typeof WishlistRoute
   ApiChatStreamRoute: typeof ApiChatStreamRoute
+  ApiLeadStatusRoute: typeof ApiLeadStatusRoute
   ApiPhotographerSyncRoute: typeof ApiPhotographerSyncRoute
   ApiSendBookingRemindersRoute: typeof ApiSendBookingRemindersRoute
   ApiTrackDwellRoute: typeof ApiTrackDwellRoute
-  ApiLeadStatusRoute: typeof ApiLeadStatusRoute
   BlogChalakahPhotoshootGuideRoute: typeof BlogChalakahPhotoshootGuideRoute
   BlogEssentialNewbornPropsRoute: typeof BlogEssentialNewbornPropsRoute
   BlogNewbornPhotoCryingBabyRoute: typeof BlogNewbornPhotoCryingBabyRoute
@@ -1636,6 +1636,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiChatStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/lead-status': {
+      id: '/api/lead-status'
+      path: '/api/lead-status'
+      fullPath: '/api/lead-status'
+      preLoaderRoute: typeof ApiLeadStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/photographer-sync': {
       id: '/api/photographer-sync'
       path: '/api/photographer-sync'
@@ -1655,13 +1662,6 @@ declare module '@tanstack/react-router' {
       path: '/api/track-dwell'
       fullPath: '/api/track-dwell'
       preLoaderRoute: typeof ApiTrackDwellRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/lead-status': {
-      id: '/api/lead-status'
-      path: '/api/lead-status'
-      fullPath: '/api/lead-status'
-      preLoaderRoute: typeof ApiLeadStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blog/': {
@@ -2370,10 +2370,10 @@ const rootRouteChildren: RootRouteChildren = {
   TrackRoute: TrackRoute,
   WishlistRoute: WishlistRoute,
   ApiChatStreamRoute: ApiChatStreamRoute,
+  ApiLeadStatusRoute: ApiLeadStatusRoute,
   ApiPhotographerSyncRoute: ApiPhotographerSyncRoute,
   ApiSendBookingRemindersRoute: ApiSendBookingRemindersRoute,
   ApiTrackDwellRoute: ApiTrackDwellRoute,
-  ApiLeadStatusRoute: ApiLeadStatusRoute,
   BlogChalakahPhotoshootGuideRoute: BlogChalakahPhotoshootGuideRoute,
   BlogEssentialNewbornPropsRoute: BlogEssentialNewbornPropsRoute,
   BlogNewbornPhotoCryingBabyRoute: BlogNewbornPhotoCryingBabyRoute,

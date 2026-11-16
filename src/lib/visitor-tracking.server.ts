@@ -10,6 +10,7 @@
  * Everything in this file is best-effort: it must never break the booking / order it is attached to.
  */
 import { getRequestHeader } from "@tanstack/react-start/server";
+import { rowMatches, parseIgnoreList, inIgnoreList, last9, lowerEmail } from "@/lib/closed-customer";
 import { buildJourney, emailKey, phoneKey, type VisitorJourney } from "@/lib/visitor-journey";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -179,6 +180,27 @@ async function loadAlertState(db: any): Promise<AlertState> {
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
+/** True when this phone/email already closed (booking/order/package) or is in app_settings.visitor_alert_ignore. */
+async function isClosedCustomer(db: any, phone: string | null, email: string | null): Promise<boolean> {
+  const p = last9(phone), e = lowerEmail(email);
+  if (!p && !e) return false;
+  const { data: ign } = await db.from("app_settings").select("value").eq("key", "visitor_alert_ignore").maybeSingle();
+  if (ign?.value != null && inIgnoreList(parseIgnoreList(ign.value), phone, email)) return true;
+  const orFilter = [p ? `contact_phone.ilike.%${p.slice(-4)}%` : null, e ? `contact_email.ilike.${e}` : null].filter(Boolean).join(",");
+  const check = async (q: any) => {
+    const { data, error } = await q.or(orFilter).limit(500);
+    if (error) throw error;
+    return ((data ?? []) as any[]).some((r) => rowMatches(r, phone, email));
+  };
+  const cols = "contact_phone, contact_email";
+  if (await check(db.from("bookings").select(cols).in("status", ["confirmed", "completed"]))) return true;
+  if (await check(db.from("orders").select(cols).in("status", ["confirmed", "active", "returned"]))) return true;
+  for (const t of ["newborn_package_orders", "outdoor_package_orders"]) {
+    if (await check(db.from(t).select(`${cols}, contract_confirmed_at, amount_paid`).or("contract_confirmed_at.not.is.null,amount_paid.gt.0"))) return true;
+  }
+  return false;
+}
+
 export async function maybeSendAlert(db: any, visitorId: string, reason: "identified" | "returned"): Promise<boolean> {
   const { data: ids } = await db
     .from("visitor_identities")
@@ -192,6 +214,12 @@ export async function maybeSendAlert(db: any, visitorId: string, reason: "identi
   const email = identities.find((i) => i.email)?.email ?? null;
   const name = identities.find((i) => i.name)?.name ?? null;
   if ((email && OWNER_KEYS.has(email)) || (phone && OWNER_PHONES.has(phone))) return false;
+
+  try {
+    if (await isClosedCustomer(db, phone, email)) return false;
+  } catch (e) {
+    console.error("[SWEETBABY] closed-customer check failed", e);
+  }
 
   const journey = await journeyForVisitors(db, [visitorId]);
   if (reason === "identified" && !journey.hot) return false;
