@@ -34,7 +34,6 @@ export const PUBLISH_SECTION_TITLE = "זכויות ואישור פרסום";
 /** Body of the rights + publishing section; the choice itself is made on the signing page. */
 export function publishSectionBodyHtml(): string {
   const choices = PUBLISH_OPTIONS.map((o) => `<li style="margin:2px 0">${o}</li>`).join("");
-  return `<p style="margin:6px 0">זכויות היוצרים בתמונות שמורות לצלמת. התמונות מיועדות לשימוש אישי של המשפחה, ואין להעביר אותן לצד שלישי או להשתמש בהן מסחרית ללא אישור מראש.</p>
-    <p style="margin:6px 0">אשמח לפרסם חלק מהתמונות באתר וברשתות. את הבחירה שלך את מסמנת בדף האישור, באחת האפשרויות:</p>
+  return `<p style="margin:6px 0">כל תמונה שיוצאת תחתיי נעשית באהבה ואני גאה לשתף.<br>אשמח מאוד לקבל אישור להוסיף את העבודה לאתר שלי כדי שעוד משפחות יוכלו להתרשם ולהתרגש. את הבחירה שלך את מסמנת בדף האישור, באחת האפשרויות:</p>
     <ul style="margin:6px 0;padding-inline-start:20px">${choices}</ul>`;
 }
