@@ -13,7 +13,7 @@ import { useAuth } from "@/lib/auth";
 import { useProfilePrefill } from "@/hooks/use-profile";
 import { saveContactHandoff } from "@/lib/contact-handoff";
 import { EmailDatalist } from "@/components/EmailDatalist";
-import { submitStudioIntake } from "@/lib/studio-intake.functions";
+import { submitStudioIntake, adminGetBookingIntake, adminSaveBookingIntake } from "@/lib/studio-intake.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { InspirationStrip } from "@/components/InspirationStrip";
@@ -33,6 +33,9 @@ export const Route = createFileRoute("/studio-rental")({
     ],
     links: [{ rel: "canonical", href: "https://sweetbabyphoto.shop/studio-rental" }],
     scripts: [{ type: "application/ld+json", children: JSON.stringify(STUDIO_FAQ_JSONLD) }],
+  }),
+  validateSearch: (s: Record<string, unknown>): { editBooking?: string } => ({
+    editBooking: typeof s.editBooking === "string" && /^[0-9a-f-]{36}$/i.test(s.editBooking) ? s.editBooking : undefined,
   }),
   component: StudioRentalPage,
 });
@@ -170,6 +173,41 @@ function StudioRentalPage() {
   const { user } = useAuth();
   const profile = useProfilePrefill();
   const submitIntake = useServerFn(submitStudioIntake);
+  // Admin edit mode (/studio-rental?editBooking=<id>): opens the same agreement form pre-filled from a closed booking.
+  const { editBooking } = Route.useSearch();
+  const getBookingIntake = useServerFn(adminGetBookingIntake);
+  const saveBookingIntake = useServerFn(adminSaveBookingIntake);
+  useEffect(() => {
+    if (!editBooking) return;
+    let cancelled = false;
+    getBookingIntake({ data: { bookingId: editBooking } })
+      .then((res) => {
+        if (cancelled) return;
+        const p = (res.payload ?? {}) as Record<string, string>;
+        const cam = String(p.cameraBrand ?? "");
+        const [brand, ...rest] = cam.split(" · ");
+        const camNeed = rest.find((x) => x.startsWith("מצלמה:"))?.replace("מצלמה:", "").trim() ?? "";
+        const g = guidanceOptions.find((o) => String(p.needProps ?? "").startsWith(o.tag));
+        setForm({
+          ...emptyForm,
+          clientName: p.clientName || res.contact.name,
+          phone: p.phone || res.contact.phone,
+          email: p.email || res.contact.email,
+          sessionType: p.sessionType ?? "",
+          cameraBrand: brand ?? "",
+          cameraNeed: camNeed,
+          flashExperience: p.flashExperience ?? "",
+          guidance: g?.key ?? "basic",
+          familyRoom: String(p.familyRoom ?? "").startsWith("מעוניינת") ? "yes" : p.familyRoom ? "no" : "",
+          specialRequests: p.specialRequests ?? "",
+          agreed: true,
+        });
+        setShowForm(true);
+      })
+      .catch((e) => toast.error(heError(e, "טעינת ההסכם נכשלה")));
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editBooking]);
   // Returning customer: a questionnaire she already signed in the last 90 days lets her go straight to choosing a date.
   const [lastIntakeAt, setLastIntakeAt] = useState<string | null>(null);
   useEffect(() => {
@@ -192,7 +230,7 @@ function StudioRentalPage() {
 
   // Prefill from the customer's personal area.
   useEffect(() => {
-    if (!profile.loaded) return;
+    if (!profile.loaded || editBooking) return;
     setForm((f) => ({
       ...f,
       clientName: f.clientName || profile.fullName,
@@ -249,7 +287,7 @@ function StudioRentalPage() {
       toast.error("יש לאשר את הסכם תיאום הציפיות לפני השליחה.");
       return;
     }
-    if (!user) {
+    if (!user && !editBooking) {
       try { localStorage.setItem(INTAKE_DRAFT_KEY, JSON.stringify(form)); } catch { /* ignore */ }
       toast.error("יש להתחבר או להמשיך כאורח — נחזור בדיוק לכאן.");
       nav({ to: "/auth", search: { redirect: "/studio-rental" } });
@@ -259,8 +297,7 @@ function StudioRentalPage() {
     const guidanceLabel = guidanceOptions.find((g) => g.key === form.guidance);
     setSubmitting(true);
     try {
-      await submitIntake({
-        data: {
+      const intakeData = {
           clientName: form.clientName,
           phone: form.phone,
           email: form.email,
@@ -274,9 +311,16 @@ function StudioRentalPage() {
           specialRequests: form.specialRequests,
           familyRoom: form.familyRoom === "yes" ? "מעוניינת בחדר משפחה (פינת קפה ושירותים)" : "לא מעוניינת בחדר משפחה",
 
-          agreed: true,
-        },
-      });
+          agreed: true as const,
+      };
+      if (editBooking) {
+        await saveBookingIntake({ data: { bookingId: editBooking, payload: intakeData } });
+        toast.success("ההסכם עודכן ✓");
+        setShowForm(false);
+        nav({ to: "/admin/orders" });
+        return;
+      }
+      await submitIntake({ data: intakeData });
       saveContactHandoff({
         fullName: form.clientName,
         phone: form.phone,
@@ -655,10 +699,18 @@ function StudioRentalPage() {
             <h2 className="text-2xl md:text-3xl text-[#2d3d2b]" style={{ fontFamily: "'DM Serif Display', serif" }}>
               הסכם תיאום ציפיות
             </h2>
-            <FlowProgress steps={STUDIO_FLOW_STEPS} current={1} className="mt-4" />
-            <p className="mt-4 text-sm text-[#2d3d2b]/75 leading-relaxed">
-              <strong>אישור ההסכם הוא תנאי לפתיחת היומן</strong> — מיד לאחר השליחה נעבור לבחירת תאריך ושעה.
-            </p>
+            {editBooking ? (
+              <p className="mt-4 text-sm text-[#8b3a2a] leading-relaxed">
+                <strong>מצב עריכה (מנהלת):</strong> עריכת ההסכם של הזמנה סגורה. השמירה מעדכנת את ההסכם ולא שולחת מייל ללקוחה.
+              </p>
+            ) : (
+              <>
+                <FlowProgress steps={STUDIO_FLOW_STEPS} current={1} className="mt-4" />
+                <p className="mt-4 text-sm text-[#2d3d2b]/75 leading-relaxed">
+                  <strong>אישור ההסכם הוא תנאי לפתיחת היומן</strong> — מיד לאחר השליחה נעבור לבחירת תאריך ושעה.
+                </p>
+              </>
+            )}
 
             {/* RULES — full agreement text */}
             <div className="mt-5 bg-white rounded-2xl border border-[#2d3d2b]/10 p-4 md:p-5 max-h-72 overflow-y-auto">
@@ -808,7 +860,7 @@ function StudioRentalPage() {
                 disabled={submitting}
                 className="rounded-full bg-[#2d3d2b] hover:bg-[#1f2b1e] text-[#f8ede4] px-7 py-3.5 text-sm font-medium transition-colors disabled:opacity-50"
               >
-                {submitting ? "שומר…" : "אישור והמשך ליומן →"}
+                {submitting ? "שומר…" : editBooking ? "שמירת שינויים" : "אישור והמשך ליומן →"}
               </button>
               <button
                 type="button"

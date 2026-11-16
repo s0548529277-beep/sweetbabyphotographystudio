@@ -1,5 +1,5 @@
 import { familyRoomStatus } from "@/lib/family-room-status";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -382,6 +382,11 @@ function OrdersAdmin() {
                         {r.status !== "cancelled" && ["pending", "cash_pending", "submitted"].includes(String(r.raw?.deposit_status)) && (
                           <Button size="sm" variant="outline" className="rounded-full h-8 text-xs whitespace-nowrap" onClick={() => markPaid(r)}>
                             שולם
+                          </Button>
+                        )}
+                        {r.kind === "booking" && r.status !== "cancelled" && (
+                          <Button asChild size="sm" variant="outline" className="rounded-full h-8 text-xs whitespace-nowrap">
+                            <Link to="/studio-rental" search={{ editBooking: r.id }}>✏️ עריכת הסכם</Link>
                           </Button>
                         )}
                         {r.status === "cancelled" && (

@@ -59,3 +59,81 @@ export const submitStudioIntake = createServerFn({ method: "POST" })
     return { ok: true, id: row?.id ?? null };
   });
 
+
+async function assertAdminUser(supabase: any, userId: string) {
+  const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+  if (!data?.some((r: any) => r.role === "admin")) throw new Error("אין הרשאת ניהול");
+}
+
+/** Admin: loads the signed coordination-agreement payload of a studio booking (by booking_id, else the customer's latest) for editing. */
+export const adminGetBookingIntake = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ bookingId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdminUser(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: booking } = await supabaseAdmin
+      .from("bookings")
+      .select("id, user_id, contact_name, contact_phone, contact_email")
+      .eq("id", data.bookingId)
+      .maybeSingle();
+    if (!booking) throw new Error("השריון לא נמצא");
+    let row: any = null;
+    const byBooking = await supabaseAdmin
+      .from("studio_intake_forms")
+      .select("id, payload, created_at")
+      .eq("booking_id", data.bookingId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    row = byBooking.data;
+    if (!row && booking.user_id) {
+      const byUser = await supabaseAdmin
+        .from("studio_intake_forms")
+        .select("id, payload, created_at")
+        .eq("user_id", booking.user_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      row = byUser.data;
+    }
+    return {
+      payload: (row?.payload ?? null) as Record<string, string> | null,
+      contact: { name: booking.contact_name ?? "", phone: booking.contact_phone ?? "", email: booking.contact_email ?? "" },
+    };
+  });
+
+/** Admin: saves an edited coordination agreement for a studio booking, even after the rental is closed. Sends no mail and no notification. */
+export const adminSaveBookingIntake = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ bookingId: z.string().uuid(), payload: intakeSchema.extend({ agreed: z.literal(true) }) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdminUser(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: booking } = await supabaseAdmin
+      .from("bookings")
+      .select("id, user_id")
+      .eq("id", data.bookingId)
+      .maybeSingle();
+    if (!booking) throw new Error("השריון לא נמצא");
+    const payload = JSON.parse(JSON.stringify(data.payload));
+    const { data: existing } = await supabaseAdmin
+      .from("studio_intake_forms")
+      .select("id")
+      .eq("booking_id", data.bookingId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (existing?.id) {
+      const { error } = await supabaseAdmin.from("studio_intake_forms").update({ payload }).eq("id", existing.id);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabaseAdmin
+        .from("studio_intake_forms")
+        .insert({ booking_id: data.bookingId, user_id: booking.user_id ?? null, payload });
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true };
+  });
