@@ -45,7 +45,6 @@ function ContractSigningPage() {
   const [children, setChildren] = useState("");
   const [childrenTouched, setChildrenTouched] = useState(false);
   const [publish, setPublish] = useState<string>("");
-  const [publishOther, setPublishOther] = useState("");
   const [payment, setPayment] = useState<string>("");
   const [notes, setNotes] = useState("");
 
@@ -107,7 +106,7 @@ function ContractSigningPage() {
 
   const allRead = groups.length > 0 && read.size === groups.length;
   const answersDone =
-    childrenValue.trim().length >= 2 && !!publish && (publish !== "אחר" || publishOther.trim().length > 0) && !!payment;
+    childrenValue.trim().length >= 2 && !!publish && !!payment;
   const canSend = allRead && answersDone;
 
   const toggle = (i: number) =>
@@ -123,7 +122,6 @@ function ContractSigningPage() {
     const answers = {
       children: childrenValue.trim(),
       publish: publish as (typeof PUBLISH_OPTIONS)[number],
-      publishOther: publishOther.trim(),
       payment: payment as (typeof PAYMENT_OPTIONS)[number],
       notes: notes.trim(),
     };
@@ -222,14 +220,6 @@ function ContractSigningPage() {
               </label>
             ))}
           </div>
-          {publish === "אחר" && (
-            <input
-              value={publishOther}
-              onChange={(e) => setPublishOther(e.target.value)}
-              placeholder="פרטי כאן"
-              className="mt-2 w-full rounded-xl border border-[#d9b98a]/60 bg-white px-3 py-2 text-sm"
-            />
-          )}
         </fieldset>
 
         <fieldset>
