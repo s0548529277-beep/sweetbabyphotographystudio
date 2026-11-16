@@ -1,3 +1,4 @@
+import { TzintukButton } from "@/components/TzintukButton";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -673,8 +674,9 @@ function PhotoClientDetail() {
       </Link>
 
       <div>
-        <h2 className="font-display text-xl text-primary">
+        <h2 className="font-display text-xl text-primary flex items-center gap-3 flex-wrap">
           {booking.contact_name}
+          <TzintukButton phone={booking.contact_phone} name={booking.contact_name} />
           {workflow.package_type && <span className="text-sm font-normal text-muted-foreground"> · {PHOTO_PACKAGES[workflow.package_type as PhotoPackageKey].label}</span>}
         </h2>
         <p className="text-sm text-muted-foreground" dir="ltr">

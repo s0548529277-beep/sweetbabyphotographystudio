@@ -1207,7 +1207,12 @@ const STUDIO_OWNER_PHONE = "0548529277";
  * periodic /api/send-booking-reminders cron hit — no separate scheduler
  * needed.
  */
+/** Owner decision 2026-11-16: automatic tzintuks are OFF (manual button only). */
+const TZINTUK_AUTO_ENABLED = false;
+
 export async function notifyPendingPhoneBookingConfirmations(): Promise<{ checked: number; called: number }> {
+  // Owner decision 2026-11-16: no automatic tzintuks (also none to the owner herself).
+  if (!(TZINTUK_AUTO_ENABLED as boolean)) return { checked: 0, called: 0 };
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const cutoff = new Date(Date.now() - PHONE_CONFIRM_REMINDER_AFTER_MINUTES * 60 * 1000).toISOString();
 
@@ -1274,6 +1279,8 @@ const PROPS_REQUEST_REMINDER_AFTER_MINUTES = 120;
  * scans from the same periodic /api/send-booking-reminders cron hit.
  */
 export async function notifyPendingPropsRequests(): Promise<{ checked: number; called: number }> {
+  // Owner decision 2026-11-16: no automatic tzintuks (also none to the owner herself).
+  if (!(TZINTUK_AUTO_ENABLED as boolean)) return { checked: 0, called: 0 };
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const cutoff = new Date(Date.now() - PROPS_REQUEST_REMINDER_AFTER_MINUTES * 60 * 1000).toISOString();
 

@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import { TzintukButton } from "@/components/TzintukButton";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/lib/image-compress";
@@ -693,7 +694,7 @@ function OutdoorOrderGallery() {
           <ArrowRight className="h-4 w-4" />
         </Link>
         <div>
-          <h2 className="font-display text-2xl text-primary">{order.contact_name}</h2>
+          <h2 className="font-display text-2xl text-primary flex items-center gap-3 flex-wrap">{order.contact_name} <TzintukButton phone={order.contact_phone} name={order.contact_name} /></h2>
           <p className="text-sm text-muted-foreground">
             {order.package_name ?? "צילומי חוץ"} · ₪{order.total_price}
           </p>

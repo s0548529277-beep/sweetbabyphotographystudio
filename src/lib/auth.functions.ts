@@ -238,6 +238,7 @@ export const requestPhoneResetCode = createServerFn({ method: "POST" })
         phone: data.phone,
         text: `שלום, קוד האיפוס שלך לסטודיו סוויט בייבי הוא: ${spoken}. הקוד בתוקף ל-${RESET_CODE_TTL_MINUTES} דקות.`,
         label: "איפוס סיסמה",
+        force: true, // customer asked for the code herself — not an automatic nudge
       });
       return { ok: true };
     } catch (e) {

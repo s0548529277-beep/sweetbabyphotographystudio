@@ -82,7 +82,17 @@ export async function sendYemotVoiceMessage(opts: {
   alsoSms?: boolean;
   /** Shown in the admin_notifications title if this fails, e.g. a booking id. */
   label: string;
+  /**
+   * Owner decision 2026-11-16: NO automatic tzintuks. A call is placed only
+   * when `force` is true — set by the admin "צינתוק" button (Michal picks it
+   * herself) and by the customer-initiated phone password reset. Everything
+   * else (confirmations, reminders, door codes, owner nudges) is skipped
+   * without placing a call or storing a pending message.
+   */
+  force?: boolean;
 }): Promise<boolean> {
+  if (!opts.force) return false;
+
   // Stored first, unconditionally — so the FULL message is there to be
   // delivered on her next call in even if the outbound leg below fails
   // outright (no units, network hiccup, wrong credentials). See
