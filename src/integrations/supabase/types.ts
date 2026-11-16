@@ -454,8 +454,6 @@ export type Database = {
           cancellation_charge: number | null
           cashback_awarded: number
           contact_email: string | null
-          family_room_slots: string | null
-          family_room_booked_at: string | null
           contact_name: string | null
           contact_phone: string | null
           coupon_code: string | null
@@ -469,6 +467,8 @@ export type Database = {
           deposit_status: string
           door_code: string | null
           end_time: string
+          family_room_booked_at: string | null
+          family_room_slots: string | null
           google_event_id: string | null
           id: string
           notes: string | null
@@ -502,8 +502,6 @@ export type Database = {
           cancellation_charge?: number | null
           cashback_awarded?: number
           contact_email?: string | null
-          family_room_slots?: string | null
-          family_room_booked_at?: string | null
           contact_name?: string | null
           contact_phone?: string | null
           coupon_code?: string | null
@@ -517,6 +515,8 @@ export type Database = {
           deposit_status?: string
           door_code?: string | null
           end_time: string
+          family_room_booked_at?: string | null
+          family_room_slots?: string | null
           google_event_id?: string | null
           id?: string
           notes?: string | null
@@ -550,8 +550,6 @@ export type Database = {
           cancellation_charge?: number | null
           cashback_awarded?: number
           contact_email?: string | null
-          family_room_slots?: string | null
-          family_room_booked_at?: string | null
           contact_name?: string | null
           contact_phone?: string | null
           coupon_code?: string | null
@@ -565,6 +563,8 @@ export type Database = {
           deposit_status?: string
           door_code?: string | null
           end_time?: string
+          family_room_booked_at?: string | null
+          family_room_slots?: string | null
           google_event_id?: string | null
           id?: string
           notes?: string | null
@@ -1503,6 +1503,8 @@ export type Database = {
           contract_answers: Json | null
           contract_confirmed_at: string | null
           contract_sent_at: string | null
+          contract_snapshot: string | null
+          contract_snapshot_at: string | null
           created_at: string
           date_deposit_at: string | null
           delivered_at: string | null
@@ -1510,6 +1512,8 @@ export type Database = {
           drive_synced_at: string | null
           edited_zip_downloads: number
           editing_done_at: string | null
+          external_id: string | null
+          external_source: string | null
           extra_photos_count: number
           gallery_opened_at: string | null
           gallery_sent_at: string | null
@@ -1561,6 +1565,8 @@ export type Database = {
           contract_answers?: Json | null
           contract_confirmed_at?: string | null
           contract_sent_at?: string | null
+          contract_snapshot?: string | null
+          contract_snapshot_at?: string | null
           created_at?: string
           date_deposit_at?: string | null
           delivered_at?: string | null
@@ -1568,6 +1574,8 @@ export type Database = {
           drive_synced_at?: string | null
           edited_zip_downloads?: number
           editing_done_at?: string | null
+          external_id?: string | null
+          external_source?: string | null
           extra_photos_count?: number
           gallery_opened_at?: string | null
           gallery_sent_at?: string | null
@@ -1619,6 +1627,8 @@ export type Database = {
           contract_answers?: Json | null
           contract_confirmed_at?: string | null
           contract_sent_at?: string | null
+          contract_snapshot?: string | null
+          contract_snapshot_at?: string | null
           created_at?: string
           date_deposit_at?: string | null
           delivered_at?: string | null
@@ -1626,6 +1636,8 @@ export type Database = {
           drive_synced_at?: string | null
           edited_zip_downloads?: number
           editing_done_at?: string | null
+          external_id?: string | null
+          external_source?: string | null
           extra_photos_count?: number
           gallery_opened_at?: string | null
           gallery_sent_at?: string | null
@@ -1691,12 +1703,49 @@ export type Database = {
         }
         Relationships: []
       }
+      newsletter_campaigns: {
+        Row: {
+          created_at: string
+          draft: Json
+          failed_count: number
+          finished_at: string | null
+          id: string
+          sent_count: number
+          subject: string
+          total: number
+        }
+        Insert: {
+          created_at?: string
+          draft: Json
+          failed_count?: number
+          finished_at?: string | null
+          id?: string
+          sent_count?: number
+          subject: string
+          total?: number
+        }
+        Update: {
+          created_at?: string
+          draft?: Json
+          failed_count?: number
+          finished_at?: string | null
+          id?: string
+          sent_count?: number
+          subject?: string
+          total?: number
+        }
+        Relationships: []
+      }
       newsletter_signups: {
         Row: {
           created_at: string
           email: string
           id: string
+          name: string | null
           source: string | null
+          status: string
+          unsubscribe_token: string
+          unsubscribed_at: string | null
           wheel_coupon_code: string | null
           wheel_prize_sequence: Json | null
           wheel_spun_at: string | null
@@ -1705,7 +1754,11 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
+          name?: string | null
           source?: string | null
+          status?: string
+          unsubscribe_token?: string
+          unsubscribed_at?: string | null
           wheel_coupon_code?: string | null
           wheel_prize_sequence?: Json | null
           wheel_spun_at?: string | null
@@ -1714,7 +1767,11 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          name?: string | null
           source?: string | null
+          status?: string
+          unsubscribe_token?: string
+          unsubscribed_at?: string | null
           wheel_coupon_code?: string | null
           wheel_prize_sequence?: Json | null
           wheel_spun_at?: string | null
@@ -1822,8 +1879,8 @@ export type Database = {
           cancellation_charge: number | null
           cashback_awarded: number
           confirmation_sent_at: string | null
-          contact_name: string | null
           contact_email: string | null
+          contact_name: string | null
           contact_phone: string | null
           coupon_code: string | null
           coupon_discount: number
@@ -1864,8 +1921,8 @@ export type Database = {
           cancellation_charge?: number | null
           cashback_awarded?: number
           confirmation_sent_at?: string | null
-          contact_name?: string | null
           contact_email?: string | null
+          contact_name?: string | null
           contact_phone?: string | null
           coupon_code?: string | null
           coupon_discount?: number
@@ -1906,8 +1963,8 @@ export type Database = {
           cancellation_charge?: number | null
           cashback_awarded?: number
           confirmation_sent_at?: string | null
-          contact_name?: string | null
           contact_email?: string | null
+          contact_name?: string | null
           contact_phone?: string | null
           coupon_code?: string | null
           coupon_discount?: number
@@ -1980,7 +2037,15 @@ export type Database = {
           secret_hash?: string
           used_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "outdoor_gallery_access_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "outdoor_package_orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       outdoor_order_images: {
         Row: {
@@ -2028,7 +2093,15 @@ export type Database = {
           storage_path?: string
           watermarked?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "outdoor_order_images_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "outdoor_package_orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       outdoor_package_orders: {
         Row: {
@@ -2366,8 +2439,6 @@ export type Database = {
       }
       photo_client_workflows: {
         Row: {
-          contract_snapshot: string | null
-          contract_snapshot_at: string | null
           album_upgrades: string | null
           all_photos_unlocked: boolean
           amount_paid: number
@@ -2377,6 +2448,8 @@ export type Database = {
           contract_answers: Json | null
           contract_confirmed_at: string | null
           contract_sent_at: string | null
+          contract_snapshot: string | null
+          contract_snapshot_at: string | null
           contract_token: string | null
           created_at: string
           drive_folder_url: string | null
@@ -2402,8 +2475,6 @@ export type Database = {
           wants_editing: boolean | null
         }
         Insert: {
-          contract_snapshot?: string | null
-          contract_snapshot_at?: string | null
           album_upgrades?: string | null
           all_photos_unlocked?: boolean
           amount_paid?: number
@@ -2413,6 +2484,8 @@ export type Database = {
           contract_answers?: Json | null
           contract_confirmed_at?: string | null
           contract_sent_at?: string | null
+          contract_snapshot?: string | null
+          contract_snapshot_at?: string | null
           contract_token?: string | null
           created_at?: string
           drive_folder_url?: string | null
@@ -2438,8 +2511,6 @@ export type Database = {
           wants_editing?: boolean | null
         }
         Update: {
-          contract_snapshot?: string | null
-          contract_snapshot_at?: string | null
           album_upgrades?: string | null
           all_photos_unlocked?: boolean
           amount_paid?: number
@@ -2449,6 +2520,8 @@ export type Database = {
           contract_answers?: Json | null
           contract_confirmed_at?: string | null
           contract_sent_at?: string | null
+          contract_snapshot?: string | null
+          contract_snapshot_at?: string | null
           contract_token?: string | null
           created_at?: string
           drive_folder_url?: string | null
