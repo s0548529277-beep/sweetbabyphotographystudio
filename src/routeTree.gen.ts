@@ -56,6 +56,7 @@ import { Route as GoFunnelRouteImport } from './routes/go.$funnel'
 import { Route as ItemsIdRouteImport } from './routes/items.$id'
 import { Route as MediaSplatRouteImport } from './routes/media.$'
 import { Route as PhotoThanksIdRouteImport } from './routes/photo-thanks.$id'
+import { Route as UnsubscribeTokenRouteImport } from './routes/unsubscribe.$token'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminAlbumsRouteImport } from './routes/_authenticated/admin.albums'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin.analytics'
@@ -350,6 +351,11 @@ const MediaSplatRoute = MediaSplatRouteImport.update({
 const PhotoThanksIdRoute = PhotoThanksIdRouteImport.update({
   id: '/photo-thanks/$id',
   path: '/photo-thanks/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UnsubscribeTokenRoute = UnsubscribeTokenRouteImport.update({
+  id: '/unsubscribe/$token',
+  path: '/unsubscribe/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
@@ -727,6 +733,7 @@ export interface FileRoutesByFullPath {
   '/items/$id': typeof ItemsIdRoute
   '/media/$': typeof MediaSplatRoute
   '/photo-thanks/$id': typeof PhotoThanksIdRoute
+  '/unsubscribe/$token': typeof UnsubscribeTokenRoute
   '/blog/': typeof BlogIndexRoute
   '/collage-studio/': typeof CollageStudioIndexRoute
   '/admin/albums': typeof AuthenticatedAdminAlbumsRoute
@@ -831,6 +838,7 @@ export interface FileRoutesByTo {
   '/items/$id': typeof ItemsIdRoute
   '/media/$': typeof MediaSplatRoute
   '/photo-thanks/$id': typeof PhotoThanksIdRoute
+  '/unsubscribe/$token': typeof UnsubscribeTokenRoute
   '/blog': typeof BlogIndexRoute
   '/collage-studio': typeof CollageStudioIndexRoute
   '/admin/albums': typeof AuthenticatedAdminAlbumsRoute
@@ -938,6 +946,7 @@ export interface FileRoutesById {
   '/items/$id': typeof ItemsIdRoute
   '/media/$': typeof MediaSplatRoute
   '/photo-thanks/$id': typeof PhotoThanksIdRoute
+  '/unsubscribe/$token': typeof UnsubscribeTokenRoute
   '/blog/': typeof BlogIndexRoute
   '/collage-studio/': typeof CollageStudioIndexRoute
   '/_authenticated/admin/albums': typeof AuthenticatedAdminAlbumsRoute
@@ -1045,6 +1054,7 @@ export interface FileRouteTypes {
     | '/items/$id'
     | '/media/$'
     | '/photo-thanks/$id'
+    | '/unsubscribe/$token'
     | '/blog/'
     | '/collage-studio/'
     | '/admin/albums'
@@ -1149,6 +1159,7 @@ export interface FileRouteTypes {
     | '/items/$id'
     | '/media/$'
     | '/photo-thanks/$id'
+    | '/unsubscribe/$token'
     | '/blog'
     | '/collage-studio'
     | '/admin/albums'
@@ -1255,6 +1266,7 @@ export interface FileRouteTypes {
     | '/items/$id'
     | '/media/$'
     | '/photo-thanks/$id'
+    | '/unsubscribe/$token'
     | '/blog/'
     | '/collage-studio/'
     | '/_authenticated/admin/albums'
@@ -1358,6 +1370,7 @@ export interface RootRouteChildren {
   ItemsIdRoute: typeof ItemsIdRoute
   MediaSplatRoute: typeof MediaSplatRoute
   PhotoThanksIdRoute: typeof PhotoThanksIdRoute
+  UnsubscribeTokenRoute: typeof UnsubscribeTokenRoute
   BlogIndexRoute: typeof BlogIndexRoute
   CollageStudioIndexRoute: typeof CollageStudioIndexRoute
   ApiVoiceIncomingRoute: typeof ApiVoiceIncomingRoute
@@ -1700,6 +1713,13 @@ declare module '@tanstack/react-router' {
       path: '/photo-thanks/$id'
       fullPath: '/photo-thanks/$id'
       preLoaderRoute: typeof PhotoThanksIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/unsubscribe/$token': {
+      id: '/unsubscribe/$token'
+      path: '/unsubscribe/$token'
+      fullPath: '/unsubscribe/$token'
+      preLoaderRoute: typeof UnsubscribeTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/': {
@@ -2323,6 +2343,7 @@ const rootRouteChildren: RootRouteChildren = {
   ItemsIdRoute: ItemsIdRoute,
   MediaSplatRoute: MediaSplatRoute,
   PhotoThanksIdRoute: PhotoThanksIdRoute,
+  UnsubscribeTokenRoute: UnsubscribeTokenRoute,
   BlogIndexRoute: BlogIndexRoute,
   CollageStudioIndexRoute: CollageStudioIndexRoute,
   ApiVoiceIncomingRoute: ApiVoiceIncomingRoute,

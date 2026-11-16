@@ -288,6 +288,13 @@
       "when": 1794166400000,
       "tag": "0040_order_edit_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1794200000000,
+      "tag": "0041_newsletter_mailing_list",
+      "breakpoints": true
     }
   ]
 }
