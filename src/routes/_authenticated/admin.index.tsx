@@ -333,7 +333,7 @@ function IncomeSummary() {
         supabase.from("orders").select("total,status,created_at,scheduled_date"),
         supabase.from("bookings").select("price,status,package,session_date,created_at"),
         (supabase as any).from("newborn_package_orders").select("total_price,session_date,created_at"),
-        supabase.from("manual_income").select("amount,received_on"),
+        supabase.from("manual_income").select("amount,received_on,category"),
       ]);
       return {
         orders: (ordersRes.data ?? []) as any[],
@@ -369,6 +369,7 @@ function IncomeSummary() {
       if (inPeriod(n.session_date ?? n.created_at, period)) newborn += Number(n.total_price ?? 0);
     }
     for (const m of d.manual) {
+      if (m.category === "לא קשור") continue; // הכנסה שלא קשורה לעסק
       if (inPeriod(m.received_on, period)) other += Number(m.amount ?? 0);
     }
   }

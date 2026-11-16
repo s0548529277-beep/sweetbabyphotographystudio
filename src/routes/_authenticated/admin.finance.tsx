@@ -52,8 +52,14 @@ const IMPORT_STAGING_KEY = "finance_import_staging";
 const TYPE_PROPS = "השכרת אביזרים";
 const TYPE_STUDIO = "השכרת סטודיו";
 const TYPE_PHOTO = "צילומים בסטודיו";
-const INCOME_CATEGORIES = [TYPE_PHOTO, TYPE_STUDIO, TYPE_PROPS, "מכירה", "אחר"];
-const CATEGORIES = ["ציוד", "אביזרים", "שכירות", "פרסום", "משלוחים", "אחר"];
+// "לא קשור" — income/expense that has nothing to do with the business or the
+// home (e.g. money passing through for someone else). Stored as a plain
+// category value, so it needs no schema change; it is left out of the
+// business and personal views (and the ma'aser card) and only shows under
+// the "לא קשור" filter or "הכל".
+const UNRELATED = "לא קשור";
+const INCOME_CATEGORIES = [TYPE_PHOTO, TYPE_STUDIO, TYPE_PROPS, "מכירה", "אחר", UNRELATED];
+const CATEGORIES = ["ציוד", "אביזרים", "שכירות", "פרסום", "משלוחים", "אחר", UNRELATED];
 
 const monthKey = (d: string) => d.slice(0, 7);
 const ils = (n: number) => `₪${Math.round(n).toLocaleString("he-IL")}`;
@@ -134,7 +140,7 @@ function exportTxnsCSV(rows: Txn[]) {
       // "הכל" (the "אישי / עסק" filter set to show both) is what someone
       // would export to actually filter in Excel afterward — a column, not
       // a column she has to re-derive from which export she ran.
-      personal: t.isPersonal ? "אישי" : "עסק",
+      personal: t.type === UNRELATED ? "לא קשור" : t.isPersonal ? "אישי" : "עסק",
     })),
     [
       { key: "date", label: "תאריך" },
@@ -559,7 +565,7 @@ function FinanceAdmin() {
   // the business's own financial picture, same as before personal expenses
   // existed at all — personal ones are still tracked, just need an
   // explicit switch to see mixed in with (or instead of) business ones.
-  const [personalFilter, setPersonalFilter] = useState<"business" | "personal" | "all">("business");
+  const [personalFilter, setPersonalFilter] = useState<"business" | "personal" | "unrelated" | "all">("business");
   // Set by clicking the "סה״כ הכנסות"/"סה״כ הוצאות" summary card — filters
   // the transactions list below to just that kind and scrolls to it, so the
   // total shown on the card is immediately explained by the rows under it.
@@ -770,8 +776,10 @@ function FinanceAdmin() {
   const txns = useMemo(() => {
     const c = client.trim().toLowerCase();
     return allTxns.filter((t) => {
-      if (personalFilter === "business" && t.isPersonal) return false;
-      if (personalFilter === "personal" && !t.isPersonal) return false;
+      const unrelated = t.type === UNRELATED;
+      if (personalFilter === "business" && (t.isPersonal || unrelated)) return false;
+      if (personalFilter === "personal" && (!t.isPersonal || unrelated)) return false;
+      if (personalFilter === "unrelated" && !unrelated) return false;
       if (from && t.date < from) return false;
       if (to && t.date > to) return false;
       if (type !== "all" && t.type !== type) return false;
@@ -785,7 +793,7 @@ function FinanceAdmin() {
   // Feed for the ma'aser card: every transaction (date range is applied inside the card).
   const maaserTxns = useMemo<MaaserTxn[]>(
     () =>
-      allTxns.map((t) => ({
+      allTxns.filter((t) => t.type !== UNRELATED).map((t) => ({
         id: `${t.kind}:${t.id}`,
         kind: t.kind,
         title: t.title,
@@ -1127,10 +1135,11 @@ function FinanceAdmin() {
             <select
               className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               value={personalFilter}
-              onChange={(e) => setPersonalFilter(e.target.value as "business" | "personal" | "all")}
+              onChange={(e) => setPersonalFilter(e.target.value as "business" | "personal" | "unrelated" | "all")}
             >
               <option value="business">עסק בלבד</option>
               <option value="personal">אישי בלבד</option>
+              <option value="unrelated">לא קשור בלבד</option>
               <option value="all">הכל</option>
             </select>
           </div>
@@ -1525,9 +1534,14 @@ function FinanceAdmin() {
                       חוב
                     </span>
                   )}
-                  {t.isPersonal && (
+                  {t.isPersonal && t.type !== UNRELATED && (
                     <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
                       אישי
+                    </span>
+                  )}
+                  {t.type === UNRELATED && (
+                    <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                      לא קשור
                     </span>
                   )}
                 </div>
@@ -1605,20 +1619,41 @@ function FinanceAdmin() {
           <Button
             type="button"
             size="sm"
-            variant={!income.is_personal ? "default" : "outline"}
+            variant={!income.is_personal && income.category !== UNRELATED ? "default" : "outline"}
             className="h-8 px-3 rounded-full text-xs"
-            onClick={() => setIncome({ ...income, is_personal: false })}
+            onClick={() =>
+              setIncome({
+                ...income,
+                is_personal: false,
+                category: income.category === UNRELATED ? TYPE_PHOTO : income.category,
+              })
+            }
           >
             עסק
           </Button>
           <Button
             type="button"
             size="sm"
-            variant={income.is_personal ? "default" : "outline"}
+            variant={income.is_personal && income.category !== UNRELATED ? "default" : "outline"}
             className="h-8 px-3 rounded-full text-xs"
-            onClick={() => setIncome({ ...income, is_personal: true })}
+            onClick={() =>
+              setIncome({
+                ...income,
+                is_personal: true,
+                category: income.category === UNRELATED ? TYPE_PHOTO : income.category,
+              })
+            }
           >
             אישי (לבית)
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={income.category === UNRELATED ? "default" : "outline"}
+            className="h-8 px-3 rounded-full text-xs"
+            onClick={() => setIncome({ ...income, is_personal: false, category: UNRELATED })}
+          >
+            לא קשור
           </Button>
         </div>
         <Button className="mt-3" onClick={addIncome}>
@@ -1697,20 +1732,33 @@ function FinanceAdmin() {
           <Button
             type="button"
             size="sm"
-            variant={!form.is_personal ? "default" : "outline"}
+            variant={!form.is_personal && form.category !== UNRELATED ? "default" : "outline"}
             className="h-8 px-3 rounded-full text-xs"
-            onClick={() => setForm({ ...form, is_personal: false })}
+            onClick={() =>
+              setForm({ ...form, is_personal: false, category: form.category === UNRELATED ? "אחר" : form.category })
+            }
           >
             עסק
           </Button>
           <Button
             type="button"
             size="sm"
-            variant={form.is_personal ? "default" : "outline"}
+            variant={form.is_personal && form.category !== UNRELATED ? "default" : "outline"}
             className="h-8 px-3 rounded-full text-xs"
-            onClick={() => setForm({ ...form, is_personal: true })}
+            onClick={() =>
+              setForm({ ...form, is_personal: true, category: form.category === UNRELATED ? "אחר" : form.category })
+            }
           >
             אישי (לבית)
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={form.category === UNRELATED ? "default" : "outline"}
+            className="h-8 px-3 rounded-full text-xs"
+            onClick={() => setForm({ ...form, is_personal: false, category: UNRELATED })}
+          >
+            לא קשור
           </Button>
         </div>
         <Button className="mt-3" onClick={addExpense}>
