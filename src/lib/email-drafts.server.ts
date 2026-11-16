@@ -611,6 +611,9 @@ export type EmailDraftRunResult = {
   errors: string[];
 };
 
+// Owner switch (2026-11-17): false = the site does not send the family-room client mail (Claude sends it instead).
+const FAMILY_ROOM_SITE_MAIL_ENABLED = false;
+
 export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Promise<EmailDraftRunResult> {
   const result: EmailDraftRunResult = { ran: false, created: [], skipped: 0, errors: [] };
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -842,6 +845,13 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
             .update(notBooked ? { family_room_slots: null, family_room_booked_at: new Date().toISOString() } : { family_room_slots: slots, family_room_booked_at: new Date().toISOString() })
             .eq("id", bk.id);
           remember(`fr:${fm.id}`);
+        }
+        // 2026-11-17 (owner): the site NO LONGER mails the client about the family room. The hours are still saved above
+        // (admin + client area), but the client mail is now written and sent by Claude (scheduled task) in the studio design.
+        // This also stops the repeated copies that were arriving every ~15 minutes.
+        if (!FAMILY_ROOM_SITE_MAIL_ENABLED) {
+          remember(`frm:${fm.id}`);
+          continue;
         }
         if (isQuietForMail()) continue; // Shabbat window: keep `frm:` unset, the next run sends it
         const { data: u } = await db.auth.admin.getUserById(bk.user_id);
