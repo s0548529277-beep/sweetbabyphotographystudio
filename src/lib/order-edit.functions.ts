@@ -332,7 +332,7 @@ async function applyBookingEdit(id: string, changes: BookingChanges, who: string
         try { await deleteGoogleCalendarEvent(b.google_event_id); } catch (e) { console.error("[SWEETBABY] edit-order gcal delete failed", e); }
         const event = await createGoogleCalendarEvent({
           summary: `סטודיו · ${b.contact_name ?? ""}`.trim(),
-          description: [`טלפון: ${b.contact_phone ?? ""}`, `מחיר: ₪${b.price}`, "מקדמה שולמה ✓", "(מועד שונה בעריכת הזמנה)", b.notes ? `הערות: ${b.notes}` : null].filter(Boolean).join("\n"),
+          description: [`טלפון: ${b.contact_phone ?? ""}`, emails[0] ? `מייל לקוחה: ${emails.join(", ")}` : null, `מחיר: ₪${b.price}`, "מקדמה שולמה ✓", "(מועד שונה בעריכת הזמנה)", b.notes ? `הערות: ${b.notes}` : null].filter(Boolean).join("\n"),
           startISO: `${v.newDate}T${v.newStart}:00`,
           endISO: `${v.newDate}T${v.newEnd}:00`,
           location: "תלמוד ירושלמי 24, בית שמש",

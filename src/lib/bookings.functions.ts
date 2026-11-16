@@ -904,6 +904,7 @@ async function finalizeBookingConfirmation(
     summary: `סטודיו · ${b.contact_name ?? ""}`.trim(),
     description: [
       `טלפון: ${b.contact_phone ?? ""}`,
+      customerEmail ? `מייל לקוחה: ${customerEmail}` : null,
       `מחיר: ₪${b.price}`,
       "מקדמה שולמה ✓",
       b.notes ? `הערות: ${b.notes}` : null,
