@@ -176,7 +176,15 @@ export async function sendGmail(message: GmailMessage): Promise<boolean> {
 /** Same as sendGmail, but also returns the Gmail threadId of the sent mail (for replying in the same thread later). */
 export async function sendGmailDetailed(message: GmailMessage): Promise<{ ok: boolean; threadId?: string; id?: string }> {
   const lovableKey = process.env.LOVABLE_API_KEY;
-  const connKey = process.env.GOOGLE_MAIL_API_KEY;
+  // The sender is the owner's m0548529277 account (2026-11-17): use ITS linked connection when one exists,
+  // otherwise fall back to the default connection (Gmail then rewrites From to that account).
+  let connKey = process.env.GOOGLE_MAIL_API_KEY;
+  try {
+    const m = (await listGmailAccounts()).find((a) => a.email === "m0548529277@gmail.com");
+    if (m) connKey = m.connKey;
+  } catch {
+    // keep the default connection
+  }
   if (!lovableKey || !connKey) {
     console.error("[SWEETBABY] gmail skipped — missing LOVABLE_API_KEY/GOOGLE_MAIL_API_KEY");
     return { ok: false };
