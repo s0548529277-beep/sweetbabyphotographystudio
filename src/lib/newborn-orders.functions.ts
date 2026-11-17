@@ -268,7 +268,7 @@ function newbornSessionWindow(sessionTime: string | null): [string, string] {
  * itself — but now the caller can surface the actual reason instead of a
  * silent gap.
  */
-async function syncNewbornCalendarEvent(
+export async function syncNewbornCalendarEvent(
   db: any,
   order: {
     id: string;

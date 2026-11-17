@@ -309,6 +309,13 @@
       "when": 1794400000000,
       "tag": "0043_lead_stage_in_talk",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1794500000000,
+      "tag": "0044_two_way_newborn_sync",
+      "breakpoints": true
     }
   ]
 }

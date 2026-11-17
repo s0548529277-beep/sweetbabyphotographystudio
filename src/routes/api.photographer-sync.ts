@@ -1,20 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 
-// Receives newborn package orders from the photographer site (michalsiboni.co.il)
-// and mirrors them into this studio's `newborn_package_orders` (so income / debts
-// show in /admin/finance) + blocks the studio hours. Auth: header `x-sync-secret`
-// must equal app_settings.photographer_sync_secret. Idempotent by external_id.
-const FIELDS = [
-  "package_id", "addons", "base_price", "addons_price", "total_price",
-  "contact_name", "contact_phone", "contact_email", "session_date", "session_time",
-  "notes", "amount_paid", "last_payment_at", "birth_basket_used",
-  "date_deposit_at", "shoot_done_at", "photos_sent_at", "payment_done_at",
-  "editing_done_at", "album_design_done_at", "printing_done_at", "delivered_at",
-] as const;
-
+// Two-way sync of newborn package orders with the photographer site (michalsiboni.co.il).
+// Header `x-sync-secret` must equal app_settings.photographer_sync_secret (checked again inside the
+// database function apply_remote_order, migration 0044). The database function does the writing, so the
+// transaction-local flag `app.syncing` is set and our own trigger does not echo the change back.
+//
+//  * native order of the photographer site  -> mirror row here (external_source = 'photographer');
+//    studio hours are blocked like for any studio order (only when date/time/name/phone changed)
+//  * edit of the photographer site's mirror of one of OUR orders (external_source = 'studio')
+//    -> the same fields are copied onto our native order; its studio block + calendar event follow
+//  * delete of a native photographer order -> our mirror + its hours block are removed
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+
+const ORDER_COLS =
+  "id, contact_name, contact_phone, contact_email, session_date, session_time, total_price, blocking_booking_id, google_event_id";
 
 export const Route = createFileRoute("/api/photographer-sync")({
   server: {
@@ -22,61 +23,69 @@ export const Route = createFileRoute("/api/photographer-sync")({
       POST: async ({ request }) => {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const db = supabaseAdmin as any;
-        const { data: s } = await db.from("app_settings").select("value").eq("key", "photographer_sync_secret").maybeSingle();
-        const secret = request.headers.get("x-sync-secret");
-        if (!s?.value || secret !== s.value) return json(401, { error: "unauthorized" });
+        const secret = request.headers.get("x-sync-secret") ?? "";
 
         let body: any;
         try { body = await request.json(); } catch { return json(400, { error: "bad json" }); }
-        const op = body?.op;
-        const id = String(body?.order?.id ?? body?.id ?? "");
+        const op = body?.op === "delete" ? "delete" : "upsert";
+        const src: Record<string, any> = body?.order && typeof body.order === "object" ? body.order : {};
+        const id = String(src.id ?? body?.id ?? "");
         if (!id) return json(400, { error: "missing id" });
 
-        const { data: existing } = await db
-          .from("newborn_package_orders")
-          .select("id, blocking_booking_id, session_date, session_time, contact_name, contact_phone, total_price")
-          .eq("external_source", "photographer").eq("external_id", id).maybeSingle();
+        // The photographer site's mirror of one of OUR native orders: edits go back onto our order.
+        const backToNative = src.external_source === "studio" && !!src.external_id;
+
+        // State before the change (to know whether the hours block / calendar event must move).
+        let before: any = null;
+        if (backToNative) {
+          if (op !== "delete") {
+            const r = await db.from("newborn_package_orders").select(ORDER_COLS)
+              .eq("id", String(src.external_id)).is("external_source", null).maybeSingle();
+            before = r.data;
+          }
+        } else if (!src.external_source) {
+          const r = await db.from("newborn_package_orders").select(ORDER_COLS)
+            .eq("external_source", "photographer").eq("external_id", id).maybeSingle();
+          before = r.data;
+        }
+
+        const payload = op === "delete"
+          ? { id, external_source: src.external_source ?? null, external_id: src.external_id ?? null }
+          : { ...src, id };
+        const { data: res, error } = await db.rpc("apply_remote_order", { p_secret: secret, p_op: op, p_order: payload });
+        if (error) {
+          const m = String(error.message ?? "");
+          if (m.includes("unauthorized")) return json(401, { error: "unauthorized" });
+          if (m.includes("missing")) return json(400, { error: m });
+          return json(500, { error: m });
+        }
 
         if (op === "delete") {
-          if (existing) {
-            if (existing.blocking_booking_id) await db.from("bookings").delete().eq("id", existing.blocking_booking_id);
-            await db.from("newborn_package_orders").delete().eq("id", existing.id);
-          }
-          return json(200, { ok: true, deleted: !!existing });
+          // The mirror row is gone; its hours block (a booking) is not tied to it by a cascade.
+          if (before?.blocking_booking_id) await db.from("bookings").delete().eq("id", before.blocking_booking_id);
+          return json(200, { ok: true, ...(res ?? {}) });
         }
 
-        const src = body.order ?? {};
-        const row: Record<string, unknown> = {};
-        for (const f of FIELDS) if (src[f] !== undefined) row[f] = src[f];
-        if (!row.package_id || !row.contact_name || !row.contact_phone) return json(400, { error: "missing required fields" });
-        if (src.created_at) row.created_at = src.created_at;
+        const targetId: string | null = backToNative ? String(src.external_id) : (res?.id ?? null);
+        if (!targetId) return json(200, { ok: true, ...(res ?? {}) });
+        const { data: o } = await db.from("newborn_package_orders").select(ORDER_COLS).eq("id", targetId).maybeSingle();
+        if (!o) return json(200, { ok: true, ...(res ?? {}) });
 
-        let orderId: string;
-        if (existing) {
-          const { error } = await db.from("newborn_package_orders").update(row).eq("id", existing.id);
-          if (error) return json(500, { error: error.message });
-          orderId = existing.id;
-        } else {
-          const { data, error } = await db.from("newborn_package_orders")
-            .insert({ ...row, external_source: "photographer", external_id: id }).select("id").single();
-          if (error) return json(500, { error: error.message });
-          orderId = data.id;
-        }
-
-        // Block the studio hours (same helper the studio's own orders use).
-        const { data: o } = await db.from("newborn_package_orders")
-          .select("id, contact_name, contact_phone, session_date, session_time, total_price, blocking_booking_id").eq("id", orderId).single();
-        const changed = !existing || existing.session_date !== o.session_date || existing.session_time !== o.session_time
-          || existing.contact_name !== o.contact_name || existing.contact_phone !== o.contact_phone;
+        const changed = !before || before.session_date !== o.session_date || before.session_time !== o.session_time
+          || before.contact_name !== o.contact_name || before.contact_phone !== o.contact_phone
+          || (backToNative && before.contact_email !== o.contact_email);
         let block: unknown = "unchanged";
+        let calendarError: string | null = null;
         if (changed) {
           const { data: admin } = await db.from("user_roles").select("user_id").eq("role", "admin").limit(1).maybeSingle();
           if (admin?.user_id) {
-            const { syncNewbornBookingBlock } = await import("@/lib/newborn-orders.functions");
-            block = await syncNewbornBookingBlock(db, admin.user_id, o);
+            const mod = await import("@/lib/newborn-orders.functions");
+            block = await mod.syncNewbornBookingBlock(db, admin.user_id, o);
+            // Our own orders also have a Google Calendar event; mirrors of the photographer site's orders do not.
+            if (backToNative) calendarError = await mod.syncNewbornCalendarEvent(db, o);
           }
         }
-        return json(200, { ok: true, id: orderId, block });
+        return json(200, { ok: true, id: targetId, action: res?.action ?? null, block, calendarError });
       },
     },
   },
