@@ -18,6 +18,20 @@
 
 ## Work log
 
+- **2026-11-17 (night, Israel) — Claude (scheduled night job, owner: "contracts editable in preview + all client-management options for newborn / outdoor / general on both sites + two-way sync"):** INVENTORY ONLY, NO CODE OR DATA CHANGED, nothing published. The job was NOT built: it needs additive DB migrations on both live DBs, a two-way sync with loop prevention, and porting whole screens, which should be done supervised (a bad sync can double income or send contracts twice). Comparison (S = studio site, P = photographer site):
+  - Newborn client list/orders: S yes (admin newborn-packages, table/payments views) | P yes (admin newborn-packages). Sync: P -> S exists (api.photographer-sync, since 11-16); S -> P missing.
+  - Newborn payments / finance: S yes | P yes (own finance page). Mirrored orders show as income once on S.
+  - Newborn contract send + signing page + snapshot: S yes (mail + sign page) | P PDF contract editor only (/admin/contract, /admin/newborn-contract-text), no signing flow.
+  - Contract preview + one-time per-client edit: S yes (ContractPreviewButton) | P no (ContractEditor edits text per client then PDF).
+  - Permanent wording: S yes (/admin/contract-text, /admin/newborn-contract-text, app_settings overrides = per-section text) | P yes (app_settings newborn_contract_pdf_template / outdoor = 4 / 3 HTML sheets). DIFFERENT FORMATS: sections vs HTML sheets, so a direct copy is not possible without a converter.
+  - Outdoor clients (orders table, gallery, payments, contract): S yes (outdoor_package_orders, gallery copy of newborn, table/payments views) | P no table, only the outdoor PDF contract page.
+  - General photo clients (photo_client_workflows, proofs, notes, send-only): S yes | P yes (admin photo-clients, port of the studio schema 20261007190000).
+  - Newborn gallery + selection: S yes | P yes (newborn.gallery.$token). Outdoor gallery: S yes | P no.
+  - Client-management journal (calendar, journal, clients, payments, settings, unified table): S yes (/admin/client-management) | P no.
+  - Publish options: S four options (PUBLISH_OPTIONS) | P contract text has the same wording, options as clickable choices in the PDF editor.
+  Recommended order for a supervised session: (1) S -> P newborn sync with loop flag (sync_origin) + updated_at rule; (2) outdoor orders table on P + sync both ways; (3) converter between section overrides and PDF sheets for the permanent wording; (4) preview + one-time edit on P; (5) client-management journal on P.
+
+
 - **2026-11-17 (00:2x Israel) — Claude (chat, owner: "look at the last mail, the other Claude did it"):** SETTING ONLY (done by the owner's other Claude session on 16.11 ~00:07-00:15 Israel, verified here). Business e-mail studio@sweetbabyphoto.shop forwards to m0548529277@gmail.com via ImprovMX (account = m0548529277@gmail.com). Live DNS checked: MX 10 mx1.improvmx.com / 20 mx2.improvmx.com, TXT `v=spf1 include:spf.improvmx.com ~all` (records in Lovable Workspace domains). ImprovMX mail "Forwarding active". Do NOT remove these DNS records. Not yet: adding the address in Meta Business / sending FROM it.
 
 - **2026-11-17 (00:2x Israel) — Claude (chat, owner: "שיהיה מייל לקוחה ביומן בהשכרת סטודיו, ושיקח מהיומן או מהמייל"):** the Google Calendar event of a STUDIO rental (`bookings.functions.ts` finalizeBookingConfirmation, and the re-created event in `order-edit.functions.ts`) now has a line "מייל לקוחה: <email>" in its description; Michal's own shoots (newborn etc.) never get one, so the family-room task mails only Michal for them. The task prompt (trig_01Uzgm3GLqfKxUY2VcvEk5Zu, re-signed by her computer) reads the e-mail from the calendar description first, else from Gmail. Older events have no such line (fallback = Gmail). Not tested live; needs Publish.
