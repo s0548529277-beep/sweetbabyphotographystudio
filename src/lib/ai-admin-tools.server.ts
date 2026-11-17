@@ -247,7 +247,7 @@ export function buildAdminChatTools() {
 
     gmail_search: tool({
       description:
-        "מחפש מיילים (תחביר חיפוש של ג׳ימייל, למשל is:unread newer_than:3d, from:x). account = כתובת חשבון מחובר (ברירת מחדל: מייל הסטודיו s0548529277).",
+        "מחפש מיילים (תחביר חיפוש של ג׳ימייל, למשל is:unread newer_than:3d, from:x). account = כתובת חשבון מחובר (ברירת מחדל: מייל הסטודיו m0548529277).",
       inputSchema: z.object({
         query: z.string().max(200),
         account: z.string().max(80).optional(),
