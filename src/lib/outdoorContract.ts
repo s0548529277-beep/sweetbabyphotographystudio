@@ -21,7 +21,7 @@ import michalWordmark from "@/assets/michal-logo-wordmark.png";
 const WORDMARK_URL = `https://sweetbabyphoto.shop${michalWordmark}`;
 
 const STUDIO_ADDRESS = "תלמוד ירושלמי 24, ד׳3, בית שמש";
-const STUDIO_EMAIL = "s0548529277@gmail.com";
+const STUDIO_EMAIL = "m0548529277@gmail.com";
 
 const ROSE = "#c23b6d";
 const BROWN = "#5a4433";

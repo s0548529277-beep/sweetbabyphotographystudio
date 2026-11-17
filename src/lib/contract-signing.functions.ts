@@ -13,7 +13,7 @@ import { groupContractSections } from "@/lib/contract-groups";
  * newborn-orders.functions.ts (they already had access_token + contract_confirmed_at).
  */
 
-const STUDIO_EMAIL = "s0548529277@gmail.com";
+const STUDIO_EMAIL = "m0548529277@gmail.com";
 
 const kindSchema = z.enum(["photo", "outdoor"]);
 const tokenSchema = z.string().min(20).max(100);

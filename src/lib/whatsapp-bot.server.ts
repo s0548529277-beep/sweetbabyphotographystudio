@@ -15,7 +15,7 @@ import { SYSTEM, buildToolRules } from "./ai.functions";
 import { sendWhatsAppText } from "./whatsapp.server";
 import { DEFAULT_BUSINESS_PHONE } from "./whatsapp-numbers";
 
-const STUDIO_EMAIL = "s0548529277@gmail.com";
+const STUDIO_EMAIL = "m0548529277@gmail.com";
 const MAX_HISTORY_MESSAGES = 20;
 
 type HistoryMsg = { role: "user" | "assistant"; content: string };

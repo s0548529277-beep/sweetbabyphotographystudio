@@ -49,10 +49,10 @@ function ThankYou() {
                 <Phone className="h-4 w-4" /> <span dir="ltr">054-8529277</span>
               </a>
               <a
-                href="mailto:s0548529277@gmail.com"
+                href="mailto:m0548529277@gmail.com"
                 className="inline-flex items-center gap-2 rounded-full border border-border px-5 h-11 hover:border-primary transition-colors text-primary"
               >
-                <Mail className="h-4 w-4" /> s0548529277@gmail.com
+                <Mail className="h-4 w-4" /> m0548529277@gmail.com
               </a>
             </div>
 

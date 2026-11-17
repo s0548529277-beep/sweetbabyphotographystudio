@@ -33,7 +33,7 @@ export const Route = createFileRoute("/about")({
           image: "https://sweetbabyphoto.shop/favicon.ico",
           url: "https://sweetbabyphoto.shop",
           telephone: "+972-54-8529277",
-          email: "s0548529277@gmail.com",
+          email: "m0548529277@gmail.com",
           priceRange: "₪₪",
           description:
             "סטודיו לצילום להשכרה לפי שעות והשכרת אביזרי צילום לפי שעות בבית שמש — ניוברן, גיל שנה, חלאקה ומשפחה.",
@@ -74,7 +74,7 @@ function About() {
 
   const contactCards = [
     { icon: Phone, t: "טלפון", v: "054-8529277", href: "tel:0548529277", ltr: true },
-    { icon: Mail, t: "אימייל", v: "s0548529277@gmail.com", href: "mailto:s0548529277@gmail.com", ltr: true },
+    { icon: Mail, t: "אימייל", v: "m0548529277@gmail.com", href: "mailto:m0548529277@gmail.com", ltr: true },
     { icon: MapPin, t: "כתובת", v: "תלמוד ירושלמי 24, בית שמש", href: "https://maps.google.com/?q=תלמוד+ירושלמי+24+בית+שמש", ltr: false },
   ];
 

@@ -345,7 +345,7 @@ export function buildStudioMailHtml(opts: { title: string; innerHtml: string }):
     </td></tr>
     <tr><td style="padding:14px 20px 24px;font-size:13px;color:${t.soft};text-align:center;line-height:1.6">
       <div style="line-height:0"><img src="${STUDIO_SIGNATURE_GIF_URL}" alt="Sweetbaby · תלמוד ירושלמי 24, בית שמש · 054-8529277" width="560" style="width:100%;max-width:560px;height:auto;border:0;display:inline-block"></div>
-      <div style="margin-top:14px;line-height:0">${animBtnRow(animBtn("https://sweetbabyphoto.shop/", "btn-studio-site.gif", "לאתר הסטודיו"), animBtn(STUDIO_WAZE, "btn-studio-waze.gif", "ניווט בוויז"), animBtn("mailto:s0548529277@gmail.com", "btn-studio-mail.gif", "שליחת מייל"))}</div>
+      <div style="margin-top:14px;line-height:0">${animBtnRow(animBtn("https://sweetbabyphoto.shop/", "btn-studio-site.gif", "לאתר הסטודיו"), animBtn(STUDIO_WAZE, "btn-studio-waze.gif", "ניווט בוויז"), animBtn("mailto:m0548529277@gmail.com", "btn-studio-mail.gif", "שליחת מייל"))}</div>
     </td></tr>
   </table>
 </div>`;

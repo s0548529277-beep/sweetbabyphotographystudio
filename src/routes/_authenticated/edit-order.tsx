@@ -187,7 +187,7 @@ function EditOrder() {
         ) : !d.editable ? (
           <div className="bg-card rounded-2xl p-6 border border-primary/10">
             <p>{d.blockedReason}</p>
-            <p className="text-sm text-muted-foreground mt-2">לעזרה: 054-8529277 · s0548529277@gmail.com</p>
+            <p className="text-sm text-muted-foreground mt-2">לעזרה: 054-8529277 · m0548529277@gmail.com</p>
           </div>
         ) : (
           <div className="bg-card rounded-2xl p-6 border border-primary/10 space-y-5">

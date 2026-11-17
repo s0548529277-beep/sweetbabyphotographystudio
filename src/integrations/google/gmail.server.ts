@@ -1,5 +1,5 @@
 // Server-only: sends mail from the studio's own Gmail account
-// (s0548529277@gmail.com) through the linked Lovable connector gateway.
+// (m0548529277@gmail.com) through the linked Lovable connector gateway.
 // The gateway refreshes the Google OAuth token automatically, so no
 // refresh-token maintenance is needed here.
 
@@ -108,7 +108,7 @@ function stripPinkHearts(subject: string): string {
 
 function buildMime({ to, subject, html, fromName = "Sweetbaby", attachments = [], inReplyTo, messageId }: GmailMessage): string {
   const headers = [
-    `From: ${encodeHeader(fromName)} <s0548529277@gmail.com>`,
+    `From: ${encodeHeader(fromName)} <m0548529277@gmail.com>`,
     `To: ${encodeAddressList(to)}`,
     `Subject: ${encodeHeader(stripPinkHearts(subject))}`,
     ...(messageId ? [`Message-ID: ${messageId}`] : []),
@@ -412,7 +412,7 @@ export async function sendStudioAndCustomer(opts: {
   const seen = new Set<string>();
   const recipients: string[] = [];
   const customers = Array.isArray(opts.customerEmail) ? opts.customerEmail : [opts.customerEmail];
-  for (const raw of ["s0548529277@gmail.com", ...customers]) {
+  for (const raw of ["m0548529277@gmail.com", ...customers]) {
     if (!raw) continue;
     const normalized = raw.trim().toLowerCase();
     if (!normalized || seen.has(normalized)) continue;
@@ -468,7 +468,7 @@ export async function resolveGmailAccount(account?: string): Promise<{ email: st
     if (hit) return hit;
     return null;
   }
-  return list.find((a) => a.email === "s0548529277@gmail.com") ?? list[0];
+  return list.find((a) => a.email === "m0548529277@gmail.com") ?? list[0];
 }
 
 /**

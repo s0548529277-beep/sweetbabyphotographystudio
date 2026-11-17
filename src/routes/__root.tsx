@@ -136,7 +136,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           knowsAbout: ["סטודיו לצילום להשכרה", "השכרת אביזרים לצילומי ניו בורן", "צילומי חלאקה", "סמאש קייק"],
           description: "השכרת אביזרים מעוצבים לצילומי ניוברן, גיל שנה, חלאקה ומשפחה.",
           telephone: "+972-54-8529277",
-          email: "s0548529277@gmail.com",
+          email: "m0548529277@gmail.com",
           address: {
             "@type": "PostalAddress",
             streetAddress: "תלמוד ירושלמי 24",

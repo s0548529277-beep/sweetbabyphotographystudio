@@ -435,7 +435,7 @@ function Cart() {
                 "",
                 `אישור כללי השכרה: ${form.agree ? "כן, אני מאשרת" : "לא"}`,
               ].join("\n");
-              const url = `https://mail.google.com/mail/?view=cm&fs=1&to=s0548529277@gmail.com&su=${encodeURIComponent(`${form.orderType} — Sweetbaby`)}&body=${encodeURIComponent(body)}`;
+              const url = `https://mail.google.com/mail/?view=cm&fs=1&to=m0548529277@gmail.com&su=${encodeURIComponent(`${form.orderType} — Sweetbaby`)}&body=${encodeURIComponent(body)}`;
               window.open(url, "_blank", "noopener,noreferrer");
               setShowOrderForm(false);
               toast.success("נפתח חלון Gmail לשליחת ההזמנה ✉️");
@@ -494,7 +494,7 @@ function Cart() {
               </label>
 
               <div className="text-[11px] text-forest/60 text-center pt-2">
-                לכל שאלה: 054-8529277 · s0548529277@gmail.com
+                לכל שאלה: 054-8529277 · m0548529277@gmail.com
               </div>
             </div>
 

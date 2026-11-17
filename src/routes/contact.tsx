@@ -26,7 +26,7 @@ export const Route = createFileRoute("/contact")({
           image: "https://sweetbabyphoto.shop/favicon.ico",
           url: "https://sweetbabyphoto.shop",
           telephone: "+972-54-8529277",
-          email: "s0548529277@gmail.com",
+          email: "m0548529277@gmail.com",
           priceRange: "₪₪",
           address: {
             "@type": "PostalAddress",
@@ -44,7 +44,7 @@ export const Route = createFileRoute("/contact")({
 function Contact() {
   const cards = [
     { icon: Phone, t: "טלפון", v: "054-8529277", href: "tel:0548529277" },
-    { icon: Mail, t: "אימייל", v: "s0548529277@gmail.com", href: "mailto:s0548529277@gmail.com" },
+    { icon: Mail, t: "אימייל", v: "m0548529277@gmail.com", href: "mailto:m0548529277@gmail.com" },
     { icon: MapPin, t: "כתובת", v: "תלמוד ירושלמי 24, בית שמש", href: "https://maps.google.com/?q=תלמוד+ירושלמי+24+בית+שמש" },
   ];
   return (

@@ -49,7 +49,7 @@ export async function sendMessageToStudio(opts: {
       <p style="background:#faf7f4;border-radius:8px;padding:12px 16px;white-space:pre-line">${message}</p>
     </div>`;
     emailed = await sendGmail({
-      to: "s0548529277@gmail.com",
+      to: "m0548529277@gmail.com",
       subject: `📞 הודעה מלקוחה בטלפון · ${callerPhone || "מספר לא ידוע"}`,
       html,
     });

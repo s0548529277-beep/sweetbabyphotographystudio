@@ -80,7 +80,7 @@ function MichalHeader() {
             <Phone size={16} /> <span className="hidden sm:inline">{MICHAL_PHONE}</span>
           </a>
           <a
-            href="mailto:s0548529277@gmail.com"
+            href="mailto:m0548529277@gmail.com"
             className="hidden items-center gap-1.5 transition-colors hover:text-newborn-rose sm:flex"
           >
             <Mail size={14} /> מייל
@@ -106,10 +106,10 @@ function MichalFooter() {
             <Phone size={14} /> {MICHAL_PHONE}
           </a>
           <a
-            href="mailto:s0548529277@gmail.com"
+            href="mailto:m0548529277@gmail.com"
             className="flex items-center gap-1.5 hover:text-[#4a3221]"
           >
-            <Mail size={14} /> s0548529277@gmail.com
+            <Mail size={14} /> m0548529277@gmail.com
           </a>
         </div>
         <p className="text-xs text-[#4a3221]/50 mt-2">© מיכל סיבוני — כל הזכויות שמורות</p>
@@ -287,7 +287,7 @@ export const Route = createFileRoute("/newborn")({
 });
 
 const PHONE = MICHAL_PHONE;
-const EMAIL = "s0548529277@gmail.com";
+const EMAIL = "m0548529277@gmail.com";
 const REGULAR_PACKAGES = NEWBORN_PACKAGES.filter((p) => p.categories.includes("regular"));
 
 function NewbornLandingPage() {

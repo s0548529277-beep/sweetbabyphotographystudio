@@ -68,7 +68,7 @@ export const Route = createFileRoute("/studio-photography")({
 });
 
 const PHONE = "0548529277";
-const EMAIL = "s0548529277@gmail.com";
+const EMAIL = "m0548529277@gmail.com";
 const MICHAL_SITE = "https://michalsiboni.co.il/";
 
 // The portfolio gallery below (6 topic tabs) is a separate, independent

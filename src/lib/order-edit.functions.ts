@@ -26,7 +26,7 @@ import { naiveHHMM, naiveIsraelMs } from "@/lib/naive-time";
  */
 
 const SITE = "https://sweetbabyphoto.shop";
-const STUDIO_EMAIL = "s0548529277@gmail.com";
+const STUDIO_EMAIL = "m0548529277@gmail.com";
 const kindSchema = z.enum(["booking", "order"]);
 const EDITABLE_STATUSES = ["pending", "confirmed"];
 
@@ -597,7 +597,7 @@ async function applyOrderEdit(id: string, changes: OrderChanges, who: string): P
     if (v.delta !== 0) {
       // Price changed: ONLY the studio copy carries the alert in the subject; the customer's subject stays plain.
       const { sendGmail } = await import("@/integrations/google/gmail.server");
-      const studio = "s0548529277@gmail.com";
+      const studio = "m0548529277@gmail.com";
       const sign = v.delta > 0 ? "+" : "-";
       await sendGmail({ to: studio, subject: `⚠️ המחיר שונה (${sign}₪${Math.abs(v.delta)}) — ${baseSubject}`, html });
       const seen = new Set<string>([studio]);
@@ -1009,7 +1009,7 @@ export const reviewOrderEditRequest = createServerFn({ method: "POST" })
             <p>שלום ${esc(req.original?.contact_name ?? "")},</p>
             <p>לצערנו לא הצלחנו לאשר את בקשת העריכה שלך להזמנה #${esc(String(req.target_id).slice(0, 8))}. ההזמנה נשארת כפי שהייתה.</p>
             ${data.admin_note ? `<p>${esc(data.admin_note)}</p>` : ""}
-            <p>לשאלות: s0548529277@gmail.com / 054-8529277</p>`,
+            <p>לשאלות: m0548529277@gmail.com / 054-8529277</p>`,
         });
         await sendStudioAndCustomer({ customerEmail: emails, subject: `בקשת העריכה להזמנה #${String(req.target_id).slice(0, 8)} לא אושרה · Sweetbaby`, html });
       } catch (e) {

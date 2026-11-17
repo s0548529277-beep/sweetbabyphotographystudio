@@ -45,7 +45,7 @@ const NEWBORN_CARD_PHOTOS = ["mini", "pamper", "luxury"].map((n) => `https://swe
 /** Outdoor price-list photos (cut from the owner's outdoor price-list image, already arched): dream, popular, magic. */
 const OUTDOOR_CARD_PHOTOS = ["dream", "popular", "magic"].map((n) => `https://sweetbabyphoto.shop/email/outdoor-card-${n}.jpg`);
 const PHOTOS_KEY = "email_drafts_sample_photos";
-const OWNER_ADDRESSES = ["m0548529277@gmail.com", "s0548529277@gmail.com"];
+const OWNER_ADDRESSES = ["m0548529277@gmail.com"];
 const OWNER_NOTIFY = "m0548529277@gmail.com";
 const LABEL_READY = "טיוטה מוכנה ✍️";
 const LABEL_SENT = "נשלח ✓";

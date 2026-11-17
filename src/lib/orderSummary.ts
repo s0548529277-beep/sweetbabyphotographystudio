@@ -162,7 +162,7 @@ export function buildFamilyRoomResultHtml(opts: {
       <p>לצערנו <strong>לא הצלחנו לקבוע את חדר המשפחה</strong> לצילום שלך בתאריך ${when} — החדר תפוס. הצילום בסטודיו עצמו נשאר כמתוכנן.</p>
       <p>אם החדר חשוב לך מאוד, אפשר לבחור מועד אחר שבו הוא פנוי:</p>
       <div style="text-align:center;margin:18px 0 6px">${pillButton(chatLinkUrl("reschedule", b.id, b.session_date), "שינוי מועד", true)}</div>
-      <p style="color:#6b8a63;font-size:13px">לשאלות: s0548529277@gmail.com / 054-8529277</p>`,
+      <p style="color:#6b8a63;font-size:13px">לשאלות: m0548529277@gmail.com / 054-8529277</p>`,
     });
   }
   const slots = (opts.slots ?? "").trim();
@@ -176,7 +176,7 @@ export function buildFamilyRoomResultHtml(opts: {
     ${familyRoomAccessHtml(slots)}
     ${partial ? `<p style="font-size:14px">בשעות האחרות החדר לא פנוי. הצילום בסטודיו נשאר כמתוכנן. אם חשוב לך חדר לכל השעות, אפשר לשנות מועד:</p><div style="text-align:center;margin:10px 0">${pillButton(chatLinkUrl("reschedule", b.id, b.session_date), "שינוי מועד")}</div>` : ""}
     <div style="margin-top:10px">${img(1, "פינת הקפה בחדר המשפחה")}${img(2, "פינת הישיבה בחדר המשפחה")}</div>
-    <p style="color:#6b8a63;font-size:13px;margin-top:14px">כתובת הסטודיו: ${STUDIO_ADDRESS_WAZE_HTML} · לשאלות: s0548529277@gmail.com / 054-8529277</p>`,
+    <p style="color:#6b8a63;font-size:13px;margin-top:14px">כתובת הסטודיו: ${STUDIO_ADDRESS_WAZE_HTML} · לשאלות: m0548529277@gmail.com / 054-8529277</p>`,
   });
 }
 
@@ -315,7 +315,7 @@ export function buildBookingSummaryHtml(opts: {
     ${opts.guestSignupHtml ?? ""}
     ${opts.reminderActions ? buildReminderActionsHtml(b.id, b.session_date) : buildEditOrderButtonHtml("booking", b.id)}
     ${buildChatButtonHtml({ kind: "booking", id: b.id, date: b.session_date })}
-    <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: ${STUDIO_ADDRESS_WAZE_HTML} · לשאלות: s0548529277@gmail.com / 054-8529277</p>
+    <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: ${STUDIO_ADDRESS_WAZE_HTML} · לשאלות: m0548529277@gmail.com / 054-8529277</p>
   ` });
 }
 
@@ -547,6 +547,6 @@ export function buildPropsOrderSummaryHtml(opts: {
     ${opts.guestSignupHtml ?? ""}
     ${buildEditOrderButtonHtml("order", o.id)}
     ${buildChatButtonHtml({ kind: "order", id: o.id, date: o.session_date })}
-    <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: ${STUDIO_ADDRESS_WAZE_HTML} · לשאלות: s0548529277@gmail.com / 054-8529277</p>
+    <p style="color:#6b8a63;font-size:13px;margin-top:16px">כתובת הסטודיו: ${STUDIO_ADDRESS_WAZE_HTML} · לשאלות: m0548529277@gmail.com / 054-8529277</p>
   ` });
 }

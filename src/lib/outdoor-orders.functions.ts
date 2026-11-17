@@ -40,7 +40,7 @@ async function autoTickStep(db: any, orderId: string, key: string) {
   }
 }
 
-const STUDIO_EMAIL = "s0548529277@gmail.com";
+const STUDIO_EMAIL = "m0548529277@gmail.com";
 
 // Michal's own address for anything photography-specific (this contract
 // included) — distinct from STUDIO_EMAIL above, which is the general

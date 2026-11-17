@@ -203,7 +203,7 @@ export function buildWebChatTools(opts: { userId: string | null; isRealAccount: 
         try {
           const { sendGmail } = await import("@/integrations/google/gmail.server");
           const ok = await sendGmail({
-            to: "s0548529277@gmail.com",
+            to: "m0548529277@gmail.com",
             subject: `הודעה מהצ׳אט באתר — ${name}`,
             html: `<div dir="rtl" style="font-family:sans-serif;color:#2d3d2b">
               <h3 style="margin:0 0 8px">הודעה חדשה מהצ׳אט באתר</h3>

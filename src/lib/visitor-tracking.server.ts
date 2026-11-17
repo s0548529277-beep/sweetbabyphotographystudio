@@ -16,7 +16,7 @@ import { buildJourney, emailKey, phoneKey, type VisitorJourney } from "@/lib/vis
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const OWNER_EMAIL = "m0548529277@gmail.com";
 /** Details of the owner herself (testing her own site) never trigger an alert. */
-const OWNER_KEYS = new Set(["m0548529277@gmail.com", "s0548529277@gmail.com"]);
+const OWNER_KEYS = new Set(["m0548529277@gmail.com"]);
 const OWNER_PHONES = new Set(["534181051"]); // 053-418-1051, the business phone
 const ALERT_KEY = "visitor_alerts";
 const ALERT_PER_VISITOR_MS = 24 * 3600 * 1000;

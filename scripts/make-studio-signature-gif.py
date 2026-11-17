@@ -56,7 +56,7 @@ def frame(i, j, mix, phase, word, details):
         im.paste(Image.new("RGB", lg.size, tint), (x0, 30 * K), m)
     if details > 0:
         pill = (255, 251, 246); c1 = lerp(pill, SUB, details); c2 = lerp(pill, tint, details)
-        t2 = "054-8529277  \\\\  s0548529277@gmail.com  \\\\  sweetbabyphoto.shop"
+        t2 = "054-8529277  \\\\  m0548529277@gmail.com  \\\\  sweetbabyphoto.shop"
         d.text((612 * K - d.textlength(t2, font=f(12)), 106 * K), t2, font=f(12), fill=c1)
         draw_rtl(d, 612 * K, 126 * K, ["תלמוד ירושלמי", "24,", "בית שמש", "\\\\", "השכרת סטודיו", "\\\\", "אביזרים", "\\\\", "מימוש סל לידה"], f(12), c2)
     return im.resize((W, H), Image.LANCZOS)

@@ -40,7 +40,7 @@ export const Route = createFileRoute("/studio-rental")({
   component: StudioRentalPage,
 });
 
-const EMAIL_TO = "s0548529277@gmail.com";
+const EMAIL_TO = "m0548529277@gmail.com";
 
 type IntakeForm = {
   clientName: string; phone: string; email: string;

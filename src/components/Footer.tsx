@@ -18,7 +18,7 @@ export function Footer() {
             <h4 className="text-[10px] tracking-[0.35em] uppercase text-sand mb-4">Contact</h4>
             <p className="text-background/85">תלמוד ירושלמי 24, בית שמש</p>
             <a href="tel:0548529277" dir="ltr" className="block py-1 text-start text-background/85 hover:text-background">054-8529277</a>
-            <a href="mailto:s0548529277@gmail.com" dir="ltr" className="block py-1 text-start text-background/85 hover:text-background [overflow-wrap:anywhere]">s0548529277@gmail.com</a>
+            <a href="mailto:m0548529277@gmail.com" dir="ltr" className="block py-1 text-start text-background/85 hover:text-background [overflow-wrap:anywhere]">m0548529277@gmail.com</a>
           </div>
           <div className="md:col-span-4 text-sm space-y-2">
             <h4 className="text-[10px] tracking-[0.35em] uppercase text-sand mb-4">Hours</h4>

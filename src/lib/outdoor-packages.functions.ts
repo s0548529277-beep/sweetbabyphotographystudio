@@ -13,7 +13,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { buildOutdoorContractHtml, buildOutdoorContractSections } from "@/lib/outdoorContract";
 import { loadContractOverrides, sectionHtmlToText, CONTRACT_LOCKED_TITLES, type ContractOverrides } from "@/lib/contract-overrides";
 
-const STUDIO_EMAIL = "s0548529277@gmail.com";
+const STUDIO_EMAIL = "m0548529277@gmail.com";
 
 async function assertAdmin(supabase: any, userId: string) {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);

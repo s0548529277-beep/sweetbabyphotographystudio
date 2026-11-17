@@ -299,7 +299,7 @@ export const sendCmScheduleNow = createServerFn({ method: "POST" })
     const { html, count } = await scheduleHtmlFor(db, data.date);
     const { sendGmail } = await import("@/integrations/google/gmail.server");
     const ok = await sendGmail({
-      to: settings.scheduleEmail || "s0548529277@gmail.com",
+      to: settings.scheduleEmail || "m0548529277@gmail.com",
       subject: `לו״ז צילומים ל-${formatDateIL(data.date)} (${count})`,
       html,
     });
@@ -477,7 +477,7 @@ export async function runDueClientManagementReminders(): Promise<{
         });
         if (count > 0) {
           dailySchedule = await sendGmail({
-            to: settings.scheduleEmail || "s0548529277@gmail.com",
+            to: settings.scheduleEmail || "m0548529277@gmail.com",
             subject: `לו״ז צילומים למחר · ${formatDateIL(tomorrow)} (${count})`,
             html,
           });
