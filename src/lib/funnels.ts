@@ -280,7 +280,8 @@ function evalNewborn(a: Record<string, string>) {
   if (a.priority === "album" || a.priority === "full") score += 1;
   const basket = a.basket === "yes" || a.basket === "tell";
   const id =
-    a.priority === "full" ? (basket ? "basket_1600" : "dreamy") : a.priority === "album" ? "pampering" : basket ? "basket_500" : "mini";
+    // basket + "digital only" used to recommend basket_500 (removed 2026-11-18); the birth-basket credit covers the pampering package.
+    a.priority === "full" ? (basket ? "basket_1600" : "dreamy") : a.priority === "album" ? "pampering" : basket ? "pampering" : "mini";
   const pkg = findNewbornPackage(id);
   const when =
     a.stage === "born"

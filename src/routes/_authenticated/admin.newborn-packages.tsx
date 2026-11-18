@@ -658,7 +658,7 @@ function NewbornPackagesAdmin() {
             <div className="space-y-4">
               <Label className="mb-2 block">בחירת חבילה</Label>
               {NEWBORN_PACKAGE_CATEGORIES.map((cat) => {
-                const pkgs = NEWBORN_PACKAGES.filter((p) => p.categories.includes(cat.id));
+                const pkgs = NEWBORN_PACKAGES.filter((p) => !p.retired && p.categories.includes(cat.id));
                 if (pkgs.length === 0) return null;
                 return (
                   <div key={cat.id} className="space-y-2">

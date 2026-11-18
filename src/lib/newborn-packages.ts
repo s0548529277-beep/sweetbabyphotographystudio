@@ -38,6 +38,8 @@ export type NewbornPackage = {
   hasCollage: boolean;
   hasAlbum: boolean;
   categories: NewbornPackageCategoryId[];
+  /** No longer offered (hidden from the admin picker and the site quiz). Kept so orders that already use it still show its name/contents. */
+  retired?: boolean;
 };
 
 // Prices/sets/photo counts below match the "מחירון ניו-בורן 2025" price
@@ -108,6 +110,9 @@ export const NEWBORN_PACKAGES: NewbornPackage[] = [
     hasCollage: true,
     hasAlbum: false,
     categories: ["birth_basket"],
+    // 2026-11-18: owner removed the 500 ₪ newborn option from the site.
+    // Do NOT delete — existing orders (e.g. חווי פרידמן, נחמי שטראוס) reference this id.
+    retired: true,
   },
   {
     id: "basket_1600",
