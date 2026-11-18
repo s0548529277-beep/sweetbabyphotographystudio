@@ -12,7 +12,8 @@
 // lead_follow_up — were this app's own guessed names/shapes from before
 // the real templates existed, and don't match any of the 5 actual ones).
 // Only 1 of 5 confirmed so far — see each entry's own note.
-export type WhatsAppTemplateParam = { key: string; label: string };
+/** `defaultValue` pre-fills the field in /admin/whatsapp (still editable). */
+export type WhatsAppTemplateParam = { key: string; label: string; defaultValue?: string };
 
 export type WhatsAppTemplateDef = {
   id: string;
@@ -34,13 +35,21 @@ export const WHATSAPP_TEMPLATES: WhatsAppTemplateDef[] = [
     language: "he",
     params: [
       { key: "name", label: "שם הלקוחה" },
-      { key: "business", label: "שם העסק (כפי שמוזן בהודעה, למשל Sweet Baby)" },
+      { key: "business", label: "שם העסק", defaultValue: "Sweet Baby" },
       { key: "service", label: "השירות/חבילה" },
       { key: "date", label: "תאריך" },
       { key: "time", label: "שעה" },
     ],
   },
 ];
+
+/** Initial field values for a template (only params that have a default). */
+export function templateDefaultParams(id: string): Record<string, string> {
+  const t = WHATSAPP_TEMPLATES.find((x) => x.id === id);
+  const out: Record<string, string> = {};
+  for (const p of t?.params ?? []) if (p.defaultValue) out[p.key] = p.defaultValue;
+  return out;
+}
 
 export function findWhatsAppTemplate(id: string): WhatsAppTemplateDef | undefined {
   return WHATSAPP_TEMPLATES.find((t) => t.id === id);

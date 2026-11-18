@@ -29,7 +29,7 @@ import {
 } from "@/lib/admin-whatsapp.functions";
 import { labelForBusinessPhone } from "@/lib/whatsapp-numbers";
 import { explainWhatsAppFailure, incomingTypeLabel } from "@/lib/whatsapp-errors";
-import { WHATSAPP_TEMPLATES, findWhatsAppTemplate } from "@/lib/whatsapp-templates";
+import { WHATSAPP_TEMPLATES, findWhatsAppTemplate, templateDefaultParams } from "@/lib/whatsapp-templates";
 import {
   Dialog,
   DialogContent,
@@ -177,7 +177,7 @@ function WhatsAppAdmin() {
   const [newConvoOpen, setNewConvoOpen] = useState(false);
   const [newPhone, setNewPhone] = useState("");
   const [newTemplateId, setNewTemplateId] = useState(WHATSAPP_TEMPLATES[0]?.id ?? "");
-  const [newParams, setNewParams] = useState<Record<string, string>>({});
+  const [newParams, setNewParams] = useState<Record<string, string>>(() => templateDefaultParams(WHATSAPP_TEMPLATES[0]?.id ?? ""));
   const [sendingTemplate, setSendingTemplate] = useState(false);
   const newTemplate = findWhatsAppTemplate(newTemplateId);
 
@@ -199,7 +199,7 @@ function WhatsAppAdmin() {
       toast.success("ההודעה נשלחה");
       setNewConvoOpen(false);
       setNewPhone("");
-      setNewParams({});
+      setNewParams(templateDefaultParams(newTemplateId));
       qc.invalidateQueries({ queryKey: ["whatsapp-conversations"] });
       setActivePhone(phone);
     } catch (e: any) {
@@ -357,7 +357,7 @@ function WhatsAppAdmin() {
                 value={newTemplateId}
                 onValueChange={(v) => {
                   setNewTemplateId(v);
-                  setNewParams({});
+                  setNewParams(templateDefaultParams(v));
                 }}
               >
                 <SelectTrigger className="rounded-xl">
