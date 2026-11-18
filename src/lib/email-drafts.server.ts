@@ -27,6 +27,7 @@ import { buildDraftHtml, buildDraftText, type DraftBrand, type PriceList } from 
 import { chatLinkUrl } from "./orderSummary";
 import { parseFamilyRoomReply, hourlySlots } from "./family-room-reply";
 import { SITE_INQUIRY_QUERY, SITE_INQUIRY_SUBJECT, customerEmailInNotice } from "./site-inquiry";
+import { isOwnStudioAddress } from "./studio-addresses";
 
 const MAX_NEW = 3;
 const MAX_FOLLOWUPS = 2;
@@ -34,6 +35,8 @@ const MAX_FOLLOWUPS = 2;
 // 10 minutes sharp (with a few seconds of jitter) never gets skipped as "too_soon". How often this actually
 // runs is set by the external scheduler that calls /api/send-booking-reminders — it must call at least every 10 min.
 const MIN_GAP_MS = 9 * 60_000;
+/** After this much of a run has passed, no NEW thread is analysed (at least one per run always is) — keeps a run short enough to finish. */
+const RUN_BUDGET_MS = 10_000;
 // Active window (Israel time), in minutes from midnight: 07:30 – 23:50.
 const WINDOW_START_MIN = 7 * 60 + 30;
 const WINDOW_END_MIN = 23 * 60 + 50;
@@ -646,12 +649,28 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
 
   const seen: Seen = JSON.parse((await getSetting(db, SEEN_KEY)) || '{"ids":[]}');
   const seenSet = new Set(seen.ids);
+  // The seen list is saved as the run goes (not only at its very end): the hourly route can be cut off from outside before a
+  // slow run finishes, and a list saved only at the end then never grows — the same first threads get analysed again and
+  // again (and the quiz-lead notes pile up) while the threads further down are never reached.
+  let seenDirty = false;
   const remember = (id: string) => {
     if (!seenSet.has(id)) {
       seenSet.add(id);
       seen.ids.push(id);
+      seenDirty = true;
     }
   };
+  const flushSeen = async () => {
+    if (!seenDirty) return;
+    seenDirty = false;
+    seen.ids = seen.ids.slice(-500);
+    try {
+      await setSetting(db, SEEN_KEY, JSON.stringify(seen));
+    } catch (e) {
+      console.error("[SWEETBABY] email-drafts seen save failed", e);
+    }
+  };
+  const runStartedAt = Date.now();
 
   let photos: { newborn: string[]; family: string[] } = { newborn: [], family: [] };
   try {
@@ -731,6 +750,8 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
     } catch (e) {
       result.errors.push(`quiz mails: ${String((e as any)?.message ?? e).slice(0, 100)}`);
     }
+
+    await flushSeen();
 
     // ---------- family-room answers (the room booked — or not — for a client at Yaner Clinics) ----------
     // The owner (or Claude, when it books the room) mails FROM Michal's address:
@@ -908,8 +929,14 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
     let freeDates: string | null = null;
     const autoDay = await loadAutoDay(db);
     const autoLabelId = labels.get(LABEL_AUTO);
+    await flushSeen();
+    let analysed = 0;
     for (const threadId of threadIds) {
-      if (made >= MAX_NEW) break;
+      await flushSeen();
+      // Always handle at least one thread per run; after that stop starting new ones once the run has used its time budget
+      // (the rest wait for the next run — nothing is lost, they are simply not remembered yet).
+      if (made >= MAX_NEW || (analysed > 0 && Date.now() - runStartedAt > RUN_BUDGET_MS)) break;
+      analysed++;
       const th = await g.gmailApi<{ messages?: any[] }>(k, `/users/me/threads/${threadId}?format=full`);
       const msgs = th?.messages ?? [];
       const last = msgs[msgs.length - 1];
@@ -920,13 +947,15 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
       const fromAddr = addrOf(from);
       const isSiteForm = fromAddr.endsWith(SITE_FORM_SENDER);
       const subject = g.gmailHeaderValue(h, "Subject") || "";
-      const isSiteInquiry = isOwner(fromAddr) && SITE_INQUIRY_SUBJECT.test(subject);
+      // Notices sent from the studio address — m now, the old s address until 17.11 — are the sites' own mail.
+      const fromOwnAddress = isOwner(fromAddr) || isOwnStudioAddress(fromAddr);
+      const isSiteInquiry = fromOwnAddress && SITE_INQUIRY_SUBJECT.test(subject);
       const autoSubmitted = (g.gmailHeaderValue(h, "Auto-Submitted") || "no").toLowerCase();
       const auto =
         /no-?reply|mailer-daemon|notification|newsletter|bounce/i.test(fromAddr) ||
         (!!g.gmailHeaderValue(h, "List-Id") && !isSiteForm) ||
         autoSubmitted !== "no";
-      if ((isOwner(fromAddr) && !isSiteInquiry) || auto) {
+      if ((fromOwnAddress && !isSiteInquiry) || auto) {
         remember(seenId);
         result.skipped++;
         continue;
