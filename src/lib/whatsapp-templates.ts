@@ -12,7 +12,7 @@
 // lead_follow_up — were this app's own guessed names/shapes from before
 // the real templates existed, and don't match any of the 5 actual ones).
 // Only 1 of 5 confirmed so far — see each entry's own note.
-/** `defaultValue` pre-fills the field in /admin/whatsapp (still editable). */
+/** `defaultValue` pre-fills the field in /admin/whatsapp (still editable). "@today" / "@now" = current Israel date / time. */
 export type WhatsAppTemplateParam = { key: string; label: string; defaultValue?: string };
 
 export type WhatsAppTemplateDef = {
@@ -34,11 +34,11 @@ export const WHATSAPP_TEMPLATES: WhatsAppTemplateDef[] = [
     label: "אישור הזמנה (5 משתנים)",
     language: "he",
     params: [
-      { key: "name", label: "שם הלקוחה" },
+      { key: "name", label: "שם הלקוחה", defaultValue: "לקוח" },
       { key: "business", label: "שם העסק", defaultValue: "ssweetbabyphotoshop" },
       { key: "service", label: "השירות/חבילה" },
-      { key: "date", label: "תאריך" },
-      { key: "time", label: "שעה" },
+      { key: "date", label: "תאריך", defaultValue: "@today" },
+      { key: "time", label: "שעה", defaultValue: "@now" },
     ],
   },
 ];
@@ -47,7 +47,18 @@ export const WHATSAPP_TEMPLATES: WhatsAppTemplateDef[] = [
 export function templateDefaultParams(id: string): Record<string, string> {
   const t = WHATSAPP_TEMPLATES.find((x) => x.id === id);
   const out: Record<string, string> = {};
-  for (const p of t?.params ?? []) if (p.defaultValue) out[p.key] = p.defaultValue;
+  const now = new Date();
+  const fmt = (o: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Jerusalem", ...o }).format(now);
+  for (const p of t?.params ?? []) {
+    if (!p.defaultValue) continue;
+    out[p.key] =
+      p.defaultValue === "@today"
+        ? fmt({ day: "2-digit", month: "2-digit", year: "numeric" })
+        : p.defaultValue === "@now"
+          ? fmt({ hour: "2-digit", minute: "2-digit", hour12: false })
+          : p.defaultValue;
+  }
   return out;
 }
 

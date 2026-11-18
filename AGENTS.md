@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-18 (22:3x Israel) — Claude (chat, owner: "date and time auto-filled and editable, name defaults to לקוח"):** `whatsapp-templates.ts` `templateDefaultParams`: {{1}} name defaults to "לקוח", {{4}} date = today (dd/mm/yyyy, Israel time), {{5}} time = now (HH:MM, Israel time) via `@today` / `@now` markers; all still editable. Not clicked live.
+
 - **2026-11-18 (22:3x Israel) — Claude (chat, owner: the pre-filled name must be the approved one = "ssweetbabyphotoshop"):** default of template variable {{2}} (business name) in `whatsapp-templates.ts` changed from "Sweet Baby" to "ssweetbabyphotoshop" (owner's explicit value). Still editable. Not clicked live.
 
 - **2026-11-18 (22:1x Israel) — Claude (chat, owner: "why do I have to type the business name every time I send a new WhatsApp"):** `/admin/whatsapp` "new conversation" form: the template variable {{2}} (business name) of `ssweetbabyphotoshop` is now PRE-FILLED with "Sweet Baby" (`defaultValue` on `WhatsAppTemplateParam`, helper `templateDefaultParams` in `whatsapp-templates.ts`; used on load, after send and on template switch). Still editable; it must stay a variable because the Meta-approved template body has {{2}}. tsc shows no new errors. Published.
