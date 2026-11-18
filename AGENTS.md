@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-18 (22:3x Israel) — Claude (chat, owner: the pre-filled name must be the approved one = "ssweetbabyphotoshop"):** default of template variable {{2}} (business name) in `whatsapp-templates.ts` changed from "Sweet Baby" to "ssweetbabyphotoshop" (owner's explicit value). Still editable. Not clicked live.
+
 - **2026-11-18 (22:1x Israel) — Claude (chat, owner: "why do I have to type the business name every time I send a new WhatsApp"):** `/admin/whatsapp` "new conversation" form: the template variable {{2}} (business name) of `ssweetbabyphotoshop` is now PRE-FILLED with "Sweet Baby" (`defaultValue` on `WhatsAppTemplateParam`, helper `templateDefaultParams` in `whatsapp-templates.ts`; used on load, after send and on template switch). Still editable; it must stay a variable because the Meta-approved template body has {{2}}. tsc shows no new errors. Published.
 
 - **2026-11-18 (22:xx Israel) — Claude (chat, owner: "פרסם"):** PUBLISHED head dacd334 via the Lovable connector (deploy f3b880a8-0e5c-4c7a-bf51-e8146274c682, status pending when logged; not checked live). Carries the WhatsApp failure alerts / Hebrew reasons and the clearer `/admin/whatsapp` screen with sticker / voice-note / PDF support. Lovable showed both commits as `pending` for ~3 minutes after the push; the deploy was started only after `latest_commit_sha` matched. TO CHECK: open `/admin/whatsapp` (banner, filters, 24h bar), and after the Meta account is unlocked send one test image, one mp3 and one webp sticker.
