@@ -103,6 +103,7 @@ type OrderRow = {
   session_date: string | null;
   session_time: string | null;
   birth_basket_used: boolean;
+  session_place?: string | null;
   notes: string | null;
   created_at: string;
   [key: string]: any; // ${step.key}_at columns
@@ -117,6 +118,7 @@ const emptyCreateForm = {
   session_date: "",
   session_time: "",
   birth_basket_used: false,
+  session_place: "studio" as "studio" | "home",
   notes: "",
 };
 
@@ -127,6 +129,7 @@ type EditForm = {
   session_date: string;
   session_time: string;
   birth_basket_used: boolean;
+  session_place: "studio" | "home";
   notes: string;
   total_price: string;
 };
@@ -139,6 +142,7 @@ function toEditForm(o: OrderRow): EditForm {
     session_date: o.session_date ?? "",
     session_time: o.session_time ?? "",
     birth_basket_used: !!o.birth_basket_used,
+    session_place: o.session_place === "home" ? "home" : "studio",
     notes: o.notes ?? "",
     total_price: o.total_price != null ? String(o.total_price) : "",
   };
@@ -233,6 +237,7 @@ function NewbornPackagesAdmin() {
           session_date: createForm.session_date || null,
           session_time: createForm.session_time || null,
           birth_basket_used: createForm.birth_basket_used,
+          session_place: createForm.session_place,
           notes: createForm.notes.trim() || null,
         },
       });
@@ -326,6 +331,7 @@ function NewbornPackagesAdmin() {
           session_date: editForm.session_date || null,
           session_time: editForm.session_time || null,
           birth_basket_used: editForm.birth_basket_used,
+          session_place: editForm.session_place,
           notes: editForm.notes.trim() || null,
           ...(editForm.total_price.trim() ? { total_price: Number(editForm.total_price) } : {}),
         },
@@ -758,6 +764,17 @@ function NewbornPackagesAdmin() {
                 />
               </div>
             </div>
+<div>
+                <Label>מקום הצילום</Label>
+                <select
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                  value={createForm.session_place}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, session_place: e.target.value as "studio" | "home" }))}
+                >
+                  <option value="studio">בסטודיו (חוסם שעות סטודיו וחדר משפחה)</option>
+                  <option value="home">בבית הלקוחה (לא תופס סטודיו וחדר משפחה)</option>
+                </select>
+              </div>
             <BirthBasketToggle
               value={createForm.birth_basket_used}
               onChange={(v) => setCreateForm((f) => ({ ...f, birth_basket_used: v }))}
@@ -830,6 +847,17 @@ function NewbornPackagesAdmin() {
                   value={editForm.session_time}
                   onChange={(e) => setEditForm((f) => f && { ...f, session_time: e.target.value })}
                 />
+              </div>
+<div>
+                <Label>מקום הצילום</Label>
+                <select
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                  value={editForm.session_place}
+                  onChange={(e) => setEditForm((f) => f && { ...f, session_place: e.target.value as "studio" | "home" })}
+                >
+                  <option value="studio">בסטודיו (חוסם שעות סטודיו וחדר משפחה)</option>
+                  <option value="home">בבית הלקוחה (לא תופס סטודיו וחדר משפחה)</option>
+                </select>
               </div>
               <BirthBasketToggle
                 value={editForm.birth_basket_used}

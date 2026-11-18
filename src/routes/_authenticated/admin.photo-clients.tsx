@@ -78,6 +78,8 @@ const EMPTY_FORM = {
   sessionDate: "",
   sessionTime: "",
   location: "",
+  // Where the session takes place: studio (studio sessions) or the client's home (does not take the studio).
+  place: "studio" as "studio" | "home",
   // "package": full package (shoot + editing + album, the 5-stage
   // pipeline). "studio": studio-only booking — wantsEditing then decides
   // whether she still gets the full pipeline or just a plain upload card.
@@ -122,7 +124,8 @@ function NewClientDialog({ onCreated, sendOnly = false }: { onCreated: (workflow
           phone: form.phone.trim() || undefined,
           sessionDate: form.sessionDate || undefined,
           sessionTime: form.sessionTime || undefined,
-          location: form.location.trim() || undefined,
+          location:
+            [form.place === "home" ? "בבית הלקוחה" : "סטודיו", form.location.trim()].filter(Boolean).join(" — ") || undefined,
           packageType: form.packageType || undefined,
           photosToEdit: form.photosToEdit.trim() ? Number(form.photosToEdit) : undefined,
           albumUpgrades: form.albumUpgrades.trim() || undefined,
@@ -239,8 +242,21 @@ function NewClientDialog({ onCreated, sendOnly = false }: { onCreated: (workflow
                 <Input type="time" dir="ltr" value={form.sessionTime} onChange={(e) => set("sessionTime", e.target.value)} />
               </div>
               <div className="sm:col-span-2">
-                <Label className="text-xs text-muted-foreground">מיקום</Label>
-                <Input value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="סטודיו / חוץ / כתובת" />
+                <Label className="text-xs text-muted-foreground">מקום הצילום</Label>
+                <select
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                  value={form.place}
+                  onChange={(e) => set("place", e.target.value as "studio" | "home")}
+                >
+                  <option value="studio">בסטודיו</option>
+                  <option value="home">בבית הלקוחה (לא תופס סטודיו וחדר משפחה)</option>
+                </select>
+                <Input
+                  className="mt-2"
+                  value={form.location}
+                  onChange={(e) => set("location", e.target.value)}
+                  placeholder="פרטים / כתובת (רשות)"
+                />
               </div>
             </div>
 

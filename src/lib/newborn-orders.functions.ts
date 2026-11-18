@@ -276,6 +276,7 @@ export async function syncNewbornCalendarEvent(
     contact_email: string | null;
     session_date: string | null;
     session_time: string | null;
+    session_place?: string | null;
     google_event_id?: string | null;
   },
 ): Promise<string | null> {
@@ -285,7 +286,9 @@ export async function syncNewbornCalendarEvent(
     if (order.google_event_id) {
       await deleteGoogleCalendarEvent(order.google_event_id).catch(() => {});
     }
-    if (!order.session_date) {
+    // A session at the client's home is NOT in the studio calendar (it must
+    // not trigger the family-room booking either).
+    if (!order.session_date || order.session_place === "home") {
       if (order.google_event_id)
         await db
           .from("newborn_package_orders")
@@ -360,6 +363,7 @@ export async function syncNewbornBookingBlock(
     session_time: string | null;
     total_price?: number | null;
     blocking_booking_id?: string | null;
+    session_place?: string | null;
   },
 ): Promise<BookingBlockResult> {
   try {
@@ -371,7 +375,7 @@ export async function syncNewbornBookingBlock(
       // cleanup of the old row before creating its replacement below).
       await db.from("bookings").delete().eq("id", order.blocking_booking_id);
     }
-    if (!order.session_date) {
+    if (!order.session_date || order.session_place === "home") {
       if (order.blocking_booking_id)
         await db
           .from("newborn_package_orders")
@@ -476,6 +480,7 @@ const createSchema = z.object({
     .optional()
     .nullable(),
   birth_basket_used: z.boolean().optional().default(false),
+  session_place: z.enum(["studio", "home"]).optional().default("studio"),
   notes: z.string().trim().max(1000).optional().nullable(),
 });
 
@@ -500,6 +505,7 @@ export const createNewbornOrder = createServerFn({ method: "POST" })
       session_date: data.session_date || null,
       session_time: data.session_time || null,
       birth_basket_used: data.birth_basket_used ?? false,
+      session_place: data.session_place ?? "studio",
       notes: data.notes || null,
     };
     let { data: row, error } = await (context.supabase as any)
@@ -521,7 +527,7 @@ export const createNewbornOrder = createServerFn({ method: "POST" })
         "[SWEETBABY] newborn order insert with new columns failed, retrying without them",
         error,
       );
-      const { session_time: _st, birth_basket_used: _bb, ...withoutNewCols } = payload;
+      const { session_time: _st, birth_basket_used: _bb, session_place: _sp, ...withoutNewCols } = payload;
       const retry = await (context.supabase as any)
         .from("newborn_package_orders")
         .insert(withoutNewCols)
@@ -692,6 +698,7 @@ const updateContactSchema = z.object({
     .optional()
     .nullable(),
   birth_basket_used: z.boolean().optional(),
+  session_place: z.enum(["studio", "home"]).optional(),
   notes: z.string().trim().max(1000).optional().nullable(),
   // Normally set once at creation (package price + addons) — editable here
   // for when the actual agreed price differs from the catalog (e.g. a
@@ -709,6 +716,7 @@ const CALENDAR_RELEVANT_FIELDS = new Set([
   "contact_phone",
   "session_date",
   "session_time",
+  "session_place",
 ]);
 
 export const updateNewbornOrderContact = createServerFn({ method: "POST" })
@@ -732,7 +740,7 @@ export const updateNewbornOrderContact = createServerFn({ method: "POST" })
       .update(patch)
       .eq("id", id);
     let schemaFallback = false;
-    if (error && ("session_time" in patch || "birth_basket_used" in patch)) {
+    if (error && ("session_time" in patch || "birth_basket_used" in patch || "session_place" in patch)) {
       // Same schema-deploy-lag fallback as createNewbornOrder above — retry
       // without the possibly-missing new columns rather than failing the
       // whole save (which would also silently drop any OTHER field in the
@@ -741,7 +749,7 @@ export const updateNewbornOrderContact = createServerFn({ method: "POST" })
         "[SWEETBABY] newborn order update with new columns failed, retrying without them",
         error,
       );
-      const { session_time: _st, birth_basket_used: _bb, ...withoutNewCols } = patch;
+      const { session_time: _st, birth_basket_used: _bb, session_place: _sp, ...withoutNewCols } = patch;
       if (Object.keys(withoutNewCols).length > 0) {
         const retry = await (context.supabase as any)
           .from("newborn_package_orders")
@@ -783,7 +791,7 @@ export const updateNewbornOrderContact = createServerFn({ method: "POST" })
         "id, contact_name, contact_phone, contact_email, session_date, total_price, google_event_id";
       let { data: fresh } = await (context.supabase as any)
         .from("newborn_package_orders")
-        .select(`${baseCols}, session_time, blocking_booking_id`)
+        .select(`${baseCols}, session_time, session_place, blocking_booking_id`)
         .eq("id", id)
         .maybeSingle();
       if (!fresh) {

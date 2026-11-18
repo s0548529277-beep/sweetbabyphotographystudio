@@ -1533,6 +1533,7 @@ export type Database = {
           reminder_sent_at: string | null
           session_date: string | null
           session_time: string | null
+          session_place: string
           shoot_done_at: string | null
           total_price: number
           unlock_receipt_path: string | null
@@ -1595,6 +1596,7 @@ export type Database = {
           reminder_sent_at?: string | null
           session_date?: string | null
           session_time?: string | null
+          session_place?: string
           shoot_done_at?: string | null
           total_price?: number
           unlock_receipt_path?: string | null
@@ -1657,6 +1659,7 @@ export type Database = {
           reminder_sent_at?: string | null
           session_date?: string | null
           session_time?: string | null
+          session_place?: string
           shoot_done_at?: string | null
           total_price?: number
           unlock_receipt_path?: string | null
