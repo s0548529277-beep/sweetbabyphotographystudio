@@ -161,7 +161,7 @@ export const sendWhatsAppMediaAdmin = createServerFn({ method: "POST" })
       .object({
         phone: z.string().min(1),
         mediaUrl: z.string().url(),
-        mediaType: z.enum(["image", "video", "document"]),
+        mediaType: z.enum(["image", "video", "document", "audio", "sticker"]),
         caption: z.string().optional(),
       })
       .parse(d),
@@ -179,9 +179,10 @@ export const sendWhatsAppMediaAdmin = createServerFn({ method: "POST" })
       wa_message_id: wamid,
       direction: "out",
       phone: data.phone,
-      body: data.caption ?? null,
+      body: data.mediaType === "audio" || data.mediaType === "sticker" ? null : (data.caption ?? null),
       media_url: data.mediaUrl,
-      media_type: data.mediaType,
+      // The table only allows image/video/document/audio — a sticker is stored (and shown) as an image.
+      media_type: data.mediaType === "sticker" ? "image" : data.mediaType,
       status: "sent",
       business_phone: DEFAULT_BUSINESS_PHONE,
     });

@@ -88,7 +88,7 @@ export async function sendWhatsAppTemplate(
   });
 }
 
-export type WhatsAppMediaType = "image" | "video" | "document";
+export type WhatsAppMediaType = "image" | "video" | "document" | "audio" | "sticker";
 
 /**
  * Sends a media message by public URL (the "link" method) — the admin UI
@@ -102,10 +102,12 @@ export async function sendWhatsAppMedia(
   link: string,
   caption?: string,
 ): Promise<{ wamid: string | null }> {
+  // WhatsApp rejects captions on audio and stickers.
+  const canCaption = type === "image" || type === "video" || type === "document";
   return postToMessagesEndpoint({
     to,
     type,
-    [type]: caption ? { link, caption } : { link },
+    [type]: caption && canCaption ? { link, caption } : { link },
   });
 }
 
@@ -178,5 +180,13 @@ export const WHATSAPP_MEDIA_EXT: Record<string, string> = {
   "video/3gpp": "3gp",
   "audio/ogg": "ogg",
   "audio/mpeg": "mp3",
+  "audio/aac": "aac",
+  "audio/amr": "amr",
+  "audio/mp4": "m4a",
   "application/pdf": "pdf",
 };
+
+/** Meta reports voice notes as "audio/ogg; codecs=opus" — strip the parameters so the extension lookup and content-type are clean. */
+export function normalizeMime(mime: string): string {
+  return mime.split(";")[0].trim().toLowerCase();
+}

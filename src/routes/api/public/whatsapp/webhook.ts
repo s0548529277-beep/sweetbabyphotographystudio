@@ -5,6 +5,7 @@ import {
   fetchWhatsAppMediaInfo,
   downloadWhatsAppMedia,
   WHATSAPP_MEDIA_EXT,
+  normalizeMime,
 } from "@/lib/whatsapp.server";
 import { runWhatsAppBotReply } from "@/lib/whatsapp-bot.server";
 
@@ -28,6 +29,7 @@ type IncomingMessage = {
   video?: { id: string; caption?: string };
   document?: { id: string; caption?: string; filename?: string };
   audio?: { id: string };
+  sticker?: { id: string };
 };
 
 type StatusUpdate = {
@@ -46,21 +48,22 @@ async function storeIncomingMedia(
     if (!info) return null;
     const bytes = await downloadWhatsAppMedia(info.url, info.fileSize);
     if (!bytes) return null;
-    const ext = WHATSAPP_MEDIA_EXT[info.mimeType] ?? "bin";
+    const mime = normalizeMime(info.mimeType);
+    const ext = WHATSAPP_MEDIA_EXT[mime] ?? "bin";
     const path = `whatsapp/${mediaId}.${ext}`;
     const { error } = await supabaseAdmin.storage
       .from("items")
-      .upload(path, bytes, { contentType: info.mimeType, upsert: true });
+      .upload(path, bytes, { contentType: mime, upsert: true });
     if (error) throw error;
     const { data } = await supabaseAdmin.storage
       .from("items")
       .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
     if (!data?.signedUrl) return null;
-    const type = info.mimeType.startsWith("image/")
+    const type = mime.startsWith("image/")
       ? "image"
-      : info.mimeType.startsWith("video/")
+      : mime.startsWith("video/")
         ? "video"
-        : info.mimeType.startsWith("audio/")
+        : mime.startsWith("audio/")
           ? "audio"
           : "document";
     return { url: data.signedUrl, type };
@@ -92,6 +95,9 @@ async function handleIncomingMessage(
     media = await storeIncomingMedia(supabaseAdmin, msg.document.id);
   } else if (msg.type === "audio" && msg.audio) {
     media = await storeIncomingMedia(supabaseAdmin, msg.audio.id);
+  } else if (msg.type === "sticker" && msg.sticker) {
+    // Stickers arrive as webp images; stored and shown as an image (the table only allows image/video/document/audio).
+    media = await storeIncomingMedia(supabaseAdmin, msg.sticker.id);
   } else {
     // Unsupported type for now (location, contacts, reactions, stickers…) — still logged so nothing silently vanishes.
     body = `[הודעה מסוג ${msg.type} — עדיין לא נתמך בתצוגה]`;
