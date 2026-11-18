@@ -26,6 +26,7 @@ import { generateTextResilient } from "./ai-gateway.server";
 import { buildDraftHtml, buildDraftText, type DraftBrand, type PriceList } from "./email-draft-design";
 import { chatLinkUrl } from "./orderSummary";
 import { parseFamilyRoomReply, hourlySlots } from "./family-room-reply";
+import { SITE_INQUIRY_QUERY, SITE_INQUIRY_SUBJECT, customerEmailInNotice } from "./site-inquiry";
 
 const MAX_NEW = 3;
 const MAX_FOLLOWUPS = 2;
@@ -555,11 +556,11 @@ async function freeDatesBlock(): Promise<string> {
   }
 }
 
-async function analyze(subject: string, text: string, past: string, isSiteForm: boolean, freeDates = ""): Promise<Analysis | null> {
+async function analyze(subject: string, text: string, past: string, isSiteForm: boolean, freeDates = "", siteInquiry = false): Promise<Analysis | null> {
   const { text: out } = await generateTextResilient(
     {
       system: WRITER_RULES,
-      prompt: `${isSiteForm ? "זו הודעה מטופס יצירת הקשר באתר של מיכל — פרטי הלקוחה (שם/טלפון/אימייל/שאלה) בגוף ההודעה. התשובה תישלח כמייל חדש לכתובת של הלקוחה. אם יש רק שם ואימייל בלי שאלה — טיוטה קצרה וחמה של 'תודה, איך אפשר לעזור' + מידע עיקרי, במותג photographer.\n\n" : ""}נושא: ${subject}\n\nהשרשור (ההודעה האחרונה בסוף):\n${text}\n\n${past ? `תשובות קודמות של מיכל בנושא דומה (להעדיף את הניסוח והעובדות שלה):\n${past}\n\n` : ""}${freeDates ? `מועדים פנויים אמיתיים בסטודיו כרגע (מהיומן): \n${freeDates}\nכשהפונה שואלת על השכרת הסטודיו / תאריך / זמינות ואין לה תאריך מדויק, או שהתאריך שביקשה לא מתאים — הציעי בגוף המייל 2–3 מהמועדים האלה (בניסוח "נכון לעכשיו פנוי", בלי להבטיח — השריון נקבע בהזמנה) והציבי cta="booking" כדי שיופיע קישור לשריון. אם היא ביקשה תאריך מסוים — ענו על התאריך שלה קודם. אל תציעי מועדים כשהשאלה לא קשורה לסטודיו.\n\n` : ""}החזירי JSON בלבד (בלי טקסט נוסף):
+      prompt: `${siteInquiry ? "זו התראה אוטומטית שהאתר (של מיכל או של הסטודיו) שלח למיכל על פנייה חדשה של לקוחה (טופס, צ'אט, שאלון התאמה או ליד). פרטי הלקוחה (שם/טלפון/אימייל/מה ביקשה) בגוף ההודעה — המייל עצמו לא נכתב על ידי הלקוחה. זו כן פנייה שמחכה למענה: needsReply=true (אלא אם זה ספאם ברור), isClient=true, clientEmail = האימייל של הלקוחה (לא של מיכל ולא של האתר). התשובה תישלח כמייל חדש לכתובת של הלקוחה: טיוטה חמה, קצרה וממוקדת במה שביקשה, בלי להבטיח מועד או מחיר שאינם בידע; אם יש רק שם ואימייל — 'תודה, איך אפשר לעזור' + מידע עיקרי, במותג המתאים.\n\n" : ""}${isSiteForm ? "זו הודעה מטופס יצירת הקשר באתר של מיכל — פרטי הלקוחה (שם/טלפון/אימייל/שאלה) בגוף ההודעה. התשובה תישלח כמייל חדש לכתובת של הלקוחה. אם יש רק שם ואימייל בלי שאלה — טיוטה קצרה וחמה של 'תודה, איך אפשר לעזור' + מידע עיקרי, במותג photographer.\n\n" : ""}נושא: ${subject}\n\nהשרשור (ההודעה האחרונה בסוף):\n${text}\n\n${past ? `תשובות קודמות של מיכל בנושא דומה (להעדיף את הניסוח והעובדות שלה):\n${past}\n\n` : ""}${freeDates ? `מועדים פנויים אמיתיים בסטודיו כרגע (מהיומן): \n${freeDates}\nכשהפונה שואלת על השכרת הסטודיו / תאריך / זמינות ואין לה תאריך מדויק, או שהתאריך שביקשה לא מתאים — הציעי בגוף המייל 2–3 מהמועדים האלה (בניסוח "נכון לעכשיו פנוי", בלי להבטיח — השריון נקבע בהזמנה) והציבי cta="booking" כדי שיופיע קישור לשריון. אם היא ביקשה תאריך מסוים — ענו על התאריך שלה קודם. אל תציעי מועדים כשהשאלה לא קשורה לסטודיו.\n\n` : ""}החזירי JSON בלבד (בלי טקסט נוסף):
 {"needsReply": true/false — false לניוזלטר/פרסומת/קבוצה/הודעה אוטומטית/קבלה/משהו שלא מחכה לתשובה של מיכל. false גם כשההודעה האחרונה סוגרת את השיחה ולא שואלת כלום (\"תודה\", \"לא רלוונטי לי, תודה בכל אופן\", \"אוקיי\", \"מעולה\", 👍),
 "brand": "photographer" (צילומים של מיכל, סל לידה, חבילות, גלריה, אלבומים) | "studio" (השכרת סטודיו, אביזרים, קולאז׳, חוקי הסטודיו) | "general" (ספקים, שותפים, כל השאר),
 "topic": "newborn"|"birth_basket"|"upsherin"|"family"|"outdoor"|"studio"|"props"|"other",
@@ -694,7 +695,8 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
     // ---------- quiz leads from the photographer site ----------
     // The photographer site's package quiz mails every lead to Michal FROM her own address, which the rules below skip
     // (they are her own mail). These few mails are the exception: they become an inquiry lead (so the hourly
-    // follow-up digest lists them) and never get a reply draft.
+    // follow-up digest lists them). The reply draft itself (when she left an e-mail) is made by the "new inquiries" block
+    // below, which also reads these mails (see SITE_INQUIRY_SUBJECT).
     try {
       const qList = await g.gmailApi<{ messages?: Array<{ id: string; threadId: string }> }>(
         k,
@@ -723,7 +725,7 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
           message: `${hot ? "🔥 ליד חם · " : ""}${choice ? "בחרה בסיום השאלון" : "מילאה את שאלון התאמת החבילה באתר הצלמת"}${pkg ? ` · ${pkg}` : ""}`,
           status: "new",
           gmail_thread_id: qm.threadId,
-          notes: "מאתר הצלמת (שאלון) — לא נשלחה שום הודעה אליה.",
+          notes: "מאתר הצלמת (שאלון) — לא נשלחה שום הודעה אליה (אם השאירה מייל, מחכה לה טיוטת תשובה).",
         });
       }
     } catch (e) {
@@ -887,6 +889,16 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
     );
     const newestByThread = new Map<string, string>();
     for (const m of list?.messages ?? []) if (!newestByThread.has(m.threadId)) newestByThread.set(m.threadId, m.id);
+    // Inquiry notices the sites mailed from the studio address to itself (excluded above by -from:me).
+    try {
+      const siteList = await g.gmailApi<{ messages?: Array<{ id: string; threadId: string }> }>(
+        k,
+        `/users/me/messages?maxResults=20&q=${encodeURIComponent(SITE_INQUIRY_QUERY)}`,
+      );
+      for (const m of siteList?.messages ?? []) if (!newestByThread.has(m.threadId)) newestByThread.set(m.threadId, m.id);
+    } catch (e) {
+      result.errors.push(`site inquiries: ${String((e as any)?.message ?? e).slice(0, 100)}`);
+    }
     const threadIds = [...newestByThread.entries()]
       .filter(([t, mid]) => !seenSet.has(mid) && !draftThreads.has(t))
       .map(([t]) => t);
@@ -907,22 +919,31 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
       const from = g.gmailHeaderValue(h, "From");
       const fromAddr = addrOf(from);
       const isSiteForm = fromAddr.endsWith(SITE_FORM_SENDER);
+      const subject = g.gmailHeaderValue(h, "Subject") || "";
+      const isSiteInquiry = isOwner(fromAddr) && SITE_INQUIRY_SUBJECT.test(subject);
       const autoSubmitted = (g.gmailHeaderValue(h, "Auto-Submitted") || "no").toLowerCase();
       const auto =
         /no-?reply|mailer-daemon|notification|newsletter|bounce/i.test(fromAddr) ||
         (!!g.gmailHeaderValue(h, "List-Id") && !isSiteForm) ||
         autoSubmitted !== "no";
-      if (isOwner(fromAddr) || auto) {
+      if ((isOwner(fromAddr) && !isSiteInquiry) || auto) {
         remember(seenId);
         result.skipped++;
         continue;
       }
-      const subject = g.gmailHeaderValue(h, "Subject") || "";
       const text = threadText(g, msgs);
+      // A site notice with no customer e-mail in it (a phone message, a chat that left only a phone number) has nobody to
+      // write to: it stays a lead for the follow-up digest and gets no draft (and no AI call).
+      const noticeEmail = isSiteInquiry ? customerEmailInNotice(text) : null;
+      if (isSiteInquiry && !noticeEmail) {
+        remember(seenId);
+        result.skipped++;
+        continue;
+      }
       let a: Analysis | null = null;
       try {
         if (freeDates === null && STUDIO_DATE_HINT.test(`${subject}\n${text}`)) freeDates = await freeDatesBlock();
-        a = await analyze(subject, text, await pastAnswers(g, k, `${subject}\n${text}`), isSiteForm, STUDIO_DATE_HINT.test(`${subject}\n${text}`) ? freeDates ?? "" : "");
+        a = await analyze(subject, text, await pastAnswers(g, k, `${subject}\n${text}`), isSiteForm, STUDIO_DATE_HINT.test(`${subject}\n${text}`) ? freeDates ?? "" : "", isSiteInquiry);
       } catch (e: any) {
         result.errors.push(`AI: ${String(e?.message ?? e).slice(0, 120)}`);
         break; // AI down — try again next run, don't mark as seen
@@ -944,8 +965,9 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
         references: [g.gmailHeaderValue(h, "References"), g.gmailHeaderValue(h, "Message-ID")].filter(Boolean).join(" "),
       };
       let draftSubject = /^re:/i.test(subject) ? subject : `Re: ${subject}`;
-      if (isSiteForm) {
-        const email = (a.clientEmail || "").trim();
+      if (isSiteForm || isSiteInquiry) {
+        // The address found in the notice itself wins over the model's reading of it.
+        const email = (isSiteInquiry ? noticeEmail || "" : a.clientEmail || "").trim();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
           remember(seenId);
           result.errors.push(`טופס מהאתר בלי אימייל תקין (${a.clientName || "?"})`);
@@ -1060,12 +1082,12 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
       remember(seenId);
       made++;
       result.created.push({ to: addrOf(to), summary: a.summary, brand, kind: "new", flags: a.flags, autoSent });
-      if (a.isClient) {
+      if (a.isClient || isSiteInquiry) {
         await upsertLead(db, {
-          name: a.clientName || nameOf(from) || null,
-          email: isSiteForm ? to : fromAddr,
+          name: a.clientName || (isSiteInquiry ? "" : nameOf(from)) || null,
+          email: isSiteForm || isSiteInquiry ? to : fromAddr,
           phone: a.clientPhone || null,
-          source: isSiteForm ? "site_form" : "email",
+          source: isSiteInquiry ? "site_inquiry" : isSiteForm ? "site_form" : "email",
           topic: a.topic || "other",
           message: a.question || a.summary,
           status: "new",

@@ -20,6 +20,7 @@ import { heartImg } from "@/lib/email-hearts";
 import { buildChatButtonHtml, pillButton, buildContinueOrderHtml, buildReminderActionsHtml } from "@/lib/orderSummary";
 import { PHONE_BOOKING_NOTES_MARKER } from "@/lib/availability.server";
 import { isPlaceholderEmail } from "@/lib/auth.functions";
+import { isOwnStudioAddress } from "@/lib/studio-addresses";
 
 const SENT_KEY = "booking_followups_sent";
 const SITE = "https://sweetbabyphoto.shop";
@@ -75,12 +76,13 @@ async function saveSent(db: any, sent: Sent) {
 async function customerEmailOf(db: any, userId: string, bookingEmail?: string | null): Promise<string | null> {
   // The address typed into the booking wins; the account email is the fallback.
   const typed = bookingEmail?.trim();
-  if (typed && !isPlaceholderEmail(typed)) return typed;
+  if (typed && !isPlaceholderEmail(typed) && !isOwnStudioAddress(typed)) return typed;
   const {
     data: { user },
   } = await db.auth.admin.getUserById(userId);
   const email = user?.email;
-  return email && !isPlaceholderEmail(email) ? email : null;
+  // A booking made on the studio's own account (e.g. for a client by phone) has no customer to thank: never mail the studio itself.
+  return email && !isPlaceholderEmail(email) && !isOwnStudioAddress(email) ? email : null;
 }
 
 const esc = (s: unknown) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] as string);

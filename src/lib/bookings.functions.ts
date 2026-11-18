@@ -8,13 +8,14 @@ import { buildBookingSummaryHtml, buildContinueOrderHtml } from "@/lib/orderSumm
 import { bookingBlocksSlot, PENDING_HOLD_MINUTES, PHONE_BOOKING_NOTES_MARKER } from "@/lib/availability.server";
 import { PROPS_REQUEST_CONTEXT_MARKER } from "@/lib/voice-message.server";
 import { isPlaceholderEmail } from "@/lib/auth.functions";
+import { isOwnStudioAddress } from "@/lib/studio-addresses";
 
 /** The address typed into the booking itself wins; the account email is only the fallback (guests / phone accounts have none). */
 export function pickBookingEmail(bookingEmail: string | null | undefined, accountEmail: string | null | undefined): string | undefined {
   const b = bookingEmail?.trim();
-  if (b && !isPlaceholderEmail(b)) return b;
+  if (b && !isPlaceholderEmail(b) && !isOwnStudioAddress(b)) return b;
   const a = accountEmail?.trim();
-  return a && !isPlaceholderEmail(a) ? a : undefined;
+  return a && !isPlaceholderEmail(a) && !isOwnStudioAddress(a) ? a : undefined;
 }
 
 /** Resolves reserved-prop SKUs to name + photo for the confirmation/reminder emails — so the customer (and the studio's own copy) sees a recognizable thumbnail instead of a bare SKU she'd otherwise have to look up. Best-effort: any DB hiccup just falls back to the plain SKU list already handled by buildBookingSummaryHtml. */
