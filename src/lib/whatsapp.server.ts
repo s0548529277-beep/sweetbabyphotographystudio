@@ -8,6 +8,8 @@
 //   WHATSAPP_API_KEY  — per-connection key, injected by the connector link
 //   LOVABLE_API_KEY   — project key, already present
 
+import { explainWhatsAppFailure } from "./whatsapp-errors";
+
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/whatsapp";
 
 function gatewayHeaders(): Record<string, string> {
@@ -33,7 +35,18 @@ async function postToMessagesEndpoint(
   const text = await res.text();
   if (!res.ok) {
     console.error(`[SWEETBABY] whatsapp send failed [${res.status}]: ${text}`);
-    throw new Error(`WhatsApp send failed (${res.status}): ${text}`);
+    // Hebrew explanation first (shown to the admin in /admin/whatsapp), raw
+    // Meta text kept after it for debugging.
+    let code: number | string | null = null;
+    let title: string | null = null;
+    try {
+      const parsed = JSON.parse(text);
+      code = parsed?.error?.code ?? null;
+      title = parsed?.error?.error_data?.details ?? parsed?.error?.message ?? null;
+    } catch {
+      // body was not JSON — fall back to the raw text below
+    }
+    throw new Error(`${explainWhatsAppFailure(title ?? text, code)} (${res.status}: ${text.slice(0, 300)})`);
   }
   const json = JSON.parse(text);
   return { wamid: json?.messages?.[0]?.id ?? null };

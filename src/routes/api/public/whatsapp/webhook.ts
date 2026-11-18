@@ -33,7 +33,7 @@ type IncomingMessage = {
 type StatusUpdate = {
   id: string;
   status: string;
-  errors?: { title?: string }[];
+  errors?: { title?: string; code?: number | string }[];
 };
 
 /** Downloads one incoming media attachment and re-hosts it in Supabase Storage (Meta's own media URLs expire after a few minutes). Best-effort — a failure here still lets the message row save (with media_url null) rather than dropping the whole event. */
@@ -114,6 +114,19 @@ async function handleIncomingMessage(
     console.error("[SWEETBABY] whatsapp incoming message insert failed", error);
   }
 
+  // Anything that is not plain text (voice note, photo, sticker, location…)
+  // gets no bot reply, so the owner is mailed once per NEW message. A
+  // duplicate delivery (insert hit the unique key) is never mailed twice.
+  if (msg.type !== "text" && !error) {
+    const { notifyWhatsAppNonTextIncoming } = await import("@/lib/whatsapp-alerts.server");
+    await notifyWhatsAppNonTextIncoming({
+      phone: msg.from,
+      contactName,
+      type: msg.type,
+      caption: body && !body.startsWith("[הודעה מסוג") ? body : null,
+    });
+  }
+
   // Auto-reply bot v1: text messages only — media (image/video/document/
   // audio) isn't passed to the AI yet, so the conversation just logs for an
   // admin to pick up manually in /admin/whatsapp, same as before this
@@ -136,9 +149,11 @@ async function handleStatusUpdate(supabaseAdmin: any, status: StatusUpdate, busi
   if (!mapped) return;
   const { data: existing } = await supabaseAdmin
     .from("whatsapp_messages")
-    .select("status")
+    .select("status, phone, body")
     .eq("wa_message_id", status.id)
     .maybeSingle();
+  const errTitle: string | null = status.errors?.[0]?.title ?? null;
+  const errCode = status.errors?.[0]?.code ?? null;
   if (!existing) {
     // The outbound row isn't saved yet (callback beat the sender) — leave a
     // marker row so reconciliation can apply the status once it appears.
@@ -148,16 +163,35 @@ async function handleStatusUpdate(supabaseAdmin: any, status: StatusUpdate, busi
       phone: "unknown",
       body: null,
       status: mapped,
+      error: mapped === "failed" ? errTitle : null,
       business_phone: businessPhone,
     });
+    if (mapped === "failed") {
+      const { notifyWhatsAppSendFailed } = await import("@/lib/whatsapp-alerts.server");
+      await notifyWhatsAppSendFailed({ phone: null, body: null, errorTitle: errTitle, errorCode: errCode });
+    }
     return;
   }
   if ((STATUS_RANK[existing.status] ?? 0) > STATUS_RANK[mapped]) return;
   const { error } = await supabaseAdmin
     .from("whatsapp_messages")
-    .update({ status: mapped, error: status.errors?.[0]?.title ?? null })
+    .update({ status: mapped, error: errTitle })
     .eq("wa_message_id", status.id);
-  if (error) console.error("[SWEETBABY] whatsapp status update failed", error);
+  if (error) {
+    console.error("[SWEETBABY] whatsapp status update failed", error);
+    return;
+  }
+  // Owner alert: only when the message JUST turned failed (a repeated
+  // failed callback finds status already failed and stays silent).
+  if (mapped === "failed" && existing.status !== "failed") {
+    const { notifyWhatsAppSendFailed } = await import("@/lib/whatsapp-alerts.server");
+    await notifyWhatsAppSendFailed({
+      phone: existing.phone ?? null,
+      body: existing.body ?? null,
+      errorTitle: errTitle,
+      errorCode: errCode,
+    });
+  }
 }
 
 /** Processes one stored delivery's payload. Unknown event types are stored and acknowledged without further work. */
