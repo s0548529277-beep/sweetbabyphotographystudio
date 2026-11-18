@@ -36,7 +36,7 @@ export const WHATSAPP_TEMPLATES: WhatsAppTemplateDef[] = [
     params: [
       { key: "name", label: "שם הלקוחה", defaultValue: "לקוח" },
       { key: "business", label: "שם העסק", defaultValue: "ssweetbabyphotoshop" },
-      { key: "service", label: "השירות/חבילה" },
+      { key: "service", label: "השירות/חבילה", defaultValue: "צילום" },
       { key: "date", label: "תאריך", defaultValue: "@today" },
       { key: "time", label: "שעה", defaultValue: "@now" },
     ],

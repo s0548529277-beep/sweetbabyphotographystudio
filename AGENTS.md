@@ -18,7 +18,7 @@
 
 ## Work log
 
-- **2026-11-18 (22:3x Israel) — Claude (chat, owner: "date and time auto-filled and editable, name defaults to לקוח"):** `whatsapp-templates.ts` `templateDefaultParams`: {{1}} name defaults to "לקוח", {{4}} date = today (dd/mm/yyyy, Israel time), {{5}} time = now (HH:MM, Israel time) via `@today` / `@now` markers; all still editable. Not clicked live.
+- **2026-11-18 (22:3x Israel) — Claude (chat, owner: "date and time auto-filled and editable, name defaults to לקוח"):** `whatsapp-templates.ts` `templateDefaultParams`: {{1}} name defaults to "לקוח", {{4}} date = today (dd/mm/yyyy, Israel time), {{5}} time = now (HH:MM, Israel time) via `@today` / `@now` markers; {{3}} service defaults to "צילום" (so every field is pre-filled); all still editable. Not clicked live.
 
 - **2026-11-18 (22:3x Israel) — Claude (chat, owner: the pre-filled name must be the approved one = "ssweetbabyphotoshop"):** default of template variable {{2}} (business name) in `whatsapp-templates.ts` changed from "Sweet Baby" to "ssweetbabyphotoshop" (owner's explicit value). Still editable. Not clicked live.
 
