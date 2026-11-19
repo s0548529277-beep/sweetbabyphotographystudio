@@ -14,6 +14,8 @@
  * automatically (clearly labelled as an automatic first reply by the
  * SweetBot, with an apology in advance), and a normal draft is still left
  * for her to review and answer personally. See shouldAutoSend().
+ * SWITCHED OFF 2026-11-19 (owner: the automatic replies contained mistakes):
+ * AUTO_FIRST_REPLY_ENABLED = false, so the assistant only prepares drafts.
  *
  * Cheap by design: a Gmail search every run, AI only for real new threads
  * (per-run caps in DraftRunLimits: small on the old hourly route, none on the dedicated 10-minute route), runs every 10 minutes
@@ -72,6 +74,14 @@ const LABEL_READY = "טיוטה מוכנה ✍️";
 const LABEL_SENT = "נשלח ✓";
 const LABEL_FOLLOW = "מעקב נשלח 🔁";
 const LABEL_AUTO = "מענה ראשוני אוטומטי 🤖";
+/**
+ * Master switch for the automatic first reply. false = NOTHING is sent
+ * automatically; every inquiry only gets a draft for the owner (owner request
+ * 2026-11-19, after the 19.11 automatic replies misread a time, promised
+ * availability that was not checked, and answered a price negotiation as a
+ * studio inquiry). Set to true only after the owner asks for it again.
+ */
+const AUTO_FIRST_REPLY_ENABLED = false;
 const AUTO_MAX_PER_RUN = 3;
 const AUTO_MAX_PER_DAY = 15;
 const PHOTO_TOPICS = ["newborn", "birth_basket", "upsherin", "family", "outdoor"];
@@ -484,6 +494,7 @@ function shouldAutoSend(p: {
   runCount: number;
   dayCount: number;
 }): boolean {
+  if (!AUTO_FIRST_REPLY_ENABLED) return false;
   const { a } = p;
   const rentalPath =
     (a.urgent === true || a.needsGuidance === true) && (a.topic === "studio" || a.topic === "props") && p.brand === "studio";
