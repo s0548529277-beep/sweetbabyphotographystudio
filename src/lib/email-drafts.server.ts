@@ -49,6 +49,11 @@ export const DEDICATED_DRAFT_LIMITS: DraftRunLimits = { maxNew: Number.POSITIVE_
 // old external route only takes over (minGapMs 12 min, see below) when the cron has been silent for longer than that, so the
 // two never run at the same time.
 const MIN_GAP_MS = 9 * 60_000;
+// Owner request 19.11: every 5 minutes between 08:00 and 15:00 Israel time (the cron fires every 5 minutes around the clock;
+// outside this window the 9-minute gap above turns every second firing into a cheap "too_soon").
+const PEAK_START_MIN = 8 * 60;
+const PEAK_END_MIN = 15 * 60;
+const PEAK_GAP_MS = 4 * 60_000;
 // Active window (Israel time), in minutes from midnight: 07:30 – 23:50.
 const WINDOW_START_MIN = 7 * 60 + 30;
 const WINDOW_END_MIN = 23 * 60 + 50;
@@ -646,7 +651,8 @@ export async function runEmailDraftAssistant(
     const minutesOfDay = hour * 60 + minute;
     if (minutesOfDay < WINDOW_START_MIN || minutesOfDay > WINDOW_END_MIN) return { ...result, reason: "outside_hours" };
     const last = await getSetting(db, LAST_RUN_KEY);
-    if (last && Date.now() - Date.parse(last) < (opts.minGapMs ?? MIN_GAP_MS)) return { ...result, reason: "too_soon" };
+    const gapMs = opts.minGapMs ?? (minutesOfDay >= PEAK_START_MIN && minutesOfDay < PEAK_END_MIN ? PEAK_GAP_MS : MIN_GAP_MS);
+    if (last && Date.now() - Date.parse(last) < gapMs) return { ...result, reason: "too_soon" };
   }
   await setSetting(db, LAST_RUN_KEY, new Date().toISOString());
 
