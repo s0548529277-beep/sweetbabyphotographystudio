@@ -43,6 +43,7 @@ import { Route as AuthenticatedMyPhotosRouteImport } from './routes/_authenticat
 import { Route as ApiChatStreamRouteImport } from './routes/api.chat-stream'
 import { Route as ApiLeadStatusRouteImport } from './routes/api.lead-status'
 import { Route as ApiPhotographerSyncRouteImport } from './routes/api.photographer-sync'
+import { Route as ApiRunEmailDraftsRouteImport } from './routes/api.run-email-drafts'
 import { Route as ApiSendBookingRemindersRouteImport } from './routes/api.send-booking-reminders'
 import { Route as ApiTrackDwellRouteImport } from './routes/api.track-dwell'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
@@ -284,6 +285,11 @@ const ApiLeadStatusRoute = ApiLeadStatusRouteImport.update({
 const ApiPhotographerSyncRoute = ApiPhotographerSyncRouteImport.update({
   id: '/api/photographer-sync',
   path: '/api/photographer-sync',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRunEmailDraftsRoute = ApiRunEmailDraftsRouteImport.update({
+  id: '/api/run-email-drafts',
+  path: '/api/run-email-drafts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSendBookingRemindersRoute = ApiSendBookingRemindersRouteImport.update({
@@ -734,6 +740,7 @@ export interface FileRoutesByFullPath {
   '/api/chat-stream': typeof ApiChatStreamRoute
   '/api/lead-status': typeof ApiLeadStatusRoute
   '/api/photographer-sync': typeof ApiPhotographerSyncRoute
+  '/api/run-email-drafts': typeof ApiRunEmailDraftsRoute
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
   '/api/track-dwell': typeof ApiTrackDwellRoute
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
@@ -841,6 +848,7 @@ export interface FileRoutesByTo {
   '/api/chat-stream': typeof ApiChatStreamRoute
   '/api/lead-status': typeof ApiLeadStatusRoute
   '/api/photographer-sync': typeof ApiPhotographerSyncRoute
+  '/api/run-email-drafts': typeof ApiRunEmailDraftsRoute
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
   '/api/track-dwell': typeof ApiTrackDwellRoute
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
@@ -951,6 +959,7 @@ export interface FileRoutesById {
   '/api/chat-stream': typeof ApiChatStreamRoute
   '/api/lead-status': typeof ApiLeadStatusRoute
   '/api/photographer-sync': typeof ApiPhotographerSyncRoute
+  '/api/run-email-drafts': typeof ApiRunEmailDraftsRoute
   '/api/send-booking-reminders': typeof ApiSendBookingRemindersRoute
   '/api/track-dwell': typeof ApiTrackDwellRoute
   '/blog/chalakah-photoshoot-guide': typeof BlogChalakahPhotoshootGuideRoute
@@ -1061,6 +1070,7 @@ export interface FileRouteTypes {
     | '/api/chat-stream'
     | '/api/lead-status'
     | '/api/photographer-sync'
+    | '/api/run-email-drafts'
     | '/api/send-booking-reminders'
     | '/api/track-dwell'
     | '/blog/chalakah-photoshoot-guide'
@@ -1168,6 +1178,7 @@ export interface FileRouteTypes {
     | '/api/chat-stream'
     | '/api/lead-status'
     | '/api/photographer-sync'
+    | '/api/run-email-drafts'
     | '/api/send-booking-reminders'
     | '/api/track-dwell'
     | '/blog/chalakah-photoshoot-guide'
@@ -1277,6 +1288,7 @@ export interface FileRouteTypes {
     | '/api/chat-stream'
     | '/api/lead-status'
     | '/api/photographer-sync'
+    | '/api/run-email-drafts'
     | '/api/send-booking-reminders'
     | '/api/track-dwell'
     | '/blog/chalakah-photoshoot-guide'
@@ -1383,6 +1395,7 @@ export interface RootRouteChildren {
   ApiChatStreamRoute: typeof ApiChatStreamRoute
   ApiLeadStatusRoute: typeof ApiLeadStatusRoute
   ApiPhotographerSyncRoute: typeof ApiPhotographerSyncRoute
+  ApiRunEmailDraftsRoute: typeof ApiRunEmailDraftsRoute
   ApiSendBookingRemindersRoute: typeof ApiSendBookingRemindersRoute
   ApiTrackDwellRoute: typeof ApiTrackDwellRoute
   BlogChalakahPhotoshootGuideRoute: typeof BlogChalakahPhotoshootGuideRoute
@@ -1648,6 +1661,13 @@ declare module '@tanstack/react-router' {
       path: '/api/photographer-sync'
       fullPath: '/api/photographer-sync'
       preLoaderRoute: typeof ApiPhotographerSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/run-email-drafts': {
+      id: '/api/run-email-drafts'
+      path: '/api/run-email-drafts'
+      fullPath: '/api/run-email-drafts'
+      preLoaderRoute: typeof ApiRunEmailDraftsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/send-booking-reminders': {
@@ -2372,6 +2392,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatStreamRoute: ApiChatStreamRoute,
   ApiLeadStatusRoute: ApiLeadStatusRoute,
   ApiPhotographerSyncRoute: ApiPhotographerSyncRoute,
+  ApiRunEmailDraftsRoute: ApiRunEmailDraftsRoute,
   ApiSendBookingRemindersRoute: ApiSendBookingRemindersRoute,
   ApiTrackDwellRoute: ApiTrackDwellRoute,
   BlogChalakahPhotoshootGuideRoute: BlogChalakahPhotoshootGuideRoute,

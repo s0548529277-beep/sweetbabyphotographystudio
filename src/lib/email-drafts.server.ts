@@ -16,7 +16,7 @@
  * for her to review and answer personally. See shouldAutoSend().
  *
  * Cheap by design: a Gmail search every run, AI only for real new threads
- * (max MAX_NEW + MAX_FOLLOWUPS per run), runs about every 10 minutes
+ * (per-run caps in DraftRunLimits: small on the old hourly route, none on the dedicated 10-minute route), runs every 10 minutes
  * between 7:30 and 23:50 Israel time (owner request 2026-11-04), never on Shabbat. Threads already looked at are
  * remembered in app_settings (email_drafts_seen) so nothing is re-judged.
  */
@@ -29,21 +29,26 @@ import { parseFamilyRoomReply, hourlySlots } from "./family-room-reply";
 import { SITE_INQUIRY_QUERY, SITE_INQUIRY_SUBJECT, customerEmailInNotice } from "./site-inquiry";
 import { isOwnStudioAddress } from "./studio-addresses";
 
-const MAX_NEW = 3;
-const MAX_FOLLOWUPS = 2;
-// Owner request 2026-11-04: a run every 10 minutes. The gap is 9 min so that an external scheduler firing every
-// 10 minutes sharp (with a few seconds of jitter) never gets skipped as "too_soon". How often this actually
-// runs is set by the external scheduler that calls /api/send-booking-reminders — it must call at least every 10 min.
-const MIN_GAP_MS = 9 * 60_000;
 /**
- * After this much of a run has passed, no NEW thread is sent to the AI (at least one per run always is) — keeps a run short
- * enough to finish. 19.11: the 10 s used before left room for only ONE thread per run (a run measured 18 s in total and
- * finished fine), so a few waiting inquiries took hours; 14 s lets about three through and still leaves the run well under
- * the 25 s the external caller is assumed to wait (cut-offs were seen only on runs of 40 s and more).
+ * How much one run may do. LEGACY = what the old hourly route (/api/send-booking-reminders, called from outside every 15 min)
+ * can safely afford. DEDICATED = the 10-minute run started by the database itself (pg_cron + pg_net -> /api/run-email-drafts,
+ * 19.11, owner: "every 10 minutes, prepare everything at once, no limit"): no per-run cap on drafts, only a time budget,
+ * and pg_net waits for the answer as long as the run needs (timeout set in the cron command).
+ *  - maxNew: drafts per run (Infinity = until the waiting list is empty or the time budget ends)
+ *  - runBudgetMs: after this much of the run no NEW thread is sent to the AI (at least one per run always is)
+ *  - hardBudgetMs: hard stop for every loop over waiting threads (cheap skips included) and for the follow-up pass
+ *  - maxFollowups: follow-up drafts for clients who went quiet
+ * 19.11 history: the 10 s budget left room for ONE thread per run, 14 s for about three; runs of 40 s and more were cut off
+ * by the external caller (it does not wait), which is why the long budget only applies to the dedicated route.
  */
-const RUN_BUDGET_MS = 14_000;
-/** Hard stop for the loops over waiting threads (cheap skips included) and for the low-priority follow-up pass. */
-const HARD_BUDGET_MS = 20_000;
+export type DraftRunLimits = { maxNew: number; runBudgetMs: number; hardBudgetMs: number; maxFollowups: number };
+export const LEGACY_DRAFT_LIMITS: DraftRunLimits = { maxNew: 3, runBudgetMs: 14_000, hardBudgetMs: 20_000, maxFollowups: 2 };
+export const DEDICATED_DRAFT_LIMITS: DraftRunLimits = { maxNew: Number.POSITIVE_INFINITY, runBudgetMs: 60_000, hardBudgetMs: 75_000, maxFollowups: 10 };
+// Owner request 2026-11-04: a run every 10 minutes. The gap is 9 min so that a scheduler firing every 10 minutes sharp
+// (with a few seconds of jitter) never gets skipped as "too_soon". The 10-minute cron of the database is the main caller; the
+// old external route only takes over (minGapMs 12 min, see below) when the cron has been silent for longer than that, so the
+// two never run at the same time.
+const MIN_GAP_MS = 9 * 60_000;
 // Active window (Israel time), in minutes from midnight: 07:30 – 23:50.
 const WINDOW_START_MIN = 7 * 60 + 30;
 const WINDOW_END_MIN = 23 * 60 + 50;
@@ -625,7 +630,10 @@ export type EmailDraftRunResult = {
 // Owner switch (2026-11-17): false = the site does not send the family-room client mail (Claude sends it instead).
 const FAMILY_ROOM_SITE_MAIL_ENABLED = false;
 
-export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Promise<EmailDraftRunResult> {
+export async function runEmailDraftAssistant(
+  opts: { force?: boolean; limits?: DraftRunLimits; minGapMs?: number } = {},
+): Promise<EmailDraftRunResult> {
+  const lim = opts.limits ?? LEGACY_DRAFT_LIMITS;
   const result: EmailDraftRunResult = { ran: false, created: [], skipped: 0, errors: [] };
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const db = supabaseAdmin as any;
@@ -638,7 +646,7 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
     const minutesOfDay = hour * 60 + minute;
     if (minutesOfDay < WINDOW_START_MIN || minutesOfDay > WINDOW_END_MIN) return { ...result, reason: "outside_hours" };
     const last = await getSetting(db, LAST_RUN_KEY);
-    if (last && Date.now() - Date.parse(last) < MIN_GAP_MS) return { ...result, reason: "too_soon" };
+    if (last && Date.now() - Date.parse(last) < (opts.minGapMs ?? MIN_GAP_MS)) return { ...result, reason: "too_soon" };
   }
   await setSetting(db, LAST_RUN_KEY, new Date().toISOString());
 
@@ -954,8 +962,8 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
       // Always send at least one thread to the AI per run; after that stop starting new ones once the run has used its
       // time budget (the rest wait for the next run — nothing is lost, they are simply not remembered yet).
       const elapsed = Date.now() - runStartedAt;
-      if (made >= MAX_NEW || elapsed > HARD_BUDGET_MS || (analysed > 0 && elapsed > RUN_BUDGET_MS)) {
-        budgetHit = made < MAX_NEW;
+      if (made >= lim.maxNew || elapsed > lim.hardBudgetMs || (analysed > 0 && elapsed > lim.runBudgetMs)) {
+        budgetHit = made < lim.maxNew;
         break;
       }
       visited++;
@@ -1156,7 +1164,7 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
     // ---------- follow-ups for clients who went quiet ----------
     // Lowest priority: only when the run still has time and nothing newer is left waiting (a run that skipped this pass is
     // simply picked up by a later one).
-    if (!result.errors.some((e) => e.startsWith("AI")) && !budgetHit && Date.now() - runStartedAt < RUN_BUDGET_MS) {
+    if (!result.errors.some((e) => e.startsWith("AI")) && !budgetHit && Date.now() - runStartedAt < lim.runBudgetMs) {
       const fq = `in:sent older_than:3d newer_than:10d -label:"${LABEL_FOLLOW}" -label:"${LABEL_READY}"`;
       const sent = await g.gmailApi<{ messages?: Array<{ threadId: string }> }>(
         k,
@@ -1167,7 +1175,7 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
       );
       let fu = 0;
       for (const threadId of fThreads) {
-        if (fu >= MAX_FOLLOWUPS || Date.now() - runStartedAt > HARD_BUDGET_MS) break;
+        if (fu >= lim.maxFollowups || Date.now() - runStartedAt > lim.hardBudgetMs) break;
         const th = await g.gmailApi<{ messages?: any[] }>(k, `/users/me/threads/${threadId}?format=full`);
         const msgs = th?.messages ?? [];
         const last = msgs[msgs.length - 1];

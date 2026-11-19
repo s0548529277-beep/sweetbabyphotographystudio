@@ -88,7 +88,9 @@ export const Route = createFileRoute("/api/send-booking-reminders")({
           // Own catch: the cm_* tables may not exist until the migration is applied.
           safe("clientManagement", () => runDueClientManagementReminders()),
           // Automatic designed reply drafts in Gmail (never sends) — see email-drafts.server.ts.
-          safe("emailDrafts", () => runEmailDraftAssistant()),
+          // The database runs the assistant itself every 10 minutes (/api/run-email-drafts); this route only steps in when that
+          // has been silent for more than 12 minutes, so the two never run at the same time.
+          safe("emailDrafts", () => runEmailDraftAssistant({ minGapMs: 12 * 60_000 })),
           // Thank-you after the session + gentle nudge for an unfinished booking — see booking-followups.server.ts.
           safe("postSessionThanks", () => runDuePostSessionThanks()),
           safe("unfinishedBookings", () => runDueUnfinishedBookingFollowUps()),
