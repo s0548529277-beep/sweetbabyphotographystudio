@@ -35,8 +35,15 @@ const MAX_FOLLOWUPS = 2;
 // 10 minutes sharp (with a few seconds of jitter) never gets skipped as "too_soon". How often this actually
 // runs is set by the external scheduler that calls /api/send-booking-reminders — it must call at least every 10 min.
 const MIN_GAP_MS = 9 * 60_000;
-/** After this much of a run has passed, no NEW thread is analysed (at least one per run always is) — keeps a run short enough to finish. */
-const RUN_BUDGET_MS = 10_000;
+/**
+ * After this much of a run has passed, no NEW thread is sent to the AI (at least one per run always is) — keeps a run short
+ * enough to finish. 19.11: the 10 s used before left room for only ONE thread per run (a run measured 18 s in total and
+ * finished fine), so a few waiting inquiries took hours; 14 s lets about three through and still leaves the run well under
+ * the 25 s the external caller is assumed to wait (cut-offs were seen only on runs of 40 s and more).
+ */
+const RUN_BUDGET_MS = 14_000;
+/** Hard stop for the loops over waiting threads (cheap skips included) and for the low-priority follow-up pass. */
+const HARD_BUDGET_MS = 20_000;
 // Active window (Israel time), in minutes from midnight: 07:30 – 23:50.
 const WINDOW_START_MIN = 7 * 60 + 30;
 const WINDOW_END_MIN = 23 * 60 + 50;
@@ -671,6 +678,7 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
     }
   };
   const runStartedAt = Date.now();
+  let pendingThreads = 0; // waiting threads this run had no time for (shown in the admin tile)
 
   let photos: { newborn: string[]; family: string[] } = { newborn: [], family: [] };
   try {
@@ -911,18 +919,26 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
     const newestByThread = new Map<string, string>();
     for (const m of list?.messages ?? []) if (!newestByThread.has(m.threadId)) newestByThread.set(m.threadId, m.id);
     // Inquiry notices the sites mailed from the studio address to itself (excluded above by -from:me).
+    const siteNoticeThreads: string[] = [];
     try {
       const siteList = await g.gmailApi<{ messages?: Array<{ id: string; threadId: string }> }>(
         k,
         `/users/me/messages?maxResults=20&q=${encodeURIComponent(SITE_INQUIRY_QUERY)}`,
       );
-      for (const m of siteList?.messages ?? []) if (!newestByThread.has(m.threadId)) newestByThread.set(m.threadId, m.id);
+      for (const m of siteList?.messages ?? []) {
+        siteNoticeThreads.push(m.threadId);
+        if (!newestByThread.has(m.threadId)) newestByThread.set(m.threadId, m.id);
+      }
     } catch (e) {
       result.errors.push(`site inquiries: ${String((e as any)?.message ?? e).slice(0, 100)}`);
     }
-    const threadIds = [...newestByThread.entries()]
+    const waiting = [...newestByThread.entries()]
       .filter(([t, mid]) => !seenSet.has(mid) && !draftThreads.has(t))
       .map(([t]) => t);
+    // Site inquiry notices first: a customer who left an e-mail on one of the sites is the thing the owner wants answered
+    // soonest, and when a run only has time for a few threads they must not queue behind ordinary inbox mail.
+    const siteThreadIds = new Set(siteNoticeThreads);
+    const threadIds = [...waiting.filter((t) => siteThreadIds.has(t)), ...waiting.filter((t) => !siteThreadIds.has(t))];
 
     let made = 0;
     let autoRun = 0;
@@ -930,13 +946,19 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
     const autoDay = await loadAutoDay(db);
     const autoLabelId = labels.get(LABEL_AUTO);
     await flushSeen();
-    let analysed = 0;
+    let analysed = 0; // threads actually sent to the AI (cheap skips do not count)
+    let visited = 0;
+    let budgetHit = false;
     for (const threadId of threadIds) {
       await flushSeen();
-      // Always handle at least one thread per run; after that stop starting new ones once the run has used its time budget
-      // (the rest wait for the next run — nothing is lost, they are simply not remembered yet).
-      if (made >= MAX_NEW || (analysed > 0 && Date.now() - runStartedAt > RUN_BUDGET_MS)) break;
-      analysed++;
+      // Always send at least one thread to the AI per run; after that stop starting new ones once the run has used its
+      // time budget (the rest wait for the next run — nothing is lost, they are simply not remembered yet).
+      const elapsed = Date.now() - runStartedAt;
+      if (made >= MAX_NEW || elapsed > HARD_BUDGET_MS || (analysed > 0 && elapsed > RUN_BUDGET_MS)) {
+        budgetHit = made < MAX_NEW;
+        break;
+      }
+      visited++;
       const th = await g.gmailApi<{ messages?: any[] }>(k, `/users/me/threads/${threadId}?format=full`);
       const msgs = th?.messages ?? [];
       const last = msgs[msgs.length - 1];
@@ -969,6 +991,7 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
         result.skipped++;
         continue;
       }
+      analysed++;
       let a: Analysis | null = null;
       try {
         if (freeDates === null && STUDIO_DATE_HINT.test(`${subject}\n${text}`)) freeDates = await freeDatesBlock();
@@ -1128,8 +1151,12 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
       }
     }
 
+    pendingThreads = Math.max(0, threadIds.length - visited);
+
     // ---------- follow-ups for clients who went quiet ----------
-    if (!result.errors.some((e) => e.startsWith("AI"))) {
+    // Lowest priority: only when the run still has time and nothing newer is left waiting (a run that skipped this pass is
+    // simply picked up by a later one).
+    if (!result.errors.some((e) => e.startsWith("AI")) && !budgetHit && Date.now() - runStartedAt < RUN_BUDGET_MS) {
       const fq = `in:sent older_than:3d newer_than:10d -label:"${LABEL_FOLLOW}" -label:"${LABEL_READY}"`;
       const sent = await g.gmailApi<{ messages?: Array<{ threadId: string }> }>(
         k,
@@ -1140,7 +1167,7 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
       );
       let fu = 0;
       for (const threadId of fThreads) {
-        if (fu >= MAX_FOLLOWUPS) break;
+        if (fu >= MAX_FOLLOWUPS || Date.now() - runStartedAt > HARD_BUDGET_MS) break;
         const th = await g.gmailApi<{ messages?: any[] }>(k, `/users/me/threads/${threadId}?format=full`);
         const msgs = th?.messages ?? [];
         const last = msgs[msgs.length - 1];
@@ -1209,9 +1236,11 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
   const dayKey = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
   let todayCreated = 0;
   let todayAutoSent = 0;
+  let lastDraftAt: string | null = result.created.length ? new Date().toISOString() : null;
   try {
     const prevRaw = await getSetting(db, STATUS_KEY);
     const prev = prevRaw ? JSON.parse(prevRaw) : null;
+    if (!lastDraftAt && typeof prev?.lastDraftAt === "string") lastDraftAt = prev.lastDraftAt;
     if (prev?.today?.date === dayKey) {
       todayCreated = Number(prev.today.created) || 0;
       todayAutoSent = Number(prev.today.autoSent) || 0;
@@ -1232,6 +1261,9 @@ export async function runEmailDraftAssistant(opts: { force?: boolean } = {}): Pr
       cleaned: result.cleaned ?? 0,
       skipped: result.skipped,
       errors: result.errors,
+      pending: pendingThreads,
+      lastDraftAt,
+      ms: Date.now() - runStartedAt,
       today: { date: dayKey, created: todayCreated + result.created.length, autoSent: todayAutoSent + runAutoSent },
     }),
   );

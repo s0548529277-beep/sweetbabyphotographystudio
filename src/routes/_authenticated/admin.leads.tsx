@@ -74,6 +74,8 @@ type DraftsStatus = {
   skipped?: number;
   errors?: string[];
   reason?: string;
+  pending?: number;
+  lastDraftAt?: string;
 };
 
 const fmt = (d: string | null) => (d ? new Date(d).toLocaleDateString("he-IL") : "—");
@@ -362,6 +364,13 @@ function LeadsAdmin() {
           ) : (
             <>
               <span>הוכנו בבדיקה הזו: {draftsStatus.data.created ?? 0}</span>
+              {draftsStatus.data.lastDraftAt && (
+                <span>
+                  טיוטה אחרונה:{" "}
+                  {new Date(draftsStatus.data.lastDraftAt).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short" })}
+                </span>
+              )}
+              {(draftsStatus.data.pending ?? 0) > 0 && <span>ממתינות לבדיקה הבאה: {draftsStatus.data.pending}</span>}
               {draftsStatus.data.errors?.length ? (
                 <span title={draftsStatus.data.errors.join("\n")}>תקלות: {draftsStatus.data.errors.length}</span>
               ) : (

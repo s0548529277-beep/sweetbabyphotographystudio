@@ -13,6 +13,8 @@ type DraftsStatus = {
   autoSent?: number;
   errors?: string[];
   reason?: string;
+  pending?: number;
+  lastDraftAt?: string;
   today?: { date?: string; created?: number; autoSent?: number };
 };
 
@@ -77,6 +79,12 @@ export function DraftsStatusTile() {
       ) : (
         <>
           <span>הוכנו היום {createdToday} טיוטות</span>
+          {s.lastDraftAt && (
+            <span title={new Date(s.lastDraftAt).toLocaleString("he-IL")}>
+              טיוטה אחרונה: {minutesAgoLabel(s.lastDraftAt, now)}
+            </span>
+          )}
+          {(s.pending ?? 0) > 0 && <span>ממתינות לבדיקה הבאה: {s.pending}</span>}
           {autoToday > 0 && <span>נשלחו היום {autoToday} מענים אוטומטיים</span>}
           {s.errors?.length ? (
             <span title={s.errors.join("\n")}>תקלות בבדיקה האחרונה: {s.errors.length}</span>
