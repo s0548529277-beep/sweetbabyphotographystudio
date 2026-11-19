@@ -1003,6 +1003,15 @@ export async function runEmailDraftAssistant(
       // Notices sent from the studio address — m now, the old s address until 17.11 — are the sites' own mail.
       const fromOwnAddress = isOwner(fromAddr) || isOwnStudioAddress(fromAddr);
       const isSiteInquiry = fromOwnAddress && SITE_INQUIRY_SUBJECT.test(subject);
+      // The notices the sites mail to the studio inbox get their type label here (the studio site labels its own mail when
+      // it sends it; the photographer site's notices only pass through this scan). Best effort, never blocks the draft.
+      if (fromOwnAddress) {
+        try {
+          await g.labelSiteMailThread(k, threadId, subject, msgs.flatMap((m: any) => m.labelIds ?? []));
+        } catch (e) {
+          result.errors.push(`label: ${String((e as any)?.message ?? e).slice(0, 80)}`);
+        }
+      }
       const autoSubmitted = (g.gmailHeaderValue(h, "Auto-Submitted") || "no").toLowerCase();
       const auto =
         /no-?reply|mailer-daemon|notification|newsletter|bounce/i.test(fromAddr) ||

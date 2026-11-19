@@ -4,6 +4,7 @@
 // refresh-token maintenance is needed here.
 
 import { applyStoredEmailDesign } from "@/lib/email-design.server";
+import { SITE_MAIL_LABELS, classifySiteMail, type SiteMailKind } from "@/lib/mail-labels";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
 
@@ -216,11 +217,80 @@ export async function sendGmailDetailed(message: GmailMessage): Promise<{ ok: bo
     } catch {
       // response body not needed for a plain send
     }
+    // Sort the mail into its type label (studio order / props order / lead kinds). Best effort: never fails the send.
+    if (id) {
+      try {
+        await labelSiteMailMessage(connKey, id, message.subject);
+      } catch (e) {
+        console.error("[SWEETBABY] site mail label failed", e);
+      }
+    }
     return { ok: true, threadId, id };
   } catch (e) {
     console.error("[SWEETBABY] gmail send failed", message.to, e);
     return { ok: false };
   }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Type labels for the mail the sites send (owner request 2026-11-19): see `src/lib/mail-labels.ts` for the types.
+// Gmail filters cannot be created through the connector, so the site labels its own mail when it sends it, and the
+// draft assistant labels the notices the photographer site mails into the same mailbox.
+// ---------------------------------------------------------------------------------------------------------------------
+
+const SITE_LABEL_CACHE_MS = 10 * 60 * 1000;
+const siteLabelCache = new Map<string, { at: number; ids: Partial<Record<SiteMailKind, string>> }>();
+
+/** Label ids of the site-mail type labels for one linked account (creates missing ones; cached for 10 minutes). */
+export async function siteMailLabelIds(connKey: string): Promise<Partial<Record<SiteMailKind, string>>> {
+  const cached = siteLabelCache.get(connKey);
+  if (cached && Date.now() - cached.at < SITE_LABEL_CACHE_MS) return cached.ids;
+
+  const list = await gmailApi<{ labels?: Array<{ id: string; name: string }> }>(connKey, "/users/me/labels");
+  if (!list) return cached?.ids ?? {};
+  const byName = new Map((list.labels ?? []).map((l) => [l.name, l.id]));
+  const ids: Partial<Record<SiteMailKind, string>> = {};
+  for (const kind of Object.keys(SITE_MAIL_LABELS) as SiteMailKind[]) {
+    const def = SITE_MAIL_LABELS[kind];
+    let id = byName.get(def.name);
+    if (!id) {
+      const base = { name: def.name, labelListVisibility: "labelShow", messageListVisibility: "show" };
+      const made =
+        (await gmailApi<{ id: string }>(connKey, "/users/me/labels", {
+          method: "POST",
+          body: { ...base, color: { backgroundColor: def.background, textColor: def.text } },
+        })) ?? (await gmailApi<{ id: string }>(connKey, "/users/me/labels", { method: "POST", body: base }));
+      id = made?.id;
+    }
+    if (id) ids[kind] = id;
+  }
+  siteLabelCache.set(connKey, { at: Date.now(), ids });
+  return ids;
+}
+
+/** Adds the type label that matches the subject to one message. Returns the kind that was applied (null = none / failed). */
+export async function labelSiteMailMessage(connKey: string, messageId: string, subject: string): Promise<SiteMailKind | null> {
+  const kind = classifySiteMail(subject);
+  if (!kind) return null;
+  const labelId = (await siteMailLabelIds(connKey))[kind];
+  if (!labelId) return null;
+  const done = await gmailApi(connKey, `/users/me/messages/${messageId}/modify`, { method: "POST", body: { addLabelIds: [labelId] } });
+  return done ? kind : null;
+}
+
+/** Adds the type label that matches the subject to a whole thread, unless one of its messages already carries it. */
+export async function labelSiteMailThread(
+  connKey: string,
+  threadId: string,
+  subject: string,
+  existingLabelIds: string[] = [],
+): Promise<SiteMailKind | null> {
+  const kind = classifySiteMail(subject);
+  if (!kind) return null;
+  const labelId = (await siteMailLabelIds(connKey))[kind];
+  if (!labelId || existingLabelIds.includes(labelId)) return kind;
+  const done = await gmailApi(connKey, `/users/me/threads/${threadId}/modify`, { method: "POST", body: { addLabelIds: [labelId] } });
+  return done ? kind : null;
 }
 
 function requiredGmailKeys(connKeyOverride?: string): { lovableKey: string; connKey: string } | null {
