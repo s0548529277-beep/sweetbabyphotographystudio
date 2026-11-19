@@ -14,6 +14,7 @@ import { buildAssistantTools } from "./ai-tools.server";
 import { SYSTEM, buildToolRules } from "./ai.functions";
 import { sendWhatsAppText } from "./whatsapp.server";
 import { DEFAULT_BUSINESS_PHONE } from "./whatsapp-numbers";
+import { planNonTextReply } from "./whatsapp-nontext";
 
 const STUDIO_EMAIL = "m0548529277@gmail.com";
 const MAX_HISTORY_MESSAGES = 20;
@@ -185,6 +186,59 @@ export async function runWhatsAppBotReply(
     await logOutgoing(supabaseAdmin, phone, wamid, text);
   } catch (e) {
     console.error("[SWEETBABY] whatsapp bot reply failed", e);
+  }
+}
+
+/**
+ * Answers an incoming message that is not plain text (voice note, photo,
+ * video, file, location, contact card). What happens is decided by the pure
+ * `planNonTextReply`: a caption goes to the normal AI reply, everything else
+ * gets a short FIXED reply (never an availability / price claim), reactions
+ * and stickers get nothing. Never throws.
+ */
+export async function runWhatsAppNonTextReply(
+  phone: string,
+  contactName: string | null,
+  type: string,
+  caption: string | null,
+): Promise<void> {
+  try {
+    const plan = planNonTextReply(type, caption);
+    if (plan.kind === "none") return;
+    if (plan.kind === "ai") {
+      await runWhatsAppBotReply(phone, contactName, plan.text);
+      return;
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const session = await loadSession(supabaseAdmin, phone);
+    // Same rule as the text bot: once the conversation was handed to Michal
+    // the bot stays silent.
+    if (session.handoffRequestedAt) return;
+    // Someone who sends five photos in a row gets ONE explanation, not five.
+    const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const { data: recent } = await supabaseAdmin
+      .from("whatsapp_messages")
+      .select("id")
+      .eq("direction", "out")
+      .eq("phone", phone)
+      .eq("body", plan.reply)
+      .gte("created_at", since)
+      .limit(1);
+    if (recent && recent.length > 0) return;
+    const { wamid } = await sendWhatsAppText(phone, plan.reply);
+    await saveSession(
+      supabaseAdmin,
+      phone,
+      [
+        ...session.messages,
+        { role: "user", content: plan.historyNote },
+        { role: "assistant", content: plan.reply },
+      ],
+      null,
+    );
+    await logOutgoing(supabaseAdmin, phone, wamid, plan.reply);
+  } catch (e) {
+    console.error("[SWEETBABY] whatsapp non-text reply failed", e);
   }
 }
 

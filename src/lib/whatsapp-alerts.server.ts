@@ -46,7 +46,7 @@ export async function notifyWhatsAppNonTextIncoming(opts: {
     const html =
       `<p>לקוחה ${esc(who)} שלחה בוואטסאפ <strong>${esc(label)}</strong>.</p>` +
       (opts.caption ? `<p>הכיתוב: "${esc(opts.caption.slice(0, 500))}"</p>` : "") +
-      `<p>הבוט עונה רק על הודעות טקסט, ולכן ההודעה הזו נשארה בלי תשובה. אפשר לצפות בה ולהשיב מ-/admin/whatsapp.</p>`;
+      `<p>הבוט לא יכול לפתוח הקלטות, תמונות וקבצים: הוא ענה ללקוחה בהודעה קצרה שהיא יכולה לכתוב במילים (ואם היה כיתוב, הוא ענה עליו), ולכן כדאי שתציצי בהודעה עצמה ותשיבי מ-/admin/whatsapp.</p>`;
     await sendGmail({ to: STUDIO_EMAIL, subject: `💬 ${label} בוואטסאפ מחכה לך — ${opts.contactName || opts.phone}`, html });
   } catch (e) {
     console.error("[SWEETBABY] whatsapp non-text alert mail failed", e);

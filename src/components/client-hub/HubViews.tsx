@@ -2,6 +2,7 @@
 // cards, the kind chooser, the shared dashboard / daily calendar / table / payments views.
 // Newborn keeps its own card and dialogs in the page file (they are gallery-aware).
 import { useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { he } from "date-fns/locale";
 import {
@@ -302,6 +303,15 @@ export function OutdoorHubCard({
           )}
           {o.contract_sent_at ? "שליחת חוזה שוב" : "שליחת חוזה"}
         </button>
+        {/* The outdoor gallery (photo upload, client selection, steps) lives on its own page. */}
+        <Link
+          to="/admin/outdoor-packages/$orderId"
+          params={{ orderId: String(o.id) }}
+          className="flex h-9 items-center gap-1.5 rounded-xl border border-primary/15 px-3 text-sm text-primary transition-colors hover:bg-primary/5"
+        >
+          <Images className="h-3.5 w-3.5" />
+          גלריה
+        </Link>
       </div>
 
       {row.notes && (

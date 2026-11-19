@@ -574,7 +574,7 @@ function FinanceAdmin() {
   const data = useQuery({
     queryKey: ["admin-finance"],
     queryFn: async () => {
-      const [ordersRes, bookingsRes, expensesRes, manualRes, newbornRes] = await Promise.all([
+      const [ordersRes, bookingsRes, expensesRes, manualRes, newbornRes, outdoorRes, studioCustomRes] = await Promise.all([
         supabase
           .from("orders")
           .select("id,total,status,created_at,scheduled_date,contact_name,contact_phone,deposit_status,balance_method"),
@@ -593,6 +593,16 @@ function FinanceAdmin() {
         (supabase as any)
           .from("newborn_package_orders")
           .select("id,contact_name,contact_phone,session_date,total_price,amount_paid,created_at"),
+        // Outdoor shoots and custom-studio packages (added 2026-11-19 with the
+        // unified clients page): same money columns as a newborn order, so
+        // they count the same way (package total as income, total - paid as
+        // an open balance). A failed read (table not there yet) is just empty.
+        (supabase as any)
+          .from("outdoor_package_orders")
+          .select("id,contact_name,contact_phone,session_date,total_price,amount_paid,created_at,package_name"),
+        (supabase as any)
+          .from("studio_custom_orders")
+          .select("id,contact_name,contact_phone,session_date,total_price,amount_paid,created_at,package_name"),
       ]);
       if (expensesRes.error) throw expensesRes.error;
       return {
@@ -601,6 +611,8 @@ function FinanceAdmin() {
         expenses: expensesRes.data ?? [],
         manual: manualRes.data ?? [],
         newborn: newbornRes.data ?? [],
+        outdoor: (outdoorRes.data ?? []) as any[],
+        studioCustom: (studioCustomRes.data ?? []) as any[],
       };
     },
   });
@@ -711,6 +723,40 @@ function FinanceAdmin() {
         client: n.contact_name ?? "",
         date: String(n.session_date ?? n.created_at).slice(0, 10),
         amount: Number(n.total_price ?? 0),
+        removable: null,
+        depositStatus: null,
+        debt: null,
+        isPersonal: false,
+      });
+    }
+    // Outdoor shoots + custom-studio packages: Michal's own photography work,
+    // same line as newborn packages. The custom-studio "bookings" mirror row
+    // (package "newborn", used only to block the studio hours) is skipped
+    // above, so nothing is counted twice.
+    for (const o of (data.data?.outdoor ?? []) as any[]) {
+      out.push({
+        id: `x-${o.id}`,
+        kind: "income",
+        type: TYPE_PHOTO,
+        title: o.package_name ? `צילומי חוץ · ${o.package_name}` : "צילומי חוץ",
+        client: o.contact_name ?? "",
+        date: String(o.session_date ?? o.created_at).slice(0, 10),
+        amount: Number(o.total_price ?? 0),
+        removable: null,
+        depositStatus: null,
+        debt: null,
+        isPersonal: false,
+      });
+    }
+    for (const c of (data.data?.studioCustom ?? []) as any[]) {
+      out.push({
+        id: `c-${c.id}`,
+        kind: "income",
+        type: TYPE_PHOTO,
+        title: c.package_name ? `סטודיו מותאם · ${c.package_name}` : "סטודיו מותאם",
+        client: c.contact_name ?? "",
+        date: String(c.session_date ?? c.created_at).slice(0, 10),
+        amount: Number(c.total_price ?? 0),
         removable: null,
         depositStatus: null,
         debt: null,
@@ -866,7 +912,7 @@ function FinanceAdmin() {
       acc[k] = (acc[k] ?? 0) + t.amount;
     }
     return (["card", "cash", "transfer", "bit", "other"] as const)
-      .map((k) => ({ key: k, label: k === "other" ? "לא צוין / ידני / ניו בורן" : LABELS[k], value: acc[k] ?? 0 }))
+      .map((k) => ({ key: k, label: k === "other" ? "לא צוין / ידני / חבילות צילום" : LABELS[k], value: acc[k] ?? 0 }))
       .filter((r) => r.value > 0);
   }, [txns]);
 
@@ -924,7 +970,7 @@ function FinanceAdmin() {
   const customerDebts = useMemo(() => {
     type Row = {
       id: string;
-      source: "props" | "studio" | "newborn";
+      source: "props" | "studio" | "newborn" | "outdoor" | "custom";
       name: string;
       phone: string;
       date: string | null;
@@ -977,6 +1023,23 @@ function FinanceAdmin() {
         date: n.session_date ?? n.created_at ?? null,
         amount,
       });
+    }
+    for (const [rows, source, prefix] of [
+      [(data.data?.outdoor ?? []) as any[], "outdoor", "x"],
+      [(data.data?.studioCustom ?? []) as any[], "custom", "c"],
+    ] as const) {
+      for (const n of rows) {
+        const amount = Number(n.total_price ?? 0) - Number(n.amount_paid ?? 0);
+        if (amount <= 0) continue;
+        out.push({
+          id: `${prefix}-${n.id}`,
+          source,
+          name: n.contact_name ?? "—",
+          phone: n.contact_phone ?? "",
+          date: n.session_date ?? n.created_at ?? null,
+          amount,
+        });
+      }
     }
     return out.sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
   }, [data.data]);
@@ -1448,10 +1511,22 @@ function FinanceAdmin() {
                           ? "bg-blue-100 text-blue-700"
                           : d.source === "studio"
                             ? "bg-purple-100 text-purple-700"
-                            : "bg-pink-100 text-pink-700"
+                            : d.source === "outdoor"
+                              ? "bg-amber-100 text-amber-800"
+                              : d.source === "custom"
+                                ? "bg-stone-100 text-stone-700"
+                                : "bg-pink-100 text-pink-700"
                       }`}
                     >
-                      {d.source === "props" ? "אביזרים" : d.source === "studio" ? "סטודיו" : "ניובורן"}
+                      {d.source === "props"
+                        ? "אביזרים"
+                        : d.source === "studio"
+                          ? "סטודיו"
+                          : d.source === "outdoor"
+                            ? "צילומי חוץ"
+                            : d.source === "custom"
+                              ? "סטודיו מותאם"
+                              : "ניובורן"}
                     </span>
                   </div>
                   <div className="text-xs text-muted-foreground">

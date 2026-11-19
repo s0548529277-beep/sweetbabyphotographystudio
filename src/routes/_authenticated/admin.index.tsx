@@ -329,17 +329,23 @@ function IncomeSummary() {
   const q = useQuery({
     queryKey: ["admin-income-summary"],
     queryFn: async () => {
-      const [ordersRes, bookingsRes, newbornRes, manualRes] = await Promise.all([
+      const [ordersRes, bookingsRes, newbornRes, manualRes, outdoorRes, studioCustomRes] = await Promise.all([
         supabase.from("orders").select("total,status,created_at,scheduled_date"),
         supabase.from("bookings").select("price,status,package,session_date,created_at"),
         (supabase as any).from("newborn_package_orders").select("total_price,session_date,created_at"),
         supabase.from("manual_income").select("amount,received_on"),
+        // Outdoor shoots + custom-studio packages share the clients page with
+        // newborn orders, so they count in the same "חבילות צילום" tile.
+        (supabase as any).from("outdoor_package_orders").select("total_price,session_date,created_at"),
+        (supabase as any).from("studio_custom_orders").select("total_price,session_date,created_at"),
       ]);
       return {
         orders: (ordersRes.data ?? []) as any[],
         bookings: (bookingsRes.data ?? []) as any[],
         newborn: (newbornRes.data ?? []) as any[],
         manual: (manualRes.data ?? []) as any[],
+        outdoor: (outdoorRes.data ?? []) as any[],
+        studioCustom: (studioCustomRes.data ?? []) as any[],
       };
     },
     refetchInterval: 60000,
@@ -365,7 +371,7 @@ function IncomeSummary() {
       if (b.package === "photography") other += Number(b.price ?? 0);
       else studio += Number(b.price ?? 0);
     }
-    for (const n of d.newborn) {
+    for (const n of [...d.newborn, ...d.outdoor, ...d.studioCustom]) {
       if (inPeriod(n.session_date ?? n.created_at, period)) newborn += Number(n.total_price ?? 0);
     }
     for (const m of d.manual) {
@@ -405,7 +411,7 @@ function IncomeSummary() {
       </Link>
       <div className="grid grid-cols-3 gap-3 mt-5">
         {[
-          { icon: Baby, label: "ניו בורן", value: newborn, to: "/admin/newborn-packages" },
+          { icon: Baby, label: "חבילות צילום", value: newborn, to: "/admin/newborn-packages" },
           { icon: Package, label: "אביזרים", value: props, to: "/admin/orders" },
           { icon: Home, label: "סטודיו", value: studio, to: "/admin/calendar" },
         ].map((s) => (

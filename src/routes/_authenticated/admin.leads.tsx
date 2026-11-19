@@ -59,6 +59,12 @@ const SOURCE: Record<string, string> = {
   site_form: "טופס באתר",
   whatsapp: "וואטסאפ",
   phone: "טלפון",
+  photography_request: "בקשת צילום",
+  funnel: "שאלון באתר",
+  booking_draft: "הזמנה שלא הושלמה",
+  booking: "שריון סטודיו",
+  quiz_photographer: "שאלון אתר הצלמת",
+  site_inquiry: "פנייה מהאתר",
   shulamit: "דרך שולמית",
   other: "אחר",
 };

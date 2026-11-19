@@ -7,7 +7,8 @@ import {
   WHATSAPP_MEDIA_EXT,
   normalizeMime,
 } from "@/lib/whatsapp.server";
-import { runWhatsAppBotReply } from "@/lib/whatsapp-bot.server";
+import { runWhatsAppBotReply, runWhatsAppNonTextReply } from "@/lib/whatsapp-bot.server";
+import { shouldAlertOwner } from "@/lib/whatsapp-nontext";
 
 // Receives every WhatsApp webhook delivery the Lovable connector gateway
 // forwards for the connected number (selected under Connectors → WhatsApp →
@@ -120,27 +121,33 @@ async function handleIncomingMessage(
     console.error("[SWEETBABY] whatsapp incoming message insert failed", error);
   }
 
-  // Anything that is not plain text (voice note, photo, sticker, location…)
-  // gets no bot reply, so the owner is mailed once per NEW message. A
-  // duplicate delivery (insert hit the unique key) is never mailed twice.
-  if (msg.type !== "text" && !error) {
+  // The caption of a photo / video / file (the stored body, never the
+  // placeholder used for unsupported types).
+  const caption = body && !body.startsWith("[הודעה מסוג") ? body : null;
+
+  // Anything that is not plain text (voice note, photo, location…): the owner
+  // is mailed once per NEW message, because the bot cannot open the content
+  // itself. Reactions and stickers are only acknowledgements and stay silent.
+  // A duplicate delivery (insert hit the unique key) is never mailed twice.
+  if (msg.type !== "text" && !error && shouldAlertOwner(msg.type)) {
     const { notifyWhatsAppNonTextIncoming } = await import("@/lib/whatsapp-alerts.server");
     await notifyWhatsAppNonTextIncoming({
       phone: msg.from,
       contactName,
       type: msg.type,
-      caption: body && !body.startsWith("[הודעה מסוג") ? body : null,
+      caption,
     });
   }
 
-  // Auto-reply bot v1: text messages only — media (image/video/document/
-  // audio) isn't passed to the AI yet, so the conversation just logs for an
-  // admin to pick up manually in /admin/whatsapp, same as before this
-  // feature existed. A duplicate delivery is harmless here too: the bot
-  // reply would just restate itself in the rolling history, not double-book
-  // or double-charge anything.
+  // Auto-reply bot: text goes to the AI. Everything else is answered by
+  // `runWhatsAppNonTextReply` (a caption goes to the AI too, a voice note /
+  // photo without a caption / location / contact gets a short fixed reply).
+  // A duplicate delivery is skipped (`error` is set when the insert hit the
+  // unique key), so one message is never answered twice.
   if (msg.type === "text" && body) {
     await runWhatsAppBotReply(msg.from, contactName, body);
+  } else if (msg.type !== "text" && !error) {
+    await runWhatsAppNonTextReply(msg.from, contactName, msg.type, caption);
   }
 }
 

@@ -39,13 +39,15 @@ import { isOwnStudioAddress } from "./studio-addresses";
  *  - maxNew: drafts per run (Infinity = until the waiting list is empty or the time budget ends)
  *  - runBudgetMs: after this much of the run no NEW thread is sent to the AI (at least one per run always is)
  *  - hardBudgetMs: hard stop for every loop over waiting threads (cheap skips included) and for the follow-up pass
+ *  - concurrency: how many waiting threads are analysed at the same time (the AI call is ~25 s per thread, so 3 at once
+ *    triples the throughput; the old route keeps 1)
  *  - maxFollowups: follow-up drafts for clients who went quiet
  * 19.11 history: the 10 s budget left room for ONE thread per run, 14 s for about three; runs of 40 s and more were cut off
  * by the external caller (it does not wait), which is why the long budget only applies to the dedicated route.
  */
-export type DraftRunLimits = { maxNew: number; runBudgetMs: number; hardBudgetMs: number; maxFollowups: number };
-export const LEGACY_DRAFT_LIMITS: DraftRunLimits = { maxNew: 3, runBudgetMs: 14_000, hardBudgetMs: 20_000, maxFollowups: 2 };
-export const DEDICATED_DRAFT_LIMITS: DraftRunLimits = { maxNew: Number.POSITIVE_INFINITY, runBudgetMs: 60_000, hardBudgetMs: 75_000, maxFollowups: 10 };
+export type DraftRunLimits = { maxNew: number; runBudgetMs: number; hardBudgetMs: number; maxFollowups: number; concurrency: number };
+export const LEGACY_DRAFT_LIMITS: DraftRunLimits = { maxNew: 3, runBudgetMs: 14_000, hardBudgetMs: 20_000, maxFollowups: 2, concurrency: 1 };
+export const DEDICATED_DRAFT_LIMITS: DraftRunLimits = { maxNew: Number.POSITIVE_INFINITY, runBudgetMs: 60_000, hardBudgetMs: 75_000, maxFollowups: 10, concurrency: 3 };
 // Owner request 2026-11-04: a run every 10 minutes. The gap is 9 min so that a scheduler firing every 10 minutes sharp
 // (with a few seconds of jitter) never gets skipped as "too_soon". The 10-minute cron of the database is the main caller; the
 // old external route only takes over (minGapMs 12 min, see below) when the cron has been silent for longer than that, so the
@@ -692,15 +694,21 @@ export async function runEmailDraftAssistant(
       seenDirty = true;
     }
   };
-  const flushSeen = async () => {
-    if (!seenDirty) return;
-    seenDirty = false;
-    seen.ids = seen.ids.slice(-500);
-    try {
-      await setSetting(db, SEEN_KEY, JSON.stringify(seen));
-    } catch (e) {
-      console.error("[SWEETBABY] email-drafts seen save failed", e);
-    }
+  // Saves are chained so that several threads finishing at the same time (parallel analysis) can never write the list out
+  // of order and leave an older copy as the final one.
+  let flushChain: Promise<void> = Promise.resolve();
+  const flushSeen = () => {
+    flushChain = flushChain.then(async () => {
+      if (!seenDirty) return;
+      seenDirty = false;
+      seen.ids = seen.ids.slice(-500);
+      try {
+        await setSetting(db, SEEN_KEY, JSON.stringify(seen));
+      } catch (e) {
+        console.error("[SWEETBABY] email-drafts seen save failed", e);
+      }
+    });
+    return flushChain;
   };
   const runStartedAt = Date.now();
   let pendingThreads = 0; // waiting threads this run had no time for (shown in the admin tile)
@@ -967,27 +975,25 @@ export async function runEmailDraftAssistant(
 
     let made = 0;
     let autoRun = 0;
-    let freeDates: string | null = null;
+    let freeDatesP: Promise<string> | null = null; // one calendar lookup per run, shared by every thread
+    let aiDown = false; // the AI failed: no new thread is started this run
+    const claimedEmails = new Set<string>(); // customer e-mails a site-notice thread is already working on
     const autoDay = await loadAutoDay(db);
     const autoLabelId = labels.get(LABEL_AUTO);
     await flushSeen();
     let analysed = 0; // threads actually sent to the AI (cheap skips do not count)
     let visited = 0;
     let budgetHit = false;
-    for (const threadId of threadIds) {
-      await flushSeen();
-      // Always send at least one thread to the AI per run; after that stop starting new ones once the run has used its
-      // time budget (the rest wait for the next run — nothing is lost, they are simply not remembered yet).
-      const elapsed = Date.now() - runStartedAt;
-      if (made >= lim.maxNew || elapsed > lim.hardBudgetMs || (analysed > 0 && elapsed > lim.runBudgetMs)) {
-        budgetHit = made < lim.maxNew;
-        break;
-      }
+    // Waiting threads are analysed by a small pool of workers (`lim.concurrency`): the AI call dominates the time per thread
+    // (~25 s), so three at once drain the queue about three times faster. Everything shared (`made`, `autoRun`, the seen
+    // list, the claimed e-mails) is only changed between awaits, so no thread can see a half-updated value.
+    const queue = [...threadIds];
+    const processThread = async (threadId: string): Promise<void> => {
       visited++;
       const th = await g.gmailApi<{ messages?: any[] }>(k, `/users/me/threads/${threadId}?format=full`);
       const msgs = th?.messages ?? [];
       const last = msgs[msgs.length - 1];
-      if (!last) continue;
+      if (!last) return;
       const seenId: string = last.id;
       const h = last.payload?.headers;
       const from = g.gmailHeaderValue(h, "From");
@@ -1005,7 +1011,7 @@ export async function runEmailDraftAssistant(
       if ((fromOwnAddress && !isSiteInquiry) || auto) {
         remember(seenId);
         result.skipped++;
-        continue;
+        return;
       }
       const text = threadText(g, msgs);
       // A site notice with no customer e-mail in it (a phone message, a chat that left only a phone number) has nobody to
@@ -1014,25 +1020,28 @@ export async function runEmailDraftAssistant(
       if (isSiteInquiry && !noticeEmail) {
         remember(seenId);
         result.skipped++;
-        continue;
+        return;
       }
       analysed++;
       let a: Analysis | null = null;
       try {
-        if (freeDates === null && STUDIO_DATE_HINT.test(`${subject}\n${text}`)) freeDates = await freeDatesBlock();
-        a = await analyze(subject, text, await pastAnswers(g, k, `${subject}\n${text}`), isSiteForm, STUDIO_DATE_HINT.test(`${subject}\n${text}`) ? freeDates ?? "" : "", isSiteInquiry);
+        const wantsDates = STUDIO_DATE_HINT.test(`${subject}\n${text}`);
+        if (wantsDates) freeDatesP ??= freeDatesBlock();
+        const dates = wantsDates ? await freeDatesP! : "";
+        a = await analyze(subject, text, await pastAnswers(g, k, `${subject}\n${text}`), isSiteForm, dates, isSiteInquiry);
       } catch (e: any) {
         result.errors.push(`AI: ${String(e?.message ?? e).slice(0, 120)}`);
-        break; // AI down — try again next run, don't mark as seen
+        aiDown = true; // AI down — try again next run, don't mark as seen
+        return;
       }
       if (!a) {
         result.errors.push("AI returned no JSON");
-        continue;
+        return;
       }
       if (!a.needsReply || !a.body?.trim()) {
         remember(seenId);
         result.skipped++;
-        continue;
+        return;
       }
 
       let to = from;
@@ -1048,8 +1057,16 @@ export async function runEmailDraftAssistant(
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
           remember(seenId);
           result.errors.push(`טופס מהאתר בלי אימייל תקין (${a.clientName || "?"})`);
-          continue;
+          return;
         }
+        // Two notices of the same visitor can be analysed at the same moment (parallel run): only the first one to reach this
+        // point may make her a draft, the other is a plain skip. The claim is taken before any await.
+        if (claimedEmails.has(email.toLowerCase())) {
+          remember(seenId);
+          result.skipped++;
+          return;
+        }
+        claimedEmails.add(email.toLowerCase());
         // Already answered her (or a draft to her exists)?
         // The sites' own automatic mails (prize-wheel gift, newsletter welcome) are not an answer to her inquiry: before this
         // exclusion the gift mail sent a minute earlier made the assistant skip the quiz notices of the same visitor (19.11).
@@ -1058,7 +1075,7 @@ export async function runEmailDraftAssistant(
         if (sentTo.length || draftTo.length) {
           remember(seenId);
           result.skipped++;
-          continue;
+          return;
         }
         to = email;
         replyHeaders = {};
@@ -1082,6 +1099,9 @@ export async function runEmailDraftAssistant(
           dayCount: autoDay.count,
         })
       ) {
+        // Reserve the slot before the first await so parallel threads can never exceed the per-run / per-day caps together.
+        autoRun++;
+        autoDay.count++;
         try {
           autoSent = await sendAutoReply(g, k, acc.email, {
             to,
@@ -1095,9 +1115,11 @@ export async function runEmailDraftAssistant(
         } catch (e: any) {
           result.errors.push(`מענה אוטומטי: ${String(e?.message ?? e).slice(0, 120)}`);
         }
+        if (!autoSent) {
+          autoRun--;
+          autoDay.count--;
+        }
         if (autoSent) {
-          autoRun++;
-          autoDay.count++;
           await setSetting(db, AUTO_DAY_KEY, JSON.stringify(autoDay));
           if (autoLabelId) {
             await g.gmailApi(k, `/users/me/threads/${threadId}/modify`, { method: "POST", body: { addLabelIds: [autoLabelId] } });
@@ -1153,7 +1175,7 @@ export async function runEmailDraftAssistant(
       });
       if (!draftId) {
         result.errors.push(`יצירת טיוטה נכשלה (${a.clientName || addrOf(to)})`);
-        continue;
+        return;
       }
       if (readyId) {
         await g.gmailApi(k, `/users/me/threads/${threadId}/modify`, { method: "POST", body: { addLabelIds: [readyId] } });
@@ -1176,7 +1198,25 @@ export async function runEmailDraftAssistant(
           notes: `${autoSent ? `${AUTO_REPLY_NOTE}. ` : ""}${DRAFT_READY_NOTE} ${new Date().toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem" })}`,
         });
       }
-    }
+    };
+    const worker = async () => {
+      for (;;) {
+        if (aiDown || queue.length === 0) return;
+        await flushSeen();
+        // Always send at least one thread to the AI per run; after that stop starting new ones once the run has used its
+        // time budget (the rest wait for the next run — nothing is lost, they are simply not remembered yet).
+        const elapsed = Date.now() - runStartedAt;
+        if (made >= lim.maxNew || elapsed > lim.hardBudgetMs || (analysed > 0 && elapsed > lim.runBudgetMs)) {
+          budgetHit = made < lim.maxNew;
+          return;
+        }
+        const threadId = queue.shift();
+        if (threadId === undefined) return;
+        await processThread(threadId);
+      }
+    };
+    await Promise.all(Array.from({ length: Math.max(1, Math.min(lim.concurrency, queue.length || 1)) }, () => worker()));
+    await flushSeen();
 
     pendingThreads = Math.max(0, threadIds.length - visited);
 

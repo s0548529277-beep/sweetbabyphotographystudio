@@ -5,7 +5,8 @@
 //   (anonymous site-chat conversations are NOT listed: no contact details, nothing to act on — owner request 2026-11-13)
 //   - mail + manual: inquiry_leads (the e-mail assistant files e-mail inquiries there) that nobody answered
 //   - funnel leads marked hot, booking drafts abandoned mid-way, studio bookings whose deposit is unpaid
-// People are merged by phone/e-mail so one person = one line with all her reasons. Sent at most once per
+// People are merged by phone/e-mail so one person = one line with all her reasons. Every person with contact details gets one-click
+// stage buttons (בשיחה / נענתה / מעקב / סגרה / לא רלוונטי): the digest links her to her `inquiry_leads` row or opens one. Sent at most once per
 // hour, only inside the sending window (Israel time, not Shabbat), and only when something is waiting.
 // Called by the external scheduler through /api/send-booking-reminders.
 
@@ -13,9 +14,12 @@ const DIGEST_TO = "m0548529277@gmail.com";
 const STATE_KEY = "follow_up_digest_state";
 const MIN_GAP_MS = 55 * 60_000;
 const SITE = "https://sweetbabyphoto.shop";
+// Written into the notes of an `inquiry_leads` row that the digest itself opened for a person who came from another source
+// (phone message, photography request, funnel, abandoned booking, unpaid deposit) so the stage buttons work for her too.
+const DIGEST_NOTE = "נוצר מהסיכום השעתי";
 
 type Reason = { id?: string; weight: number; icon: string; text: string; at: string | null; remind?: boolean; leadId?: string };
-type Person = { key: string; name: string; phone: string; email: string; reasons: Reason[] };
+type Person = { key: string; name: string; phone: string; email: string; reasons: Reason[]; sourceKind: string; firstAt: string | null };
 
 const esc = (s: unknown) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] as string);
 const clipRaw = (s: unknown, n: number) => {
@@ -76,12 +80,15 @@ async function loadState(db: any): Promise<DigestState> {
 
 export async function collectFollowUps(db: any): Promise<Person[]> {
   const people = new Map<string, Person>();
-  const add = (p: { id: string; name?: string | null; phone?: string | null; email?: string | null }, r: Reason) => {
+  const add = (p: { id: string; name?: string | null; phone?: string | null; email?: string | null }, r: Reason, kind = "other") => {
     const pk = phoneKey(p.phone);
     const ek = String(p.email ?? "").trim().toLowerCase();
     // Merge by phone first, then e-mail; otherwise the source row is its own person.
     const key = pk ? `p:${pk}` : ek ? `e:${ek}` : `id:${p.id}`;
-    const cur = people.get(key) ?? { key, name: "", phone: "", email: "", reasons: [] };
+    const cur = people.get(key) ?? { key, name: "", phone: "", email: "", reasons: [], sourceKind: kind, firstAt: null };
+    // The strongest reason decides which source the lead row gets when the digest opens one for her.
+    if (r.weight > Math.max(0, ...cur.reasons.map((x) => x.weight))) cur.sourceKind = kind;
+    if (r.at && (!cur.firstAt || Date.parse(r.at) < Date.parse(cur.firstAt))) cur.firstAt = r.at;
     if (!cur.name && p.name) cur.name = String(p.name).trim();
     if (!cur.phone && p.phone) cur.phone = String(p.phone).trim();
     if (!cur.email && ek) cur.email = ek;
@@ -121,12 +128,14 @@ export async function collectFollowUps(db: any): Promise<Person[]> {
         add(
           { id: n.id, name: b.contact_name, phone: b.phone },
           { weight: 80, icon: "📞", text: `השאירה הודעה בטלפון: "${clip(b.message, 160)}"${b.context ? ` (${clip(b.context, 60)})` : ""}`, at: n.created_at },
+          "phone",
         );
       } else if (n.type === "photography_request") {
         const name = String(n.title ?? "").split("·").pop()?.trim() || null;
         add(
           { id: n.id, name, phone: b.phone, email: b.email },
           { weight: 90, icon: "📷", text: `ביקשה צילומים עם מיכל${b.session_type ? ` (${esc(b.session_type)})` : ""}${b.date ? ` ל-${esc(b.date)}${b.start_time ? ` ${esc(b.start_time)}` : ""}` : ""}${b.price ? ` · ₪${esc(b.price)}` : ""}`, at: n.created_at },
+          "photography_request",
         );
       }
     }
@@ -136,23 +145,25 @@ export async function collectFollowUps(db: any): Promise<Person[]> {
   await safe(async () => {
     const { data } = await db
       .from("inquiry_leads")
-      .select("id, name, email, phone, topic, message, status, first_contact_at, last_contact_at, follow_up_sent_at, source")
+      .select("id, name, email, phone, topic, message, status, first_contact_at, last_contact_at, follow_up_sent_at, source, notes")
       .in("status", ["new", "replied", "follow_up"])
       .gte("first_contact_at", iso(now - 14 * 86_400_000))
       .limit(200);
     for (const l of data ?? []) {
       const first = Date.parse(l.first_contact_at);
       const last = Date.parse(l.last_contact_at ?? l.first_contact_at);
+      // A row the digest opened itself is still "new" while the original reason (phone message, funnel…) is listed: do not list it twice.
+      if (l.status === "new" && String(l.notes ?? "").includes(DIGEST_NOTE)) continue;
       const src = esc(l.source === "email" || l.source === "gmail" ? "מייל" : l.source === "phone" ? "טלפון" : l.source || "פנייה");
       if (l.status === "new" && /🔥/.test(String(l.message ?? ""))) {
         // Hot lead from the photographer site's quiz (filed by the e-mail assistant): listed at once, then daily while unanswered.
-        add({ id: l.id, name: l.name, phone: l.phone, email: l.email }, { weight: 78, remind: true, icon: "🔥", text: `ליד חם משאלון אתר הצלמת: "${clip(String(l.message).replace(/^🔥 ליד חם · /, ""), 120)}"`, at: l.first_contact_at });
+        add({ id: l.id, name: l.name, phone: l.phone, email: l.email }, { leadId: l.id, weight: 78, remind: true, icon: "🔥", text: `ליד חם משאלון אתר הצלמת: "${clip(String(l.message).replace(/^🔥 ליד חם · /, ""), 120)}"`, at: l.first_contact_at });
       } else if (l.status === "new" && now - first > 60 * 60_000) {
-        add({ id: l.id, name: l.name, phone: l.phone, email: l.email }, { weight: 70, icon: "✉️", text: `פנייה (${src}) שעוד לא נענתה: "${clip(l.message, 140)}"`, at: l.first_contact_at });
+        add({ id: l.id, name: l.name, phone: l.phone, email: l.email }, { leadId: l.id, weight: 70, icon: "✉️", text: `פנייה (${src}) שעוד לא נענתה: "${clip(l.message, 140)}"`, at: l.first_contact_at });
       } else if (l.status === "follow_up") {
-        add({ id: l.id, name: l.name, phone: l.phone, email: l.email }, { weight: 60, icon: "🔁", text: `סומנה "לחזור אליה": "${clip(l.message, 120)}"`, at: l.last_contact_at ?? l.first_contact_at });
+        add({ id: l.id, name: l.name, phone: l.phone, email: l.email }, { leadId: l.id, weight: 60, icon: "🔁", text: `סומנה "לחזור אליה": "${clip(l.message, 120)}"`, at: l.last_contact_at ?? l.first_contact_at });
       } else if (l.status === "replied" && !l.follow_up_sent_at && now - last > 3 * 86_400_000) {
-        add({ id: l.id, name: l.name, phone: l.phone, email: l.email }, { weight: 50, icon: "⏳", text: `ענית לה ושותקת 3+ ימים — כדאי מעקב: "${clip(l.message, 100)}"`, at: l.last_contact_at ?? l.first_contact_at });
+        add({ id: l.id, name: l.name, phone: l.phone, email: l.email }, { leadId: l.id, weight: 50, icon: "⏳", text: `ענית לה ושותקת 3+ ימים — כדאי מעקב: "${clip(l.message, 100)}"`, at: l.last_contact_at ?? l.first_contact_at });
       }
     }
   }, "inquiry_leads");
@@ -166,7 +177,7 @@ export async function collectFollowUps(db: any): Promise<Person[]> {
       .gte("created_at", iso(now - 7 * 86_400_000))
       .limit(100);
     for (const l of data ?? []) {
-      add({ id: l.id, name: l.name, phone: l.phone, email: l.email }, { weight: 75, remind: true, icon: "🔥", text: `ליד חם מהשאלון${l.funnel ? ` (${esc(l.funnel)})` : ""}${l.recommendation ? `: ${clip(l.recommendation, 80)}` : ""}`, at: l.created_at });
+      add({ id: l.id, name: l.name, phone: l.phone, email: l.email }, { weight: 75, remind: true, icon: "🔥", text: `ליד חם מהשאלון${l.funnel ? ` (${esc(l.funnel)})` : ""}${l.recommendation ? `: ${clip(l.recommendation, 80)}` : ""}`, at: l.created_at }, "funnel");
     }
   }, "funnel_leads");
 
@@ -181,7 +192,7 @@ export async function collectFollowUps(db: any): Promise<Person[]> {
       .limit(60);
     for (const d of data ?? []) {
       if (!d.phone && !d.email) continue;
-      add({ id: d.client_key, name: d.name, phone: d.phone, email: d.email }, { weight: 55, icon: "🛒", text: `התחילה הזמנה ולא סיימה${d.step ? ` (נעצרה בשלב ${esc(d.step)})` : ""}`, at: d.updated_at });
+      add({ id: d.client_key, name: d.name, phone: d.phone, email: d.email }, { weight: 55, icon: "🛒", text: `התחילה הזמנה ולא סיימה${d.step ? ` (נעצרה בשלב ${esc(d.step)})` : ""}`, at: d.updated_at }, "booking_draft");
     }
   }, "booking_drafts");
 
@@ -199,6 +210,7 @@ export async function collectFollowUps(db: any): Promise<Person[]> {
       add(
         { id: b.id, name: b.contact_name, phone: b.contact_phone, email: b.contact_email },
         { weight: b.session_date === today ? 100 : 65, icon: "💳", text: `שריון סטודיו ל-${d}/${m} ${String(b.start_time ?? "").slice(0, 5)} — המקדמה עוד לא שולמה`, at: b.created_at },
+        "booking",
       );
     }
   }, "bookings");
@@ -221,7 +233,85 @@ export async function collectFollowUps(db: any): Promise<Person[]> {
     }
   }, "order_edit_requests");
 
+  // Link every person to her existing lead row (by phone or e-mail) so the stage buttons can be shown for any source, and
+  // honour the stage she already set: a phone message / photography request / funnel lead / abandoned booking that is older
+  // than the moment she marked the lead answered, in talk, closed or not relevant is no longer waiting.
+  // Unpaid deposits and edit requests are operational, so a lead stage never hides them.
+  await safe(async () => {
+    const { data } = await db
+      .from("inquiry_leads")
+      .select("id, email, phone, status, updated_at")
+      .gte("created_at", iso(now - 120 * 86_400_000))
+      .order("updated_at", { ascending: false })
+      .limit(1000);
+    const byPhone = new Map<string, any>();
+    const byEmail = new Map<string, any>();
+    for (const l of data ?? []) {
+      const pk = phoneKey(l.phone);
+      const ek = String(l.email ?? "").trim().toLowerCase();
+      if (pk && !byPhone.has(pk)) byPhone.set(pk, l);
+      if (ek && !byEmail.has(ek)) byEmail.set(ek, l);
+    }
+    for (const p of people.values()) {
+      const lead = byPhone.get(phoneKey(p.phone)) ?? byEmail.get(p.email);
+      if (!lead) continue;
+      const stageSet = Date.parse(lead.updated_at);
+      p.reasons = p.reasons.filter((r) => {
+        if (r.leadId) return true;
+        r.leadId = lead.id;
+        if (!SETTLED_STAGES.has(lead.status) || r.icon === "💳" || r.icon === "✏️") return true;
+        return !(r.at && isFinite(stageSet) && stageSet > Date.parse(r.at));
+      });
+    }
+    for (const [k, p] of people) if (p.reasons.length === 0) people.delete(k);
+  }, "lead_match");
+
   return [...people.values()].sort((a, b) => Math.max(...b.reasons.map((r) => r.weight)) - Math.max(...a.reasons.map((r) => r.weight)));
+}
+
+/** Stages that mean "she dealt with it": a waiting item from another source that is older than the stage is dropped. */
+const SETTLED_STAGES = new Set(["replied", "in_talk", "booked", "not_relevant"]);
+
+const SOURCE_BY_KIND: Record<string, string> = {
+  phone: "phone",
+  photography_request: "photography_request",
+  funnel: "funnel",
+  booking_draft: "booking_draft",
+  booking: "booking",
+};
+
+/**
+ * People in the digest who have no lead row yet (phone message, photography request, funnel lead, abandoned booking, unpaid
+ * deposit) get one, so every person with contact details has the stage buttons. The row starts as "new" and is marked with
+ * DIGEST_NOTE so the digest does not list it a second time. People with no phone and no e-mail (nothing to act on) get none.
+ */
+async function ensureLeadRows(db: any, people: Person[]): Promise<void> {
+  for (const p of people) {
+    if (p.reasons.some((r) => r.leadId)) continue;
+    if (!p.phone && !p.email) continue;
+    try {
+      const top = [...p.reasons].sort((a, b) => b.weight - a.weight)[0];
+      const { data, error } = await db
+        .from("inquiry_leads")
+        .insert({
+          name: p.name || null,
+          email: p.email || null,
+          phone: p.phone || null,
+          source: SOURCE_BY_KIND[p.sourceKind] ?? "other",
+          topic: "other",
+          message: clipRaw(String(top?.text ?? "").replace(/<[^>]*>/g, ""), 300) || null,
+          status: "new",
+          first_contact_at: p.firstAt ?? new Date().toISOString(),
+          notes: DIGEST_NOTE,
+        })
+        .select("id")
+        .maybeSingle();
+      if (error) throw error;
+      if (data?.id) for (const r of p.reasons) r.leadId = data.id;
+    } catch (e) {
+      console.error("[SWEETBABY] follow-up digest could not open a lead row", e);
+    }
+  }
 }
 
 const BUTTON_STAGES: { key: string; label: string; bg: string; fg: string }[] = [
@@ -301,6 +391,8 @@ export async function runHourlyFollowUpDigest(opts: { force?: boolean } = {}): P
     return { sent: false, reason: "nothing_new", people: 0 };
   }
   const stillWaiting = all.length - news.length;
+  // Everyone shown below gets a lead row (if she has contact details) so each line has its stage buttons.
+  await ensureLeadRows(db, news);
   // One Gmail thread per day: every hourly summary is a reply to the previous one (same subject +
   // threadId + In-Reply-To), so the inbox shows one conversation instead of a mail per hour.
   const { sendGmailDetailed } = await import("@/integrations/google/gmail.server");
