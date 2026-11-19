@@ -1040,7 +1040,9 @@ export async function runEmailDraftAssistant(
           continue;
         }
         // Already answered her (or a draft to her exists)?
-        const sentTo = await g.searchGmail(`in:sent to:${email} newer_than:3d`, 1, k);
+        // The sites' own automatic mails (prize-wheel gift, newsletter welcome) are not an answer to her inquiry: before this
+        // exclusion the gift mail sent a minute earlier made the assistant skip the quiz notices of the same visitor (19.11).
+        const sentTo = await g.searchGmail(`in:sent to:${email} newer_than:3d -subject:"הפרס שלך" -subject:"ברוכה הבאה"`, 1, k);
         const draftTo = await g.searchGmail(`in:draft to:${email}`, 1, k);
         if (sentTo.length || draftTo.length) {
           remember(seenId);
