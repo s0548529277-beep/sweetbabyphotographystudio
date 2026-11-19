@@ -82,6 +82,40 @@ import {
 } from "lucide-react";
 
 import { PhotoSectionTabs } from "@/components/PhotoSectionTabs";
+import {
+  toggleOutdoorOrderStep,
+  updateOutdoorOrderPayment,
+  sendOutdoorPaymentReminderEmails,
+} from "@/lib/outdoor-orders.functions";
+import { sendOutdoorContract } from "@/lib/outdoor-packages.functions";
+import {
+  listStudioCustomOrders,
+  deleteStudioCustomOrder,
+  updateStudioCustomOrderPayment,
+  toggleStudioCustomOrderStep,
+} from "@/lib/studio-custom-orders.functions";
+import {
+  HUB_KINDS,
+  hubBalance,
+  hubKind,
+  newbornToHub,
+  outdoorToHub,
+  sortHubRows,
+  studioToHub,
+  type HubFilter,
+  type HubKind,
+  type HubRow,
+} from "@/lib/client-hub";
+import {
+  HubCalendarView,
+  HubDashboardView,
+  HubKindChooser,
+  HubPaymentsView,
+  HubTableView,
+  OutdoorHubCard,
+  StudioHubCard,
+} from "@/components/client-hub/HubViews";
+import { OutdoorOrderDialog, StudioOrderDialog } from "@/components/client-hub/HubDialogs";
 
 export const Route = createFileRoute("/_authenticated/admin/newborn-packages")({
   component: NewbornPackagesAdmin,
@@ -200,6 +234,48 @@ function NewbornPackagesAdmin() {
   const [editTarget, setEditTarget] = useState<OrderRow | null>(null);
   const [editForm, setEditForm] = useState<EditForm | null>(null);
   const [editSaving, setEditSaving] = useState(false);
+
+  // ---- the other two kinds (outdoor = חום, custom studio = בז') ----
+  const [kindFilter, setKindFilter] = useState<HubFilter>("all");
+  const [chooserOpen, setChooserOpen] = useState(false);
+  const [chooserDate, setChooserDate] = useState<string | undefined>(undefined);
+  const [outdoorDialog, setOutdoorDialog] = useState<{ open: boolean; initial: any | null; date?: string }>({
+    open: false,
+    initial: null,
+  });
+  const [studioDialog, setStudioDialog] = useState<{ open: boolean; initial: any | null; date?: string }>({
+    open: false,
+    initial: null,
+  });
+  const [busyHubStep, setBusyHubStep] = useState<string | null>(null);
+  const [sendingContractId, setSendingContractId] = useState<string | null>(null);
+  const runToggleOutdoorStep = useServerFn(toggleOutdoorOrderStep);
+  const runOutdoorPayment = useServerFn(updateOutdoorOrderPayment);
+  const runOutdoorReminders = useServerFn(sendOutdoorPaymentReminderEmails);
+  const runSendOutdoorContract = useServerFn(sendOutdoorContract);
+  const fetchStudioOrders = useServerFn(listStudioCustomOrders);
+  const runDeleteStudio = useServerFn(deleteStudioCustomOrder);
+  const runStudioPayment = useServerFn(updateStudioCustomOrderPayment);
+  const runToggleStudioStep = useServerFn(toggleStudioCustomOrderStep);
+  const runNewbornReminders = useServerFn(sendNewbornPaymentReminderEmails);
+
+  const outdoorOrders = useQuery({
+    queryKey: ["admin-outdoor-orders"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("outdoor_package_orders")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    enabled: !isDetail,
+  });
+  const studioOrders = useQuery({
+    queryKey: ["studio-custom-orders"],
+    queryFn: () => fetchStudioOrders({}),
+    enabled: !isDetail,
+  });
 
   if (isDetail) {
     return <Outlet />;
@@ -391,71 +467,154 @@ function NewbornPackagesAdmin() {
   };
 
   // ---- ChikTime-style helpers (search, Hebrew calendar, same-day warning, CSV) ----
+  const allHub: HubRow[] = sortHubRows([
+    ...rows.map(newbornToHub),
+    ...((outdoorOrders.data ?? []) as any[]).map(outdoorToHub),
+    ...((studioOrders.data ?? []) as any[]).map(studioToHub),
+  ]);
+  const kindHub = kindFilter === "all" ? allHub : allHub.filter((r) => r.kind === kindFilter);
+
   const sameDayTimes = (date: string | null | undefined, excludeId?: string) =>
     date
-      ? rows
-          .filter((o) => o.session_date === date && o.id !== excludeId)
-          .map((o) => o.session_time?.slice(0, 5) || "?")
+      ? allHub.filter((r) => r.date === date && r.id !== excludeId).map((r) => r.time || "?")
       : [];
 
   const term = search.trim().toLowerCase();
-  const shownRows = term
-    ? rows.filter((o) =>
-        [
-          o.contact_name,
-          o.contact_phone,
-          o.contact_email,
-          o.notes,
-          findNewbornPackage(o.package_id)?.name,
-        ].some((v) => (v ?? "").toLowerCase().includes(term)),
+  const shownHub = term
+    ? kindHub.filter((r) =>
+        [r.name, r.phone, r.email, r.notes, r.packageName].some((v) =>
+          (v ?? "").toLowerCase().includes(term),
+        ),
       )
+    : kindHub;
+  const shownNewbornRows = term
+    ? shownHub.filter((r) => r.kind === "newborn").map((r) => r.raw as OrderRow)
     : rows;
 
-  const calendarItems: CalendarItem[] = rows
-    .filter((o) => o.session_date)
-    .map((o) => {
-      const paid = Number(o.amount_paid || 0) >= Number(o.total_price || 0);
+  const calendarItems: CalendarItem[] = kindHub
+    .filter((r) => r.date)
+    .map((r) => {
+      const paid = r.total > 0 && r.paid >= r.total;
       return {
-        id: o.id,
-        date: o.session_date as string,
-        time: o.session_time?.slice(0, 5) || "",
-        label: o.contact_name,
-        tone: paid ? "bg-emerald-100 text-emerald-800" : "bg-newborn-blush text-newborn-ink",
-        title: `${o.session_time?.slice(0, 5) ?? ""} ${o.contact_name} · ${findNewbornPackage(o.package_id)?.name ?? ""}`,
+        id: `${r.kind}:${r.id}`,
+        date: r.date as string,
+        time: r.time || "",
+        label: r.name,
+        tone: paid ? "bg-emerald-100 text-emerald-800" : hubKind(r.kind).tone,
+        title: `${r.time ?? ""} ${r.name} · ${r.packageName}`,
       };
     });
 
   const openCreateFor = (date?: string) => {
-    setCreateForm({ ...emptyCreateForm, session_date: date ?? "" });
-    setCreateOpen(true);
+    if (kindFilter === "all") {
+      setChooserDate(date);
+      setChooserOpen(true);
+      return;
+    }
+    startCreate(kindFilter, date);
+  };
+
+  const startCreate = (kind: HubKind, date?: string) => {
+    setChooserOpen(false);
+    if (kind === "newborn") {
+      setCreateForm({ ...emptyCreateForm, session_date: date ?? "" });
+      setCreateOpen(true);
+    } else if (kind === "outdoor") {
+      setOutdoorDialog({ open: true, initial: null, date });
+    } else {
+      setStudioDialog({ open: true, initial: null, date });
+    }
+  };
+
+  const openEditHub = (r: HubRow) => {
+    if (r.kind === "newborn") openEdit(r.raw as OrderRow);
+    else if (r.kind === "outdoor") setOutdoorDialog({ open: true, initial: r.raw });
+    else setStudioDialog({ open: true, initial: r.raw });
+  };
+
+  const toggleHubStep = async (r: HubRow, stepKey: string, done: boolean) => {
+    setBusyHubStep(`${r.id}:${stepKey}`);
+    try {
+      if (r.kind === "outdoor") await runToggleOutdoorStep({ data: { id: r.id, step_key: stepKey, done } });
+      else await runToggleStudioStep({ data: { id: r.id, step_key: stepKey as "shoot_done" | "payment_done", done } });
+      qc.invalidateQueries({ queryKey: r.kind === "outdoor" ? ["admin-outdoor-orders"] : ["studio-custom-orders"] });
+    } catch (e) {
+      toast.error(heError(e, "העדכון נכשל"));
+    } finally {
+      setBusyHubStep(null);
+    }
+  };
+
+  const removeHub = async (r: HubRow) => {
+    if (!confirm(`למחוק את ${r.name}?`)) return;
+    try {
+      if (r.kind === "outdoor") {
+        const { error } = await (supabase as any).from("outdoor_package_orders").delete().eq("id", r.id);
+        if (error) throw new Error(error.message);
+        qc.invalidateQueries({ queryKey: ["admin-outdoor-orders"] });
+      } else {
+        await runDeleteStudio({ data: { id: r.id } });
+        qc.invalidateQueries({ queryKey: ["studio-custom-orders"] });
+      }
+      toast.success("נמחק");
+    } catch (e) {
+      toast.error(heError(e, "המחיקה נכשלה"));
+    }
+  };
+
+  const toggleOutdoorDeposit = async (r: HubRow) => {
+    const { error } = await (supabase as any)
+      .from("outdoor_package_orders")
+      .update({ deposit_paid: !r.raw.deposit_paid })
+      .eq("id", r.id);
+    if (error) return toast.error(heError(error.message));
+    qc.invalidateQueries({ queryKey: ["admin-outdoor-orders"] });
+  };
+
+  const sendContractHub = async (r: HubRow) => {
+    if (!r.email) return toast.error("לא נמצאה כתובת מייל ללקוחה הזו");
+    if (!r.date) return toast.error("יש להגדיר תאריך צילום לפני שליחת החוזה");
+    setSendingContractId(r.id);
+    try {
+      await runSendOutdoorContract({ data: { id: r.id } });
+      toast.success("החוזה נשלח");
+      qc.invalidateQueries({ queryKey: ["admin-outdoor-orders"] });
+    } catch (e) {
+      toast.error(heError(e, "שליחת החוזה נכשלה"));
+    } finally {
+      setSendingContractId(null);
+    }
+  };
+
+  const saveHubPayment = async (r: HubRow, amount: number) => {
+    if (r.kind === "newborn") await runUpdatePayment({ data: { id: r.id, amount_paid: amount } });
+    else if (r.kind === "outdoor") await runOutdoorPayment({ data: { id: r.id, amount_paid: amount } });
+    else await runStudioPayment({ data: { id: r.id, amount_paid: amount } });
+  };
+
+  const sendHubReminders = async (picked: HubRow[]) => {
+    const out: { sent: boolean; reason?: string }[] = [];
+    const nb = picked.filter((r) => r.kind === "newborn").map((r) => r.id);
+    const od = picked.filter((r) => r.kind === "outdoor").map((r) => r.id);
+    if (nb.length) out.push(...(await runNewbornReminders({ data: { orderIds: nb } })).results);
+    if (od.length) out.push(...(await runOutdoorReminders({ data: { orderIds: od } })).results);
+    return out;
   };
 
   const exportCsv = () => {
-    const header = [
-      "שם",
-      "טלפון",
-      "מייל",
-      "חבילה",
-      "תאריך צילום",
-      "שעה",
-      "סל לידה",
-      "סה״כ",
-      "שולם",
-      "יתרה",
-      "הערות",
-    ];
-    const lines = rows.map((o) => [
-      o.contact_name,
-      o.contact_phone,
-      o.contact_email ?? "",
-      findNewbornPackage(o.package_id)?.name ?? o.package_id,
-      o.session_date ?? "",
-      o.session_time?.slice(0, 5) ?? "",
-      o.birth_basket_used ? "כן" : "",
-      String(o.total_price ?? 0),
-      String(o.amount_paid ?? 0),
-      String(Math.max(0, Number(o.total_price || 0) - Number(o.amount_paid || 0))),
-      o.notes ?? "",
+    const header = ["סוג", "שם", "טלפון", "מייל", "חבילה", "תאריך צילום", "שעה", "סה״כ", "שולם", "יתרה", "הערות"];
+    const lines = shownHub.map((r) => [
+      hubKind(r.kind).label,
+      r.name,
+      r.phone,
+      r.email ?? "",
+      r.packageName,
+      r.date ?? "",
+      r.time ?? "",
+      String(r.total),
+      String(r.paid),
+      String(hubBalance(r)),
+      r.notes ?? "",
     ]);
     const csv =
       "\uFEFF" +
@@ -465,13 +624,13 @@ function NewbornPackagesAdmin() {
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a");
     a.href = url;
-    a.download = `לקוחות-ניו-בורן-${ymd(new Date())}.csv`;
+    a.download = `לקוחות-${ymd(new Date())}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  const missingEmail = rows.filter(
-    (o) => o.session_date && o.session_date >= ymd(new Date()) && !o.contact_email,
+  const missingEmail = kindHub.filter(
+    (r) => r.kind !== "studio" && r.date && r.date >= ymd(new Date()) && !r.email,
   );
 
   const TABS = [
@@ -488,7 +647,7 @@ function NewbornPackagesAdmin() {
   return (
     <div
       dir="rtl"
-      className="min-h-screen bg-gradient-to-b from-newborn-canvas via-white to-newborn-blush/30"
+      className={`${kindFilter === "all" ? "kind-newborn" : hubKind(kindFilter).scope} min-h-screen bg-gradient-to-b from-newborn-canvas via-white to-newborn-blush/30`}
     >
       {/* Standalone header — this page fills the whole screen (see admin.tsx FULLSCREEN_PATHS) */}
       <header className="sticky top-0 z-30 border-b border-newborn-rose/15 bg-white/85 backdrop-blur">
@@ -503,10 +662,10 @@ function NewbornPackagesAdmin() {
             </Link>
             <div>
               <p className="text-[10px] tracking-[0.3em] text-newborn-gold">
-                MICHAL SIBONI · NEWBORN
+                MICHAL SIBONI · CLIENTS
               </p>
               <h1 className="font-display text-2xl leading-tight text-newborn-ink">
-                לקוחות ניו-בורן
+                {kindFilter === "all" ? "לקוחות" : `לקוחות ${hubKind(kindFilter).label}`}
               </h1>
             </div>
           </div>
@@ -538,20 +697,55 @@ function NewbornPackagesAdmin() {
             </button>
           ))}
         </nav>
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-4 pb-3">
+          {(
+            [
+              { key: "all" as HubFilter, label: "הכל", dot: "bg-newborn-ink" },
+              ...HUB_KINDS.map((k) => ({ key: k.key as HubFilter, label: k.label, dot: k.dot })),
+            ]
+          ).map((k) => {
+            const count = k.key === "all" ? allHub.length : allHub.filter((r) => r.kind === k.key).length;
+            const active = kindFilter === k.key;
+            return (
+              <button
+                key={k.key}
+                type="button"
+                onClick={() => setKindFilter(k.key)}
+                className={`flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm transition ${
+                  active
+                    ? "border-newborn-ink bg-newborn-ink text-white shadow"
+                    : "border-newborn-rose/25 bg-white text-newborn-ink/80 hover:bg-newborn-blush/40"
+                }`}
+              >
+                <span className={`h-2.5 w-2.5 rounded-full ${k.dot}`} />
+                {k.label}
+                <span className={`text-xs ${active ? "text-white/80" : "text-muted-foreground"}`}>{count}</span>
+              </button>
+            );
+          })}
+        </div>
       </header>
 
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-6">
         <PhotoSectionTabs />
-        {orders.isLoading && <p className="text-sm text-muted-foreground">טוען…</p>}
-        {!orders.isLoading && rows.length === 0 && view !== "settings" && view !== "packages" && (
-          <div className="rounded-3xl border border-newborn-rose/20 bg-white p-8 text-center text-sm text-muted-foreground">
-            עדיין אין הזמנות חבילת ניו-בורן. אפשר להתחיל בכפתור "הזמנה חדשה".
-          </div>
+        {(orders.isLoading || outdoorOrders.isLoading || studioOrders.isLoading) && (
+          <p className="text-sm text-muted-foreground">טוען…</p>
         )}
+        {!orders.isLoading &&
+          !outdoorOrders.isLoading &&
+          !studioOrders.isLoading &&
+          kindHub.length === 0 &&
+          view !== "settings" &&
+          view !== "packages" && (
+            <div className="rounded-3xl border border-newborn-rose/20 bg-white p-8 text-center text-sm text-muted-foreground">
+              עדיין אין הזמנות
+              {kindFilter === "all" ? "" : ` ${hubKind(kindFilter).label}`}. אפשר להתחיל בכפתור "הזמנה חדשה".
+            </div>
+          )}
 
         {view === "dashboard" && (
           <>
-            <NewbornDashboardView rows={rows} onGoToCalendar={() => setView("hebcal")} />
+            <HubDashboardView rows={kindHub} onGoToCalendar={() => setView("hebcal")} />
             {missingEmail.length > 0 && (
               <div className="rounded-3xl border border-amber-200 bg-amber-50/70 p-4 text-sm">
                 <div className="mb-2 font-medium text-amber-900">
@@ -560,12 +754,12 @@ function NewbornPackagesAdmin() {
                 <div className="flex flex-wrap gap-2">
                   {missingEmail.map((o) => (
                     <button
-                      key={o.id}
+                      key={`${o.kind}:${o.id}`}
                       type="button"
-                      onClick={() => openEdit(o)}
+                      onClick={() => openEditHub(o)}
                       className="rounded-full bg-white px-3 py-1 text-xs text-amber-900 shadow-sm hover:bg-amber-100"
                     >
-                      {o.contact_name} · {formatDateIL(o.session_date)}
+                      {o.name} · {formatDateIL(o.date)}
                     </button>
                   ))}
                 </div>
@@ -579,22 +773,22 @@ function NewbornPackagesAdmin() {
             items={calendarItems}
             onPickDay={(date) => openCreateFor(date)}
             onPickItem={(id) => {
-              const o = rows.find((r) => r.id === id);
-              if (o) openEdit(o);
+              const o = allHub.find((r) => `${r.kind}:${r.id}` === id);
+              if (o) openEditHub(o);
             }}
           />
         )}
 
         {view === "calendar" && (
-          <NewbornCalendarView
-            rows={rows}
-            onEdit={openEdit}
-            onOpenGallery={openGallery}
+          <HubCalendarView
+            rows={kindHub}
+            onEdit={openEditHub}
+            onOpenGallery={(r) => openGallery(r.raw as OrderRow)}
             openingGalleryId={openingGalleryId}
           />
         )}
 
-        {(view === "list" || view === "table") && rows.length > 0 && (
+        {(view === "list" || view === "table") && kindHub.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative min-w-[220px] flex-1">
               <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -605,7 +799,7 @@ function NewbornPackagesAdmin() {
                 className="rounded-full bg-white pr-9"
               />
             </div>
-            <span className="text-sm text-muted-foreground">{shownRows.length} לקוחות</span>
+            <span className="text-sm text-muted-foreground">{shownHub.length} לקוחות</span>
             <Button
               variant="outline"
               size="sm"
@@ -617,13 +811,23 @@ function NewbornPackagesAdmin() {
           </div>
         )}
 
-        {view === "table" && <NewbornTableView rows={shownRows} />}
+        {view === "table" &&
+          (kindFilter === "newborn" ? (
+            <NewbornTableView rows={shownNewbornRows} />
+          ) : (
+            <HubTableView rows={shownHub} />
+          ))}
 
         {view === "payments" && (
-          <NewbornPaymentsView
-            rows={rows}
-            runUpdatePayment={runUpdatePayment}
-            onSaved={() => qc.invalidateQueries({ queryKey: ["newborn-orders"] })}
+          <HubPaymentsView
+            rows={kindHub}
+            savePayment={saveHubPayment}
+            sendReminders={sendHubReminders}
+            onSaved={() => {
+              qc.invalidateQueries({ queryKey: ["newborn-orders"] });
+              qc.invalidateQueries({ queryKey: ["admin-outdoor-orders"] });
+              qc.invalidateQueries({ queryKey: ["studio-custom-orders"] });
+            }}
           />
         )}
 
@@ -638,21 +842,72 @@ function NewbornPackagesAdmin() {
 
         {view === "list" && (
           <div className="grid gap-4 lg:grid-cols-2">
-            {shownRows.map((order) => (
-              <OrderCard
-                key={order.id}
-                order={order}
-                busyStep={busyStep}
-                openingGallery={openingGalleryId === order.id}
-                onToggleStep={(stepKey, done) => toggleStep(order, stepKey, done)}
-                onEdit={() => openEdit(order)}
-                onDelete={() => remove(order)}
-                onOpenGallery={() => openGallery(order)}
-              />
-            ))}
+            {shownHub.map((r) => {
+              if (r.kind === "outdoor") {
+                return (
+                  <OutdoorHubCard
+                    key={`outdoor:${r.id}`}
+                    row={r}
+                    busyStep={busyHubStep}
+                    sendingContract={sendingContractId === r.id}
+                    onToggleStep={(stepKey, done) => toggleHubStep(r, stepKey, done)}
+                    onToggleDeposit={() => toggleOutdoorDeposit(r)}
+                    onSendContract={() => sendContractHub(r)}
+                    onEdit={() => openEditHub(r)}
+                    onDelete={() => removeHub(r)}
+                  />
+                );
+              }
+              if (r.kind === "studio") {
+                return (
+                  <StudioHubCard
+                    key={`studio:${r.id}`}
+                    row={r}
+                    busyStep={busyHubStep}
+                    onToggleStep={(stepKey, done) => toggleHubStep(r, stepKey, done)}
+                    onEdit={() => openEditHub(r)}
+                    onDelete={() => removeHub(r)}
+                  />
+                );
+              }
+              const order = r.raw as OrderRow;
+              return (
+                <div key={`newborn:${r.id}`} className="kind-newborn">
+                  <OrderCard
+                    order={order}
+                    busyStep={busyStep}
+                    openingGallery={openingGalleryId === order.id}
+                    onToggleStep={(stepKey, done) => toggleStep(order, stepKey, done)}
+                    onEdit={() => openEdit(order)}
+                    onDelete={() => remove(order)}
+                    onOpenGallery={() => openGallery(order)}
+                  />
+                </div>
+              );
+            })}
           </div>
         )}
       </main>
+
+      <HubKindChooser
+        open={chooserOpen}
+        onOpenChange={setChooserOpen}
+        onPick={(k) => startCreate(k, chooserDate)}
+      />
+      <OutdoorOrderDialog
+        open={outdoorDialog.open}
+        onOpenChange={(o) => setOutdoorDialog((d) => ({ ...d, open: o }))}
+        initial={outdoorDialog.initial}
+        defaultDate={outdoorDialog.date}
+        sameDayTimes={sameDayTimes}
+      />
+      <StudioOrderDialog
+        open={studioDialog.open}
+        onOpenChange={(o) => setStudioDialog((d) => ({ ...d, open: o }))}
+        initial={studioDialog.initial}
+        defaultDate={studioDialog.date}
+        sameDayTimes={sameDayTimes}
+      />
 
       {/* New order */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -1068,284 +1323,6 @@ function OrderCard({
   );
 }
 
-// Month calendar of orders by session_date — same shadcn Calendar
-// component + "scheduled day" modifier pattern as /admin/calendar, so this
-// reads like a familiar view rather than a one-off widget.
-function NewbornCalendarView({
-  rows,
-  onEdit,
-  onOpenGallery,
-  openingGalleryId,
-}: {
-  rows: OrderRow[];
-  onEdit: (order: OrderRow) => void;
-  onOpenGallery: (order: OrderRow) => void;
-  openingGalleryId: string | null;
-}) {
-  const [selected, setSelected] = useState<Date | undefined>(new Date());
-
-  const { byDate, scheduledDates } = useMemo(() => {
-    const map = new Map<string, OrderRow[]>();
-    for (const o of rows) {
-      if (!o.session_date) continue;
-      const list = map.get(o.session_date) ?? [];
-      list.push(o);
-      map.set(o.session_date, list);
-    }
-    return {
-      byDate: map,
-      scheduledDates: Array.from(map.keys()).map((s) => {
-        const [y, m, d] = s.split("-").map(Number);
-        return new Date(y, m - 1, d);
-      }),
-    };
-  }, [rows]);
-
-  const toLocalKey = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  const key = selected ? toLocalKey(selected) : "";
-  const dayOrders = byDate.get(key) ?? [];
-  const withoutDate = rows.filter((o) => !o.session_date);
-
-  return (
-    <div className="grid lg:grid-cols-[auto_1fr] gap-6">
-      <div className="bg-card rounded-2xl p-4 border border-primary/10 w-fit h-fit">
-        <Calendar
-          mode="single"
-          selected={selected}
-          onSelect={setSelected}
-          locale={he}
-          modifiers={{ scheduled: scheduledDates }}
-          modifiersClassNames={{ scheduled: "bg-blush text-primary font-medium rounded-full" }}
-        />
-        <div className="text-xs text-muted-foreground mt-3 flex items-center gap-2">
-          <span className="inline-block h-3 w-3 rounded-full bg-blush" /> יום עם צילום קבוע
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <div className="bg-card rounded-2xl p-5 border border-primary/10">
-          <h3 className="font-display text-xl text-primary mb-3">
-            {selected?.toLocaleDateString("he-IL", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-            })}
-          </h3>
-          {dayOrders.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8 border border-dashed border-primary/15 rounded-xl">
-              אין צילומים ליום זה
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {dayOrders.map((o) => (
-                <MiniOrderRow
-                  key={o.id}
-                  order={o}
-                  openingGallery={openingGalleryId === o.id}
-                  onEdit={() => onEdit(o)}
-                  onOpenGallery={() => onOpenGallery(o)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {withoutDate.length > 0 && (
-          <div className="bg-card rounded-2xl p-5 border border-primary/10">
-            <h3 className="text-sm font-semibold text-primary mb-3">
-              בלי תאריך צילום עדיין ({withoutDate.length})
-            </h3>
-            <div className="space-y-2">
-              {withoutDate.map((o) => (
-                <MiniOrderRow
-                  key={o.id}
-                  order={o}
-                  openingGallery={openingGalleryId === o.id}
-                  onEdit={() => onEdit(o)}
-                  onOpenGallery={() => onOpenGallery(o)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function MiniOrderRow({
-  order,
-  openingGallery,
-  onEdit,
-  onOpenGallery,
-}: {
-  order: OrderRow;
-  openingGallery: boolean;
-  onEdit: () => void;
-  onOpenGallery: () => void;
-}) {
-  const pkg = findNewbornPackage(order.package_id);
-  return (
-    <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-blush/25">
-      <div className="min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-medium text-primary">{order.contact_name}</span>
-          <Badge variant="secondary" className="text-[10px]">
-            {pkg?.name ?? order.package_id}
-          </Badge>
-        </div>
-        <div className="text-xs text-muted-foreground" dir="ltr">
-          {order.contact_phone}
-        </div>
-      </div>
-      <div className="flex items-center gap-1 shrink-0">
-        <button
-          type="button"
-          onClick={onEdit}
-          className="h-8 w-8 rounded-full hover:bg-primary/10 text-primary flex items-center justify-center"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={onOpenGallery}
-          disabled={openingGallery}
-          title={order.contact_email ? undefined : "יש להוסיף מייל ללקוחה קודם"}
-          className="h-8 px-3 rounded-full border border-primary/15 hover:bg-primary/5 text-xs text-primary flex items-center gap-1.5 disabled:opacity-60"
-        >
-          {openingGallery ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
-          ) : (
-            <Images className="h-3 w-3" />
-          )}
-          גלריה
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function todayKey(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function StatCard({
-  icon: Icon,
-  value,
-  label,
-  tone,
-}: {
-  icon: typeof Wallet;
-  value: string;
-  label: string;
-  tone?: "warn";
-}) {
-  return (
-    <div className="bg-card rounded-2xl border border-primary/10 p-4">
-      <div
-        className={`font-display text-2xl mb-1 ${tone === "warn" ? "text-destructive" : "text-primary"}`}
-      >
-        {value}
-      </div>
-      <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-        <Icon className="h-3.5 w-3.5" /> {label}
-      </div>
-    </div>
-  );
-}
-
-/**
- * "מסך ראשי" — mirrors the reference tool's dashboard, built from the SAME
- * newborn_package_orders rows the other views use (no separate data
- * source). "שולם החודש" is a snapshot approximation (see
- * updateNewbornOrderPayment's own doc comment) — this table has no
- * per-payment ledger, only a running amount_paid total per order, stamped
- * with when it was last touched.
- */
-function NewbornDashboardView({
-  rows,
-  onGoToCalendar,
-}: {
-  rows: OrderRow[];
-  onGoToCalendar: () => void;
-}) {
-  const today = todayKey();
-  const now = new Date();
-
-  const openBalance = rows.reduce(
-    (sum, o) => sum + Math.max(0, Number(o.total_price) - Number(o.amount_paid)),
-    0,
-  );
-  const paidThisMonth = rows.reduce((sum, o) => {
-    if (!o.last_payment_at) return sum;
-    const d = new Date(o.last_payment_at);
-    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
-      ? sum + Number(o.amount_paid)
-      : sum;
-  }, 0);
-  const galleriesCount = rows.filter((o) => o.gallery_opened_at).length;
-  const upcoming = rows
-    .filter((o) => o.session_date && o.session_date >= today)
-    .sort((a, b) => (a.session_date! < b.session_date! ? -1 : 1));
-  const todayCount = rows.filter((o) => o.session_date === today).length;
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <StatCard
-          icon={Wallet2}
-          value={`₪${openBalance.toFixed(0)}`}
-          label="יתרה פתוחה"
-          tone={openBalance > 0 ? "warn" : undefined}
-        />
-        <StatCard icon={Wallet} value={`₪${paidThisMonth.toFixed(0)}`} label="שולם החודש" />
-        <StatCard icon={Images} value={String(galleriesCount)} label="גלריות" />
-        <StatCard icon={Clock} value={String(upcoming.length)} label="צילומים קרובים" />
-        <StatCard icon={CalendarCheck2} value={String(todayCount)} label="צילומים היום" />
-      </div>
-
-      <div className="bg-card rounded-2xl border border-primary/10 p-5">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-display text-lg text-primary">צילומים קרובים</h3>
-          <button
-            type="button"
-            onClick={onGoToCalendar}
-            className="text-xs text-primary hover:underline"
-          >
-            ללוח המלא ←
-          </button>
-        </div>
-        {upcoming.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-6">
-            אין צילומים עתידיים עם תאריך קבוע.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {upcoming.slice(0, 6).map((o) => {
-              const pkg = findNewbornPackage(o.package_id);
-              return (
-                <div
-                  key={o.id}
-                  className="flex items-center justify-between gap-3 p-3 rounded-xl bg-blush/25"
-                >
-                  <div className="flex items-center gap-2 flex-wrap min-w-0">
-                    <span className="font-medium text-primary">{o.contact_name}</span>
-                    <Badge variant="secondary" className="text-[10px]">
-                      {pkg?.name ?? o.package_id}
-                    </Badge>
-                  </div>
-                  <span className="text-xs text-muted-foreground shrink-0">{o.session_date}</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 /** "טבלה" — one row per order, all the at-a-glance fields Michal asked for in a single scan: contact info, date+time, how many sets/edited photos the package includes, whether it has a collage/album, and whether it's fully paid. Read-only (editing happens via the pencil icon → the same edit dialog every other view uses). */
 function NewbornTableView({ rows }: { rows: OrderRow[] }) {
@@ -1528,173 +1505,3 @@ function PackageTypesSection() {
   );
 }
 
-/**
- * "תשלומים" — running balance per order, editable inline (types the new
- * total-paid amount, not a delta), plus a bulk "מייל תשלום ללקוחות" action
- * — same capability as PaymentsView in admin.photo-clients.tsx, ported
- * here per explicit request.
- */
-function NewbornPaymentsView({
-  rows,
-  runUpdatePayment,
-  onSaved,
-}: {
-  rows: OrderRow[];
-  runUpdatePayment: (opts: { data: { id: string; amount_paid: number } }) => Promise<{ ok: true }>;
-  onSaved: () => void;
-}) {
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [savingId, setSavingId] = useState<string | null>(null);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [sendingReminders, setSendingReminders] = useState(false);
-  const sendReminders = useServerFn(sendNewbornPaymentReminderEmails);
-
-  const paidTotal = rows.reduce((s, o) => s + Number(o.amount_paid), 0);
-  const openTotal = rows.reduce(
-    (s, o) => s + Math.max(0, Number(o.total_price) - Number(o.amount_paid)),
-    0,
-  );
-
-  const toggleSelected = (id: string) =>
-    setSelected((s) => {
-      const next = new Set(s);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-
-  const sendToSelected = async () => {
-    if (selected.size === 0) return toast.error("צריך לבחור לפחות הזמנה אחת");
-    setSendingReminders(true);
-    try {
-      const { results } = await sendReminders({ data: { orderIds: Array.from(selected) } });
-      const sentCount = results.filter((r) => r.sent).length;
-      const skipped = results.filter((r) => !r.sent);
-      if (sentCount > 0) toast.success(`נשלחו ${sentCount} מיילים`);
-      if (skipped.length > 0) {
-        toast.error(`${skipped.length} לא נשלחו: ${skipped.map((s) => s.reason).join(", ")}`, {
-          duration: 8000,
-        });
-      }
-      setSelected(new Set());
-    } catch (e) {
-      toast.error(heError(e, "השליחה נכשלה"));
-    } finally {
-      setSendingReminders(false);
-    }
-  };
-
-  const save = async (order: OrderRow) => {
-    const raw = drafts[order.id];
-    const amount = raw === undefined ? order.amount_paid : Number(raw);
-    if (Number.isNaN(amount) || amount < 0) return toast.error("סכום לא תקין");
-    setSavingId(order.id);
-    try {
-      await runUpdatePayment({
-        data: { id: order.id, amount_paid: Math.min(amount, order.total_price) },
-      });
-      setDrafts((d) => {
-        const next = { ...d };
-        delete next[order.id];
-        return next;
-      });
-      onSaved();
-    } catch (e) {
-      toast.error(heError(e, "השמירה נכשלה"));
-    } finally {
-      setSavingId(null);
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        <StatCard icon={Wallet} value={`₪${paidTotal.toFixed(0)}`} label="שולם סה״כ" />
-        <StatCard
-          icon={Wallet2}
-          value={`₪${openTotal.toFixed(0)}`}
-          label="יתרה פתוחה סה״כ"
-          tone={openTotal > 0 ? "warn" : undefined}
-        />
-      </div>
-
-      <div className="flex items-center justify-end">
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          className="rounded-full gap-1.5"
-          disabled={sendingReminders || selected.size === 0}
-          onClick={sendToSelected}
-        >
-          <Mail className="h-3.5 w-3.5" />{" "}
-          {sendingReminders ? "שולח..." : `מייל תשלום ללקוחות (${selected.size})`}
-        </Button>
-      </div>
-
-      <div className="space-y-3">
-        {rows.map((order) => {
-          const draft = drafts[order.id];
-          const shown = draft ?? String(order.amount_paid);
-          const pct =
-            order.total_price > 0
-              ? Math.min(100, (Number(order.amount_paid) / order.total_price) * 100)
-              : 0;
-          const balance = Math.max(0, order.total_price - Number(order.amount_paid));
-          const paidInFull = balance <= 0;
-          return (
-            <div key={order.id} className="bg-card rounded-2xl border border-primary/10 p-4">
-              <div className="flex items-center gap-3 flex-wrap mb-2">
-                <Checkbox
-                  checked={selected.has(order.id)}
-                  onCheckedChange={() => toggleSelected(order.id)}
-                  disabled={paidInFull}
-                />
-                <span className="font-medium text-primary">{order.contact_name}</span>
-                <span className="text-sm text-muted-foreground mr-auto">
-                  מתוך <span className="font-display text-primary">₪{order.total_price}</span>
-                </span>
-              </div>
-              <div className="h-1.5 rounded-full bg-border overflow-hidden mb-3">
-                <div
-                  className="h-full bg-forest rounded-full transition-all"
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  min={0}
-                  max={order.total_price}
-                  value={shown}
-                  onChange={(e) => setDrafts((d) => ({ ...d, [order.id]: e.target.value }))}
-                  className="h-9 max-w-[120px]"
-                  dir="ltr"
-                />
-                <Button
-                  size="sm"
-                  onClick={() => save(order)}
-                  disabled={savingId === order.id}
-                  className="rounded-full h-9"
-                >
-                  {savingId === order.id ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    "שמירה"
-                  )}
-                </Button>
-                <span
-                  className={`text-xs mr-auto ${balance > 0 ? "text-destructive" : "text-forest"}`}
-                >
-                  {balance > 0 ? `יתרה ₪${balance}` : "שולם במלואו"}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-        {rows.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-8">אין עדיין הזמנות.</p>
-        )}
-      </div>
-    </div>
-  );
-}

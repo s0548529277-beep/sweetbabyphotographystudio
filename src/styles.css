@@ -74,6 +74,18 @@
   --color-newborn-rose: var(--newborn-rose);
   --color-newborn-gold: var(--newborn-gold);
   --color-newborn-ink: var(--newborn-ink);
+  --color-hub-newborn: var(--hub-newborn-rose);
+  --color-hub-newborn-blush: var(--hub-newborn-blush);
+  --color-outdoor-canvas: var(--outdoor-canvas);
+  --color-outdoor-blush: var(--outdoor-blush);
+  --color-outdoor-rose: var(--outdoor-rose);
+  --color-outdoor-gold: var(--outdoor-gold);
+  --color-outdoor-ink: var(--outdoor-ink);
+  --color-studio-canvas: var(--studio-canvas);
+  --color-studio-blush: var(--studio-blush);
+  --color-studio-rose: var(--studio-rose);
+  --color-studio-gold: var(--studio-gold);
+  --color-studio-ink: var(--studio-ink);
   /* legacy alias tokens retained so existing pages keep rendering */
   --color-blush: var(--bone);
   --color-blush-deep: var(--sand);
@@ -128,12 +140,87 @@
   --newborn-rose: oklch(0.62 0.17 8);
   --newborn-gold: oklch(0.63 0.08 70);
   --newborn-ink: oklch(0.31 0.025 45);
+  /* Stable copies of the newborn palette: .kind-outdoor/.kind-studio redefine --newborn-*, these never change. */
+  --hub-newborn-canvas: var(--newborn-canvas);
+  --hub-newborn-blush: var(--newborn-blush);
+  --hub-newborn-rose: var(--newborn-rose);
+  --hub-newborn-gold: var(--newborn-gold);
+  --hub-newborn-ink: var(--newborn-ink);
+  /* צילומי חוץ = חום */
+  --outdoor-canvas: oklch(0.975 0.012 70);
+  --outdoor-blush: oklch(0.9 0.04 65);
+  --outdoor-rose: oklch(0.5 0.075 55);
+  --outdoor-gold: oklch(0.62 0.085 75);
+  --outdoor-ink: oklch(0.3 0.04 50);
+  /* סטודיו מותאם אישית = בז' */
+  --studio-canvas: oklch(0.985 0.008 85);
+  --studio-blush: oklch(0.925 0.035 85);
+  --studio-rose: oklch(0.58 0.07 75);
+  --studio-gold: oklch(0.6 0.075 80);
+  --studio-ink: oklch(0.35 0.03 75);
 
   /* Softened — the old values read as heavy "designed" shadows; flatter
      hairline-bordered cards fit the clean/quiet direction better. */
   --shadow-soft: 0 24px 48px -32px rgb(45 61 43 / 0.10);
   --shadow-card: 0 8px 24px -16px rgb(45 61 43 / 0.06);
   --gradient-hero: linear-gradient(135deg, #f8ede4 0%, #f5d5cf 100%);
+}
+
+/* ---------------------------------------------------------------------------
+   Client-hub kind themes (/admin/newborn-packages): ניו-בורן = ורוד,
+   צילומי חוץ = חום, סטודיו מותאם אישית = בז'. A wrapper with one of these
+   classes recolors every site-token component inside it (primary / blush /
+   cream / forest / secondary / border) AND the page-local newborn-* tokens,
+   so existing cards, badges and buttons switch palette without per-class edits. */
+.kind-newborn,
+.kind-outdoor,
+.kind-studio {
+  --primary-foreground: #ffffff;
+  --border: color-mix(in oklab, var(--primary) 14%, transparent);
+  --input: color-mix(in oklab, var(--primary) 16%, transparent);
+  --ring: var(--primary);
+}
+.kind-newborn {
+  --newborn-canvas: var(--hub-newborn-canvas);
+  --newborn-blush: var(--hub-newborn-blush);
+  --newborn-rose: var(--hub-newborn-rose);
+  --newborn-gold: var(--hub-newborn-gold);
+  --newborn-ink: var(--hub-newborn-ink);
+  --primary: var(--hub-newborn-ink);
+  --bone: var(--hub-newborn-blush);
+  --cream: var(--hub-newborn-canvas);
+  --ink: var(--hub-newborn-rose);
+  --secondary: var(--hub-newborn-blush);
+  --secondary-foreground: var(--hub-newborn-ink);
+  --muted: var(--hub-newborn-canvas);
+}
+.kind-outdoor {
+  --newborn-canvas: var(--outdoor-canvas);
+  --newborn-blush: var(--outdoor-blush);
+  --newborn-rose: var(--outdoor-rose);
+  --newborn-gold: var(--outdoor-gold);
+  --newborn-ink: var(--outdoor-ink);
+  --primary: var(--outdoor-ink);
+  --bone: var(--outdoor-blush);
+  --cream: var(--outdoor-canvas);
+  --ink: var(--outdoor-rose);
+  --secondary: var(--outdoor-blush);
+  --secondary-foreground: var(--outdoor-ink);
+  --muted: var(--outdoor-canvas);
+}
+.kind-studio {
+  --newborn-canvas: var(--studio-canvas);
+  --newborn-blush: var(--studio-blush);
+  --newborn-rose: var(--studio-rose);
+  --newborn-gold: var(--studio-gold);
+  --newborn-ink: var(--studio-ink);
+  --primary: var(--studio-ink);
+  --bone: var(--studio-blush);
+  --cream: var(--studio-canvas);
+  --ink: var(--studio-rose);
+  --secondary: var(--studio-blush);
+  --secondary-foreground: var(--studio-ink);
+  --muted: var(--studio-canvas);
 }
 
 .dark {
