@@ -1,0 +1,12 @@
+{
+  "note": "Rows deleted on 2026-11-20 at the owner's request (finance duplicates / cancelled client). Restore with an INSERT if needed. The newborn orders' contract_snapshot text is omitted (rebuildable by resending the contract).",
+  "newborn_package_orders": [
+    {"id":"b3c41ad1-e0f2-40e8-9d39-dba886d4fc47","access_token":"aff435462884cd4890fbd8dbfe5391b4","contact_name":"נחמי שטראוס","contact_phone":"0533104168","contact_email":"nechami104168@gmail.com","package_id":"basket_500","base_price":500,"total_price":500,"addons":[],"addons_price":0,"amount_paid":0,"birth_basket_used":true,"session_date":"2026-11-16","session_time":"15:00","session_place":"studio","notes":"היי אשמח להיות איתך בקשר בהקדםם · הוזמן דרך האתר","external_source":"photographer","external_id":"979851dd-d695-473c-92f5-3a5c42ac1e2a","created_at":"2026-11-16T10:46:34.205868+00:00"},
+    {"id":"18f6cb8d-042c-4994-9edf-ad94b2d65a31","access_token":"1598e563b9d779c331ef8f4b16a5accf","contact_name":"נחמי שטראוס","contact_phone":"0533104168","contact_email":"nechami104168@gmail.com","package_id":"mini","base_price":970,"total_price":1170,"addons":[{"id":"travel","label":"הגעה עד בית הלקוחה","price":200}],"addons_price":200,"amount_paid":0,"birth_basket_used":true,"session_date":"2026-11-20","session_time":"07:00","session_place":"studio","google_event_id":"76av6p6js83q2d33rjb02d8pjo (deleted from the studio calendar, no notice sent)","contract_sent_at":null,"created_at":"2026-11-18T19:45:50.619851+00:00"}
+  ],
+  "manual_income": [
+    {"id":"2ffa2181-18ca-4a90-af47-c74db61020eb","title":"סינוביץ אסתר רחל · מקדמה לצילומים של ס","category":"צילומים בסטודיו","amount":300,"received_on":"2026-11-02","notes":"יובא מאקסל","is_personal":false},
+    {"id":"e7815138-9a50-4b70-af30-985bf9507076","title":"שטרן אלחנן ונחמה · השכרת אביזרים לצילו","category":"צילומים בסטודיו","amount":145,"received_on":"2026-11-03","notes":"יובא מאקסל","is_personal":false},
+    {"id":"2cb4da29-5970-4392-a190-f40c173cc1a7","title":"שטרן אלחנן ונחמה · השכרת מצלמה","category":"צילומים בסטודיו","amount":120,"received_on":"2026-11-04","notes":"יובא מאקסל","is_personal":false}
+  ]
+}
