@@ -492,6 +492,20 @@ function FinanceAdmin() {
       return;
     }
 
+    // Nothing reaches the report without an explicit yes: rows pre-marked by saved rules are easy to import
+    // without looking at them, so show exactly what is about to be saved.
+    const sum = (rows: { amount: number }[]) => rows.reduce((t, r) => t + r.amount, 0);
+    const money = (n: number) => `₪${n.toLocaleString("he-IL", { maximumFractionDigits: 2 })}`;
+    if (
+      !confirm(
+        `לאשר כניסה לדוח?\n\n` +
+          `${expenseRows.length} הוצאות — ${money(sum(expenseRows))}\n` +
+          `${incomeRows.length} הכנסות — ${money(sum(incomeRows))}\n\n` +
+          `אחרי האישור השורות נספרות בדוח ההכנסות וההוצאות.`,
+      )
+    )
+      return;
+
     setImportBusy(true);
     const [expenseResult, incomeResult] = await Promise.all([
       expenseRows.length > 0

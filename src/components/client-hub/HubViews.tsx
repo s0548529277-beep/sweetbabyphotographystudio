@@ -35,7 +35,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { NEWBORN_TIMELINE_STEPS } from "@/lib/newborn-packages";
 import { formatDateIL, whatsappLink } from "@/lib/client-management";
 import { heError } from "@/lib/he-errors";
-import { STAGE_LABELS, type WorkflowStage } from "@/lib/photo-clients.functions";
+import { STAGE_LABELS, WORKFLOW_STAGES, type WorkflowStage } from "@/lib/photo-clients.functions";
 import {
   HUB_KINDS,
   hubBalance,
@@ -402,13 +402,59 @@ export function StudioHubCard({
   );
 }
 
-const STAGE_TONES: Record<WorkflowStage, string> = {
-  booked: "bg-muted text-muted-foreground",
-  date_confirmed: "bg-blue-100 text-blue-800",
-  proofs_ready: "bg-amber-100 text-amber-800",
-  edited_uploaded: "bg-purple-100 text-purple-800",
-  album_published: "bg-green-100 text-green-800",
+/** What to do next at each stage of the general photo-client process (a hint under the stepper). */
+const STAGE_NEXT: Record<WorkflowStage, string> = {
+  booked: "לשריין מועד ולקבל מקדמה, ואז לאשר את יום הצילומים",
+  date_confirmed: "אחרי הצילום: להעלות לכרטיס תמונות לבחירה",
+  proofs_ready: "מחכים שהלקוחה תבחר תמונות לעיבוד",
+  edited_uploaded: "להעלות את התמונות המעובדות ולפרסם אלבום",
+  album_published: "הושלם — האלבום אצל הלקוחה ✓",
 };
+
+/** The five stages of the general process in one row: done = green check, current = ringed, next = grey. */
+function StageStepper({ stage }: { stage: WorkflowStage }) {
+  const current = WORKFLOW_STAGES.indexOf(stage);
+  return (
+    <div className="mb-3">
+      <ol className="flex items-start">
+        {WORKFLOW_STAGES.map((st, i) => {
+          const done = i < current || stage === "album_published";
+          const active = i === current && stage !== "album_published";
+          return (
+            <li key={st} className="flex min-w-0 flex-1 flex-col items-center text-center">
+              <div className="flex w-full items-center">
+                <span className={`h-0.5 flex-1 ${i === 0 ? "bg-transparent" : done || active ? "bg-forest/60" : "bg-border"}`} />
+                <span
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-medium ${
+                    done
+                      ? "bg-forest text-white"
+                      : active
+                        ? "bg-primary text-white ring-4 ring-primary/20"
+                        : "bg-border text-muted-foreground"
+                  }`}
+                >
+                  {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                </span>
+                <span
+                  className={`h-0.5 flex-1 ${i === WORKFLOW_STAGES.length - 1 ? "bg-transparent" : done ? "bg-forest/60" : "bg-border"}`}
+                />
+              </div>
+              <span
+                className={`mt-1 px-0.5 text-[10px] leading-tight ${active ? "font-semibold text-primary" : done ? "text-forest" : "text-muted-foreground"}`}
+              >
+                {STAGE_LABELS[st]}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+      <p className="mt-2 rounded-lg bg-general-blush/40 px-3 py-1.5 text-xs text-primary">
+        <span className="font-medium">השלב הבא: </span>
+        {STAGE_NEXT[stage]}
+      </p>
+    </div>
+  );
+}
 
 /** The label under the name: package tier, or what kind of studio-only client she is. */
 export function generalServiceLabel(raw: any, packageLabel: string): string {
@@ -453,10 +499,16 @@ export function GeneralHubCard({ row, onEdit }: { row: HubRow; onEdit: () => voi
         </div>
       </div>
 
+      {sendOnly ? (
+        <p className="mb-3 rounded-lg bg-general-blush/40 px-3 py-1.5 text-xs text-primary">
+          <span className="font-medium">מסירה פשוטה: </span>
+          מעלים את התמונות בכרטיס הלקוחה, והן מופיעות אצלה ב"התמונות שלי" — בלי שלב בחירה ואלבום.
+        </p>
+      ) : (
+        <StageStepper stage={stage} />
+      )}
+
       <div className="flex flex-wrap items-center gap-2">
-        {!sendOnly && (
-          <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STAGE_TONES[stage]}`}>{STAGE_LABELS[stage]}</span>
-        )}
         <span className="flex items-center gap-1 text-xs text-muted-foreground">
           <ImageIcon className="h-3.5 w-3.5" /> {Number(r.photo_count ?? 0)} תמונות
         </span>
