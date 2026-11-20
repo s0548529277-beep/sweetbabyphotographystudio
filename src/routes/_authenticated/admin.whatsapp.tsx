@@ -14,6 +14,7 @@ import {
   AlertCircle,
   UserRound,
   Smile,
+  ArrowRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/lib/image-compress";
@@ -139,6 +140,8 @@ function WhatsAppAdmin() {
   });
 
   const [activePhone, setActivePhone] = useState<string | null>(null);
+  // Phone layout: the list and the conversation are two separate screens (below md only one is shown); on a computer both stay side by side and this flag is ignored.
+  const [showThread, setShowThread] = useState(false);
   useEffect(() => {
     if (!activePhone && convos.data?.length) setActivePhone((convos.data[0] as any).phone);
   }, [convos.data, activePhone]);
@@ -205,6 +208,7 @@ function WhatsAppAdmin() {
       setNewParams(templateDefaultParams(newTemplateId));
       qc.invalidateQueries({ queryKey: ["whatsapp-conversations"] });
       setActivePhone(phone);
+      setShowThread(true);
     } catch (e: any) {
       toast.error(e?.message ?? "השליחה נכשלה");
     } finally {
@@ -213,8 +217,9 @@ function WhatsAppAdmin() {
   };
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [thread.data]);
+    // block: "nearest" scrolls only the message box, not the whole page (matters on a phone, where the page itself scrolls).
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [thread.data, showThread]);
 
   const refreshAfterSend = () => {
     qc.invalidateQueries({ queryKey: ["whatsapp-conversations"] });
@@ -323,9 +328,9 @@ function WhatsAppAdmin() {
           <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
             <MessageSquare className="h-5 w-5" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h2 className="font-display text-2xl text-primary">וואטסאפ</h2>
-            <p className="text-sm text-muted-foreground">
+            <p className="hidden sm:block text-sm text-muted-foreground">
               קבלה ושליחה של הודעות, תמונות וסרטונים — ישירות מכאן, בלי טלפון חכם
             </p>
           </div>
@@ -351,7 +356,7 @@ function WhatsAppAdmin() {
                 onChange={(e) => setNewPhone(e.target.value)}
                 placeholder="054-1234567"
                 dir="ltr"
-                className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                className="w-full h-11 md:h-10 rounded-xl border border-input bg-background px-3 text-base md:text-sm"
               />
             </div>
             <div>
@@ -381,7 +386,7 @@ function WhatsAppAdmin() {
                 <input
                   value={newParams[p.key] ?? ""}
                   onChange={(e) => setNewParams((prev) => ({ ...prev, [p.key]: e.target.value }))}
-                  className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                  className="w-full h-11 md:h-10 rounded-xl border border-input bg-background px-3 text-base md:text-sm"
                 />
               </div>
             ))}
@@ -420,12 +425,9 @@ function WhatsAppAdmin() {
           </div>
         ))}
 
-      <div
-        className="grid md:grid-cols-[280px_1fr] gap-0 bg-card rounded-2xl border border-primary/5 overflow-hidden"
-        style={{ minHeight: 520 }}
-      >
-        <div className="border-l border-primary/5 overflow-y-auto max-h-[70vh]">
-          <div className="flex flex-wrap gap-1.5 p-2.5 border-b border-primary/5 sticky top-0 bg-card z-10">
+      <div className="grid grid-rows-[minmax(0,1fr)] md:grid-rows-none md:grid-cols-[280px_1fr] gap-0 bg-card rounded-2xl border border-primary/5 overflow-hidden h-[calc(100dvh-13rem)] min-h-[420px] md:h-auto md:min-h-[520px]">
+        <div className={`min-h-0 border-l border-primary/5 overflow-y-auto h-full md:h-auto md:max-h-[70vh] ${showThread ? "hidden md:block" : "block"}`}>
+          <div className="flex gap-1.5 p-2.5 border-b border-primary/5 sticky top-0 bg-card z-10 overflow-x-auto md:flex-wrap">
             {(
               [
                 ["all", `הכל (${(convos.data ?? []).length})`],
@@ -437,7 +439,7 @@ function WhatsAppAdmin() {
                 key={key}
                 type="button"
                 onClick={() => setFilter(key)}
-                className={`h-7 px-3 rounded-full text-xs transition ${
+                className={`h-8 md:h-7 px-3 rounded-full text-xs transition shrink-0 whitespace-nowrap ${
                   filter === key ? "bg-primary text-primary-foreground" : "bg-cream/60 hover:bg-cream text-primary"
                 }`}
               >
@@ -449,7 +451,10 @@ function WhatsAppAdmin() {
             <button
               key={c.phone}
               type="button"
-              onClick={() => setActivePhone(c.phone)}
+              onClick={() => {
+                setActivePhone(c.phone);
+                setShowThread(true);
+              }}
               className={`w-full text-right p-3.5 border-b border-primary/5 hover:bg-cream/40 transition ${
                 activePhone === c.phone ? "bg-cream/60" : ""
               }`}
@@ -499,19 +504,29 @@ function WhatsAppAdmin() {
           )}
         </div>
 
-        <div className="flex flex-col">
+        <div className={`min-h-0 flex-col ${showThread ? "flex" : "hidden md:flex"}`}>
           {activePhone ? (
             <>
-              <div className="p-4 border-b border-primary/5 font-medium flex items-center gap-2" dir="ltr">
-                <span>{activeName}</span>
+              <div className="p-3 md:p-4 border-b border-primary/5 font-medium flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowThread(false)}
+                  className="md:hidden h-10 w-10 -mr-1 rounded-full hover:bg-cream/60 flex items-center justify-center text-primary shrink-0"
+                  aria-label="חזרה לרשימת השיחות"
+                >
+                  <ArrowRight className="h-5 w-5" />
+                </button>
+                <span dir="ltr" className="truncate">
+                  {activeName}
+                </span>
                 {activeBusinessLabel && (
-                  <span dir="rtl" className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                  <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
                     {activeBusinessLabel}
                   </span>
                 )}
               </div>
               {handoff.data?.handoffRequestedAt && (
-                <div className="px-4 py-2.5 bg-amber-50 border-b border-amber-200 flex items-center justify-between gap-3 text-sm">
+                <div className="shrink-0 px-4 py-2.5 bg-amber-50 border-b border-amber-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 text-sm">
                   <div className="flex items-center gap-2 text-amber-900">
                     <UserRound className="h-4 w-4 shrink-0" />
                     <span>הלקוחה ביקשה לדבר איתך — הבוט שותק בשיחה הזו עד שתלחצי "החזרת הבוט"</span>
@@ -520,13 +535,13 @@ function WhatsAppAdmin() {
                     type="button"
                     onClick={resumeBot}
                     disabled={resuming}
-                    className="shrink-0 h-8 px-3 rounded-full bg-amber-900 text-amber-50 text-xs font-medium disabled:opacity-50"
+                    className="shrink-0 self-start sm:self-auto h-9 md:h-8 px-4 md:px-3 rounded-full bg-amber-900 text-amber-50 text-xs font-medium disabled:opacity-50"
                   >
                     {resuming ? "מפעילה…" : "החזרת הבוט"}
                   </button>
                 </div>
               )}
-              <div className="flex-1 overflow-y-auto p-4 space-y-2 max-h-[55vh]">
+              <div className="flex-1 min-h-0 overflow-y-auto p-3 md:p-4 space-y-2 md:max-h-[55vh]">
                 {((thread.data ?? []) as unknown as Msg[]).map((m, i, arr) => {
                   const day = new Date(m.created_at).toLocaleDateString("he-IL", {
                     weekday: "long",
@@ -552,7 +567,7 @@ function WhatsAppAdmin() {
                     className={`flex ${m.direction === "out" ? "justify-start" : "justify-end"}`}
                   >
                     <div
-                      className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${
+                      className={`max-w-[85%] md:max-w-[75%] break-words rounded-2xl px-3 py-2 text-sm ${
                         m.direction === "out"
                           ? "rounded-tl-sm bg-primary text-primary-foreground"
                           : "rounded-tr-sm bg-cream/60"
@@ -593,33 +608,33 @@ function WhatsAppAdmin() {
                 <div ref={bottomRef} />
               </div>
               {windowClosed && (
-                <div className="px-4 py-2.5 bg-amber-50 border-t border-amber-200 flex items-center justify-between gap-3 text-sm">
+                <div className="shrink-0 px-4 py-2.5 bg-amber-50 border-t border-amber-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 text-sm">
                   <span className="text-amber-900">
                     עברו יותר מ-24 שעות מההודעה האחרונה של הלקוחה — וואטסאפ מאפשר רק תבנית מאושרת.
                   </span>
                   <button
                     type="button"
                     onClick={openTemplateForActive}
-                    className="shrink-0 h-8 px-3 rounded-full bg-amber-900 text-amber-50 text-xs font-medium"
+                    className="shrink-0 self-start sm:self-auto h-9 md:h-8 px-4 md:px-3 rounded-full bg-amber-900 text-amber-50 text-xs font-medium"
                   >
                     שליחת תבנית
                   </button>
                 </div>
               )}
-              <div className="px-3 pt-2 border-t border-primary/5 flex flex-wrap items-center gap-2">
-                <span className="text-[11px] text-muted-foreground">תבניות:</span>
+              <div className="shrink-0 px-3 pt-2 border-t border-primary/5 flex items-center gap-2 overflow-x-auto md:flex-wrap">
+                <span className="shrink-0 text-[11px] text-muted-foreground">תבניות:</span>
                 {MESSAGE_TEMPLATES.map((t) => (
                   <button
                     key={t.label}
                     type="button"
                     onClick={() => setDraft(t.text)}
-                    className="h-7 px-3 rounded-full bg-cream/60 hover:bg-cream text-xs text-primary transition"
+                    className="shrink-0 whitespace-nowrap h-8 md:h-7 px-3 rounded-full bg-cream/60 hover:bg-cream text-xs text-primary transition"
                   >
                     {t.label}
                   </button>
                 ))}
               </div>
-              <div className="p-3 flex items-center gap-2">
+              <div className="shrink-0 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex items-center gap-1.5 md:gap-2">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -644,7 +659,7 @@ function WhatsAppAdmin() {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={sending || windowClosed}
-                  className="h-10 w-10 rounded-full hover:bg-cream/60 flex items-center justify-center text-muted-foreground disabled:opacity-50 shrink-0"
+                  className="h-11 w-11 md:h-10 md:w-10 rounded-full hover:bg-cream/60 flex items-center justify-center text-muted-foreground disabled:opacity-50 shrink-0"
                   title="שליחת תמונה, סרטון, הקלטה או PDF"
                   aria-label="שליחת תמונה, סרטון, הקלטה או PDF"
                 >
@@ -654,7 +669,7 @@ function WhatsAppAdmin() {
                   type="button"
                   onClick={() => stickerInputRef.current?.click()}
                   disabled={sending || windowClosed}
-                  className="h-10 w-10 rounded-full hover:bg-cream/60 flex items-center justify-center text-muted-foreground disabled:opacity-50 shrink-0"
+                  className="h-11 w-11 md:h-10 md:w-10 rounded-full hover:bg-cream/60 flex items-center justify-center text-muted-foreground disabled:opacity-50 shrink-0"
                   title="שליחת מדבקה (קובץ webp)"
                   aria-label="שליחת מדבקה"
                 >
@@ -671,13 +686,14 @@ function WhatsAppAdmin() {
                   }}
                   placeholder={windowClosed ? "אי אפשר לכתוב חופשי — שלחי תבנית" : "הקלידי הודעה…"}
                   disabled={windowClosed}
-                  className="flex-1 h-10 rounded-full border border-input bg-background px-4 text-sm disabled:opacity-60"
+                  className="flex-1 min-w-0 h-11 md:h-10 rounded-full border border-input bg-background px-4 text-base md:text-sm disabled:opacity-60"
                 />
                 <button
                   type="button"
                   onClick={sendText}
                   disabled={sending || !draft.trim() || windowClosed}
-                  className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50 shrink-0"
+                  aria-label="שליחה"
+                  className="h-11 w-11 md:h-10 md:w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50 shrink-0"
                 >
                   {sending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

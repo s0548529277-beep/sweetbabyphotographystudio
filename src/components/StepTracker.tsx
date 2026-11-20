@@ -73,7 +73,7 @@ export function StepTracker({
             const done = n < cur;
             const active = n === cur;
             return (
-              <li key={label} className="flex flex-col items-center text-center px-1.5">
+              <li key={label} className="flex flex-col items-center text-center px-0.5 sm:px-1.5">
                 <button
                   type="button"
                   disabled={!onStepClick}
@@ -86,7 +86,7 @@ export function StepTracker({
                   {done ? <Check className="h-5 w-5" strokeWidth={3} /> : n}
                 </button>
                 <span
-                  className={`mt-3 text-xs sm:text-[13px] leading-snug max-w-[11rem] ${
+                  className={`mt-3 text-[11px] sm:text-[13px] leading-snug max-w-[11rem] break-words ${
                     active ? `font-semibold ${t.label}` : done ? "text-[#4a3221]/70" : "text-[#4a3221]/45"
                   }`}
                 >

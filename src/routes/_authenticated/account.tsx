@@ -216,19 +216,19 @@ function Account() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <section className="container-page py-14 flex-1">
+      <section className="container-page py-8 md:py-14 flex-1">
         <div className="text-xs tracking-[0.3em] uppercase text-forest/70 mb-3">My Account</div>
-        <h1 className="font-display text-5xl text-primary mb-10">הכרטיסייה שלי</h1>
+        <h1 className="font-display text-4xl md:text-5xl text-primary mb-6 md:mb-10">הכרטיסייה שלי</h1>
 
-        <div className="grid lg:grid-cols-[380px_1fr] gap-8">
-          <aside className="bg-card rounded-3xl p-7 border border-primary/5 h-fit">
+        <div className="grid lg:grid-cols-[380px_1fr] gap-6 md:gap-8">
+          <aside className="bg-card rounded-3xl p-5 md:p-7 border border-primary/5 h-fit">
             <div className="flex items-center gap-3 mb-6">
               <div className="h-12 w-12 rounded-full bg-peach text-primary flex items-center justify-center">
                 <UserIcon className="h-5 w-5" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <div className="font-display text-xl text-primary">{profile.full_name || "לקוח/ה חדש/ה"}</div>
-                <div className="text-xs text-muted-foreground">{user?.email}</div>
+                <div className="text-xs text-muted-foreground break-all">{user?.email}</div>
               </div>
             </div>
             {/* Unified "club status" card — credit, cashback rate, and any
@@ -326,7 +326,7 @@ function Account() {
                 tagged for the admin to reconcile against her Takbull
                 dashboard — see purchaseSubscriptionPass's own comment. */}
             {(plansQ.data?.length ?? 0) > 0 && (
-              <div id="pass-purchase" className="bg-card rounded-3xl p-7 border border-primary/5 scroll-mt-28">
+              <div id="pass-purchase" className="bg-card rounded-3xl p-5 md:p-7 border border-primary/5 scroll-mt-28">
                 <div className="flex items-center gap-2 mb-4">
                   <IdCard className="h-5 w-5 text-peach-deep" />
                   <h2 className="font-display text-xl text-primary">רכישת כרטיסייה</h2>
@@ -336,7 +336,7 @@ function Account() {
                     <div>
                       <Label>בחרי חבילה</Label>
                       <select
-                        className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                        className="mt-1 h-11 md:h-10 w-full rounded-md border border-input bg-background px-3 text-base md:text-sm"
                         value={selectedPlanId}
                         onChange={(e) => setSelectedPlanId(e.target.value)}
                       >
@@ -378,8 +378,8 @@ function Account() {
             {/* Current cart */}
 
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="font-display text-3xl text-primary flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <h2 className="font-display text-2xl md:text-3xl text-primary flex items-center gap-2">
                   <ShoppingBag className="h-6 w-6" /> הסל שלי
                 </h2>
                 {cartCount > 0 && (
@@ -392,7 +392,7 @@ function Account() {
                   <div className="text-muted-foreground text-sm">הסל כרגע ריק. <Link to="/rental-catalog" className="text-forest underline underline-offset-4">גלי את הקטלוג</Link></div>
                 </div>
               ) : (
-                <div className="bg-card rounded-2xl p-5 border border-primary/5 space-y-3">
+                <div className="bg-card rounded-2xl p-4 md:p-5 border border-primary/5 space-y-3">
                   {cartLines.map((l) => (
                     <div key={l.id} className="flex items-center gap-3">
                       <div className="h-14 w-14 rounded-xl overflow-hidden bg-cream shrink-0">
@@ -416,8 +416,8 @@ function Account() {
 
             {/* Studio bookings */}
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="font-display text-3xl text-primary flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <h2 className="font-display text-2xl md:text-3xl text-primary flex items-center gap-2">
                   <CalIcon className="h-6 w-6" /> השכרת סטודיו
                 </h2>
                 <Link to="/studio-rental"><Button variant="outline" className="rounded-full">שריון חדש</Button></Link>
@@ -431,7 +431,7 @@ function Account() {
               ) : (
                 <div className="space-y-3">
                   {bookings.data!.map((b: any) => (
-                    <div key={b.id} className="bg-card rounded-2xl p-5 border border-primary/5 flex flex-wrap justify-between gap-3">
+                    <div key={b.id} className="bg-card rounded-2xl p-4 md:p-5 border border-primary/5 flex flex-wrap justify-between gap-3">
                       <div>
                         <div className="font-display text-lg text-primary">
                           {new Date(b.session_date).toLocaleDateString("he-IL")} · {String(b.start_time).slice(0,5)}–{String(b.end_time).slice(0,5)}
@@ -448,7 +448,7 @@ function Account() {
                           ) : null;
                         })()}
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-3">
                         <div className="font-display text-2xl text-peach-deep">₪{Number(b.price).toFixed(0)}</div>
                         {(b.status === "pending" || b.status === "confirmed") && (
                           <Link to="/edit-order" search={{ kind: "booking", id: b.id }}>
@@ -467,8 +467,8 @@ function Account() {
               )}
             </div>
 
-            <div className="flex items-center justify-between">
-              <h2 className="font-display text-3xl text-primary">היסטוריית הזמנות אביזרים</h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="font-display text-2xl md:text-3xl text-primary">היסטוריית הזמנות אביזרים</h2>
               <Link to="/rental-catalog"><Button variant="outline" className="rounded-full">הזמנה חדשה</Button></Link>
             </div>
 
@@ -477,7 +477,7 @@ function Account() {
             {orders.isLoading ? (
               <div className="text-muted-foreground">טוען…</div>
             ) : (orders.data?.length ?? 0) === 0 ? (
-              <div className="bg-cream/60 rounded-3xl p-10 text-center border border-primary/10">
+              <div className="bg-cream/60 rounded-3xl p-6 md:p-10 text-center border border-primary/10">
                 <Package className="h-8 w-8 text-primary/40 mx-auto mb-3" />
                 <div className="font-display text-2xl text-primary">אין עדיין הזמנות</div>
                 <p className="text-muted-foreground text-sm mt-1 mb-6">התחילו לגלות את הקטלוג.</p>
@@ -485,7 +485,7 @@ function Account() {
               </div>
             ) : (
               orders.data!.map((o: any) => (
-                <div key={o.id} className="bg-card rounded-2xl p-6 border border-primary/5">
+                <div key={o.id} className="bg-card rounded-2xl p-4 md:p-6 border border-primary/5">
                   <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                     <div>
                       <div className="font-display text-xl text-primary">הזמנה #{o.id.slice(0, 8)}</div>
@@ -494,7 +494,7 @@ function Account() {
                         {o.scheduled_date && <> · צילום {new Date(o.scheduled_date).toLocaleDateString("he-IL")}</>}
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                       <Badge variant="secondary" className="rounded-full">{STATUS_HE[o.status] ?? o.status}</Badge>
                       <div className="font-display text-2xl text-peach-deep">₪{Number(o.total).toFixed(0)}</div>
                       {(o.status === "pending" || o.status === "confirmed") && (

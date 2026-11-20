@@ -77,7 +77,7 @@ function PhotoNote({ img, onSaved }: { img: Img; onSaved: () => void }) {
         onBlur={commit}
         maxLength={300}
         placeholder="מה לשנות בתמונה (לא חובה) — בקצרה"
-        className="flex-1 min-w-0 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+        className="flex-1 min-w-0 bg-transparent text-base md:text-sm outline-none placeholder:text-muted-foreground"
       />
       {saving && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
     </div>
@@ -166,12 +166,12 @@ function ProofGrid({ gallery, onRefetch }: { gallery: Gallery; onRefetch: () => 
               type="button"
               onClick={() => onToggle(img)}
               disabled={submitted}
-              className={`absolute top-2 left-2 h-7 w-7 rounded-full flex items-center justify-center transition-colors ${
+              className={`absolute top-2 left-2 h-9 w-9 md:h-7 md:w-7 rounded-full flex items-center justify-center transition-colors ${
                 phase === "narrow" ? "bg-destructive text-destructive-foreground" : img.selected ? "bg-primary text-primary-foreground" : "bg-white/70 text-primary"
               }`}
               aria-label={phase === "narrow" ? "הסרה מהנבחרות" : "סימון מועדפת"}
             >
-              {phase === "narrow" ? <X className="h-3.5 w-3.5" /> : <Heart className={`h-3.5 w-3.5 ${img.selected ? "fill-current" : ""}`} />}
+              {phase === "narrow" ? <X className="h-4 w-4 md:h-3.5 md:w-3.5" /> : <Heart className={`h-4 w-4 md:h-3.5 md:w-3.5 ${img.selected ? "fill-current" : ""}`} />}
             </button>
           </div>
         ))}
@@ -344,7 +344,7 @@ function AlbumGrid({ gallery, name }: { gallery: Gallery; name: string }) {
               target="_blank"
               rel="noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="absolute bottom-2 left-2 h-8 w-8 rounded-full bg-white/85 text-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+              className="absolute bottom-2 left-2 h-10 w-10 md:h-8 md:w-8 rounded-full bg-white/85 text-primary flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition"
               aria-label="הורדה"
               title="הורדת התמונה הזו (איכות מלאה)"
             >
@@ -381,7 +381,7 @@ function MyPhotosPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <section className="container-page py-14 flex-1 space-y-10">
+      <section className="container-page py-8 md:py-14 flex-1 space-y-8 md:space-y-10">
         <div>
           <h1 className="font-display text-3xl text-primary flex items-center gap-2">
             <Camera className="h-6 w-6" /> התמונות שלי

@@ -37,11 +37,11 @@ export function WhatsAppMedia({ url, type, filename, mime }: WhatsAppMediaProps)
   if (type === "image") {
     return (
       <a href={src} target="_blank" rel="noopener noreferrer" className="block mb-1" title="פתיחת התמונה בגודל מלא">
-        <img src={src} alt={filename ?? ""} className="rounded-xl max-h-64 object-cover" />
+        <img src={src} alt={filename ?? ""} className="rounded-xl max-h-64 max-w-full object-cover" />
       </a>
     );
   }
-  if (type === "video") return <video src={src} controls preload="metadata" className="rounded-xl mb-1 max-h-64" />;
+  if (type === "video") return <video src={src} controls preload="metadata" className="rounded-xl mb-1 max-h-64 max-w-full" />;
   if (type === "audio") {
     return (
       <div className="mb-1">
@@ -64,7 +64,7 @@ export function WhatsAppMedia({ url, type, filename, mime }: WhatsAppMediaProps)
           {name}
         </span>
       </div>
-      <div className="flex flex-wrap gap-3 mt-1.5 text-xs">
+      <div className="flex flex-wrap gap-x-4 gap-y-2 mt-1.5 text-xs">
         {canPreview && (
           <button type="button" className="underline" onClick={() => setOpen((v) => !v)}>
             {open ? "הסתרת התצוגה" : "צפייה כאן"}
@@ -77,7 +77,7 @@ export function WhatsAppMedia({ url, type, filename, mime }: WhatsAppMediaProps)
           הורדה
         </a>
       </div>
-      {open && canPreview && <iframe src={src} title={name} className="mt-2 w-full h-80 rounded-lg bg-white" />}
+      {open && canPreview && <iframe src={src} title={name} className="mt-2 w-full h-72 sm:h-80 rounded-lg bg-white" />}
     </div>
   );
 }
