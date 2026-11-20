@@ -14,11 +14,11 @@ export const SITE_MAIL_PARENT_LABEL = "הזמנות ולידים";
 export const SITE_MAIL_LABELS: Record<SiteMailKind, { name: string; background: string; text: string }> = {
   studio: { name: `${SITE_MAIL_PARENT_LABEL}/הזמנת סטודיו`, background: "#4a86e8", text: "#ffffff" },
   props: { name: `${SITE_MAIL_PARENT_LABEL}/הזמנת אביזרים`, background: "#16a765", text: "#ffffff" },
-  lead_quiz: { name: `${SITE_MAIL_PARENT_LABEL}/ליד · שאלון ומשפך`, background: "#ffad47", text: "#000000" },
-  lead_chat: { name: `${SITE_MAIL_PARENT_LABEL}/ליד · צ'אט`, background: "#a479e2", text: "#ffffff" },
-  lead_form: { name: `${SITE_MAIL_PARENT_LABEL}/ליד · טופס ופנייה`, background: "#f691b2", text: "#000000" },
-  lead_phone: { name: `${SITE_MAIL_PARENT_LABEL}/ליד · הודעה בטלפון`, background: "#2da2bb", text: "#ffffff" },
-  lead_visitor: { name: `${SITE_MAIL_PARENT_LABEL}/ליד · מבקרת חמה באתר`, background: "#fb4c2f", text: "#ffffff" },
+  lead_quiz: { name: `${SITE_MAIL_PARENT_LABEL}/ליד שאלון`, background: "#ffad47", text: "#000000" },
+  lead_chat: { name: `${SITE_MAIL_PARENT_LABEL}/ליד צ'אט`, background: "#a479e2", text: "#ffffff" },
+  lead_form: { name: `${SITE_MAIL_PARENT_LABEL}/ליד טופס`, background: "#f691b2", text: "#000000" },
+  lead_phone: { name: `${SITE_MAIL_PARENT_LABEL}/ליד טלפון`, background: "#2da2bb", text: "#ffffff" },
+  lead_visitor: { name: `${SITE_MAIL_PARENT_LABEL}/מבקרת חמה`, background: "#fb4c2f", text: "#ffffff" },
 };
 
 /**
