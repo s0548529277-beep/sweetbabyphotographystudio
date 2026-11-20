@@ -16,7 +16,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import {
   listNewbornOrders,
@@ -37,7 +36,6 @@ import {
   NEWBORN_PACKAGES,
   NEWBORN_PACKAGE_CATEGORIES,
   NEWBORN_ADDONS,
-  NEWBORN_TIMELINE_STEPS,
   findNewbornPackage,
 } from "@/lib/newborn-packages";
 import { heError } from "@/lib/he-errors";
@@ -45,7 +43,6 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   CM_SETTINGS_KEY,
   parseCmSettings,
-  whatsappLink,
   ymd,
   formatDateIL,
 } from "@/lib/client-management";
@@ -55,12 +52,9 @@ import { DateHints, confirmRestDay } from "@/components/client-management/DateHi
 import {
   Baby,
   Plus,
-  Pencil,
   Trash2,
   Check,
   Circle,
-  Phone,
-  Mail,
   CalendarDays,
   Loader2,
   Images,
@@ -77,7 +71,6 @@ import {
   Settings as SettingsIcon,
   Search,
   Download,
-  MessageCircle,
   ArrowRight,
 } from "lucide-react";
 
@@ -119,6 +112,7 @@ import {
   HubPaymentsView,
   HubTableView,
   GeneralHubCard,
+  NewbornHubCard,
   OutdoorHubCard,
   StudioHubCard,
   generalServiceLabel,
@@ -938,17 +932,16 @@ function NewbornPackagesAdmin() {
               }
               const order = r.raw as OrderRow;
               return (
-                <div key={`newborn:${r.id}`} className="kind-newborn">
-                  <OrderCard
-                    order={order}
-                    busyStep={busyStep}
-                    openingGallery={openingGalleryId === order.id}
-                    onToggleStep={(stepKey, done) => toggleStep(order, stepKey, done)}
-                    onEdit={() => openEdit(order)}
-                    onDelete={() => remove(order)}
-                    onOpenGallery={() => openGallery(order)}
-                  />
-                </div>
+                <NewbornHubCard
+                  key={`newborn:${r.id}`}
+                  row={r}
+                  busyStep={busyStep}
+                  openingGallery={openingGalleryId === order.id}
+                  onToggleStep={(stepKey, done) => toggleStep(order, stepKey, done)}
+                  onEdit={() => openEdit(order)}
+                  onDelete={() => remove(order)}
+                  onOpenGallery={() => openGallery(order)}
+                />
               );
             })}
           </div>
@@ -1252,150 +1245,6 @@ function BirthBasketToggle({
       </span>
       {value ? <Check className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
     </button>
-  );
-}
-
-function OrderCard({
-  order,
-  busyStep,
-  openingGallery,
-  onToggleStep,
-  onEdit,
-  onDelete,
-  onOpenGallery,
-}: {
-  order: OrderRow;
-  busyStep: string | null;
-  openingGallery?: boolean;
-  onToggleStep: (stepKey: string, done: boolean) => void;
-  onEdit: () => void;
-  onDelete: () => void;
-  onOpenGallery: () => void;
-}) {
-  const pkg = findNewbornPackage(order.package_id);
-  const doneCount = NEWBORN_TIMELINE_STEPS.filter((s) => order[`${s.key}_at`]).length;
-
-  return (
-    <div className="bg-card rounded-2xl border border-primary/10 p-5">
-      <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
-        <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-display text-lg text-primary">{order.contact_name}</span>
-            <Badge variant="secondary">{pkg?.name ?? order.package_id}</Badge>
-          </div>
-          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-1">
-            <span className="flex items-center gap-1" dir="ltr">
-              <Phone className="h-3 w-3" /> {order.contact_phone}
-            </span>
-            {order.contact_email && (
-              <span className="flex items-center gap-1" dir="ltr">
-                <Mail className="h-3 w-3" /> {order.contact_email}
-              </span>
-            )}
-            {order.session_date && (
-              <span className="flex items-center gap-1">
-                <CalendarDays className="h-3 w-3" /> {order.session_date}
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
-          <span className="font-display text-xl text-primary ml-1">₪{order.total_price}</span>
-          {whatsappLink(order.contact_phone) && (
-            <a
-              href={whatsappLink(
-                order.contact_phone,
-                order.session_date
-                  ? `היי ${order.contact_name}, תזכורת לצילום ב-${formatDateIL(order.session_date)}${order.session_time ? ` בשעה ${order.session_time.slice(0, 5)}` : ""} 💗`
-                  : undefined,
-              )!}
-              target="_blank"
-              rel="noreferrer"
-              title="וואטסאפ"
-              className="h-8 w-8 rounded-full hover:bg-emerald-50 text-emerald-600 flex items-center justify-center"
-            >
-              <MessageCircle className="h-3.5 w-3.5" />
-            </a>
-          )}
-          <button
-            type="button"
-            onClick={onEdit}
-            className="h-8 w-8 rounded-full hover:bg-primary/10 text-primary flex items-center justify-center"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            className="h-8 w-8 rounded-full hover:bg-destructive/10 text-destructive flex items-center justify-center"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        onClick={onOpenGallery}
-        disabled={openingGallery}
-        title={order.contact_email ? undefined : "יש להוסיף מייל ללקוחה קודם"}
-        className="w-full mb-3 h-9 rounded-xl border border-primary/15 hover:bg-primary/5 text-sm text-primary flex items-center justify-center gap-1.5 transition-colors disabled:opacity-60"
-      >
-        {openingGallery ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-        ) : (
-          <Images className="h-3.5 w-3.5" />
-        )}
-        פתיחת גלריה ללקוחה
-      </button>
-
-      {order.notes && (
-        <p className="text-xs text-muted-foreground bg-blush/30 rounded-lg p-2 mb-3 whitespace-pre-line">
-          {order.notes}
-        </p>
-      )}
-
-      <div className="mb-2 flex items-center gap-2">
-        <div className="flex-1 h-1.5 rounded-full bg-border overflow-hidden">
-          <div
-            className="h-full bg-primary rounded-full transition-all"
-            style={{ width: `${(doneCount / NEWBORN_TIMELINE_STEPS.length) * 100}%` }}
-          />
-        </div>
-        <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-          {doneCount}/{NEWBORN_TIMELINE_STEPS.length}
-        </span>
-      </div>
-
-      <div className="grid sm:grid-cols-2 gap-1.5">
-        {NEWBORN_TIMELINE_STEPS.map((step) => {
-          const doneAt = order[`${step.key}_at`] as string | null;
-          const busy = busyStep === `${order.id}:${step.key}`;
-          return (
-            <button
-              key={step.key}
-              type="button"
-              disabled={busy}
-              onClick={() => onToggleStep(step.key, !doneAt)}
-              className={`flex items-center gap-2 text-sm rounded-lg px-3 py-2 text-right transition-colors ${
-                doneAt
-                  ? "bg-forest/10 text-forest"
-                  : "bg-cream/60 text-muted-foreground hover:bg-cream"
-              }`}
-            >
-              {busy ? (
-                <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
-              ) : doneAt ? (
-                <Check className="h-4 w-4 shrink-0" />
-              ) : (
-                <Circle className="h-4 w-4 shrink-0" />
-              )}
-              <span className="flex-1">{step.label}</span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
   );
 }
 

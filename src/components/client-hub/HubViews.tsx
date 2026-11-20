@@ -1,7 +1,7 @@
 // Views + cards for the unified client page (/admin/newborn-packages): outdoor and custom-studio
 // cards, the kind chooser, the shared dashboard / daily calendar / table / payments views.
 // Newborn keeps its own card and dialogs in the page file (they are gallery-aware).
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { he } from "date-fns/locale";
@@ -235,7 +235,125 @@ function StepButtons({
   );
 }
 
-/** Outdoor client card — the newborn card's layout without the gallery button, in brown. */
+const GALLERY_BTN =
+  "mb-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-primary/15 text-sm text-primary transition-colors hover:bg-primary/5 disabled:opacity-60";
+
+function Chip({ tone, children }: { tone: "ok" | "warn" | "info" | "muted"; children: ReactNode }) {
+  const cls = {
+    ok: "bg-forest/10 text-forest",
+    warn: "bg-amber-100 text-amber-900",
+    info: "bg-blush/50 text-primary",
+    muted: "bg-muted text-muted-foreground",
+  }[tone];
+  return <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium ${cls}`}>{children}</span>;
+}
+
+/**
+ * The status row both the newborn and the outdoor card show under the contact line: money (paid / balance)
+ * and the contract state. Orders mirrored from the photographer site have no contract of their own here,
+ * so no contract chip for them.
+ */
+function StatusChips({ row, extra }: { row: HubRow; extra?: ReactNode }) {
+  const o = row.raw;
+  const bal = hubBalance(row);
+  const hasContract = !o.external_source;
+  return (
+    <div className="mb-3 flex flex-wrap items-center gap-1.5">
+      {row.total <= 0 ? (
+        <Chip tone="muted">לא הוגדר סכום</Chip>
+      ) : bal > 0 ? (
+        <Chip tone="warn">
+          שולם ₪{row.paid} · יתרה ₪{bal}
+        </Chip>
+      ) : (
+        <Chip tone="ok">
+          <Check className="h-3 w-3" /> שולם במלואו
+        </Chip>
+      )}
+      {hasContract &&
+        (o.contract_confirmed_at ? (
+          <Chip tone="ok">
+            <FileSignature className="h-3 w-3" /> חוזה נחתם
+          </Chip>
+        ) : o.contract_sent_at ? (
+          <Chip tone="info">
+            <FileSignature className="h-3 w-3" /> חוזה נשלח · ממתין לחתימה
+          </Chip>
+        ) : (
+          <Chip tone="muted">
+            <FileSignature className="h-3 w-3" /> חוזה לא נשלח
+          </Chip>
+        ))}
+      {extra}
+    </div>
+  );
+}
+
+/** Newborn client card — same layout as the outdoor / studio / general cards, in pink. */
+export function NewbornHubCard({
+  row,
+  busyStep,
+  openingGallery,
+  onToggleStep,
+  onEdit,
+  onDelete,
+  onOpenGallery,
+}: {
+  row: HubRow;
+  busyStep: string | null;
+  openingGallery: boolean;
+  onToggleStep: (stepKey: string, done: boolean) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onOpenGallery: () => void;
+}) {
+  const o = row.raw;
+  return (
+    <div className={`${hubKind("newborn").scope} rounded-2xl border border-primary/15 border-r-4 ${hubKind("newborn").stripe} bg-card p-5`}>
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-display text-lg text-primary">{row.name}</span>
+            <KindBadge kind="newborn" />
+            <Badge variant="secondary">{row.packageName}</Badge>
+          </div>
+          <ContactLine row={row} />
+        </div>
+        <CardActions row={row} onEdit={onEdit} onDelete={onDelete} />
+      </div>
+
+      <StatusChips
+        row={row}
+        extra={
+          <>
+            {o.session_place === "home" && <Chip tone="info">בבית הלקוחה</Chip>}
+            {o.birth_basket_used && <Chip tone="info">סל לידה</Chip>}
+            {o.external_source && <Chip tone="muted">מאתר הצלמת</Chip>}
+          </>
+        }
+      />
+
+      <button
+        type="button"
+        onClick={onOpenGallery}
+        disabled={openingGallery}
+        title={row.email ? undefined : "יש להוסיף מייל ללקוחה קודם"}
+        className={GALLERY_BTN}
+      >
+        {openingGallery ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Images className="h-3.5 w-3.5" />}
+        פתיחת גלריה ללקוחה
+      </button>
+
+      {row.notes && (
+        <p className="mb-3 whitespace-pre-line rounded-lg bg-blush/40 p-2 text-xs text-muted-foreground">{row.notes}</p>
+      )}
+
+      <StepButtons steps={NEWBORN_TIMELINE_STEPS} order={o} busyStep={busyStep} onToggle={onToggleStep} />
+    </div>
+  );
+}
+
+/** Outdoor client card — same layout as the newborn card, in brown. */
 export function OutdoorHubCard({
   row,
   busyStep,
@@ -281,6 +399,8 @@ export function OutdoorHubCard({
         <CardActions row={row} onEdit={onEdit} onDelete={onDelete} />
       </div>
 
+      <StatusChips row={row} />
+
       <div className="mb-3 flex flex-wrap gap-2">
         <button
           type="button"
@@ -308,16 +428,13 @@ export function OutdoorHubCard({
           )}
           {o.contract_sent_at ? "שליחת חוזה שוב" : "שליחת חוזה"}
         </button>
-        {/* The outdoor gallery (photo upload, client selection, steps) lives on its own page. */}
-        <Link
-          to="/admin/outdoor-packages/$orderId"
-          params={{ orderId: String(o.id) }}
-          className="flex h-9 items-center gap-1.5 rounded-xl border border-primary/15 px-3 text-sm text-primary transition-colors hover:bg-primary/5"
-        >
-          <Images className="h-3.5 w-3.5" />
-          גלריה
-        </Link>
       </div>
+
+      {/* The outdoor gallery (photo upload, client selection, steps) lives on its own page. */}
+      <Link to="/admin/outdoor-packages/$orderId" params={{ orderId: String(o.id) }} className={GALLERY_BTN}>
+        <Images className="h-3.5 w-3.5" />
+        פתיחת גלריה ללקוחה
+      </Link>
 
       {row.notes && (
         <p className="mb-3 whitespace-pre-line rounded-lg bg-blush/40 p-2 text-xs text-muted-foreground">
