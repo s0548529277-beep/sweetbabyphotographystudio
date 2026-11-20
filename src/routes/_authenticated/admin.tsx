@@ -78,7 +78,7 @@ const links: NavEntry[] = [
   { to: "/admin/items", label: "אביזרים", icon: Package },
   { to: "/admin/orders", label: "הזמנות", icon: ShoppingBag },
   { to: "/admin/calendar", label: "יומן", icon: CalendarDays },
-  { to: "/admin/client-management", label: "ניהול לקוחות", icon: ContactRound, alsoActive: ["/admin/newborn-packages", "/admin/outdoor-packages", "/admin/photo-clients"] },
+  { to: "/admin/newborn-packages", label: "ניהול לקוחות", icon: ContactRound, alsoActive: ["/admin/outdoor-packages", "/admin/photo-clients"] },
   {
     key: "leads",
     label: "לידים ומשפכים",
@@ -141,7 +141,7 @@ const links: NavEntry[] = [
   },
 ];
 
-const FULLSCREEN_PATHS = ["/admin/newborn-packages", "/admin/client-management"];
+const FULLSCREEN_PATHS = ["/admin/newborn-packages"];
 
 function isLinkActive(path: string, l: NavLink) {
   const on = (to: string) => path === to || path.startsWith(`${to}/`);

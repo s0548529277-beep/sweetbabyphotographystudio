@@ -693,7 +693,7 @@ function NewbornOrderGallery() {
   return (
     <div dir="rtl" className="space-y-6 max-w-4xl">
       <div className="flex items-center gap-3">
-        <Link to="/admin/newborn-packages" className="h-9 w-9 rounded-full hover:bg-primary/10 flex items-center justify-center text-primary">
+        <Link to="/admin/newborn-packages" search={{ kind: "newborn" }} className="h-9 w-9 rounded-full hover:bg-primary/10 flex items-center justify-center text-primary">
           <ArrowRight className="h-4 w-4" />
         </Link>
         <div>

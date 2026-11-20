@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  generalToHub,
   hubBalance,
+  hubInProgress,
   hubIsPaid,
   hubKind,
   newbornToHub,
@@ -26,6 +28,37 @@ test("each kind keeps its own colour scope", () => {
   assert.equal(hubKind("newborn").scope, "kind-newborn");
   assert.equal(hubKind("outdoor").scope, "kind-outdoor");
   assert.equal(hubKind("studio").scope, "kind-studio");
+  assert.equal(hubKind("general").scope, "kind-general");
+});
+
+test("general photo clients are normalised and send-only is flagged", () => {
+  const g = generalToHub(
+    { id: "g1", contact_name: "דנה", contact_phone: "—", contact_email: "", session_date: "2026-12-02T00:00:00", session_time: "09:15:00", total_price: 450, amount_paid: 150, stage: "proofs_ready", has_package: false, wants_editing: false, created_at: "2026-11-02T10:00:00Z" },
+    "שליחת תמונות בלבד",
+  );
+  assert.equal(g.kind, "general");
+  assert.equal(g.phone, "");
+  assert.equal(g.email, null);
+  assert.equal(g.date, "2026-12-02");
+  assert.equal(g.time, "09:15");
+  assert.equal(hubBalance(g), 300);
+  assert.equal(g.raw.sendOnly, true);
+});
+
+test("in-progress rules per kind", () => {
+  const today = "2026-11-20";
+  const nb = newbornToHub({ id: "n1", ...base, session_date: "2026-11-10", package_id: "mini", delivered_at: null });
+  assert.equal(hubInProgress(nb, today), true);
+  assert.equal(hubInProgress(newbornToHub({ id: "n2", ...base, session_date: "2026-11-10", package_id: "mini", delivered_at: "2026-11-15" }), today), false);
+  assert.equal(hubInProgress(newbornToHub({ id: "n3", ...base, session_date: "2026-12-10", package_id: "mini" }), today), false);
+  const g = (stage: string, date: string | null, extra: any = {}) =>
+    generalToHub({ id: "g", contact_name: "x", session_date: date, stage, has_package: true, wants_editing: null, ...extra }, "");
+  assert.equal(hubInProgress(g("proofs_ready", "2026-12-30"), today), true);
+  assert.equal(hubInProgress(g("booked", "2026-11-01"), today), true);
+  assert.equal(hubInProgress(g("booked", "2026-12-01"), today), false);
+  assert.equal(hubInProgress(g("album_published", "2026-11-01"), today), false);
+  assert.equal(hubInProgress(g("album_published", "2026-11-01", { has_package: false, wants_editing: false }), today), false);
+  assert.equal(hubInProgress(studioToHub({ id: "s", ...base, session_date: "2026-11-01" }), today), false);
 });
 
 test("converters normalise time, numbers and default package names", () => {

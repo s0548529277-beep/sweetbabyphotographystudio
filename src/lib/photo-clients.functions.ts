@@ -139,6 +139,7 @@ export const listPhotoClients = createServerFn({ method: "POST" })
       const profile = profileById.get(w.user_id);
       return {
         id: w.id as string, // photo_client_workflows.id — what admin.photo-clients.tsx links on
+        created_at: w.created_at as string,
         booking_id: w.booking_id as string | null,
         contact_name: booking?.contact_name || profile?.full_name || "—",
         contact_phone: booking?.contact_phone || profile?.phone || "—",
@@ -202,6 +203,8 @@ const createClientSchema = z.object({
   // Only meaningful when hasPackage is false — did a studio-only client
   // also buy editing? false means "just hand her the photos, no pipeline".
   wantsEditing: z.boolean().optional(),
+  // Agreed price, entered by hand (never taken from PHOTO_PACKAGES.price). Optional.
+  totalPrice: z.number().nonnegative().max(1000000).optional(),
 });
 
 // A short, memorable temp password padded to satisfy Supabase Auth's
@@ -315,6 +318,7 @@ export const createPhotoClient = createServerFn({ method: "POST" })
         album_upgrades: hasPackage ? data.albumUpgrades?.trim() || preset?.albumUpgrades || null : null,
         has_package: hasPackage,
         wants_editing: wantsEditing,
+        total_price: data.totalPrice ?? null,
       })
       .select("id")
       .single();
@@ -371,6 +375,23 @@ export const updatePhotoClientDetails = createServerFn({ method: "POST" })
         updated_at: new Date().toISOString(),
       })
       .eq("id", workflowId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Payments view of the unified clients page: saves only the total paid so far (the balance column is generated). */
+export const updatePhotoClientPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ workflowId: z.string().uuid(), amountPaid: z.number().nonnegative().max(1000000) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("photo_client_workflows")
+      .update({ amount_paid: data.amountPaid, updated_at: new Date().toISOString() })
+      .eq("id", data.workflowId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

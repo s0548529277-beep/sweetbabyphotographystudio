@@ -23,6 +23,8 @@ import {
   X as XIcon,
   FileSignature,
   Lock,
+  Image as ImageIcon,
+  Send,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,9 +35,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { NEWBORN_TIMELINE_STEPS } from "@/lib/newborn-packages";
 import { formatDateIL, whatsappLink } from "@/lib/client-management";
 import { heError } from "@/lib/he-errors";
+import { STAGE_LABELS, type WorkflowStage } from "@/lib/photo-clients.functions";
 import {
   HUB_KINDS,
   hubBalance,
+  hubInProgress,
   hubIsPaid,
   hubKind,
   type HubKind,
@@ -73,6 +77,7 @@ export function HubKindChooser({
     newborn: "חבילת ניו-בורן, תוספות, גלריה וחוזה",
     outdoor: "חבילת צילומי חוץ, חוזה, שיחת סטיילינג",
     studio: "חבילה מותאמת אישית — משריינת את הסטודיו ביומן",
+    general: "צילום עם מיכל או סטודיו בלבד: מסירת תמונות, בחירה ועיבוד",
   };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -397,6 +402,80 @@ export function StudioHubCard({
   );
 }
 
+const STAGE_TONES: Record<WorkflowStage, string> = {
+  booked: "bg-muted text-muted-foreground",
+  date_confirmed: "bg-blue-100 text-blue-800",
+  proofs_ready: "bg-amber-100 text-amber-800",
+  edited_uploaded: "bg-purple-100 text-purple-800",
+  album_published: "bg-green-100 text-green-800",
+};
+
+/** The label under the name: package tier, or what kind of studio-only client she is. */
+export function generalServiceLabel(raw: any, packageLabel: string): string {
+  if (raw?.has_package) return packageLabel || "חבילת צילום";
+  return raw?.wants_editing === false ? "שליחת תמונות בלבד" : "סטודיו + עיבוד";
+}
+
+/**
+ * General photo client card — soft green. The full workflow (upload, client selection, album, contract,
+ * delivery) lives on the client page, so the card is a compact summary with one button into it.
+ */
+export function GeneralHubCard({ row, onEdit }: { row: HubRow; onEdit: () => void }) {
+  const r = row.raw;
+  const stage = (r.stage as WorkflowStage) ?? "booked";
+  const sendOnly = !!r.sendOnly;
+  return (
+    <div className={`${hubKind("general").scope} rounded-2xl border border-primary/15 border-r-4 border-r-general-rose bg-card p-5`}>
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-display text-lg text-primary">{row.name}</span>
+            <KindBadge kind="general" />
+            <Badge variant="secondary" className="gap-1">
+              {sendOnly && <Send className="h-3 w-3" />}
+              {row.packageName}
+            </Badge>
+          </div>
+          <ContactLine row={row} />
+          {row.notes && <div className="mt-1 text-xs text-muted-foreground">{row.notes}</div>}
+        </div>
+        <div className="flex items-center gap-2">
+          {row.total > 0 && <span className="font-display text-xl text-primary">₪{row.total}</span>}
+          <button
+            type="button"
+            onClick={onEdit}
+            title="פתיחת כרטיס הלקוחה"
+            aria-label="פתיחת כרטיס הלקוחה"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-primary hover:bg-primary/10"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        {!sendOnly && (
+          <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STAGE_TONES[stage]}`}>{STAGE_LABELS[stage]}</span>
+        )}
+        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+          <ImageIcon className="h-3.5 w-3.5" /> {Number(r.photo_count ?? 0)} תמונות
+        </span>
+        {row.total > 0 && (
+          <span className={`text-xs ${hubBalance(row) > 0 ? "text-destructive" : "text-forest"}`}>
+            {hubBalance(row) > 0 ? `יתרה ₪${hubBalance(row)}` : "שולם במלואו"}
+          </span>
+        )}
+        <Button asChild size="sm" variant="outline" className="mr-auto h-9 gap-1.5 rounded-xl">
+          <Link to="/admin/photo-clients/$bookingId" params={{ bookingId: row.id }}>
+            <Images className="h-3.5 w-3.5" />
+            כרטיס לקוחה וגלריה
+          </Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function StatCard({
   icon: Icon,
   value,
@@ -426,9 +505,13 @@ function StatCard({
 export function HubDashboardView({
   rows,
   onGoToCalendar,
+  onGoToPayments,
+  onOpen,
 }: {
   rows: HubRow[];
   onGoToCalendar: () => void;
+  onGoToPayments: () => void;
+  onOpen: (row: HubRow) => void;
 }) {
   const today = todayKey();
   const now = new Date();
@@ -445,6 +528,14 @@ export function HubDashboardView({
     .filter((r) => r.date && r.date >= today)
     .sort((a, b) => ((a.date as string) < (b.date as string) ? -1 : 1));
   const todayCount = rows.filter((r) => r.date === today).length;
+  // Work in progress (shot but not delivered) and the biggest open balances — the two lists the old
+  // client-management overview had; they now cover every kind.
+  const inProgress = rows
+    .filter((r) => hubInProgress(r, today))
+    .sort((a, b) => ((a.date ?? "") < (b.date ?? "") ? -1 : 1));
+  const openRows = rows
+    .filter((r) => hubBalance(r) > 0)
+    .sort((a, b) => hubBalance(b) - hubBalance(a));
 
   return (
     <div className="space-y-4">
@@ -456,12 +547,12 @@ export function HubDashboardView({
           tone={openBalance > 0 ? "warn" : undefined}
         />
         <StatCard icon={Wallet} value={`₪${paidThisMonth.toFixed(0)}`} label="שולם החודש" />
-        <StatCard icon={Images} value={String(galleriesCount)} label="גלריות (ניו-בורן)" />
+        <StatCard icon={Images} value={String(galleriesCount)} label="גלריות פתוחות" />
         <StatCard icon={Clock} value={String(upcoming.length)} label="צילומים קרובים" />
         <StatCard icon={CalendarCheck2} value={String(todayCount)} label="צילומים היום" />
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {HUB_KINDS.map((k) => (
           <div key={k.key} className={`${k.scope} rounded-2xl border border-primary/15 bg-cream p-3 text-center`}>
             <div className="font-display text-xl text-primary">
@@ -507,6 +598,65 @@ export function HubDashboardView({
             ))}
           </div>
         )}
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl border border-primary/10 bg-card p-5">
+          <h3 className="mb-3 font-display text-lg text-primary">בתהליך עבודה ({inProgress.length})</h3>
+          {inProgress.length === 0 ? (
+            <p className="py-4 text-center text-sm text-muted-foreground">אין עבודות פתוחות 🎉</p>
+          ) : (
+            <div className="space-y-2">
+              {inProgress.slice(0, 8).map((r) => (
+                <button
+                  key={`${r.kind}-${r.id}`}
+                  type="button"
+                  onClick={() => onOpen(r)}
+                  className="flex w-full items-center justify-between gap-3 rounded-xl bg-blush/25 p-3 text-right hover:bg-blush/40"
+                >
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <span className="font-medium text-primary">{r.name}</span>
+                    <KindBadge kind={r.kind} />
+                  </div>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {r.kind === "general" && r.raw?.stage
+                      ? STAGE_LABELS[r.raw.stage as WorkflowStage]
+                      : `צולם ${formatDateIL(r.date)}`}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-primary/10 bg-card p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="font-display text-lg text-primary">תשלומים פתוחים ({openRows.length})</h3>
+            <button type="button" onClick={onGoToPayments} className="text-xs text-primary hover:underline">
+              לכל התשלומים ←
+            </button>
+          </div>
+          {openRows.length === 0 ? (
+            <p className="py-4 text-center text-sm text-muted-foreground">אין יתרות פתוחות 🎉</p>
+          ) : (
+            <div className="space-y-2">
+              {openRows.slice(0, 8).map((r) => (
+                <button
+                  key={`${r.kind}-${r.id}`}
+                  type="button"
+                  onClick={() => onOpen(r)}
+                  className="flex w-full items-center justify-between gap-3 rounded-xl bg-blush/25 p-3 text-right hover:bg-blush/40"
+                >
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <span className="font-medium text-primary">{r.name}</span>
+                    <KindBadge kind={r.kind} />
+                  </div>
+                  <span className="shrink-0 font-semibold tabular-nums text-destructive">₪{hubBalance(r)}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -839,7 +989,7 @@ export function HubPaymentsView({
           const balance = hubBalance(row);
           const canMail = row.kind !== "studio";
           return (
-            <div key={k} className={`${hubKind(row.kind).scope} rounded-2xl border border-primary/15 border-r-4 bg-card p-4 ${row.kind === "newborn" ? "border-r-hub-newborn" : row.kind === "outdoor" ? "border-r-outdoor-rose" : "border-r-studio-rose"}`}>
+            <div key={k} className={`${hubKind(row.kind).scope} rounded-2xl border border-primary/15 border-r-4 bg-card p-4 ${hubKind(row.kind).stripe}`}>
               <div className="mb-2 flex flex-wrap items-center gap-3">
                 {canMail ? (
                   <Checkbox

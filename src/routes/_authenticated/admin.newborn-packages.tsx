@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { he } from "date-fns/locale";
@@ -81,7 +81,12 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-import { PhotoSectionTabs } from "@/components/PhotoSectionTabs";
+import {
+  listPhotoClients,
+  sendPaymentReminderEmails,
+  updatePhotoClientPayment,
+  PHOTO_PACKAGES,
+} from "@/lib/photo-clients.functions";
 import {
   toggleOutdoorOrderStep,
   updateOutdoorOrderPayment,
@@ -98,6 +103,7 @@ import {
   HUB_KINDS,
   hubBalance,
   hubKind,
+  generalToHub,
   newbornToHub,
   outdoorToHub,
   sortHubRows,
@@ -112,12 +118,24 @@ import {
   HubKindChooser,
   HubPaymentsView,
   HubTableView,
+  GeneralHubCard,
   OutdoorHubCard,
   StudioHubCard,
+  generalServiceLabel,
 } from "@/components/client-hub/HubViews";
 import { OutdoorOrderDialog, StudioOrderDialog } from "@/components/client-hub/HubDialogs";
+import { GeneralClientDialog } from "@/components/client-hub/GeneralClientDialog";
+import { OutdoorPackageTypesSection } from "@/components/client-hub/OutdoorPackageTypes";
+
+const FILTER_KEYS = ["all", "newborn", "outdoor", "studio", "general"] as const;
 
 export const Route = createFileRoute("/_authenticated/admin/newborn-packages")({
+  // ?kind=… opens the page already filtered (the old /admin/photo-clients and /admin/outdoor-packages
+  // links redirect here). "send" (the old "send photos only" tab) is now part of the general kind.
+  validateSearch: (search: Record<string, unknown>): { kind?: HubFilter } => {
+    const k = search.kind === "send" ? "general" : search.kind;
+    return FILTER_KEYS.includes(k as any) && k !== "all" ? { kind: k as HubFilter } : {};
+  },
   component: NewbornPackagesAdmin,
 });
 
@@ -236,7 +254,13 @@ function NewbornPackagesAdmin() {
   const [editSaving, setEditSaving] = useState(false);
 
   // ---- the other two kinds (outdoor = חום, custom studio = בז') ----
-  const [kindFilter, setKindFilter] = useState<HubFilter>("all");
+  const searchKind = Route.useSearch().kind;
+  const [kindFilter, setKindFilter] = useState<HubFilter>(searchKind ?? "all");
+  // Coming back from a client page (or an old link) with ?kind=… re-applies that filter even though this
+  // component stayed mounted behind the child route.
+  useEffect(() => {
+    if (searchKind) setKindFilter(searchKind);
+  }, [searchKind]);
   const [chooserOpen, setChooserOpen] = useState(false);
   const [chooserDate, setChooserDate] = useState<string | undefined>(undefined);
   const [outdoorDialog, setOutdoorDialog] = useState<{ open: boolean; initial: any | null; date?: string }>({
@@ -247,6 +271,7 @@ function NewbornPackagesAdmin() {
     open: false,
     initial: null,
   });
+  const [generalDialog, setGeneralDialog] = useState<{ open: boolean; date?: string }>({ open: false });
   const [busyHubStep, setBusyHubStep] = useState<string | null>(null);
   const [sendingContractId, setSendingContractId] = useState<string | null>(null);
   const runToggleOutdoorStep = useServerFn(toggleOutdoorOrderStep);
@@ -258,6 +283,9 @@ function NewbornPackagesAdmin() {
   const runStudioPayment = useServerFn(updateStudioCustomOrderPayment);
   const runToggleStudioStep = useServerFn(toggleStudioCustomOrderStep);
   const runNewbornReminders = useServerFn(sendNewbornPaymentReminderEmails);
+  const fetchPhotoClients = useServerFn(listPhotoClients);
+  const runGeneralPayment = useServerFn(updatePhotoClientPayment);
+  const runGeneralReminders = useServerFn(sendPaymentReminderEmails);
 
   const outdoorOrders = useQuery({
     queryKey: ["admin-outdoor-orders"],
@@ -274,6 +302,12 @@ function NewbornPackagesAdmin() {
   const studioOrders = useQuery({
     queryKey: ["studio-custom-orders"],
     queryFn: () => fetchStudioOrders({}),
+    enabled: !isDetail,
+  });
+
+  const generalClients = useQuery({
+    queryKey: ["photo-clients"],
+    queryFn: () => fetchPhotoClients({}),
     enabled: !isDetail,
   });
 
@@ -471,6 +505,9 @@ function NewbornPackagesAdmin() {
     ...rows.map(newbornToHub),
     ...((outdoorOrders.data ?? []) as any[]).map(outdoorToHub),
     ...((studioOrders.data ?? []) as any[]).map(studioToHub),
+    ...((generalClients.data ?? []) as any[]).map((r) =>
+      generalToHub(r, generalServiceLabel(r, r.package_type ? PHOTO_PACKAGES[r.package_type as keyof typeof PHOTO_PACKAGES]?.label ?? "" : "")),
+    ),
   ]);
   const kindHub = kindFilter === "all" ? allHub : allHub.filter((r) => r.kind === kindFilter);
 
@@ -521,6 +558,8 @@ function NewbornPackagesAdmin() {
       setCreateOpen(true);
     } else if (kind === "outdoor") {
       setOutdoorDialog({ open: true, initial: null, date });
+    } else if (kind === "general") {
+      setGeneralDialog({ open: true, date });
     } else {
       setStudioDialog({ open: true, initial: null, date });
     }
@@ -529,6 +568,7 @@ function NewbornPackagesAdmin() {
   const openEditHub = (r: HubRow) => {
     if (r.kind === "newborn") openEdit(r.raw as OrderRow);
     else if (r.kind === "outdoor") setOutdoorDialog({ open: true, initial: r.raw });
+    else if (r.kind === "general") nav({ to: "/admin/photo-clients/$bookingId", params: { bookingId: r.id } });
     else setStudioDialog({ open: true, initial: r.raw });
   };
 
@@ -589,6 +629,7 @@ function NewbornPackagesAdmin() {
   const saveHubPayment = async (r: HubRow, amount: number) => {
     if (r.kind === "newborn") await runUpdatePayment({ data: { id: r.id, amount_paid: amount } });
     else if (r.kind === "outdoor") await runOutdoorPayment({ data: { id: r.id, amount_paid: amount } });
+    else if (r.kind === "general") await runGeneralPayment({ data: { workflowId: r.id, amountPaid: amount } });
     else await runStudioPayment({ data: { id: r.id, amount_paid: amount } });
   };
 
@@ -598,6 +639,8 @@ function NewbornPackagesAdmin() {
     const od = picked.filter((r) => r.kind === "outdoor").map((r) => r.id);
     if (nb.length) out.push(...(await runNewbornReminders({ data: { orderIds: nb } })).results);
     if (od.length) out.push(...(await runOutdoorReminders({ data: { orderIds: od } })).results);
+    const gn = picked.filter((r) => r.kind === "general").map((r) => r.id);
+    if (gn.length) out.push(...(await runGeneralReminders({ data: { workflowIds: gn } })).results);
     return out;
   };
 
@@ -676,11 +719,6 @@ function NewbornPackagesAdmin() {
             <Plus className="h-4 w-4" /> הזמנה חדשה
           </Button>
         </div>
-        <div className="mx-auto -mt-1 max-w-7xl px-4 pb-1 text-left">
-          <Link to="/admin/client-management" className="text-xs text-newborn-ink/60 underline-offset-2 hover:underline">
-            לכל הלקוחות והתשלומים — ניהול לקוחות ›
-          </Link>
-        </div>
         <nav className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 pb-2">
           {TABS.map((t) => (
             <button
@@ -727,13 +765,13 @@ function NewbornPackagesAdmin() {
       </header>
 
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-6">
-        <PhotoSectionTabs />
-        {(orders.isLoading || outdoorOrders.isLoading || studioOrders.isLoading) && (
+        {(orders.isLoading || outdoorOrders.isLoading || studioOrders.isLoading || generalClients.isLoading) && (
           <p className="text-sm text-muted-foreground">טוען…</p>
         )}
         {!orders.isLoading &&
           !outdoorOrders.isLoading &&
           !studioOrders.isLoading &&
+          !generalClients.isLoading &&
           kindHub.length === 0 &&
           view !== "settings" &&
           view !== "packages" && (
@@ -743,9 +781,23 @@ function NewbornPackagesAdmin() {
             </div>
           )}
 
+        {generalClients.isError && (
+          <div className="rounded-2xl border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
+            <p className="font-medium">טעינת לקוחות הצילום הכללי נכשלה — הם לא מופיעים ברשימה</p>
+            <p className="mt-0.5" dir="ltr">
+              {(generalClients.error as any)?.message ?? String(generalClients.error)}
+            </p>
+          </div>
+        )}
+
         {view === "dashboard" && (
           <>
-            <HubDashboardView rows={kindHub} onGoToCalendar={() => setView("hebcal")} />
+            <HubDashboardView
+              rows={kindHub}
+              onGoToCalendar={() => setView("hebcal")}
+              onGoToPayments={() => setView("payments")}
+              onOpen={openEditHub}
+            />
             {missingEmail.length > 0 && (
               <div className="rounded-3xl border border-amber-200 bg-amber-50/70 p-4 text-sm">
                 <div className="mb-2 font-medium text-amber-900">
@@ -827,11 +879,22 @@ function NewbornPackagesAdmin() {
               qc.invalidateQueries({ queryKey: ["newborn-orders"] });
               qc.invalidateQueries({ queryKey: ["admin-outdoor-orders"] });
               qc.invalidateQueries({ queryKey: ["studio-custom-orders"] });
+              qc.invalidateQueries({ queryKey: ["photo-clients"] });
             }}
           />
         )}
 
-        {view === "packages" && <PackageTypesSection />}
+        {view === "packages" && (
+          <>
+            {(kindFilter === "all" || kindFilter === "newborn") && <PackageTypesSection />}
+            {(kindFilter === "all" || kindFilter === "outdoor") && <OutdoorPackageTypesSection />}
+            {(kindFilter === "studio" || kindFilter === "general") && (
+              <p className="rounded-2xl border border-newborn-rose/20 bg-white p-6 text-center text-sm text-muted-foreground">
+                ל{hubKind(kindFilter).label} אין סוגי חבילות קבועים — הפרטים נקבעים בכל הזמנה.
+              </p>
+            )}
+          </>
+        )}
 
         {view === "settings" &&
           (cmSettings.data ? (
@@ -857,6 +920,9 @@ function NewbornPackagesAdmin() {
                     onDelete={() => removeHub(r)}
                   />
                 );
+              }
+              if (r.kind === "general") {
+                return <GeneralHubCard key={`general:${r.id}`} row={r} onEdit={() => openEditHub(r)} />;
               }
               if (r.kind === "studio") {
                 return (
@@ -900,6 +966,16 @@ function NewbornPackagesAdmin() {
         initial={outdoorDialog.initial}
         defaultDate={outdoorDialog.date}
         sameDayTimes={sameDayTimes}
+      />
+      <GeneralClientDialog
+        open={generalDialog.open}
+        onOpenChange={(o) => setGeneralDialog((d) => ({ ...d, open: o }))}
+        defaultDate={generalDialog.date}
+        sameDayTimes={sameDayTimes}
+        onCreated={(workflowId) => {
+          qc.invalidateQueries({ queryKey: ["photo-clients"] });
+          nav({ to: "/admin/photo-clients/$bookingId", params: { bookingId: workflowId } });
+        }}
       />
       <StudioOrderDialog
         open={studioDialog.open}

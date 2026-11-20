@@ -86,6 +86,11 @@
   --color-studio-rose: var(--studio-rose);
   --color-studio-gold: var(--studio-gold);
   --color-studio-ink: var(--studio-ink);
+  --color-general-canvas: var(--general-canvas);
+  --color-general-blush: var(--general-blush);
+  --color-general-rose: var(--general-rose);
+  --color-general-gold: var(--general-gold);
+  --color-general-ink: var(--general-ink);
   /* legacy alias tokens retained so existing pages keep rendering */
   --color-blush: var(--bone);
   --color-blush-deep: var(--sand);
@@ -158,6 +163,12 @@
   --studio-rose: oklch(0.58 0.07 75);
   --studio-gold: oklch(0.6 0.075 80);
   --studio-ink: oklch(0.35 0.03 75);
+  /* צילום כללי = ירוק עדין */
+  --general-canvas: oklch(0.982 0.01 140);
+  --general-blush: oklch(0.925 0.035 140);
+  --general-rose: oklch(0.52 0.085 150);
+  --general-gold: oklch(0.62 0.075 120);
+  --general-ink: oklch(0.32 0.045 150);
 
   /* Softened — the old values read as heavy "designed" shadows; flatter
      hairline-bordered cards fit the clean/quiet direction better. */
@@ -174,7 +185,8 @@
    so existing cards, badges and buttons switch palette without per-class edits. */
 .kind-newborn,
 .kind-outdoor,
-.kind-studio {
+.kind-studio,
+.kind-general {
   --primary-foreground: #ffffff;
   --border: color-mix(in oklab, var(--primary) 14%, transparent);
   --input: color-mix(in oklab, var(--primary) 16%, transparent);
@@ -221,6 +233,21 @@
   --secondary: var(--studio-blush);
   --secondary-foreground: var(--studio-ink);
   --muted: var(--studio-canvas);
+}
+
+.kind-general {
+  --newborn-canvas: var(--general-canvas);
+  --newborn-blush: var(--general-blush);
+  --newborn-rose: var(--general-rose);
+  --newborn-gold: var(--general-gold);
+  --newborn-ink: var(--general-ink);
+  --primary: var(--general-ink);
+  --bone: var(--general-blush);
+  --cream: var(--general-canvas);
+  --ink: var(--general-rose);
+  --secondary: var(--general-blush);
+  --secondary-foreground: var(--general-ink);
+  --muted: var(--general-canvas);
 }
 
 .dark {

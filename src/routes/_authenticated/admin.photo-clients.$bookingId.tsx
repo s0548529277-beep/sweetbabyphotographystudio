@@ -669,8 +669,8 @@ function PhotoClientDetail() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <Link to="/admin/photo-clients" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary">
-        <ArrowRight className="h-4 w-4" /> חזרה לרשימת לקוחות צילום
+      <Link to="/admin/newborn-packages" search={{ kind: "general" }} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary">
+        <ArrowRight className="h-4 w-4" /> חזרה לניהול לקוחות
       </Link>
 
       <div>
