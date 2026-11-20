@@ -1,0 +1,86 @@
+{
+ "note": "manual_income rows imported from Excel for November 2026, deleted on 2026-11-20 at the owner's request. Restore with INSERT if needed (category 'צילומים בסטודיו', notes 'יובא מאקסל', is_personal false).",
+ "manual_income": [
+  {
+   "id": "559e72a6-1bff-44e7-b815-976f202df66c",
+   "title": "אילן דבורה · העברה באינטרנט",
+   "category": "צילומים בסטודיו",
+   "amount": 170,
+   "received_on": "2026-11-01",
+   "notes": "יובא מאקסל",
+   "is_personal": false
+  },
+  {
+   "id": "6ec923b6-6e32-44f2-b113-ec127b0503e8",
+   "title": "ווייס שירה ו/או שמחה דב",
+   "category": "צילומים בסטודיו",
+   "amount": 30,
+   "received_on": "2026-11-01",
+   "notes": "יובא מאקסל",
+   "is_personal": false
+  },
+  {
+   "id": "536675ff-ac09-4814-9c7c-f83d8e820be3",
+   "title": "מפייבוקס שלי",
+   "category": "צילומים בסטודיו",
+   "amount": 76,
+   "received_on": "2026-11-01",
+   "notes": "יובא מאקסל",
+   "is_personal": false
+  },
+  {
+   "id": "86f5d2e7-0222-41a8-a207-81254fa913f9",
+   "title": "מרגליות מנחם מנד · מרגליות נדנדה",
+   "category": "צילומים בסטודיו",
+   "amount": 750,
+   "received_on": "2026-11-01",
+   "notes": "יובא מאקסל",
+   "is_personal": false
+  },
+  {
+   "id": "30dc0bda-8569-4416-bc86-1e1e19f38723",
+   "title": "שליידער שלמה גד · העברה באינטרנט",
+   "category": "צילומים בסטודיו",
+   "amount": 300,
+   "received_on": "2026-11-01",
+   "notes": "יובא מאקסל",
+   "is_personal": false
+  },
+  {
+   "id": "495d5324-2672-4dc4-9656-c359cb1172f7",
+   "title": "יופיי פיננסים",
+   "category": "צילומים בסטודיו",
+   "amount": 707.07,
+   "received_on": "2026-11-02",
+   "notes": "יובא מאקסל",
+   "is_personal": false
+  },
+  {
+   "id": "d77d784f-d7fa-4bce-868e-81fb139d347d",
+   "title": "טל אוריה מרים,טל · החזרה ע\"ח חוב",
+   "category": "צילומים בסטודיו",
+   "amount": 15,
+   "received_on": "2026-11-03",
+   "notes": "יובא מאקסל",
+   "is_personal": false
+  },
+  {
+   "id": "6db51063-0895-44b3-8ac0-0d0afd4cdd64",
+   "title": "מלאך אסתר דבורה ואברהם י · החזר חוב אסתי מלאך",
+   "category": "צילומים בסטודיו",
+   "amount": 110,
+   "received_on": "2026-11-03",
+   "notes": "יובא מאקסל",
+   "is_personal": false
+  },
+  {
+   "id": "5ae5be2e-77ca-48ea-927a-cfe9c8cb4983",
+   "title": "מיכל פישמן",
+   "category": "צילומים בסטודיו",
+   "amount": 40,
+   "received_on": "2026-11-04",
+   "notes": "יובא מאקסל",
+   "is_personal": false
+  }
+ ]
+}
