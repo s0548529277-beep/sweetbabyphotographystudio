@@ -37,12 +37,20 @@ async function resolveReservedItemDetails(
 // - Minimum 2 half-hour slots (1 hour)
 // - First hour 180₪, every additional hour 100₪ (half-hour = half of the
 //   rate that applies to that slot)
-// - Newborn 3-hour package: 6 slots starting 08:00 / 09:00 / 10:00 / 11:00
-//   (morning, ending by 14:00) OR 19:00 / 19:30 / 20:00 (evening, after
-//   19:00, ending by 23:00 — the studio's normal closing time) → 320₪ flat
-export const MORNING_PACKAGE_STARTS = ["08:00", "09:00", "10:00", "11:00"] as const;
-export const EVENING_PACKAGE_STARTS = ["19:00", "19:30", "20:00"] as const;
-export const MORNING_PACKAGE_PRICE = 320;
+// - Newborn 3-hour package: exactly 6 half-hour slots, any start time as long
+//   as the WHOLE session falls between 11:00 and 20:00 (start 11:00 … 17:00)
+//   → 320₪ flat. Fixed, final price: it never combines with a coupon code, a
+//   subscription pass, a customer's fixed discount, store credit or cashback
+//   (earning or spending). Changed 2026-11-20 — it used to be 08:00-14:00 /
+//   evening after 19:00. Bookings already made keep the price they were saved
+//   with. (The internal names `isMorningPackage` / bookings.package='morning'
+//   are kept so nothing stored or imported breaks.)
+export const NEWBORN_PACKAGE_WINDOW_START = "11:00";
+export const NEWBORN_PACKAGE_WINDOW_END = "20:00";
+export const NEWBORN_PACKAGE_PRICE = 320;
+export const MORNING_PACKAGE_PRICE = NEWBORN_PACKAGE_PRICE;
+/** Same sentence everywhere the package is refused a discount / credit / cashback. */
+export const NEWBORN_PACKAGE_NO_STACK = "מבצע ניו-בורן 3 שעות הוא מחיר קבוע וסופי — לא משתלב עם קופון, כרטיסייה, הנחה, קרדיט או קאשבק";
 
 /** Paid guidance / mentoring add-ons chosen in the coordination agreement. */
 export const GUIDANCE_FEES = { basic: 0, mini: 50, plus: 100 } as const;
@@ -56,19 +64,25 @@ export const GUIDANCE_LABELS: Record<keyof typeof GUIDANCE_FEES, string> = {
 export const FIRST_HOUR_PRICE = 180;
 const EXTRA_HALF_HOUR_PRICE = 50; // half of the 100₪/hour rate for hour 2 onward
 
-export function isMorningPackage(slots: number, startTime: string): boolean {
-  if (slots !== 6) return false;
-  const start = startTime.slice(0, 5);
-  const [h, m] = startTime.split(":").map(Number);
-  const endMin = h * 60 + m + 180;
-  if ((MORNING_PACKAGE_STARTS as readonly string[]).includes(start)) return endMin <= 14 * 60;
-  if ((EVENING_PACKAGE_STARTS as readonly string[]).includes(start)) return endMin <= 23 * 60;
-  return false;
+function toMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
 }
+
+/** True for the newborn 3-hour package: 6 half-hour slots fully inside 11:00–20:00. */
+export function isNewbornPackage(slots: number, startTime: string): boolean {
+  if (slots !== 6) return false;
+  const startMin = toMinutes(startTime.slice(0, 5));
+  if (!Number.isFinite(startMin)) return false;
+  return startMin >= toMinutes(NEWBORN_PACKAGE_WINDOW_START) && startMin + 180 <= toMinutes(NEWBORN_PACKAGE_WINDOW_END);
+}
+
+/** Legacy name of {@link isNewbornPackage} (the package used to be morning/evening only). */
+export const isMorningPackage = isNewbornPackage;
 
 export function computeStudioPrice(slots: number, startTime: string): number {
   if (slots < 2) throw new Error("מינימום שעה (2 חצאי שעות)");
-  if (isMorningPackage(slots, startTime)) return MORNING_PACKAGE_PRICE;
+  if (isNewbornPackage(slots, startTime)) return NEWBORN_PACKAGE_PRICE;
   const extraSlots = slots - 2;
   return FIRST_HOUR_PRICE + extraSlots * EXTRA_HALF_HOUR_PRICE;
 }
@@ -175,7 +189,7 @@ export const placeBooking = createServerFn({ method: "POST" })
     // either — a custom rate replaces the whole standard price list
     // (including this discount), so don't treat it as "morning" then even
     // if the time happens to match that window.
-    const isMorning = !customHourlyRate && isMorningPackage(data.slots, data.start_time);
+    const isMorning = !customHourlyRate && isNewbornPackage(data.slots, data.start_time);
 
     // Optional discount code (e.g. BYBY10 / SWEETBABY10 → 10%).
     let couponNote: string | null = null;
@@ -184,7 +198,7 @@ export const placeBooking = createServerFn({ method: "POST" })
     let couponIdToRedeem: string | null = null;
     const couponCode = (data.coupon ?? "").trim().toUpperCase();
     if (couponCode) {
-      if (isMorning) throw new Error("מבצע ניו-בורן בוקר הוא מחיר קבוע וסופי — לא ניתן לשלב אותו עם קוד קופון");
+      if (isMorning) throw new Error(NEWBORN_PACKAGE_NO_STACK);
       const { data: c } = await supabase
         .from("coupons")
         .select("id, code, discount_percent, discount_amount, active, expires_at, single_use, redeemed_at")
@@ -238,7 +252,7 @@ export const placeBooking = createServerFn({ method: "POST" })
     let passSessionDateForRedeem: string | null = null;
     let passNote: string | null = null;
     if (data.use_pass) {
-      if (isMorning) throw new Error("מבצע ניו-בורן בוקר הוא מחיר קבוע וסופי — לא ניתן לשלב אותו עם כרטיסייה");
+      if (isMorning) throw new Error(NEWBORN_PACKAGE_NO_STACK);
       const usable = passesWithEntries.find((p) => data.session_date <= String(p.expires_at).slice(0, 10));
       if (usable) {
         const firstHourValue = Math.min(price, FIRST_HOUR_PRICE);
@@ -258,6 +272,7 @@ export const placeBooking = createServerFn({ method: "POST" })
     // until the pass itself runs out or expires.
     let creditUsed = 0;
     let creditNote: string | null = null;
+    if (isMorning && data.use_credit && data.use_credit > 0) throw new Error(NEWBORN_PACKAGE_NO_STACK);
     if (!hasActivePass && data.use_credit && data.use_credit > 0) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { previewCreditUse } = await import("@/lib/loyalty");
@@ -876,6 +891,8 @@ type ConfirmableBooking = {
   contact_name: string | null;
   contact_phone: string | null;
   deposit_receipt_url?: string | null;
+  /** "morning" = the newborn 3-hour package (fixed price, no cashback). */
+  package?: string | null;
 };
 
 /**
@@ -938,7 +955,8 @@ async function finalizeBookingConfirmation(
     const hasActivePass = (activePasses ?? []).some(
       (p) => Number(p.entries_used) < Number(p.total_entries) && new Date(p.expires_at) >= new Date(),
     );
-    if (!hasActivePass) {
+    // The newborn 3-hour package is a fixed final price: no cashback accrues on it.
+    if (!hasActivePass && b.package !== "morning") {
       const { awardCashback } = await import("@/lib/loyalty");
       const earned = await awardCashback(supabaseAdmin, b.user_id, Number(b.price));
       if (earned > 0) {

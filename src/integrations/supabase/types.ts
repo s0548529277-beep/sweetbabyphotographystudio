@@ -3266,6 +3266,8 @@ export type Database = {
           direction: string
           error: string | null
           id: string
+          media_filename: string | null
+          media_mime: string | null
           media_type: string | null
           media_url: string | null
           phone: string
@@ -3280,6 +3282,8 @@ export type Database = {
           direction: string
           error?: string | null
           id?: string
+          media_filename?: string | null
+          media_mime?: string | null
           media_type?: string | null
           media_url?: string | null
           phone: string
@@ -3294,6 +3298,8 @@ export type Database = {
           direction?: string
           error?: string | null
           id?: string
+          media_filename?: string | null
+          media_mime?: string | null
           media_type?: string | null
           media_url?: string | null
           phone?: string

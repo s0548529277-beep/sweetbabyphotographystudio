@@ -148,7 +148,7 @@ async function validateBookingChanges(db: any, row: any, changes: BookingChanges
   }
   if (sessionStartMs(newDate, newStart) <= Date.now()) throw new Error("לא ניתן לבחור מועד שכבר עבר");
   if (isMorningPackage(Number(row.slots), newStart) !== isMorningPackage(Number(row.slots), oldStart)) {
-    throw new Error("בשעה הזו המחיר שונה (חבילת בוקר/ערב) — לשינוי כזה נא לפנות לצוות הסטודיו או בצ׳אט.");
+    throw new Error("בשעה הזו המחיר שונה (מבצע ניו-בורן 3 שעות) — לשינוי כזה נא לפנות לצוות הסטודיו או בצ׳אט.");
   }
   if (newEnd <= newStart) throw new Error("השעה שנבחרה חורגת מסוף היום — בחרי שעה מוקדמת יותר.");
   await assertBookingSlotFree(db, row, newDate, newStart, newEnd);

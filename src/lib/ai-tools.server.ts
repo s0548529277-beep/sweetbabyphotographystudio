@@ -198,13 +198,17 @@ export function buildWebChatTools(opts: { userId: string | null; isRealAccount: 
         message: z.string().min(3).max(1500),
       }),
       execute: async ({ name, phone, email, message }) => {
+        const wantsPriceList = /בקשת מחירון/.test(message);
+        if (wantsPriceList && (!phone || !email)) {
+          return { ok: false, message: "למחירון צריך שם, טלפון ואימייל — בקשי מהלקוחה את מה שחסר ורק אז שלחי." };
+        }
         if (!phone && !email) return { ok: false, message: "חסר טלפון או אימייל לחזרה — בקשי מהלקוחה." };
         const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         try {
           const { sendGmail } = await import("@/integrations/google/gmail.server");
           const ok = await sendGmail({
             to: "m0548529277@gmail.com",
-            subject: `הודעה מהצ׳אט באתר — ${name}`,
+            subject: wantsPriceList ? `הודעה מהצ׳אט באתר — בקשת מחירון צלמת — ${name}` : `הודעה מהצ׳אט באתר — ${name}`,
             html: `<div dir="rtl" style="font-family:sans-serif;color:#2d3d2b">
               <h3 style="margin:0 0 8px">הודעה חדשה מהצ׳אט באתר</h3>
               <p style="margin:2px 0"><b>שם:</b> ${esc(name)}</p>
@@ -214,7 +218,7 @@ export function buildWebChatTools(opts: { userId: string | null; isRealAccount: 
             </div>`,
           });
           if (!ok) return { ok: false, message: "השליחה נכשלה — תני את הטלפון 054-8529277 כחלופה." };
-          return { ok: true };
+          return wantsPriceList ? { ok: true, message: "המחירון יישלח ללקוחה למייל — אמרי לה זאת, בלי לציין סכומים." } : { ok: true };
         } catch (e) {
           console.error("[SWEETBABY] send_message_to_studio failed", e);
           return { ok: false, message: "השליחה נכשלה — תני את הטלפון 054-8529277 כחלופה." };

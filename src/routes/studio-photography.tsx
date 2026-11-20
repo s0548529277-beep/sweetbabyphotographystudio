@@ -187,8 +187,8 @@ function StudioPhotographyPage() {
   const submitInquiry = async (e: FormEvent) => {
     e.preventDefault();
     if (sending) return;
-    if (!inq.name.trim() || !inq.email.trim()) {
-      toast.error("נא למלא שם ומייל.");
+    if (!inq.name.trim() || !inq.email.trim() || inq.phone.replace(/\D/g, "").length < 9) {
+      toast.error("נא למלא שם, טלפון ומייל.");
       return;
     }
     setSending(true);
@@ -430,8 +430,8 @@ function StudioPhotographyPage() {
                 <EmailDatalist id="email-suggest-studio-photography" value={inq.email} />
               </label>
               <label className="flex flex-col gap-1.5">
-                <span className="text-xs font-semibold text-[#2d3d2b]/80">טלפון</span>
-                <input className={bookInputCls} dir="ltr" type="tel" value={inq.phone} onChange={(e) => setInq({ ...inq, phone: e.target.value })} />
+                <span className="text-xs font-semibold text-[#2d3d2b]/80">טלפון *</span>
+                <input className={bookInputCls} dir="ltr" type="tel" required value={inq.phone} onChange={(e) => setInq({ ...inq, phone: e.target.value })} />
               </label>
               <label className="flex flex-col gap-1.5">
                 <span className="text-xs font-semibold text-[#2d3d2b]/80">איפה תרצי לצלם</span>

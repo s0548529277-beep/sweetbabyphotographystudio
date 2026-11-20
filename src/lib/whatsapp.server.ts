@@ -176,17 +176,61 @@ export const WHATSAPP_MEDIA_EXT: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
+  "image/gif": "gif",
+  "image/heic": "heic",
+  "image/heif": "heif",
+  "image/tiff": "tif",
+  "image/bmp": "bmp",
+  "image/svg+xml": "svg",
   "video/mp4": "mp4",
   "video/3gpp": "3gp",
+  "video/quicktime": "mov",
+  "video/webm": "webm",
+  "video/x-matroska": "mkv",
+  "video/x-msvideo": "avi",
   "audio/ogg": "ogg",
+  "audio/opus": "opus",
   "audio/mpeg": "mp3",
   "audio/aac": "aac",
   "audio/amr": "amr",
   "audio/mp4": "m4a",
+  "audio/x-m4a": "m4a",
+  "audio/wav": "wav",
+  "audio/x-wav": "wav",
+  "audio/webm": "webm",
   "application/pdf": "pdf",
+  "application/msword": "doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+  "application/vnd.ms-excel": "xls",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+  "application/vnd.ms-powerpoint": "ppt",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
+  "application/vnd.oasis.opendocument.text": "odt",
+  "application/vnd.oasis.opendocument.spreadsheet": "ods",
+  "application/rtf": "rtf",
+  "application/zip": "zip",
+  "application/x-zip-compressed": "zip",
+  "application/vnd.rar": "rar",
+  "application/x-7z-compressed": "7z",
+  "application/json": "json",
+  "application/xml": "xml",
+  "text/plain": "txt",
+  "text/csv": "csv",
+  "text/html": "html",
+  "text/xml": "xml",
+  "text/vcard": "vcf",
+  "text/x-vcard": "vcf",
 };
 
 /** Meta reports voice notes as "audio/ogg; codecs=opus" — strip the parameters so the extension lookup and content-type are clean. */
 export function normalizeMime(mime: string): string {
   return mime.split(";")[0].trim().toLowerCase();
+}
+
+/** Storage-safe file extension: from the mime type, else from the original file name, else "bin". */
+export function mediaExtension(mime: string, filename?: string | null): string {
+  const byMime = WHATSAPP_MEDIA_EXT[mime];
+  if (byMime) return byMime;
+  const fromName = (filename ?? "").match(/\.([A-Za-z0-9]{1,8})$/)?.[1]?.toLowerCase();
+  return fromName ?? "bin";
 }

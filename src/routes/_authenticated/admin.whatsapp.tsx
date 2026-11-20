@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { WhatsAppMedia } from "@/components/WhatsAppMedia";
 
 export const Route = createFileRoute("/_authenticated/admin/whatsapp")({
   component: WhatsAppAdmin,
@@ -52,6 +53,8 @@ type Msg = {
   body: string | null;
   media_url: string | null;
   media_type: "image" | "video" | "document" | "audio" | null;
+  media_filename?: string | null;
+  media_mime?: string | null;
   status: string;
   error: string | null;
   created_at: string;
@@ -469,7 +472,7 @@ function WhatsAppAdmin() {
                       ? "🎥 סרטון"
                       : c.media_type === "audio"
                         ? "🎤 הקלטה"
-                        : "📎 קובץ"
+                        : `📎 ${c.media_filename || "קובץ"}`
                   : c.body || ""}
               </div>
               <div className="flex items-center gap-2 mt-1 text-[10px]">
@@ -555,28 +558,13 @@ function WhatsAppAdmin() {
                           : "rounded-tr-sm bg-cream/60"
                       }`}
                     >
-                      {m.media_url && m.media_type === "image" && (
-                        <img
-                          src={m.media_url}
-                          alt=""
-                          className="rounded-xl mb-1 max-h-64 object-cover"
+                      {m.media_url && m.media_type && (
+                        <WhatsAppMedia
+                          url={m.media_url}
+                          type={m.media_type}
+                          filename={m.media_filename ?? null}
+                          mime={m.media_mime ?? null}
                         />
-                      )}
-                      {m.media_url && m.media_type === "video" && (
-                        <video src={m.media_url} controls className="rounded-xl mb-1 max-h-64" />
-                      )}
-                      {m.media_url && m.media_type === "audio" && (
-                        <audio src={m.media_url} controls className="mb-1 max-w-full" />
-                      )}
-                      {m.media_url && m.media_type === "document" && (
-                        <a
-                          href={m.media_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="underline block mb-1"
-                        >
-                          📎 פתיחת קובץ
-                        </a>
                       )}
                       {m.body && <div className="whitespace-pre-line">{m.body}</div>}
                       {m.status === "failed" && m.error && (

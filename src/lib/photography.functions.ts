@@ -151,7 +151,7 @@ export const sendMichalInquiry = createServerFn({ method: "POST" })
       .object({
         name: z.string().trim().min(1).max(100),
         email: z.string().trim().email().max(200),
-        phone: z.string().trim().max(30).optional().or(z.literal("")),
+        phone: z.string().trim().min(9).max(30),
         where: z.string().max(40).optional(),
         what: z.string().max(80).optional(),
         when: z.string().max(200).optional(),

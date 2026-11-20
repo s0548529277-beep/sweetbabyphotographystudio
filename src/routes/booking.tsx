@@ -20,6 +20,8 @@ import {
   placeRecurringBooking,
   computeStudioPrice,
   priceForBooking,
+  isNewbornPackage,
+  NEWBORN_PACKAGE_NO_STACK,
   GUIDANCE_FEES,
   GUIDANCE_LABELS,
   FIRST_HOUR_PRICE,
@@ -301,6 +303,9 @@ function Booking() {
     try { return priceForBooking(slots, startTime, hasActivePass ? null : customHourlyRate); } catch { return 0; }
   }, [startTime, slots, customHourlyRate, hasActivePass]);
   const price = basePrice > 0 ? basePrice + guidanceFee : 0;
+  // Newborn 3-hour package (fixed final price) — no coupon / pass / credit / cashback on it,
+  // unless a personal hourly rate replaces the whole price list (then it is not the package).
+  const isPackage = !!startTime && !(customHourlyRate && !hasActivePass) && isNewbornPackage(slots, startTime);
 
   // Discount code (e.g. BYBY10 / SWEETBABY10 → 10%)
   const [coupon, setCoupon] = useState("");
@@ -326,18 +331,19 @@ function Booking() {
       });
   }, [user]);
 
-  const afterCoupon = Math.max(0, price - couponOff);
-  const passApplied = usePass && passRemaining ? Math.min(afterCoupon, FIRST_HOUR_PRICE) : 0;
+  const afterCoupon = isPackage ? price : Math.max(0, price - couponOff);
+  const passApplied = !isPackage && usePass && passRemaining ? Math.min(afterCoupon, FIRST_HOUR_PRICE) : 0;
   const afterPass = Math.max(0, afterCoupon - passApplied);
   // Store credit isn't redeemable while a pass is active — any balance
   // earned before the pass opened is preserved, just not spendable yet.
-  const creditApplied = useCredit && !hasActivePass ? Math.min(creditBalance, afterPass) : 0;
+  const creditApplied = !isPackage && useCredit && !hasActivePass ? Math.min(creditBalance, afterPass) : 0;
   const finalPrice = Math.max(0, afterPass - creditApplied);
 
   const applyCoupon = async () => {
     const code = coupon.trim().toUpperCase();
     if (!code) return;
     if (price <= 0) { setCouponMsg("בחרי קודם תאריך ושעה"); return; }
+    if (isPackage) { setCouponOff(0); setCouponMsg(NEWBORN_PACKAGE_NO_STACK); return; }
     const { data } = await supabase
       .from("coupons")
       .select("code, discount_percent, discount_amount, active, expires_at, single_use, redeemed_at")
@@ -441,7 +447,7 @@ function Booking() {
           notes,
           reserved_items: reservedSkus,
           guidance: guidanceKey,
-          coupon: coupon.trim() ? coupon.trim().toUpperCase() : null,
+          coupon: !isPackage && coupon.trim() ? coupon.trim().toUpperCase() : null,
           use_pass: passApplied > 0 ? true : undefined,
           use_credit: creditApplied > 0 ? creditApplied : undefined,
 
@@ -786,7 +792,7 @@ function Booking() {
                   <span>+₪{guidanceFee}</span>
                 </div>
               )}
-              {!recurring && couponOff > 0 && (
+              {!recurring && !isPackage && couponOff > 0 && (
                 <div className="flex items-baseline justify-between text-[11px] text-[#f5d5cf] mb-1">
                   <span>קוד קופון {coupon.trim().toUpperCase()}</span>
                   <span>-₪{couponOff}</span>
@@ -815,7 +821,7 @@ function Booking() {
               )}
               {!recurring && <div className="mb-3" />}
 
-              {!recurring && passRemaining !== null && passRemaining > 0 && (
+              {!recurring && !isPackage && passRemaining !== null && passRemaining > 0 && (
                 <button
                   type="button"
                   onClick={() => setUsePass((v) => !v)}
@@ -827,13 +833,13 @@ function Booking() {
                   {passExpiryLabel ? `, בתוקף עד ${passExpiryLabel}` : ""})
                 </button>
               )}
-              {!recurring && hasActivePass && passRemaining === null && (
+              {!recurring && !isPackage && hasActivePass && passRemaining === null && (
                 <p className="text-[11px] text-[#f5d5cf]/80 mb-3 text-center">
                   הכרטיסייה הפעילה שלך לא מכסה את התאריך שנבחר — חיוב במחיר רגיל.
                 </p>
               )}
 
-              {!recurring && !hasActivePass && creditBalance > 0 && (
+              {!recurring && !isPackage && !hasActivePass && creditBalance > 0 && (
                 <button
                   type="button"
                   onClick={() => setUseCredit((v) => !v)}
@@ -845,7 +851,13 @@ function Booking() {
                 </button>
               )}
 
-              {!recurring && (
+              {!recurring && isPackage && (
+                <p className="mb-4 rounded-xl border border-[#f5d5cf]/30 px-3 py-2 text-[11px] leading-snug text-[#f8ede4]/80">
+                  מבצע ניו-בורן 3 שעות — מחיר קבוע וסופי ₪320, לא משתלב עם קופון, כרטיסייה, הנחה, קרדיט או קאשבק.
+                </p>
+              )}
+
+              {!recurring && !isPackage && (
                 <div className="mb-4">
                   <div className="flex gap-2">
                     <input

@@ -406,7 +406,7 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
           <Tag className="h-4 w-4" /> תעריף אישי לשעת סטודיו
         </div>
         <p className="text-xs text-muted-foreground">
-          אם מוגדר, מחליף לגמרי את מחירון השעות הרגיל (וגם את מבצע הבוקר) בכל שריון סטודיו שהלקוחה הזו תעשה — כולל בסדרות שבועיות חוזרות. השאירי ריק לחזרה למחירון הרגיל.
+          אם מוגדר, מחליף לגמרי את מחירון השעות הרגיל (וגם את מבצע ניו-בורן 3 שעות) בכל שריון סטודיו שהלקוחה הזו תעשה — כולל בסדרות שבועיות חוזרות. השאירי ריק לחזרה למחירון הרגיל.
         </p>
         <div className="max-w-[200px]">
           <Label className="text-xs text-muted-foreground">תעריף (₪ לשעה)</Label>
@@ -434,7 +434,7 @@ function ClientEditor({ client, email, onSaved }: { client: any; email: string; 
         </div>
         <p className="text-xs text-muted-foreground">
           אחוז הנחה שחל אוטומטית על כל שריון סטודיו/הזמנת אביזרים של הלקוחה הזו — בלי שהיא צריכה להזין שום קוד.
-          לא חל על מבצע ניו-בורן בוקר, על מנוי/כרטיסייה, ולא משולב עם קוד קופון שהיא מזינה בעצמה (אם הזינה קוד, הוא גובר). השאירי 0 לביטול.
+          לא חל על מבצע ניו-בורן 3 שעות, על מנוי/כרטיסייה, ולא משולב עם קוד קופון שהיא מזינה בעצמה (אם הזינה קוד, הוא גובר). השאירי 0 לביטול.
         </p>
         <div className="max-w-[200px]">
           <Label className="text-xs text-muted-foreground">הנחה (%)</Label>

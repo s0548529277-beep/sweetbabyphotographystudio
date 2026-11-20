@@ -4,7 +4,7 @@ import { verifyWebhookRequest } from "@lovable.dev/webhooks-js";
 import {
   fetchWhatsAppMediaInfo,
   downloadWhatsAppMedia,
-  WHATSAPP_MEDIA_EXT,
+  mediaExtension,
   normalizeMime,
 } from "@/lib/whatsapp.server";
 import { runWhatsAppBotReply, runWhatsAppNonTextReply } from "@/lib/whatsapp-bot.server";
@@ -31,6 +31,16 @@ type IncomingMessage = {
   document?: { id: string; caption?: string; filename?: string };
   audio?: { id: string };
   sticker?: { id: string };
+  location?: { latitude?: number; longitude?: number; name?: string; address?: string };
+  contacts?: Array<{ name?: { formatted_name?: string }; phones?: Array<{ phone?: string; wa_id?: string }> }>;
+  reaction?: { emoji?: string };
+};
+
+type StoredMedia = {
+  url: string;
+  type: "image" | "video" | "document" | "audio";
+  filename: string | null;
+  mime: string;
 };
 
 type StatusUpdate = {
@@ -39,18 +49,26 @@ type StatusUpdate = {
   errors?: { title?: string; code?: number | string }[];
 };
 
-/** Downloads one incoming media attachment and re-hosts it in Supabase Storage (Meta's own media URLs expire after a few minutes). Best-effort — a failure here still lets the message row save (with media_url null) rather than dropping the whole event. */
+/**
+ * Downloads one incoming media attachment of ANY type (photo, video, voice note, PDF, Word / Excel / ZIP, text...)
+ * and re-hosts it in Supabase Storage (Meta's own media URLs expire after a few minutes). Best-effort — a failure
+ * here still lets the message row save (with media_url null and a visible note) rather than dropping the whole event.
+ */
 async function storeIncomingMedia(
   supabaseAdmin: any,
   mediaId: string,
-): Promise<{ url: string; type: "image" | "video" | "document" | "audio" } | null> {
+  filename: string | null = null,
+): Promise<{ media: StoredMedia | null; failure: string | null }> {
   try {
     const info = await fetchWhatsAppMediaInfo(mediaId);
-    if (!info) return null;
+    if (!info) return { media: null, failure: "לא הצלחתי למשוך את הקובץ מוואטסאפ" };
+    if (info.fileSize && info.fileSize > 20 * 1024 * 1024) {
+      return { media: null, failure: "הקובץ גדול מ-20MB ולא נשמר באתר — אפשר לפתוח אותו באפליקציית וואטסאפ" };
+    }
     const bytes = await downloadWhatsAppMedia(info.url, info.fileSize);
-    if (!bytes) return null;
+    if (!bytes) return { media: null, failure: "הקובץ גדול מדי או שההורדה נכשלה ולא נשמר באתר" };
     const mime = normalizeMime(info.mimeType);
-    const ext = WHATSAPP_MEDIA_EXT[mime] ?? "bin";
+    const ext = mediaExtension(mime, filename);
     const path = `whatsapp/${mediaId}.${ext}`;
     const { error } = await supabaseAdmin.storage
       .from("items")
@@ -59,7 +77,7 @@ async function storeIncomingMedia(
     const { data } = await supabaseAdmin.storage
       .from("items")
       .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-    if (!data?.signedUrl) return null;
+    if (!data?.signedUrl) return { media: null, failure: "הקובץ נקלט אבל לא נוצר לו קישור" };
     const type = mime.startsWith("image/")
       ? "image"
       : mime.startsWith("video/")
@@ -67,10 +85,10 @@ async function storeIncomingMedia(
         : mime.startsWith("audio/")
           ? "audio"
           : "document";
-    return { url: data.signedUrl, type };
+    return { media: { url: data.signedUrl, type, filename, mime }, failure: null };
   } catch (e) {
     console.error("[SWEETBABY] whatsapp incoming media download failed", e);
-    return null;
+    return { media: null, failure: "שמירת הקובץ באתר נכשלה" };
   }
 }
 
@@ -81,28 +99,57 @@ async function handleIncomingMessage(
   businessPhone: string | null,
 ) {
   let body: string | null = null;
-  let media: { url: string; type: "image" | "video" | "document" | "audio" } | null = null;
+  let media: StoredMedia | null = null;
+  let failure: string | null = null;
+  // The caption of a photo / video / file only — never a location / contact text or the failure note below.
+  let caption: string | null = null;
+  const keep = async (id: string, filename: string | null = null) => {
+    const r = await storeIncomingMedia(supabaseAdmin, id, filename);
+    media = r.media;
+    failure = r.failure;
+  };
 
   if (msg.type === "text") {
     body = msg.text?.body ?? null;
   } else if (msg.type === "image" && msg.image) {
     body = msg.image.caption ?? null;
-    media = await storeIncomingMedia(supabaseAdmin, msg.image.id);
+    caption = body;
+    await keep(msg.image.id);
   } else if (msg.type === "video" && msg.video) {
     body = msg.video.caption ?? null;
-    media = await storeIncomingMedia(supabaseAdmin, msg.video.id);
+    caption = body;
+    await keep(msg.video.id);
   } else if (msg.type === "document" && msg.document) {
-    body = msg.document.caption ?? msg.document.filename ?? null;
-    media = await storeIncomingMedia(supabaseAdmin, msg.document.id);
+    // Any file type. The real file name is kept in its own column, so a caption no longer hides it.
+    body = msg.document.caption ?? null;
+    caption = body;
+    await keep(msg.document.id, msg.document.filename ?? null);
   } else if (msg.type === "audio" && msg.audio) {
-    media = await storeIncomingMedia(supabaseAdmin, msg.audio.id);
+    await keep(msg.audio.id);
   } else if (msg.type === "sticker" && msg.sticker) {
     // Stickers arrive as webp images; stored and shown as an image (the table only allows image/video/document/audio).
-    media = await storeIncomingMedia(supabaseAdmin, msg.sticker.id);
+    await keep(msg.sticker.id);
+  } else if (msg.type === "location" && msg.location) {
+    const { latitude: lat, longitude: lng, name, address } = msg.location;
+    const place = [name, address].filter(Boolean).join(" · ");
+    const map = lat != null && lng != null ? `https://www.google.com/maps?q=${lat},${lng}` : "";
+    body = `📍 מיקום${place ? `: ${place}` : ""}${map ? `\n${map}` : ""}`;
+  } else if (msg.type === "contacts" && msg.contacts?.length) {
+    body = msg.contacts
+      .map((c) => `👤 ${c.name?.formatted_name ?? "איש קשר"}${c.phones?.length ? ` — ${c.phones.map((p) => p.phone ?? p.wa_id).filter(Boolean).join(", ")}` : ""}`)
+      .join("\n");
+  } else if (msg.type === "reaction" && msg.reaction) {
+    body = `תגובה: ${msg.reaction.emoji ?? "👍"}`;
   } else {
-    // Unsupported type for now (location, contacts, reactions, stickers…) — still logged so nothing silently vanishes.
+    // Unknown type — still logged so nothing silently vanishes.
     body = `[הודעה מסוג ${msg.type} — עדיין לא נתמך בתצוגה]`;
   }
+  // The file could not be kept: say so in the thread (with the file name) instead of showing an empty bubble.
+  if (failure) {
+    const named = msg.document?.filename ? ` (${msg.document.filename})` : "";
+    body = [body, `⚠️ ${failure}${named}`].filter(Boolean).join("\n");
+  }
+  const stored = media as StoredMedia | null;
 
   const { error } = await supabaseAdmin.from("whatsapp_messages").insert({
     wa_message_id: msg.id,
@@ -110,8 +157,10 @@ async function handleIncomingMessage(
     phone: msg.from,
     contact_name: contactName,
     body,
-    media_url: media?.url ?? null,
-    media_type: media?.type ?? null,
+    media_url: stored?.url ?? null,
+    media_type: stored?.type ?? null,
+    media_filename: stored?.filename ?? null,
+    media_mime: stored?.mime ?? null,
     status: "received",
     business_phone: businessPhone,
   });
@@ -120,10 +169,6 @@ async function handleIncomingMessage(
   if (error && !String(error.message ?? "").includes("duplicate key")) {
     console.error("[SWEETBABY] whatsapp incoming message insert failed", error);
   }
-
-  // The caption of a photo / video / file (the stored body, never the
-  // placeholder used for unsupported types).
-  const caption = body && !body.startsWith("[הודעה מסוג") ? body : null;
 
   // Anything that is not plain text (voice note, photo, location…): the owner
   // is mailed once per NEW message, because the bot cannot open the content

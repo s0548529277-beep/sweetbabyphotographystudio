@@ -30,6 +30,7 @@ import { chatLinkUrl } from "./orderSummary";
 import { parseFamilyRoomReply, hourlySlots } from "./family-room-reply";
 import { SITE_INQUIRY_QUERY, SITE_INQUIRY_SUBJECT, customerEmailInNotice } from "./site-inquiry";
 import { isOwnStudioAddress } from "./studio-addresses";
+import { isBlankTemplateDraft } from "./draft-template";
 
 /**
  * How much one run may do. LEGACY = what the old hourly route (/api/send-booking-reminders, called from outside every 15 min)
@@ -120,7 +121,7 @@ const KNOWLEDGE = `
 
 === סטודיו Sweetbaby (המותג STUDIO) — לצלמות ששוכרות ===
 - כתובת: תלמוד ירושלמי 24, בית שמש. שעות: א׳–ה׳ 8:00–23:00; ו׳/ערב חג עד שעתיים לפני שבת; מוצ״ש משעה אחרי צאת שבת. איסוף/החזרת אביזרים עד 22:00 בלבד.
-- מחיר: שעה ראשונה 180₪, כל שעה נוספת 100₪, חצאי שעה יחסי. מבצע ניו בורן: 3 שעות ב-320₪ (בוקר 8–11/9–12/10–13/11–14 או ערב 19–22/19:30–22:30/20–23; לא משתלב עם קופון/כרטיסייה). מצלמת Canon 5D Mark III כלולה בהשכרה.
+- מחיר: שעה ראשונה 180₪, כל שעה נוספת 100₪, חצאי שעה יחסי. מבצע ניו בורן: 3 שעות רצופות ב-320₪ בחלון 11:00–20:00 (כל שעת התחלה בין 11:00 ל-17:00); מחיר קבוע וסופי — לא משתלב עם קופון, כרטיסייה, הנחה, קרדיט או קאשבק, ולא צוברים עליו קאשבק; מחוץ לחלון — התמחור השעתי הרגיל. מצלמת Canon 5D Mark III כלולה בהשכרה.
 - אביזרים בהשכרת סטודיו: כל מה שבסטודיו לשימוש חופשי; לפחות 90% מהקטלוג בסטודיו בכל רגע; שריון אביזר מסוים — אופציונלי בשלב ההזמנה. לא להבטיח מספר אביזרים.
 - מועדון קאשבק: 10% קרדיט על כל הזמנה (מינימום ההזמנה עצמו 100₪). הנחות רק דרך הרשמה לניוזלטר — לעולם לא לתת קוד.
 - הזמנה: הסכם תיאום ציפיות ב-sweetbabyphoto.shop/studio-rental → בחירת מועד ב-/booking → מקדמה 90₪ (לא מוחזרת). ביום — תשלום מלא מראש. ביטול ביום עצמו — 100%.
@@ -315,41 +316,44 @@ async function cleanupAnsweredThreads(
 }
 
 /**
- * Owner 2026-11-15: a thread showed TWO boxes — the written draft and an empty "template" draft (Gmail makes an empty
- * reply draft when a reply is opened). In a thread where the assistant's written draft exists, any extra draft that
- * is completely empty (no text at all) is deleted. A draft with any text is never touched.
+ * Owner 2026-11-15 / 2026-11-20: a thread showed TWO boxes — the written draft and a second "template" draft that holds
+ * only the designed card (+ the quoted mail). Gmail makes that second draft when a reply is opened from another screen
+ * or device while a draft already exists. The cleanup now covers EVERY thread that has 2+ drafts (not only threads
+ * labelled "טיוטה מוכנה", and also drafts that carry the quoted mail): a draft with nothing of its own is deleted when
+ * another draft in the thread has text. A draft with any text is never touched, and a blank one younger than 10 minutes
+ * is left alone (she may be opening it right now).
  */
-/** Empty draft, or the designed blank template ("היי," + signature only, made by the admin "blank draft" button). */
-function isBlankTemplateSnippet(snippet: string): boolean {
-  const t = snippet.replace(/\s+/g, " ").trim();
-  if (!t) return true;
-  return /^MICHAL SIBONI.{0,80}?היי,\s*(MICHAL SIBONI\s*)?053/.test(t);
-}
+const BLANK_DRAFT_MIN_AGE_MS = 10 * 60 * 1000;
+const BLANK_SCAN_MAX_THREADS = 40;
 
 async function removeEmptyTemplateDrafts(
   g: typeof import("@/integrations/google/gmail.server"),
   connKey: string,
-  readyId: string,
+  _readyId: string,
   drafts: DraftRef[],
 ): Promise<Set<string>> {
   const removed = new Set<string>();
   const draftByMsg = new Map(drafts.filter((d) => d.message?.id).map((d) => [d.message!.id!, d.id]));
-  const list = await g.gmailApi<{ threads?: Array<{ id: string }> }>(
-    connKey,
-    `/users/me/threads?labelIds=${encodeURIComponent(readyId)}&maxResults=50`,
-  );
-  for (const t of list?.threads ?? []) {
-    const th = await g.gmailApi<{ messages?: Array<{ id: string; labelIds?: string[]; snippet?: string }> }>(
+  const perThread = new Map<string, number>();
+  for (const d of drafts) {
+    const tid = d.message?.threadId;
+    if (tid) perThread.set(tid, (perThread.get(tid) ?? 0) + 1);
+  }
+  const threadIds = [...perThread.entries()].filter(([, n]) => n >= 2).map(([id]) => id).slice(0, BLANK_SCAN_MAX_THREADS);
+  for (const tid of threadIds) {
+    const th = await g.gmailApi<{ messages?: Array<{ id: string; labelIds?: string[]; snippet?: string; internalDate?: string }> }>(
       connKey,
-      `/users/me/threads/${t.id}?format=minimal`,
+      `/users/me/threads/${tid}?format=minimal`,
     );
     const ds = (th?.messages ?? []).filter((m) => m.labelIds?.includes("DRAFT"));
     if (ds.length < 2) continue;
-    const empty = ds.filter((m) => isBlankTemplateSnippet(m.snippet ?? ""));
+    const empty = ds.filter((m) => isBlankTemplateDraft(m.snippet ?? ""));
     if (empty.length === 0 || empty.length === ds.length) continue; // keep at least one written draft
     for (const m of empty) {
       const id = draftByMsg.get(m.id);
       if (!id) continue;
+      const ageMs = Date.now() - Number(m.internalDate ?? 0);
+      if (!Number.isFinite(ageMs) || ageMs < BLANK_DRAFT_MIN_AGE_MS) continue;
       if ((await g.gmailApi(connKey, `/users/me/drafts/${id}`, { method: "DELETE" })) !== null) removed.add(id);
     }
   }

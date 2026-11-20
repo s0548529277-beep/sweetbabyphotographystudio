@@ -197,7 +197,7 @@ export function ChatBookingWizard({
   const emailOk = /^\S+@\S+\.\S+$/.test(email.trim());
   const contactKnown = isMember && !!name.trim() && phoneOk && emailOk;
   const showContactFields = !contactKnown || editContact;
-  const creditApplied = useCredit ? Math.min(creditBalance, price) : 0;
+  const creditApplied = !morning && useCredit ? Math.min(creditBalance, price) : 0;
 
   // What is missing on the current step (shown under a disabled "continue").
   const missing: string[] = [];
@@ -367,7 +367,7 @@ export function ChatBookingWizard({
           {price > 0 && (
             <p className="rounded-lg bg-secondary/50 px-3 py-2 text-xs">
               מחיר: <b>{price}₪</b>
-              {morning ? " (חבילת 3 שעות מיוחדת)" : ""} · מקדמה לשריון 90₪
+              {morning ? " (מבצע ניו-בורן 3 שעות · מחיר קבוע, ללא קופון/הנחות/קרדיט)" : ""} · מקדמה לשריון 90₪
             </p>
           )}
         </div>
@@ -538,7 +538,7 @@ export function ChatBookingWizard({
               <p className="text-[11px] text-muted-foreground">ההנחה תחושב ותוצג בשריון.</p>
             </Field>
           )}
-          {isMember && creditBalance > 0 && (
+          {!morning && isMember && creditBalance > 0 && (
             <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-secondary/40 px-3 py-2 text-xs">
               <Checkbox checked={useCredit} onCheckedChange={(v) => setUseCredit(v === true)} />
               <span>
