@@ -681,6 +681,13 @@ function NewbornPackagesAdmin() {
     { key: "settings", label: "הגדרות", icon: SettingsIcon },
   ] as const;
 
+  const kindOptions = [
+    { key: "all" as HubFilter, label: "הכל", dot: "bg-newborn-ink" },
+    ...HUB_KINDS.map((k) => ({ key: k.key as HubFilter, label: k.label, dot: k.dot })),
+  ];
+  const kindCount = (key: HubFilter) =>
+    key === "all" ? allHub.length : allHub.filter((r) => r.kind === key).length;
+
   return (
     <div
       dir="rtl"
@@ -713,52 +720,94 @@ function NewbornPackagesAdmin() {
             <Plus className="h-4 w-4" /> הזמנה חדשה
           </Button>
         </div>
-        <nav className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 pb-2">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setView(t.key)}
-              className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm transition ${
-                view === t.key
-                  ? "bg-newborn-ink text-white shadow"
-                  : "text-newborn-ink/70 hover:bg-newborn-blush/50"
-              }`}
-            >
-              <t.icon className="h-4 w-4" /> {t.label}
-            </button>
-          ))}
-        </nav>
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-4 pb-3">
-          {(
-            [
-              { key: "all" as HubFilter, label: "הכל", dot: "bg-newborn-ink" },
-              ...HUB_KINDS.map((k) => ({ key: k.key as HubFilter, label: k.label, dot: k.dot })),
-            ]
-          ).map((k) => {
-            const count = k.key === "all" ? allHub.length : allHub.filter((r) => r.kind === k.key).length;
-            const active = kindFilter === k.key;
-            return (
-              <button
-                key={k.key}
-                type="button"
-                onClick={() => setKindFilter(k.key)}
-                className={`flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm transition ${
-                  active
-                    ? "border-newborn-ink bg-newborn-ink text-white shadow"
-                    : "border-newborn-rose/25 bg-white text-newborn-ink/80 hover:bg-newborn-blush/40"
-                }`}
-              >
-                <span className={`h-2.5 w-2.5 rounded-full ${k.dot}`} />
-                {k.label}
-                <span className={`text-xs ${active ? "text-white/80" : "text-muted-foreground"}`}>{count}</span>
-              </button>
-            );
-          })}
-        </div>
       </header>
 
-      <main className="mx-auto max-w-7xl space-y-6 px-4 py-6">
+      <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-6 lg:flex-row lg:items-start lg:gap-6">
+        {/* Phones / tablets: the same choices as a scrolling row on top */}
+        <div className="space-y-2 lg:hidden">
+          <nav className="flex gap-1 overflow-x-auto pb-1">
+            {TABS.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setView(t.key)}
+                className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm transition ${
+                  view === t.key ? "bg-newborn-ink text-white shadow" : "bg-white text-newborn-ink/70 hover:bg-newborn-blush/50"
+                }`}
+              >
+                <t.icon className="h-4 w-4" /> {t.label}
+              </button>
+            ))}
+          </nav>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {kindOptions.map((k) => {
+              const active = kindFilter === k.key;
+              return (
+                <button
+                  key={k.key}
+                  type="button"
+                  onClick={() => setKindFilter(k.key)}
+                  className={`flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm transition ${
+                    active
+                      ? "border-newborn-ink bg-newborn-ink text-white shadow"
+                      : "border-newborn-rose/25 bg-white text-newborn-ink/80 hover:bg-newborn-blush/40"
+                  }`}
+                >
+                  <span className={`h-2.5 w-2.5 rounded-full ${k.dot}`} />
+                  {k.label}
+                  <span className={`text-xs ${active ? "text-white/80" : "text-muted-foreground"}`}>{kindCount(k.key)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Desktop: one column on the side — views first, then the client type filter */}
+        <aside className="hidden w-56 shrink-0 lg:sticky lg:top-24 lg:block">
+          <div className="space-y-4 rounded-3xl border border-newborn-rose/20 bg-white/90 p-3 shadow-sm">
+            <div>
+              <p className="px-3 pb-1 text-[11px] font-medium tracking-wide text-newborn-gold">תצוגה</p>
+              <nav className="space-y-0.5">
+                {TABS.map((t) => (
+                  <button
+                    key={t.key}
+                    type="button"
+                    onClick={() => setView(t.key)}
+                    className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-right text-sm transition ${
+                      view === t.key ? "bg-newborn-ink text-white shadow" : "text-newborn-ink/75 hover:bg-newborn-blush/50"
+                    }`}
+                  >
+                    <t.icon className="h-4 w-4 shrink-0" /> {t.label}
+                  </button>
+                ))}
+              </nav>
+            </div>
+            <div className="border-t border-newborn-rose/15 pt-3">
+              <p className="px-3 pb-1 text-[11px] font-medium tracking-wide text-newborn-gold">סוג לקוחה</p>
+              <div className="space-y-0.5">
+                {kindOptions.map((k) => {
+                  const active = kindFilter === k.key;
+                  return (
+                    <button
+                      key={k.key}
+                      type="button"
+                      onClick={() => setKindFilter(k.key)}
+                      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-right text-sm transition ${
+                        active ? "bg-newborn-blush/70 font-medium text-newborn-ink" : "text-newborn-ink/75 hover:bg-newborn-blush/40"
+                      }`}
+                    >
+                      <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${k.dot}`} />
+                      <span className="flex-1">{k.label}</span>
+                      <span className="text-xs text-muted-foreground">{kindCount(k.key)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </aside>
+
+      <main className="min-w-0 flex-1 space-y-6">
         {(orders.isLoading || outdoorOrders.isLoading || studioOrders.isLoading || generalClients.isLoading) && (
           <p className="text-sm text-muted-foreground">טוען…</p>
         )}
@@ -947,6 +996,7 @@ function NewbornPackagesAdmin() {
           </div>
         )}
       </main>
+      </div>
 
       <HubKindChooser
         open={chooserOpen}
