@@ -290,6 +290,7 @@ export function buildBookingSummaryHtml(opts: {
 
   return buildStudioMailHtml({ title: heading.replace(/[\s\p{Extended_Pictographic}\u2713\u2714\uFE0F\u200D]+$/u, ""), innerHtml: `
     <p>שלום ${escapeHtml(b.contact_name ?? "")},</p>
+    ${buildGuestTopLineHtml(opts.guestSignupHtml)}
     <p>${intro}</p>
     ${isImmediateOrder(b.session_date, b.start_time) ? buildImmediateNoticeHtml() : ""}
     <h3 style="color:#2d3d2b">סיכום הזמנה</h3>
@@ -431,16 +432,27 @@ export function buildContinueOrderHtml(url: string): string {
  */
 export function buildGuestSignupHtml(url: string, credit: number): string {
   const safe = escapeHtml(url);
-  const creditLine = credit > 0
-    ? `<p style="margin:0 0 10px;font-size:15px;color:#2d3d2b"><strong>בהזמנה הזו את צוברת כ-₪${credit} קרדיט</strong> להזמנה הבאה (10% מההזמנה), אחרי אישור התשלום.</p>`
-    : "";
-  return `<div style="margin:22px 0;padding:16px;border-radius:14px;background:#eef4ea;border:1px solid #6b8a63;text-align:center">
-      <p style="margin:0 0 6px;font-size:16px;font-weight:700;color:#2d3d2b">הזמנת כאורחת — שלא תפסידי את הקרדיט 💗</p>
-      ${creditLine}
-      <p style="margin:0 0 12px;font-size:13px;color:#2d3d2b;opacity:.8">הרשמה מהירה, בלי למלא את הכול מחדש: ההזמנה והקרדיט עוברים לחשבון שלך.</p>
-      <a href="${safe}" style="background:#2d3d2b;color:#f8ede4;padding:12px 28px;border-radius:999px;text-decoration:none;display:inline-block;font-weight:700;font-size:16px">הרשמה מהירה ושמירת הקרדיט ←</a>
+  const creditBig = credit > 0
+    ? `<p style="margin:0 0 6px;font-size:26px;line-height:1.3;font-weight:800;color:#2d3d2b">🎁 ₪${credit} קרדיט מחכה לך</p>
+      <p style="margin:0 0 12px;font-size:15px;color:#2d3d2b">10% מההזמנה הזו חוזרים אלייך כקרדיט להזמנה הבאה — <strong>אבל רק אם נרשמת</strong>. בלי הרשמה, הקרדיט לא נשמר.</p>`
+    : `<p style="margin:0 0 12px;font-size:15px;color:#2d3d2b">כל הזמנה מזכה אותך ב-<strong>10% קרדיט</strong> להזמנה הבאה — <strong>אבל רק אם נרשמת</strong>.</p>`;
+  return `<div data-guest-url="${safe}" data-guest-credit="${credit}" style="margin:22px 0;padding:20px 16px;border-radius:14px;background:#eef4ea;border:2px solid #2d3d2b;text-align:center">
+      <p style="margin:0 0 8px;font-size:14px;font-weight:700;color:#6b8a63">הזמנת כאורחת — שלא תפסידי את הקרדיט 💗</p>
+      ${creditBig}
+      <p style="margin:0 0 14px;font-size:13px;color:#2d3d2b;opacity:.8">הרשמה מהירה, בלי למלא את הכול מחדש: ההזמנה והקרדיט עוברים לחשבון שלך.</p>
+      <a href="${safe}" style="background:#2d3d2b;color:#f8ede4;padding:14px 30px;border-radius:999px;text-decoration:none;display:inline-block;font-weight:700;font-size:17px">הרשמה מהירה ושמירת הקרדיט ←</a>
       <p dir="ltr" style="font-size:11px;margin:10px 0 0;word-break:break-all;color:#2d3d2b">${safe}</p>
     </div>`;
+}
+
+/** Small one-line credit teaser for the very top of the mail (right after the greeting). Built from the guest block; empty for registered customers. */
+export function buildGuestTopLineHtml(guestSignupHtml?: string): string {
+  if (!guestSignupHtml) return "";
+  const url = /data-guest-url="([^"]+)"/.exec(guestSignupHtml)?.[1];
+  if (!url) return "";
+  const credit = Number(/data-guest-credit="(\d+)"/.exec(guestSignupHtml)?.[1] ?? 0);
+  const text = credit > 0 ? `🎁 יש לך ₪${credit} קרדיט שמחכה — כדי לשמור אותו, ` : `🎁 כדי לשמור את הקרדיט מההזמנה, `;
+  return `<p style="margin:0 0 14px;padding:8px 12px;background:#eef4ea;border-radius:10px;font-size:14px;color:#2d3d2b">${text}<a href="${url}" style="color:#2d3d2b;font-weight:700;text-decoration:underline">נרשמים כאן בלחיצה</a></p>`;
 }
 
 // ---------- Props/equipment-rental order summary ----------
@@ -525,6 +537,7 @@ export function buildPropsOrderSummaryHtml(opts: {
 
   return buildStudioMailHtml({ title: heading.replace(/[\s\p{Extended_Pictographic}\u2713\u2714\uFE0F\u200D]+$/u, ""), innerHtml: `
     <p>שלום ${escapeHtml(o.contact_name ?? "")},</p>
+    ${buildGuestTopLineHtml(opts.guestSignupHtml)}
     <p>${intro}</p>
     ${isImmediateOrder(o.session_date, o.pickup_time) ? buildImmediateNoticeHtml() : ""}
     <h3 style="color:#2d3d2b">סיכום הזמנה</h3>

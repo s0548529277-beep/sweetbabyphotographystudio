@@ -77,6 +77,12 @@ function ClaimPage() {
           {state === "ready" && (
             <form onSubmit={submit} className="space-y-4">
               <h1 className="font-display text-3xl text-[#2d3d2b]">הרשמה מהירה</h1>
+              {total > 0 && (
+                <div className="rounded-2xl border-2 border-[#2d3d2b] bg-[#eef4ea] p-4 text-center">
+                  <p className="text-2xl font-extrabold text-[#2d3d2b]">🎁 ₪{total} קרדיט מחכה לך</p>
+                  <p className="mt-1 text-sm text-[#2d3d2b]/80">נרשמים עכשיו והקרדיט נשמר בחשבון להזמנה הבאה.</p>
+                </div>
+              )}
               <p className="text-sm text-[#2d3d2b]/75">
                 ההזמנה שלך תישמר בחשבון{total > 0 ? <>, וכך גם <b>הקרדיט שלך{credit.now > 0 ? ` (₪${credit.now} שכבר נצבר)` : ""}{credit.expected > 0 ? ` + כ-₪${credit.expected} מההזמנה הזו` : ""}</b></> : ""}.
               </p>
