@@ -13,7 +13,7 @@ export const CATALOG_ITEMS: CatItem[] = (catalogData as Cat[]).flatMap((c) => c.
 // someone who opens the page, requests a slot, and never comes back to pay
 // doesn't block it forever. Once she submits a receipt or the deposit is
 // confirmed, the hold no longer depends on time at all — see bookingBlocksSlot.
-export const PENDING_HOLD_MINUTES = 60;
+export const PENDING_HOLD_MINUTES = 120;
 
 // A phone booking gets a longer hold than a website one — confirming it
 // isn't instant like a website booking's own /deposit page (see
@@ -33,7 +33,7 @@ export const PHONE_BOOKING_NOTES_MARKER = "התקבל בשיחה טלפונית 
 // Props orders don't require prepayment the way a studio booking's deposit
 // does, so an untouched one is held for a shorter window before it's
 // treated as abandoned.
-export const PROPS_HOLD_MINUTES = 30;
+export const PROPS_HOLD_MINUTES = 240;
 
 /**
  * Whether a booking/order should count as occupying its slot right now.

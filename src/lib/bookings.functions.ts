@@ -482,7 +482,7 @@ export const placeBooking = createServerFn({ method: "POST" })
       const html = buildBookingSummaryHtml({
         heading: "בקשת השריון התקבלה 📋",
         guestSignupHtml: await (await import("@/lib/guest-claim.server")).guestSignupBlock(userId, "booking", booking.id, Number(price)),
-        intro: /אשלם בהמשך/.test(String(data.notes ?? "")) ? `קיבלנו את בקשת השריון שלך לסטודיו Sweetbaby. <strong>התאריך עדיין לא סופי</strong> — כדי לאשר ולשריין אותו בפועל, יש להשלים את תשלום המקדמה (או לצרף אסמכתא) בקישור שלמטה. עד אז התאריך עלול להשתחרר ללקוחות אחרות. ברגע שהתשלום יאושר, יישלח אליך אישור שריון נוסף עם סיכום מלא.` : `קיבלנו את בקשת השריון שלך לסטודיו Sweetbaby. <strong>התאריך עדיין לא סופי</strong> — כדי לאשר ולשריין אותו בפועל, יש להשלים את תשלום המקדמה (או לצרף אסמכתא לתשלום) בעמוד הבא <strong>תוך ${PENDING_HOLD_MINUTES / 60} שעה</strong>, אחרת התאריך עלול להשתחרר ללקוחות אחרות. ברגע שהתשלום יאושר, יישלח אליך אישור שריון נוסף עם סיכום מלא.`,
+        intro: /אשלם בהמשך/.test(String(data.notes ?? "")) ? `קיבלנו את בקשת השריון שלך לסטודיו Sweetbaby. <strong>התאריך עדיין לא סופי</strong> — כדי לאשר ולשריין אותו בפועל, יש להשלים את תשלום המקדמה (או לצרף אסמכתא) בקישור שלמטה. עד אז התאריך עלול להשתחרר ללקוחות אחרות. ברגע שהתשלום יאושר, יישלח אליך אישור שריון נוסף עם סיכום מלא.` : `קיבלנו את בקשת השריון שלך לסטודיו Sweetbaby. <strong>התאריך עדיין לא סופי</strong> — כדי לאשר ולשריין אותו בפועל, יש להשלים את תשלום המקדמה (או לצרף אסמכתא לתשלום) בעמוד הבא <strong>תוך ${PENDING_HOLD_MINUTES / 60} שעות</strong> — עד אז התאריך שמור לך, ואחר כך הוא עלול להשתחרר ללקוחות אחרות. <strong>גם אם את מתכננת לשלם באשראי, ההזמנה לא סגורה עד שמשלימים אותה בעמוד התשלום.</strong> ברגע שהתשלום יאושר, יישלח אליך אישור שריון נוסף עם סיכום מלא.`,
         booking: {
           id: booking.id,
           contact_name: data.contact_name,
@@ -1469,7 +1469,8 @@ export async function runDueBookingReminders(): Promise<{ checked: number; sent:
 // eligible booking even if the cron that calls this only runs every
 // 15-30 min (see api.send-booking-reminders.ts's own doc comment), without
 // being so wide it reminds someone who still has plenty of time left.
-const ABANDONED_HOLD_REMINDER_WINDOW_MINUTES = 20;
+// Studio hold = PENDING_HOLD_MINUTES (2h). Two reminders: ~45 min and ~100 min after the request (the 2nd = last call).
+const STUDIO_HOLD_REMINDER_AT_MINUTES = [45, 100];
 
 /**
  * A booking placed on the website but never paid for holds its slot for
@@ -1487,17 +1488,15 @@ export async function runDueAbandonedHoldReminders(): Promise<{ checked: number;
   if (isQuietForMail()) return { checked: 0, sent: 0 };
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  // Bound the scan to bookings young enough to still matter — anything
-  // older than the hold window itself has either converted (deposit_status
-  // moved on) or already expired.
+  // Anything older than the hold window has either converted or already been released.
   const windowStart = new Date(Date.now() - PENDING_HOLD_MINUTES * 60_000).toISOString();
 
   const { data: candidates, error } = await supabaseAdmin
     .from("bookings")
-    .select("id, user_id, session_date, start_time, price, deposit_amount, contact_name, contact_email, notes, created_at, status, deposit_status, abandoned_hold_reminder_sent_at")
+    .select("id, user_id, session_date, start_time, contact_name, contact_email, notes, created_at, hold_reminders_sent")
     .eq("deposit_status", "pending")
     .neq("status", "cancelled")
-    .is("abandoned_hold_reminder_sent_at", null)
+    .lt("hold_reminders_sent", STUDIO_HOLD_REMINDER_AT_MINUTES.length)
     .gte("created_at", windowStart);
 
   if (error) {
@@ -1510,27 +1509,30 @@ export async function runDueAbandonedHoldReminders(): Promise<{ checked: number;
 
   for (const b of candidates ?? []) {
     if (b.notes?.includes(PHONE_BOOKING_NOTES_MARKER)) continue;
+    const done = Number((b as any).hold_reminders_sent ?? 0);
     const ageMinutes = (now - new Date(b.created_at as string).getTime()) / 60_000;
     const minutesLeft = PENDING_HOLD_MINUTES - ageMinutes;
-    if (minutesLeft <= 0 || minutesLeft > ABANDONED_HOLD_REMINDER_WINDOW_MINUTES) continue;
+    if (minutesLeft <= 0 || ageMinutes < STUDIO_HOLD_REMINDER_AT_MINUTES[done]) continue;
+    const isLast = done + 1 >= STUDIO_HOLD_REMINDER_AT_MINUTES.length;
 
     try {
       const {
         data: { user },
       } = await supabaseAdmin.auth.admin.getUserById(b.user_id);
       const customerEmail = pickBookingEmail((b as any).contact_email, user?.email);
-      // A phone-only account's "email" is a synthetic placeholder nobody
-      // reads — nothing to send to, and nothing to mark as reminded since
-      // trying again next pass can't help either, so still mark it below.
+      // A phone-only account's "email" is a synthetic placeholder nobody reads — still count it as reminded.
       if (customerEmail && !isPlaceholderEmail(customerEmail)) {
-        const html = buildStudioMailHtml({ title: `המקום שלך עדיין שמור!`, innerHtml: `
+        const when = `${new Date(`${b.session_date}T00:00:00`).toLocaleDateString("he-IL", { day: "numeric", month: "long" })} בשעה ${String(b.start_time).slice(0, 5)}`;
+        const html = buildStudioMailHtml({ title: isLast ? "תזכורת אחרונה — ההזמנה עדיין לא סגורה" : "ההזמנה שלך עדיין לא סגורה", innerHtml: `
           <p>שלום ${b.contact_name || ""},</p>
-          <p>בחרת תור בסטודיו Sweetbaby ל-${new Date(`${b.session_date}T00:00:00`).toLocaleDateString("he-IL", { day: "numeric", month: "long" })} בשעה ${String(b.start_time).slice(0, 5)} — המקום עדיין שמור לך, אבל רק לעוד כ-${Math.max(1, Math.round(minutesLeft))} דקות לפני שהוא משתחרר.</p>
+          <p>ביקשת לשריין את הסטודיו Sweetbaby ל-${when}. <strong>ההזמנה עדיין לא סגורה</strong> — כרגע התאריך רק נשמר זמנית ${isLast ? `ועוד כ-${Math.max(1, Math.round(minutesLeft))} דקות ישתחרר` : `לכמה שעות`}.</p>
+          <p style="background:#fff4d6;border-radius:12px;padding:10px 14px"><strong>חשוב:</strong> גם אם שילמת או את מתכננת לשלם באשראי — בקשת ההזמנה לבדה לא סוגרת כלום. צריך להיכנס לעמוד התשלום ולהשלים אותו (תשלום מקדמה או צירוף אסמכתא). רק אז יש שריון סופי ואישור.</p>
           ${buildContinueOrderHtml(`https://sweetbabyphoto.shop/deposit/booking/${b.id}`)}` });
-        const { sendStudioAndCustomer } = await import("@/integrations/google/gmail.server");
-        await sendStudioAndCustomer({ customerEmail, subject: "המקום שלך בסטודיו עדיין שמור — רק לכמה דקות ⏳", html });
+        const { sendGmail } = await import("@/integrations/google/gmail.server");
+        // Customer only — the studio already got the request mail; a copy of every reminder would flood its inbox.
+        await sendGmail({ to: customerEmail, subject: isLast ? "תזכורת אחרונה: ההזמנה שלך בסטודיו עדיין לא סגורה ⏳" : "ההזמנה שלך בסטודיו עדיין לא סגורה — להשלמה בלחיצה", html });
       }
-      await supabaseAdmin.from("bookings").update({ abandoned_hold_reminder_sent_at: new Date().toISOString() }).eq("id", b.id);
+      await supabaseAdmin.from("bookings").update({ hold_reminders_sent: done + 1, abandoned_hold_reminder_sent_at: new Date().toISOString() } as any).eq("id", b.id);
       sent += 1;
     } catch (e) {
       console.error("[SWEETBABY] abandoned-hold reminder send failed for booking", b.id, e);

@@ -259,7 +259,7 @@ export async function createPhoneBooking(input: PhoneBookingInput) {
       heading: "בקשת שריון טלפונית התקבלה 📞",
       intro: input.contact_email
         ? `שוחחנו איתך בטלפון עכשיו וביקשת לשריין תאריך. <strong>התאריך שמור זמנית</strong> — כדי לאשר אותו סופית יש לשלם את המקדמה בלחיצה על הכפתור למטה תוך ${PENDING_HOLD_MINUTES / 60} שעות, אחרת התאריך ישתחרר.`
-        : `לקוחה שוחחה עם הבינה הקולית של הסטודיו וביקשה לשריין תאריך. <strong>התאריך עדיין לא סופי</strong> — יש ליצור איתה קשר לתיאום תשלום מקדמה תוך ${PENDING_HOLD_MINUTES / 60} שעה, אחרת התאריך ישתחרר.`,
+        : `לקוחה שוחחה עם הבינה הקולית של הסטודיו וביקשה לשריין תאריך. <strong>התאריך עדיין לא סופי</strong> — יש ליצור איתה קשר לתיאום תשלום מקדמה תוך ${PENDING_HOLD_MINUTES / 60} שעות, אחרת התאריך ישתחרר.`,
       booking: {
         id: booking.id,
         contact_name: input.contact_name,

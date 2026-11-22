@@ -1,7 +1,7 @@
 import { ColorHeart } from "@/components/Heart";
 import { FlowProgress, flowStepsFor } from "@/components/FlowProgress";
 import { isImmediateOrder } from "@/lib/orderSummary";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useBlocker } from "@tanstack/react-router";
 import { BackButton, MissingList } from "@/components/FlowHelpers";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -204,9 +204,35 @@ function Deposit() {
     }
   };
 
+  // Leaving this page before the order is closed: ask once more, explaining the hold is temporary (owner request 2026-11-22).
+  const holdHours = isStudio ? 2 : 4;
+  const stillOpen = !!record && record.deposit_status === "pending" && record.status !== "cancelled" && !done;
+  const blocker: any = (useBlocker as any)({
+    shouldBlockFn: () => stillOpen,
+    enableBeforeUnload: () => stillOpen,
+    withResolver: true,
+  });
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
+      {blocker?.status === "blocked" && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" dir="rtl" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md rounded-3xl bg-card p-6 shadow-xl">
+            <h2 className="font-display text-2xl text-primary mb-3">רגע, ההזמנה עדיין לא סגורה</h2>
+            <p className="text-sm leading-relaxed mb-2">
+              {isStudio ? "התאריך" : "האביזרים"} שמורים לך רק <strong>{holdHours} שעות</strong> מבקשת ההזמנה, ואחר כך {isStudio ? "הוא" : "הם"} עלולים להשתחרר ללקוחות אחרות.
+            </p>
+            <p className="text-sm leading-relaxed mb-5">
+              גם אם שילמת או את מתכננת לשלם באשראי — צריך להשלים את ההזמנה בעמוד הזה כדי שתהיה סגורה. בלי זה אין שריון ואי אפשר לאסוף.
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row-reverse">
+              <Button className="rounded-full flex-1" onClick={() => blocker.reset?.()}>להשלים את ההזמנה עכשיו</Button>
+              <Button variant="outline" className="rounded-full flex-1" onClick={() => blocker.proceed?.()}>אני בטוחה, לצאת בלי לסגור</Button>
+            </div>
+          </div>
+        </div>
+      )}
       <section className="container-page py-14 flex-1">
         <div className="max-w-4xl mx-auto">
           {!done && (

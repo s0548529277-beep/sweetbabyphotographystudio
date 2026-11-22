@@ -4,7 +4,8 @@ import { naiveHHMM, naiveLocalISO, naiveIsraelMs } from "@/lib/naive-time";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import { buildPropsOrderSummaryHtml, type SummaryOrderLine } from "@/lib/orderSummary";
+import { buildPropsOrderSummaryHtml, buildContinueOrderHtml, type SummaryOrderLine } from "@/lib/orderSummary";
+import { buildStudioMailHtml } from "@/lib/email-draft-design";
 import {
   releaseAbandonedItemLocks,
   bookingBlocksSlot,
@@ -350,7 +351,7 @@ export const placeOrder = createServerFn({ method: "POST" })
         heading: "בקשת הזמנה התקבלה 📦",
         guestSignupHtml: await (await import("@/lib/guest-claim.server")).guestSignupBlock(userId, "order", order.id, Number(total)),
         intro:
-          ("קיבלנו את בקשת ההזמנה שלך להשכרת אביזרים מסטודיו Sweetbaby. <strong>ההזמנה עדיין לא סופית</strong> — כדי לאשר אותה בפועל, יש להשלים את התשלום (או לצרף אסמכתא לתשלום) בעמוד הבא. ברגע שהתשלום יאושר, יישלח אליך אישור הזמנה נוסף עם סיכום מלא.").replace(/בעמוד הבא/g, /הוזמן דרך אשף/.test(String(data.notes ?? "")) ? "בקישור שלמטה" : "בעמוד הבא"),
+          (`קיבלנו את בקשת ההזמנה שלך להשכרת אביזרים מסטודיו Sweetbaby. <strong>ההזמנה עדיין לא סופית</strong> — כדי לאשר אותה בפועל, יש להשלים את התשלום (או לצרף אסמכתא לתשלום) בעמוד הבא. האביזרים שמורים לך ${PROPS_HOLD_MINUTES / 60} שעות בלבד, ואחר כך הם עלולים להשתחרר. <strong>גם אם שילמת או תשלמי באשראי — ההזמנה לא סגורה עד שמשלימים אותה בעמוד התשלום, ובלי זה אי אפשר לאסוף.</strong> ברגע שהתשלום יאושר, יישלח אליך אישור הזמנה נוסף עם סיכום מלא.`).replace(/בעמוד הבא/g, /הוזמן דרך אשף/.test(String(data.notes ?? "")) ? "בקישור שלמטה" : "בעמוד הבא"),
         order: {
           id: order.id,
           contact_name: data.contact_name,
@@ -900,6 +901,66 @@ export const checkItemsAvailability = createServerFn({ method: "POST" })
     }
     return result;
   });
+
+// Props hold = PROPS_HOLD_MINUTES (4h). Reminders every 2 hours: ~2h and ~3h30 after the request (2nd = last call).
+const PROPS_HOLD_REMINDER_AT_MINUTES = [120, 210];
+
+/**
+ * Abandoned props orders: an order still waiting for payment (nothing paid / no receipt / no cash marked) gets 2 mails
+ * — at ~2h and ~3.5h — saying the order is NOT closed yet and the items are held only until the hold ends.
+ * Customer only (the studio already got the request mail). Never cancels anything (owner rule: cash is often unmarked).
+ */
+export async function runDuePropsHoldReminders(): Promise<{ checked: number; sent: number }> {
+  if (isQuietForMail()) return { checked: 0, sent: 0 };
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const windowStart = new Date(Date.now() - PROPS_HOLD_MINUTES * 60_000).toISOString();
+  const { data: candidates, error } = await supabaseAdmin
+    .from("orders")
+    .select("id, user_id, contact_name, contact_email, session_date, created_at, hold_reminders_sent, notes")
+    .eq("status", "pending")
+    .eq("deposit_status", "pending")
+    .lt("hold_reminders_sent", PROPS_HOLD_REMINDER_AT_MINUTES.length)
+    .gte("created_at", windowStart);
+  if (error) {
+    console.error("[SWEETBABY] props hold reminder scan failed", error);
+    return { checked: 0, sent: 0 };
+  }
+  const now = Date.now();
+  let sent = 0;
+  for (const o of candidates ?? []) {
+    const done = Number((o as any).hold_reminders_sent ?? 0);
+    const ageMinutes = (now - new Date(o.created_at as string).getTime()) / 60_000;
+    const minutesLeft = PROPS_HOLD_MINUTES - ageMinutes;
+    if (minutesLeft <= 0 || ageMinutes < PROPS_HOLD_REMINDER_AT_MINUTES[done]) continue;
+    const isLast = done + 1 >= PROPS_HOLD_REMINDER_AT_MINUTES.length;
+    try {
+      const {
+        data: { user },
+      } = await supabaseAdmin.auth.admin.getUserById(o.user_id);
+      const emails = [(o as any).contact_email, user?.email].filter((e): e is string => !!e && !/@(phone|placeholder)\./i.test(e));
+      if (emails.length) {
+        const html = buildStudioMailHtml({ title: isLast ? "תזכורת אחרונה — ההזמנה עדיין לא סגורה" : "ההזמנה שלך עדיין לא סגורה", innerHtml: `
+          <p>שלום ${o.contact_name || ""},</p>
+          <p>ביקשת להזמין אביזרים מסטודיו Sweetbaby. <strong>ההזמנה עדיין לא סגורה</strong> — האביזרים שמורים לך רק ${isLast ? `עוד כ-${Math.max(1, Math.round(minutesLeft))} דקות` : "לכמה שעות"}, ואחר כך הם ישתחררו ללקוחות אחרות.</p>
+          <p style="background:#fff4d6;border-radius:12px;padding:10px 14px"><strong>חשוב:</strong> גם אם שילמת או את מתכננת לשלם באשראי — בקשת ההזמנה לבדה לא סוגרת כלום. צריך להיכנס לעמוד התשלום ולהשלים (בחירת אמצעי תשלום ושליחה). רק אז יש שריון סופי ואפשר לבוא לאסוף.</p>
+          ${buildContinueOrderHtml(`https://sweetbabyphoto.shop/deposit/order/${o.id}`)}` });
+        const { sendGmail } = await import("@/integrations/google/gmail.server");
+        const seen = new Set<string>();
+        for (const to of emails) {
+          const k = to.trim().toLowerCase();
+          if (seen.has(k)) continue;
+          seen.add(k);
+          await sendGmail({ to: to.trim(), subject: isLast ? "תזכורת אחרונה: הזמנת האביזרים שלך עדיין לא סגורה ⏳" : "הזמנת האביזרים שלך עדיין לא סגורה — להשלמה בלחיצה", html });
+        }
+      }
+      await supabaseAdmin.from("orders").update({ hold_reminders_sent: done + 1 } as any).eq("id", o.id);
+      sent += 1;
+    } catch (e) {
+      console.error("[SWEETBABY] props hold reminder failed for order", o.id, e);
+    }
+  }
+  return { checked: (candidates ?? []).length, sent };
+}
 
 /**
  * Cancels props orders that were opened but never moved forward: still pending,

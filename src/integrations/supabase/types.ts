@@ -448,6 +448,7 @@ export type Database = {
       bookings: {
         Row: {
           abandoned_hold_reminder_sent_at: string | null
+          hold_reminders_sent: number
           balance_amount: number | null
           balance_method: string | null
           balance_paid: boolean
@@ -496,6 +497,7 @@ export type Database = {
         }
         Insert: {
           abandoned_hold_reminder_sent_at?: string | null
+          hold_reminders_sent?: number
           balance_amount?: number | null
           balance_method?: string | null
           balance_paid?: boolean
@@ -544,6 +546,7 @@ export type Database = {
         }
         Update: {
           abandoned_hold_reminder_sent_at?: string | null
+          hold_reminders_sent?: number
           balance_amount?: number | null
           balance_method?: string | null
           balance_paid?: boolean
@@ -1876,6 +1879,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          hold_reminders_sent: number
           balance_amount: number | null
           balance_method: string | null
           camera_model: string | null
@@ -1918,6 +1922,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          hold_reminders_sent?: number
           balance_amount?: number | null
           balance_method?: string | null
           camera_model?: string | null
@@ -1960,6 +1965,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          hold_reminders_sent?: number
           balance_amount?: number | null
           balance_method?: string | null
           camera_model?: string | null
