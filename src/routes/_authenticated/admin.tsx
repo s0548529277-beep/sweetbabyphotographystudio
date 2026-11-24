@@ -91,6 +91,7 @@ const links: NavEntry[] = [
   },
   { to: "/admin/clients", label: "לקוחות", icon: Users },
   { to: "/admin/whatsapp", label: "וואטסאפ", icon: MessageSquare },
+  { to: "/admin/mail-chat", label: "מיילים כמו וואטסאפ", icon: Mail },
   { to: "/admin/newborn-contract-text", label: "מלל הכנה+חוזה ניו-בורן", icon: FileText },
   { to: "/admin/contract-text", label: "נוסח חוזים — חוץ וצילום כללי", icon: FileText },
   { to: "/admin/outdoor-contract-text", label: "חוזה צילומי חוץ", icon: FileText },

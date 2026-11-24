@@ -81,6 +81,7 @@ import { Route as AuthenticatedAdminGalleryRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminInspirationRouteImport } from './routes/_authenticated/admin.inspiration'
 import { Route as AuthenticatedAdminItemsRouteImport } from './routes/_authenticated/admin.items'
 import { Route as AuthenticatedAdminLeadsRouteImport } from './routes/_authenticated/admin.leads'
+import { Route as AuthenticatedAdminMailChatRouteImport } from './routes/_authenticated/admin.mail-chat'
 import { Route as AuthenticatedAdminNewbornContractTextRouteImport } from './routes/_authenticated/admin.newborn-contract-text'
 import { Route as AuthenticatedAdminNewbornPackagesRouteImport } from './routes/_authenticated/admin.newborn-packages'
 import { Route as AuthenticatedAdminNewsletterRouteImport } from './routes/_authenticated/admin.newsletter'
@@ -499,6 +500,12 @@ const AuthenticatedAdminLeadsRoute = AuthenticatedAdminLeadsRouteImport.update({
   path: '/leads',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminMailChatRoute =
+  AuthenticatedAdminMailChatRouteImport.update({
+    id: '/mail-chat',
+    path: '/mail-chat',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminNewbornContractTextRoute =
   AuthenticatedAdminNewbornContractTextRouteImport.update({
     id: '/newborn-contract-text',
@@ -777,6 +784,7 @@ export interface FileRoutesByFullPath {
   '/admin/inspiration': typeof AuthenticatedAdminInspirationRoute
   '/admin/items': typeof AuthenticatedAdminItemsRoute
   '/admin/leads': typeof AuthenticatedAdminLeadsRoute
+  '/admin/mail-chat': typeof AuthenticatedAdminMailChatRoute
   '/admin/newborn-contract-text': typeof AuthenticatedAdminNewbornContractTextRoute
   '/admin/newborn-packages': typeof AuthenticatedAdminNewbornPackagesRouteWithChildren
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
@@ -885,6 +893,7 @@ export interface FileRoutesByTo {
   '/admin/inspiration': typeof AuthenticatedAdminInspirationRoute
   '/admin/items': typeof AuthenticatedAdminItemsRoute
   '/admin/leads': typeof AuthenticatedAdminLeadsRoute
+  '/admin/mail-chat': typeof AuthenticatedAdminMailChatRoute
   '/admin/newborn-contract-text': typeof AuthenticatedAdminNewbornContractTextRoute
   '/admin/newborn-packages': typeof AuthenticatedAdminNewbornPackagesRouteWithChildren
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
@@ -996,6 +1005,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/inspiration': typeof AuthenticatedAdminInspirationRoute
   '/_authenticated/admin/items': typeof AuthenticatedAdminItemsRoute
   '/_authenticated/admin/leads': typeof AuthenticatedAdminLeadsRoute
+  '/_authenticated/admin/mail-chat': typeof AuthenticatedAdminMailChatRoute
   '/_authenticated/admin/newborn-contract-text': typeof AuthenticatedAdminNewbornContractTextRoute
   '/_authenticated/admin/newborn-packages': typeof AuthenticatedAdminNewbornPackagesRouteWithChildren
   '/_authenticated/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
@@ -1107,6 +1117,7 @@ export interface FileRouteTypes {
     | '/admin/inspiration'
     | '/admin/items'
     | '/admin/leads'
+    | '/admin/mail-chat'
     | '/admin/newborn-contract-text'
     | '/admin/newborn-packages'
     | '/admin/newsletter'
@@ -1215,6 +1226,7 @@ export interface FileRouteTypes {
     | '/admin/inspiration'
     | '/admin/items'
     | '/admin/leads'
+    | '/admin/mail-chat'
     | '/admin/newborn-contract-text'
     | '/admin/newborn-packages'
     | '/admin/newsletter'
@@ -1325,6 +1337,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/inspiration'
     | '/_authenticated/admin/items'
     | '/_authenticated/admin/leads'
+    | '/_authenticated/admin/mail-chat'
     | '/_authenticated/admin/newborn-contract-text'
     | '/_authenticated/admin/newborn-packages'
     | '/_authenticated/admin/newsletter'
@@ -1929,6 +1942,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminLeadsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/mail-chat': {
+      id: '/_authenticated/admin/mail-chat'
+      path: '/mail-chat'
+      fullPath: '/admin/mail-chat'
+      preLoaderRoute: typeof AuthenticatedAdminMailChatRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/newborn-contract-text': {
       id: '/_authenticated/admin/newborn-contract-text'
       path: '/newborn-contract-text'
@@ -2250,6 +2270,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminInspirationRoute: typeof AuthenticatedAdminInspirationRoute
   AuthenticatedAdminItemsRoute: typeof AuthenticatedAdminItemsRoute
   AuthenticatedAdminLeadsRoute: typeof AuthenticatedAdminLeadsRoute
+  AuthenticatedAdminMailChatRoute: typeof AuthenticatedAdminMailChatRoute
   AuthenticatedAdminNewbornContractTextRoute: typeof AuthenticatedAdminNewbornContractTextRoute
   AuthenticatedAdminNewbornPackagesRoute: typeof AuthenticatedAdminNewbornPackagesRouteWithChildren
   AuthenticatedAdminNewsletterRoute: typeof AuthenticatedAdminNewsletterRoute
@@ -2297,6 +2318,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminInspirationRoute: AuthenticatedAdminInspirationRoute,
   AuthenticatedAdminItemsRoute: AuthenticatedAdminItemsRoute,
   AuthenticatedAdminLeadsRoute: AuthenticatedAdminLeadsRoute,
+  AuthenticatedAdminMailChatRoute: AuthenticatedAdminMailChatRoute,
   AuthenticatedAdminNewbornContractTextRoute:
     AuthenticatedAdminNewbornContractTextRoute,
   AuthenticatedAdminNewbornPackagesRoute:
