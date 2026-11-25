@@ -603,6 +603,23 @@ export const markMailChatUnread = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Marks every thread of a chat as read (long-press "mark as read" in the list). */
+export const markMailChatRead = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ threads: z.array(z.object({ threadId: z.string().min(1), account: z.string().min(3) })).min(1).max(30) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const accounts = await listGmailAccounts();
+    await mapLimit(data.threads, 6, async (t) => {
+      const acc = accounts.find((a) => a.email === t.account.toLowerCase());
+      if (acc) await gmailApi(acc.connKey, `/users/me/threads/${encodeURIComponent(t.threadId)}/modify`, { method: "POST", body: { removeLabelIds: ["UNREAD"] } });
+    });
+    listCache.clear();
+    return { ok: true };
+  });
+
 // ── forward ───────────────────────────────────────────────────────────────────
 
 function collectAttachmentParts(payload: any, out: Array<{ filename: string; mimeType: string; attachmentId?: string; data?: string; size: number }> = []) {

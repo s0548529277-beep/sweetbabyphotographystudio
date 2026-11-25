@@ -65,6 +65,7 @@ import {
   listMailChats,
   listMailContacts,
   listScheduledMails,
+  markMailChatRead,
   markMailChatUnread,
   replyMailChat,
   scheduleMailChat,
@@ -246,7 +247,7 @@ function LegendDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
             <div className="text-xs font-bold mb-1" style={{ color: WA.greenDark }}>
               ברשימת השיחות
             </div>
-            <Row icon={<span className="h-2.5 w-2.5 rounded-full inline-block" style={{ background: WA.unread }} />} title="נקודה ירוקה" text="יש הודעה שלא קראת" />
+            <Row icon={<span className="h-2.5 w-2.5 rounded-full inline-block" style={{ background: WA.unread }} />} title="נקודה ירוקה" text="יש הודעה שלא קראת. לחיצה ארוכה על שיחה (במחשב: לחיצה ימנית) מסמנת אותה כלא נקראה / כנקראה" />
             <Row icon={<CheckCheck className="h-4 w-4" style={{ color: "#53bdeb" }} />} title="וי כפול כחול" text="ההודעה האחרונה בשיחה נשלחה ממך" />
             <Row icon={<span className="text-[13px] font-semibold" style={{ color: "#d97706" }}>✍️</span>} title="טיוטה מוכנה" text="עוזר הטיוטות הכין תשובה שמחכה לאישור שלך" />
             <Row icon={<AlarmClock className="h-4 w-4" style={{ color: "#d97706" }} />} title="שעון מעורר" text="הגיע הזמן שביקשת לחזור לשיחה הזאת" />
@@ -449,6 +450,7 @@ function MailChatAdmin() {
   const doArchive = useServerFn(archiveMailChat);
   const fetchAttachment = useServerFn(getMailAttachment);
   const doUnread = useServerFn(markMailChatUnread);
+  const doRead = useServerFn(markMailChatRead);
   const doForward = useServerFn(forwardMailMessage);
   const doSuggest = useServerFn(suggestMailReply);
   const fetchCard = useServerFn(getMailContactCard);
@@ -502,6 +504,10 @@ function MailChatAdmin() {
   const [labelSheet, setLabelSheet] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [legendOpen, setLegendOpen] = useState(false);
+  // Long-press read / unread: shown at once, until the next list load confirms it.
+  const [unreadOverride, setUnreadOverride] = useState<Record<string, boolean>>({});
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pressFired = useRef(false);
   const [awayFromBottom, setAwayFromBottom] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -1054,6 +1060,51 @@ function MailChatAdmin() {
     }
   }
 
+  useEffect(() => {
+    setUnreadOverride({});
+  }, [chats.dataUpdatedAt]);
+
+  /** Long press (or right click) on a chat in the list: unread <-> read, like WhatsApp. */
+  async function toggleReadFromList(c: Conv) {
+    const isUnread = unreadOverride[c.key] ?? c.unread;
+    if (!c.threads.length) {
+      toast.error("אפשר לסמן כלא נקרא רק שיחת מייל");
+      return;
+    }
+    try {
+      (navigator as any).vibrate?.(25);
+    } catch {
+      // vibration is optional
+    }
+    setUnreadOverride((o) => ({ ...o, [c.key]: !isUnread }));
+    try {
+      if (isUnread) await doRead({ data: { threads: c.threads.slice(0, 30) } });
+      else await doUnread({ data: { threadId: c.threads[0].threadId, account: c.threads[0].account } });
+      toast.success(isUnread ? "סומן כנקרא" : "סומן כלא נקרא");
+      await qc.invalidateQueries({ queryKey: ["mail-chats"] });
+    } catch (e: any) {
+      setUnreadOverride((o) => {
+        const n = { ...o };
+        delete n[c.key];
+        return n;
+      });
+      toast.error(e?.message ?? "לא הצלחתי לסמן");
+    }
+  }
+
+  function pressStart(c: Conv) {
+    pressFired.current = false;
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    pressTimer.current = setTimeout(() => {
+      pressFired.current = true;
+      void toggleReadFromList(c);
+    }, 550);
+  }
+  function pressEnd() {
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    pressTimer.current = null;
+  }
+
   async function markUnread() {
     if (!active?.threads.length) return;
     const newest = active.threads[0];
@@ -1405,12 +1456,32 @@ function MailChatAdmin() {
                 visibleChats.map((c) => {
                   const lab = labelStyle(prefs.labels[c.key]);
                   const pinned = prefs.pinned.includes(c.key);
+                  const unread = unreadOverride[c.key] ?? c.unread;
                   return (
                     <button
                       key={c.key}
                       type="button"
-                      onClick={() => openChat(c.key)}
-                      className="w-full text-right flex items-center gap-3 px-3 py-2.5 transition hover:bg-[#f5f6f6]"
+                      onClick={() => {
+                        if (pressFired.current) {
+                          pressFired.current = false;
+                          return;
+                        }
+                        openChat(c.key);
+                      }}
+                      onPointerDown={(e) => {
+                        if (e.button === 0) pressStart(c);
+                      }}
+                      onPointerUp={pressEnd}
+                      onPointerLeave={pressEnd}
+                      onPointerCancel={pressEnd}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        pressEnd();
+                        pressFired.current = false;
+                        void toggleReadFromList(c);
+                      }}
+                      title="לחיצה ארוכה / לחיצה ימנית: סימון כנקרא / לא נקרא"
+                      className="w-full text-right flex items-center gap-3 px-3 py-2.5 transition hover:bg-[#f5f6f6] select-none [-webkit-touch-callout:none]"
                       style={activeKey === c.key ? { background: WA.panel } : undefined}
                     >
                       <span className="relative shrink-0">
@@ -1420,12 +1491,12 @@ function MailChatAdmin() {
                       <div className="min-w-0 flex-1 border-b py-1" style={{ borderColor: "#f0f2f5" }}>
                         <div className="flex items-center justify-between gap-2">
                           <span className="min-w-0 flex items-center gap-1.5">
-                            <span className="truncate text-[15px]" style={{ color: WA.ink, fontWeight: c.unread ? 700 : 500 }}>
+                            <span className="truncate text-[15px]" style={{ color: WA.ink, fontWeight: unread ? 700 : 500 }}>
                               {c.title}
                             </span>
                             <KindTags kinds={c.kinds ?? []} max={1} />
                           </span>
-                          <span className="shrink-0 text-[11px]" style={{ color: c.unread ? WA.unread : WA.muted, fontWeight: c.unread ? 600 : 400 }}>
+                          <span className="shrink-0 text-[11px]" style={{ color: unread ? WA.unread : WA.muted, fontWeight: unread ? 600 : 400 }}>
                             {listTime(c.lastDate)}
                           </span>
                         </div>
@@ -1459,7 +1530,7 @@ function MailChatAdmin() {
                               </span>
                             )}
                             {pinned && <Pin className="h-3.5 w-3.5 rotate-45" style={{ color: WA.muted }} aria-label="מוצמד" />}
-                            {c.unread && <span className="h-2.5 w-2.5 rounded-full" style={{ background: WA.unread }} aria-label="לא נקרא" />}
+                            {unread && <span className="h-2.5 w-2.5 rounded-full" style={{ background: WA.unread }} aria-label="לא נקרא" />}
                           </span>
                         </div>
                       </div>
