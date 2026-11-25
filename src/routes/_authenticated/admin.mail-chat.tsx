@@ -341,6 +341,7 @@ function MailChatAdmin() {
   const [headerMenu, setHeaderMenu] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [box, setBox] = useState<"business" | "personal">("business");
+  const [months, setMonths] = useState(3);
   const [viewMsg, setViewMsg] = useState<ChatMsg | null>(null);
   const [ccList, setCcList] = useState<string[]>([]);
   const [ccOpen, setCcOpen] = useState(false);
@@ -360,8 +361,9 @@ function MailChatAdmin() {
   }, [search]);
 
   const chats = useQuery({
-    queryKey: ["mail-chats", serverSearch, box],
-    queryFn: () => fetchChats({ data: { ...(serverSearch ? { search: serverSearch } : {}), box } }),
+    queryKey: ["mail-chats", serverSearch, box, months],
+    queryFn: () => fetchChats({ data: { ...(serverSearch ? { search: serverSearch } : {}), box, months } }),
+    placeholderData: (prev) => prev,
     refetchInterval: serverSearch ? false : 20000,
     refetchOnWindowFocus: true,
   });
@@ -1149,6 +1151,30 @@ function MailChatAdmin() {
                     {b.label}
                   </button>
                 ))}
+              </div>
+            )}
+            {tab === "chats" && !serverSearch && (
+              <div className="flex items-center gap-1.5 text-xs" style={{ color: WA.muted }}>
+                <span className="shrink-0">טווח:</span>
+                {(
+                  [
+                    { m: 1, label: "חודש" },
+                    { m: 3, label: "3 חודשים" },
+                    { m: 6, label: "חצי שנה" },
+                    { m: 12, label: "שנה" },
+                  ] as const
+                ).map((o) => (
+                  <button
+                    key={o.m}
+                    type="button"
+                    onClick={() => setMonths(o.m)}
+                    className="h-7 px-2.5 rounded-full font-medium"
+                    style={months === o.m ? { background: "#d9fdd3", color: WA.greenDark } : { background: WA.panel }}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+                {chats.isFetching && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-label="טוענת" />}
               </div>
             )}
             {tab === "chats" ? (

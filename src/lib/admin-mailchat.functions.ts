@@ -58,10 +58,14 @@ async function mapLimit<T, R>(items: T[], limit: number, fn: (x: T) => Promise<R
 
 const listCache = new Map<string, { at: number; data: any }>();
 
+const MAX_LIST_THREADS = 800;
+/** Thread list entries already read, keyed "account|threadId" -> the processed meta at that historyId. */
+const threadMetaCache = new Map<string, { historyId: string; meta: ThreadMeta | null }>();
+
 /** The chat list: recent Gmail threads, grouped like WhatsApp (a person = one chat, several people = a group). */
 export const listMailChats = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ search: z.string().max(100).optional(), box: z.enum(["business", "personal"]).optional() }).parse(d ?? {}))
+  .inputValidator((d: unknown) => z.object({ search: z.string().max(100).optional(), box: z.enum(["business", "personal"]).optional(), months: z.number().int().min(1).max(12).optional() }).parse(d ?? {}))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const accounts = await listGmailAccounts();
@@ -81,6 +85,8 @@ export const listMailChats = createServerFn({ method: "POST" })
       "-list:googlegroups.com",
       "-cc:googlegroups.com",
       "-to:googlegroups.com",
+      // How far back (owner, 2026-11-25: "load months back"); a search looks at everything.
+      search ? "" : `newer_than:${(data.months ?? 3) * 31}d`,
       search,
     ]
       .filter(Boolean)
@@ -92,18 +98,31 @@ export const listMailChats = createServerFn({ method: "POST" })
     const primary = await resolveGmailAccount();
     const metas: ThreadMeta[] = [];
     for (const acc of readAccounts) {
-      const list = await gmailApi<{ threads?: Array<{ id: string }> }>(
-        acc.connKey,
-        `/users/me/threads?maxResults=${search ? 30 : 50}&q=${encodeURIComponent(q)}`,
-      );
-      const ids = (list?.threads ?? []).map((t) => t.id);
-      const threads = await mapLimit(ids, 8, (id) => gmailApi<any>(acc.connKey, `/users/me/threads/${id}?format=metadata&${META_QS}`));
-      for (const t of threads) {
+      // All thread ids in the range (pages of up to 500, at most MAX_LIST_THREADS).
+      const refs: Array<{ id: string; historyId?: string }> = [];
+      let pageToken = "";
+      const cap = search ? 40 : MAX_LIST_THREADS;
+      do {
+        const list = await gmailApi<{ threads?: Array<{ id: string; historyId?: string }>; nextPageToken?: string }>(
+          acc.connKey,
+          `/users/me/threads?maxResults=${Math.min(500, cap - refs.length)}&q=${encodeURIComponent(q)}${pageToken ? `&pageToken=${pageToken}` : ""}`,
+        );
+        refs.push(...(list?.threads ?? []));
+        pageToken = list?.nextPageToken ?? "";
+      } while (pageToken && refs.length < cap);
+      // Only threads that are new or changed since the last load are fetched again (cached by historyId).
+      const out = await mapLimit(refs, 12, async (r) => {
+        const key = `${acc.email}|${r.id}`;
+        const c = threadMetaCache.get(key);
+        if (c && r.historyId && c.historyId === r.historyId) return c.meta;
+        const t = await gmailApi<any>(acc.connKey, `/users/me/threads/${r.id}?format=metadata&${META_QS}`);
+        if (!t) return null;
         // A mailing list / group (any message with a List-Id header) is not a conversation: skip it.
-        if (t?.messages?.some((msg: any) => gmailHeaderValue(headersOf(msg), "List-Id"))) continue;
-        const m = t ? metaFromThread(t, acc.email, isOwn) : null;
-        if (m) metas.push(m);
-      }
+        const meta = t.messages?.some((msg: any) => gmailHeaderValue(headersOf(msg), "List-Id")) ? null : metaFromThread(t, acc.email, isOwn);
+        if (r.historyId) threadMetaCache.set(key, { historyId: r.historyId, meta });
+        return meta;
+      });
+      for (const m of out) if (m) metas.push(m);
     }
     // The studio mailbox forwards to the personal one, so the same mail can exist in both: keep one copy (the primary account's).
     const seen = new Set<string>();
