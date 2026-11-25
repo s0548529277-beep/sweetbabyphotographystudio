@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-25 (22:2x Israel) — Claude (chat, same task):** PUBLISHED head 025742e (no floaters on the mail screen + list rows truncate; entry below) via the Lovable connector (deploy 17c481ad-4723-45d0-b60b-c9e2a4e2ad1c, status pending when logged; Lovable `latest_commit_sha` matched before the deploy; not checked live).
+
 - **2026-11-25 (22:2x Israel) — Claude (chat, owner phone screenshot of `/admin/mail-chat` (taken 21:22, before the 21:3x fix went live): list cut on the left side + "מלא כפתורים מסתירים, שפר עוד"):** CODE ONLY, no DB. (1) `__root.tsx`: on `/admin/mail-chat` the site-wide floating pieces are NOT rendered (ChatBot bubble, AccessibilityWidget, NewsletterPopup, CookieConsent, FunnelFloat), so nothing covers the mail screen; every other page unchanged. (2) List rows (`admin.mail-chat.tsx`): row button `min-w-0 overflow-hidden`, title and snippet spans `min-w-0 flex-1 overflow-hidden` so a long subject / snippet truncates instead of widening the row; chat list gets `max-md:pb-24` so the floating "מייל חדש" button does not hide the last row. Checks: `npx tsc` (no errors in the two files), `vite build` OK. NOT looked at on a real phone.
 
 - **2026-11-25 (21:3x Israel) — Claude (chat, same task):** PUBLISHED head ffec1ea (phone layout fix of `/admin/mail-chat`, entry below, merged with the other session's 8159992 = 750 Mini offer removed) via the Lovable connector (deploy 9ec32e01-4055-4641-8a27-44cea951b4ee, status pending when logged; Lovable `latest_commit_sha` matched before the deploy; not checked live).
