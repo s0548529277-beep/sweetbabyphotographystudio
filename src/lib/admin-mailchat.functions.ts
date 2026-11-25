@@ -10,7 +10,7 @@ import {
   gmailHeaderValue,
   type GmailAttachment,
 } from "@/integrations/google/gmail.server";
-import { isOwnStudioAddress, isStudioChannelAddress } from "@/lib/studio-addresses";
+import { isOldStudioMailbox, isOwnStudioAddress, isStudioChannelAddress } from "@/lib/studio-addresses";
 import { buildConversations, cleanSubject, parseAddressList, stripQuoted, type ThreadMeta } from "@/lib/mailchat";
 import {
   META_QS,
@@ -61,21 +61,37 @@ const listCache = new Map<string, { at: number; data: any }>();
 /** The chat list: recent Gmail threads, grouped like WhatsApp (a person = one chat, several people = a group). */
 export const listMailChats = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ search: z.string().max(100).optional(), includeOther: z.boolean().optional() }).parse(d ?? {}))
+  .inputValidator((d: unknown) => z.object({ search: z.string().max(100).optional(), box: z.enum(["business", "personal"]).optional() }).parse(d ?? {}))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const accounts = await listGmailAccounts();
     if (!accounts.length) return { connected: false, conversations: [] as any[], accounts: [] as string[] };
     const isOwn = makeIsOwn(accounts);
     const search = data.search?.trim() ?? "";
-    // Promotions / social are hidden unless she asks for them ("כולל קידומי מכירות ורשתות").
-    const q = [...(data.includeOther ? [] : ["-category:promotions", "-category:social"]), "-in:spam", "-in:trash", search].filter(Boolean).join(" ");
-    const hit = listCache.get(q);
+    // Two boxes (owner, 2026-11-25): עסק = the Sweet Baby studio mailbox, אישי = everything in the personal mailbox.
+    // Never shown in either: promotions, social, forums, spam, trash and groups / mailing lists (they break focus).
+    const box = data.box ?? "business";
+    const readAccounts = accounts.filter((a) => (box === "business" ? isOldStudioMailbox(a.email) : !isOldStudioMailbox(a.email)));
+    const q = [
+      "-category:promotions",
+      "-category:social",
+      "-category:forums",
+      "-in:spam",
+      "-in:trash",
+      "-list:googlegroups.com",
+      "-cc:googlegroups.com",
+      "-to:googlegroups.com",
+      search,
+    ]
+      .filter(Boolean)
+      .join(" ");
+    const cacheKey = `${box}|${q}`;
+    const hit = listCache.get(cacheKey);
     if (hit && Date.now() - hit.at < 8000) return hit.data;
 
     const primary = await resolveGmailAccount();
     const metas: ThreadMeta[] = [];
-    for (const acc of accounts) {
+    for (const acc of readAccounts) {
       const list = await gmailApi<{ threads?: Array<{ id: string }> }>(
         acc.connKey,
         `/users/me/threads?maxResults=${search ? 30 : 50}&q=${encodeURIComponent(q)}`,
@@ -83,6 +99,8 @@ export const listMailChats = createServerFn({ method: "POST" })
       const ids = (list?.threads ?? []).map((t) => t.id);
       const threads = await mapLimit(ids, 8, (id) => gmailApi<any>(acc.connKey, `/users/me/threads/${id}?format=metadata&${META_QS}`));
       for (const t of threads) {
+        // A mailing list / group (any message with a List-Id header) is not a conversation: skip it.
+        if (t?.messages?.some((msg: any) => gmailHeaderValue(headersOf(msg), "List-Id"))) continue;
         const m = t ? metaFromThread(t, acc.email, isOwn) : null;
         if (m) metas.push(m);
       }
@@ -92,8 +110,8 @@ export const listMailChats = createServerFn({ method: "POST" })
     const unique = [...metas]
       .sort((a, b) => Number(b.account === primary?.email) - Number(a.account === primary?.email))
       .filter((m) => (seen.has(m.firstMessageId) ? false : (seen.add(m.firstMessageId), true)));
-    const result = { connected: true, conversations: buildConversations(unique), accounts: accounts.map((a) => a.email) };
-    listCache.set(q, { at: Date.now(), data: result });
+    const result = { connected: true, conversations: buildConversations(unique), accounts: readAccounts.map((a) => a.email) };
+    listCache.set(cacheKey, { at: Date.now(), data: result });
     return result;
   });
 

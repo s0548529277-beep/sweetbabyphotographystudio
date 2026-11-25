@@ -274,8 +274,6 @@ const BASE_FILTERS: Array<{ id: Filter; label: string }> = [
   { id: "unread", label: "לא נקראו" },
   { id: "waiting", label: "ממתינות לתשובה" },
   { id: "drafts", label: "✍️ טיוטות" },
-  { id: "studio", label: "סטודיו" },
-  { id: "personal", label: "אישי" },
   { id: "groups", label: "קבוצות" },
   { id: "whatsapp", label: "🟢 וואטסאפ" },
 ];
@@ -342,7 +340,7 @@ function MailChatAdmin() {
   const [remindOpen, setRemindOpen] = useState(false);
   const [headerMenu, setHeaderMenu] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
-  const [includeOther, setIncludeOther] = useState(false);
+  const [box, setBox] = useState<"business" | "personal">("business");
   const [viewMsg, setViewMsg] = useState<ChatMsg | null>(null);
   const [ccList, setCcList] = useState<string[]>([]);
   const [ccOpen, setCcOpen] = useState(false);
@@ -362,8 +360,8 @@ function MailChatAdmin() {
   }, [search]);
 
   const chats = useQuery({
-    queryKey: ["mail-chats", serverSearch, includeOther],
-    queryFn: () => fetchChats({ data: { ...(serverSearch ? { search: serverSearch } : {}), ...(includeOther ? { includeOther: true } : {}) } }),
+    queryKey: ["mail-chats", serverSearch, box],
+    queryFn: () => fetchChats({ data: { ...(serverSearch ? { search: serverSearch } : {}), box } }),
     refetchInterval: serverSearch ? false : 20000,
     refetchOnWindowFocus: true,
   });
@@ -422,7 +420,7 @@ function MailChatAdmin() {
     for (const c of allContacts) if (c.phone && tail9(c.phone).length === 9 && !byTail.has(tail9(c.phone))) byTail.set(tail9(c.phone), c);
     const list: Conv[] = mailConversations.map((c) => ({ ...c }));
     const byKey = new Map(list.map((c) => [c.key, c]));
-    for (const r of ((waConvsQ.data ?? []) as any[])) {
+    for (const r of (box === "business" ? ((waConvsQ.data ?? []) as any[]) : [])) {
       const contact = byTail.get(tail9(String(r.phone ?? "")));
       const at = Date.parse(r.created_at) || 0;
       const snippet = `🟢 ${r.body || (r.media_type ? `[${r.media_filename || r.media_type}]` : "")}`;
@@ -460,7 +458,7 @@ function MailChatAdmin() {
       byKey.set(w.key, w);
     }
     return list;
-  }, [mailConversations, waConvsQ.data, allContacts, prefs.waSeen, waSeenBase]);
+  }, [mailConversations, waConvsQ.data, allContacts, prefs.waSeen, waSeenBase, box]);
   const active = conversations.find((c) => c.key === activeKey) ?? null;
   useEffect(() => {
     const phone = active?.waPhone;
@@ -1133,6 +1131,26 @@ function MailChatAdmin() {
                 </button>
               )}
             </div>
+            {tab === "chats" && (
+              <div className="grid grid-cols-2 gap-1 rounded-full p-1" style={{ background: WA.panel }}>
+                {(
+                  [
+                    { id: "business", label: "💼 עסק · סוויט בייבי" },
+                    { id: "personal", label: "🏠 אישי" },
+                  ] as const
+                ).map((b) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => setBox(b.id)}
+                    className="h-9 rounded-full text-sm font-semibold transition"
+                    style={box === b.id ? { background: "#fff", color: WA.greenDark, boxShadow: "0 1px 3px rgba(0,0,0,.12)" } : { color: WA.muted }}
+                  >
+                    {b.label}
+                  </button>
+                ))}
+              </div>
+            )}
             {tab === "chats" ? (
               <div className="flex gap-1.5 overflow-x-auto pb-0.5">
                 {filters.map((f) => (
@@ -1147,15 +1165,6 @@ function MailChatAdmin() {
                     {!!f.count && <span className="opacity-70">{f.count}</span>}
                   </button>
                 ))}
-                <button
-                  type="button"
-                  onClick={() => setIncludeOther((v) => !v)}
-                  title="להציג גם מיילים מהלשוניות קידומי מכירות ורשתות חברתיות של Gmail"
-                  className="shrink-0 h-8 px-3 rounded-full text-xs font-medium transition whitespace-nowrap flex items-center gap-1"
-                  style={includeOther ? { background: "#fde8d7", color: "#9a4a12" } : { background: WA.panel, color: WA.muted }}
-                >
-                  {includeOther ? "✓ " : "+ "}קידומי מכירות ורשתות
-                </button>
               </div>
             ) : (
               <div className="flex items-center justify-between gap-2 text-xs" style={{ color: WA.muted }}>

@@ -14,7 +14,7 @@ import { buildBrandedMailHtml, buildStudioMailHtml, esc } from "@/lib/email-draf
 import { isOwnStudioAddress, isStudioChannelAddress } from "@/lib/studio-addresses";
 import { cleanSubject, parseAddressList, replyRecipients, type MailAddress, type ThreadMeta } from "@/lib/mailchat";
 
-export const META_HEADERS = ["From", "To", "Cc", "Subject", "Date", "Delivered-To", "Message-ID"];
+export const META_HEADERS = ["From", "To", "Cc", "Subject", "Date", "Delivered-To", "Message-ID", "List-Id"];
 export const META_QS = META_HEADERS.map((h) => `metadataHeaders=${h}`).join("&");
 export const MAX_ATTACH_BYTES = 18 * 1024 * 1024;
 export const SCHEDULED_KEY = "mail_chat_scheduled";

@@ -7,3 +7,8 @@ export function isStudioChannelAddress(email: string | null | undefined): boolea
 export function isOwnStudioAddress(email: string | null | undefined): boolean {
   return !!email && /^(?:m0548529277|s0548529277)(?:\+[^@]*)?@gmail\.com$/i.test(email.trim());
 }
+
+/** The old Sweet Baby studio mailbox (s). The admin mail chat no longer reads it (owner, 2026-11-25). */
+export function isOldStudioMailbox(email: string | null | undefined): boolean {
+  return !!email && /^s0548529277@gmail\.com$/i.test(email.trim());
+}
