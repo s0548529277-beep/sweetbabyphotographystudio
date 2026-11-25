@@ -269,9 +269,10 @@ function LegendDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
             <div className="text-xs font-bold mb-1" style={{ color: WA.greenDark }}>
               שלוש התיבות למעלה
             </div>
-            <Row icon={<span>💼</span>} title="עסק" text="כל המיילים של תיבת סוויט בייבי + שיחות הוואטסאפ" />
-            <Row icon={<span>🏠</span>} title="אישי" text="כל המיילים של התיבה האישית" />
-            <Row icon={<span>👥</span>} title="קבוצות" text="קבוצות ורשימות תפוצה משתי התיבות, כל קבוצה בשרשור אחד (קריאה בלבד)" />
+            <Row icon={<span>💼</span>} title="עסק" text="מיילים מאנשים בתיבת סוויט בייבי + הזמנות ולידים + שיחות הוואטסאפ" />
+            <Row icon={<span>🏠</span>} title="אישי" text="מיילים מאנשים בתיבה האישית" />
+            <Row icon={<span>👥</span>} title="קבוצות" text="קבוצות גוגל משתי התיבות, כל קבוצה בשרשור אחד (קריאה בלבד)" />
+            <Row icon={<span>🔔</span>} title="עדכונים" text="כל מה שלא נשלח מבן אדם פרטי, משתי התיבות: קידומי מכירות, ניוזלטרים, הודעות מגוגל ומערכות, noreply (קריאה בלבד)" />
           </div>
         </div>
       </DialogContent>
@@ -493,7 +494,7 @@ function MailChatAdmin() {
   const [remindOpen, setRemindOpen] = useState(false);
   const [headerMenu, setHeaderMenu] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
-  const [box, setBox] = useState<"business" | "personal" | "groups">("business");
+  const [box, setBox] = useState<"business" | "personal" | "groups" | "updates">("business");
   const [months, setMonths] = useState(3);
   const [viewMsg, setViewMsg] = useState<ChatMsg | null>(null);
   const [ccList, setCcList] = useState<string[]>([]);
@@ -1295,19 +1296,20 @@ function MailChatAdmin() {
               )}
             </div>
             {tab === "chats" && (
-              <div className="grid grid-cols-3 gap-1 rounded-full p-1" style={{ background: WA.panel }}>
+              <div className="grid grid-cols-4 gap-1 rounded-full p-1" style={{ background: WA.panel }}>
                 {(
                   [
                     { id: "business", label: "💼 עסק" },
                     { id: "personal", label: "🏠 אישי" },
                     { id: "groups", label: "👥 קבוצות" },
+                    { id: "updates", label: "🔔 עדכונים" },
                   ] as const
                 ).map((b) => (
                   <button
                     key={b.id}
                     type="button"
                     onClick={() => setBox(b.id)}
-                    className="h-9 rounded-full text-sm font-semibold transition"
+                    className="h-9 rounded-full text-[13px] sm:text-sm font-semibold transition whitespace-nowrap"
                     style={box === b.id ? { background: "#fff", color: WA.greenDark, boxShadow: "0 1px 3px rgba(0,0,0,.12)" } : { color: WA.muted }}
                   >
                     {b.label}
@@ -2125,9 +2127,11 @@ function MailChatAdmin() {
                 )}
               </div>
 
-              {active.key.startsWith("l:") ? (
+              {active.key.startsWith("l:") || box === "updates" ? (
                 <footer className="shrink-0 border-t px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-center text-[13px]" style={{ background: WA.panel, borderColor: WA.line, color: WA.muted }}>
-                  👥 קבוצה — קריאה בלבד כאן (תשובה כאן הייתה נשלחת לכל חברי הקבוצה).{" "}
+                  {box === "updates"
+                    ? "🔔 עדכון אוטומטי (לא מבן אדם פרטי) — קריאה בלבד כאן."
+                    : "👥 קבוצה — קריאה בלבד כאן (תשובה כאן הייתה נשלחת לכל חברי הקבוצה)."}{" "}
                   {active.threads[0] && (
                     <a href={`https://mail.google.com/mail/u/0/#all/${active.threads[0].threadId}`} target="_blank" rel="noreferrer" className="underline" style={{ color: "#027eb5" }}>
                       לענות ב-Gmail

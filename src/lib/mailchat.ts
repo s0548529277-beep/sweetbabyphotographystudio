@@ -77,6 +77,8 @@ export type ThreadMeta = {
   /** A mailing list / Google Group the thread belongs to (List-Id, or the googlegroups address), with its name. */
   listId?: string;
   listName?: string;
+  /** Sent by a machine (shop, newsletter, Google, system), not by a private person -> the "עדכונים" box. */
+  automated?: boolean;
 };
 
 export type MailConversation = {

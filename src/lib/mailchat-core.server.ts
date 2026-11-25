@@ -15,7 +15,7 @@ import { isOwnStudioAddress, isStudioChannelAddress } from "@/lib/studio-address
 import { classifySiteMail, type SiteMailKind } from "@/lib/mail-labels";
 import { cleanSubject, parseAddressList, replyRecipients, type MailAddress, type ThreadMeta } from "@/lib/mailchat";
 
-export const META_HEADERS = ["From", "To", "Cc", "Subject", "Date", "Delivered-To", "Message-ID", "List-Id"];
+export const META_HEADERS = ["From", "To", "Cc", "Subject", "Date", "Delivered-To", "Message-ID", "List-Id", "List-Unsubscribe", "Auto-Submitted", "Precedence", "X-Auto-Response-Suppress"];
 export const META_QS = META_HEADERS.map((h) => `metadataHeaders=${h}`).join("&");
 export const MAX_ATTACH_BYTES = 18 * 1024 * 1024;
 export const SCHEDULED_KEY = "mail_chat_scheduled";
@@ -33,6 +33,26 @@ export function headersOf(msg: any): any[] {
 }
 
 export const isDraftMsg = (m: any) => (m?.labelIds ?? []).includes("DRAFT");
+
+const AUTO_LOCAL =
+  /^(?:no[-_.]?reply|do[-_.]?not[-_.]?reply|donotreply|noreply|notifications?|notify|notice|alerts?|mailer[-_.]?daemon|postmaster|bounces?|news(?:letter)?s?|info|updates?|support|billing|invoices?|receipts?|accounts?|account[-_.]?security|security|team|hello|marketing|promo(?:tions?)?|offers?|deals?|sales|service|system|admin|automated|calendar[-_.]?notification|feedback|reply|welcome|members?|community|digest|orders?|shop|store|crm|mail)(?:[-_.+]|$)/i;
+const AUTO_DOMAIN =
+  /(?:^|\.)(?:google\.com|googlemail\.com|youtube\.com|facebookmail\.com|facebook\.com|meta\.com|instagram\.com|linkedin\.com|github\.com|lovable\.dev|lovable\.app|supabase\.(?:com|io)|vercel\.com|cloudflare\.com|paypal\.com|amazon\.com|aliexpress\.com|temu\.com|shein\.com|apple\.com|icloud\.com|microsoft\.com|zoom\.us|wix\.com|canva\.com|mailchimp\.com|mcsv\.net|sendgrid\.net|hubspot\.com|openai\.com|anthropic\.com|whatsapp\.com|twilio\.com|improvmx\.com|name\.com|rivhit\.co\.il|gov\.il)$/i;
+
+/** A message sent by a machine (shop, newsletter, Google, system) rather than a private person. */
+export function isAutomatedMessage(h: any[], from: MailAddress, labelIds: string[]): boolean {
+  const v = (n: string) => gmailHeaderValue(h, n).toLowerCase();
+  if (v("List-Unsubscribe") || v("List-Id")) return true;
+  const auto = v("Auto-Submitted");
+  if (auto && auto !== "no") return true;
+  if (/^(?:bulk|list|junk)$/.test(v("Precedence").trim())) return true;
+  if (v("X-Auto-Response-Suppress")) return true;
+  if (labelIds.includes("CATEGORY_PROMOTIONS") || labelIds.includes("CATEGORY_SOCIAL") || labelIds.includes("CATEGORY_FORUMS")) return true;
+  const [local, domain = ""] = from.email.toLowerCase().split("@");
+  if (AUTO_LOCAL.test(local)) return true;
+  if (AUTO_DOMAIN.test(domain)) return true;
+  return false;
+}
 
 export function metaFromThread(thread: any, account: string, isOwn: (e: string) => boolean): ThreadMeta | null {
   const all: any[] = thread?.messages ?? [];
@@ -58,7 +78,8 @@ export function metaFromThread(thread: any, account: string, isOwn: (e: string) 
   let listName = "";
   for (const m of msgs) {
     const raw = gmailHeaderValue(headersOf(m), "List-Id");
-    if (raw) {
+    // Only a real group (Google Groups) is a "group"; any other list (newsletters, shops) is an automated mail.
+    if (raw && /googlegroups/i.test(raw)) {
       const idm = raw.match(/<([^>]+)>/);
       listId = (idm ? idm[1] : raw).trim().toLowerCase();
       listName = raw.replace(/<[^>]*>/, "").replace(/^["'\s]+|["'\s]+$/g, "").trim();
@@ -77,6 +98,17 @@ export function metaFromThread(thread: any, account: string, isOwn: (e: string) 
     }
   }
   if (listId && !listName) listName = listId.split(/[@.]/)[0];
+  // Automated mail (not from a private person): a shop / newsletter / Google / system notice. The thread counts as
+  // automated only when no other person wrote a normal mail in it and it is not a site order / lead.
+  let human = false;
+  let fromOthers = false;
+  for (const m of msgs) {
+    const h = headersOf(m);
+    const from = parseAddressList(gmailHeaderValue(h, "From"))[0];
+    if (!from || isOwn(from.email)) continue;
+    fromOthers = true;
+    if (!isAutomatedMessage(h, from, m.labelIds ?? [])) human = true;
+  }
   // Permanent order / lead mark: the type of every site mail in the thread, judged by its subject.
   const kinds = [...new Set(msgs.map((m) => classifySiteMail(gmailHeaderValue(headersOf(m), "Subject"))).filter((k): k is SiteMailKind => !!k))];
   const lastFrom = parseAddressList(gmailHeaderValue(headersOf(last), "From"))[0];
@@ -93,6 +125,7 @@ export function metaFromThread(thread: any, account: string, isOwn: (e: string) 
     firstMessageId: gmailHeaderValue(headersOf(first), "Message-ID") || `${account}:${thread.id}`,
     hasDraft: all.length !== msgs.length,
     kinds,
+    automated: !listId && fromOthers && !human && !kinds.length,
     ...(listId ? { listId, listName } : {}),
   };
 }

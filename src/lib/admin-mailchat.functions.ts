@@ -65,7 +65,7 @@ const threadMetaCache = new Map<string, { historyId: string; meta: ThreadMeta | 
 /** The chat list: recent Gmail threads, grouped like WhatsApp (a person = one chat, several people = a group). */
 export const listMailChats = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ search: z.string().max(100).optional(), box: z.enum(["business", "personal", "groups"]).optional(), months: z.number().int().min(1).max(12).optional() }).parse(d ?? {}))
+  .inputValidator((d: unknown) => z.object({ search: z.string().max(100).optional(), box: z.enum(["business", "personal", "groups", "updates"]).optional(), months: z.number().int().min(1).max(12).optional() }).parse(d ?? {}))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const accounts = await listGmailAccounts();
@@ -76,12 +76,16 @@ export const listMailChats = createServerFn({ method: "POST" })
     // Never shown in either: promotions, social, forums, spam, trash and groups / mailing lists (they break focus).
     const box = data.box ?? "business";
     // קבוצות (owner, 2026-11-25): every kind of group / mailing list from BOTH mailboxes, one continuous chat per group.
-    const readAccounts =
-      box === "groups" ? accounts : accounts.filter((a) => (box === "business" ? isOldStudioMailbox(a.email) : !isOldStudioMailbox(a.email)));
+    // עדכונים (owner, 2026-11-25): everything NOT from a private person (shops, newsletters, Google, systems), both mailboxes.
+    // עסק reads both mailboxes too: every site order / lead / studio mail lands there even when it sits in the personal one.
+    const readAccounts = box === "personal" ? accounts.filter((a) => !isOldStudioMailbox(a.email)) : accounts;
+    const noGroups = ["-list:googlegroups.com", "-cc:googlegroups.com", "-to:googlegroups.com"];
     const boxQ =
       box === "groups"
-        ? ["(list:googlegroups.com OR cc:googlegroups.com OR to:googlegroups.com OR category:forums OR category:social)"]
-        : ["-category:promotions", "-category:social", "-category:forums", "-list:googlegroups.com", "-cc:googlegroups.com", "-to:googlegroups.com"];
+        ? ["(list:googlegroups.com OR cc:googlegroups.com OR to:googlegroups.com)"]
+        : box === "updates"
+          ? noGroups
+          : ["-category:promotions", "-category:social", "-category:forums", ...noGroups];
     const q = [
       ...boxQ,
       "-in:spam",
@@ -122,8 +126,22 @@ export const listMailChats = createServerFn({ method: "POST" })
         if (r.historyId) threadMetaCache.set(key, { historyId: r.historyId, meta });
         return meta;
       });
-      // Groups box = only mailing lists / groups; the other boxes never show them (they break focus).
-      for (const m of out) if (m && (box === "groups" ? !!m.listId : !m.listId)) metas.push(m);
+      // Groups box = only groups; updates = only automated mail; עסק / אישי = only mail from real people.
+      const studioBox = isOldStudioMailbox(acc.email);
+      for (const m of out) {
+        if (!m) continue;
+        const site = !!m.kinds?.length; // order / lead / any site mail -> always business
+        const studioSide = site || m.channel === "studio";
+        const keep =
+          box === "groups"
+            ? !!m.listId
+            : box === "updates"
+              ? !m.listId && !!m.automated && !site
+              : box === "business"
+                ? !m.listId && (site || (!m.automated && (studioBox || studioSide)))
+                : !m.listId && !m.automated && !studioSide;
+        if (keep) metas.push(m);
+      }
     }
     // The studio mailbox forwards to the personal one, so the same mail can exist in both: keep one copy (the primary account's).
     const seen = new Set<string>();
