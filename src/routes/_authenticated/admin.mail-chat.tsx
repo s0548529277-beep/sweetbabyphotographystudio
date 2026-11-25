@@ -307,7 +307,7 @@ function MailChatAdmin() {
 
   const thread = useQuery({
     queryKey: ["mail-chat", activeKey, active?.threads.map((t) => t.threadId).join(",")],
-    queryFn: () => fetchChat({ data: { threads: active!.threads.slice(0, 15) } }),
+    queryFn: () => fetchChat({ data: { threads: active!.threads.slice(0, 30) } }),
     enabled: !!active,
     refetchInterval: active ? 15000 : false,
   });
@@ -410,6 +410,20 @@ function MailChatAdmin() {
     setShowCard(false);
     setDraftOpen(false);
   }, [activeKey]);
+
+  // Phone: the device "back" button closes the open chat and returns to the list (like WhatsApp) instead of leaving the page.
+  useEffect(() => {
+    if (!showThread || typeof window === "undefined" || window.matchMedia("(min-width: 768px)").matches) return;
+    window.history.pushState({ mailChat: true }, "");
+    const onPop = () => setShowThread(false);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [showThread]);
+
+  function closeThread() {
+    if (typeof window !== "undefined" && window.history.state?.mailChat) window.history.back();
+    else setShowThread(false);
+  }
 
   function openChat(key: string) {
     setActiveKey(key);
@@ -605,36 +619,39 @@ function MailChatAdmin() {
 
   // ── render ──
   return (
-    <div dir="rtl" className="space-y-4">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full flex items-center justify-center text-white" style={{ background: WA.green }}>
+    <div dir="rtl" className="space-y-3 md:space-y-4">
+      {/* On a phone the page title hides while a chat is open, so the chat gets the whole screen (like WhatsApp). */}
+      <div className={`items-center justify-between gap-2 md:gap-3 ${showThread ? "hidden md:flex" : "flex"}`}>
+        <div className="flex items-center gap-2 md:gap-3 min-w-0">
+          <div className="h-9 w-9 md:h-10 md:w-10 shrink-0 rounded-full flex items-center justify-center text-white" style={{ background: WA.green }}>
             <Mail className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <h2 className="font-display text-2xl text-primary">מיילים כמו וואטסאפ</h2>
+            <h2 className="font-display text-xl md:text-2xl text-primary truncate">מיילים כמו וואטסאפ</h2>
             <p className="hidden sm:block text-sm text-muted-foreground">כל המיילים של הסטודיו והאישי במקום אחד, מסונכרנים אוטומטית מ-Gmail — עונים ישר מכאן</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
           {notifyState === "default" && (
             <Button
               variant="ghost"
-              className="rounded-full gap-2"
+              aria-label="הפעלת התראות"
+              className="rounded-full gap-2 px-2.5 md:px-4"
               onClick={() => Notification.requestPermission().then((p) => p === "granted" && toast.success("התראות הופעלו"))}
             >
-              <Bell className="h-4 w-4" /> הפעלת התראות
+              <Bell className="h-4 w-4" /> <span className="hidden md:inline">הפעלת התראות</span>
             </Button>
           )}
           <Button
-            className="rounded-full gap-2 text-white"
+            aria-label="מייל חדש"
+            className="rounded-full gap-2 text-white px-3 md:px-4"
             style={{ background: WA.green }}
             onClick={() => {
               setComposeTo([]);
               setComposeOpen(true);
             }}
           >
-            <MessageSquarePlus className="h-4 w-4" /> מייל חדש
+            <MessageSquarePlus className="h-4 w-4" /> <span className="hidden sm:inline">מייל חדש</span>
           </Button>
         </div>
       </div>
@@ -644,7 +661,9 @@ function MailChatAdmin() {
       )}
 
       <div
-        className="grid md:grid-cols-[370px_1fr] rounded-2xl border overflow-hidden h-[calc(100dvh-12rem)] min-h-[480px] md:h-[calc(100dvh-14rem)] md:min-h-[620px] shadow-sm"
+        className={`grid md:grid-cols-[370px_1fr] overflow-hidden -mx-6 md:mx-0 border-y md:border md:rounded-2xl shadow-sm min-h-[420px] md:h-[calc(100dvh-14rem)] md:min-h-[620px] ${
+          showThread ? "h-[calc(100dvh-6rem)]" : "h-[calc(100dvh-9.5rem)]"
+        }`}
         style={{ borderColor: WA.line, background: "#fff" }}
       >
         {/* ── side panel ── */}
@@ -878,11 +897,11 @@ function MailChatAdmin() {
             </div>
           ) : (
             <>
-              <header className="shrink-0 h-[60px] px-3 flex items-center gap-2 border-b" style={{ background: WA.panel, borderColor: WA.line }}>
+              <header className="shrink-0 h-[60px] px-2 md:px-3 flex items-center gap-1 md:gap-2 border-b" style={{ background: WA.panel, borderColor: WA.line }}>
                 <button
                   type="button"
                   aria-label="חזרה לרשימה"
-                  onClick={() => setShowThread(false)}
+                  onClick={closeThread}
                   className="md:hidden h-10 w-10 -mr-1 rounded-full flex items-center justify-center hover:bg-black/5"
                 >
                   <ArrowRight className="h-5 w-5" style={{ color: WA.ink }} />
@@ -922,7 +941,7 @@ function MailChatAdmin() {
                   rel="noreferrer"
                   title="פתיחה ב-Gmail"
                   aria-label="פתיחה ב-Gmail"
-                  className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-black/5"
+                  className="hidden sm:flex h-9 w-9 rounded-full items-center justify-center hover:bg-black/5"
                   style={{ color: WA.muted }}
                 >
                   <ExternalLink className="h-4 w-4" />
@@ -996,7 +1015,7 @@ function MailChatAdmin() {
               )}
 
               <div
-                className="min-h-0 flex-1 overflow-y-auto px-3 md:px-[6%] py-3"
+                className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2.5 md:px-[6%] py-3"
                 style={{ background: WA.wallpaper, backgroundImage: "radial-gradient(rgba(0,0,0,0.035) 1px, transparent 1px)", backgroundSize: "18px 18px" }}
               >
                 {thread.isLoading && (
@@ -1301,7 +1320,7 @@ function MailChatAdmin() {
 // ── small pieces ──────────────────────────────────────────────────────────────
 function IconBtn({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button type="button" title={label} aria-label={label} onClick={onClick} className="h-9 w-9 rounded-full flex items-center justify-center hover:bg-black/5" style={{ color: WA.muted }}>
+    <button type="button" title={label} aria-label={label} onClick={onClick} className="h-9 w-8 md:w-9 shrink-0 rounded-full flex items-center justify-center hover:bg-black/5" style={{ color: WA.muted }}>
       {children}
     </button>
   );

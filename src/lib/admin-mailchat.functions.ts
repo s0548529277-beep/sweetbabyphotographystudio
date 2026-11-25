@@ -234,7 +234,7 @@ async function draftIdsFor(connKey: string, email: string): Promise<Map<string, 
 export const getMailChat = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ threads: z.array(z.object({ threadId: z.string().min(1), account: z.string().min(3) })).min(1).max(15) }).parse(d),
+    z.object({ threads: z.array(z.object({ threadId: z.string().min(1), account: z.string().min(3) })).min(1).max(30) }).parse(d),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);

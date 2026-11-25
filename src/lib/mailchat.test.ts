@@ -52,9 +52,14 @@ test("multi-recipient thread is a group with reply-all", () => {
     { name: "דנה", email: "dana@x.com" },
     { name: "אבי", email: "avi@x.com" },
   ];
-  const c = buildConversations([meta({ threadId: "g", subject: "Re: מפגש צלמות", participants: parts })]);
+  const c = buildConversations([
+    meta({ threadId: "g", subject: "Re: מפגש צלמות", participants: parts, lastDate: 3 }),
+    meta({ threadId: "h", subject: "נושא אחר לגמרי", participants: [...parts].reverse(), lastDate: 7 }),
+  ]);
+  assert.equal(c.length, 1, "same people in two different threads = one group chat");
   assert.equal(c[0].isGroup, true);
-  assert.equal(c[0].title, "מפגש צלמות");
+  assert.equal(c[0].title, "דנה, אבי");
+  assert.equal(c[0].threads[0].threadId, "h", "newest thread first");
   assert.deepEqual(replyRecipients(parts), ["dana@x.com", "avi@x.com"]);
 });
 

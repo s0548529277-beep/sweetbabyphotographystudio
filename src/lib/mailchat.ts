@@ -98,13 +98,16 @@ export function buildConversations(metas: ThreadMeta[]): MailConversation[] {
   const byKey = new Map<string, MailConversation>();
   for (const m of metas) {
     const isGroup = m.participants.length >= 2;
-    const key = isGroup ? `g:${m.account}:${m.threadId}` : `p:${m.participants[0]?.email ?? `t:${m.threadId}`}`;
+    // A group = the same set of people, whatever the thread / subject, so all their mails read as one continuous chat.
+    const key = isGroup
+      ? `g:${[...new Set(m.participants.map((p) => p.email))].sort().join(",")}`
+      : `p:${m.participants[0]?.email ?? `t:${m.threadId}`}`;
     const names = m.participants.map((p) => p.name || p.email.split("@")[0]);
     const existing = byKey.get(key);
     if (!existing) {
       byKey.set(key, {
         key,
-        title: isGroup ? cleanSubject(m.subject) : names[0] || "(ללא שולח)",
+        title: isGroup ? groupTitle(names) : names[0] || "(ללא שולח)",
         subtitle: isGroup ? names.join(", ") : m.participants[0]?.email ?? "",
         isGroup,
         participants: m.participants,
@@ -128,7 +131,18 @@ export function buildConversations(metas: ThreadMeta[]): MailConversation[] {
       existing.lastFromMe = m.lastFromMe;
     }
   }
-  return [...byKey.values()].sort((a, b) => b.lastDate - a.lastDate);
+  const list = [...byKey.values()];
+  // Newest threads first, so a long chat loads its latest mails.
+  const dateOf = new Map(metas.map((m) => [`${m.account}:${m.threadId}`, m.lastDate]));
+  for (const c of list) c.threads.sort((a, b) => (dateOf.get(`${b.account}:${b.threadId}`) ?? 0) - (dateOf.get(`${a.account}:${a.threadId}`) ?? 0));
+  return list.sort((a, b) => b.lastDate - a.lastDate);
+}
+
+/** WhatsApp-like group name from its members: "דנה, אבי ועוד 2". */
+export function groupTitle(names: string[]): string {
+  const n = names.filter(Boolean);
+  if (n.length <= 3) return n.join(", ");
+  return `${n.slice(0, 2).join(", ")} ועוד ${n.length - 2}`;
 }
 
 /** Recipients of a reply: a person -> that person; a group -> everybody (reply-all). */
