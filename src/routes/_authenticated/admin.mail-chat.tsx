@@ -1323,11 +1323,11 @@ function MailChatAdmin() {
       )}
 
       <div
-        className="grid md:grid-cols-[400px_1fr] overflow-hidden flex-1 min-h-0 md:rounded-lg md:shadow-[0_6px_18px_rgba(11,20,26,0.18)]"
+        className="grid grid-cols-[minmax(0,1fr)] md:grid-cols-[400px_minmax(0,1fr)] overflow-hidden flex-1 min-h-0 min-w-0 w-full md:rounded-lg md:shadow-[0_6px_18px_rgba(11,20,26,0.18)]"
         style={{ borderColor: WA.line, background: "#fff" }}
       >
         {/* ── side panel ── */}
-        <aside className={`relative min-h-0 flex-col border-l ${showThread ? "hidden md:flex" : "flex"}`} style={{ borderColor: WA.line }}>
+        <aside className={`relative min-h-0 min-w-0 flex-col border-l ${showThread ? "hidden md:flex" : "flex"}`} style={{ borderColor: WA.line }}>
           {/* Phone: an app bar like WhatsApp (title + back to the admin + notifications). */}
           <div className="md:hidden shrink-0 h-14 px-2 flex items-center gap-1 text-white" style={{ background: WA.greenDark }}>
             <a href="/admin" aria-label="חזרה לניהול" className="h-10 w-10 rounded-full flex items-center justify-center active:bg-white/15">
@@ -1476,7 +1476,7 @@ function MailChatAdmin() {
             )}
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
             {tab === "chats" ? (
               chats.isLoading ? (
                 <ListSkeleton />
@@ -1664,7 +1664,7 @@ function MailChatAdmin() {
         </aside>
 
         {/* ── chat pane ── */}
-        <section className={`min-h-0 flex-col ${showThread ? "flex" : "hidden md:flex"}`}>
+        <section className={`min-h-0 min-w-0 flex-col ${showThread ? "flex" : "hidden md:flex"}`}>
           {!active ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center gap-3 p-8" style={{ background: "#f8f9fa", color: WA.muted }}>
               <div className="h-20 w-20 rounded-full flex items-center justify-center" style={{ background: "#e7f8f2" }}>
@@ -1977,7 +1977,7 @@ function MailChatAdmin() {
               )}
 
               <div
-                className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2.5 md:px-[6%] py-3"
+                className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-2 md:px-[6%] py-3"
                 style={{ background: WA.wallpaper, backgroundImage: WALLPAPER_IMAGE, backgroundSize: "160px 160px" }}
                 onScroll={(e) => {
                   const el = e.currentTarget;
@@ -2015,7 +2015,7 @@ function MailChatAdmin() {
                       )}
                       <div className={`flex ${m.fromMe ? "justify-start" : "justify-end"} ${firstOfRun ? "mt-2" : "mt-0.5"}`}>
                         <div
-                          className="relative max-w-[88%] md:max-w-[70%] rounded-lg px-2.5 pt-1.5 pb-1 shadow-[0_1px_0.5px_rgba(11,20,26,.13)]"
+                          className="relative min-w-0 max-w-[85%] md:max-w-[70%] rounded-lg px-2.5 pt-1.5 pb-1 shadow-[0_1px_0.5px_rgba(11,20,26,.13)]"
                           style={{
                             background: m.fromMe ? WA.bubbleOut : WA.bubbleIn,
                             color: WA.ink,
@@ -2083,7 +2083,7 @@ function MailChatAdmin() {
                             </div>
                           )}
                           {m.text && (
-                            <div className="text-[14.2px] leading-[1.45] whitespace-pre-wrap break-words" dir="auto">
+                            <div className="text-[14.2px] leading-[1.45] whitespace-pre-wrap break-words [overflow-wrap:anywhere]" dir="auto">
                               <Linkified text={long ? `${m.text.slice(0, 1400)}…` : m.text} />
                               {m.text.length > 1400 && (
                                 <button
@@ -2150,7 +2150,7 @@ function MailChatAdmin() {
                 {/* prepared draft = a yellow "waiting" bubble at the end of the chat */}
                 {topDraft && editingDraft?.draftId !== topDraft.draftId && (
                   <div className="flex justify-start mt-4">
-                    <div className="w-full max-w-[88%] md:max-w-[70%] rounded-xl border shadow-sm overflow-hidden" style={{ background: WA.draft, borderColor: "#f1d98a" }}>
+                    <div className="w-full max-w-[85%] md:max-w-[70%] rounded-xl border shadow-sm overflow-hidden" style={{ background: WA.draft, borderColor: "#f1d98a" }}>
                       <div className="px-3 py-2 flex items-center justify-between gap-2 border-b" style={{ borderColor: "#f1d98a" }}>
                         <span className="text-[13px] font-semibold" style={{ color: WA.draftInk }}>
                           ✍️ טיוטה מוכנה {drafts.length > 1 ? `(${drafts.length})` : ""}
@@ -2159,7 +2159,7 @@ function MailChatAdmin() {
                           {listTime(topDraft.at)}
                         </span>
                       </div>
-                      <div className="px-3 py-2 text-[14px] leading-[1.5] whitespace-pre-wrap break-words" style={{ color: WA.ink }} dir="auto">
+                      <div className="px-3 py-2 text-[14px] leading-[1.5] whitespace-pre-wrap break-words [overflow-wrap:anywhere]" style={{ color: WA.ink }} dir="auto">
                         <Linkified text={draftOpen || topDraft.text.length <= 500 ? topDraft.text : `${topDraft.text.slice(0, 500)}…`} />
                         {topDraft.text.length > 500 && (
                           <button type="button" onClick={() => setDraftOpen((v) => !v)} className="block mt-1 text-[13px] font-medium" style={{ color: "#027eb5" }}>
@@ -2197,12 +2197,12 @@ function MailChatAdmin() {
                   .filter((x) => x.chatKey === active.key)
                   .map((x) => (
                     <div key={x.id} className="flex justify-start mt-3">
-                      <div className="max-w-[88%] md:max-w-[70%] rounded-lg px-3 py-2 border border-dashed" style={{ background: "#f0f7ff", borderColor: "#9cc3ef", color: WA.ink }}>
+                      <div className="min-w-0 max-w-[85%] md:max-w-[70%] rounded-lg px-3 py-2 border border-dashed" style={{ background: "#f0f7ff", borderColor: "#9cc3ef", color: WA.ink }}>
                         <div className="text-[12px] font-semibold flex items-center gap-1 mb-1" style={{ color: x.error ? "#b3261e" : "#1e6fbf" }}>
                           <Clock className="h-3.5 w-3.5" />
                           {x.error ? `התזמון נכשל: ${x.error}` : `מתוזמן ל-${new Date(x.at).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Jerusalem" })}`}
                         </div>
-                        <div className="text-[14px] whitespace-pre-wrap break-words" dir="auto">
+                        <div className="text-[14px] whitespace-pre-wrap break-words [overflow-wrap:anywhere]" dir="auto">
                           {x.text.length > 400 ? `${x.text.slice(0, 400)}…` : x.text}
                         </div>
                         <button type="button" onClick={() => cancelScheduled(x.id)} className="mt-1 text-[12px] underline" style={{ color: "#b3261e" }}>
@@ -2726,7 +2726,7 @@ function MailViewDialog({ msg, onClose }: { msg: ChatMsg | null; onClose: () => 
           (d.html ? (
             <iframe title="המייל כפי שנראה" sandbox="allow-popups allow-popups-to-escape-sandbox" srcDoc={`<base target="_blank">${d.html}`} className="w-full h-[70vh] border-0 bg-white" />
           ) : (
-            <div className="h-[70vh] overflow-y-auto p-4 text-[14px] leading-relaxed whitespace-pre-wrap break-words bg-white" dir="auto" style={{ color: WA.ink }}>
+            <div className="h-[70vh] overflow-y-auto p-4 text-[14px] leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-white" dir="auto" style={{ color: WA.ink }}>
               {d.text}
             </div>
           ))}
