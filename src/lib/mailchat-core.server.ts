@@ -239,8 +239,57 @@ export type ScheduledMail = {
   account?: string;
   to?: string[];
   subject?: string;
+  /** Files of a scheduled mail, kept in the private "items" bucket until it is sent or cancelled. */
+  files?: Array<{ path: string; filename: string; contentType: string; size: number }>;
   error?: string;
 };
+
+const FILES_BUCKET = "items";
+
+function base64ToBytes(b64: string): Uint8Array {
+  const bin = atob(b64.replace(/-/g, "+").replace(/_/g, "/"));
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+
+/** Stores the files of a scheduled mail (they would be far too big for the settings row). */
+export async function storeScheduledFiles(db: any, id: string, atts: GmailAttachment[]): Promise<NonNullable<ScheduledMail["files"]>> {
+  const out: NonNullable<ScheduledMail["files"]> = [];
+  for (const [i, a] of atts.entries()) {
+    const bytes = base64ToBytes(a.base64Data);
+    const safe = a.filename.replace(/[^\w.\-]+/g, "_").slice(-80) || "file";
+    const path = `mail-scheduled/${id}/${i}-${safe}`;
+    const { error } = await db.storage.from(FILES_BUCKET).upload(path, bytes, { contentType: a.contentType || "application/octet-stream", upsert: true });
+    if (error) {
+      await removeScheduledFiles(db, out);
+      throw new Error("שמירת הקבצים לתזמון נכשלה");
+    }
+    out.push({ path, filename: a.filename, contentType: a.contentType || "application/octet-stream", size: bytes.length });
+  }
+  return out;
+}
+
+async function loadScheduledFiles(db: any, files: ScheduledMail["files"]): Promise<GmailAttachment[]> {
+  const out: GmailAttachment[] = [];
+  for (const f of files ?? []) {
+    const { data, error } = await db.storage.from(FILES_BUCKET).download(f.path);
+    if (error || !data) throw new Error(`הקובץ ${f.filename} לא נמצא`);
+    out.push({ filename: f.filename, contentType: f.contentType, base64Data: bytesToBase64(new Uint8Array(await data.arrayBuffer())) });
+  }
+  return out;
+}
+
+export async function removeScheduledFiles(db: any, files: ScheduledMail["files"]) {
+  const paths = (files ?? []).map((f) => f.path);
+  if (paths.length) await db.storage.from(FILES_BUCKET).remove(paths).catch(() => undefined);
+}
 
 export async function readScheduled(db: any): Promise<ScheduledMail[]> {
   const { data } = await db.from("app_settings").select("value").eq("key", SCHEDULED_KEY).maybeSingle();
@@ -283,11 +332,13 @@ export async function runDueScheduledMails(): Promise<{ sent: number; failed: nu
   const failed: ScheduledMail[] = [];
   for (const m of due) {
     try {
+      const attachments = await loadScheduledFiles(db, m.files);
       if (m.kind === "reply" && m.threadId && m.account) {
-        await performReply({ threadId: m.threadId, account: m.account, text: m.text, channel: m.channel, designed: m.designed });
+        await performReply({ threadId: m.threadId, account: m.account, text: m.text, channel: m.channel, designed: m.designed, attachments });
       } else if (m.kind === "new" && m.to?.length && m.subject) {
-        await performStart({ to: m.to, subject: m.subject, text: m.text, channel: m.channel, designed: m.designed });
+        await performStart({ to: m.to, subject: m.subject, text: m.text, channel: m.channel, designed: m.designed, attachments });
       } else throw new Error("חסרים פרטים לשליחה");
+      await removeScheduledFiles(db, m.files);
       sent++;
     } catch (e: any) {
       failed.push({ ...m, error: String(e?.message ?? e).slice(0, 200) });

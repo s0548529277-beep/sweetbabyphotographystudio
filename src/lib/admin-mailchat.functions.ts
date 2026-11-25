@@ -24,6 +24,8 @@ import {
   performReply,
   performStart,
   readScheduled,
+  removeScheduledFiles,
+  storeScheduledFiles,
   writeScheduled,
   type ScheduledMail,
 } from "@/lib/mailchat-core.server";
@@ -396,6 +398,10 @@ const prefsSchema = z.object({
   archived: z.record(z.string().max(300), z.number()).default({}),
   /** Her own quick replies (editable on the screen); empty = the built-in ones. */
   quickReplies: z.array(z.string().min(1).max(500)).max(30).default([]),
+  /** "תזכירי לי לחזור לשיחה" — chat key -> when. */
+  reminders: z.record(z.string().max(300), z.number()).default({}),
+  /** Her private note per chat (never sent to anyone). */
+  notes: z.record(z.string().max(300), z.string().max(2000)).default({}),
 });
 export type MailChatPrefs = z.infer<typeof prefsSchema>;
 
@@ -408,7 +414,7 @@ export const getMailChatPrefs = createServerFn({ method: "POST" })
     try {
       return prefsSchema.parse(JSON.parse(data?.value ?? "{}"));
     } catch {
-      return { pinned: [], labels: {}, archived: {}, quickReplies: [] };
+      return { pinned: [], labels: {}, archived: {}, quickReplies: [], reminders: {}, notes: {} };
     }
   });
 
@@ -425,7 +431,9 @@ export const setMailChatPrefs = createServerFn({ method: "POST" })
         .filter(([, at]) => at > cutoff)
         .slice(-400),
     );
-    const value = JSON.stringify({ ...data, archived });
+    const reminders = Object.fromEntries(Object.entries(data.reminders).slice(-300));
+    const notes = Object.fromEntries(Object.entries(data.notes).filter(([, t]) => t.trim()).slice(-400));
+    const value = JSON.stringify({ ...data, archived, reminders, notes });
     const { error } = await (supabaseAdmin as any).from("app_settings").upsert({ key: PREFS_KEY, value, updated_at: new Date().toISOString() });
     if (error) throw new Error("השמירה נכשלה");
     return { ok: true };
@@ -720,9 +728,13 @@ const scheduleSchema = z.object({
   account: z.string().optional(),
   to: z.array(z.string().email()).max(50).optional(),
   subject: z.string().max(200).optional(),
+  attachments: z
+    .array(z.object({ filename: z.string().min(1).max(200), contentType: z.string().max(120), base64Data: z.string().min(1) }))
+    .max(10)
+    .default([]),
 });
 
-/** Saves a mail to be sent later (checked every 5 minutes by the site; no attachments; held around Shabbat). */
+/** Saves a mail to be sent later (checked every 5 minutes by the site; files kept in storage until then; held around Shabbat). */
 export const scheduleMailChat = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => scheduleSchema.parse(d))
@@ -734,10 +746,14 @@ export const scheduleMailChat = createServerFn({ method: "POST" })
     if (data.kind === "new" && (!data.to?.length || !data.subject)) throw new Error("חסרים נמענים או נושא");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const db = supabaseAdmin as any;
+    checkAttachments(data.attachments);
+    const { attachments, ...rest } = data;
+    const id = crypto.randomUUID();
+    const files = attachments.length ? await storeScheduledFiles(db, id, attachments) : undefined;
     const list = await readScheduled(db);
-    const item: ScheduledMail = { ...data, id: crypto.randomUUID(), createdAt: Date.now() };
+    const item: ScheduledMail = { ...rest, id, createdAt: Date.now(), files };
     await writeScheduled(db, [...list, item]);
-    return { ok: true, id: item.id };
+    return { ok: true, id };
   });
 
 export const listScheduledMails = createServerFn({ method: "POST" })
@@ -757,9 +773,11 @@ export const cancelScheduledMail = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const db = supabaseAdmin as any;
     const list = await readScheduled(db);
+    const gone = list.find((m) => m.id === data.id);
     await writeScheduled(
       db,
       list.filter((m) => m.id !== data.id),
     );
+    if (gone) await removeScheduledFiles(db, gone.files);
     return { ok: true };
   });

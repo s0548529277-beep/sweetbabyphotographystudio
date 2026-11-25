@@ -10,6 +10,7 @@ import {
   Bell,
   BookUser,
   Check,
+  AlarmClock,
   CheckCheck,
   Clock,
   Copy,
@@ -61,7 +62,8 @@ import {
   suggestMailReply,
   type MailChatPrefs,
 } from "@/lib/admin-mailchat.functions";
-import { listWhatsAppConversations, listWhatsAppThread, sendWhatsAppMessageAdmin } from "@/lib/admin-whatsapp.functions";
+import { listWhatsAppConversations, listWhatsAppThread, sendWhatsAppMediaAdmin, sendWhatsAppMessageAdmin } from "@/lib/admin-whatsapp.functions";
+import { uploadMediaToStorage } from "@/lib/whatsapp-upload";
 import { WhatsAppMedia } from "@/components/WhatsAppMedia";
 import type { MailConversation } from "@/lib/mailchat";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -249,6 +251,13 @@ type ChatDraft = { draftId: string; messageId: string; threadId: string; account
 
 type Contact = { email: string; name: string; phone: string; sources: string[]; lastAt: number };
 
+function outFileToFile(f: OutFile): File {
+  const bin = atob(f.base64Data);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new File([bytes], f.filename, { type: f.contentType || "application/octet-stream" });
+}
+
 const DEFAULT_QUICK_REPLIES = [
   "תודה רבה! 💗",
   "קיבלתי, בודקת וחוזרת אלייך בהקדם.",
@@ -257,10 +266,11 @@ const DEFAULT_QUICK_REPLIES = [
 ];
 const quickLabel = (t: string) => (t.length > 22 ? `${t.slice(0, 20)}…` : t);
 
-type Filter = "all" | "unread" | "drafts" | "studio" | "personal" | "groups" | "whatsapp" | "archived" | `label:${string}`;
+type Filter = "all" | "unread" | "waiting" | "reminders" | "drafts" | "studio" | "personal" | "groups" | "whatsapp" | "archived" | `label:${string}`;
 const BASE_FILTERS: Array<{ id: Filter; label: string }> = [
   { id: "all", label: "הכל" },
   { id: "unread", label: "לא נקראו" },
+  { id: "waiting", label: "ממתינות לתשובה" },
   { id: "drafts", label: "✍️ טיוטות" },
   { id: "studio", label: "סטודיו" },
   { id: "personal", label: "אישי" },
@@ -268,7 +278,7 @@ const BASE_FILTERS: Array<{ id: Filter; label: string }> = [
   { id: "whatsapp", label: "🟢 וואטסאפ" },
 ];
 
-const EMPTY_PREFS: MailChatPrefs = { pinned: [], labels: {}, archived: {}, quickReplies: [] };
+const EMPTY_PREFS: MailChatPrefs = { pinned: [], labels: {}, archived: {}, quickReplies: [], reminders: {}, notes: {} };
 
 // ── page ──────────────────────────────────────────────────────────────────────
 function MailChatAdmin() {
@@ -294,6 +304,7 @@ function MailChatAdmin() {
   const fetchWaConvs = useServerFn(listWhatsAppConversations);
   const fetchWaThread = useServerFn(listWhatsAppThread);
   const doSendWa = useServerFn(sendWhatsAppMessageAdmin);
+  const doSendWaMedia = useServerFn(sendWhatsAppMediaAdmin);
 
   const [tab, setTab] = useState<"chats" | "contacts">("chats");
   const [filter, setFilter] = useState<Filter>("all");
@@ -326,6 +337,12 @@ function MailChatAdmin() {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [scheduledOpen, setScheduledOpen] = useState(false);
   const [quickEditOpen, setQuickEditOpen] = useState(false);
+  const [remindOpen, setRemindOpen] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(t);
+  }, []);
   const fileInput = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
 
@@ -460,6 +477,8 @@ function MailChatAdmin() {
       if (filter === "archived") return archived;
       if (archived && !serverSearch) return false;
       if (filter === "unread" && !c.unread) return false;
+      if (filter === "waiting" && c.lastFromMe) return false;
+      if (filter === "reminders" && !(prefs.reminders?.[c.key] && prefs.reminders[c.key] <= now)) return false;
       if (filter === "drafts" && !c.hasDraft) return false;
       if (filter === "studio" && c.channel !== "studio") return false;
       if (filter === "personal" && c.channel !== "personal") return false;
@@ -470,13 +489,16 @@ function MailChatAdmin() {
       return [c.title, c.subtitle, c.snippet, ...c.participants.map((p) => `${p.name} ${p.email}`)].join(" ").toLowerCase().includes(q);
     });
     const pinned = new Set(prefs.pinned);
-    return list.sort((a, b) => Number(pinned.has(b.key)) - Number(pinned.has(a.key)) || b.lastDate - a.lastDate);
-  }, [conversations, filter, q, serverSearch, prefs]);
+    const due = (k: string) => Number(!!prefs.reminders?.[k] && prefs.reminders[k] <= now);
+    return list.sort((a, b) => due(b.key) - due(a.key) || Number(pinned.has(b.key)) - Number(pinned.has(a.key)) || b.lastDate - a.lastDate);
+  }, [conversations, filter, q, serverSearch, prefs, now]);
 
   const visibleContacts = useMemo(() => allContacts.filter((c) => !q || `${c.name} ${c.email} ${c.phone}`.toLowerCase().includes(q)), [allContacts, q]);
   const inbox = conversations.filter((c) => !isArchived(c));
   const unreadCount = inbox.filter((c) => c.unread).length;
   const draftCount = inbox.filter((c) => c.hasDraft).length;
+  const waitingCount = inbox.filter((c) => !c.lastFromMe).length;
+  const dueReminders = conversations.filter((c) => prefs.reminders?.[c.key] && prefs.reminders[c.key] <= now);
   const archivedCount = conversations.filter(isArchived).length;
   const usedLabels = LABELS.filter((l) => Object.values(prefs.labels).includes(l.id));
 
@@ -506,6 +528,30 @@ function MailChatAdmin() {
     }
     lastSeen.current = now;
   }, [chats.data]);
+
+  const notifiedReminders = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    for (const c of dueReminders) {
+      const id = `${c.key}:${prefs.reminders[c.key]}`;
+      if (notifiedReminders.current.has(id)) continue;
+      notifiedReminders.current.add(id);
+      toast(`⏰ תזכורת: לחזור אל ${c.title}`, { action: { label: "פתיחה", onClick: () => openChat(c.key) } });
+      if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+        try {
+          new Notification(`⏰ לחזור אל ${c.title}`, { body: c.snippet.slice(0, 140), tag: `rem-${c.key}` });
+        } catch {
+          // some browsers only allow notifications from a service worker
+        }
+      }
+    }
+  }, [dueReminders.map((c) => c.key).join(",")]);
+
+  function setReminder(key: string, at: number | null) {
+    const reminders = { ...(prefs.reminders ?? {}) };
+    if (at) reminders[key] = at;
+    else delete reminders[key];
+    updatePrefs({ ...prefs, reminders });
+  }
 
   const allMessages: ChatMsg[] = useMemo(() => {
     const real = active?.threads.length ? ((thread.data?.messages ?? []) as ChatMsg[]) : [];
@@ -636,9 +682,11 @@ function MailChatAdmin() {
 
   async function sendWhatsApp(text: string) {
     if (!active?.waPhone) return;
+    const phone = active.waPhone;
+    const sentFiles = files;
     const temp: ChatMsg = {
       id: `tmp-${Date.now()}`,
-      threadId: `wa:${active.waPhone}`,
+      threadId: `wa:${phone}`,
       account: "",
       at: Date.now(),
       fromMe: true,
@@ -647,20 +695,34 @@ function MailChatAdmin() {
       to: [],
       subject: "",
       text,
-      attachments: [],
+      attachments: sentFiles.map((f, i) => ({ filename: f.filename, mimeType: f.contentType, size: f.size, attachmentId: `tmp${i}`, messageId: "" })),
       wa: true,
       pending: true,
     };
     setSending(true);
     setPending((p) => [...p, temp]);
     setDraft("");
+    setFiles([]);
     setQuote(null);
     try {
-      await doSendWa({ data: { phone: active.waPhone, body: text } });
+      if (sentFiles.length) {
+        // Each file goes as its own WhatsApp message; the text rides as the caption of the first one that can carry it.
+        let captionUsed = !text;
+        for (const f of sentFiles) {
+          const { url, type } = await uploadMediaToStorage(outFileToFile(f));
+          const canCaption = type === "image" || type === "video" || type === "document";
+          await doSendWaMedia({ data: { phone, mediaUrl: url, mediaType: type, caption: !captionUsed && canCaption ? text : undefined } });
+          if (!captionUsed && canCaption) captionUsed = true;
+        }
+        if (!captionUsed) await doSendWa({ data: { phone, body: text } });
+      } else {
+        await doSendWa({ data: { phone, body: text } });
+      }
       await refreshAll();
     } catch (e: any) {
       setPending((p) => p.filter((m) => m.id !== temp.id));
       setDraft(text);
+      setFiles(sentFiles);
       toast.error(e?.message ?? "שליחת הוואטסאפ נכשלה");
     } finally {
       setSending(false);
@@ -669,7 +731,7 @@ function MailChatAdmin() {
 
   async function sendReply() {
     const typed = draft.trim();
-    if (!typed || !active || sending) return;
+    if ((!typed && !(replyVia === "wa" && files.length)) || !active || sending) return;
     if (replyVia === "wa") return sendWhatsApp(typed);
     const target = replyTarget();
     if (!target) {
@@ -706,6 +768,7 @@ function MailChatAdmin() {
     setEditingDraft(null);
     setQuote(null);
     try {
+      if (prefs.reminders?.[active.key] && prefs.reminders[active.key] <= Date.now()) setReminder(active.key, null);
       await doReply({
         data: {
           threadId: target.threadId,
@@ -759,7 +822,6 @@ function MailChatAdmin() {
     if (!active) return;
     const text = draft.trim();
     if (!text) return toast.error("כתבי קודם את ההודעה");
-    if (files.length) return toast.error("אי אפשר לתזמן מייל עם קבצים — שלחי אותו עכשיו");
     const target = replyTarget();
     if (!target) return toast.error("אין מייל בשיחה הזאת לתזמן אליו");
     try {
@@ -774,9 +836,11 @@ function MailChatAdmin() {
           designed,
           threadId: target.threadId,
           account: target.account,
+          attachments: files.map(({ filename, contentType, base64Data }) => ({ filename, contentType, base64Data })),
         },
       });
       setDraft("");
+      setFiles([]);
       setQuote(null);
       setEditingDraft(null);
       setScheduleOpen(false);
@@ -912,7 +976,8 @@ function MailChatAdmin() {
   const notifyState = typeof Notification === "undefined" ? "unsupported" : Notification.permission;
 
   const filters: Array<{ id: Filter; label: string; count?: number }> = [
-    ...BASE_FILTERS.map((f) => ({ ...f, count: f.id === "unread" ? unreadCount : f.id === "drafts" ? draftCount : undefined })),
+    ...(dueReminders.length ? [{ id: "reminders" as Filter, label: "⏰ לחזור אליהן", count: dueReminders.length }] : []),
+    ...BASE_FILTERS.map((f) => ({ ...f, count: f.id === "unread" ? unreadCount : f.id === "drafts" ? draftCount : f.id === "waiting" ? waitingCount : undefined })),
     ...usedLabels.map((l) => ({ id: `label:${l.id}` as Filter, label: `🏷 ${l.id}` })),
     ...(archivedCount ? [{ id: "archived" as Filter, label: "ארכיון", count: archivedCount }] : []),
   ];
@@ -1109,6 +1174,8 @@ function MailChatAdmin() {
                             >
                               {c.channel === "studio" ? "סטודיו" : "אישי"}
                             </span>
+                            {prefs.reminders?.[c.key] && prefs.reminders[c.key] <= now && <AlarmClock className="h-3.5 w-3.5" style={{ color: "#d97706" }} aria-label="לחזור" />}
+                            {prefs.notes?.[c.key] && <span title={prefs.notes[c.key]} className="text-[11px]">📝</span>}
                             {pinned && <Pin className="h-3.5 w-3.5 rotate-45" style={{ color: WA.muted }} aria-label="מוצמד" />}
                             {c.unread && <span className="h-2.5 w-2.5 rounded-full" style={{ background: WA.unread }} aria-label="לא נקרא" />}
                           </span>
@@ -1244,6 +1311,9 @@ function MailChatAdmin() {
                     </IconBtn>
                   </span>
                 )}
+                <IconBtn label="תזכירי לי לחזור לשיחה" onClick={() => setRemindOpen(true)}>
+                  <AlarmClock className="h-4 w-4" style={prefs.reminders?.[active.key] ? { color: "#d97706" } : undefined} />
+                </IconBtn>
                 <IconBtn label={prefs.pinned.includes(active.key) ? "ביטול הצמדה" : "הצמדה למעלה"} onClick={() => togglePin(active.key)}>
                   {prefs.pinned.includes(active.key) ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
                 </IconBtn>
@@ -1269,6 +1339,19 @@ function MailChatAdmin() {
                   <ExternalLink className="h-4 w-4" />
                 </a>}
               </header>
+
+              {prefs.reminders?.[active.key] && (
+                <div className="shrink-0 px-3 py-1.5 border-b flex items-center gap-2 text-xs" style={{ background: "#fff7e6", borderColor: "#f3d9a4", color: "#8a5a00" }}>
+                  <AlarmClock className="h-3.5 w-3.5 shrink-0" />
+                  <span className="flex-1">
+                    {prefs.reminders[active.key] <= now ? "הגיע הזמן לחזור לשיחה הזאת" : "תזכורת לחזור לשיחה"} ·{" "}
+                    {new Date(prefs.reminders[active.key]).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Jerusalem" })}
+                  </span>
+                  <button type="button" onClick={() => setReminder(active.key, null)} className="underline font-medium">
+                    {prefs.reminders[active.key] <= now ? "טופל ✓" : "ביטול"}
+                  </button>
+                </div>
+              )}
 
               {chatSearchOpen && (
                 <div className="shrink-0 px-3 py-2 border-b flex items-center gap-2 bg-white" style={{ borderColor: WA.line }}>
@@ -1373,6 +1456,16 @@ function MailChatAdmin() {
                       })()}
                     </div>
                   )}
+                  <ChatNote
+                    key={active.key}
+                    value={prefs.notes?.[active.key] ?? ""}
+                    onSave={(t) => {
+                      const notes = { ...(prefs.notes ?? {}) };
+                      if (t.trim()) notes[active.key] = t.trim();
+                      else delete notes[active.key];
+                      updatePrefs({ ...prefs, notes });
+                    }}
+                  />
                   <div className="pt-1">
                     <div className="text-xs font-semibold mb-1.5" style={{ color: WA.muted }}>
                       הזמנות ולקוחות באתר
@@ -1748,7 +1841,6 @@ function MailChatAdmin() {
                     type="button"
                     aria-label="צירוף קובץ"
                     title="צירוף קובץ או תמונה"
-                    disabled={replyVia === "wa"}
                     onClick={() => fileInput.current?.click()}
                     className="h-11 w-11 shrink-0 rounded-full flex items-center justify-center hover:bg-black/5"
                     style={{ color: WA.muted }}
@@ -1792,7 +1884,7 @@ function MailChatAdmin() {
                   <button
                     type="button"
                     onClick={() => void sendReply()}
-                    disabled={!draft.trim() || sending}
+                    disabled={(!draft.trim() && !(replyVia === "wa" && files.length > 0)) || sending}
                     aria-label="שליחה"
                     className="h-11 w-11 shrink-0 rounded-full flex items-center justify-center text-white transition disabled:opacity-40"
                     style={{ background: WA.green }}
@@ -1835,6 +1927,18 @@ function MailChatAdmin() {
       />
 
       <ScheduleDialog open={scheduleOpen} onClose={() => setScheduleOpen(false)} onPick={(at) => void scheduleReply(at)} />
+      <ScheduleDialog
+        open={remindOpen}
+        onClose={() => setRemindOpen(false)}
+        title="מתי להזכיר לך לחזור לשיחה?"
+        note="בזמן הזה השיחה תקפוץ לראש הרשימה עם ⏰, ותקבלי התראה כשהמסך פתוח. שום דבר לא נשלח ללקוחה."
+        action="הזכירי לי"
+        onPick={(at) => {
+          if (active) setReminder(active.key, at);
+          setRemindOpen(false);
+          toast.success(`אזכיר לך ב-${new Date(at).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Jerusalem" })}`);
+        }}
+      />
 
       <Dialog open={quickEditOpen} onOpenChange={setQuickEditOpen}>
         <DialogContent dir="rtl" className="max-w-lg">
@@ -1903,6 +2007,20 @@ function MailChatAdmin() {
         }}
         initialTo={composeTo}
         contacts={allContacts}
+        onSchedule={async (payload, at) => {
+          await doSchedule({
+            data: {
+              ...payload,
+              at,
+              kind: "new",
+              label: (payload.to.length > 1 ? `קבוצה: ${payload.subject}` : payload.to[0]).slice(0, 200),
+            },
+          });
+          toast.success(`המייל יישלח ב-${new Date(at).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Jerusalem" })}`);
+          setSelectMode(false);
+          setSelected({});
+          await qc.invalidateQueries({ queryKey: ["mail-scheduled"] });
+        }}
         onSend={async (payload) => {
           await doStart({ data: payload });
           toast.success(payload.to.length > 1 ? "הקבוצה נפתחה והמייל נשלח" : "המייל נשלח");
@@ -2080,11 +2198,13 @@ function ComposeDialog({
   initialTo,
   contacts,
   onSend,
+  onSchedule,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   initialTo: Contact[];
   contacts: Contact[];
+  onSchedule: (p: ComposePayload, at: number) => Promise<void>;
   onSend: (p: {
     to: string[];
     subject: string;
@@ -2102,10 +2222,12 @@ function ComposeDialog({
   const [designed, setDesigned] = useState(true);
   const [files, setFiles] = useState<OutFile[]>([]);
   const [busy, setBusy] = useState(false);
+  const [pickTime, setPickTime] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
+      setPickTime(false);
       setTo(initialTo);
       setQuery("");
       setSubject("");
@@ -2132,21 +2254,41 @@ function ComposeDialog({
 
   const isGroup = to.length > 1;
 
-  async function submit() {
+  function payload(): ComposePayload | null {
     const recipients = query.trim() ? (addFromQuery() ?? to) : to;
-    if (!recipients.length) return toast.error("הוסיפי לפחות נמען אחד");
-    if (!subject.trim()) return toast.error("חסר נושא");
-    if (!text.trim()) return toast.error("חסר תוכן");
+    if (!recipients.length) return toast.error("הוסיפי לפחות נמען אחד"), null;
+    if (!subject.trim()) return toast.error("חסר נושא"), null;
+    if (!text.trim()) return toast.error("חסר תוכן"), null;
+    return {
+      to: recipients.map((t) => t.email),
+      subject: subject.trim(),
+      text: text.trim(),
+      channel,
+      designed,
+      attachments: files.map(({ filename, contentType, base64Data }) => ({ filename, contentType, base64Data })),
+    };
+  }
+
+  async function schedule(at: number) {
+    const p = payload();
+    setPickTime(false);
+    if (!p) return;
     setBusy(true);
     try {
-      await onSend({
-        to: recipients.map((t) => t.email),
-        subject: subject.trim(),
-        text: text.trim(),
-        channel,
-        designed,
-        attachments: files.map(({ filename, contentType, base64Data }) => ({ filename, contentType, base64Data })),
-      });
+      await onSchedule(p, at);
+      onOpenChange(false);
+    } catch (e: any) {
+      toast.error(e?.message ?? "התזמון נכשל");
+      setBusy(false);
+    }
+  }
+
+  async function submit() {
+    const p = payload();
+    if (!p) return;
+    setBusy(true);
+    try {
+      await onSend(p);
       onOpenChange(false);
     } catch (e: any) {
       toast.error(e?.message ?? "השליחה נכשלה");
@@ -2307,13 +2449,48 @@ function ComposeDialog({
           <Button variant="outline" className="rounded-full" onClick={() => onOpenChange(false)}>
             ביטול
           </Button>
+          <Button variant="outline" className="rounded-full gap-2" disabled={busy} onClick={() => setPickTime(true)}>
+            <Clock className="h-4 w-4" /> שליחה מתוזמנת
+          </Button>
           <Button onClick={submit} disabled={busy} className="rounded-full gap-2 text-white" style={{ background: WA.green }}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 -scale-x-100" />}
             {isGroup ? "פתיחת קבוצה ושליחה" : "שליחה"}
           </Button>
         </DialogFooter>
+        <ScheduleDialog open={pickTime} onClose={() => setPickTime(false)} onPick={(at) => void schedule(at)} />
       </DialogContent>
     </Dialog>
+  );
+}
+
+type ComposePayload = {
+  to: string[];
+  subject: string;
+  text: string;
+  channel: "studio" | "personal";
+  designed: boolean;
+  attachments: Array<{ filename: string; contentType: string; base64Data: string }>;
+};
+
+function ChatNote({ value, onSave }: { value: string; onSave: (t: string) => void }) {
+  const [text, setText] = useState(value);
+  return (
+    <div className="pt-1">
+      <div className="text-xs font-semibold mb-1" style={{ color: WA.muted }}>
+        📝 פתק פנימי (רק את רואה)
+      </div>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={() => text !== value && onSave(text)}
+        rows={2}
+        maxLength={2000}
+        placeholder="למשל: מעדיפה בוקר, אחות של לקוחה קודמת, לשלוח מחירון אחרי החגים…"
+        className="w-full rounded-lg border px-2.5 py-1.5 text-base md:text-sm outline-none resize-y"
+        style={{ borderColor: WA.line, background: "#fffdf5" }}
+        dir="auto"
+      />
+    </div>
   );
 }
 
@@ -2439,7 +2616,21 @@ function israelAt(daysAhead: number, hh: number, mm: number) {
   return guess - off;
 }
 
-function ScheduleDialog({ open, onClose, onPick }: { open: boolean; onClose: () => void; onPick: (at: number) => void }) {
+function ScheduleDialog({
+  open,
+  onClose,
+  onPick,
+  title = "מתי לשלוח?",
+  note,
+  action = "תזמון",
+}: {
+  open: boolean;
+  onClose: () => void;
+  onPick: (at: number) => void;
+  title?: string;
+  note?: string;
+  action?: string;
+}) {
   const [value, setValue] = useState("");
   useEffect(() => {
     if (open) setValue(localInput(Date.now() + 3600000));
@@ -2455,7 +2646,7 @@ function ScheduleDialog({ open, onClose, onPick }: { open: boolean; onClose: () 
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent dir="rtl" className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>מתי לשלוח?</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <div className="flex flex-wrap gap-1.5">
           {presets.map((p) => (
@@ -2469,11 +2660,11 @@ function ScheduleDialog({ open, onClose, onPick }: { open: boolean; onClose: () 
         </label>
         <input type="datetime-local" value={value} onChange={(e) => setValue(e.target.value)} className="h-10 rounded-lg border px-3 text-base" style={{ borderColor: WA.line }} />
         <p className="text-[11px]" style={{ color: WA.muted }}>
-          האתר בודק כל 5 דקות ושולח. בשבת ובערב שבת מ-14:00 המייל מחכה ויוצא במוצאי שבת. בלי קבצים מצורפים.
+          {note ?? "האתר בודק כל 5 דקות ושולח. בשבת ובערב שבת מ-14:00 המייל מחכה ויוצא במוצאי שבת. קבצים מצורפים נשמרים ונשלחים איתו."}
         </p>
         <DialogFooter>
           <Button disabled={!Number.isFinite(parsed)} className="rounded-full gap-2 text-white" style={{ background: WA.green }} onClick={() => onPick(parsed)}>
-            <Clock className="h-4 w-4" /> תזמון
+            <Clock className="h-4 w-4" /> {action}
           </Button>
         </DialogFooter>
       </DialogContent>
