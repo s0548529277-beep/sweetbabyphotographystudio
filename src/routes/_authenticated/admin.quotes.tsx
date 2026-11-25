@@ -19,7 +19,7 @@ function QuotesAdmin() {
   const previewFn = useServerFn(previewQuote);
   const sendFn = useServerFn(sendQuote);
   const templates = useQuery({ queryKey: ["quote-templates"], queryFn: () => listFn() });
-  const [templateId, setTemplateId] = useState("mini_studio");
+  const [templateId, setTemplateId] = useState("mini");
   const [clientName, setClientName] = useState("");
   const [to, setTo] = useState("");
   const [sending, setSending] = useState(false);
