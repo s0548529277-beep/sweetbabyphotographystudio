@@ -69,7 +69,12 @@ export const listMailChats = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const accounts = await listGmailAccounts();
-    if (!accounts.length) return { connected: false, conversations: [] as any[], accounts: [] as string[] };
+    if (!accounts.length) {
+      // No linked key at all = really not connected; keys exist but Gmail did not answer = a temporary error (retried).
+      const hasKeys = Object.entries(process.env).some(([k, v]) => k.startsWith("GOOGLE_MAIL_API_KEY") && !!v);
+      if (hasKeys) throw new Error("Gmail לא הגיב כרגע — מנסה שוב בעוד רגע");
+      return { connected: false, conversations: [] as any[], accounts: [] as string[] };
+    }
     const isOwn = makeIsOwn(accounts);
     const search = data.search?.trim() ?? "";
     // Two boxes (owner, 2026-11-25): עסק = the Sweet Baby studio mailbox, אישי = everything in the personal mailbox.
@@ -116,7 +121,7 @@ export const listMailChats = createServerFn({ method: "POST" })
         pageToken = list?.nextPageToken ?? "";
       } while (pageToken && refs.length < cap);
       // Only threads that are new or changed since the last load are fetched again (cached by historyId).
-      const out = await mapLimit(refs, 12, async (r) => {
+      const out = await mapLimit(refs, 6, async (r) => {
         const key = `${acc.email}|${r.id}`;
         const c = threadMetaCache.get(key);
         if (c && r.historyId && c.historyId === r.historyId) return c.meta;

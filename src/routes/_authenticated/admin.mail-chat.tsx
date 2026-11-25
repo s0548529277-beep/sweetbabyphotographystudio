@@ -1268,6 +1268,14 @@ function MailChatAdmin() {
         </div>
       </div>
 
+      {chats.isError && (
+        <div className="bg-amber-50 border border-amber-200 md:rounded-2xl px-4 py-3 text-sm text-amber-900 flex items-center justify-between gap-3">
+          <span>Gmail לא הגיב כרגע (עומס זמני). המיילים לא נמחקו — מנסה שוב לבד.</span>
+          <button type="button" onClick={() => void chats.refetch()} className="shrink-0 underline font-medium">
+            לנסות עכשיו
+          </button>
+        </div>
+      )}
       {chats.data && !chats.data.connected && (
         <div className="bg-amber-50 border border-amber-200 md:rounded-2xl p-4 text-sm text-amber-900">חשבון ה-Gmail לא מחובר לאתר, ולכן אין מה להציג. יש לחבר אותו בהגדרות הפרויקט.</div>
       )}

@@ -520,19 +520,33 @@ export async function listGmailAccounts(): Promise<Array<{ email: string; connKe
     .filter(([k, v]) => k.startsWith("GOOGLE_MAIL_API_KEY") && !!v)
     .map(([, v]) => v as string);
   const list: Array<{ email: string; connKey: string }> = [];
-  for (const connKey of [...new Set(keys)]) {
-    try {
-      const res = await fetch(`${GATEWAY_URL}/users/me/profile`, {
-        headers: { Authorization: `Bearer ${lovableKey}`, "X-Connection-Api-Key": connKey },
-      });
-      if (!res.ok) continue;
-      const p = (await res.json()) as { emailAddress?: string };
-      if (p.emailAddress) list.push({ email: p.emailAddress.toLowerCase(), connKey });
-    } catch (e) {
-      console.error("[SWEETBABY] gmail profile lookup failed", e);
+  const uniqueKeys = [...new Set(keys)];
+  for (const connKey of uniqueKeys) {
+    // A busy gateway (429 / 5xx) must not make a linked mailbox look "not connected": retry, then fall back to the
+    // address we already knew for this key.
+    let found = "";
+    for (let attempt = 0; attempt < 3 && !found; attempt++) {
+      if (attempt) await new Promise((r) => setTimeout(r, 600 * attempt));
+      try {
+        const res = await fetch(`${GATEWAY_URL}/users/me/profile`, {
+          headers: { Authorization: `Bearer ${lovableKey}`, "X-Connection-Api-Key": connKey },
+        });
+        if (res.ok) {
+          const p = (await res.json()) as { emailAddress?: string };
+          found = (p.emailAddress ?? "").toLowerCase();
+          break;
+        }
+        if (res.status !== 429 && res.status < 500) break; // a real "not linked" answer
+      } catch (e) {
+        console.error("[SWEETBABY] gmail profile lookup failed", e);
+      }
     }
+    if (!found) found = gmailAccountsCache?.list.find((a) => a.connKey === connKey)?.email ?? "";
+    if (found) list.push({ email: found, connKey });
   }
-  gmailAccountsCache = { at: Date.now(), list };
+  // Only a complete answer is kept for 10 minutes; a partial one is retried on the next call.
+  if (list.length === uniqueKeys.length) gmailAccountsCache = { at: Date.now(), list };
+  else if (list.length) gmailAccountsCache = { at: Date.now() - 9.5 * 60_000, list };
   return list;
 }
 
@@ -603,11 +617,19 @@ export async function gmailApi<T = any>(connKey: string, path: string, init?: { 
   const keys = requiredGmailKeys(connKey);
   if (!keys) return null;
   try {
-    const res = await fetch(`${GATEWAY_URL}${path}`, {
-      method: init?.method ?? "GET",
-      headers: { ...gmailAuthHeaders(keys), ...(init?.body ? { "Content-Type": "application/json" } : {}) },
-      body: init?.body ? JSON.stringify(init.body) : undefined,
-    });
+    const doFetch = () =>
+      fetch(`${GATEWAY_URL}${path}`, {
+        method: init?.method ?? "GET",
+        headers: { ...gmailAuthHeaders(keys), ...(init?.body ? { "Content-Type": "application/json" } : {}) },
+        body: init?.body ? JSON.stringify(init.body) : undefined,
+      });
+    let res = await doFetch();
+    // Gmail / the gateway says "too many requests" or is busy: wait a little and try again (reads only, max 2 more).
+    const method = (init?.method ?? "GET").toUpperCase();
+    for (let attempt = 1; attempt <= 2 && (res.status === 429 || res.status >= 500) && method === "GET"; attempt++) {
+      await new Promise((r) => setTimeout(r, 700 * attempt + Math.floor(Math.random() * 300)));
+      res = await doFetch();
+    }
     if (!res.ok) {
       console.error("[SWEETBABY] gmailApi error", path.split("?")[0], res.status, (await res.text()).slice(0, 300));
       return null;
