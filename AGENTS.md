@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-25 (20:1x Israel) — Claude (chat, owner: "פרסם עכשיו"):** PUBLISHED head a3a58a6 (long-press read / unread, entry below) via the Lovable connector (deploy af4c00d8-004b-4a1d-aed8-883c02c59d9c, status pending when logged; Lovable `latest_commit_sha` matched before the deploy; not checked live).
+
 - **2026-11-25 (20:1x Israel) — Claude (chat, owner: "לחיצה ארוכה להפיכה כלא נקרא" + "פרסם עכשיו"):** CODE ONLY, no DB. `/admin/mail-chat` list: a LONG PRESS (550 ms, phone vibrates) on a chat — or a RIGHT CLICK on the computer — toggles it unread <-> read, like WhatsApp; the plain tap still opens it (a long press does not open the chat). Unread -> read uses NEW `markMailChatRead` (removes UNREAD from all its threads, up to 30); read -> unread uses the existing `markMailChatUnread` (newest thread). The dot changes at once (`unreadOverride`, cleared on the next list load) and returns if Gmail refuses. WhatsApp-only chats cannot be marked (toast). Row is `select-none` + no iOS callout so the long press does not select text. Legend mentions it. Checks: `npx tsc` (no errors in the changed files), `bun test ./src/lib` (121 pass), `vite build` OK. NOT tried on a real phone.
 
 - **2026-11-25 (20:0x Israel) — Claude (chat, owner: "פרסם"):** PUBLISHED head d1c8248 (four boxes + automated-mail detection, entry below) via the Lovable connector (deploy c3d1883e-4f0a-46f6-9a31-6ae4c8657684, status pending when logged; Lovable `latest_commit_sha` matched before the deploy; not checked live).
