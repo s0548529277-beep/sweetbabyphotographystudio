@@ -80,6 +80,7 @@ export function buildRaw(opts: {
   fromName: string;
   fromEmail: string;
   to: string[];
+  cc?: string[];
   subject: string;
   text: string;
   inReplyTo?: string;
@@ -95,6 +96,7 @@ export function buildRaw(opts: {
   const headers = [
     `From: ${encodeGmailHeader(opts.fromName)} <${opts.fromEmail}>`,
     `To: ${opts.to.join(", ")}`,
+    ...(opts.cc?.length ? [`Cc: ${opts.cc.join(", ")}`] : []),
     `Subject: ${encodeGmailHeader(opts.subject)}`,
     ...(opts.inReplyTo ? [`In-Reply-To: ${opts.inReplyTo}`, `References: ${opts.inReplyTo}`] : []),
     "MIME-Version: 1.0",
@@ -166,6 +168,8 @@ export async function performReply(opts: {
   designed: boolean;
   attachments?: GmailAttachment[];
   replacesDraftId?: string;
+  /** Extra people in copy (CC). */
+  cc?: string[];
 }): Promise<void> {
   const accounts = await listGmailAccounts();
   const acc = accounts.find((a) => a.email === opts.account.toLowerCase());
@@ -181,6 +185,7 @@ export async function performReply(opts: {
       return f && !isOwn(f.email);
     }) ?? msgs[msgs.length - 1];
   const to = replyRecipients(meta.participants);
+  const cc = [...new Set((opts.cc ?? []).map((e) => e.toLowerCase()))].filter((e) => !to.some((t) => t.toLowerCase().includes(e)));
   const subject = `Re: ${cleanSubject(meta.subject)}`;
   const inReplyTo = gmailHeaderValue(headersOf(lastOther), "Message-ID") || undefined;
   const attachments = opts.attachments ?? [];
@@ -189,9 +194,10 @@ export async function performReply(opts: {
   const primary = await resolveGmailAccount();
   let ok: boolean;
   if (opts.designed && primary?.email === acc.email) {
-    ok = await sendDesigned({ to, subject, text: opts.text, channel: opts.channel, threadId: opts.threadId, inReplyTo, attachments });
+    // The designed sender has no CC field: people in copy are added as recipients.
+    ok = await sendDesigned({ to: [...to, ...cc], subject, text: opts.text, channel: opts.channel, threadId: opts.threadId, inReplyTo, attachments });
   } else {
-    const raw = buildRaw({ fromName: senderName(opts.channel), fromEmail: acc.email, to, subject, text: opts.text, inReplyTo, attachments });
+    const raw = buildRaw({ fromName: senderName(opts.channel), fromEmail: acc.email, to, cc, subject, text: opts.text, inReplyTo, attachments });
     const sent = await gmailApi<{ id?: string }>(acc.connKey, "/users/me/messages/send", { method: "POST", body: { raw, threadId: opts.threadId } });
     ok = !!sent?.id;
   }
@@ -207,16 +213,18 @@ export async function performStart(opts: {
   channel: Channel;
   designed: boolean;
   attachments?: GmailAttachment[];
+  cc?: string[];
 }): Promise<void> {
   const acc = await resolveGmailAccount();
   if (!acc) throw new Error("חשבון המייל לא מחובר");
   const recipients = [...new Set(opts.to.map((e) => e.toLowerCase()))];
+  const cc = [...new Set((opts.cc ?? []).map((e) => e.toLowerCase()))].filter((e) => !recipients.includes(e));
   const attachments = opts.attachments ?? [];
   let ok: boolean;
   if (opts.designed) {
-    ok = await sendDesigned({ to: recipients, subject: opts.subject, text: opts.text, channel: opts.channel, attachments });
+    ok = await sendDesigned({ to: [...recipients, ...cc], subject: opts.subject, text: opts.text, channel: opts.channel, attachments });
   } else {
-    const raw = buildRaw({ fromName: senderName(opts.channel), fromEmail: acc.email, to: recipients, subject: opts.subject, text: opts.text, attachments });
+    const raw = buildRaw({ fromName: senderName(opts.channel), fromEmail: acc.email, to: recipients, cc, subject: opts.subject, text: opts.text, attachments });
     const sent = await gmailApi<{ id?: string }>(acc.connKey, "/users/me/messages/send", { method: "POST", body: { raw } });
     ok = !!sent?.id;
   }
@@ -238,6 +246,7 @@ export type ScheduledMail = {
   threadId?: string;
   account?: string;
   to?: string[];
+  cc?: string[];
   subject?: string;
   /** Files of a scheduled mail, kept in the private "items" bucket until it is sent or cancelled. */
   files?: Array<{ path: string; filename: string; contentType: string; size: number }>;
@@ -334,9 +343,9 @@ export async function runDueScheduledMails(): Promise<{ sent: number; failed: nu
     try {
       const attachments = await loadScheduledFiles(db, m.files);
       if (m.kind === "reply" && m.threadId && m.account) {
-        await performReply({ threadId: m.threadId, account: m.account, text: m.text, channel: m.channel, designed: m.designed, attachments });
+        await performReply({ threadId: m.threadId, account: m.account, text: m.text, channel: m.channel, designed: m.designed, attachments, cc: m.cc });
       } else if (m.kind === "new" && m.to?.length && m.subject) {
-        await performStart({ to: m.to, subject: m.subject, text: m.text, channel: m.channel, designed: m.designed, attachments });
+        await performStart({ to: m.to, subject: m.subject, text: m.text, channel: m.channel, designed: m.designed, attachments, cc: m.cc });
       } else throw new Error("חסרים פרטים לשליחה");
       await removeScheduledFiles(db, m.files);
       sent++;

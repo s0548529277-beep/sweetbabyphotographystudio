@@ -61,14 +61,15 @@ const listCache = new Map<string, { at: number; data: any }>();
 /** The chat list: recent Gmail threads, grouped like WhatsApp (a person = one chat, several people = a group). */
 export const listMailChats = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ search: z.string().max(100).optional() }).parse(d ?? {}))
+  .inputValidator((d: unknown) => z.object({ search: z.string().max(100).optional(), includeOther: z.boolean().optional() }).parse(d ?? {}))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const accounts = await listGmailAccounts();
     if (!accounts.length) return { connected: false, conversations: [] as any[], accounts: [] as string[] };
     const isOwn = makeIsOwn(accounts);
     const search = data.search?.trim() ?? "";
-    const q = ["-category:promotions", "-category:social", "-in:spam", "-in:trash", search].filter(Boolean).join(" ");
+    // Promotions / social are hidden unless she asks for them ("כולל קידומי מכירות ורשתות").
+    const q = [...(data.includeOther ? [] : ["-category:promotions", "-category:social"]), "-in:spam", "-in:trash", search].filter(Boolean).join(" ");
     const hit = listCache.get(q);
     if (hit && Date.now() - hit.at < 8000) return hit.data;
 
@@ -282,6 +283,7 @@ export const replyMailChat = createServerFn({ method: "POST" })
         channel: z.enum(["studio", "personal"]).default("personal"),
         designed: z.boolean().default(false),
         attachments: attachmentSchema,
+        cc: z.array(z.string().email()).max(20).optional(),
         /** When she edited a prepared draft and sent her version, the draft is removed after sending. */
         replacesDraftId: z.string().optional(),
       })
@@ -308,6 +310,7 @@ export const startMailChat = createServerFn({ method: "POST" })
         channel: z.enum(["studio", "personal"]).default("personal"),
         designed: z.boolean().default(false),
         attachments: attachmentSchema,
+        cc: z.array(z.string().email()).max(20).optional(),
       })
       .parse(d),
   )
@@ -346,6 +349,32 @@ export const deleteMailDraft = createServerFn({ method: "POST" })
     await deleteDraftCached(acc.connKey, acc.email, data.draftId);
     listCache.clear();
     return { ok: true };
+  });
+
+// ── how a mail looks ──────────────────────────────────────────────────────────
+
+/** One mail exactly as it arrived (its designed HTML, or its plain text), for the "how it looks in the mail" view. */
+export const getMailMessageView = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ account: z.string().min(3), messageId: z.string().min(1) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const acc = (await listGmailAccounts()).find((a) => a.email === data.account.toLowerCase());
+    if (!acc) throw new Error("חשבון המייל לא מחובר");
+    const m = await gmailApi<any>(acc.connKey, `/users/me/messages/${encodeURIComponent(data.messageId)}?format=full`);
+    if (!m) throw new Error("המייל לא נמצא");
+    const h = headersOf(m);
+    const html = findHtml(m.payload);
+    const text = html ? "" : extractGmailPlainText(m.payload) || m.snippet || "";
+    return {
+      html: html.slice(0, 1_500_000),
+      text,
+      from: gmailHeaderValue(h, "From"),
+      to: gmailHeaderValue(h, "To"),
+      cc: gmailHeaderValue(h, "Cc"),
+      subject: gmailHeaderValue(h, "Subject"),
+      date: gmailHeaderValue(h, "Date"),
+    };
   });
 
 // ── attachments ───────────────────────────────────────────────────────────────
@@ -402,6 +431,8 @@ const prefsSchema = z.object({
   reminders: z.record(z.string().max(300), z.number()).default({}),
   /** Her private note per chat (never sent to anyone). */
   notes: z.record(z.string().max(300), z.string().max(2000)).default({}),
+  /** WhatsApp: when she last opened each phone's messages (ms), for the unread dot. */
+  waSeen: z.record(z.string().max(40), z.number()).default({}),
 });
 export type MailChatPrefs = z.infer<typeof prefsSchema>;
 
@@ -414,7 +445,7 @@ export const getMailChatPrefs = createServerFn({ method: "POST" })
     try {
       return prefsSchema.parse(JSON.parse(data?.value ?? "{}"));
     } catch {
-      return { pinned: [], labels: {}, archived: {}, quickReplies: [], reminders: {}, notes: {} };
+      return { pinned: [], labels: {}, archived: {}, quickReplies: [], reminders: {}, notes: {}, waSeen: {} };
     }
   });
 
@@ -433,7 +464,8 @@ export const setMailChatPrefs = createServerFn({ method: "POST" })
     );
     const reminders = Object.fromEntries(Object.entries(data.reminders).slice(-300));
     const notes = Object.fromEntries(Object.entries(data.notes).filter(([, t]) => t.trim()).slice(-400));
-    const value = JSON.stringify({ ...data, archived, reminders, notes });
+    const waSeen = Object.fromEntries(Object.entries(data.waSeen).slice(-500));
+    const value = JSON.stringify({ ...data, archived, reminders, notes, waSeen });
     const { error } = await (supabaseAdmin as any).from("app_settings").upsert({ key: PREFS_KEY, value, updated_at: new Date().toISOString() });
     if (error) throw new Error("השמירה נכשלה");
     return { ok: true };
@@ -727,6 +759,7 @@ const scheduleSchema = z.object({
   threadId: z.string().optional(),
   account: z.string().optional(),
   to: z.array(z.string().email()).max(50).optional(),
+  cc: z.array(z.string().email()).max(20).optional(),
   subject: z.string().max(200).optional(),
   attachments: z
     .array(z.object({ filename: z.string().min(1).max(200), contentType: z.string().max(120), base64Data: z.string().min(1) }))

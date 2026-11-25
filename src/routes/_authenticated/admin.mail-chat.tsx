@@ -51,6 +51,7 @@ import {
   getMailAttachment,
   getMailChat,
   getMailChatPrefs,
+  getMailMessageView,
   listMailChats,
   listMailContacts,
   listScheduledMails,
@@ -279,7 +280,7 @@ const BASE_FILTERS: Array<{ id: Filter; label: string }> = [
   { id: "whatsapp", label: "🟢 וואטסאפ" },
 ];
 
-const EMPTY_PREFS: MailChatPrefs = { pinned: [], labels: {}, archived: {}, quickReplies: [], reminders: {}, notes: {} };
+const EMPTY_PREFS: MailChatPrefs = { pinned: [], labels: {}, archived: {}, quickReplies: [], reminders: {}, notes: {}, waSeen: {} };
 
 // ── page ──────────────────────────────────────────────────────────────────────
 function MailChatAdmin() {
@@ -341,6 +342,11 @@ function MailChatAdmin() {
   const [remindOpen, setRemindOpen] = useState(false);
   const [headerMenu, setHeaderMenu] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [includeOther, setIncludeOther] = useState(false);
+  const [viewMsg, setViewMsg] = useState<ChatMsg | null>(null);
+  const [ccList, setCcList] = useState<string[]>([]);
+  const [ccOpen, setCcOpen] = useState(false);
+  const [labelSheet, setLabelSheet] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 60_000);
@@ -356,8 +362,8 @@ function MailChatAdmin() {
   }, [search]);
 
   const chats = useQuery({
-    queryKey: ["mail-chats", serverSearch],
-    queryFn: () => fetchChats({ data: serverSearch ? { search: serverSearch } : {} }),
+    queryKey: ["mail-chats", serverSearch, includeOther],
+    queryFn: () => fetchChats({ data: { ...(serverSearch ? { search: serverSearch } : {}), ...(includeOther ? { includeOther: true } : {}) } }),
     refetchInterval: serverSearch ? false : 20000,
     refetchOnWindowFocus: true,
   });
@@ -371,6 +377,12 @@ function MailChatAdmin() {
     setPrefs(next);
     savePrefsFn({ data: next }).catch(() => toast.error("לא הצלחתי לשמור את השינוי"));
   }
+
+  // WhatsApp unread: the first time the screen loads, everything older counts as read (start point "_init").
+  useEffect(() => {
+    if (prefsQ.data && !prefsQ.data.waSeen?._init) updatePrefs({ ...prefsQ.data, waSeen: { ...(prefsQ.data.waSeen ?? {}), _init: Date.now() } });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefsQ.data]);
 
   const mailConversations: MailConversation[] = (chats.data?.conversations ?? []) as MailConversation[];
   const waConvsQ = useQuery({
@@ -404,6 +416,7 @@ function MailChatAdmin() {
 
   // One inbox: a WhatsApp conversation joins the private mail chat of the same person (matched by the phone the site
   // knows for her e-mail); a WhatsApp number with no mail chat becomes its own chat.
+  const waSeenBase = prefs.waSeen?._init ?? 0;
   const conversations: Conv[] = useMemo(() => {
     const byTail = new Map<string, Contact>();
     for (const c of allContacts) if (c.phone && tail9(c.phone).length === 9 && !byTail.has(tail9(c.phone))) byTail.set(tail9(c.phone), c);
@@ -414,8 +427,11 @@ function MailChatAdmin() {
       const at = Date.parse(r.created_at) || 0;
       const snippet = `🟢 ${r.body || (r.media_type ? `[${r.media_filename || r.media_type}]` : "")}`;
       const conv = contact ? byKey.get(`p:${contact.email}`) : undefined;
+      // WhatsApp unread = her newest message came in after the last time this phone's chat was opened here.
+      const waUnread = !!waSeenBase && r.direction === "in" && at > Math.max(prefs.waSeen?.[r.phone] ?? 0, waSeenBase);
       if (conv && !conv.isGroup) {
         conv.waPhone = r.phone;
+        if (waUnread) conv.unread = true;
         if (at > conv.lastDate) {
           conv.lastDate = at;
           conv.snippet = snippet;
@@ -434,7 +450,7 @@ function MailChatAdmin() {
         lastDate: at,
         snippet,
         lastFromMe: r.direction === "out",
-        unread: false,
+        unread: waUnread,
         hasDraft: false,
         threads: [],
         waPhone: r.phone,
@@ -444,8 +460,16 @@ function MailChatAdmin() {
       byKey.set(w.key, w);
     }
     return list;
-  }, [mailConversations, waConvsQ.data, allContacts]);
+  }, [mailConversations, waConvsQ.data, allContacts, prefs.waSeen, waSeenBase]);
   const active = conversations.find((c) => c.key === activeKey) ?? null;
+  useEffect(() => {
+    const phone = active?.waPhone;
+    if (!phone || !prefsQ.data) return;
+    const row = ((waConvsQ.data ?? []) as any[]).find((r) => r.phone === phone);
+    const at = row ? Date.parse(row.created_at) || 0 : 0;
+    if (at > (prefs.waSeen?.[phone] ?? 0)) updatePrefs({ ...prefs, waSeen: { ...(prefs.waSeen ?? {}), [phone]: Date.now() } });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active?.waPhone, waConvsQ.data, prefsQ.data]);
   const isArchived = (c: MailConversation) => (prefs.archived[c.key] ?? 0) >= c.lastDate;
 
   const thread = useQuery({
@@ -620,6 +644,8 @@ function MailChatAdmin() {
     setChatSearch("");
     setChatSearchOpen(false);
     setReplyVia(active?.waOnly ? "wa" : "mail");
+    setCcList([]);
+    setCcOpen(false);
   }, [activeKey]);
 
   // Phone: the device "back" button closes the open chat and returns to the list (like WhatsApp) instead of leaving the page.
@@ -781,6 +807,7 @@ function MailChatAdmin() {
           designed,
           attachments: sentFiles.map(({ filename, contentType, base64Data }) => ({ filename, contentType, base64Data })),
           replacesDraftId: replaced?.draftId,
+          ...(ccList.length ? { cc: ccList } : {}),
         },
       });
       await refreshAll();
@@ -840,6 +867,7 @@ function MailChatAdmin() {
           threadId: target.threadId,
           account: target.account,
           attachments: files.map(({ filename, contentType, base64Data }) => ({ filename, contentType, base64Data })),
+          ...(ccList.length ? { cc: ccList } : {}),
         },
       });
       setDraft("");
@@ -989,17 +1017,17 @@ function MailChatAdmin() {
   return (
     <div
       dir="rtl"
-      className="md:space-y-4 max-md:fixed max-md:inset-0 max-md:z-50 max-md:flex max-md:flex-col max-md:bg-white max-md:pt-[env(safe-area-inset-top)]"
+      className="md:space-y-4 md:rounded-2xl md:p-4 md:pb-5 md:bg-[linear-gradient(#00a884_0,#00a884_128px,#d1d7db_128px)] max-md:fixed max-md:inset-0 max-md:z-50 max-md:flex max-md:flex-col max-md:bg-white max-md:pt-[env(safe-area-inset-top)]"
     >
       {/* On a phone the page title hides while a chat is open, so the chat gets the whole screen (like WhatsApp). */}
       <div className="hidden md:flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 md:gap-3 min-w-0">
-          <div className="h-9 w-9 md:h-10 md:w-10 shrink-0 rounded-full flex items-center justify-center text-white" style={{ background: WA.green }}>
+          <div className="h-9 w-9 md:h-10 md:w-10 shrink-0 rounded-full flex items-center justify-center bg-white" style={{ color: WA.green }}>
             <Mail className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <h2 className="font-display text-xl md:text-2xl text-primary truncate">מיילים כמו וואטסאפ</h2>
-            <p className="hidden sm:block text-sm text-muted-foreground">כל המיילים של הסטודיו והאישי במקום אחד, מסונכרנים אוטומטית מ-Gmail — עונים ישר מכאן</p>
+            <h2 className="font-display text-xl md:text-2xl text-white truncate">מיילים כמו וואטסאפ</h2>
+            <p className="hidden sm:block text-sm text-white/85">כל המיילים של הסטודיו והאישי במקום אחד, מסונכרנים אוטומטית מ-Gmail — עונים ישר מכאן</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
@@ -1007,7 +1035,7 @@ function MailChatAdmin() {
             <Button
               variant="ghost"
               aria-label="הפעלת התראות"
-              className="rounded-full gap-2 px-2.5 md:px-4"
+              className="rounded-full gap-2 px-2.5 md:px-4 text-white hover:bg-white/15 hover:text-white"
               onClick={() => Notification.requestPermission().then((p) => p === "granted" && toast.success("התראות הופעלו"))}
             >
               <Bell className="h-4 w-4" /> <span className="hidden md:inline">הפעלת התראות</span>
@@ -1015,8 +1043,8 @@ function MailChatAdmin() {
           )}
           <Button
             aria-label="מייל חדש"
-            className="rounded-full gap-2 text-white px-3 md:px-4"
-            style={{ background: WA.green }}
+            className="rounded-full gap-2 px-3 md:px-4 bg-white hover:bg-white/90 shadow-sm"
+            style={{ color: WA.greenDark }}
             onClick={() => {
               setComposeTo([]);
               setComposeOpen(true);
@@ -1032,7 +1060,7 @@ function MailChatAdmin() {
       )}
 
       <div
-        className="grid md:grid-cols-[370px_1fr] overflow-hidden max-md:flex-1 max-md:min-h-0 md:border md:rounded-2xl md:shadow-sm md:h-[calc(100dvh-14rem)] md:min-h-[620px]"
+        className="grid md:grid-cols-[370px_1fr] overflow-hidden max-md:flex-1 max-md:min-h-0 md:rounded-lg md:shadow-[0_6px_18px_rgba(11,20,26,0.18)] md:h-[calc(100dvh-14rem)] md:min-h-[620px]"
         style={{ borderColor: WA.line, background: "#fff" }}
       >
         {/* ── side panel ── */}
@@ -1119,6 +1147,15 @@ function MailChatAdmin() {
                     {!!f.count && <span className="opacity-70">{f.count}</span>}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => setIncludeOther((v) => !v)}
+                  title="להציג גם מיילים מהלשוניות קידומי מכירות ורשתות חברתיות של Gmail"
+                  className="shrink-0 h-8 px-3 rounded-full text-xs font-medium transition whitespace-nowrap flex items-center gap-1"
+                  style={includeOther ? { background: "#fde8d7", color: "#9a4a12" } : { background: WA.panel, color: WA.muted }}
+                >
+                  {includeOther ? "✓ " : "+ "}קידומי מכירות ורשתות
+                </button>
               </div>
             ) : (
               <div className="flex items-center justify-between gap-2 text-xs" style={{ color: WA.muted }}>
@@ -1386,6 +1423,7 @@ function MailChatAdmin() {
                           { label: "חיפוש בשיחה", icon: Search, run: () => (setChatSearchOpen(true), setChatSearch("")) },
                           { label: prefs.reminders?.[active.key] ? "שינוי התזכורת" : "תזכירי לי לחזור", icon: AlarmClock, run: () => setRemindOpen(true) },
                           { label: prefs.pinned.includes(active.key) ? "ביטול הצמדה" : "הצמדה למעלה", icon: Pin, run: () => togglePin(active.key) },
+                          { label: activeLabel ? `תווית: ${activeLabel}` : "תווית לשיחה", icon: Tag, run: () => setLabelSheet(true) },
                           ...(active.threads.length ? [{ label: "סימון כלא נקרא", icon: MailOpen, run: markUnread }] : []),
                           isArchived(active)
                             ? { label: "החזרה מהארכיון", icon: ArchiveRestore, run: () => unarchive(active.key) }
@@ -1765,6 +1803,18 @@ function MailChatAdmin() {
                               </span>
                             )}
                             {bubbleTime(m.at)}
+                            {!m.wa && !m.pending && m.account && (
+                              <button
+                                type="button"
+                                title="איך זה נראה במייל"
+                                aria-label="איך זה נראה במייל"
+                                onClick={() => setViewMsg(m)}
+                                className="p-0.5 -my-0.5 rounded hover:bg-black/5"
+                                style={{ color: WA.muted }}
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                              </button>
+                            )}
                             {m.fromMe && (m.pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCheck className="h-3.5 w-3.5" style={{ color: "#53bdeb" }} aria-label="נשלח" />)}
                           </div>
                         </div>
@@ -1937,7 +1987,23 @@ function MailChatAdmin() {
                   >
                     <Palette className="h-3.5 w-3.5" /> {designed ? "מעוצב ✓" : "מעוצב"}
                   </button>}
+                  {replyVia === "mail" && (
+                    <button
+                      type="button"
+                      onClick={() => setCcOpen((v) => !v)}
+                      title="להוסיף אנשים בעותק (CC)"
+                      className="shrink-0 h-7 px-3 rounded-full text-xs whitespace-nowrap font-medium"
+                      style={ccOpen || ccList.length ? { background: WA.green, color: "#fff" } : { background: "#fff", color: WA.muted }}
+                    >
+                      עותק (CC){ccList.length ? ` · ${ccList.length}` : ""}
+                    </button>
+                  )}
                 </div>
+                {replyVia === "mail" && (ccOpen || ccList.length > 0) && (
+                  <div className="px-3 pt-2">
+                    <CcInput value={ccList} onChange={setCcList} contacts={allContacts} />
+                  </div>
+                )}
                 {files.length > 0 && (
                   <div className="px-3 pt-2">
                     <FileChips files={files} onRemove={(i) => setFiles((f) => f.filter((_, j) => j !== i))} />
@@ -2126,6 +2192,50 @@ function MailChatAdmin() {
         </DialogContent>
       </Dialog>
 
+      <MailViewDialog msg={viewMsg} onClose={() => setViewMsg(null)} />
+
+      {labelSheet && active && (
+        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center" dir="rtl">
+          <button type="button" aria-label="סגירה" className="absolute inset-0 bg-black/40" onClick={() => setLabelSheet(false)} />
+          <div className="relative w-full md:max-w-sm bg-white rounded-t-2xl md:rounded-2xl p-3 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-1">
+            <div className="mx-auto h-1 w-10 rounded-full bg-black/15 mb-2 md:hidden" />
+            <div className="px-2 pb-1 text-sm font-semibold" style={{ color: WA.ink }}>
+              תווית לשיחה עם {active.title}
+            </div>
+            {LABELS.map((l) => (
+              <button
+                key={l.id}
+                type="button"
+                onClick={() => {
+                  setLabel(active.key, activeLabel === l.id ? null : l.id);
+                  setLabelSheet(false);
+                }}
+                className="w-full h-12 px-3 rounded-xl flex items-center justify-between text-[15px] active:bg-[#f0f2f5]"
+              >
+                <span className="flex items-center gap-3">
+                  <span className="h-3.5 w-3.5 rounded-full" style={{ background: l.color }} />
+                  {l.id}
+                </span>
+                {activeLabel === l.id && <Check className="h-5 w-5" style={{ color: WA.green }} />}
+              </button>
+            ))}
+            {activeLabel && (
+              <button
+                type="button"
+                onClick={() => {
+                  setLabel(active.key, null);
+                  setLabelSheet(false);
+                }}
+                className="w-full h-12 px-3 rounded-xl text-right text-[15px]"
+                style={{ color: "#b3261e" }}
+              >
+                הסרת התווית
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <ComposeDialog
         open={composeOpen}
         onOpenChange={(o) => {
@@ -2187,6 +2297,115 @@ function DraftBtn({ onClick, children, danger }: { onClick: () => void; children
     >
       {children}
     </button>
+  );
+}
+
+/** One mail exactly as it arrived / went out — the design, the signature, the price lists — in a safe frame. */
+function MailViewDialog({ msg, onClose }: { msg: ChatMsg | null; onClose: () => void }) {
+  const fetchView = useServerFn(getMailMessageView);
+  const q = useQuery({
+    queryKey: ["mail-view", msg?.account, msg?.id],
+    queryFn: () => fetchView({ data: { account: msg!.account, messageId: msg!.id } }),
+    enabled: !!msg,
+    staleTime: Infinity,
+  });
+  const d = q.data;
+  return (
+    <Dialog open={!!msg} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent dir="rtl" className="max-w-3xl w-[calc(100vw-1rem)] p-0 overflow-hidden gap-0">
+        <div className="px-4 py-3 border-b space-y-0.5 text-[13px]" style={{ background: WA.panel, borderColor: WA.line, color: WA.ink }}>
+          <div className="font-semibold text-[15px] pl-8" dir="auto">
+            {d?.subject || msg?.subject || "(ללא נושא)"}
+          </div>
+          {d && (
+            <>
+              <div className="truncate" style={{ color: WA.muted }} dir="auto">
+                מאת: {d.from}
+              </div>
+              <div className="truncate" style={{ color: WA.muted }} dir="auto">
+                אל: {d.to}
+                {d.cc ? ` · עותק: ${d.cc}` : ""}
+              </div>
+              <div style={{ color: WA.muted }}>{msg ? new Date(msg.at).toLocaleString("he-IL", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Jerusalem" }) : ""}</div>
+            </>
+          )}
+        </div>
+        {q.isLoading && (
+          <div className="h-[60vh] flex items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin" style={{ color: WA.muted }} />
+          </div>
+        )}
+        {q.isError && <div className="p-6 text-sm text-center" style={{ color: "#b3261e" }}>לא הצלחתי לטעון את המייל</div>}
+        {d &&
+          (d.html ? (
+            <iframe title="המייל כפי שנראה" sandbox="allow-popups allow-popups-to-escape-sandbox" srcDoc={`<base target="_blank">${d.html}`} className="w-full h-[70vh] border-0 bg-white" />
+          ) : (
+            <div className="h-[70vh] overflow-y-auto p-4 text-[14px] leading-relaxed whitespace-pre-wrap break-words bg-white" dir="auto" style={{ color: WA.ink }}>
+              {d.text}
+            </div>
+          ))}
+        {msg && (
+          <div className="px-4 py-2 border-t flex justify-end" style={{ borderColor: WA.line }}>
+            <a href={`https://mail.google.com/mail/u/0/#all/${msg.threadId}`} target="_blank" rel="noreferrer" className="text-xs flex items-center gap-1" style={{ color: "#027eb5" }}>
+              <ExternalLink className="h-3.5 w-3.5" /> פתיחה ב-Gmail
+            </a>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** People in copy (CC): chips + an address box with suggestions from the address book. */
+function CcInput({ value, onChange, contacts }: { value: string[]; onChange: (v: string[]) => void; contacts: Contact[] }) {
+  const [text, setText] = useState("");
+  const listId = useMemo(() => `cc-${Math.random().toString(36).slice(2)}`, []);
+  function add(raw: string) {
+    const parts = raw
+      .split(/[\s,;]+/)
+      .map((x) => x.trim().toLowerCase())
+      .filter((x) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x));
+    if (!parts.length) return false;
+    onChange([...new Set([...value, ...parts])].slice(0, 20));
+    setText("");
+    return true;
+  }
+  return (
+    <div className="rounded-lg bg-white px-2 py-1.5 flex flex-wrap items-center gap-1.5 text-[13px]">
+      <span className="text-xs font-medium" style={{ color: WA.muted }}>
+        עותק:
+      </span>
+      {value.map((e) => (
+        <span key={e} className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={{ background: "#e7f6ee", color: WA.greenDark }} dir="ltr">
+          {e}
+          <button type="button" aria-label={`הסרת ${e}`} onClick={() => onChange(value.filter((x) => x !== e))}>
+            <X className="h-3 w-3" />
+          </button>
+        </span>
+      ))}
+      <input
+        list={listId}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if ((e.key === "Enter" || e.key === "," || e.key === " ") && text.trim()) {
+            e.preventDefault();
+            if (!add(text)) toast.error("כתובת מייל לא תקינה");
+          }
+        }}
+        onBlur={() => text.trim() && add(text)}
+        placeholder="כתובת מייל ו-Enter"
+        className="flex-1 min-w-[160px] outline-none bg-transparent text-base md:text-[13px]"
+        dir="ltr"
+      />
+      <datalist id={listId}>
+        {contacts.slice(0, 400).map((c) => (
+          <option key={c.email} value={c.email}>
+            {c.name}
+          </option>
+        ))}
+      </datalist>
+    </div>
   );
 }
 
@@ -2339,9 +2558,11 @@ function ComposeDialog({
     channel: "studio" | "personal";
     designed: boolean;
     attachments: Array<{ filename: string; contentType: string; base64Data: string }>;
+    cc?: string[];
   }) => Promise<void>;
 }) {
   const [to, setTo] = useState<Contact[]>([]);
+  const [cc, setCc] = useState<string[]>([]);
   const [query, setQuery] = useState("");
   const [subject, setSubject] = useState("");
   const [text, setText] = useState("");
@@ -2360,6 +2581,7 @@ function ComposeDialog({
       setSubject("");
       setText("");
       setFiles([]);
+      setCc([]);
       setBusy(false);
     }
   }, [open, initialTo]);
@@ -2393,6 +2615,7 @@ function ComposeDialog({
       channel,
       designed,
       attachments: files.map(({ filename, contentType, base64Data }) => ({ filename, contentType, base64Data })),
+      ...(cc.length ? { cc } : {}),
     };
   }
 
@@ -2494,6 +2717,8 @@ function ComposeDialog({
               )}
             </div>
           </div>
+
+          <CcInput value={cc} onChange={setCc} contacts={contacts} />
 
           <div>
             <label className="text-xs font-medium" style={{ color: WA.muted }}>
@@ -2597,6 +2822,7 @@ type ComposePayload = {
   channel: "studio" | "personal";
   designed: boolean;
   attachments: Array<{ filename: string; contentType: string; base64Data: string }>;
+  cc?: string[];
 };
 
 function ChatNote({ value, onSave }: { value: string; onSave: (t: string) => void }) {
