@@ -4,6 +4,7 @@
 // refresh-token maintenance is needed here.
 
 import { applyStoredEmailDesign } from "@/lib/email-design.server";
+import { LEAD_SUBJECT_HEADER, encodeLeadSubject, isThreadedLeadSubject, leadThreadSubject, withLeadTitle } from "@/lib/lead-thread";
 import { SITE_MAIL_LABELS, classifySiteMail, type SiteMailKind } from "@/lib/mail-labels";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
@@ -74,6 +75,8 @@ export type GmailMessage = {
   inReplyTo?: string;
   /** Our own Message-ID for this mail (so the next mail can reply to it). */
   messageId?: string;
+  /** Set by the sender for a threaded lead notice: its original subject (see lib/lead-thread). */
+  leadSubject?: string;
 };
 
 /** Plain-text twin of an HTML mail (HTML-only mails are a spam signal). */
@@ -107,13 +110,14 @@ function stripPinkHearts(subject: string): string {
   return subject.replace(/\s*💗\s*/g, " ").replace(/\s{2,}/g, " ").trim();
 }
 
-function buildMime({ to, subject, html, fromName = "Sweetbaby", attachments = [], inReplyTo, messageId }: GmailMessage): string {
+function buildMime({ to, subject, html, fromName = "Sweetbaby", attachments = [], inReplyTo, messageId, leadSubject }: GmailMessage): string {
   const headers = [
     `From: ${encodeHeader(fromName)} <m0548529277@gmail.com>`,
     `To: ${encodeAddressList(to)}`,
     `Subject: ${encodeHeader(stripPinkHearts(subject))}`,
     ...(messageId ? [`Message-ID: ${messageId}`] : []),
     ...(inReplyTo ? [`In-Reply-To: ${inReplyTo}`, `References: ${inReplyTo}`] : []),
+    ...(leadSubject ? [`${LEAD_SUBJECT_HEADER}: ${encodeLeadSubject(leadSubject)}`] : []),
     "MIME-Version: 1.0",
   ];
 
@@ -191,7 +195,19 @@ export async function sendGmailDetailed(message: GmailMessage): Promise<{ ok: bo
     return { ok: false };
   }
 
-  const mime = buildMime({ ...message, html: await applyStoredEmailDesign(message.html, message.subject) });
+  let outgoing: GmailMessage = { ...message, html: await applyStoredEmailDesign(message.html, message.subject) };
+  // Automatic lead notices to Michal go into one thread per day (the labels below still use the original subject).
+  if (message.to.trim().toLowerCase() === "m0548529277@gmail.com" && isThreadedLeadSubject(message.subject)) {
+    const subject = leadThreadSubject();
+    outgoing = {
+      ...outgoing,
+      ...(await findLeadThread(connKey, subject)),
+      subject,
+      leadSubject: message.subject,
+      html: withLeadTitle(outgoing.html, message.subject),
+    };
+  }
+  const mime = buildMime(outgoing);
   const raw = toBase64Url(new TextEncoder().encode(mime));
 
   try {
@@ -202,7 +218,7 @@ export async function sendGmailDetailed(message: GmailMessage): Promise<{ ok: bo
         Authorization: `Bearer ${lovableKey}`,
         "X-Connection-Api-Key": connKey,
       },
-      body: JSON.stringify(message.threadId ? { raw, threadId: message.threadId } : { raw }),
+      body: JSON.stringify(outgoing.threadId ? { raw, threadId: outgoing.threadId } : { raw }),
     });
     if (!res.ok) {
       console.error("[SWEETBABY] gmail send error", message.to, res.status, await res.text());
@@ -230,6 +246,23 @@ export async function sendGmailDetailed(message: GmailMessage): Promise<{ ok: bo
     console.error("[SWEETBABY] gmail send failed", message.to, e);
     return { ok: false };
   }
+}
+
+/** Today's lead thread (and the Message-ID to reply to). Empty = none yet, or Gmail did not answer: a new thread starts. */
+async function findLeadThread(connKey: string, subject: string): Promise<{ threadId?: string; inReplyTo?: string }> {
+  try {
+    const q = encodeURIComponent(`from:me newer_than:2d subject:"${subject.replace(/^\S+\s/, "")}"`);
+    const list = await gmailApi<{ messages?: Array<{ id: string }> }>(connKey, `/users/me/messages?maxResults=5&q=${q}`);
+    for (const { id } of list?.messages ?? []) {
+      const m = await gmailApi<any>(connKey, `/users/me/messages/${id}?format=metadata&metadataHeaders=Subject&metadataHeaders=Message-ID&metadataHeaders=Message-Id`);
+      const h = m?.payload?.headers;
+      const inReplyTo = gmailHeaderValue(h, "Message-ID") || gmailHeaderValue(h, "Message-Id");
+      if (m?.threadId && inReplyTo && gmailHeaderValue(h, "Subject") === subject) return { threadId: m.threadId, inReplyTo };
+    }
+  } catch (e) {
+    console.error("[SWEETBABY] lead thread lookup failed", e);
+  }
+  return {};
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

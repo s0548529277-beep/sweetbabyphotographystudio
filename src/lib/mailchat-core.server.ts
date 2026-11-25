@@ -12,10 +12,11 @@ import {
 } from "@/integrations/google/gmail.server";
 import { buildBrandedMailHtml, buildStudioMailHtml, esc } from "@/lib/email-draft-design";
 import { isOwnStudioAddress, isStudioChannelAddress } from "@/lib/studio-addresses";
+import { LEAD_SUBJECT_HEADER, effectiveSubject } from "@/lib/lead-thread";
 import { classifySiteMail, type SiteMailKind } from "@/lib/mail-labels";
 import { cleanSubject, parseAddressList, replyRecipients, type MailAddress, type ThreadMeta } from "@/lib/mailchat";
 
-export const META_HEADERS = ["From", "To", "Cc", "Subject", "Date", "Delivered-To", "Message-ID", "List-Id", "List-Unsubscribe", "Auto-Submitted", "Precedence", "X-Auto-Response-Suppress"];
+export const META_HEADERS = ["From", "To", "Cc", "Subject", "Date", "Delivered-To", "Message-ID", "List-Id", "List-Unsubscribe", "Auto-Submitted", "Precedence", "X-Auto-Response-Suppress", "X-Site-Lead-Subject"];
 export const META_QS = META_HEADERS.map((h) => `metadataHeaders=${h}`).join("&");
 export const MAX_ATTACH_BYTES = 18 * 1024 * 1024;
 export const SCHEDULED_KEY = "mail_chat_scheduled";
@@ -110,7 +111,7 @@ export function metaFromThread(thread: any, account: string, isOwn: (e: string) 
     if (!isAutomatedMessage(h, from, m.labelIds ?? [])) human = true;
   }
   // Permanent order / lead mark: the type of every site mail in the thread, judged by its subject.
-  const kinds = [...new Set(msgs.map((m) => classifySiteMail(gmailHeaderValue(headersOf(m), "Subject"))).filter((k): k is SiteMailKind => !!k))];
+  const kinds = [...new Set(msgs.map((m) => classifySiteMail(effectiveSubject(gmailHeaderValue(headersOf(m), "Subject"), gmailHeaderValue(headersOf(m), LEAD_SUBJECT_HEADER)))).filter((k): k is SiteMailKind => !!k))];
   const lastFrom = parseAddressList(gmailHeaderValue(headersOf(last), "From"))[0];
   return {
     threadId: thread.id,

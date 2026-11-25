@@ -29,6 +29,7 @@ import { buildDraftHtml, buildDraftText, type DraftBrand, type PriceList } from 
 import { chatLinkUrl } from "./orderSummary";
 import { parseFamilyRoomReply, hourlySlots } from "./family-room-reply";
 import { SITE_INQUIRY_QUERY, SITE_INQUIRY_SUBJECT, customerEmailInNotice } from "./site-inquiry";
+import { LEAD_SUBJECT_HEADER, LEAD_THREAD_QUERY, effectiveSubject } from "./lead-thread";
 import { isOwnStudioAddress } from "./studio-addresses";
 import { isBlankTemplateDraft } from "./draft-template";
 
@@ -765,13 +766,23 @@ export async function runEmailDraftAssistant(
         k,
         `/users/me/messages?maxResults=15&q=${encodeURIComponent('newer_than:3d from:me (subject:"מהשאלון" OR subject:"בחרה בחבילה")')}`,
       );
-      for (const qm of qList?.messages ?? []) {
+      const threaded = await g.gmailApi<{ messages?: Array<{ id: string; threadId: string }> }>(
+        k,
+        `/users/me/messages?maxResults=40&q=${encodeURIComponent(LEAD_THREAD_QUERY)}`,
+      );
+      const inLeadThread = new Set((threaded?.messages ?? []).map((m) => m.id));
+      for (const qm of [...(qList?.messages ?? []).filter((m) => !inLeadThread.has(m.id)), ...(threaded?.messages ?? [])]) {
         if (seenSet.has(`qz:${qm.id}`)) continue;
         const full = await g.gmailApi<any>(k, `/users/me/messages/${qm.id}?format=full`);
         if (!full) continue;
-        const subj = g.gmailHeaderValue(full.payload?.headers, "Subject") || "";
+        const subj = effectiveSubject(
+          g.gmailHeaderValue(full.payload?.headers, "Subject") || "",
+          g.gmailHeaderValue(full.payload?.headers, LEAD_SUBJECT_HEADER),
+        );
         const body = g.extractGmailPlainText(full.payload) || full.snippet || "";
         remember(`qz:${qm.id}`);
+        // The daily lead thread also holds visitor alerts and studio-funnel notices: only photographer quiz notices here.
+        if (!/מהשאלון|בחרה בחבילה/.test(subj)) continue;
         const phone = body.match(/(?:טלפון)\s*:?\s*(\+?[\d][\d\- ]{7,16}\d)/)?.[1]?.replace(/[^\d+]/g, "") ?? null;
         const mail = body.match(/(?:מייל)\s*:?\s*([^\s@]+@[^\s@]+\.[^\s@]+)/)?.[1] ?? null;
         const choice = /בחרה בחבילה/.test(subj);
@@ -787,7 +798,8 @@ export async function runEmailDraftAssistant(
           topic: "other",
           message: `${hot ? "🔥 ליד חם · " : ""}${choice ? "בחרה בסיום השאלון" : "מילאה את שאלון התאמת החבילה באתר הצלמת"}${pkg ? ` · ${pkg}` : ""}`,
           status: "new",
-          gmail_thread_id: qm.threadId,
+          // A shared lead thread must not tie different people to one lead.
+          gmail_thread_id: inLeadThread.has(qm.id) ? null : qm.threadId,
           notes: "מאתר הצלמת (שאלון) — לא נשלחה שום הודעה אליה (אם השאירה מייל, מחכה לה טיוטת תשובה).",
         });
       }
@@ -968,13 +980,34 @@ export async function runEmailDraftAssistant(
     } catch (e) {
       result.errors.push(`site inquiries: ${String((e as any)?.message ?? e).slice(0, 100)}`);
     }
+    // Notices inside the daily lead thread are separate inquiries: each MESSAGE is its own unit of work.
+    type Unit = { threadId: string; leadMessageId?: string };
+    const leadUnits: Unit[] = [];
+    try {
+      const leadList = await g.gmailApi<{ messages?: Array<{ id: string; threadId: string }> }>(
+        k,
+        `/users/me/messages?maxResults=40&q=${encodeURIComponent(LEAD_THREAD_QUERY)}`,
+      );
+      const leadThreads = new Set<string>();
+      for (const m of leadList?.messages ?? []) {
+        leadThreads.add(m.threadId);
+        if (!seenSet.has(m.id)) leadUnits.push({ threadId: m.threadId, leadMessageId: m.id });
+      }
+      for (const t of leadThreads) newestByThread.delete(t);
+    } catch (e) {
+      result.errors.push(`lead thread: ${String((e as any)?.message ?? e).slice(0, 100)}`);
+    }
     const waiting = [...newestByThread.entries()]
       .filter(([t, mid]) => !seenSet.has(mid) && !draftThreads.has(t))
       .map(([t]) => t);
     // Site inquiry notices first: a customer who left an e-mail on one of the sites is the thing the owner wants answered
     // soonest, and when a run only has time for a few threads they must not queue behind ordinary inbox mail.
     const siteThreadIds = new Set(siteNoticeThreads);
-    const threadIds = [...waiting.filter((t) => siteThreadIds.has(t)), ...waiting.filter((t) => !siteThreadIds.has(t))];
+    const units: Unit[] = [
+      ...leadUnits,
+      ...waiting.filter((t) => siteThreadIds.has(t)).map((threadId) => ({ threadId })),
+      ...waiting.filter((t) => !siteThreadIds.has(t)).map((threadId) => ({ threadId })),
+    ];
 
     let made = 0;
     let autoRun = 0;
@@ -990,11 +1023,11 @@ export async function runEmailDraftAssistant(
     // Waiting threads are analysed by a small pool of workers (`lim.concurrency`): the AI call dominates the time per thread
     // (~25 s), so three at once drain the queue about three times faster. Everything shared (`made`, `autoRun`, the seen
     // list, the claimed e-mails) is only changed between awaits, so no thread can see a half-updated value.
-    const queue = [...threadIds];
-    const processThread = async (threadId: string): Promise<void> => {
+    const queue = [...units];
+    const processThread = async ({ threadId, leadMessageId }: Unit): Promise<void> => {
       visited++;
       const th = await g.gmailApi<{ messages?: any[] }>(k, `/users/me/threads/${threadId}?format=full`);
-      const msgs = th?.messages ?? [];
+      const msgs = (th?.messages ?? []).filter((m: any) => !leadMessageId || m.id === leadMessageId);
       const last = msgs[msgs.length - 1];
       if (!last) return;
       const seenId: string = last.id;
@@ -1002,7 +1035,7 @@ export async function runEmailDraftAssistant(
       const from = g.gmailHeaderValue(h, "From");
       const fromAddr = addrOf(from);
       const isSiteForm = fromAddr.endsWith(SITE_FORM_SENDER);
-      const subject = g.gmailHeaderValue(h, "Subject") || "";
+      const subject = effectiveSubject(g.gmailHeaderValue(h, "Subject") || "", g.gmailHeaderValue(h, LEAD_SUBJECT_HEADER));
       // Notices sent from the studio address — m now, the old s address until 17.11 — are the sites' own mail.
       const fromOwnAddress = isOwner(fromAddr) || isOwnStudioAddress(fromAddr);
       const isSiteInquiry = fromOwnAddress && SITE_INQUIRY_SUBJECT.test(subject);
@@ -1010,7 +1043,8 @@ export async function runEmailDraftAssistant(
       // it sends it; the photographer site's notices only pass through this scan). Best effort, never blocks the draft.
       if (fromOwnAddress) {
         try {
-          await g.labelSiteMailThread(k, threadId, subject, msgs.flatMap((m: any) => m.labelIds ?? []));
+          if (leadMessageId) await g.labelSiteMailMessage(k, leadMessageId, subject);
+          else await g.labelSiteMailThread(k, threadId, subject, msgs.flatMap((m: any) => m.labelIds ?? []));
         } catch (e) {
           result.errors.push(`label: ${String((e as any)?.message ?? e).slice(0, 80)}`);
         }
@@ -1189,7 +1223,7 @@ export async function runEmailDraftAssistant(
         result.errors.push(`יצירת טיוטה נכשלה (${a.clientName || addrOf(to)})`);
         return;
       }
-      if (readyId) {
+      if (readyId && !leadMessageId) {
         await g.gmailApi(k, `/users/me/threads/${threadId}/modify`, { method: "POST", body: { addLabelIds: [readyId] } });
       }
       remember(seenId);
@@ -1204,7 +1238,7 @@ export async function runEmailDraftAssistant(
           topic: a.topic || "other",
           message: a.question || a.summary,
           status: "new",
-          gmail_thread_id: threadId,
+          gmail_thread_id: leadMessageId ? null : threadId,
           // Marks "draft ready, not sent yet" for /admin/leads (status stays
           // "new" until she actually answers).
           notes: `${autoSent ? `${AUTO_REPLY_NOTE}. ` : ""}${DRAFT_READY_NOTE} ${new Date().toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem" })}`,
@@ -1222,15 +1256,15 @@ export async function runEmailDraftAssistant(
           budgetHit = made < lim.maxNew;
           return;
         }
-        const threadId = queue.shift();
-        if (threadId === undefined) return;
-        await processThread(threadId);
+        const unit = queue.shift();
+        if (unit === undefined) return;
+        await processThread(unit);
       }
     };
     await Promise.all(Array.from({ length: Math.max(1, Math.min(lim.concurrency, queue.length || 1)) }, () => worker()));
     await flushSeen();
 
-    pendingThreads = Math.max(0, threadIds.length - visited);
+    pendingThreads = Math.max(0, units.length - visited);
 
     // ---------- follow-ups for clients who went quiet ----------
     // Lowest priority: only when the run still has time and nothing newer is left waiting (a run that skipped this pass is
