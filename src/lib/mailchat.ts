@@ -74,6 +74,9 @@ export type ThreadMeta = {
   hasDraft: boolean; // a reply draft (e.g. from the site's draft assistant) is waiting in this thread
   /** Site-mail types found in the thread (order / lead kinds from `classifySiteMail`), for the permanent mark. */
   kinds?: string[];
+  /** A mailing list / Google Group the thread belongs to (List-Id, or the googlegroups address), with its name. */
+  listId?: string;
+  listName?: string;
 };
 
 export type MailConversation = {
@@ -101,19 +104,23 @@ export type MailConversation = {
 export function buildConversations(metas: ThreadMeta[]): MailConversation[] {
   const byKey = new Map<string, MailConversation>();
   for (const m of metas) {
-    const isGroup = m.participants.length >= 2;
+    // A mailing list / Google Group: ALL its mails (any thread, any sender, both mailboxes) are one continuous chat.
+    const isList = !!m.listId;
+    const isGroup = isList || m.participants.length >= 2;
     // A group = the same set of people, whatever the thread / subject, so all their mails read as one continuous chat.
-    const key = isGroup
-      ? `g:${[...new Set(m.participants.map((p) => p.email))].sort().join(",")}`
-      : `p:${m.participants[0]?.email ?? `t:${m.threadId}`}`;
+    const key = isList
+      ? `l:${m.listId}`
+      : isGroup
+        ? `g:${[...new Set(m.participants.map((p) => p.email))].sort().join(",")}`
+        : `p:${m.participants[0]?.email ?? `t:${m.threadId}`}`;
     const names = m.participants.map((p) => p.name || p.email.split("@")[0]);
     const existing = byKey.get(key);
     if (!existing) {
       byKey.set(key, {
         key,
         // A site notice sent to ourselves has no other person: its subject is its name.
-        title: isGroup ? groupTitle(names) : names[0] || m.subject.trim() || "(ללא שולח)",
-        subtitle: isGroup ? names.join(", ") : m.participants[0]?.email ?? "",
+        title: isList ? m.listName || m.listId || "קבוצה" : isGroup ? groupTitle(names) : names[0] || m.subject.trim() || "(ללא שולח)",
+        subtitle: isList ? m.listId ?? "" : isGroup ? names.join(", ") : m.participants[0]?.email ?? "",
         isGroup,
         participants: m.participants,
         channel: m.channel,

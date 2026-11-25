@@ -70,3 +70,15 @@ test("chats are sorted newest first", () => {
   ]);
   assert.equal(c[0].participants[0].email, "b@x.com");
 });
+
+test("a mailing list is one chat across threads, senders and mailboxes", () => {
+  const c = buildConversations([
+    meta({ threadId: "a", account: "m@x.com", listId: "photo.googlegroups.com", listName: "צלמות", lastDate: 3, participants: [{ name: "רות", email: "r@x.com" }] }),
+    meta({ threadId: "b", account: "s@x.com", listId: "photo.googlegroups.com", listName: "צלמות", lastDate: 7, firstMessageId: "<2@x>", participants: [{ name: "אבי", email: "a@y.com" }, { name: "גל", email: "g@y.com" }] }),
+  ]);
+  assert.equal(c.length, 1);
+  assert.equal(c[0].key, "l:photo.googlegroups.com");
+  assert.equal(c[0].title, "צלמות");
+  assert.equal(c[0].isGroup, true);
+  assert.deepEqual(c[0].threads.map((t) => t.threadId), ["b", "a"]);
+});

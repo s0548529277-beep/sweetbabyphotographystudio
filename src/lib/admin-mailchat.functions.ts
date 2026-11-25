@@ -65,7 +65,7 @@ const threadMetaCache = new Map<string, { historyId: string; meta: ThreadMeta | 
 /** The chat list: recent Gmail threads, grouped like WhatsApp (a person = one chat, several people = a group). */
 export const listMailChats = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ search: z.string().max(100).optional(), box: z.enum(["business", "personal"]).optional(), months: z.number().int().min(1).max(12).optional() }).parse(d ?? {}))
+  .inputValidator((d: unknown) => z.object({ search: z.string().max(100).optional(), box: z.enum(["business", "personal", "groups"]).optional(), months: z.number().int().min(1).max(12).optional() }).parse(d ?? {}))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const accounts = await listGmailAccounts();
@@ -75,16 +75,17 @@ export const listMailChats = createServerFn({ method: "POST" })
     // Two boxes (owner, 2026-11-25): עסק = the Sweet Baby studio mailbox, אישי = everything in the personal mailbox.
     // Never shown in either: promotions, social, forums, spam, trash and groups / mailing lists (they break focus).
     const box = data.box ?? "business";
-    const readAccounts = accounts.filter((a) => (box === "business" ? isOldStudioMailbox(a.email) : !isOldStudioMailbox(a.email)));
+    // קבוצות (owner, 2026-11-25): every kind of group / mailing list from BOTH mailboxes, one continuous chat per group.
+    const readAccounts =
+      box === "groups" ? accounts : accounts.filter((a) => (box === "business" ? isOldStudioMailbox(a.email) : !isOldStudioMailbox(a.email)));
+    const boxQ =
+      box === "groups"
+        ? ["(list:googlegroups.com OR cc:googlegroups.com OR to:googlegroups.com OR category:forums OR category:social)"]
+        : ["-category:promotions", "-category:social", "-category:forums", "-list:googlegroups.com", "-cc:googlegroups.com", "-to:googlegroups.com"];
     const q = [
-      "-category:promotions",
-      "-category:social",
-      "-category:forums",
+      ...boxQ,
       "-in:spam",
       "-in:trash",
-      "-list:googlegroups.com",
-      "-cc:googlegroups.com",
-      "-to:googlegroups.com",
       // How far back (owner, 2026-11-25: "load months back"); a search looks at everything.
       search ? "" : `newer_than:${(data.months ?? 3) * 31}d`,
       search,
@@ -117,12 +118,12 @@ export const listMailChats = createServerFn({ method: "POST" })
         if (c && r.historyId && c.historyId === r.historyId) return c.meta;
         const t = await gmailApi<any>(acc.connKey, `/users/me/threads/${r.id}?format=metadata&${META_QS}`);
         if (!t) return null;
-        // A mailing list / group (any message with a List-Id header) is not a conversation: skip it.
-        const meta = t.messages?.some((msg: any) => gmailHeaderValue(headersOf(msg), "List-Id")) ? null : metaFromThread(t, acc.email, isOwn);
+        const meta = metaFromThread(t, acc.email, isOwn);
         if (r.historyId) threadMetaCache.set(key, { historyId: r.historyId, meta });
         return meta;
       });
-      for (const m of out) if (m) metas.push(m);
+      // Groups box = only mailing lists / groups; the other boxes never show them (they break focus).
+      for (const m of out) if (m && (box === "groups" ? !!m.listId : !m.listId)) metas.push(m);
     }
     // The studio mailbox forwards to the personal one, so the same mail can exist in both: keep one copy (the primary account's).
     const seen = new Set<string>();

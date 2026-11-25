@@ -53,6 +53,30 @@ export function metaFromThread(thread: any, account: string, isOwn: (e: string) 
   }
   const last = msgs[msgs.length - 1];
   const first = msgs[0];
+  // Mailing list / Google Group: the List-Id header ("Name <id>"), else a googlegroups.com address in To / Cc.
+  let listId = "";
+  let listName = "";
+  for (const m of msgs) {
+    const raw = gmailHeaderValue(headersOf(m), "List-Id");
+    if (raw) {
+      const idm = raw.match(/<([^>]+)>/);
+      listId = (idm ? idm[1] : raw).trim().toLowerCase();
+      listName = raw.replace(/<[^>]*>/, "").replace(/^["'\s]+|["'\s]+$/g, "").trim();
+      break;
+    }
+  }
+  if (!listId) {
+    for (const m of msgs) {
+      const h = headersOf(m);
+      const g = [...parseAddressList(gmailHeaderValue(h, "To")), ...parseAddressList(gmailHeaderValue(h, "Cc"))].find((a) => /@googlegroups\.com$/i.test(a.email));
+      if (g) {
+        listId = g.email.toLowerCase();
+        listName = g.name || "";
+        break;
+      }
+    }
+  }
+  if (listId && !listName) listName = listId.split(/[@.]/)[0];
   // Permanent order / lead mark: the type of every site mail in the thread, judged by its subject.
   const kinds = [...new Set(msgs.map((m) => classifySiteMail(gmailHeaderValue(headersOf(m), "Subject"))).filter((k): k is SiteMailKind => !!k))];
   const lastFrom = parseAddressList(gmailHeaderValue(headersOf(last), "From"))[0];
@@ -69,6 +93,7 @@ export function metaFromThread(thread: any, account: string, isOwn: (e: string) 
     firstMessageId: gmailHeaderValue(headersOf(first), "Message-ID") || `${account}:${thread.id}`,
     hasDraft: all.length !== msgs.length,
     kinds,
+    ...(listId ? { listId, listName } : {}),
   };
 }
 

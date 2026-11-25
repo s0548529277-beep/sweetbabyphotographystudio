@@ -403,7 +403,7 @@ function MailChatAdmin() {
   const [remindOpen, setRemindOpen] = useState(false);
   const [headerMenu, setHeaderMenu] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
-  const [box, setBox] = useState<"business" | "personal">("business");
+  const [box, setBox] = useState<"business" | "personal" | "groups">("business");
   const [months, setMonths] = useState(3);
   const [viewMsg, setViewMsg] = useState<ChatMsg | null>(null);
   const [ccList, setCcList] = useState<string[]>([]);
@@ -1204,11 +1204,12 @@ function MailChatAdmin() {
               )}
             </div>
             {tab === "chats" && (
-              <div className="grid grid-cols-2 gap-1 rounded-full p-1" style={{ background: WA.panel }}>
+              <div className="grid grid-cols-3 gap-1 rounded-full p-1" style={{ background: WA.panel }}>
                 {(
                   [
-                    { id: "business", label: "💼 עסק · סוויט בייבי" },
+                    { id: "business", label: "💼 עסק" },
                     { id: "personal", label: "🏠 אישי" },
+                    { id: "groups", label: "👥 קבוצות" },
                   ] as const
                 ).map((b) => (
                   <button
@@ -2026,6 +2027,16 @@ function MailChatAdmin() {
                 )}
               </div>
 
+              {active.key.startsWith("l:") ? (
+                <footer className="shrink-0 border-t px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-center text-[13px]" style={{ background: WA.panel, borderColor: WA.line, color: WA.muted }}>
+                  👥 קבוצה — קריאה בלבד כאן (תשובה כאן הייתה נשלחת לכל חברי הקבוצה).{" "}
+                  {active.threads[0] && (
+                    <a href={`https://mail.google.com/mail/u/0/#all/${active.threads[0].threadId}`} target="_blank" rel="noreferrer" className="underline" style={{ color: "#027eb5" }}>
+                      לענות ב-Gmail
+                    </a>
+                  )}
+                </footer>
+              ) : (
               <footer className="shrink-0 border-t" style={{ background: WA.panel, borderColor: WA.line }}>
                 {quote && (
                   <div className="mx-3 mt-2 rounded-lg bg-white border-r-4 px-3 py-1.5 flex items-start gap-2" style={{ borderColor: WA.green }}>
@@ -2264,6 +2275,7 @@ function MailChatAdmin() {
                     : `${active.channel === "studio" ? "נשלח בשם Sweetbaby" : "נשלח בשם מיכל סיבוני"}${designed ? " · עם לוגו וחתימה" : ""}`}
                 </div>
               </footer>
+              )}
             </>
           )}
         </section>
