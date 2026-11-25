@@ -7,6 +7,7 @@ import {
   Archive,
   ArchiveRestore,
   ArrowRight,
+  EllipsisVertical,
   Bell,
   BookUser,
   Check,
@@ -338,6 +339,8 @@ function MailChatAdmin() {
   const [scheduledOpen, setScheduledOpen] = useState(false);
   const [quickEditOpen, setQuickEditOpen] = useState(false);
   const [remindOpen, setRemindOpen] = useState(false);
+  const [headerMenu, setHeaderMenu] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 60_000);
@@ -984,9 +987,12 @@ function MailChatAdmin() {
 
   // ── render ──
   return (
-    <div dir="rtl" className="space-y-3 md:space-y-4">
+    <div
+      dir="rtl"
+      className="md:space-y-4 max-md:fixed max-md:inset-0 max-md:z-50 max-md:flex max-md:flex-col max-md:bg-white max-md:pt-[env(safe-area-inset-top)]"
+    >
       {/* On a phone the page title hides while a chat is open, so the chat gets the whole screen (like WhatsApp). */}
-      <div className={`items-center justify-between gap-2 md:gap-3 ${showThread ? "hidden md:flex" : "flex"}`}>
+      <div className="hidden md:flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 md:gap-3 min-w-0">
           <div className="h-9 w-9 md:h-10 md:w-10 shrink-0 rounded-full flex items-center justify-center text-white" style={{ background: WA.green }}>
             <Mail className="h-5 w-5" />
@@ -1022,19 +1028,46 @@ function MailChatAdmin() {
       </div>
 
       {chats.data && !chats.data.connected && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-900">חשבון ה-Gmail לא מחובר לאתר, ולכן אין מה להציג. יש לחבר אותו בהגדרות הפרויקט.</div>
+        <div className="bg-amber-50 border border-amber-200 md:rounded-2xl p-4 text-sm text-amber-900">חשבון ה-Gmail לא מחובר לאתר, ולכן אין מה להציג. יש לחבר אותו בהגדרות הפרויקט.</div>
       )}
 
       <div
-        className={`grid md:grid-cols-[370px_1fr] overflow-hidden -mx-6 md:mx-0 border-y md:border md:rounded-2xl shadow-sm min-h-[420px] md:h-[calc(100dvh-14rem)] md:min-h-[620px] ${
-          showThread ? "h-[calc(100dvh-6rem)]" : "h-[calc(100dvh-9.5rem)]"
-        }`}
+        className="grid md:grid-cols-[370px_1fr] overflow-hidden max-md:flex-1 max-md:min-h-0 md:border md:rounded-2xl md:shadow-sm md:h-[calc(100dvh-14rem)] md:min-h-[620px]"
         style={{ borderColor: WA.line, background: "#fff" }}
       >
         {/* ── side panel ── */}
-        <aside className={`min-h-0 flex-col border-l ${showThread ? "hidden md:flex" : "flex"}`} style={{ borderColor: WA.line }}>
-          <div className="shrink-0 px-3 pt-3 pb-2 space-y-2 bg-white">
-            <div className="flex rounded-full p-1" style={{ background: WA.panel }}>
+        <aside className={`relative min-h-0 flex-col border-l ${showThread ? "hidden md:flex" : "flex"}`} style={{ borderColor: WA.line }}>
+          {/* Phone: an app bar like WhatsApp (title + back to the admin + notifications). */}
+          <div className="md:hidden shrink-0 h-14 px-2 flex items-center gap-1 text-white" style={{ background: WA.greenDark }}>
+            <a href="/admin" aria-label="חזרה לניהול" className="h-10 w-10 rounded-full flex items-center justify-center active:bg-white/15">
+              <ArrowRight className="h-5 w-5" />
+            </a>
+            <div className="flex-1 min-w-0 text-lg font-semibold truncate">מיילים</div>
+            {notifyState === "default" && (
+              <button
+                type="button"
+                aria-label="הפעלת התראות"
+                onClick={() => Notification.requestPermission().then((p) => p === "granted" && toast.success("התראות הופעלו"))}
+                className="h-10 w-10 rounded-full flex items-center justify-center active:bg-white/15"
+              >
+                <Bell className="h-5 w-5" />
+              </button>
+            )}
+            {tab === "contacts" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectMode((v) => !v);
+                  setSelected({});
+                }}
+                className="h-9 px-3 rounded-full text-sm font-medium flex items-center gap-1 active:bg-white/15"
+              >
+                <Users className="h-4 w-4" /> {selectMode ? "ביטול" : "קבוצה"}
+              </button>
+            )}
+          </div>
+          <div className="shrink-0 px-3 pt-2 md:pt-3 pb-2 space-y-2 bg-white">
+            <div className="hidden md:flex rounded-full p-1" style={{ background: WA.panel }}>
               {(
                 [
                   { id: "chats", label: "שיחות", icon: Mail, badge: unreadCount },
@@ -1096,7 +1129,7 @@ function MailChatAdmin() {
                     setSelectMode((v) => !v);
                     setSelected({});
                   }}
-                  className="h-8 px-3 rounded-full font-medium flex items-center gap-1"
+                  className="hidden md:flex h-8 px-3 rounded-full font-medium items-center gap-1"
                   style={selectMode ? { background: "#d9fdd3", color: WA.greenDark } : { background: WA.panel, color: WA.ink }}
                 >
                   <Users className="h-3.5 w-3.5" /> {selectMode ? "ביטול בחירה" : "קבוצה חדשה"}
@@ -1225,7 +1258,22 @@ function MailChatAdmin() {
             </div>
           )}
 
-          <div className="shrink-0 px-3 py-2 text-[11px] flex items-center justify-between border-t" style={{ borderColor: WA.line, color: WA.muted }}>
+          {/* Phone: floating "new mail" button, like WhatsApp's new-chat button. */}
+          {tab === "chats" && (
+            <button
+              type="button"
+              aria-label="מייל חדש"
+              onClick={() => {
+                setComposeTo([]);
+                setComposeOpen(true);
+              }}
+              className="md:hidden absolute left-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-10 h-14 w-14 rounded-2xl shadow-lg flex items-center justify-center text-white active:scale-95 transition"
+              style={{ background: WA.green }}
+            >
+              <MessageSquarePlus className="h-6 w-6" />
+            </button>
+          )}
+          <div className="hidden md:flex shrink-0 px-3 py-2 text-[11px] items-center justify-between border-t" style={{ borderColor: WA.line, color: WA.muted }}>
             <span className="flex items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full" style={{ background: chats.isError ? "#e53935" : WA.unread }} />
               {chats.isError ? "שגיאת סנכרון" : syncedAgo === null ? "מסנכרן…" : `מסונכרן עם Gmail · לפני ${syncedAgo} שנ׳`}
@@ -1242,6 +1290,27 @@ function MailChatAdmin() {
               <RefreshCw className={`h-3.5 w-3.5 ${chats.isFetching ? "animate-spin" : ""}`} />
             </button>
           </div>
+          {/* Phone: bottom tabs like the WhatsApp app. */}
+          <nav className="md:hidden shrink-0 grid grid-cols-2 border-t bg-white pb-[env(safe-area-inset-bottom)]" style={{ borderColor: WA.line }}>
+            {(
+              [
+                { id: "chats", label: "שיחות", icon: Mail, badge: unreadCount },
+                { id: "contacts", label: "אנשי קשר", icon: BookUser, badge: 0 },
+              ] as const
+            ).map((t) => (
+              <button key={t.id} type="button" onClick={() => setTab(t.id)} className="h-14 flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium" style={{ color: tab === t.id ? WA.greenDark : WA.muted }}>
+                <span className="relative h-7 px-4 rounded-full flex items-center justify-center" style={tab === t.id ? { background: "#d9fdd3" } : undefined}>
+                  <t.icon className="h-5 w-5" />
+                  {t.badge > 0 && (
+                    <span className="absolute -top-1 -left-1 min-w-4 h-4 px-1 rounded-full text-[10px] text-white flex items-center justify-center" style={{ background: WA.unread }}>
+                      {t.badge}
+                    </span>
+                  )}
+                </span>
+                {t.label}
+              </button>
+            ))}
+          </nav>
         </aside>
 
         {/* ── chat pane ── */}
@@ -1270,19 +1339,23 @@ function MailChatAdmin() {
             </div>
           ) : (
             <>
-              <header className="shrink-0 h-[60px] px-2 md:px-3 flex items-center gap-1 md:gap-2 border-b" style={{ background: WA.panel, borderColor: WA.line }}>
+              <header
+                className="relative shrink-0 h-14 md:h-[60px] px-1.5 md:px-3 flex items-center gap-1 md:gap-2 border-b max-md:text-white max-md:border-0"
+                style={{ background: WA.panel, borderColor: WA.line }}
+              >
+                <span aria-hidden className="md:hidden absolute inset-0 -z-0" style={{ background: WA.greenDark }} />
                 <button
                   type="button"
                   aria-label="חזרה לרשימה"
                   onClick={closeThread}
-                  className="md:hidden h-10 w-10 -mr-1 rounded-full flex items-center justify-center hover:bg-black/5"
+                  className="relative md:hidden h-10 w-10 shrink-0 rounded-full flex items-center justify-center active:bg-white/15"
                 >
-                  <ArrowRight className="h-5 w-5" style={{ color: WA.ink }} />
+                  <ArrowRight className="h-5 w-5 text-white" />
                 </button>
-                <button type="button" onClick={() => setShowCard((v) => !v)} className="min-w-0 flex-1 flex items-center gap-3 text-right" aria-label="פרטי השיחה">
+                <button type="button" onClick={() => setShowCard((v) => !v)} className="relative min-w-0 flex-1 flex items-center gap-2.5 md:gap-3 text-right" aria-label="פרטי השיחה">
                   <Avatar name={active.title} seed={active.key} group={active.isGroup} size={40} />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate font-semibold text-[15px] flex items-center gap-1.5" style={{ color: WA.ink }}>
+                    <div className="truncate font-semibold text-[15px] flex items-center gap-1.5 md:text-[#111b21]">
                       {active.title}
                       {activeLabel && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full font-normal" style={{ background: labelStyle(activeLabel)?.bg, color: labelStyle(activeLabel)?.color }}>
@@ -1290,11 +1363,54 @@ function MailChatAdmin() {
                         </span>
                       )}
                     </div>
-                    <div className="truncate text-xs" style={{ color: WA.muted }} dir={active.isGroup ? "rtl" : "ltr"}>
+                    <div className="truncate text-xs max-md:text-white/80 md:text-[#667781]" dir={active.isGroup ? "rtl" : "ltr"}>
                       {active.isGroup ? active.participants.map((p) => p.name || p.email).join(", ") : active.subtitle}
                     </div>
                   </div>
                 </button>
+                <button
+                  type="button"
+                  aria-label="עוד פעולות"
+                  onClick={() => setHeaderMenu((v) => !v)}
+                  className="relative md:hidden h-10 w-10 shrink-0 rounded-full flex items-center justify-center active:bg-white/15"
+                >
+                  <EllipsisVertical className="h-5 w-5 text-white" />
+                </button>
+                {headerMenu && (
+                  <>
+                    <button type="button" aria-label="סגירה" className="md:hidden fixed inset-0 z-40 cursor-default" onClick={() => setHeaderMenu(false)} />
+                    <div className="md:hidden absolute left-2 top-12 z-50 w-56 rounded-xl bg-white shadow-xl border py-1 text-[15px]" style={{ borderColor: WA.line, color: WA.ink }}>
+                      {(
+                        [
+                          { label: "פרטי השיחה וההזמנות", icon: UserRound, run: () => setShowCard(true) },
+                          { label: "חיפוש בשיחה", icon: Search, run: () => (setChatSearchOpen(true), setChatSearch("")) },
+                          { label: prefs.reminders?.[active.key] ? "שינוי התזכורת" : "תזכירי לי לחזור", icon: AlarmClock, run: () => setRemindOpen(true) },
+                          { label: prefs.pinned.includes(active.key) ? "ביטול הצמדה" : "הצמדה למעלה", icon: Pin, run: () => togglePin(active.key) },
+                          ...(active.threads.length ? [{ label: "סימון כלא נקרא", icon: MailOpen, run: markUnread }] : []),
+                          isArchived(active)
+                            ? { label: "החזרה מהארכיון", icon: ArchiveRestore, run: () => unarchive(active.key) }
+                            : { label: "העברה לארכיון", icon: Archive, run: archiveActive },
+                          ...(active.threads.length
+                            ? [{ label: "פתיחה ב-Gmail", icon: ExternalLink, run: () => window.open(`https://mail.google.com/mail/u/0/#all/${active.threads[0]?.threadId}`, "_blank") }]
+                            : []),
+                        ] as Array<{ label: string; icon: any; run: () => void }>
+                      ).map((it) => (
+                        <button
+                          key={it.label}
+                          type="button"
+                          onClick={() => {
+                            setHeaderMenu(false);
+                            it.run();
+                          }}
+                          className="w-full h-12 px-4 flex items-center gap-3 text-right active:bg-[#f0f2f5]"
+                        >
+                          <it.icon className="h-5 w-5 shrink-0" style={{ color: WA.muted }} /> {it.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+                <span className="hidden md:contents">
                 <IconBtn
                   label="חיפוש בשיחה"
                   onClick={() => {
@@ -1338,6 +1454,7 @@ function MailChatAdmin() {
                 >
                   <ExternalLink className="h-4 w-4" />
                 </a>}
+                </span>
               </header>
 
               {prefs.reminders?.[active.key] && (
@@ -1778,7 +1895,7 @@ function MailChatAdmin() {
                     </button>
                   </div>
                 )}
-                <div className="flex gap-1.5 overflow-x-auto px-3 pt-2 items-center">
+                <div className={`${toolsOpen ? "flex" : "hidden"} md:flex gap-1.5 overflow-x-auto px-3 pt-2 items-center`}>
                   <button
                     type="button"
                     onClick={() => void suggestReply()}
@@ -1839,6 +1956,15 @@ function MailChatAdmin() {
                   />
                   <button
                     type="button"
+                    aria-label={toolsOpen ? "הסתרת הכלים" : "כלים: הצעת תשובה, תשובות מהירות, עיצוב"}
+                    onClick={() => setToolsOpen((v) => !v)}
+                    className="md:hidden h-11 w-9 shrink-0 rounded-full flex items-center justify-center"
+                    style={{ color: toolsOpen ? WA.green : WA.muted }}
+                  >
+                    {toolsOpen ? <X className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
+                  </button>
+                  <button
+                    type="button"
                     aria-label="צירוף קובץ"
                     title="צירוף קובץ או תמונה"
                     onClick={() => fileInput.current?.click()}
@@ -1852,7 +1978,8 @@ function MailChatAdmin() {
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                      const isPhone = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
+                      if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && !isPhone) {
                         e.preventDefault();
                         void sendReply();
                       }
@@ -1892,7 +2019,7 @@ function MailChatAdmin() {
                     {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5 -scale-x-100" />}
                   </button>
                 </div>
-                <div className="px-3 pb-2 -mt-1 text-[11px]" style={{ color: WA.muted }}>
+                <div className="hidden md:block px-3 pb-2 -mt-1 text-[11px]" style={{ color: WA.muted }}>
                   Enter לשליחה · Shift+Enter לשורה חדשה ·{" "}
                   {replyVia === "wa"
                     ? "נשלח בוואטסאפ של הסטודיו (מחוץ ל-24 שעות מההודעה האחרונה שלה צריך תבנית מאושרת)"
