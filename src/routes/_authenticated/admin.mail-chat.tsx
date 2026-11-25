@@ -496,8 +496,9 @@ function MailChatAdmin() {
   const [remindOpen, setRemindOpen] = useState(false);
   const [headerMenu, setHeaderMenu] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
-  const [box, setBox] = useState<"business" | "personal" | "groups" | "updates">("business");
-  const [months, setMonths] = useState(3);
+  const [box, setBox] = useState<"business" | "personal">("business");
+  // Owner, 2026-11-25: the list loads ONE month; opening a chat loads all of that person's older mail.
+  const months = 1;
   const [viewMsg, setViewMsg] = useState<ChatMsg | null>(null);
   const [ccList, setCcList] = useState<string[]>([]);
   const [ccOpen, setCcOpen] = useState(false);
@@ -523,14 +524,31 @@ function MailChatAdmin() {
     return () => clearTimeout(t);
   }, [search]);
 
+  const contactsQ = useQuery({ queryKey: ["mail-contacts"], queryFn: () => fetchContacts({}), staleTime: 5 * 60_000 });
+  // Smart search (owner, 2026-11-25): the words anywhere in the mail, PLUS the mail of every person whose name / phone
+  // in the address book matches (so "דנה" or "0541234567" finds her mails even when the word is not inside them).
+  const searchQuery = useMemo(() => {
+    if (!serverSearch) return "";
+    const t = serverSearch.toLowerCase();
+    const digits = t.replace(/\D/g, "");
+    const hits = ((contactsQ.data?.contacts ?? []) as Contact[])
+      .filter((c) => {
+        if (digits.length >= 6 && (c.phone ?? "").replace(/\D/g, "").includes(digits.slice(-9))) return true;
+        return `${c.name} ${c.email}`.toLowerCase().includes(t);
+      })
+      .slice(0, 6)
+      .map((c) => c.email);
+    if (!hits.length) return serverSearch;
+    return `(${[`"${serverSearch.replace(/"/g, "")}"`, ...hits.map((e) => `from:${e} OR to:${e}`)].join(" OR ")})`;
+  }, [serverSearch, contactsQ.data]);
+
   const chats = useQuery({
-    queryKey: ["mail-chats", serverSearch, box, months],
-    queryFn: () => fetchChats({ data: { ...(serverSearch ? { search: serverSearch } : {}), box, months } }),
+    queryKey: ["mail-chats", searchQuery, box, months],
+    queryFn: () => fetchChats({ data: { ...(searchQuery ? { search: searchQuery } : {}), box, months } }),
     placeholderData: (prev) => prev,
     refetchInterval: serverSearch ? false : 20000,
     refetchOnWindowFocus: true,
   });
-  const contactsQ = useQuery({ queryKey: ["mail-contacts"], queryFn: () => fetchContacts({}), staleTime: 5 * 60_000 });
   const prefsQ = useQuery({ queryKey: ["mail-chat-prefs"], queryFn: () => fetchPrefs({}), staleTime: Infinity });
   useEffect(() => {
     if (prefsQ.data) setPrefs(prefsQ.data);
@@ -638,7 +656,16 @@ function MailChatAdmin() {
 
   const thread = useQuery({
     queryKey: ["mail-chat", activeKey, active?.threads.map((t) => t.threadId).join(",")],
-    queryFn: () => fetchChat({ data: { threads: active!.threads.slice(0, 30) } }),
+    queryFn: () =>
+      fetchChat({
+        data: {
+          threads: active!.threads.slice(0, 30),
+          // A private chat also loads her older mail (the list only holds the last month).
+          ...(!active!.isGroup && !active!.key.startsWith("l:") && active!.participants.length === 1 && active!.participants[0].email.includes("@")
+            ? { people: [active!.participants[0].email] }
+            : {}),
+        },
+      }),
     enabled: !!active && active.threads.length > 0,
     refetchInterval: active ? 15000 : false,
   });
@@ -678,7 +705,19 @@ function MailChatAdmin() {
       if (filter === "whatsapp" && !(c as Conv).waPhone) return false;
       if (filter.startsWith("label:") && prefs.labels[c.key] !== filter.slice(6)) return false;
       if (!q || serverSearch) return true;
-      return [c.title, c.subtitle, c.snippet, ...c.participants.map((p) => `${p.name} ${p.email}`)].join(" ").toLowerCase().includes(q);
+      const hay = [
+        c.title,
+        c.subtitle,
+        c.snippet,
+        prefs.labels[c.key] ?? "",
+        prefs.notes?.[c.key] ?? "",
+        ...(c.kinds ?? []).map((k) => KIND_TAGS[k]?.label ?? ""),
+        ...c.participants.map((p) => `${p.name} ${p.email}`),
+      ]
+        .join(" ")
+        .toLowerCase();
+      // Every word must appear somewhere (order does not matter).
+      return q.split(/\s+/).every((w) => hay.includes(w));
     });
     const pinned = new Set(prefs.pinned);
     const due = (k: string) => Number(!!prefs.reminders?.[k] && prefs.reminders[k] <= now);
@@ -1230,11 +1269,14 @@ function MailChatAdmin() {
   return (
     <div
       dir="rtl"
-      className="md:space-y-4 md:rounded-2xl md:p-4 md:pb-5 md:bg-[linear-gradient(#00a884_0,#00a884_128px,#d1d7db_128px)] max-md:fixed max-md:inset-0 max-md:z-50 max-md:flex max-md:flex-col max-md:bg-white max-md:pt-[env(safe-area-inset-top)]"
+      className="fixed inset-0 z-50 flex flex-col md:gap-3 md:p-3 md:bg-[linear-gradient(#00a884_0,#00a884_110px,#d1d7db_110px)] max-md:bg-white max-md:pt-[env(safe-area-inset-top)]"
     >
       {/* On a phone the page title hides while a chat is open, so the chat gets the whole screen (like WhatsApp). */}
       <div className="hidden md:flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 md:gap-3 min-w-0">
+          <a href="/admin" aria-label="חזרה לניהול" title="חזרה לניהול" className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-white hover:bg-white/15">
+            <ArrowRight className="h-5 w-5" />
+          </a>
           <div className="h-9 w-9 md:h-10 md:w-10 shrink-0 rounded-full flex items-center justify-center bg-white" style={{ color: WA.green }}>
             <Mail className="h-5 w-5" />
           </div>
@@ -1281,7 +1323,7 @@ function MailChatAdmin() {
       )}
 
       <div
-        className="grid md:grid-cols-[370px_1fr] overflow-hidden max-md:flex-1 max-md:min-h-0 md:rounded-lg md:shadow-[0_6px_18px_rgba(11,20,26,0.18)] md:h-[calc(100dvh-14rem)] md:min-h-[620px]"
+        className="grid md:grid-cols-[400px_1fr] overflow-hidden flex-1 min-h-0 md:rounded-lg md:shadow-[0_6px_18px_rgba(11,20,26,0.18)]"
         style={{ borderColor: WA.line, background: "#fff" }}
       >
         {/* ── side panel ── */}
@@ -1355,13 +1397,11 @@ function MailChatAdmin() {
               )}
             </div>
             {tab === "chats" && (
-              <div className="grid grid-cols-4 gap-1 rounded-full p-1" style={{ background: WA.panel }}>
+              <div className="grid grid-cols-2 gap-1 rounded-full p-1" style={{ background: WA.panel }}>
                 {(
                   [
                     { id: "business", label: "💼 עסק" },
                     { id: "personal", label: "🏠 אישי" },
-                    { id: "groups", label: "👥 קבוצות" },
-                    { id: "updates", label: "🔔 עדכונים" },
                   ] as const
                 ).map((b) => (
                   <button
@@ -1377,26 +1417,8 @@ function MailChatAdmin() {
               </div>
             )}
             {tab === "chats" && !serverSearch && (
-              <div className="flex items-center gap-1.5 text-xs" style={{ color: WA.muted }}>
-                <span className="shrink-0">טווח:</span>
-                {(
-                  [
-                    { m: 1, label: "חודש" },
-                    { m: 3, label: "3 חודשים" },
-                    { m: 6, label: "חצי שנה" },
-                    { m: 12, label: "שנה" },
-                  ] as const
-                ).map((o) => (
-                  <button
-                    key={o.m}
-                    type="button"
-                    onClick={() => setMonths(o.m)}
-                    className="h-7 px-2.5 rounded-full font-medium"
-                    style={months === o.m ? { background: "#d9fdd3", color: WA.greenDark } : { background: WA.panel }}
-                  >
-                    {o.label}
-                  </button>
-                ))}
+              <div className="flex items-center gap-1.5 text-[11px]" style={{ color: WA.muted }}>
+                <span>החודש האחרון · שיחה שנפתחת טוענת גם את כל ההתכתבות הקודמת</span>
                 {chats.isFetching && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-label="טוענת" />}
               </div>
             )}
@@ -2206,11 +2228,9 @@ function MailChatAdmin() {
                 )}
               </div>
 
-              {active.key.startsWith("l:") || box === "updates" ? (
+              {active.key.startsWith("l:") ? (
                 <footer className="shrink-0 border-t px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-center text-[13px]" style={{ background: WA.panel, borderColor: WA.line, color: WA.muted }}>
-                  {box === "updates"
-                    ? "🔔 עדכון אוטומטי (לא מבן אדם פרטי) — קריאה בלבד כאן."
-                    : "👥 קבוצה — קריאה בלבד כאן (תשובה כאן הייתה נשלחת לכל חברי הקבוצה)."}{" "}
+                  {"👥 קבוצה — קריאה בלבד כאן (תשובה כאן הייתה נשלחת לכל חברי הקבוצה)."}{" "}
                   {active.threads[0] && (
                     <a href={`https://mail.google.com/mail/u/0/#all/${active.threads[0].threadId}`} target="_blank" rel="noreferrer" className="underline" style={{ color: "#027eb5" }}>
                       לענות ב-Gmail

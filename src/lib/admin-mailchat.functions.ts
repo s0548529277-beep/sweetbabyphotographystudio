@@ -65,7 +65,7 @@ const threadMetaCache = new Map<string, { historyId: string; meta: ThreadMeta | 
 /** The chat list: recent Gmail threads, grouped like WhatsApp (a person = one chat, several people = a group). */
 export const listMailChats = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ search: z.string().max(100).optional(), box: z.enum(["business", "personal", "groups", "updates"]).optional(), months: z.number().int().min(1).max(12).optional() }).parse(d ?? {}))
+  .inputValidator((d: unknown) => z.object({ search: z.string().max(800).optional(), box: z.enum(["business", "personal"]).optional(), months: z.number().int().min(1).max(12).optional() }).parse(d ?? {}))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const accounts = await listGmailAccounts();
@@ -83,25 +83,22 @@ export const listMailChats = createServerFn({ method: "POST" })
     // קבוצות (owner, 2026-11-25): every kind of group / mailing list from BOTH mailboxes, one continuous chat per group.
     // עדכונים (owner, 2026-11-25): everything NOT from a private person (shops, newsletters, Google, systems), both mailboxes.
     // עסק reads both mailboxes too: every site order / lead / studio mail lands there even when it sits in the personal one.
-    const readAccounts = box === "personal" ? accounts.filter((a) => !isOldStudioMailbox(a.email)) : accounts;
+    // Owner, 2026-11-25: groups and newsletters / automated mail are removed COMPLETELY (no box for them any more).
+    // A search looks in BOTH mailboxes at once, whatever box is open.
+    const readAccounts = box === "personal" && !search ? accounts.filter((a) => !isOldStudioMailbox(a.email)) : accounts;
     const noGroups = ["-list:googlegroups.com", "-cc:googlegroups.com", "-to:googlegroups.com"];
-    const boxQ =
-      box === "groups"
-        ? ["(list:googlegroups.com OR cc:googlegroups.com OR to:googlegroups.com)"]
-        : box === "updates"
-          ? noGroups
-          : ["-category:promotions", "-category:social", "-category:forums", ...noGroups];
+    const boxQ = ["-category:promotions", "-category:social", "-category:forums", ...noGroups];
     const q = [
       ...boxQ,
       "-in:spam",
       "-in:trash",
       // How far back (owner, 2026-11-25: "load months back"); a search looks at everything.
-      search ? "" : `newer_than:${(data.months ?? 3) * 31}d`,
+      search ? "" : `newer_than:${(data.months ?? 1) * 31}d`,
       search,
     ]
       .filter(Boolean)
       .join(" ");
-    const cacheKey = `${box}|${q}`;
+    const cacheKey = `${search ? "search" : box}|${q}`;
     const hit = listCache.get(cacheKey);
     if (hit && Date.now() - hit.at < 8000) return hit.data;
 
@@ -111,7 +108,7 @@ export const listMailChats = createServerFn({ method: "POST" })
       // All thread ids in the range (pages of up to 500, at most MAX_LIST_THREADS).
       const refs: Array<{ id: string; historyId?: string }> = [];
       let pageToken = "";
-      const cap = search ? 40 : MAX_LIST_THREADS;
+      const cap = search ? 80 : MAX_LIST_THREADS;
       do {
         const list = await gmailApi<{ threads?: Array<{ id: string; historyId?: string }>; nextPageToken?: string }>(
           acc.connKey,
@@ -137,14 +134,13 @@ export const listMailChats = createServerFn({ method: "POST" })
         if (!m) continue;
         const site = !!m.kinds?.length; // order / lead / any site mail -> always business
         const studioSide = site || m.channel === "studio";
-        const keep =
-          box === "groups"
-            ? !!m.listId
-            : box === "updates"
-              ? !m.listId && !!m.automated && !site
-              : box === "business"
-                ? !m.listId && (site || (!m.automated && (studioBox || studioSide)))
-                : !m.listId && !m.automated && !studioSide;
+        const keep = m.listId
+          ? false
+          : search
+            ? site || !m.automated
+            : box === "business"
+              ? site || (!m.automated && (studioBox || studioSide))
+              : !m.automated && !studioSide;
         if (keep) metas.push(m);
       }
     }
@@ -251,7 +247,13 @@ async function draftIdsFor(connKey: string, email: string): Promise<Map<string, 
 export const getMailChat = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ threads: z.array(z.object({ threadId: z.string().min(1), account: z.string().min(3) })).min(1).max(30) }).parse(d),
+    z
+      .object({
+        threads: z.array(z.object({ threadId: z.string().min(1), account: z.string().min(3) })).min(1).max(30),
+        // Private chat (owner, 2026-11-25): the list shows one month, opening a chat also loads her OLDER mail.
+        people: z.array(z.string().email().max(200)).max(3).optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
@@ -259,7 +261,23 @@ export const getMailChat = createServerFn({ method: "POST" })
     const isOwn = makeIsOwn(accounts);
     const messages: ChatMessage[] = [];
     const drafts: ChatDraft[] = [];
-    await mapLimit(data.threads, 5, async (t) => {
+    const threads = [...data.threads];
+    if (data.people?.length) {
+      const who = data.people.map((e) => `from:${e} OR to:${e} OR cc:${e}`).join(" OR ");
+      const have = new Set(threads.map((t) => t.threadId));
+      for (const acc of accounts) {
+        const list = await gmailApi<{ threads?: Array<{ id: string }> }>(
+          acc.connKey,
+          `/users/me/threads?maxResults=30&q=${encodeURIComponent(`(${who}) -in:spam -in:trash`)}`,
+        ).catch(() => null);
+        for (const r of list?.threads ?? []) {
+          if (have.has(r.id) || threads.length >= 40) continue;
+          have.add(r.id);
+          threads.push({ threadId: r.id, account: acc.email });
+        }
+      }
+    }
+    await mapLimit(threads, 5, async (t) => {
       const acc = accounts.find((a) => a.email === t.account.toLowerCase());
       if (!acc) return;
       const thread = await gmailApi<any>(acc.connKey, `/users/me/threads/${encodeURIComponent(t.threadId)}?format=full`);
