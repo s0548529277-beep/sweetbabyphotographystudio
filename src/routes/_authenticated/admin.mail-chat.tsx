@@ -43,6 +43,14 @@ import {
   X,
   ChevronDown,
   Smile,
+  Home,
+  CalendarCheck,
+  UserPlus,
+  Package,
+  ListChecks,
+  Flame,
+  StickyNote,
+  CircleHelp,
 } from "lucide-react";
 import {
   archiveMailChat,
@@ -137,14 +145,14 @@ const WALLPAPER_IMAGE = `url("data:image/svg+xml,${encodeURIComponent(
 const EMOJIS = ["🙂", "😊", "😍", "🥰", "😘", "🤗", "😂", "🙏", "👍", "👌", "👏", "💪", "🙌", "🤝", "❤️", "💗", "💕", "🌸", "🌷", "✨", "⭐", "🎉", "🎂", "🎈", "🍼", "👶", "🧸", "📷", "📸", "🏠", "📅", "⏰", "✅", "❌", "📞", "💬", "✉️", "📎", "😅", "🤔"];
 
 /** Permanent mark of site orders / leads (same colours as the Gmail sub-labels of "הזמנות ולידים"). */
-const KIND_TAGS: Record<string, { label: string; icon: string; bg: string; fg: string }> = {
-  studio: { label: "הזמנת סטודיו", icon: "🏠", bg: "#e3edfd", fg: "#1f4fa8" },
-  props: { label: "הזמנת אביזרים", icon: "🧸", bg: "#dcf5e8", fg: "#0f6b40" },
-  lead_quiz: { label: "ליד שאלון", icon: "📝", bg: "#fff0dc", fg: "#8a4f00" },
-  lead_chat: { label: "ליד צ'אט", icon: "💬", bg: "#efe6fb", fg: "#5b33a3" },
-  lead_form: { label: "ליד טופס", icon: "📋", bg: "#fde7ef", fg: "#9c2753" },
-  lead_phone: { label: "ליד טלפון", icon: "📞", bg: "#dff2f6", fg: "#11677a" },
-  lead_visitor: { label: "מבקרת חמה", icon: "🔥", bg: "#fde3df", fg: "#a3261a" },
+const KIND_TAGS: Record<string, { label: string; Icon: any; bg: string; fg: string; explain: string }> = {
+  studio: { label: "הזמנת סטודיו", Icon: Home, bg: "#e3edfd", fg: "#1f4fa8", explain: "השכרת הסטודיו: בקשה, אישור, תזכורת או עריכה" },
+  props: { label: "הזמנת אביזרים", Icon: Package, bg: "#dcf5e8", fg: "#0f6b40", explain: "השכרת אביזרים: בקשה, אישור, איסוף או עריכה" },
+  lead_quiz: { label: "ליד שאלון", Icon: ListChecks, bg: "#fff0dc", fg: "#8a4f00", explain: "מילאה שאלון / בחרה חבילה באתר" },
+  lead_chat: { label: "ליד צ'אט", Icon: MessageCircle, bg: "#efe6fb", fg: "#5b33a3", explain: "השאירה פרטים בצ'אט של האתר" },
+  lead_form: { label: "ליד טופס", Icon: FileText, bg: "#fde7ef", fg: "#9c2753", explain: "טופס יצירת קשר / בקשת צילומים / סל לידה" },
+  lead_phone: { label: "ליד טלפון", Icon: Phone, bg: "#dff2f6", fg: "#11677a", explain: "השאירה הודעה בבוט הטלפוני" },
+  lead_visitor: { label: "מבקרת חמה", Icon: Flame, bg: "#fde3df", fg: "#a3261a", explain: "מבקרת שחזרה לאתר כמה פעמים" },
 };
 const isOrderKind = (k: string) => k === "studio" || k === "props";
 
@@ -153,17 +161,20 @@ function KindTags({ kinds, max = 2 }: { kinds: string[]; max?: number }) {
   if (!list.length) return null;
   return (
     <span className="inline-flex items-center gap-1 shrink-0">
-      {list.slice(0, max).map((k) => (
-        <span
-          key={k}
-          className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[1px] text-[10px] font-semibold leading-4 whitespace-nowrap"
-          style={{ background: KIND_TAGS[k].bg, color: KIND_TAGS[k].fg }}
-          title={KIND_TAGS[k].label}
-        >
-          <span aria-hidden>{KIND_TAGS[k].icon}</span>
-          {KIND_TAGS[k].label}
-        </span>
-      ))}
+      {list.slice(0, max).map((k) => {
+        const t = KIND_TAGS[k];
+        return (
+          <span
+            key={k}
+            className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[1px] text-[10px] font-semibold leading-4 whitespace-nowrap"
+            style={{ background: t.bg, color: t.fg }}
+            title={t.explain}
+          >
+            <t.Icon className="h-3 w-3" aria-hidden />
+            {t.label}
+          </span>
+        );
+      })}
       {list.length > max && (
         <span className="text-[10px] font-semibold" style={{ color: WA.muted }}>
           +{list.length - max}
@@ -173,19 +184,98 @@ function KindTags({ kinds, max = 2 }: { kinds: string[]; max?: number }) {
   );
 }
 
-/** Small round badge on the avatar: 🛒 order or ⭐ lead, so it is seen at a glance. */
+const ORDER_BADGE = { Icon: CalendarCheck, bg: "#1f8a4c", label: "הזמנה מהאתר" };
+const LEAD_BADGE = { Icon: UserPlus, bg: "#e08a00", label: "ליד חדש מהאתר" };
+
+/** Small round badge on the avatar: a calendar-check = an order, a person-plus = a lead. */
 function KindBadge({ kinds }: { kinds: string[] }) {
   if (!kinds.length) return null;
-  const order = kinds.some(isOrderKind);
+  const b = kinds.some(isOrderKind) ? ORDER_BADGE : LEAD_BADGE;
   return (
     <span
-      className="absolute -bottom-0.5 -left-0.5 h-5 w-5 rounded-full flex items-center justify-center text-[11px] border-2 border-white"
-      style={{ background: order ? "#1f8a4c" : "#f59e0b" }}
-      title={order ? "הזמנה מהאתר" : "ליד מהאתר"}
-      aria-label={order ? "הזמנה מהאתר" : "ליד מהאתר"}
+      className="absolute -bottom-0.5 -left-0.5 h-5 w-5 rounded-full flex items-center justify-center border-2 border-white text-white"
+      style={{ background: b.bg }}
+      title={b.label}
+      aria-label={b.label}
     >
-      {order ? "🛒" : "⭐"}
+      <b.Icon className="h-3 w-3" />
     </span>
+  );
+}
+
+/** "מקרא סמלים" — what every mark on this screen means. */
+function LegendDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  const Row = ({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) => (
+    <div className="flex items-start gap-3 py-1.5">
+      <span className="w-8 shrink-0 flex justify-center pt-0.5">{icon}</span>
+      <span className="min-w-0">
+        {title && (
+          <span className="block text-[14px] font-semibold" style={{ color: WA.ink }}>
+            {title}
+          </span>
+        )}
+        <span className="block text-[12.5px]" style={{ color: WA.muted }}>
+          {text}
+        </span>
+      </span>
+    </div>
+  );
+  const Round = ({ b }: { b: typeof ORDER_BADGE }) => (
+    <span className="h-6 w-6 rounded-full flex items-center justify-center text-white" style={{ background: b.bg }}>
+      <b.Icon className="h-3.5 w-3.5" />
+    </span>
+  );
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent dir="rtl" className="max-w-md max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>מקרא סמלים</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <div className="text-xs font-bold mb-1" style={{ color: WA.greenDark }}>
+              הזמנות ולידים מהאתר (סימון קבוע)
+            </div>
+            <Row icon={<Round b={ORDER_BADGE} />} title="עיגול ירוק על התמונה" text="בשיחה יש הזמנה מהאתר (סטודיו או אביזרים)" />
+            <Row icon={<Round b={LEAD_BADGE} />} title="עיגול כתום על התמונה" text="בשיחה יש פנייה חדשה מהאתר (ליד) שעוד לא הפכה להזמנה" />
+            {Object.entries(KIND_TAGS).map(([k, t]) => (
+              <Row key={k} icon={<KindTags kinds={[k]} max={1} />} title="" text={t.explain} />
+            ))}
+          </div>
+          <div>
+            <div className="text-xs font-bold mb-1" style={{ color: WA.greenDark }}>
+              ברשימת השיחות
+            </div>
+            <Row icon={<span className="h-2.5 w-2.5 rounded-full inline-block" style={{ background: WA.unread }} />} title="נקודה ירוקה" text="יש הודעה שלא קראת" />
+            <Row icon={<CheckCheck className="h-4 w-4" style={{ color: "#53bdeb" }} />} title="וי כפול כחול" text="ההודעה האחרונה בשיחה נשלחה ממך" />
+            <Row icon={<span className="text-[13px] font-semibold" style={{ color: "#d97706" }}>✍️</span>} title="טיוטה מוכנה" text="עוזר הטיוטות הכין תשובה שמחכה לאישור שלך" />
+            <Row icon={<AlarmClock className="h-4 w-4" style={{ color: "#d97706" }} />} title="שעון מעורר" text="הגיע הזמן שביקשת לחזור לשיחה הזאת" />
+            <Row icon={<Pin className="h-4 w-4 rotate-45" style={{ color: WA.muted }} />} title="נעץ" text="שיחה מוצמדת לראש הרשימה" />
+            <Row icon={<StickyNote className="h-4 w-4" style={{ color: "#a16207" }} />} title="פתק" text="יש לשיחה פתק פנימי שרק את רואה" />
+            <Row icon={<span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: "#efe7ff", color: "#6b3fd4" }}>תווית</span>} title="תווית צבעונית" text="תווית שבחרת לשיחה (VIP, לחזור אליה וכו׳)" />
+          </div>
+          <div>
+            <div className="text-xs font-bold mb-1" style={{ color: WA.greenDark }}>
+              בתוך שיחה
+            </div>
+            <Row icon={<Eye className="h-4 w-4" style={{ color: WA.muted }} />} title="עין ליד השעה" text="לראות את המייל בדיוק כמו שנראה במייל (עיצוב, חתימה, מחירונים)" />
+            <Row icon={<Reply className="h-4 w-4" style={{ color: WA.muted }} />} title="חץ תשובה" text="לענות להודעה הזאת עם ציטוט" />
+            <Row icon={<Forward className="h-4 w-4" style={{ color: WA.muted }} />} title="חץ העברה" text="להעביר את המייל למישהו אחר" />
+            <Row icon={<span className="text-[10px] px-1.5 py-0.5 rounded font-semibold" style={{ background: "#d9fdd3", color: WA.greenDark }}>וואטסאפ</span>} title="הודעת וואטסאפ" text="הודעה שהגיעה / נשלחה בוואטסאפ של הסטודיו" />
+            <Row icon={<span className="h-4 w-6 rounded border border-dashed inline-block" style={{ background: "#f0f7ff", borderColor: "#9cc3ef" }} />} title="מסגרת כחולה מקווקוות" text="מייל מתוזמן שעוד לא נשלח" />
+            <Row icon={<span className="h-4 w-6 rounded inline-block" style={{ background: WA.draft, border: "1px solid #f1d98a" }} />} title="מסגרת צהובה" text="טיוטה מוכנה: לשלוח כמו שהיא, לערוך או למחוק" />
+          </div>
+          <div>
+            <div className="text-xs font-bold mb-1" style={{ color: WA.greenDark }}>
+              שלוש התיבות למעלה
+            </div>
+            <Row icon={<span>💼</span>} title="עסק" text="כל המיילים של תיבת סוויט בייבי + שיחות הוואטסאפ" />
+            <Row icon={<span>🏠</span>} title="אישי" text="כל המיילים של התיבה האישית" />
+            <Row icon={<span>👥</span>} title="קבוצות" text="קבוצות ורשימות תפוצה משתי התיבות, כל קבוצה בשרשור אחד (קריאה בלבד)" />
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -336,7 +426,7 @@ const BASE_FILTERS: Array<{ id: Filter; label: string }> = [
   { id: "unread", label: "לא נקראו" },
   { id: "waiting", label: "ממתינות לתשובה" },
   { id: "drafts", label: "✍️ טיוטות" },
-  { id: "site", label: "🛒 הזמנות ולידים" },
+  { id: "site", label: "📅 הזמנות ולידים" },
   { id: "groups", label: "קבוצות" },
   { id: "whatsapp", label: "🟢 וואטסאפ" },
 ];
@@ -410,6 +500,7 @@ function MailChatAdmin() {
   const [ccOpen, setCcOpen] = useState(false);
   const [labelSheet, setLabelSheet] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(false);
   const [awayFromBottom, setAwayFromBottom] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -1262,6 +1353,15 @@ function MailChatAdmin() {
                     {!!f.count && <span className="opacity-70">{f.count}</span>}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => setLegendOpen(true)}
+                  className="shrink-0 h-8 px-3 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1"
+                  style={{ background: WA.panel, color: WA.greenDark }}
+                  title="מה כל סמל אומר"
+                >
+                  <CircleHelp className="h-3.5 w-3.5" /> מקרא סמלים
+                </button>
               </div>
             ) : (
               <div className="flex items-center justify-between gap-2 text-xs" style={{ color: WA.muted }}>
@@ -1350,14 +1450,12 @@ function MailChatAdmin() {
                                 {lab.id}
                               </span>
                             )}
-                            <span
-                              className="text-[10px] px-1.5 py-0.5 rounded-full"
-                              style={c.channel === "studio" ? { background: "#fde8ec", color: "#b0365d" } : { background: "#eef1f3", color: WA.muted }}
-                            >
-                              {c.channel === "studio" ? "סטודיו" : "אישי"}
-                            </span>
                             {prefs.reminders?.[c.key] && prefs.reminders[c.key] <= now && <AlarmClock className="h-3.5 w-3.5" style={{ color: "#d97706" }} aria-label="לחזור" />}
-                            {prefs.notes?.[c.key] && <span title={prefs.notes[c.key]} className="text-[11px]">📝</span>}
+                            {prefs.notes?.[c.key] && (
+                              <span title={prefs.notes[c.key]}>
+                                <StickyNote className="h-3.5 w-3.5" style={{ color: "#a16207" }} aria-label="פתק פנימי" />
+                              </span>
+                            )}
                             {pinned && <Pin className="h-3.5 w-3.5 rotate-45" style={{ color: WA.muted }} aria-label="מוצמד" />}
                             {c.unread && <span className="h-2.5 w-2.5 rounded-full" style={{ background: WA.unread }} aria-label="לא נקרא" />}
                           </span>
@@ -2377,6 +2475,7 @@ function MailChatAdmin() {
       </Dialog>
 
       <MailViewDialog msg={viewMsg} onClose={() => setViewMsg(null)} />
+      <LegendDialog open={legendOpen} onOpenChange={setLegendOpen} />
 
       {labelSheet && active && (
         <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center" dir="rtl">
