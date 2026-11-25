@@ -8,32 +8,32 @@ import {
   extractGmailPlainText,
   decodeGmailBase64Url,
   gmailHeaderValue,
-  encodeGmailHeader,
-  gmailToBase64Url,
-  sendGmailDetailed,
   type GmailAttachment,
 } from "@/integrations/google/gmail.server";
-import { buildBrandedMailHtml, buildStudioMailHtml, esc } from "@/lib/email-draft-design";
 import { isOwnStudioAddress, isStudioChannelAddress } from "@/lib/studio-addresses";
+import { buildConversations, cleanSubject, parseAddressList, stripQuoted, type ThreadMeta } from "@/lib/mailchat";
 import {
-  buildConversations,
-  cleanSubject,
-  parseAddressList,
-  replyRecipients,
-  stripQuoted,
-  type MailAddress,
-  type ThreadMeta,
-} from "@/lib/mailchat";
+  META_QS,
+  buildRaw,
+  checkAttachments,
+  deleteDraft,
+  headersOf,
+  isDraftMsg,
+  makeIsOwn,
+  metaFromThread,
+  performReply,
+  performStart,
+  readScheduled,
+  writeScheduled,
+  type ScheduledMail,
+} from "@/lib/mailchat-core.server";
 
 /**
  * "מיילים כמו וואטסאפ" (/admin/mail-chat). Gmail is the source of truth and is read live, so the screen is
  * always in sync; only the owner's own screen choices (pinned / labels / archived) are kept, in app_settings.
  */
 
-const META_HEADERS = ["From", "To", "Cc", "Subject", "Date", "Delivered-To", "Message-ID"];
-const META_QS = META_HEADERS.map((h) => `metadataHeaders=${h}`).join("&");
 const PREFS_KEY = "mail_chat_prefs";
-const MAX_ATTACH_BYTES = 18 * 1024 * 1024;
 
 async function assertAdmin(supabase: any, userId: string) {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
@@ -52,53 +52,6 @@ async function mapLimit<T, R>(items: T[], limit: number, fn: (x: T) => Promise<R
     }),
   );
   return out;
-}
-
-/** Our own addresses: every linked Gmail account plus the studio mailboxes/domain. */
-function makeIsOwn(accounts: Array<{ email: string }>) {
-  const linked = new Set(accounts.map((a) => a.email.toLowerCase()));
-  return (email: string) => linked.has(email.toLowerCase()) || isOwnStudioAddress(email) || isStudioChannelAddress(email);
-}
-
-function headersOf(msg: any): any[] {
-  return msg?.payload?.headers ?? [];
-}
-
-const isDraftMsg = (m: any) => (m?.labelIds ?? []).includes("DRAFT");
-
-function metaFromThread(thread: any, account: string, isOwn: (e: string) => boolean): ThreadMeta | null {
-  const all: any[] = thread?.messages ?? [];
-  const msgs = all.filter((m) => !isDraftMsg(m));
-  if (!msgs.length) return null; // a lone new draft is not a conversation yet
-  const people = new Map<string, MailAddress>();
-  let studio = false;
-  for (const m of msgs) {
-    const h = headersOf(m);
-    for (const name of ["From", "To", "Cc", "Delivered-To"]) {
-      for (const a of parseAddressList(gmailHeaderValue(h, name))) {
-        if (isStudioChannelAddress(a.email)) studio = true;
-        if (name === "Delivered-To" || isOwn(a.email)) continue;
-        const prev = people.get(a.email);
-        if (!prev || (!prev.name && a.name)) people.set(a.email, a);
-      }
-    }
-  }
-  const last = msgs[msgs.length - 1];
-  const first = msgs[0];
-  const lastFrom = parseAddressList(gmailHeaderValue(headersOf(last), "From"))[0];
-  return {
-    threadId: thread.id,
-    account,
-    subject: gmailHeaderValue(headersOf(first), "Subject") || "",
-    lastDate: Number(last.internalDate) || Date.parse(gmailHeaderValue(headersOf(last), "Date")) || 0,
-    snippet: last.snippet ?? thread.snippet ?? "",
-    unread: msgs.some((m) => (m.labelIds ?? []).includes("UNREAD")),
-    participants: [...people.values()],
-    lastFromMe: !!lastFrom && isOwn(lastFrom.email),
-    channel: studio ? "studio" : "personal",
-    firstMessageId: gmailHeaderValue(headersOf(first), "Message-ID") || `${account}:${thread.id}`,
-    hasDraft: all.length !== msgs.length,
-  };
 }
 
 const listCache = new Map<string, { at: number; data: any }>();
@@ -310,93 +263,8 @@ const attachmentSchema = z
   .max(10)
   .default([]);
 
-function checkAttachments(list: GmailAttachment[]) {
-  const bytes = list.reduce((n, a) => n + Math.floor((a.base64Data.length * 3) / 4), 0);
-  if (bytes > MAX_ATTACH_BYTES) throw new Error("הקבצים גדולים מדי (עד 18MB ביחד)");
-}
-
-function b64Lines(b64: string) {
-  return b64.replace(/(.{76})/g, "$1\r\n");
-}
-
-function buildRaw(opts: {
-  fromName: string;
-  fromEmail: string;
-  to: string[];
-  subject: string;
-  text: string;
-  inReplyTo?: string;
-  attachments?: GmailAttachment[];
-}): string {
-  const textB64 = gmailToBase64Url(new TextEncoder().encode(opts.text)).replace(/-/g, "+").replace(/_/g, "/");
-  const textPart = [
-    'Content-Type: text/plain; charset="UTF-8"',
-    "Content-Transfer-Encoding: base64",
-    "",
-    b64Lines(textB64 + "=".repeat((4 - (textB64.length % 4)) % 4)),
-  ].join("\r\n");
-  const headers = [
-    `From: ${encodeGmailHeader(opts.fromName)} <${opts.fromEmail}>`,
-    `To: ${opts.to.join(", ")}`,
-    `Subject: ${encodeGmailHeader(opts.subject)}`,
-    ...(opts.inReplyTo ? [`In-Reply-To: ${opts.inReplyTo}`, `References: ${opts.inReplyTo}`] : []),
-    "MIME-Version: 1.0",
-  ];
-  let mime: string;
-  const atts = opts.attachments ?? [];
-  if (!atts.length) {
-    mime = `${headers.join("\r\n")}\r\n${textPart}`;
-  } else {
-    const boundary = `mc_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    const parts = [
-      `--${boundary}\r\n${textPart}`,
-      ...atts.map(
-        (a) =>
-          `--${boundary}\r\nContent-Type: ${a.contentType || "application/octet-stream"}; name="${encodeGmailHeader(a.filename)}"\r\n` +
-          `Content-Disposition: attachment; filename="${encodeGmailHeader(a.filename)}"\r\nContent-Transfer-Encoding: base64\r\n\r\n${b64Lines(a.base64Data)}`,
-      ),
-      `--${boundary}--`,
-    ];
-    mime = `${headers.join("\r\n")}\r\nContent-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n${parts.join("\r\n")}`;
-  }
-  return gmailToBase64Url(new TextEncoder().encode(mime));
-}
-
-/** Plain chat text -> safe HTML paragraphs for the designed (logo + signature) mail. */
-function textToHtml(text: string): string {
-  return text
-    .trim()
-    .split(/\n{2,}/)
-    .map((p) => `<p style="margin:0 0 12px">${esc(p).replace(/\n/g, "<br>")}</p>`)
-    .join("");
-}
-
-/** Designed mail = the brand shell (studio or photographer) around her text; sent through the site's normal sender. */
-async function sendDesigned(opts: {
-  to: string[];
-  subject: string;
-  text: string;
-  channel: "studio" | "personal";
-  threadId?: string;
-  inReplyTo?: string;
-  attachments?: GmailAttachment[];
-}): Promise<boolean> {
-  const inner = textToHtml(opts.text);
-  const html = opts.channel === "studio" ? buildStudioMailHtml({ title: "", innerHtml: inner }) : buildBrandedMailHtml({ title: "", innerHtml: inner });
-  const r = await sendGmailDetailed({
-    to: opts.to.join(", "),
-    subject: opts.subject,
-    html,
-    fromName: opts.channel === "studio" ? "Sweetbaby" : "מיכל סיבוני",
-    threadId: opts.threadId,
-    inReplyTo: opts.inReplyTo,
-    attachments: opts.attachments,
-  });
-  return r.ok;
-}
-
-async function deleteDraft(connKey: string, email: string, draftId: string) {
-  await gmailApi(connKey, `/users/me/drafts/${encodeURIComponent(draftId)}`, { method: "DELETE" });
+async function deleteDraftCached(connKey: string, email: string, draftId: string) {
+  await deleteDraft(connKey, draftId);
   draftIdCache.delete(email);
 }
 
@@ -420,43 +288,8 @@ export const replyMailChat = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     checkAttachments(data.attachments);
-    const accounts = await listGmailAccounts();
-    const acc = accounts.find((a) => a.email === data.account.toLowerCase());
-    if (!acc) throw new Error("חשבון המייל לא מחובר");
-    const isOwn = makeIsOwn(accounts);
-    const thread = await gmailApi<any>(acc.connKey, `/users/me/threads/${encodeURIComponent(data.threadId)}?format=metadata&${META_QS}`);
-    const meta = thread ? metaFromThread(thread, acc.email, isOwn) : null;
-    if (!meta || !meta.participants.length) throw new Error("לא נמצאו נמענים לשרשור הזה");
-    const msgs: any[] = (thread.messages ?? []).filter((m: any) => !isDraftMsg(m));
-    const lastOther =
-      [...msgs].reverse().find((m) => {
-        const f = parseAddressList(gmailHeaderValue(headersOf(m), "From"))[0];
-        return f && !isOwn(f.email);
-      }) ?? msgs[msgs.length - 1];
-    const to = replyRecipients(meta.participants);
-    const subject = `Re: ${cleanSubject(meta.subject)}`;
-    const inReplyTo = gmailHeaderValue(headersOf(lastOther), "Message-ID") || undefined;
-
-    // The designed sender always goes out from the primary account, so it can only continue that account's threads.
-    const primary = await resolveGmailAccount();
-    let ok: boolean;
-    if (data.designed && primary?.email === acc.email) {
-      ok = await sendDesigned({ to, subject, text: data.text, channel: data.channel, threadId: data.threadId, inReplyTo, attachments: data.attachments });
-    } else {
-      const raw = buildRaw({
-        fromName: data.channel === "studio" ? "Sweetbaby" : "מיכל סיבוני",
-        fromEmail: acc.email,
-        to,
-        subject,
-        text: data.text,
-        inReplyTo,
-        attachments: data.attachments,
-      });
-      const sent = await gmailApi<{ id?: string }>(acc.connKey, "/users/me/messages/send", { method: "POST", body: { raw, threadId: data.threadId } });
-      ok = !!sent?.id;
-    }
-    if (!ok) throw new Error("השליחה נכשלה — נסי שוב");
-    if (data.replacesDraftId) await deleteDraft(acc.connKey, acc.email, data.replacesDraftId);
+    await performReply(data);
+    if (data.replacesDraftId) draftIdCache.clear();
     listCache.clear();
     return { ok: true };
   });
@@ -479,25 +312,7 @@ export const startMailChat = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     checkAttachments(data.attachments);
-    const acc = await resolveGmailAccount();
-    if (!acc) throw new Error("חשבון המייל לא מחובר");
-    const recipients = [...new Set(data.to.map((e) => e.toLowerCase()))];
-    let ok: boolean;
-    if (data.designed) {
-      ok = await sendDesigned({ to: recipients, subject: data.subject, text: data.text, channel: data.channel, attachments: data.attachments });
-    } else {
-      const raw = buildRaw({
-        fromName: data.channel === "studio" ? "Sweetbaby" : "מיכל סיבוני",
-        fromEmail: acc.email,
-        to: recipients,
-        subject: data.subject,
-        text: data.text,
-        attachments: data.attachments,
-      });
-      const sent = await gmailApi<{ id?: string }>(acc.connKey, "/users/me/messages/send", { method: "POST", body: { raw } });
-      ok = !!sent?.id;
-    }
-    if (!ok) throw new Error("השליחה נכשלה — נסי שוב");
+    await performStart(data);
     listCache.clear();
     return { ok: true };
   });
@@ -526,7 +341,7 @@ export const deleteMailDraft = createServerFn({ method: "POST" })
     await assertAdmin(context.supabase, context.userId);
     const acc = (await listGmailAccounts()).find((a) => a.email === data.account.toLowerCase());
     if (!acc) throw new Error("חשבון המייל לא מחובר");
-    await deleteDraft(acc.connKey, acc.email, data.draftId);
+    await deleteDraftCached(acc.connKey, acc.email, data.draftId);
     listCache.clear();
     return { ok: true };
   });
@@ -579,6 +394,8 @@ const prefsSchema = z.object({
   pinned: z.array(z.string().max(300)).max(50).default([]),
   labels: z.record(z.string().max(300), z.string().max(20)).default({}),
   archived: z.record(z.string().max(300), z.number()).default({}),
+  /** Her own quick replies (editable on the screen); empty = the built-in ones. */
+  quickReplies: z.array(z.string().min(1).max(500)).max(30).default([]),
 });
 export type MailChatPrefs = z.infer<typeof prefsSchema>;
 
@@ -591,7 +408,7 @@ export const getMailChatPrefs = createServerFn({ method: "POST" })
     try {
       return prefsSchema.parse(JSON.parse(data?.value ?? "{}"));
     } catch {
-      return { pinned: [], labels: {}, archived: {} };
+      return { pinned: [], labels: {}, archived: {}, quickReplies: [] };
     }
   });
 
@@ -670,4 +487,279 @@ export const listMailContacts = createServerFn({ method: "POST" })
       }),
     );
     return { contacts: [...byEmail.values()].sort((a, b) => b.lastAt - a.lastAt) };
+  });
+
+// ── mark unread ───────────────────────────────────────────────────────────────
+
+/** Back to "unread" (like WhatsApp's mark as unread): the newest thread of the chat gets UNREAD again in Gmail. */
+export const markMailChatUnread = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ threadId: z.string().min(1), account: z.string().min(3) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const acc = (await listGmailAccounts()).find((a) => a.email === data.account.toLowerCase());
+    if (!acc) throw new Error("חשבון המייל לא מחובר");
+    await gmailApi(acc.connKey, `/users/me/threads/${encodeURIComponent(data.threadId)}/modify`, {
+      method: "POST",
+      body: { addLabelIds: ["UNREAD", "INBOX"] },
+    });
+    listCache.clear();
+    return { ok: true };
+  });
+
+// ── forward ───────────────────────────────────────────────────────────────────
+
+function collectAttachmentParts(payload: any, out: Array<{ filename: string; mimeType: string; attachmentId?: string; data?: string; size: number }> = []) {
+  if (!payload) return out;
+  if (payload.filename && (payload.body?.attachmentId || payload.body?.data))
+    out.push({
+      filename: payload.filename,
+      mimeType: payload.mimeType || "application/octet-stream",
+      attachmentId: payload.body?.attachmentId,
+      data: payload.body?.data,
+      size: payload.body?.size ?? 0,
+    });
+  for (const p of payload.parts ?? []) collectAttachmentParts(p, out);
+  return out;
+}
+
+/** Forwards one mail (its text + its files, up to 18 MB) to other addresses, with an optional note on top. */
+export const forwardMailMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        account: z.string().min(3),
+        messageId: z.string().min(1),
+        to: z.array(z.string().email()).min(1).max(20),
+        note: z.string().max(5000).default(""),
+        channel: z.enum(["studio", "personal"]).default("personal"),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const acc = (await listGmailAccounts()).find((a) => a.email === data.account.toLowerCase());
+    if (!acc) throw new Error("חשבון המייל לא מחובר");
+    const m = await gmailApi<any>(acc.connKey, `/users/me/messages/${encodeURIComponent(data.messageId)}?format=full`);
+    if (!m?.payload) throw new Error("המייל לא נמצא");
+    const h = headersOf(m);
+    const subject = cleanSubject(gmailHeaderValue(h, "Subject"));
+    const body = extractGmailPlainText(m.payload) || m.snippet || "";
+    const text = [
+      data.note.trim(),
+      "---------- הודעה שהועברה ----------",
+      `מאת: ${gmailHeaderValue(h, "From")}`,
+      `תאריך: ${gmailHeaderValue(h, "Date")}`,
+      `נושא: ${subject}`,
+      `אל: ${gmailHeaderValue(h, "To")}`,
+      "",
+      body,
+    ]
+      .filter((x, i) => i > 0 || x)
+      .join("\n");
+    const parts = collectAttachmentParts(m.payload);
+    const attachments: GmailAttachment[] = [];
+    let bytes = 0;
+    for (const p of parts) {
+      if (bytes + p.size > 18 * 1024 * 1024) throw new Error("הקבצים במייל גדולים מדי להעברה מכאן — העבירי מ-Gmail");
+      bytes += p.size;
+      let b64 = p.data;
+      if (!b64 && p.attachmentId) {
+        const att = await gmailApi<{ data?: string }>(
+          acc.connKey,
+          `/users/me/messages/${encodeURIComponent(data.messageId)}/attachments/${encodeURIComponent(p.attachmentId)}`,
+        );
+        b64 = att?.data;
+      }
+      if (b64) attachments.push({ filename: p.filename, contentType: p.mimeType, base64Data: b64.replace(/-/g, "+").replace(/_/g, "/") });
+    }
+    const raw = buildRaw({
+      fromName: data.channel === "studio" ? "Sweetbaby" : "מיכל סיבוני",
+      fromEmail: acc.email,
+      to: [...new Set(data.to.map((e) => e.toLowerCase()))],
+      subject: `Fwd: ${subject}`,
+      text,
+      attachments,
+    });
+    const sent = await gmailApi<{ id?: string }>(acc.connKey, "/users/me/messages/send", { method: "POST", body: { raw } });
+    if (!sent?.id) throw new Error("ההעברה נכשלה — נסי שוב");
+    listCache.clear();
+    return { ok: true };
+  });
+
+// ── AI reply suggestion ───────────────────────────────────────────────────────
+
+/**
+ * "הצעת תשובה": the AI writes a reply in her style from the last messages of the chat (sent by the screen, already
+ * stripped of quotes). It only suggests text into the composer; nothing is sent.
+ */
+export const suggestMailReply = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        channel: z.enum(["studio", "personal"]).default("personal"),
+        isGroup: z.boolean().default(false),
+        title: z.string().max(200).default(""),
+        messages: z
+          .array(z.object({ fromMe: z.boolean(), name: z.string().max(120), text: z.string().max(4000), at: z.number() }))
+          .min(1)
+          .max(14),
+        hint: z.string().max(500).default(""),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { generateTextResilient } = await import("@/lib/ai-gateway.server");
+    const { WRITER_RULES } = await import("@/lib/email-drafts.server");
+    const fmt = (t: number) => new Date(t).toLocaleString("he-IL", { timeZone: "Asia/Jerusalem", dateStyle: "short", timeStyle: "short" });
+    const convo = data.messages.map((m) => `[${fmt(m.at)}] ${m.fromMe ? "מיכל" : m.name}:\n${m.text.trim().slice(0, 1500)}`).join("\n\n");
+    const today = new Date().toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem", dateStyle: "full" });
+    const system = [
+      WRITER_RULES,
+      "",
+      "משימה עכשיו: לכתוב רק את גוף התשובה הבאה של מיכל בשיחה הזאת (בלי נושא, בלי חתימה, בלי 'היי' כפול אם כבר יש). טקסט פשוט, בלי HTML ובלי Markdown.",
+      data.channel === "studio" ? "ההקשר: סטודיו Sweetbaby (השכרת סטודיו / אביזרים)." : "ההקשר: מיכל סיבוני הצלמת / אישי.",
+      data.isGroup ? "זו קבוצה עם כמה נמענים — לכתוב לכולם." : "",
+      `היום: ${today}.`,
+      "אם חסר מידע שאת לא יודעת בוודאות — כתבי [[מיכל: מה להשלים]] במקום להמציא.",
+    ]
+      .filter(Boolean)
+      .join("\n");
+    const prompt = `השיחה${data.title ? ` (${data.title})` : ""}:\n\n${convo}${data.hint ? `\n\nהנחיה של מיכל לתשובה: ${data.hint}` : ""}\n\nכתבי את התשובה של מיכל:`;
+    const { text } = await generateTextResilient({ system, prompt }, 40000);
+    const clean = String(text ?? "")
+      .replace(/^```\w*\n?|```$/g, "")
+      .trim();
+    if (!clean) throw new Error("לא התקבלה הצעה — נסי שוב");
+    return { text: clean };
+  });
+
+// ── customer card: her orders ─────────────────────────────────────────────────
+
+type CardOrder = { kind: string; id: string; date: string | null; title: string; status: string; total: number | null; link: string };
+
+/** Everything the site knows about the people of a chat: studio bookings, props orders, newborn and outdoor clients. */
+export const getMailContactCard = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ emails: z.array(z.string().max(200)).max(20).default([]), phones: z.array(z.string().max(30)).max(10).default([]) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as any;
+    const emails = [...new Set(data.emails.map((e) => e.trim().toLowerCase()).filter((e) => e.includes("@")))];
+    const tails = [...new Set(data.phones.map((p) => p.replace(/\D/g, "").slice(-9)).filter((p) => p.length === 9))];
+    if (!emails.length && !tails.length) return { orders: [] as CardOrder[], phone: "" };
+    const orFilter = (emailCol: string, phoneCol: string) =>
+      [...emails.map((e) => `${emailCol}.ilike.${e}`), ...tails.map((t) => `${phoneCol}.ilike.%${t}`)].join(",");
+    const out: CardOrder[] = [];
+    let phone = "";
+    const run = async (table: string, cols: string, map: (r: any) => CardOrder) => {
+      const { data: rows, error } = await db.from(table).select(cols).or(orFilter("contact_email", "contact_phone")).order("created_at", { ascending: false }).limit(30);
+      if (error) return console.warn("[SWEETBABY] contact card", table, error.message);
+      for (const r of rows ?? []) {
+        out.push(map(r));
+        if (!phone && r.contact_phone) phone = r.contact_phone;
+      }
+    };
+    await Promise.all([
+      run("bookings", "id,session_date,start_time,end_time,status,price,package,contact_phone,created_at", (r) => ({
+        kind: "סטודיו",
+        id: r.id,
+        date: r.session_date,
+        title: `השכרת סטודיו ${String(r.start_time ?? "").slice(0, 5)}–${String(r.end_time ?? "").slice(0, 5)}`,
+        status: r.status,
+        total: r.price,
+        link: "/admin/orders",
+      })),
+      run("orders", "id,pickup_at,status,total,contact_phone,created_at", (r) => ({
+        kind: "אביזרים",
+        id: r.id,
+        date: r.pickup_at ? String(r.pickup_at).slice(0, 10) : null,
+        title: "השכרת אביזרים",
+        status: r.status,
+        total: r.total,
+        link: "/admin/orders",
+      })),
+      run("newborn_package_orders", "id,session_date,package_id,total_price,amount_paid,delivered_at,contact_phone,created_at", (r) => ({
+        kind: "ניו-בורן",
+        id: r.id,
+        date: r.session_date,
+        title: `חבילת ניו-בורן${r.package_id ? ` · ${r.package_id}` : ""}`,
+        status: r.delivered_at ? "נמסר" : (r.amount_paid ?? 0) > 0 ? "שולם חלקית" : "פתוח",
+        total: r.total_price,
+        link: `/admin/newborn-packages/${r.id}`,
+      })),
+      run("outdoor_package_orders", "id,session_date,package_name,total_price,amount_paid,delivered_at,contact_phone,created_at", (r) => ({
+        kind: "צילומי חוץ",
+        id: r.id,
+        date: r.session_date,
+        title: r.package_name || "צילומי חוץ",
+        status: r.delivered_at ? "נמסר" : (r.amount_paid ?? 0) > 0 ? "שולם חלקית" : "פתוח",
+        total: r.total_price,
+        link: `/admin/outdoor-packages/${r.id}`,
+      })),
+    ]);
+    out.sort((a, b) => String(b.date ?? "").localeCompare(String(a.date ?? "")));
+    return { orders: out, phone };
+  });
+
+// ── scheduled sends ───────────────────────────────────────────────────────────
+
+const scheduleSchema = z.object({
+  at: z.number().int(),
+  kind: z.enum(["reply", "new"]),
+  chatKey: z.string().max(300).optional(),
+  label: z.string().max(200),
+  text: z.string().min(1).max(20000),
+  channel: z.enum(["studio", "personal"]).default("personal"),
+  designed: z.boolean().default(false),
+  threadId: z.string().optional(),
+  account: z.string().optional(),
+  to: z.array(z.string().email()).max(50).optional(),
+  subject: z.string().max(200).optional(),
+});
+
+/** Saves a mail to be sent later (checked every 5 minutes by the site; no attachments; held around Shabbat). */
+export const scheduleMailChat = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => scheduleSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    if (data.at < Date.now() + 60_000) throw new Error("בחרי זמן עתידי (לפחות דקה מעכשיו)");
+    if (data.at > Date.now() + 60 * 86400000) throw new Error("אפשר לתזמן עד 60 יום קדימה");
+    if (data.kind === "reply" && (!data.threadId || !data.account)) throw new Error("חסר שרשור לתשובה");
+    if (data.kind === "new" && (!data.to?.length || !data.subject)) throw new Error("חסרים נמענים או נושא");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as any;
+    const list = await readScheduled(db);
+    const item: ScheduledMail = { ...data, id: crypto.randomUUID(), createdAt: Date.now() };
+    await writeScheduled(db, [...list, item]);
+    return { ok: true, id: item.id };
+  });
+
+export const listScheduledMails = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const list = await readScheduled(supabaseAdmin as any);
+    return { scheduled: list.sort((a, b) => a.at - b.at) };
+  });
+
+export const cancelScheduledMail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().min(1) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as any;
+    const list = await readScheduled(db);
+    await writeScheduled(
+      db,
+      list.filter((m) => m.id !== data.id),
+    );
+    return { ok: true };
   });

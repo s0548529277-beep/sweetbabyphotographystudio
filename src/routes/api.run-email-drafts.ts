@@ -31,6 +31,15 @@ export const Route = createFileRoute("/api/run-email-drafts")({
         if (!sameSecret(given, expected)) return json(401, { error: "unauthorized" });
 
         const started = Date.now();
+        // Mails she scheduled in /admin/mail-chat go out first (fast; independent of the drafts' hours window).
+        let scheduled: { sent: number; failed: number } | { error: string } = { sent: 0, failed: 0 };
+        try {
+          const { runDueScheduledMails } = await import("@/lib/mailchat-core.server");
+          scheduled = await runDueScheduledMails();
+        } catch (e: any) {
+          console.error("[SWEETBABY] scheduled mails failed", e);
+          scheduled = { error: String(e?.message ?? e).slice(0, 200) };
+        }
         try {
           const { runEmailDraftAssistant, DEDICATED_DRAFT_LIMITS } = await import("@/lib/email-drafts.server");
           const r = await runEmailDraftAssistant({ limits: DEDICATED_DRAFT_LIMITS });
@@ -42,6 +51,7 @@ export const Route = createFileRoute("/api/run-email-drafts")({
             autoSent: r.created.filter((c) => c.autoSent).length,
             skipped: r.skipped,
             errors: r.errors,
+            scheduled,
             ms: Date.now() - started,
           });
         } catch (e: any) {

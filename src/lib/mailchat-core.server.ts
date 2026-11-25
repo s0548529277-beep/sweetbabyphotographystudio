@@ -1,0 +1,298 @@
+// Shared server core of the mail chat (/admin/mail-chat): reading Gmail threads, sending replies / new mails,
+// and the scheduled-send runner. Used by admin-mailchat.functions.ts and by /api/run-email-drafts (scheduled sends).
+import {
+  listGmailAccounts,
+  resolveGmailAccount,
+  gmailApi,
+  gmailHeaderValue,
+  encodeGmailHeader,
+  gmailToBase64Url,
+  sendGmailDetailed,
+  type GmailAttachment,
+} from "@/integrations/google/gmail.server";
+import { buildBrandedMailHtml, buildStudioMailHtml, esc } from "@/lib/email-draft-design";
+import { isOwnStudioAddress, isStudioChannelAddress } from "@/lib/studio-addresses";
+import { cleanSubject, parseAddressList, replyRecipients, type MailAddress, type ThreadMeta } from "@/lib/mailchat";
+
+export const META_HEADERS = ["From", "To", "Cc", "Subject", "Date", "Delivered-To", "Message-ID"];
+export const META_QS = META_HEADERS.map((h) => `metadataHeaders=${h}`).join("&");
+export const MAX_ATTACH_BYTES = 18 * 1024 * 1024;
+export const SCHEDULED_KEY = "mail_chat_scheduled";
+
+export type Channel = "studio" | "personal";
+
+/** Our own addresses: every linked Gmail account plus the studio mailboxes/domain. */
+export function makeIsOwn(accounts: Array<{ email: string }>) {
+  const linked = new Set(accounts.map((a) => a.email.toLowerCase()));
+  return (email: string) => linked.has(email.toLowerCase()) || isOwnStudioAddress(email) || isStudioChannelAddress(email);
+}
+
+export function headersOf(msg: any): any[] {
+  return msg?.payload?.headers ?? [];
+}
+
+export const isDraftMsg = (m: any) => (m?.labelIds ?? []).includes("DRAFT");
+
+export function metaFromThread(thread: any, account: string, isOwn: (e: string) => boolean): ThreadMeta | null {
+  const all: any[] = thread?.messages ?? [];
+  const msgs = all.filter((m) => !isDraftMsg(m));
+  if (!msgs.length) return null; // a lone new draft is not a conversation yet
+  const people = new Map<string, MailAddress>();
+  let studio = false;
+  for (const m of msgs) {
+    const h = headersOf(m);
+    for (const name of ["From", "To", "Cc", "Delivered-To"]) {
+      for (const a of parseAddressList(gmailHeaderValue(h, name))) {
+        if (isStudioChannelAddress(a.email)) studio = true;
+        if (name === "Delivered-To" || isOwn(a.email)) continue;
+        const prev = people.get(a.email);
+        if (!prev || (!prev.name && a.name)) people.set(a.email, a);
+      }
+    }
+  }
+  const last = msgs[msgs.length - 1];
+  const first = msgs[0];
+  const lastFrom = parseAddressList(gmailHeaderValue(headersOf(last), "From"))[0];
+  return {
+    threadId: thread.id,
+    account,
+    subject: gmailHeaderValue(headersOf(first), "Subject") || "",
+    lastDate: Number(last.internalDate) || Date.parse(gmailHeaderValue(headersOf(last), "Date")) || 0,
+    snippet: last.snippet ?? thread.snippet ?? "",
+    unread: msgs.some((m) => (m.labelIds ?? []).includes("UNREAD")),
+    participants: [...people.values()],
+    lastFromMe: !!lastFrom && isOwn(lastFrom.email),
+    channel: studio ? "studio" : "personal",
+    firstMessageId: gmailHeaderValue(headersOf(first), "Message-ID") || `${account}:${thread.id}`,
+    hasDraft: all.length !== msgs.length,
+  };
+}
+
+export function checkAttachments(list: GmailAttachment[]) {
+  const bytes = list.reduce((n, a) => n + Math.floor((a.base64Data.length * 3) / 4), 0);
+  if (bytes > MAX_ATTACH_BYTES) throw new Error("הקבצים גדולים מדי (עד 18MB ביחד)");
+}
+
+const b64Lines = (b64: string) => b64.replace(/(.{76})/g, "$1\r\n");
+
+/** Plain-text mail (optionally with attachments) as a base64url raw message for the Gmail API. */
+export function buildRaw(opts: {
+  fromName: string;
+  fromEmail: string;
+  to: string[];
+  subject: string;
+  text: string;
+  inReplyTo?: string;
+  attachments?: GmailAttachment[];
+}): string {
+  const textB64 = gmailToBase64Url(new TextEncoder().encode(opts.text)).replace(/-/g, "+").replace(/_/g, "/");
+  const textPart = [
+    'Content-Type: text/plain; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    b64Lines(textB64 + "=".repeat((4 - (textB64.length % 4)) % 4)),
+  ].join("\r\n");
+  const headers = [
+    `From: ${encodeGmailHeader(opts.fromName)} <${opts.fromEmail}>`,
+    `To: ${opts.to.join(", ")}`,
+    `Subject: ${encodeGmailHeader(opts.subject)}`,
+    ...(opts.inReplyTo ? [`In-Reply-To: ${opts.inReplyTo}`, `References: ${opts.inReplyTo}`] : []),
+    "MIME-Version: 1.0",
+  ];
+  const atts = opts.attachments ?? [];
+  let mime: string;
+  if (!atts.length) {
+    mime = `${headers.join("\r\n")}\r\n${textPart}`;
+  } else {
+    const boundary = `mc_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const parts = [
+      `--${boundary}\r\n${textPart}`,
+      ...atts.map(
+        (a) =>
+          `--${boundary}\r\nContent-Type: ${a.contentType || "application/octet-stream"}; name="${encodeGmailHeader(a.filename)}"\r\n` +
+          `Content-Disposition: attachment; filename="${encodeGmailHeader(a.filename)}"\r\nContent-Transfer-Encoding: base64\r\n\r\n${b64Lines(a.base64Data)}`,
+      ),
+      `--${boundary}--`,
+    ];
+    mime = `${headers.join("\r\n")}\r\nContent-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n${parts.join("\r\n")}`;
+  }
+  return gmailToBase64Url(new TextEncoder().encode(mime));
+}
+
+function textToHtml(text: string): string {
+  return text
+    .trim()
+    .split(/\n{2,}/)
+    .map((p) => `<p style="margin:0 0 12px">${esc(p).replace(/\n/g, "<br>")}</p>`)
+    .join("");
+}
+
+const senderName = (channel: Channel) => (channel === "studio" ? "Sweetbaby" : "מיכל סיבוני");
+
+/** Designed mail = the brand shell (studio or photographer) around her text; sent through the site's normal sender. */
+async function sendDesigned(opts: {
+  to: string[];
+  subject: string;
+  text: string;
+  channel: Channel;
+  threadId?: string;
+  inReplyTo?: string;
+  attachments?: GmailAttachment[];
+}): Promise<boolean> {
+  const inner = textToHtml(opts.text);
+  const html = opts.channel === "studio" ? buildStudioMailHtml({ title: "", innerHtml: inner }) : buildBrandedMailHtml({ title: "", innerHtml: inner });
+  const r = await sendGmailDetailed({
+    to: opts.to.join(", "),
+    subject: opts.subject,
+    html,
+    fromName: senderName(opts.channel),
+    threadId: opts.threadId,
+    inReplyTo: opts.inReplyTo,
+    attachments: opts.attachments,
+  });
+  return r.ok;
+}
+
+export async function deleteDraft(connKey: string, draftId: string) {
+  await gmailApi(connKey, `/users/me/drafts/${encodeURIComponent(draftId)}`, { method: "DELETE" });
+}
+
+/** Reply inside a Gmail thread. A person -> that person; a group -> everyone (reply-all). */
+export async function performReply(opts: {
+  threadId: string;
+  account: string;
+  text: string;
+  channel: Channel;
+  designed: boolean;
+  attachments?: GmailAttachment[];
+  replacesDraftId?: string;
+}): Promise<void> {
+  const accounts = await listGmailAccounts();
+  const acc = accounts.find((a) => a.email === opts.account.toLowerCase());
+  if (!acc) throw new Error("חשבון המייל לא מחובר");
+  const isOwn = makeIsOwn(accounts);
+  const thread = await gmailApi<any>(acc.connKey, `/users/me/threads/${encodeURIComponent(opts.threadId)}?format=metadata&${META_QS}`);
+  const meta = thread ? metaFromThread(thread, acc.email, isOwn) : null;
+  if (!meta || !meta.participants.length) throw new Error("לא נמצאו נמענים לשרשור הזה");
+  const msgs: any[] = (thread.messages ?? []).filter((m: any) => !isDraftMsg(m));
+  const lastOther =
+    [...msgs].reverse().find((m) => {
+      const f = parseAddressList(gmailHeaderValue(headersOf(m), "From"))[0];
+      return f && !isOwn(f.email);
+    }) ?? msgs[msgs.length - 1];
+  const to = replyRecipients(meta.participants);
+  const subject = `Re: ${cleanSubject(meta.subject)}`;
+  const inReplyTo = gmailHeaderValue(headersOf(lastOther), "Message-ID") || undefined;
+  const attachments = opts.attachments ?? [];
+
+  // The designed sender always goes out from the primary account, so it can only continue that account's threads.
+  const primary = await resolveGmailAccount();
+  let ok: boolean;
+  if (opts.designed && primary?.email === acc.email) {
+    ok = await sendDesigned({ to, subject, text: opts.text, channel: opts.channel, threadId: opts.threadId, inReplyTo, attachments });
+  } else {
+    const raw = buildRaw({ fromName: senderName(opts.channel), fromEmail: acc.email, to, subject, text: opts.text, inReplyTo, attachments });
+    const sent = await gmailApi<{ id?: string }>(acc.connKey, "/users/me/messages/send", { method: "POST", body: { raw, threadId: opts.threadId } });
+    ok = !!sent?.id;
+  }
+  if (!ok) throw new Error("השליחה נכשלה — נסי שוב");
+  if (opts.replacesDraftId) await deleteDraft(acc.connKey, opts.replacesDraftId);
+}
+
+/** A brand-new mail; several addresses = a new group. */
+export async function performStart(opts: {
+  to: string[];
+  subject: string;
+  text: string;
+  channel: Channel;
+  designed: boolean;
+  attachments?: GmailAttachment[];
+}): Promise<void> {
+  const acc = await resolveGmailAccount();
+  if (!acc) throw new Error("חשבון המייל לא מחובר");
+  const recipients = [...new Set(opts.to.map((e) => e.toLowerCase()))];
+  const attachments = opts.attachments ?? [];
+  let ok: boolean;
+  if (opts.designed) {
+    ok = await sendDesigned({ to: recipients, subject: opts.subject, text: opts.text, channel: opts.channel, attachments });
+  } else {
+    const raw = buildRaw({ fromName: senderName(opts.channel), fromEmail: acc.email, to: recipients, subject: opts.subject, text: opts.text, attachments });
+    const sent = await gmailApi<{ id?: string }>(acc.connKey, "/users/me/messages/send", { method: "POST", body: { raw } });
+    ok = !!sent?.id;
+  }
+  if (!ok) throw new Error("השליחה נכשלה — נסי שוב");
+}
+
+// ── scheduled sends ───────────────────────────────────────────────────────────
+
+export type ScheduledMail = {
+  id: string;
+  at: number; // ms, when to send
+  createdAt: number;
+  kind: "reply" | "new";
+  chatKey?: string; // to show it inside the right chat
+  label: string; // who it goes to, for the list
+  text: string;
+  channel: Channel;
+  designed: boolean;
+  threadId?: string;
+  account?: string;
+  to?: string[];
+  subject?: string;
+  error?: string;
+};
+
+export async function readScheduled(db: any): Promise<ScheduledMail[]> {
+  const { data } = await db.from("app_settings").select("value").eq("key", SCHEDULED_KEY).maybeSingle();
+  try {
+    const list = JSON.parse(data?.value ?? "[]");
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function writeScheduled(db: any, list: ScheduledMail[]) {
+  const { error } = await db
+    .from("app_settings")
+    .upsert({ key: SCHEDULED_KEY, value: JSON.stringify(list.slice(-200)), updated_at: new Date().toISOString() });
+  if (error) throw new Error("השמירה נכשלה");
+}
+
+/**
+ * Sends the scheduled mails whose time has come. Each one is taken off the list BEFORE it is sent, so two runs never
+ * send it twice; a failed send goes back on the list with its error (shown on the screen) and is not retried.
+ * Called every few minutes by /api/run-email-drafts. Like the site's other mail, nothing goes out around Shabbat
+ * (isQuietForMail) — a mail due then waits for the next run after it.
+ */
+export async function runDueScheduledMails(): Promise<{ sent: number; failed: number }> {
+  const { isQuietForMail } = await import("@/lib/mail-quiet-hours");
+  if (isQuietForMail()) return { sent: 0, failed: 0 };
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const db = supabaseAdmin as any;
+  const list = await readScheduled(db);
+  const now = Date.now();
+  const due = list.filter((m) => !m.error && m.at <= now);
+  if (!due.length) return { sent: 0, failed: 0 };
+  const dueIds = new Set(due.map((m) => m.id));
+  await writeScheduled(
+    db,
+    list.filter((m) => !dueIds.has(m.id)),
+  );
+  let sent = 0;
+  const failed: ScheduledMail[] = [];
+  for (const m of due) {
+    try {
+      if (m.kind === "reply" && m.threadId && m.account) {
+        await performReply({ threadId: m.threadId, account: m.account, text: m.text, channel: m.channel, designed: m.designed });
+      } else if (m.kind === "new" && m.to?.length && m.subject) {
+        await performStart({ to: m.to, subject: m.subject, text: m.text, channel: m.channel, designed: m.designed });
+      } else throw new Error("חסרים פרטים לשליחה");
+      sent++;
+    } catch (e: any) {
+      failed.push({ ...m, error: String(e?.message ?? e).slice(0, 200) });
+    }
+  }
+  if (failed.length) await writeScheduled(db, [...(await readScheduled(db)), ...failed]);
+  return { sent, failed: failed.length };
+}

@@ -11,13 +11,16 @@ import {
   BookUser,
   Check,
   CheckCheck,
+  Clock,
   Copy,
   ExternalLink,
   Eye,
   FileText,
+  Forward,
   Image as ImageIcon,
   Loader2,
   Mail,
+  MailOpen,
   MessageCircle,
   MessageSquarePlus,
   Palette,
@@ -27,8 +30,10 @@ import {
   Pin,
   PinOff,
   RefreshCw,
+  Reply,
   Search,
   Send,
+  Sparkles,
   Tag,
   Trash2,
   UserRound,
@@ -37,18 +42,27 @@ import {
 } from "lucide-react";
 import {
   archiveMailChat,
+  cancelScheduledMail,
   deleteMailDraft,
+  forwardMailMessage,
+  getMailContactCard,
   getMailAttachment,
   getMailChat,
   getMailChatPrefs,
   listMailChats,
   listMailContacts,
+  listScheduledMails,
+  markMailChatUnread,
   replyMailChat,
+  scheduleMailChat,
   sendMailDraft,
   setMailChatPrefs,
   startMailChat,
+  suggestMailReply,
   type MailChatPrefs,
 } from "@/lib/admin-mailchat.functions";
+import { listWhatsAppConversations, listWhatsAppThread, sendWhatsAppMessageAdmin } from "@/lib/admin-whatsapp.functions";
+import { WhatsAppMedia } from "@/components/WhatsAppMedia";
 import type { MailConversation } from "@/lib/mailchat";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -213,20 +227,37 @@ type ChatMsg = {
   text: string;
   attachments: Array<{ filename: string; mimeType: string; size: number; attachmentId: string; messageId: string }>;
   pending?: boolean;
+  /** A WhatsApp message shown inside the same chat (unified inbox). */
+  wa?: boolean;
+  media?: { url: string; type: string; filename: string | null; mime: string | null };
+  waFailed?: string;
 };
+
+/** A chat in the list: a mail conversation, optionally merged with the same person's WhatsApp (by phone). */
+type Conv = MailConversation & { waPhone?: string; waOnly?: boolean };
+
+const tail9 = (phone: string) => phone.replace(/\D/g, "").slice(-9);
+
+function quoteBlock(m: ChatMsg): string {
+  const when = new Date(m.at).toLocaleString("he-IL", { timeZone: "Asia/Jerusalem", dateStyle: "short", timeStyle: "short" });
+  const who = m.fromMe ? "אני" : m.fromName || m.fromEmail;
+  const body = m.text.trim().slice(0, 1200).split("\n").map((l) => `> ${l}`).join("\n");
+  return `ב-${when}, ${who} כתב/ה:\n${body}`;
+}
 
 type ChatDraft = { draftId: string; messageId: string; threadId: string; account: string; at: number; to: string[]; subject: string; text: string; html: string };
 
 type Contact = { email: string; name: string; phone: string; sources: string[]; lastAt: number };
 
-const QUICK_REPLIES = [
-  { label: "תודה", text: "תודה רבה! 💗" },
-  { label: "חוזרת אלייך", text: "קיבלתי, בודקת וחוזרת אלייך בהקדם." },
-  { label: "התקשרי", text: "אשמח לדבר — אפשר להתקשר אליי ל-054-8529277." },
-  { label: "הזמנה באתר", text: "אפשר להזמין ישירות באתר: https://sweetbabyphoto.shop" },
+const DEFAULT_QUICK_REPLIES = [
+  "תודה רבה! 💗",
+  "קיבלתי, בודקת וחוזרת אלייך בהקדם.",
+  "אשמח לדבר — אפשר להתקשר אליי ל-054-8529277.",
+  "אפשר להזמין ישירות באתר: https://sweetbabyphoto.shop",
 ];
+const quickLabel = (t: string) => (t.length > 22 ? `${t.slice(0, 20)}…` : t);
 
-type Filter = "all" | "unread" | "drafts" | "studio" | "personal" | "groups" | "archived" | `label:${string}`;
+type Filter = "all" | "unread" | "drafts" | "studio" | "personal" | "groups" | "whatsapp" | "archived" | `label:${string}`;
 const BASE_FILTERS: Array<{ id: Filter; label: string }> = [
   { id: "all", label: "הכל" },
   { id: "unread", label: "לא נקראו" },
@@ -234,9 +265,10 @@ const BASE_FILTERS: Array<{ id: Filter; label: string }> = [
   { id: "studio", label: "סטודיו" },
   { id: "personal", label: "אישי" },
   { id: "groups", label: "קבוצות" },
+  { id: "whatsapp", label: "🟢 וואטסאפ" },
 ];
 
-const EMPTY_PREFS: MailChatPrefs = { pinned: [], labels: {}, archived: {} };
+const EMPTY_PREFS: MailChatPrefs = { pinned: [], labels: {}, archived: {}, quickReplies: [] };
 
 // ── page ──────────────────────────────────────────────────────────────────────
 function MailChatAdmin() {
@@ -252,6 +284,16 @@ function MailChatAdmin() {
   const doDeleteDraft = useServerFn(deleteMailDraft);
   const doArchive = useServerFn(archiveMailChat);
   const fetchAttachment = useServerFn(getMailAttachment);
+  const doUnread = useServerFn(markMailChatUnread);
+  const doForward = useServerFn(forwardMailMessage);
+  const doSuggest = useServerFn(suggestMailReply);
+  const fetchCard = useServerFn(getMailContactCard);
+  const doSchedule = useServerFn(scheduleMailChat);
+  const fetchScheduled = useServerFn(listScheduledMails);
+  const doCancelScheduled = useServerFn(cancelScheduledMail);
+  const fetchWaConvs = useServerFn(listWhatsAppConversations);
+  const fetchWaThread = useServerFn(listWhatsAppThread);
+  const doSendWa = useServerFn(sendWhatsAppMessageAdmin);
 
   const [tab, setTab] = useState<"chats" | "contacts">("chats");
   const [filter, setFilter] = useState<Filter>("all");
@@ -275,6 +317,15 @@ function MailChatAdmin() {
   const [selected, setSelected] = useState<Record<string, Contact>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [prefs, setPrefs] = useState<MailChatPrefs>(EMPTY_PREFS);
+  const [quote, setQuote] = useState<ChatMsg | null>(null);
+  const [forwardMsg, setForwardMsg] = useState<ChatMsg | null>(null);
+  const [chatSearch, setChatSearch] = useState("");
+  const [chatSearchOpen, setChatSearchOpen] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
+  const [replyVia, setReplyVia] = useState<"mail" | "wa">("mail");
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [scheduledOpen, setScheduledOpen] = useState(false);
+  const [quickEditOpen, setQuickEditOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
 
@@ -301,22 +352,22 @@ function MailChatAdmin() {
     savePrefsFn({ data: next }).catch(() => toast.error("לא הצלחתי לשמור את השינוי"));
   }
 
-  const conversations: MailConversation[] = (chats.data?.conversations ?? []) as MailConversation[];
-  const active = conversations.find((c) => c.key === activeKey) ?? null;
-  const isArchived = (c: MailConversation) => (prefs.archived[c.key] ?? 0) >= c.lastDate;
-
-  const thread = useQuery({
-    queryKey: ["mail-chat", activeKey, active?.threads.map((t) => t.threadId).join(",")],
-    queryFn: () => fetchChat({ data: { threads: active!.threads.slice(0, 30) } }),
-    enabled: !!active,
-    refetchInterval: active ? 15000 : false,
+  const mailConversations: MailConversation[] = (chats.data?.conversations ?? []) as MailConversation[];
+  const waConvsQ = useQuery({
+    queryKey: ["mail-wa-convs"],
+    queryFn: () => fetchWaConvs({}),
+    refetchInterval: 20000,
+    retry: false,
   });
+  const scheduledQ = useQuery({ queryKey: ["mail-scheduled"], queryFn: () => fetchScheduled({}), refetchInterval: 60000 });
+  const scheduled = (scheduledQ.data?.scheduled ?? []) as Array<{ id: string; at: number; chatKey?: string; label: string; text: string; error?: string; kind: string }>;
+  const quickReplies = prefs.quickReplies?.length ? prefs.quickReplies : DEFAULT_QUICK_REPLIES;
 
   // Address book = the site's customers + everyone in the mail chats.
   const allContacts: Contact[] = useMemo(() => {
     const map = new Map<string, Contact>();
     for (const c of (contactsQ.data?.contacts ?? []) as Contact[]) map.set(c.email, { ...c, sources: [...c.sources] });
-    for (const conv of conversations) {
+    for (const conv of mailConversations) {
       for (const p of conv.participants) {
         const c = map.get(p.email);
         if (!c) map.set(p.email, { email: p.email, name: p.name, phone: "", sources: ["מייל"], lastAt: conv.lastDate });
@@ -328,8 +379,79 @@ function MailChatAdmin() {
       }
     }
     return [...map.values()].sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email, "he"));
-  }, [contactsQ.data, conversations]);
+  }, [contactsQ.data, mailConversations]);
   const contactByEmail = useMemo(() => new Map(allContacts.map((c) => [c.email, c])), [allContacts]);
+
+  // One inbox: a WhatsApp conversation joins the private mail chat of the same person (matched by the phone the site
+  // knows for her e-mail); a WhatsApp number with no mail chat becomes its own chat.
+  const conversations: Conv[] = useMemo(() => {
+    const byTail = new Map<string, Contact>();
+    for (const c of allContacts) if (c.phone && tail9(c.phone).length === 9 && !byTail.has(tail9(c.phone))) byTail.set(tail9(c.phone), c);
+    const list: Conv[] = mailConversations.map((c) => ({ ...c }));
+    const byKey = new Map(list.map((c) => [c.key, c]));
+    for (const r of ((waConvsQ.data ?? []) as any[])) {
+      const contact = byTail.get(tail9(String(r.phone ?? "")));
+      const at = Date.parse(r.created_at) || 0;
+      const snippet = `🟢 ${r.body || (r.media_type ? `[${r.media_filename || r.media_type}]` : "")}`;
+      const conv = contact ? byKey.get(`p:${contact.email}`) : undefined;
+      if (conv && !conv.isGroup) {
+        conv.waPhone = r.phone;
+        if (at > conv.lastDate) {
+          conv.lastDate = at;
+          conv.snippet = snippet;
+          conv.lastFromMe = r.direction === "out";
+        }
+        continue;
+      }
+      const name = r.contact_name || contact?.name || "";
+      const w: Conv = {
+        key: `w:${r.phone}`,
+        title: name || `+${r.phone}`,
+        subtitle: `+${r.phone}`,
+        isGroup: false,
+        participants: contact ? [{ email: contact.email, name: contact.name }] : [],
+        channel: "studio",
+        lastDate: at,
+        snippet,
+        lastFromMe: r.direction === "out",
+        unread: false,
+        hasDraft: false,
+        threads: [],
+        waPhone: r.phone,
+        waOnly: true,
+      };
+      list.push(w);
+      byKey.set(w.key, w);
+    }
+    return list;
+  }, [mailConversations, waConvsQ.data, allContacts]);
+  const active = conversations.find((c) => c.key === activeKey) ?? null;
+  const isArchived = (c: MailConversation) => (prefs.archived[c.key] ?? 0) >= c.lastDate;
+
+  const thread = useQuery({
+    queryKey: ["mail-chat", activeKey, active?.threads.map((t) => t.threadId).join(",")],
+    queryFn: () => fetchChat({ data: { threads: active!.threads.slice(0, 30) } }),
+    enabled: !!active && active.threads.length > 0,
+    refetchInterval: active ? 15000 : false,
+  });
+  const waThread = useQuery({
+    queryKey: ["mail-wa-thread", active?.waPhone],
+    queryFn: () => fetchWaThread({ data: { phone: active!.waPhone! } }),
+    enabled: !!active?.waPhone,
+    refetchInterval: active?.waPhone ? 15000 : false,
+  });
+  const card = useQuery({
+    queryKey: ["mail-card", activeKey],
+    queryFn: () =>
+      fetchCard({
+        data: {
+          emails: (active?.participants ?? []).map((p) => p.email).slice(0, 20),
+          phones: [active?.waPhone, contactByEmail.get(active?.participants[0]?.email ?? "")?.phone].filter(Boolean) as string[],
+        },
+      }),
+    enabled: showCard && !!active,
+    staleTime: 60000,
+  });
 
   const q = search.trim().toLowerCase();
   const visibleChats = useMemo(() => {
@@ -342,6 +464,7 @@ function MailChatAdmin() {
       if (filter === "studio" && c.channel !== "studio") return false;
       if (filter === "personal" && c.channel !== "personal") return false;
       if (filter === "groups" && !c.isGroup) return false;
+      if (filter === "whatsapp" && !(c as Conv).waPhone) return false;
       if (filter.startsWith("label:") && prefs.labels[c.key] !== filter.slice(6)) return false;
       if (!q || serverSearch) return true;
       return [c.title, c.subtitle, c.snippet, ...c.participants.map((p) => `${p.name} ${p.email}`)].join(" ").toLowerCase().includes(q);
@@ -384,11 +507,46 @@ function MailChatAdmin() {
     lastSeen.current = now;
   }, [chats.data]);
 
-  const messages: ChatMsg[] = useMemo(() => {
-    const real = (thread.data?.messages ?? []) as ChatMsg[];
-    const mine = pending.filter((p) => active?.threads.some((t) => t.threadId === p.threadId));
-    return [...real, ...mine].sort((a, b) => a.at - b.at);
-  }, [thread.data, pending, active]);
+  const allMessages: ChatMsg[] = useMemo(() => {
+    const real = active?.threads.length ? ((thread.data?.messages ?? []) as ChatMsg[]) : [];
+    const mine = pending.filter((p) => (p.wa ? p.threadId === `wa:${active?.waPhone}` : active?.threads.some((t) => t.threadId === p.threadId)));
+    const wa: ChatMsg[] = active?.waPhone
+      ? ((waThread.data ?? []) as any[]).map((r) => ({
+          id: `wa-${r.id}`,
+          threadId: `wa:${r.phone}`,
+          account: "",
+          at: Date.parse(r.created_at) || 0,
+          fromMe: r.direction === "out",
+          fromName: r.contact_name || active.title,
+          fromEmail: "",
+          to: [],
+          subject: "",
+          text: r.body ?? "",
+          attachments: [],
+          wa: true,
+          media: r.media_url ? { url: r.media_url, type: r.media_type ?? "document", filename: r.media_filename, mime: r.media_mime } : undefined,
+          waFailed: r.status === "failed" ? r.error || "לא נשלחה" : undefined,
+        }))
+      : [];
+    return [...real, ...wa, ...mine].sort((a, b) => a.at - b.at);
+  }, [thread.data, waThread.data, pending, active]);
+  // Search inside the open chat.
+  const cq = chatSearch.trim().toLowerCase();
+  const messages = useMemo(
+    () => (cq ? allMessages.filter((m) => `${m.text} ${m.fromName} ${m.subject} ${m.attachments.map((a) => a.filename).join(" ")}`.toLowerCase().includes(cq)) : allMessages),
+    [allMessages, cq],
+  );
+  // The subject chip shows where a new mail subject starts (WhatsApp messages do not break it).
+  const subjectChips = useMemo(() => {
+    const ids = new Set<string>();
+    let last = "";
+    for (const m of messages) {
+      if (m.wa || !m.subject) continue;
+      if (m.subject !== last) ids.add(m.id);
+      last = m.subject;
+    }
+    return ids;
+  }, [messages]);
   const drafts: ChatDraft[] = (thread.data?.drafts ?? []) as ChatDraft[];
   const topDraft = drafts[0] ?? null;
 
@@ -398,8 +556,8 @@ function MailChatAdmin() {
   }, [messages.length, activeKey, showThread, topDraft?.draftId]);
 
   useEffect(() => {
-    if (thread.data) setPending([]);
-  }, [thread.data]);
+    if (thread.data || waThread.data) setPending([]);
+  }, [thread.data, waThread.data]);
 
   useEffect(() => {
     setDraft("");
@@ -409,6 +567,10 @@ function MailChatAdmin() {
     setDesigned(false);
     setShowCard(false);
     setDraftOpen(false);
+    setQuote(null);
+    setChatSearch("");
+    setChatSearchOpen(false);
+    setReplyVia(active?.waOnly ? "wa" : "mail");
   }, [activeKey]);
 
   // Phone: the device "back" button closes the open chat and returns to the list (like WhatsApp) instead of leaving the page.
@@ -455,17 +617,71 @@ function MailChatAdmin() {
   }
 
   const refreshAll = () =>
-    Promise.all([qc.invalidateQueries({ queryKey: ["mail-chat"] }), qc.invalidateQueries({ queryKey: ["mail-chats"] })]);
+    Promise.all([
+      qc.invalidateQueries({ queryKey: ["mail-chat"] }),
+      qc.invalidateQueries({ queryKey: ["mail-chats"] }),
+      qc.invalidateQueries({ queryKey: ["mail-wa-thread"] }),
+      qc.invalidateQueries({ queryKey: ["mail-wa-convs"] }),
+    ]);
+
+  /** The mail thread a reply goes to: the edited draft's, the quoted mail's, else the newest mail of the chat. */
+  function replyTarget(): { threadId: string; account: string } | null {
+    if (!active) return null;
+    if (editingDraft) return { threadId: editingDraft.threadId, account: editingDraft.account };
+    if (quote && !quote.wa && quote.account) return { threadId: quote.threadId, account: quote.account };
+    const last = [...allMessages].reverse().find((m) => !m.pending && !m.wa) ?? null;
+    if (last) return { threadId: last.threadId, account: last.account };
+    return active.threads[0] ?? null;
+  }
+
+  async function sendWhatsApp(text: string) {
+    if (!active?.waPhone) return;
+    const temp: ChatMsg = {
+      id: `tmp-${Date.now()}`,
+      threadId: `wa:${active.waPhone}`,
+      account: "",
+      at: Date.now(),
+      fromMe: true,
+      fromName: "",
+      fromEmail: "",
+      to: [],
+      subject: "",
+      text,
+      attachments: [],
+      wa: true,
+      pending: true,
+    };
+    setSending(true);
+    setPending((p) => [...p, temp]);
+    setDraft("");
+    setQuote(null);
+    try {
+      await doSendWa({ data: { phone: active.waPhone, body: text } });
+      await refreshAll();
+    } catch (e: any) {
+      setPending((p) => p.filter((m) => m.id !== temp.id));
+      setDraft(text);
+      toast.error(e?.message ?? "שליחת הוואטסאפ נכשלה");
+    } finally {
+      setSending(false);
+    }
+  }
 
   async function sendReply() {
-    const text = draft.trim();
-    if (!text || !active || sending) return;
-    const last = [...messages].reverse().find((m) => !m.pending) ?? null;
-    const target = editingDraft
-      ? { threadId: editingDraft.threadId, account: editingDraft.account }
-      : last
-        ? { threadId: last.threadId, account: last.account }
-        : active.threads[0];
+    const typed = draft.trim();
+    if (!typed || !active || sending) return;
+    if (replyVia === "wa") return sendWhatsApp(typed);
+    const target = replyTarget();
+    if (!target) {
+      // A WhatsApp-only chat with no mail yet: start a new mail to her instead.
+      const c = active.participants[0] ? contactByEmail.get(active.participants[0].email) : undefined;
+      if (!c) return toast.error("אין כתובת מייל לאדם הזה — אפשר לענות בוואטסאפ");
+      setComposeTo([c]);
+      setComposeOpen(true);
+      return;
+    }
+    const text = quote && !quote.wa ? `${typed}\n\n${quoteBlock(quote)}` : typed;
+    const last = [...allMessages].reverse().find((m) => !m.pending && !m.wa) ?? null;
     setSending(true);
     const temp: ChatMsg = {
       id: `tmp-${Date.now()}`,
@@ -477,16 +693,18 @@ function MailChatAdmin() {
       fromEmail: "",
       to: [],
       subject: last?.subject ?? "",
-      text,
+      text: typed,
       attachments: files.map((f, i) => ({ filename: f.filename, mimeType: f.contentType, size: f.size, attachmentId: `tmp${i}`, messageId: "" })),
       pending: true,
     };
     setPending((p) => [...p, temp]);
     const sentFiles = files;
     const replaced = editingDraft;
+    const quoted = quote;
     setDraft("");
     setFiles([]);
     setEditingDraft(null);
+    setQuote(null);
     try {
       await doReply({
         data: {
@@ -502,12 +720,94 @@ function MailChatAdmin() {
       await refreshAll();
     } catch (e: any) {
       setPending((p) => p.filter((m) => m.id !== temp.id));
-      setDraft(text);
+      setDraft(typed);
       setFiles(sentFiles);
       setEditingDraft(replaced);
+      setQuote(quoted);
       toast.error(e?.message ?? "השליחה נכשלה");
     } finally {
       setSending(false);
+    }
+  }
+
+  async function suggestReply() {
+    if (!active || suggesting) return;
+    const recent = allMessages.filter((m) => !m.pending && m.text.trim()).slice(-12);
+    if (!recent.length) return toast.error("אין עדיין הודעות לענות עליהן");
+    setSuggesting(true);
+    try {
+      const { text } = await doSuggest({
+        data: {
+          channel: active.channel,
+          isGroup: active.isGroup,
+          title: active.title.slice(0, 200),
+          messages: recent.map((m) => ({ fromMe: m.fromMe, name: (m.fromName || m.fromEmail || "").slice(0, 120), text: m.text.slice(0, 4000), at: m.at })),
+          hint: draft.trim().slice(0, 500),
+        },
+      });
+      setDraft(text);
+      setTimeout(() => textRef.current?.focus(), 50);
+      toast.success("הצעה מוכנה — אפשר לערוך לפני השליחה");
+    } catch (e: any) {
+      toast.error(e?.message ?? "לא הצלחתי להציע תשובה");
+    } finally {
+      setSuggesting(false);
+    }
+  }
+
+  async function scheduleReply(at: number) {
+    if (!active) return;
+    const text = draft.trim();
+    if (!text) return toast.error("כתבי קודם את ההודעה");
+    if (files.length) return toast.error("אי אפשר לתזמן מייל עם קבצים — שלחי אותו עכשיו");
+    const target = replyTarget();
+    if (!target) return toast.error("אין מייל בשיחה הזאת לתזמן אליו");
+    try {
+      await doSchedule({
+        data: {
+          at,
+          kind: "reply",
+          chatKey: active.key,
+          label: active.title.slice(0, 200),
+          text: quote && !quote.wa ? `${text}\n\n${quoteBlock(quote)}` : text,
+          channel: active.channel,
+          designed,
+          threadId: target.threadId,
+          account: target.account,
+        },
+      });
+      setDraft("");
+      setQuote(null);
+      setEditingDraft(null);
+      setScheduleOpen(false);
+      toast.success(`המייל יישלח ב-${new Date(at).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short" })}`);
+      await qc.invalidateQueries({ queryKey: ["mail-scheduled"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "התזמון נכשל");
+    }
+  }
+
+  async function cancelScheduled(id: string) {
+    try {
+      await doCancelScheduled({ data: { id } });
+      toast.success("התזמון בוטל");
+      await qc.invalidateQueries({ queryKey: ["mail-scheduled"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "הביטול נכשל");
+    }
+  }
+
+  async function markUnread() {
+    if (!active?.threads.length) return;
+    const newest = active.threads[0];
+    try {
+      await doUnread({ data: { threadId: newest.threadId, account: newest.account } });
+      setActiveKey(null);
+      closeThread();
+      toast.success("סומן כלא נקרא");
+      await qc.invalidateQueries({ queryKey: ["mail-chats"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "לא הצלחתי לסמן");
     }
   }
 
@@ -562,7 +862,7 @@ function MailChatAdmin() {
         },
       },
     });
-    doArchive({ data: { threads: active.threads.slice(0, 30) } }).catch(() => undefined);
+    if (active.threads.length) doArchive({ data: { threads: active.threads.slice(0, 30) } }).catch(() => undefined);
   }
 
   function unarchive(key: string) {
@@ -737,6 +1037,12 @@ function MailChatAdmin() {
                   <Users className="h-3.5 w-3.5" /> {selectMode ? "ביטול בחירה" : "קבוצה חדשה"}
                 </button>
               </div>
+            )}
+            {tab === "chats" && scheduled.length > 0 && (
+              <button type="button" onClick={() => setScheduledOpen(true)} className="text-[12px] flex items-center gap-1 font-medium" style={{ color: "#1e6fbf" }}>
+                <Clock className="h-3.5 w-3.5" /> {scheduled.length} מיילים מתוזמנים
+                {scheduled.some((x) => x.error) && <span style={{ color: "#b3261e" }}>· יש שנכשל</span>}
+              </button>
             )}
             {tab === "chats" && serverSearch && (
               <div className="text-[11px] flex items-center gap-1" style={{ color: WA.muted }}>
@@ -922,6 +1228,22 @@ function MailChatAdmin() {
                     </div>
                   </div>
                 </button>
+                <IconBtn
+                  label="חיפוש בשיחה"
+                  onClick={() => {
+                    setChatSearchOpen((v) => !v);
+                    setChatSearch("");
+                  }}
+                >
+                  <Search className="h-4 w-4" />
+                </IconBtn>
+                {active.threads.length > 0 && (
+                  <span className="hidden sm:flex">
+                    <IconBtn label="סימון כלא נקרא" onClick={markUnread}>
+                      <MailOpen className="h-4 w-4" />
+                    </IconBtn>
+                  </span>
+                )}
                 <IconBtn label={prefs.pinned.includes(active.key) ? "ביטול הצמדה" : "הצמדה למעלה"} onClick={() => togglePin(active.key)}>
                   {prefs.pinned.includes(active.key) ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
                 </IconBtn>
@@ -935,7 +1257,7 @@ function MailChatAdmin() {
                     <Archive className="h-4 w-4" />
                   </IconBtn>
                 )}
-                <a
+                {active.threads.length > 0 && <a
                   href={`https://mail.google.com/mail/u/0/#all/${active.threads[0]?.threadId}`}
                   target="_blank"
                   rel="noreferrer"
@@ -945,8 +1267,38 @@ function MailChatAdmin() {
                   style={{ color: WA.muted }}
                 >
                   <ExternalLink className="h-4 w-4" />
-                </a>
+                </a>}
               </header>
+
+              {chatSearchOpen && (
+                <div className="shrink-0 px-3 py-2 border-b flex items-center gap-2 bg-white" style={{ borderColor: WA.line }}>
+                  <Search className="h-4 w-4 shrink-0" style={{ color: WA.muted }} />
+                  <input
+                    autoFocus
+                    value={chatSearch}
+                    onChange={(e) => setChatSearch(e.target.value)}
+                    placeholder="חיפוש בתוך השיחה הזאת"
+                    className="flex-1 min-w-0 h-9 rounded-lg px-3 text-base md:text-sm outline-none"
+                    style={{ background: WA.panel, color: WA.ink }}
+                  />
+                  {cq && (
+                    <span className="text-xs shrink-0" style={{ color: WA.muted }}>
+                      {messages.length} מתוך {allMessages.length}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    aria-label="סגירת החיפוש"
+                    onClick={() => {
+                      setChatSearchOpen(false);
+                      setChatSearch("");
+                    }}
+                    className="p-1"
+                  >
+                    <X className="h-4 w-4" style={{ color: WA.muted }} />
+                  </button>
+                </div>
+              )}
 
               {showCard && (
                 <div className="shrink-0 border-b px-4 py-3 space-y-2 bg-white" style={{ borderColor: WA.line }}>
@@ -993,13 +1345,22 @@ function MailChatAdmin() {
                       >
                         <Copy className="h-3.5 w-3.5" />
                       </CardAction>
-                      {activeContact?.phone && (
+                      {active.threads.length > 0 && (
+                        <span className="sm:hidden">
+                          <CardAction label="סימון כלא נקרא" onClick={markUnread}>
+                            <MailOpen className="h-3.5 w-3.5" />
+                          </CardAction>
+                        </span>
+                      )}
+                      {(activeContact?.phone || card.data?.phone || active.waPhone) && (() => {
+                        const phone = activeContact?.phone || card.data?.phone || `+${active.waPhone}`;
+                        return (
                         <>
-                          <a href={`tel:${activeContact.phone}`} className="h-8 px-3 rounded-full text-xs flex items-center gap-1" style={{ background: WA.panel, color: WA.ink }}>
-                            <Phone className="h-3.5 w-3.5" /> <span dir="ltr">{activeContact.phone}</span>
+                          <a href={`tel:${phone}`} className="h-8 px-3 rounded-full text-xs flex items-center gap-1" style={{ background: WA.panel, color: WA.ink }}>
+                            <Phone className="h-3.5 w-3.5" /> <span dir="ltr">{phone}</span>
                           </a>
                           <a
-                            href={`https://wa.me/${waPhone(activeContact.phone)}`}
+                            href={`https://wa.me/${waPhone(phone)}`}
                             target="_blank"
                             rel="noreferrer"
                             className="h-8 px-3 rounded-full text-xs flex items-center gap-1 text-white"
@@ -1008,9 +1369,43 @@ function MailChatAdmin() {
                             <MessageCircle className="h-3.5 w-3.5" /> וואטסאפ
                           </a>
                         </>
-                      )}
+                        );
+                      })()}
                     </div>
                   )}
+                  <div className="pt-1">
+                    <div className="text-xs font-semibold mb-1.5" style={{ color: WA.muted }}>
+                      הזמנות ולקוחות באתר
+                    </div>
+                    {card.isLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" style={{ color: WA.muted }} />
+                    ) : (card.data?.orders ?? []).length === 0 ? (
+                      <div className="text-xs" style={{ color: WA.muted }}>
+                        לא נמצאו הזמנות לפי המייל / הטלפון
+                      </div>
+                    ) : (
+                      <div className="max-h-44 overflow-y-auto space-y-1">
+                        {(card.data?.orders ?? []).slice(0, 15).map((o: any) => (
+                          <a
+                            key={`${o.kind}-${o.id}`}
+                            href={o.link}
+                            className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs hover:brightness-95"
+                            style={{ background: WA.panel, color: WA.ink }}
+                          >
+                            <span className="shrink-0 px-1.5 py-0.5 rounded-full text-[10px]" style={{ background: "#e7f8f2", color: WA.greenDark }}>
+                              {o.kind}
+                            </span>
+                            <span className="truncate flex-1">{o.title}</span>
+                            {o.date && <span className="shrink-0" dir="ltr">{String(o.date).split("-").reverse().join(".")}</span>}
+                            {o.total != null && <span className="shrink-0">₪{Number(o.total).toLocaleString("he-IL")}</span>}
+                            <span className="shrink-0" style={{ color: WA.muted }}>
+                              {o.status}
+                            </span>
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -1026,8 +1421,8 @@ function MailChatAdmin() {
                 {messages.map((m, idx) => {
                   const prev = messages[idx - 1];
                   const newDay = !prev || dayLabel(prev.at) !== dayLabel(m.at);
-                  const newSubject = !prev || prev.subject !== m.subject;
-                  const firstOfRun = newDay || newSubject || !prev || prev.fromMe !== m.fromMe || prev.fromEmail !== m.fromEmail;
+                  const newSubject = subjectChips.has(m.id);
+                  const firstOfRun = newDay || newSubject || !prev || prev.fromMe !== m.fromMe || prev.fromEmail !== m.fromEmail || !!prev.wa !== !!m.wa;
                   const long = m.text.length > 1400 && !expanded[m.id];
                   const nameColor = NAME_COLORS[hashIdx(m.fromEmail || m.fromName, NAME_COLORS.length)];
                   return (
@@ -1039,7 +1434,7 @@ function MailChatAdmin() {
                           </span>
                         </div>
                       )}
-                      {newSubject && m.subject && (
+                      {newSubject && (
                         <div className="flex justify-center my-2">
                           <span className="text-[11px] px-3 py-1 rounded-lg max-w-[85%] truncate" style={{ background: "#fff8c5", color: "#54656f" }}>
                             ✉️ {m.subject}
@@ -1071,6 +1466,16 @@ function MailChatAdmin() {
                           {active.isGroup && !m.fromMe && firstOfRun && (
                             <div className="text-[13px] font-semibold mb-0.5" style={{ color: nameColor }}>
                               {m.fromName}
+                            </div>
+                          )}
+                          {m.wa && firstOfRun && (
+                            <div className="text-[11px] font-semibold mb-0.5 flex items-center gap-1" style={{ color: WA.unread }}>
+                              <MessageCircle className="h-3 w-3" /> וואטסאפ
+                            </div>
+                          )}
+                          {m.media && (
+                            <div className="mb-1 max-w-full overflow-hidden rounded-md">
+                              <WhatsAppMedia url={m.media.url} type={m.media.type as any} filename={m.media.filename} mime={m.media.mime} />
                             </div>
                           )}
                           {m.attachments.length > 0 && (
@@ -1120,7 +1525,35 @@ function MailChatAdmin() {
                               )}
                             </div>
                           )}
+                          {m.waFailed && (
+                            <div className="text-[11px] mt-1 rounded px-1.5 py-1" style={{ background: "#fdecea", color: "#b3261e" }}>
+                              ⚠️ לא נשלחה: {m.waFailed}
+                            </div>
+                          )}
                           <div className="flex items-center justify-end gap-1 mt-0.5 text-[11px] leading-none" style={{ color: WA.muted }}>
+                            {!m.pending && (
+                              <span className="flex items-center gap-0.5 ml-auto opacity-60 hover:opacity-100">
+                                <button
+                                  type="button"
+                                  title="תשובה להודעה הזאת"
+                                  aria-label="תשובה להודעה הזאת"
+                                  onClick={() => {
+                                    setQuote(m);
+                                    if (m.wa) setReplyVia("wa");
+                                    else if (!active.waOnly) setReplyVia("mail");
+                                    setTimeout(() => textRef.current?.focus(), 50);
+                                  }}
+                                  className="p-1 rounded hover:bg-black/5"
+                                >
+                                  <Reply className="h-3.5 w-3.5" />
+                                </button>
+                                {!m.wa && (
+                                  <button type="button" title="העברה" aria-label="העברה" onClick={() => setForwardMsg(m)} className="p-1 rounded hover:bg-black/5">
+                                    <Forward className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
+                              </span>
+                            )}
                             {bubbleTime(m.at)}
                             {m.fromMe && (m.pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCheck className="h-3.5 w-3.5" style={{ color: "#53bdeb" }} aria-label="נשלח" />)}
                           </div>
@@ -1176,10 +1609,65 @@ function MailChatAdmin() {
                     </div>
                   </div>
                 )}
+                {scheduled
+                  .filter((x) => x.chatKey === active.key)
+                  .map((x) => (
+                    <div key={x.id} className="flex justify-start mt-3">
+                      <div className="max-w-[88%] md:max-w-[70%] rounded-lg px-3 py-2 border border-dashed" style={{ background: "#f0f7ff", borderColor: "#9cc3ef", color: WA.ink }}>
+                        <div className="text-[12px] font-semibold flex items-center gap-1 mb-1" style={{ color: x.error ? "#b3261e" : "#1e6fbf" }}>
+                          <Clock className="h-3.5 w-3.5" />
+                          {x.error ? `התזמון נכשל: ${x.error}` : `מתוזמן ל-${new Date(x.at).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Jerusalem" })}`}
+                        </div>
+                        <div className="text-[14px] whitespace-pre-wrap break-words" dir="auto">
+                          {x.text.length > 400 ? `${x.text.slice(0, 400)}…` : x.text}
+                        </div>
+                        <button type="button" onClick={() => cancelScheduled(x.id)} className="mt-1 text-[12px] underline" style={{ color: "#b3261e" }}>
+                          {x.error ? "הסרה" : "ביטול התזמון"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                {cq && messages.length === 0 && <EmptyNote text="אין הודעות שמתאימות לחיפוש" />}
                 <div ref={bottomRef} />
               </div>
 
               <footer className="shrink-0 border-t" style={{ background: WA.panel, borderColor: WA.line }}>
+                {quote && (
+                  <div className="mx-3 mt-2 rounded-lg bg-white border-r-4 px-3 py-1.5 flex items-start gap-2" style={{ borderColor: WA.green }}>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[12px] font-semibold" style={{ color: WA.greenDark }}>
+                        בתשובה ל{quote.fromMe ? "הודעה שלי" : `-${quote.fromName || quote.fromEmail}`}
+                      </div>
+                      <div className="text-[12px] truncate" style={{ color: WA.muted }} dir="auto">
+                        {quote.text.slice(0, 160)}
+                      </div>
+                    </div>
+                    <button type="button" aria-label="ביטול הציטוט" onClick={() => setQuote(null)} className="p-0.5">
+                      <X className="h-4 w-4" style={{ color: WA.muted }} />
+                    </button>
+                  </div>
+                )}
+                {active.waPhone && !active.waOnly && (
+                  <div className="px-3 pt-2 flex items-center gap-1.5 text-xs">
+                    <span style={{ color: WA.muted }}>לענות ב:</span>
+                    {(
+                      [
+                        { id: "mail", label: "✉️ מייל" },
+                        { id: "wa", label: "🟢 וואטסאפ" },
+                      ] as const
+                    ).map((o) => (
+                      <button
+                        key={o.id}
+                        type="button"
+                        onClick={() => setReplyVia(o.id)}
+                        className="h-7 px-3 rounded-full font-medium"
+                        style={replyVia === o.id ? { background: WA.green, color: "#fff" } : { background: "#fff", color: WA.muted }}
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {editingDraft && (
                   <div className="px-3 pt-2 flex items-center justify-between gap-2 text-xs" style={{ color: WA.draftInk }}>
                     <span className="flex items-center gap-1">
@@ -1198,18 +1686,39 @@ function MailChatAdmin() {
                   </div>
                 )}
                 <div className="flex gap-1.5 overflow-x-auto px-3 pt-2 items-center">
-                  {QUICK_REPLIES.map((r) => (
+                  <button
+                    type="button"
+                    onClick={() => void suggestReply()}
+                    disabled={suggesting}
+                    title={draft.trim() ? "הצעת תשובה לפי מה שכתבת כהנחיה" : "הצעת תשובה מלאה לפי השיחה"}
+                    className="shrink-0 h-7 px-3 rounded-full text-xs whitespace-nowrap flex items-center gap-1 font-medium disabled:opacity-60"
+                    style={{ background: "#efe7ff", color: "#6b3fd4" }}
+                  >
+                    {suggesting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} הצעת תשובה
+                  </button>
+                  {quickReplies.map((r, i) => (
                     <button
-                      key={r.label}
+                      key={`${i}-${r}`}
                       type="button"
-                      onClick={() => setDraft((d) => (d ? `${d}\n${r.text}` : r.text))}
+                      title={r}
+                      onClick={() => setDraft((d) => (d ? `${d}\n${r}` : r))}
                       className="shrink-0 h-7 px-3 rounded-full text-xs bg-white hover:bg-[#f5f6f6] whitespace-nowrap"
                       style={{ color: WA.greenDark }}
                     >
-                      {r.label}
+                      {quickLabel(r)}
                     </button>
                   ))}
                   <button
+                    type="button"
+                    aria-label="עריכת התשובות המהירות"
+                    title="עריכת התשובות המהירות"
+                    onClick={() => setQuickEditOpen(true)}
+                    className="shrink-0 h-7 w-7 rounded-full bg-white flex items-center justify-center"
+                    style={{ color: WA.muted }}
+                  >
+                    <PenLine className="h-3.5 w-3.5" />
+                  </button>
+                  {replyVia === "mail" && <button
                     type="button"
                     onClick={() => setDesigned((v) => !v)}
                     title="שליחה בעיצוב המותג (לוגו + חתימה)"
@@ -1217,7 +1726,7 @@ function MailChatAdmin() {
                     style={designed ? { background: WA.green, color: "#fff" } : { background: "#fff", color: WA.muted }}
                   >
                     <Palette className="h-3.5 w-3.5" /> {designed ? "מעוצב ✓" : "מעוצב"}
-                  </button>
+                  </button>}
                 </div>
                 {files.length > 0 && (
                   <div className="px-3 pt-2">
@@ -1239,6 +1748,7 @@ function MailChatAdmin() {
                     type="button"
                     aria-label="צירוף קובץ"
                     title="צירוף קובץ או תמונה"
+                    disabled={replyVia === "wa"}
                     onClick={() => fileInput.current?.click()}
                     className="h-11 w-11 shrink-0 rounded-full flex items-center justify-center hover:bg-black/5"
                     style={{ color: WA.muted }}
@@ -1262,11 +1772,23 @@ function MailChatAdmin() {
                       }
                     }}
                     rows={1}
-                    placeholder={active.isGroup ? `תשובה לכל הקבוצה (${active.participants.length})` : "כתבי הודעה"}
+                    placeholder={replyVia === "wa" ? "הודעת וואטסאפ" : active.isGroup ? `תשובה לכל הקבוצה (${active.participants.length})` : "כתבי הודעה"}
                     className="flex-1 min-w-0 resize-none rounded-lg px-3 py-2.5 text-base md:text-[15px] outline-none bg-white max-h-48"
                     style={{ color: WA.ink, fieldSizing: "content" } as any}
                     dir="auto"
                   />
+                  {replyVia === "mail" && (
+                    <button
+                      type="button"
+                      aria-label="תזמון שליחה"
+                      title="תזמון שליחה למועד אחר"
+                      onClick={() => (draft.trim() ? setScheduleOpen(true) : toast.error("כתבי קודם את ההודעה"))}
+                      className="h-11 w-9 shrink-0 rounded-full flex items-center justify-center hover:bg-black/5"
+                      style={{ color: WA.muted }}
+                    >
+                      <Clock className="h-5 w-5" />
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => void sendReply()}
@@ -1279,8 +1801,10 @@ function MailChatAdmin() {
                   </button>
                 </div>
                 <div className="px-3 pb-2 -mt-1 text-[11px]" style={{ color: WA.muted }}>
-                  Enter לשליחה · Shift+Enter לשורה חדשה · {active.channel === "studio" ? "נשלח בשם Sweetbaby" : "נשלח בשם מיכל סיבוני"}
-                  {designed ? " · עם לוגו וחתימה" : ""}
+                  Enter לשליחה · Shift+Enter לשורה חדשה ·{" "}
+                  {replyVia === "wa"
+                    ? "נשלח בוואטסאפ של הסטודיו (מחוץ ל-24 שעות מההודעה האחרונה שלה צריך תבנית מאושרת)"
+                    : `${active.channel === "studio" ? "נשלח בשם Sweetbaby" : "נשלח בשם מיכל סיבוני"}${designed ? " · עם לוגו וחתימה" : ""}`}
                 </div>
               </footer>
             </>
@@ -1294,6 +1818,80 @@ function MailChatAdmin() {
             <DialogTitle>כך הטיוטה תיראה אצל הלקוחה</DialogTitle>
           </DialogHeader>
           {previewHtml && <iframe title="תצוגה מקדימה" sandbox="" srcDoc={previewHtml} className="w-full h-[70vh] border-0 bg-white" />}
+        </DialogContent>
+      </Dialog>
+
+      <ForwardDialog
+        msg={forwardMsg}
+        contacts={allContacts}
+        onClose={() => setForwardMsg(null)}
+        onSend={async (to, note) => {
+          if (!forwardMsg) return;
+          await doForward({ data: { account: forwardMsg.account, messageId: forwardMsg.id, to, note, channel: active?.channel ?? "personal" } });
+          toast.success("המייל הועבר");
+          setForwardMsg(null);
+          await qc.invalidateQueries({ queryKey: ["mail-chats"] });
+        }}
+      />
+
+      <ScheduleDialog open={scheduleOpen} onClose={() => setScheduleOpen(false)} onPick={(at) => void scheduleReply(at)} />
+
+      <Dialog open={quickEditOpen} onOpenChange={setQuickEditOpen}>
+        <DialogContent dir="rtl" className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>התשובות המהירות שלך</DialogTitle>
+          </DialogHeader>
+          <QuickRepliesEditor
+            initial={quickReplies}
+            onSave={(list) => {
+              updatePrefs({ ...prefs, quickReplies: list });
+              setQuickEditOpen(false);
+              toast.success("נשמר");
+            }}
+            onReset={() => {
+              updatePrefs({ ...prefs, quickReplies: [] });
+              setQuickEditOpen(false);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={scheduledOpen} onOpenChange={setScheduledOpen}>
+        <DialogContent dir="rtl" className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>מיילים מתוזמנים</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+            {scheduled.length === 0 && <EmptyNote text="אין מיילים מתוזמנים" />}
+            {scheduled.map((x) => (
+              <div key={x.id} className="rounded-xl border p-3 text-sm space-y-1" style={{ borderColor: x.error ? "#f3b3ad" : WA.line }}>
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    className="font-semibold truncate text-right"
+                    onClick={() => {
+                      if (x.chatKey) {
+                        setScheduledOpen(false);
+                        openChat(x.chatKey);
+                      }
+                    }}
+                  >
+                    {x.label}
+                  </button>
+                  <span className="text-xs shrink-0" style={{ color: x.error ? "#b3261e" : WA.muted }}>
+                    {x.error ? "נכשל" : new Date(x.at).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Jerusalem" })}
+                  </span>
+                </div>
+                <div className="text-xs line-clamp-2" style={{ color: WA.muted }}>
+                  {x.error ? `${x.error} · ` : ""}
+                  {x.text}
+                </div>
+                <button type="button" onClick={() => cancelScheduled(x.id)} className="text-xs underline" style={{ color: "#b3261e" }}>
+                  {x.error ? "הסרה" : "ביטול התזמון"}
+                </button>
+              </div>
+            ))}
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -1716,6 +2314,195 @@ function ComposeDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ForwardDialog({
+  msg,
+  contacts,
+  onClose,
+  onSend,
+}: {
+  msg: ChatMsg | null;
+  contacts: Contact[];
+  onClose: () => void;
+  onSend: (to: string[], note: string) => Promise<void>;
+}) {
+  const [to, setTo] = useState("");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    setTo("");
+    setNote("");
+  }, [msg?.id]);
+  const list = to
+    .split(/[\s,;]+/)
+    .map((x) => x.trim().toLowerCase())
+    .filter(Boolean);
+  const bad = list.filter((x) => !EMAIL_OK.test(x));
+  return (
+    <Dialog open={!!msg} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent dir="rtl" className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>העברת מייל</DialogTitle>
+        </DialogHeader>
+        {msg && (
+          <div className="space-y-3">
+            <div className="rounded-lg p-2.5 text-xs" style={{ background: WA.panel, color: WA.muted }}>
+              <div className="font-semibold" style={{ color: WA.ink }}>
+                {msg.subject || "(ללא נושא)"}
+              </div>
+              <div className="line-clamp-3 mt-0.5" dir="auto">
+                {msg.text}
+              </div>
+              {msg.attachments.length > 0 && <div className="mt-1">📎 {msg.attachments.length} קבצים יועברו איתו</div>}
+            </div>
+            <div>
+              <label className="text-xs font-medium" style={{ color: WA.muted }}>
+                אל (כמה כתובות — מופרדות בפסיק)
+              </label>
+              <input
+                list="fwd-contacts"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                dir="ltr"
+                className="w-full h-10 rounded-lg border px-3 text-base md:text-sm outline-none mt-1"
+                style={{ borderColor: WA.line }}
+              />
+              <datalist id="fwd-contacts">
+                {contacts.slice(0, 400).map((c) => (
+                  <option key={c.email} value={c.email}>
+                    {c.name}
+                  </option>
+                ))}
+              </datalist>
+              {bad.length > 0 && <div className="text-xs mt-1 text-red-600">כתובת לא תקינה: {bad.join(", ")}</div>}
+            </div>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="הודעה קצרה מעל המייל (לא חובה)"
+              rows={3}
+              className="w-full rounded-lg border px-3 py-2 text-base md:text-sm outline-none"
+              style={{ borderColor: WA.line }}
+              dir="auto"
+            />
+          </div>
+        )}
+        <DialogFooter>
+          <Button
+            disabled={busy || !list.length || bad.length > 0}
+            className="rounded-full gap-2 text-white"
+            style={{ background: WA.green }}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await onSend([...new Set(list)], note);
+              } catch (e: any) {
+                toast.error(e?.message ?? "ההעברה נכשלה");
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Forward className="h-4 w-4" />} העברה
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Israel-time "YYYY-MM-DDTHH:mm" for a datetime-local field. */
+function localInput(ms: number) {
+  const d = new Date(ms);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jerusalem",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(d);
+  const g = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  return `${g("year")}-${g("month")}-${g("day")}T${g("hour")}:${g("minute")}`;
+}
+
+/** The same moment at a given Israel wall-clock time, n days from today. */
+function israelAt(daysAhead: number, hh: number, mm: number) {
+  const now = Date.now();
+  const [date] = localInput(now + daysAhead * 86400000).split("T");
+  const guess = Date.parse(`${date}T${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:00Z`);
+  // shift by the Israel offset at that moment (2 or 3 hours)
+  const off = Date.parse(`${localInput(guess)}:00Z`) - guess;
+  return guess - off;
+}
+
+function ScheduleDialog({ open, onClose, onPick }: { open: boolean; onClose: () => void; onPick: (at: number) => void }) {
+  const [value, setValue] = useState("");
+  useEffect(() => {
+    if (open) setValue(localInput(Date.now() + 3600000));
+  }, [open]);
+  const presets = [
+    { label: "בעוד שעה", at: () => Date.now() + 3600000 },
+    { label: "הערב 20:30", at: () => israelAt(0, 20, 30) },
+    { label: "מחר 08:30", at: () => israelAt(1, 8, 30) },
+    { label: "מחר 13:00", at: () => israelAt(1, 13, 0) },
+  ].filter((p) => p.at() > Date.now() + 60000);
+  const parsed = value ? Date.parse(`${value}:00Z`) - (Date.parse(`${localInput(Date.parse(`${value}:00Z`))}:00Z`) - Date.parse(`${value}:00Z`)) : NaN;
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent dir="rtl" className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>מתי לשלוח?</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-wrap gap-1.5">
+          {presets.map((p) => (
+            <button key={p.label} type="button" onClick={() => onPick(p.at())} className="h-9 px-3 rounded-full text-sm" style={{ background: WA.panel, color: WA.ink }}>
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <label className="text-xs font-medium" style={{ color: WA.muted }}>
+          או תאריך ושעה (שעון ישראל)
+        </label>
+        <input type="datetime-local" value={value} onChange={(e) => setValue(e.target.value)} className="h-10 rounded-lg border px-3 text-base" style={{ borderColor: WA.line }} />
+        <p className="text-[11px]" style={{ color: WA.muted }}>
+          האתר בודק כל 5 דקות ושולח. בשבת ובערב שבת מ-14:00 המייל מחכה ויוצא במוצאי שבת. בלי קבצים מצורפים.
+        </p>
+        <DialogFooter>
+          <Button disabled={!Number.isFinite(parsed)} className="rounded-full gap-2 text-white" style={{ background: WA.green }} onClick={() => onPick(parsed)}>
+            <Clock className="h-4 w-4" /> תזמון
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function QuickRepliesEditor({ initial, onSave, onReset }: { initial: string[]; onSave: (l: string[]) => void; onReset: () => void }) {
+  const [text, setText] = useState(initial.join("\n"));
+  const list = text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .slice(0, 30);
+  return (
+    <div className="space-y-3">
+      <p className="text-xs" style={{ color: WA.muted }}>
+        כל שורה = תשובה מהירה אחת (עד 30). לחיצה עליה בשיחה מוסיפה אותה להודעה.
+      </p>
+      <textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} className="w-full rounded-lg border px-3 py-2 text-base md:text-sm outline-none" style={{ borderColor: WA.line }} dir="auto" />
+      <div className="flex items-center justify-between gap-2">
+        <button type="button" onClick={onReset} className="text-xs underline" style={{ color: WA.muted }}>
+          חזרה לברירת המחדל
+        </button>
+        <Button disabled={!list.length || list.some((l) => l.length > 500)} className="rounded-full text-white" style={{ background: WA.green }} onClick={() => onSave(list)}>
+          שמירה
+        </Button>
+      </div>
+    </div>
   );
 }
 
