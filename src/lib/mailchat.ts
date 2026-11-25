@@ -72,6 +72,8 @@ export type ThreadMeta = {
   channel: "studio" | "personal";
   firstMessageId: string; // Message-ID header of the first mail, used to dedupe across accounts
   hasDraft: boolean; // a reply draft (e.g. from the site's draft assistant) is waiting in this thread
+  /** Site-mail types found in the thread (order / lead kinds from `classifySiteMail`), for the permanent mark. */
+  kinds?: string[];
 };
 
 export type MailConversation = {
@@ -86,6 +88,8 @@ export type MailConversation = {
   lastFromMe: boolean;
   unread: boolean;
   hasDraft: boolean;
+  /** Order / lead kinds of all its threads (empty = an ordinary mail chat). */
+  kinds: string[];
   threads: Array<{ threadId: string; account: string }>;
 };
 
@@ -107,7 +111,8 @@ export function buildConversations(metas: ThreadMeta[]): MailConversation[] {
     if (!existing) {
       byKey.set(key, {
         key,
-        title: isGroup ? groupTitle(names) : names[0] || "(ללא שולח)",
+        // A site notice sent to ourselves has no other person: its subject is its name.
+        title: isGroup ? groupTitle(names) : names[0] || m.subject.trim() || "(ללא שולח)",
         subtitle: isGroup ? names.join(", ") : m.participants[0]?.email ?? "",
         isGroup,
         participants: m.participants,
@@ -117,6 +122,7 @@ export function buildConversations(metas: ThreadMeta[]): MailConversation[] {
         lastFromMe: m.lastFromMe,
         unread: m.unread,
         hasDraft: m.hasDraft,
+        kinds: [...new Set(m.kinds ?? [])],
         threads: [{ threadId: m.threadId, account: m.account }],
       });
       continue;
@@ -124,6 +130,7 @@ export function buildConversations(metas: ThreadMeta[]): MailConversation[] {
     existing.threads.push({ threadId: m.threadId, account: m.account });
     existing.unread = existing.unread || m.unread;
     existing.hasDraft = existing.hasDraft || m.hasDraft;
+    for (const k of m.kinds ?? []) if (!existing.kinds.includes(k)) existing.kinds.push(k);
     if (m.channel === "studio") existing.channel = "studio";
     if (m.lastDate > existing.lastDate) {
       existing.lastDate = m.lastDate;

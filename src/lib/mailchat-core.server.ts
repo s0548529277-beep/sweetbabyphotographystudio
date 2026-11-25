@@ -12,6 +12,7 @@ import {
 } from "@/integrations/google/gmail.server";
 import { buildBrandedMailHtml, buildStudioMailHtml, esc } from "@/lib/email-draft-design";
 import { isOwnStudioAddress, isStudioChannelAddress } from "@/lib/studio-addresses";
+import { classifySiteMail, type SiteMailKind } from "@/lib/mail-labels";
 import { cleanSubject, parseAddressList, replyRecipients, type MailAddress, type ThreadMeta } from "@/lib/mailchat";
 
 export const META_HEADERS = ["From", "To", "Cc", "Subject", "Date", "Delivered-To", "Message-ID", "List-Id"];
@@ -52,6 +53,8 @@ export function metaFromThread(thread: any, account: string, isOwn: (e: string) 
   }
   const last = msgs[msgs.length - 1];
   const first = msgs[0];
+  // Permanent order / lead mark: the type of every site mail in the thread, judged by its subject.
+  const kinds = [...new Set(msgs.map((m) => classifySiteMail(gmailHeaderValue(headersOf(m), "Subject"))).filter((k): k is SiteMailKind => !!k))];
   const lastFrom = parseAddressList(gmailHeaderValue(headersOf(last), "From"))[0];
   return {
     threadId: thread.id,
@@ -65,6 +68,7 @@ export function metaFromThread(thread: any, account: string, isOwn: (e: string) 
     channel: studio ? "studio" : "personal",
     firstMessageId: gmailHeaderValue(headersOf(first), "Message-ID") || `${account}:${thread.id}`,
     hasDraft: all.length !== msgs.length,
+    kinds,
   };
 }
 

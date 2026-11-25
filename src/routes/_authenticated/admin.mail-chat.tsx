@@ -41,6 +41,8 @@ import {
   UserRound,
   Users,
   X,
+  ChevronDown,
+  Smile,
 } from "lucide-react";
 import {
   archiveMailChat,
@@ -124,6 +126,66 @@ function Avatar({ name, seed, group, size = 44 }: { name: string; seed: string; 
     >
       {group ? <Users style={{ width: size * 0.48, height: size * 0.48 }} /> : initials(name)}
     </div>
+  );
+}
+
+/** WhatsApp-like doodle wallpaper (very faint line drawings: hearts, stars, camera, envelope, chat bubbles). */
+const WALLPAPER_IMAGE = `url("data:image/svg+xml,${encodeURIComponent(
+  `<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'><g fill='none' stroke='#000' stroke-opacity='0.055' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'><path d='M22 30c-4-6-14-3-12 5 1 5 12 12 12 12s11-7 12-12c2-8-8-11-12-5z'/><path d='M120 20l3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z'/><rect x='92' y='92' width='30' height='22' rx='4'/><circle cx='107' cy='103' r='6'/><path d='M99 92l3-5h10l3 5'/><rect x='18' y='96' width='34' height='22' rx='3'/><path d='M18 98l17 12 17-12'/><path d='M64 46h26a6 6 0 0 1 6 6v12a6 6 0 0 1-6 6H76l-8 7v-7h-4a6 6 0 0 1-6-6V52a6 6 0 0 1 6-6z'/><circle cx='140' cy='140' r='4'/><circle cx='60' cy='140' r='2.5'/><path d='M140 64c-3 0-5 2-5 5s5 9 5 9 5-6 5-9-2-5-5-5z'/></g></svg>`,
+)}")`;
+
+const EMOJIS = ["🙂", "😊", "😍", "🥰", "😘", "🤗", "😂", "🙏", "👍", "👌", "👏", "💪", "🙌", "🤝", "❤️", "💗", "💕", "🌸", "🌷", "✨", "⭐", "🎉", "🎂", "🎈", "🍼", "👶", "🧸", "📷", "📸", "🏠", "📅", "⏰", "✅", "❌", "📞", "💬", "✉️", "📎", "😅", "🤔"];
+
+/** Permanent mark of site orders / leads (same colours as the Gmail sub-labels of "הזמנות ולידים"). */
+const KIND_TAGS: Record<string, { label: string; icon: string; bg: string; fg: string }> = {
+  studio: { label: "הזמנת סטודיו", icon: "🏠", bg: "#e3edfd", fg: "#1f4fa8" },
+  props: { label: "הזמנת אביזרים", icon: "🧸", bg: "#dcf5e8", fg: "#0f6b40" },
+  lead_quiz: { label: "ליד שאלון", icon: "📝", bg: "#fff0dc", fg: "#8a4f00" },
+  lead_chat: { label: "ליד צ'אט", icon: "💬", bg: "#efe6fb", fg: "#5b33a3" },
+  lead_form: { label: "ליד טופס", icon: "📋", bg: "#fde7ef", fg: "#9c2753" },
+  lead_phone: { label: "ליד טלפון", icon: "📞", bg: "#dff2f6", fg: "#11677a" },
+  lead_visitor: { label: "מבקרת חמה", icon: "🔥", bg: "#fde3df", fg: "#a3261a" },
+};
+const isOrderKind = (k: string) => k === "studio" || k === "props";
+
+function KindTags({ kinds, max = 2 }: { kinds: string[]; max?: number }) {
+  const list = kinds.filter((k) => KIND_TAGS[k]);
+  if (!list.length) return null;
+  return (
+    <span className="inline-flex items-center gap-1 shrink-0">
+      {list.slice(0, max).map((k) => (
+        <span
+          key={k}
+          className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[1px] text-[10px] font-semibold leading-4 whitespace-nowrap"
+          style={{ background: KIND_TAGS[k].bg, color: KIND_TAGS[k].fg }}
+          title={KIND_TAGS[k].label}
+        >
+          <span aria-hidden>{KIND_TAGS[k].icon}</span>
+          {KIND_TAGS[k].label}
+        </span>
+      ))}
+      {list.length > max && (
+        <span className="text-[10px] font-semibold" style={{ color: WA.muted }}>
+          +{list.length - max}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** Small round badge on the avatar: 🛒 order or ⭐ lead, so it is seen at a glance. */
+function KindBadge({ kinds }: { kinds: string[] }) {
+  if (!kinds.length) return null;
+  const order = kinds.some(isOrderKind);
+  return (
+    <span
+      className="absolute -bottom-0.5 -left-0.5 h-5 w-5 rounded-full flex items-center justify-center text-[11px] border-2 border-white"
+      style={{ background: order ? "#1f8a4c" : "#f59e0b" }}
+      title={order ? "הזמנה מהאתר" : "ליד מהאתר"}
+      aria-label={order ? "הזמנה מהאתר" : "ליד מהאתר"}
+    >
+      {order ? "🛒" : "⭐"}
+    </span>
   );
 }
 
@@ -268,12 +330,13 @@ const DEFAULT_QUICK_REPLIES = [
 ];
 const quickLabel = (t: string) => (t.length > 22 ? `${t.slice(0, 20)}…` : t);
 
-type Filter = "all" | "unread" | "waiting" | "reminders" | "drafts" | "studio" | "personal" | "groups" | "whatsapp" | "archived" | `label:${string}`;
+type Filter = "all" | "unread" | "waiting" | "reminders" | "drafts" | "site" | "studio" | "personal" | "groups" | "whatsapp" | "archived" | `label:${string}`;
 const BASE_FILTERS: Array<{ id: Filter; label: string }> = [
   { id: "all", label: "הכל" },
   { id: "unread", label: "לא נקראו" },
   { id: "waiting", label: "ממתינות לתשובה" },
   { id: "drafts", label: "✍️ טיוטות" },
+  { id: "site", label: "🛒 הזמנות ולידים" },
   { id: "groups", label: "קבוצות" },
   { id: "whatsapp", label: "🟢 וואטסאפ" },
 ];
@@ -346,6 +409,8 @@ function MailChatAdmin() {
   const [ccList, setCcList] = useState<string[]>([]);
   const [ccOpen, setCcOpen] = useState(false);
   const [labelSheet, setLabelSheet] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [awayFromBottom, setAwayFromBottom] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 60_000);
@@ -452,6 +517,7 @@ function MailChatAdmin() {
         lastFromMe: r.direction === "out",
         unread: waUnread,
         hasDraft: false,
+        kinds: [],
         threads: [],
         waPhone: r.phone,
         waOnly: true,
@@ -507,6 +573,7 @@ function MailChatAdmin() {
       if (filter === "waiting" && c.lastFromMe) return false;
       if (filter === "reminders" && !(prefs.reminders?.[c.key] && prefs.reminders[c.key] <= now)) return false;
       if (filter === "drafts" && !c.hasDraft) return false;
+      if (filter === "site" && !(c.kinds ?? []).length) return false;
       if (filter === "studio" && c.channel !== "studio") return false;
       if (filter === "personal" && c.channel !== "personal") return false;
       if (filter === "groups" && !c.isGroup) return false;
@@ -524,6 +591,7 @@ function MailChatAdmin() {
   const inbox = conversations.filter((c) => !isArchived(c));
   const unreadCount = inbox.filter((c) => c.unread).length;
   const draftCount = inbox.filter((c) => c.hasDraft).length;
+  const siteCount = inbox.filter((c) => (c.kinds ?? []).length).length;
   const waitingCount = inbox.filter((c) => !c.lastFromMe).length;
   const dueReminders = conversations.filter((c) => prefs.reminders?.[c.key] && prefs.reminders[c.key] <= now);
   const archivedCount = conversations.filter(isArchived).length;
@@ -646,6 +714,8 @@ function MailChatAdmin() {
     setReplyVia(active?.waOnly ? "wa" : "mail");
     setCcList([]);
     setCcOpen(false);
+    setEmojiOpen(false);
+    setAwayFromBottom(false);
   }, [activeKey]);
 
   // Phone: the device "back" button closes the open chat and returns to the list (like WhatsApp) instead of leaving the page.
@@ -1008,7 +1078,7 @@ function MailChatAdmin() {
 
   const filters: Array<{ id: Filter; label: string; count?: number }> = [
     ...(dueReminders.length ? [{ id: "reminders" as Filter, label: "⏰ לחזור אליהן", count: dueReminders.length }] : []),
-    ...BASE_FILTERS.map((f) => ({ ...f, count: f.id === "unread" ? unreadCount : f.id === "drafts" ? draftCount : f.id === "waiting" ? waitingCount : undefined })),
+    ...BASE_FILTERS.map((f) => ({ ...f, count: f.id === "unread" ? unreadCount : f.id === "drafts" ? draftCount : f.id === "site" ? siteCount : f.id === "waiting" ? waitingCount : undefined })),
     ...usedLabels.map((l) => ({ id: `label:${l.id}` as Filter, label: `🏷 ${l.id}` })),
     ...(archivedCount ? [{ id: "archived" as Filter, label: "ארכיון", count: archivedCount }] : []),
   ];
@@ -1240,11 +1310,17 @@ function MailChatAdmin() {
                       className="w-full text-right flex items-center gap-3 px-3 py-2.5 transition hover:bg-[#f5f6f6]"
                       style={activeKey === c.key ? { background: WA.panel } : undefined}
                     >
-                      <Avatar name={c.title} seed={c.key} group={c.isGroup} />
+                      <span className="relative shrink-0">
+                        <Avatar name={c.title} seed={c.key} group={c.isGroup} />
+                        <KindBadge kinds={c.kinds ?? []} />
+                      </span>
                       <div className="min-w-0 flex-1 border-b py-1" style={{ borderColor: "#f0f2f5" }}>
                         <div className="flex items-center justify-between gap-2">
-                          <span className="truncate text-[15px]" style={{ color: WA.ink, fontWeight: c.unread ? 700 : 500 }}>
-                            {c.title}
+                          <span className="min-w-0 flex items-center gap-1.5">
+                            <span className="truncate text-[15px]" style={{ color: WA.ink, fontWeight: c.unread ? 700 : 500 }}>
+                              {c.title}
+                            </span>
+                            <KindTags kinds={c.kinds ?? []} max={1} />
                           </span>
                           <span className="shrink-0 text-[11px]" style={{ color: c.unread ? WA.unread : WA.muted, fontWeight: c.unread ? 600 : 400 }}>
                             {listTime(c.lastDate)}
@@ -1425,10 +1501,16 @@ function MailChatAdmin() {
                   <ArrowRight className="h-5 w-5 text-white" />
                 </button>
                 <button type="button" onClick={() => setShowCard((v) => !v)} className="relative min-w-0 flex-1 flex items-center gap-2.5 md:gap-3 text-right" aria-label="פרטי השיחה">
-                  <Avatar name={active.title} seed={active.key} group={active.isGroup} size={40} />
+                  <span className="relative shrink-0">
+                    <Avatar name={active.title} seed={active.key} group={active.isGroup} size={40} />
+                    <KindBadge kinds={active.kinds ?? []} />
+                  </span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-semibold text-[15px] flex items-center gap-1.5 md:text-[#111b21]">
-                      {active.title}
+                      <span className="truncate">{active.title}</span>
+                      <span className="hidden sm:inline-flex">
+                        <KindTags kinds={active.kinds ?? []} max={3} />
+                      </span>
                       {activeLabel && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full font-normal" style={{ background: labelStyle(activeLabel)?.bg, color: labelStyle(activeLabel)?.color }}>
                           {activeLabel}
@@ -1694,7 +1776,12 @@ function MailChatAdmin() {
 
               <div
                 className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2.5 md:px-[6%] py-3"
-                style={{ background: WA.wallpaper, backgroundImage: "radial-gradient(rgba(0,0,0,0.035) 1px, transparent 1px)", backgroundSize: "18px 18px" }}
+                style={{ background: WA.wallpaper, backgroundImage: WALLPAPER_IMAGE, backgroundSize: "160px 160px" }}
+                onScroll={(e) => {
+                  const el = e.currentTarget;
+                  const away = el.scrollHeight - el.scrollTop - el.clientHeight > 320;
+                  if (away !== awayFromBottom) setAwayFromBottom(away);
+                }}
               >
                 {thread.isLoading && (
                   <div className="flex justify-center py-10">
@@ -1924,6 +2011,19 @@ function MailChatAdmin() {
                   ))}
                 {cq && messages.length === 0 && <EmptyNote text="אין הודעות שמתאימות לחיפוש" />}
                 <div ref={bottomRef} />
+                {awayFromBottom && (
+                  <div className="sticky bottom-1 flex justify-start pointer-events-none">
+                    <button
+                      type="button"
+                      aria-label="חזרה להודעה האחרונה"
+                      onClick={() => bottomRef.current?.scrollIntoView({ block: "end", behavior: "smooth" })}
+                      className="pointer-events-auto h-10 w-10 rounded-full bg-white shadow-md flex items-center justify-center"
+                      style={{ color: WA.muted }}
+                    >
+                      <ChevronDown className="h-6 w-6" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               <footer className="shrink-0 border-t" style={{ background: WA.panel, borderColor: WA.line }}>
@@ -2064,6 +2164,43 @@ function MailChatAdmin() {
                   >
                     {toolsOpen ? <X className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
                   </button>
+                  <div className="relative shrink-0">
+                    <button
+                      type="button"
+                      aria-label="אימוג'י"
+                      title="אימוג'י"
+                      onClick={() => setEmojiOpen((v) => !v)}
+                      className="h-11 w-9 rounded-full flex items-center justify-center hover:bg-black/5"
+                      style={{ color: emojiOpen ? WA.green : WA.muted }}
+                    >
+                      <Smile className="h-5 w-5" />
+                    </button>
+                    {emojiOpen && (
+                      <>
+                        <button type="button" aria-label="סגירה" className="fixed inset-0 z-30 cursor-default" onClick={() => setEmojiOpen(false)} />
+                        <div className="absolute bottom-12 right-0 z-40 w-[264px] max-w-[80vw] rounded-2xl bg-white shadow-xl border p-2 grid grid-cols-8 gap-0.5" style={{ borderColor: WA.line }}>
+                          {EMOJIS.map((e) => (
+                            <button
+                              key={e}
+                              type="button"
+                              onClick={() => {
+                                const el = textRef.current;
+                                const at = el?.selectionStart ?? draft.length;
+                                setDraft((d) => d.slice(0, at) + e + d.slice(at));
+                                setTimeout(() => {
+                                  el?.focus();
+                                  el?.setSelectionRange(at + e.length, at + e.length);
+                                }, 0);
+                              }}
+                              className="h-8 w-8 rounded-lg text-xl leading-none hover:bg-[#f0f2f5]"
+                            >
+                              {e}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
                   <button
                     type="button"
                     aria-label="צירוף קובץ"
