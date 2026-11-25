@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-25 (22:4x Israel) — Claude (chat, same task):** PUBLISHED head 44ce7f5 (daily lead thread) via the Lovable connector (deploy 9e6319d8-d6ea-490b-8c5d-1d651d222377, status pending when logged; not checked live).
+
 - **2026-11-25 (22:4x Israel) — Claude (chat, owner: "שהלידים יהיו כמו שרשור כמו בלמי לחזור" (Gmail and site) + "חוץ מלקוחה הודעה באתר שהשאירה" + "ופרסם"):** CODE ONLY, no DB; both repos. NEW `src/lib/lead-thread.ts` + test: funnel / quiz leads, "בחרה בחבילה" and hot / returning visitor alerts mailed to m go into ONE thread per day, subject "🎯 לידים חדשים — d.m" (so also one chat in `/admin/mail-chat`); original subject in header `X-Site-Lead-Subject` + first line of the mail; labels and the order/lead marks still use it. NOT threaded (customer's own message): contact form, chat, phone message, photography inquiry form, birth basket. Draft assistant (`email-drafts.server.ts`): each message of a lead thread is its own inquiry (own draft, no thread "draft ready" label, lead rows without `gmail_thread_id` so people are never merged). Old lead mails are not merged. Checks: `tsc` clean, `bun test ./src/lib` 123 pass, vite build OK; NOT tested on a real mail. TO CHECK: two new quiz leads the same day arrive in one thread, each with e-mail gets its own draft.
 
 - **2026-11-25 (22:2x Israel) — Claude (chat, same task):** PUBLISHED head 025742e (no floaters on the mail screen + list rows truncate; entry below) via the Lovable connector (deploy 17c481ad-4723-45d0-b60b-c9e2a4e2ad1c, status pending when logged; Lovable `latest_commit_sha` matched before the deploy; not checked live).
