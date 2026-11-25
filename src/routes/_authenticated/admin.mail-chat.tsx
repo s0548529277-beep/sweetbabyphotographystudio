@@ -1476,7 +1476,7 @@ function MailChatAdmin() {
             )}
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden max-md:pb-24">
             {tab === "chats" ? (
               chats.isLoading ? (
                 <ListSkeleton />
@@ -1511,7 +1511,7 @@ function MailChatAdmin() {
                         void toggleReadFromList(c);
                       }}
                       title="לחיצה ארוכה / לחיצה ימנית: סימון כנקרא / לא נקרא"
-                      className="w-full text-right flex items-center gap-3 px-3 py-2.5 transition hover:bg-[#f5f6f6] select-none [-webkit-touch-callout:none]"
+                      className="w-full min-w-0 overflow-hidden text-right flex items-center gap-3 px-3 py-2.5 transition hover:bg-[#f5f6f6] select-none [-webkit-touch-callout:none]"
                       style={activeKey === c.key ? { background: WA.panel } : undefined}
                     >
                       <span className="relative shrink-0">
@@ -1520,8 +1520,8 @@ function MailChatAdmin() {
                       </span>
                       <div className="min-w-0 flex-1 border-b py-1" style={{ borderColor: "#f0f2f5" }}>
                         <div className="flex items-center justify-between gap-2">
-                          <span className="min-w-0 flex items-center gap-1.5">
-                            <span className="truncate text-[15px]" style={{ color: WA.ink, fontWeight: unread ? 700 : 500 }}>
+                          <span className="min-w-0 flex-1 overflow-hidden flex items-center gap-1.5">
+                            <span className="min-w-0 truncate text-[15px]" style={{ color: WA.ink, fontWeight: unread ? 700 : 500 }}>
                               {c.title}
                             </span>
                             <KindTags kinds={c.kinds ?? []} max={1} />
@@ -1531,7 +1531,7 @@ function MailChatAdmin() {
                           </span>
                         </div>
                         <div className="flex items-center justify-between gap-2 mt-0.5">
-                          <span className="truncate text-[13px] flex items-center gap-1" style={{ color: WA.muted }}>
+                          <span className="min-w-0 flex-1 overflow-hidden truncate text-[13px] flex items-center gap-1" style={{ color: WA.muted }}>
                             {c.hasDraft ? (
                               <>
                                 <span className="shrink-0 font-semibold" style={{ color: "#d97706" }}>

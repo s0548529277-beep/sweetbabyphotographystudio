@@ -7,6 +7,7 @@ import {
   HeadContent,
   Scripts,
   type ErrorComponentProps,
+  useRouterState,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
@@ -177,6 +178,9 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 function RootComponent() {
+  // The mail screen is a full-screen app: no site-wide floating buttons on top of it (owner, 2026-11-25).
+  const pathname = useRouterState({ select: (st) => st.location.pathname });
+  const appScreen = pathname.startsWith("/admin/mail-chat");
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
 
@@ -197,16 +201,16 @@ function RootComponent() {
           <WishlistProvider>
             <Outlet />
             <Toaster position="top-center" richColors />
-            <ChatBot />
-            <AccessibilityWidget />
+            {!appScreen && <ChatBot />}
+            {!appScreen && <AccessibilityWidget />}
             <Analytics />
             <SiteTracking />
-            <NewsletterPopup />
+            {!appScreen && <NewsletterPopup />}
             <DynamicFavicon />
             <SiteTexts />
-            <CookieConsent />
+            {!appScreen && <CookieConsent />}
             <FunnelDialog />
-            <FunnelFloat />
+            {!appScreen && <FunnelFloat />}
           </WishlistProvider>
         </CartProvider>
       </AuthProvider>
