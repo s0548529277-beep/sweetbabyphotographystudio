@@ -6,9 +6,9 @@ import { buildBrandedMailHtml, esc } from "@/lib/email-draft-design";
 
 export const QUOTE_CATEGORY = "הצעת מחיר";
 
-export type QuoteTemplateId = "mini_studio";
+export type QuoteTemplateId = "mini";
 export const QUOTE_TEMPLATES: Array<{ id: QuoteTemplateId; label: string; subject: string }> = [
-  { id: "mini_studio", label: "חבילת מיני — הצעה לצילום בסטודיו", subject: "הצעת מחיר לצילום בסטודיו · MICHAL SIBONI" },
+  { id: "mini", label: "חבילת מיני — הצעת מחיר", subject: "הצעת מחיר לצילום בסטודיו · MICHAL SIBONI" },
 ];
 
 export function isQuoteTemplateId(v: unknown): v is QuoteTemplateId {
@@ -19,7 +19,7 @@ const ILS = (n: number) => `${n.toLocaleString("en-US")}₪`;
 
 export function buildQuote(id: QuoteTemplateId, clientName: string): { subject: string; html: string } {
   const tpl = QUOTE_TEMPLATES.find((t) => t.id === id)!;
-  const pkg = findNewbornPackage("mini_studio");
+  const pkg = findNewbornPackage("mini");
   if (!pkg) throw new Error("החבילה לא נמצאה");
   const name = clientName.trim();
   const lines = [`${pkg.sets} סטים`, `${pkg.photosToEdit} תמונות מעובדות`, ...(pkg.hasCollage ? ["קולאז׳ מעוצב"] : [])];

@@ -30,7 +30,7 @@ const SIG_CREAM = "#f7f3ee";
 const STUDIO_LOGO_URL = `https://sweetbabyphoto.shop${sweetbabyLogo}`;
 
 export type DraftBrand = "photographer" | "studio" | "general";
-export type PriceList = "newborn" | "outdoor" | "both" | "studio" | "none";
+export type PriceList = "newborn" | "outdoor" | "both" | "none";
 
 type Theme = {
   pageBg: string;
@@ -154,14 +154,6 @@ const NEWBORN: { title: string; note: string; pkgs: Pkg[]; addons: string } = {
   addons: "תוספות: אלבום 280₪ · תמונה נוספת 40₪ · תוספת צילומי אחים 200₪",
 };
 
-/** Side offer for whoever asks for a photographer in the studio — a draft only, Michal sends it by hand. */
-const STUDIO_OFFER: { title: string; note: string; pkgs: Pkg[]; addons: string } = {
-  title: "הצעה לצילום בסטודיו",
-  note: "צילום ניו בורן בסטודיו הבוטיק של סוויט בייבי בבית שמש.",
-  pkgs: [{ name: "חבילת מיני לסטודיו", price: "750₪", lines: ["2 סטים", "8 תמונות מעובדות", "קולאז׳ מעוצב"], featured: true }],
-  addons: "מעוניינת בחבילה גדולה יותר? אשמח לשלוח גם את המחירון המלא.",
-};
-
 const OUTDOOR: { title: string; note: string; pkgs: Pkg[]; addons: string } = {
   title: "מחירון צילומי חוץ וסטודיו",
   note: "משפחה, חלאקה, גיל שנה וילדים — בסטודיו או בחוץ.",
@@ -185,7 +177,6 @@ const OUTDOOR: { title: string; note: string; pkgs: Pkg[]; addons: string } = {
 const PKG_LABELS: Record<string, string[]> = {
   newborn: ["MINI", "PAMPER", "LUXURY"],
   outdoor: ["MAGIC", "POPULAR", "DREAM"],
-  studio: ["STUDIO"],
 };
 
 /**
@@ -226,7 +217,7 @@ function priceBlock(list: typeof NEWBORN, t: Theme, kind: keyof typeof PKG_LABEL
   const phoneCss = `<style>@media only screen and (max-width:520px){.pc{width:100%!important;min-width:0!important}.pc img.cp{height:230px!important}}</style>`;
   const addons = list.addons.replace(/^תוספות:\s*/, "").split(" · ").join("  |  ");
   return `<div style="margin:26px 0 10px">${phoneCss}
-    <div dir="ltr" style="text-align:center;font-family:Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:5px;color:${t.soft}">${kind === "outdoor" ? "FAMILY &amp; KIDS" : kind === "studio" ? "STUDIO" : "NEWBORN"}</div>
+    <div dir="ltr" style="text-align:center;font-family:Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:5px;color:${t.soft}">${kind === "outdoor" ? "FAMILY &amp; KIDS" : "NEWBORN"}</div>
     <h3 style="color:${SIG_BROWN};font-size:24px;font-weight:normal;margin:6px 0 6px;text-align:center;font-family:${FONT}">${esc(list.title)}</h3>
     <p style="margin:0 auto 14px;max-width:520px;text-align:center;font-size:13px;line-height:1.7;color:${t.soft}">${esc(list.note)}</p>
     <div dir="rtl" style="text-align:center;font-size:0;line-height:0;-webkit-text-size-adjust:100%">${list.pkgs.map(card).join("")}</div>
@@ -399,8 +390,7 @@ export function buildDraftHtml(opts: {
   const lists =
     opts.brand === "photographer" && opts.priceList && opts.priceList !== "none"
       ? (opts.priceList === "newborn" || opts.priceList === "both" ? priceBlock(NEWBORN, t, "newborn", opts.cardPhotos?.newborn) : "") +
-        (opts.priceList === "outdoor" || opts.priceList === "both" ? priceBlock(OUTDOOR, t, "outdoor", opts.cardPhotos?.outdoor) : "") +
-        (opts.priceList === "studio" ? priceBlock(STUDIO_OFFER, t, "studio", opts.cardPhotos?.newborn?.slice(0, 1)) : "")
+        (opts.priceList === "outdoor" || opts.priceList === "both" ? priceBlock(OUTDOOR, t, "outdoor", opts.cardPhotos?.outdoor) : "")
       : "";
   const ctaButtons = [...(opts.cta ? [opts.cta] : []), ...(opts.extraCtas ?? [])];
   const cta = ctaButtons.length
@@ -457,8 +447,7 @@ export function buildDraftText(opts: {
   const lists =
     opts.brand === "photographer" && opts.priceList && opts.priceList !== "none"
       ? (opts.priceList === "newborn" || opts.priceList === "both" ? listText(NEWBORN) : "") +
-        (opts.priceList === "outdoor" || opts.priceList === "both" ? listText(OUTDOOR) : "") +
-        (opts.priceList === "studio" ? listText(STUDIO_OFFER) : "")
+        (opts.priceList === "outdoor" || opts.priceList === "both" ? listText(OUTDOOR) : "")
       : "";
   const body = opts.body.replace(/^##\s+/gm, "").replace(/^>\s?/gm, "").replace(/\*\*/g, "");
   return `${body}\n${lists}${[...(opts.cta ? [opts.cta] : []), ...(opts.extraCtas ?? [])].map((c) => `\n${c.label}: ${c.url}`).join("")}${opts.cta || opts.extraCtas?.length ? "\n" : ""}\n--\n${
