@@ -311,6 +311,20 @@ function fileSize(n: number) {
 }
 
 const URL_RE = /(https?:\/\/[^\s<>"')]+)/;
+/** A long URL becomes just its domain, so message text stays tidy. */
+function shortLink(u: string) {
+  try {
+    return `🔗 ${new URL(u).hostname.replace(/^www\./, "")}`;
+  } catch {
+    return "🔗 קישור";
+  }
+}
+
+/** Snippets in the list: links collapse to "קישור". */
+function cleanSnippet(t: string) {
+  return t.replace(/https?:\/\/[^\s<>"')]+/g, "🔗").replace(/\s{2,}/g, " ").trim();
+}
+
 function Linkified({ text }: { text: string }) {
   const parts = text.split(/(https?:\/\/[^\s<>"')]+)/g);
   return (
@@ -318,7 +332,7 @@ function Linkified({ text }: { text: string }) {
       {parts.map((p, i) =>
         URL_RE.test(p) ? (
           <a key={i} href={p} target="_blank" rel="noreferrer" dir="ltr" className="underline break-all" style={{ color: "#027eb5" }}>
-            {p.length > 60 ? `${p.slice(0, 57)}…` : p}
+            {shortLink(p)}
           </a>
         ) : (
           <span key={i}>{p}</span>
@@ -1518,7 +1532,6 @@ function MailChatAdmin() {
                     >
                       <span className="relative shrink-0">
                         <Avatar name={c.title} seed={c.key} group={c.isGroup} />
-                        <KindBadge kinds={c.kinds ?? []} />
                       </span>
                       <div className="min-w-0 flex-1 border-b py-1" style={{ borderColor: "#f0f2f5" }}>
                         <div className="flex items-center justify-between gap-2">
@@ -1526,7 +1539,6 @@ function MailChatAdmin() {
                             <span className="min-w-0 truncate text-[15px]" style={{ color: WA.ink, fontWeight: unread ? 700 : 500 }}>
                               {c.title}
                             </span>
-                            <KindTags kinds={c.kinds ?? []} max={1} />
                           </span>
                           <span className="shrink-0 text-[11px]" style={{ color: unread ? WA.unread : WA.muted, fontWeight: unread ? 600 : 400 }}>
                             {listTime(c.lastDate)}
@@ -1539,13 +1551,13 @@ function MailChatAdmin() {
                                 <span className="shrink-0 font-semibold" style={{ color: "#d97706" }}>
                                   ✍️ טיוטה מוכנה:
                                 </span>
-                                <span className="truncate">{c.snippet}</span>
+                                <span className="truncate">{cleanSnippet(c.snippet)}</span>
                               </>
                             ) : (
                               <>
                                 {c.lastFromMe && <CheckCheck className="h-3.5 w-3.5 shrink-0" style={{ color: "#53bdeb" }} />}
                                 {c.isGroup && !c.lastFromMe && <span className="shrink-0">{c.participants.length} משתתפים ·</span>}
-                                <span className="truncate">{c.snippet}</span>
+                                <span className="truncate">{cleanSnippet(c.snippet)}</span>
                               </>
                             )}
                           </span>
@@ -1710,7 +1722,6 @@ function MailChatAdmin() {
                 <button type="button" onClick={() => setShowCard((v) => !v)} className="relative min-w-0 flex-1 flex items-center gap-2.5 md:gap-3 text-right" aria-label="פרטי השיחה">
                   <span className="relative shrink-0">
                     <Avatar name={active.title} seed={active.key} group={active.isGroup} size={40} />
-                    <KindBadge kinds={active.kinds ?? []} />
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-semibold text-[15px] flex items-center gap-1.5 md:text-[#111b21]">

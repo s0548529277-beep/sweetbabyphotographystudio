@@ -207,7 +207,7 @@ function RootComponent() {
             <SiteTracking />
             {!appScreen && <NewsletterPopup />}
             <DynamicFavicon />
-            <SiteTexts />
+            {!appScreen && <SiteTexts />}
             {!appScreen && <CookieConsent />}
             <FunnelDialog />
             {!appScreen && <FunnelFloat />}
