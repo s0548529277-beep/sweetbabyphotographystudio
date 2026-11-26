@@ -65,7 +65,7 @@ const threadMetaCache = new Map<string, { historyId: string; meta: ThreadMeta | 
 /** The chat list: recent Gmail threads, grouped like WhatsApp (a person = one chat, several people = a group). */
 export const listMailChats = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ search: z.string().max(800).optional(), box: z.enum(["business", "personal"]).optional(), months: z.number().int().min(1).max(12).optional() }).parse(d ?? {}))
+  .inputValidator((d: unknown) => z.object({ search: z.string().max(800).optional(), box: z.enum(["business", "personal"]).optional(), months: z.number().int().min(1).max(12).optional(), limit: z.number().int().min(10).max(800).optional() }).parse(d ?? {}))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const accounts = await listGmailAccounts();
@@ -98,17 +98,19 @@ export const listMailChats = createServerFn({ method: "POST" })
     ]
       .filter(Boolean)
       .join(" ");
-    const cacheKey = `${search ? "search" : box}|${q}`;
+    const threadLimit = search ? 80 : Math.min(MAX_LIST_THREADS, data.limit ?? 40);
+    const cacheKey = `${search ? "search" : box}|${q}|${threadLimit}`;
     const hit = listCache.get(cacheKey);
     if (hit && Date.now() - hit.at < 8000) return hit.data;
 
     const primary = await resolveGmailAccount();
     const metas: ThreadMeta[] = [];
+    let hasMore = false;
     for (const acc of readAccounts) {
       // All thread ids in the range (pages of up to 500, at most MAX_LIST_THREADS).
       const refs: Array<{ id: string; historyId?: string }> = [];
       let pageToken = "";
-      const cap = search ? 80 : MAX_LIST_THREADS;
+      const cap = threadLimit;
       do {
         const list = await gmailApi<{ threads?: Array<{ id: string; historyId?: string }>; nextPageToken?: string }>(
           acc.connKey,
@@ -117,6 +119,7 @@ export const listMailChats = createServerFn({ method: "POST" })
         refs.push(...(list?.threads ?? []));
         pageToken = list?.nextPageToken ?? "";
       } while (pageToken && refs.length < cap);
+      if (pageToken) hasMore = true;
       // Only threads that are new or changed since the last load are fetched again (cached by historyId).
       const out = await mapLimit(refs, 6, async (r) => {
         const key = `${acc.email}|${r.id}`;
@@ -149,7 +152,7 @@ export const listMailChats = createServerFn({ method: "POST" })
     const unique = [...metas]
       .sort((a, b) => Number(b.account === primary?.email) - Number(a.account === primary?.email))
       .filter((m) => (seen.has(m.firstMessageId) ? false : (seen.add(m.firstMessageId), true)));
-    const result = { connected: true, conversations: buildConversations(unique), accounts: readAccounts.map((a) => a.email) };
+    const result = { connected: true, conversations: buildConversations(unique), accounts: readAccounts.map((a) => a.email), hasMore };
     listCache.set(cacheKey, { at: Date.now(), data: result });
     return result;
   });

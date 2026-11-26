@@ -497,6 +497,8 @@ function MailChatAdmin() {
   const [headerMenu, setHeaderMenu] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [box, setBox] = useState<"business" | "personal">("business");
+  // Owner 2026-11-26: 10 chats first, then 10 more each time she reaches the end of the list.
+  const [shown, setShown] = useState(10);
   // Owner, 2026-11-25: the list loads ONE month; opening a chat loads all of that person's older mail.
   const months = 1;
   const [viewMsg, setViewMsg] = useState<ChatMsg | null>(null);
@@ -543,8 +545,8 @@ function MailChatAdmin() {
   }, [serverSearch, contactsQ.data]);
 
   const chats = useQuery({
-    queryKey: ["mail-chats", searchQuery, box, months],
-    queryFn: () => fetchChats({ data: { ...(searchQuery ? { search: searchQuery } : {}), box, months } }),
+    queryKey: ["mail-chats", searchQuery, box, months, searchQuery ? 0 : shown],
+    queryFn: () => fetchChats({ data: { ...(searchQuery ? { search: searchQuery } : { limit: shown * 3 + 10 }), box, months } }),
     placeholderData: (prev) => prev,
     refetchInterval: serverSearch ? false : 20000,
     refetchOnWindowFocus: true,
@@ -1407,7 +1409,7 @@ function MailChatAdmin() {
                   <button
                     key={b.id}
                     type="button"
-                    onClick={() => setBox(b.id)}
+                    onClick={() => (setBox(b.id), setShown(10))}
                     className="h-9 rounded-full text-[13px] sm:text-sm font-semibold transition whitespace-nowrap"
                     style={box === b.id ? { background: "#fff", color: WA.greenDark, boxShadow: "0 1px 3px rgba(0,0,0,.12)" } : { color: WA.muted }}
                   >
@@ -1483,7 +1485,7 @@ function MailChatAdmin() {
               ) : visibleChats.length === 0 ? (
                 <EmptyNote text={q || filter !== "all" ? "אין שיחות שמתאימות" : "אין עדיין שיחות"} />
               ) : (
-                visibleChats.map((c) => {
+                (serverSearch ? visibleChats : visibleChats.slice(0, shown)).map((c) => {
                   const lab = labelStyle(prefs.labels[c.key]);
                   const pinned = prefs.pinned.includes(c.key);
                   const unread = unreadOverride[c.key] ?? c.unread;
@@ -1587,6 +1589,9 @@ function MailChatAdmin() {
                 }
                 onOpen={openContact}
               />
+            )}
+            {tab === "chats" && !serverSearch && (visibleChats.length > shown || chats.data?.hasMore) && (
+              <LoadMore loading={chats.isFetching} onMore={() => setShown((n) => n + 10)} />
             )}
           </div>
 
@@ -2315,16 +2320,6 @@ function MailChatAdmin() {
                       {quickLabel(r)}
                     </button>
                   ))}
-                  <button
-                    type="button"
-                    aria-label="עריכת התשובות המהירות"
-                    title="עריכת התשובות המהירות"
-                    onClick={() => setQuickEditOpen(true)}
-                    className="shrink-0 h-7 w-7 rounded-full bg-white flex items-center justify-center"
-                    style={{ color: WA.muted }}
-                  >
-                    <PenLine className="h-3.5 w-3.5" />
-                  </button>
                   {replyVia === "mail" && <button
                     type="button"
                     onClick={() => setDesigned((v) => !v)}
@@ -3432,6 +3427,25 @@ function QuickRepliesEditor({ initial, onSave, onReset }: { initial: string[]; o
           שמירה
         </Button>
       </div>
+    </div>
+  );
+}
+
+/** Reaching the end of the list (or pressing the button) loads 10 more chats. */
+function LoadMore({ onMore, loading }: { onMore: () => void; loading: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || loading) return;
+    const io = new IntersectionObserver((e) => e[0]?.isIntersecting && onMore(), { rootMargin: "80px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [onMore, loading]);
+  return (
+    <div ref={ref} className="p-3 flex justify-center">
+      <button type="button" onClick={onMore} disabled={loading} className="h-9 px-4 rounded-full bg-white text-sm shadow-sm flex items-center gap-2" style={{ color: WA.greenDark }}>
+        {loading && <Loader2 className="h-4 w-4 animate-spin" />} טעינת עוד 10
+      </button>
     </div>
   );
 }
