@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-26 (20:3x Israel) — Claude (chat, owner: "פרסם"):** PUBLISHED head 0470cbd (declutter of `/admin/mail-chat`: no text-edit button, no avatar badge / list tags, short links) via the Lovable connector (deploy a8b426c8-671a-487b-860e-f58e3da6c4f3, status pending when logged; Lovable `latest_commit_sha` matched before the deploy; not checked live).
+
 - **2026-11-26 (20:0x Israel) — Claude (chat, owner screenshot: "בלאגן, מלא סמלים וקישורים, בלי סמל בעיגול"):** CODE ONLY, no DB. `/admin/mail-chat`: (1) the floating "עריכת טקסטים" button (`SiteTexts`) is no longer rendered on this screen (`!appScreen` in `__root.tsx`), so it stops covering the bottom tabs. (2) The round order/lead badge on the avatar (`KindBadge`) is gone from list rows and the chat header (component left unused), and the small type tag is gone from list rows (stays in the chat header). (3) LINKS: in message bubbles a URL shows as "🔗 domain" instead of the long address; list snippets turn URLs into "🔗" (`shortLink`, `cleanSnippet`). NOT found / not changed: the three-dot widget on the right edge (not identified), and "leads in personal instead of business" — the box rule still puts every site mail (`kinds`) in עסק; need an example of a lead that sits in אישי. Checks: `npx tsc` (no errors in changed files). NOT clicked live.
 
 - **2026-11-26 (19:2x Israel) — Claude (chat, same task):** PUBLISHED head 9cb5093 (10 chats at a time + no quick-replies pen button; entry below) via the Lovable connector (deploy 500afb6d-6813-4edf-acfe-e30ed76ed804, status pending when logged; Lovable `latest_commit_sha` matched before the deploy; not checked live).
