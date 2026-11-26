@@ -1344,35 +1344,6 @@ function MailChatAdmin() {
       >
         {/* ── side panel ── */}
         <aside className={`relative min-h-0 min-w-0 flex-col border-l ${showThread ? "hidden md:flex" : "flex"}`} style={{ borderColor: WA.line }}>
-          {/* Phone: an app bar like WhatsApp (title + back to the admin + notifications). */}
-          <div className="md:hidden shrink-0 h-14 px-2 flex items-center gap-1 text-white" style={{ background: WA.greenDark }}>
-            <a href="/admin" aria-label="חזרה לניהול" className="h-10 w-10 rounded-full flex items-center justify-center active:bg-white/15">
-              <ArrowRight className="h-5 w-5" />
-            </a>
-            <div className="flex-1 min-w-0 text-lg font-semibold truncate">מיילים</div>
-            {notifyState === "default" && (
-              <button
-                type="button"
-                aria-label="הפעלת התראות"
-                onClick={() => Notification.requestPermission().then((p) => p === "granted" && toast.success("התראות הופעלו"))}
-                className="h-10 w-10 rounded-full flex items-center justify-center active:bg-white/15"
-              >
-                <Bell className="h-5 w-5" />
-              </button>
-            )}
-            {tab === "contacts" && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectMode((v) => !v);
-                  setSelected({});
-                }}
-                className="h-9 px-3 rounded-full text-sm font-medium flex items-center gap-1 active:bg-white/15"
-              >
-                <Users className="h-4 w-4" /> {selectMode ? "ביטול" : "קבוצה"}
-              </button>
-            )}
-          </div>
           <div className="shrink-0 px-3 pt-2 md:pt-3 pb-2 space-y-2 bg-white">
             <div className="hidden md:flex rounded-full p-1" style={{ background: WA.panel }}>
               {(
@@ -1397,7 +1368,11 @@ function MailChatAdmin() {
                 </button>
               ))}
             </div>
-            <div className="relative">
+            <div className="flex items-center gap-1.5">
+              <a href="/admin" aria-label="חזרה לניהול" title="חזרה לניהול" className="md:hidden h-9 w-9 shrink-0 rounded-full flex items-center justify-center" style={{ background: WA.panel, color: WA.greenDark }}>
+                <ArrowRight className="h-4 w-4" />
+              </a>
+              <div className="relative flex-1 min-w-0">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: WA.muted }} />
               <input
                 value={search}
@@ -1409,6 +1384,12 @@ function MailChatAdmin() {
               {search && (
                 <button type="button" aria-label="ניקוי חיפוש" onClick={() => setSearch("")} className="absolute left-2 top-1/2 -translate-y-1/2 p-1">
                   <X className="h-4 w-4" style={{ color: WA.muted }} />
+                </button>
+              )}
+              </div>
+              {tab === "contacts" && (
+                <button type="button" onClick={() => { setSelectMode((v) => !v); setSelected({}); }} className="md:hidden h-9 px-3 shrink-0 rounded-full text-sm font-medium flex items-center gap-1" style={{ background: WA.panel, color: WA.greenDark }}>
+                  <Users className="h-4 w-4" /> {selectMode ? "ביטול" : "קבוצה"}
                 </button>
               )}
             </div>
@@ -2128,9 +2109,9 @@ function MailChatAdmin() {
                               ⚠️ לא נשלחה: {m.waFailed}
                             </div>
                           )}
-                          <div className="flex items-center justify-end gap-1 mt-0.5 text-[11px] leading-none" style={{ color: WA.muted }}>
+                          <div className={`flex items-center justify-end gap-1 text-[11px] leading-none ${m.wa ? "mt-0.5" : "mt-2 pt-1.5 border-t border-[#eceff1]"}`} style={{ color: WA.muted }}>
                             {!m.pending && (
-                              <span className="flex items-center gap-0.5 ml-auto opacity-60 hover:opacity-100">
+                              <span className={`flex items-center gap-0.5 ml-auto ${m.wa ? "opacity-60 hover:opacity-100" : ""}`}>
                                 <button
                                   type="button"
                                   title="תשובה להודעה הזאת"
@@ -2144,10 +2125,12 @@ function MailChatAdmin() {
                                   className="p-1 rounded hover:bg-black/5"
                                 >
                                   <Reply className="h-3.5 w-3.5" />
+                                  {!m.wa && <span className="text-[12px] mr-1">השבה</span>}
                                 </button>
                                 {!m.wa && (
                                   <button type="button" title="העברה" aria-label="העברה" onClick={() => setForwardMsg(m)} className="p-1 rounded hover:bg-black/5">
                                     <Forward className="h-3.5 w-3.5" />
+                                    <span className="text-[12px] mr-1">העברה</span>
                                   </button>
                                 )}
                               </span>
@@ -2162,7 +2145,7 @@ function MailChatAdmin() {
                                 className="p-0.5 -my-0.5 rounded hover:bg-black/5"
                                 style={{ color: WA.muted }}
                               >
-                                <Eye className="h-3.5 w-3.5" />
+                                <Eye className="h-3.5 w-3.5 inline" /> <span className="text-[12px]">כך זה נראה</span>
                               </button>
                             )}
                             {m.fromMe && (m.pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCheck className="h-3.5 w-3.5" style={{ color: "#53bdeb" }} aria-label="נשלח" />)}

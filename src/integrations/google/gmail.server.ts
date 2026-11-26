@@ -7,7 +7,6 @@ import { applyStoredEmailDesign } from "@/lib/email-design.server";
 import { LEAD_SUBJECT_HEADER, encodeLeadSubject, isThreadedLeadSubject, leadThreadSubject, withLeadTitle } from "@/lib/lead-thread";
 import { SITE_MAIL_LABELS, classifySiteMail, type SiteMailKind } from "@/lib/mail-labels";
 
-const LEAD_THREADING_ENABLED = false;
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
 
 function toBase64Url(bytes: Uint8Array): string {
@@ -198,9 +197,9 @@ export async function sendGmailDetailed(message: GmailMessage): Promise<{ ok: bo
 
   let outgoing: GmailMessage = { ...message, html: await applyStoredEmailDesign(message.html, message.subject) };
   // Automatic lead notices to Michal go into one thread per day (the labels below still use the original subject).
-  // Owner, 2026-11-26: threading switched OFF — every lead notice is its own mail again.
-  if (LEAD_THREADING_ENABLED && message.to.trim().toLowerCase() === "m0548529277@gmail.com" && isThreadedLeadSubject(message.subject)) {
-    const subject = leadThreadSubject();
+  // Owner, 2026-11-26: only the "visitor stayed on the site" alerts are threaded — ONE thread per month; all other lead notices are separate mails.
+  if (message.to.trim().toLowerCase() === "m0548529277@gmail.com" && /(?:ליד חם|חזרה לאתר)\s*:/.test(message.subject)) {
+    const subject = `🔥 מבקרות באתר — ${new Date().toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem", month: "long", year: "numeric" })}`;
     outgoing = {
       ...outgoing,
       ...(await findLeadThread(connKey, subject)),
@@ -253,7 +252,7 @@ export async function sendGmailDetailed(message: GmailMessage): Promise<{ ok: bo
 /** Today's lead thread (and the Message-ID to reply to). Empty = none yet, or Gmail did not answer: a new thread starts. */
 async function findLeadThread(connKey: string, subject: string): Promise<{ threadId?: string; inReplyTo?: string }> {
   try {
-    const q = encodeURIComponent(`from:me newer_than:2d subject:"${subject.replace(/^\S+\s/, "")}"`);
+    const q = encodeURIComponent(`from:me newer_than:35d subject:"${subject.replace(/^\S+\s/, "")}"`);
     const list = await gmailApi<{ messages?: Array<{ id: string }> }>(connKey, `/users/me/messages?maxResults=5&q=${q}`);
     for (const { id } of list?.messages ?? []) {
       const m = await gmailApi<any>(connKey, `/users/me/messages/${id}?format=metadata&metadataHeaders=Subject&metadataHeaders=Message-ID&metadataHeaders=Message-Id`);
