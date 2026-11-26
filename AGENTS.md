@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-26 — Claude (chat, owner: "12 בכל המקומות הכל" after checking her sent mails: birth-basket mails say 12 photos):** CODE + TEXT, no DB. The pampering package (1,300) now has 12 processed photos everywhere: `newborn-packages.ts` (features + `photosToEdit` 10 -> 12), price card in `email-draft-design.ts`, and the `photographer-prices-packages` skill. Birth-basket text already said 12. NOTE: existing orders keep their saved values; the photographer-site repo (michal-sibony-s-creative-hub) is NOT updated yet and still shows 10 for the pampering package; `quiz.ts` there needs the same change. TO CHECK: contract / quote email of a new pampering order shows 12.
+
 - **2026-11-26 — Claude (chat, owner: "בסל מלא זה כולל אלבום 3 סטים — תדייק את הטיוטות"):** TEXT ONLY, no DB, NOT published, NOT pushed (no write access from that session — apply the patch). `KNOWLEDGE` in `email-drafts.server.ts`: birth-basket package changed from "4 סטים" to "3 סטים" (full basket = album + 3 sets); same fix in `.claude/skills/birth-basket/SKILL.md`. OPEN: 12 photos in the text vs 10 in the pampering package; the line "newborn gets one extra family set" may conflict with 3 sets; halaka card photo (`public/email/outdoor-card-*.jpg`) still to be replaced (owner to say which). UPDATE: owner confirmed a full basket credit covers the pampering package FULLY ("מלא") — replaced "כמעט במלואה / במלואה" with "במלואה" in KNOWLEDGE and the birth-basket skill (partial baskets still depend on the amount).
 
 - **2026-11-25 (22:4x Israel) — Claude (chat, same task):** PUBLISHED head 44ce7f5 (daily lead thread) via the Lovable connector (deploy 9e6319d8-d6ea-490b-8c5d-1d651d222377, status pending when logged; not checked live).
