@@ -50,12 +50,14 @@ export function GeneralClientDialog({
   open,
   onOpenChange,
   defaultDate,
+  prefill,
   sameDayTimes,
   onCreated,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   defaultDate?: string;
+  prefill?: { name?: string; phone?: string; email?: string } | null;
   sameDayTimes: (date: string | null | undefined) => string[];
   onCreated: (workflowId: string) => void;
 }) {
@@ -64,8 +66,8 @@ export function GeneralClientDialog({
   const createClient = useServerFn(createPhotoClient);
 
   useEffect(() => {
-    if (open) setForm({ ...EMPTY_FORM, sessionDate: defaultDate ?? "" });
-  }, [open, defaultDate]);
+    if (open) setForm({ ...EMPTY_FORM, sessionDate: defaultDate ?? "", name: prefill?.name ?? "", phone: prefill?.phone ?? "", email: prefill?.email ?? "" });
+  }, [open, defaultDate, prefill]);
 
   const set = <K extends keyof typeof EMPTY_FORM>(key: K, value: (typeof EMPTY_FORM)[K]) => setForm((f) => ({ ...f, [key]: value }));
 

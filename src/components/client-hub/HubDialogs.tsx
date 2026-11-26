@@ -50,18 +50,23 @@ const emptyOutdoor: OutdoorForm = {
   notes: "",
 };
 
+export type ClientPrefill = { name?: string; phone?: string; email?: string };
+
 /** New / edit outdoor client. Same save rules as the original outdoor page (package fields are copied only when the package choice changes; a rescheduled shoot resets the contract). */
 export function OutdoorOrderDialog({
   open,
   onOpenChange,
   initial,
   defaultDate,
+  prefill,
   sameDayTimes,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   initial: any | null;
   defaultDate?: string;
+  /** Contact details of a lead who turned out to be a customer ("כבר לקוחה" in the lead mails). */
+  prefill?: ClientPrefill | null;
   sameDayTimes: (date: string | null | undefined, excludeId?: string) => string[];
 }) {
   const qc = useQueryClient();
@@ -100,9 +105,9 @@ export function OutdoorOrderDialog({
         notes: initial.notes ?? "",
       });
     } else {
-      setForm({ ...emptyOutdoor, session_date: defaultDate ?? "" });
+      setForm({ ...emptyOutdoor, session_date: defaultDate ?? "", contact_name: prefill?.name ?? "", contact_phone: prefill?.phone ?? "", contact_email: prefill?.email ?? "" });
     }
-  }, [open, initial, defaultDate]);
+  }, [open, initial, defaultDate, prefill]);
 
   const set = (patch: Partial<OutdoorForm>) => setForm((f) => ({ ...f, ...patch }));
 
@@ -279,12 +284,14 @@ export function StudioOrderDialog({
   onOpenChange,
   initial,
   defaultDate,
+  prefill,
   sameDayTimes,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   initial: any | null;
   defaultDate?: string;
+  prefill?: ClientPrefill | null;
   sameDayTimes: (date: string | null | undefined, excludeId?: string) => string[];
 }) {
   const qc = useQueryClient();
@@ -310,9 +317,9 @@ export function StudioOrderDialog({
         notes: initial.notes ?? "",
       });
     } else {
-      setForm({ ...emptyStudio, session_date: defaultDate ?? "" });
+      setForm({ ...emptyStudio, session_date: defaultDate ?? "", contact_name: prefill?.name ?? "", contact_phone: prefill?.phone ?? "", contact_email: prefill?.email ?? "" });
     }
-  }, [open, initial, defaultDate]);
+  }, [open, initial, defaultDate, prefill]);
 
   const set = (patch: Partial<StudioForm>) => setForm((f) => ({ ...f, ...patch }));
 

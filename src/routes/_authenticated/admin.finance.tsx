@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { isBookingDone, isPackageDone, isPropsOrderDone } from "@/lib/income-done";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -591,7 +592,7 @@ function FinanceAdmin() {
       const [ordersRes, bookingsRes, expensesRes, manualRes, newbornRes, outdoorRes, studioCustomRes] = await Promise.all([
         supabase
           .from("orders")
-          .select("id,total,status,created_at,scheduled_date,contact_name,contact_phone,deposit_status,balance_method"),
+          .select("id,total,status,created_at,scheduled_date,session_date,return_date,return_at,contact_name,contact_phone,deposit_status,balance_method"),
         // "*" (not an explicit column list) because balance_paid is a
         // brand-new column — see the schema-fallback comment on
         // insertWithPersonalFallback above for why naming a not-yet-deployed
@@ -606,17 +607,17 @@ function FinanceAdmin() {
         // the combined "חובות לקוחות" view below.
         (supabase as any)
           .from("newborn_package_orders")
-          .select("id,contact_name,contact_phone,session_date,total_price,amount_paid,created_at"),
+          .select("id,contact_name,contact_phone,session_date,session_time,shoot_done_at,total_price,amount_paid,created_at"),
         // Outdoor shoots and custom-studio packages (added 2026-11-19 with the
         // unified clients page): same money columns as a newborn order, so
         // they count the same way (package total as income, total - paid as
         // an open balance). A failed read (table not there yet) is just empty.
         (supabase as any)
           .from("outdoor_package_orders")
-          .select("id,contact_name,contact_phone,session_date,total_price,amount_paid,created_at,package_name"),
+          .select("id,contact_name,contact_phone,session_date,session_time,shoot_done_at,total_price,amount_paid,created_at,package_name"),
         (supabase as any)
           .from("studio_custom_orders")
-          .select("id,contact_name,contact_phone,session_date,total_price,amount_paid,created_at,package_name"),
+          .select("id,contact_name,contact_phone,session_date,session_time,duration_hours,shoot_done_at,total_price,amount_paid,created_at,package_name"),
       ]);
       if (expensesRes.error) throw expensesRes.error;
       return {
@@ -686,8 +687,12 @@ function FinanceAdmin() {
   /** Every income/expense line, normalised so it can be filtered and grouped. */
   const allTxns = useMemo<Txn[]>(() => {
     const out: Txn[] = [];
+    // Income is counted only AFTER the work was done (owner, 2026-11-26): props returned, studio hours over, shoot taken.
+    // What is booked but not done yet is shown separately as "בדרך" (upcomingIncome below).
+    const now = new Date();
     for (const o of data.data?.orders ?? []) {
       if (o.status === "cancelled") continue;
+      if (!isPropsOrderDone(o as any, now)) continue;
       out.push({
         id: `o-${o.id}`,
         kind: "income",
@@ -710,6 +715,7 @@ function FinanceAdmin() {
       // they used to land here as "השכרת סטודיו". Counted from the newborn
       // orders themselves below instead (owner, 2026-10-26).
       if (b.package === "newborn") continue;
+      if (!isBookingDone(b as any, now)) continue;
       const isPhoto = b.package === "photography";
       out.push({
         id: `b-${b.id}`,
@@ -729,6 +735,7 @@ function FinanceAdmin() {
     // Newborn packages are Michal's own photography work → "צילומים בסטודיו"
     // (owner, 2026-10-26). Same source /admin's "כמה נכנס" block uses.
     for (const n of (data.data?.newborn ?? []) as any[]) {
+      if (!isPackageDone(n, now)) continue;
       out.push({
         id: `n-${n.id}`,
         kind: "income",
@@ -748,6 +755,7 @@ function FinanceAdmin() {
     // (package "newborn", used only to block the studio hours) is skipped
     // above, so nothing is counted twice.
     for (const o of (data.data?.outdoor ?? []) as any[]) {
+      if (!isPackageDone(o, now)) continue;
       out.push({
         id: `x-${o.id}`,
         kind: "income",
@@ -763,6 +771,7 @@ function FinanceAdmin() {
       });
     }
     for (const c of (data.data?.studioCustom ?? []) as any[]) {
+      if (!isPackageDone(c, now)) continue;
       out.push({
         id: `c-${c.id}`,
         kind: "income",
@@ -825,6 +834,23 @@ function FinanceAdmin() {
       });
     }
     return out.sort((a, b) => b.date.localeCompare(a.date));
+  }, [data.data]);
+
+  /** Booked but not done yet (not counted as income): the amount and the number of jobs. */
+  const upcomingIncome = useMemo(() => {
+    const now = new Date();
+    let amount = 0;
+    let count = 0;
+    const add = (v: unknown) => {
+      amount += Number(v ?? 0);
+      count += 1;
+    };
+    for (const o of data.data?.orders ?? []) if (o.status !== "cancelled" && !isPropsOrderDone(o as any, now)) add(o.total);
+    for (const b of data.data?.bookings ?? []) if (b.status !== "cancelled" && b.package !== "newborn" && !isBookingDone(b as any, now)) add(b.price);
+    for (const list of [data.data?.newborn, data.data?.outdoor, data.data?.studioCustom] as any[][]) {
+      for (const p of list ?? []) if (!isPackageDone(p, now)) add(p.total_price);
+    }
+    return { amount, count };
   }, [data.data]);
 
   const txns = useMemo(() => {
@@ -1282,7 +1308,7 @@ function FinanceAdmin() {
             value: totals.income,
             icon: TrendingUp,
             cls: "text-forest",
-            sub: null as string | null,
+            sub: (upcomingIncome.count > 0 ? `רק מה שבוצע. בדרך: ₪${Math.round(upcomingIncome.amount).toLocaleString("he-IL")} (${upcomingIncome.count})` : "רק מה שבוצע") as string | null,
             kind: "income" as const,
           },
           {

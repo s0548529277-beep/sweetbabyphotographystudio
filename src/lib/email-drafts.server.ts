@@ -362,6 +362,9 @@ async function removeEmptyTemplateDrafts(
 
 async function upsertLead(db: any, p: Record<string, unknown>) {
   try {
+    // The owner and her husband try the site's forms and quizzes — no lead row for them.
+    const { isOwnerTestContact } = await import("@/lib/lead-exclusions");
+    if (isOwnerTestContact({ name: p.name as string, email: p.email as string, phone: p.phone as string })) return;
     let existing: any = null;
     if (p.gmail_thread_id) {
       const { data } = await db.from("inquiry_leads").select("*").eq("gmail_thread_id", p.gmail_thread_id).maybeSingle();

@@ -6,9 +6,15 @@
 //   - mail + manual: inquiry_leads (the e-mail assistant files e-mail inquiries there) that nobody answered
 //   - funnel leads marked hot, booking drafts abandoned mid-way, studio bookings whose deposit is unpaid
 // People are merged by phone/e-mail so one person = one line with all her reasons. Every person with contact details gets one-click
-// stage buttons (בשיחה / נענתה / מעקב / סגרה / לא רלוונטי): the digest links her to her `inquiry_leads` row or opens one. Sent at most once per
+// two buttons (לא רלוונטי / שנה סטטוס): the digest links her to her `inquiry_leads` row or opens one. Sent at most once per
 // hour, only inside the sending window (Israel time, not Shabbat), and only when something is waiting.
+// Only leads of the last LEAD_WINDOW_DAYS days are listed (owner request 2026-11-26), the owner's own and her husband's test
+// contacts are never listed, and under every person there are two buttons — "לא רלוונטי" and "שנה סטטוס" (remind tomorrow /
+// already a customer / in talk / answered) — instead of the WhatsApp link.
 // Called by the external scheduler through /api/send-booking-reminders.
+
+import { isOwnerTestContact } from "@/lib/lead-exclusions";
+import { BUTTON_ROW_NOTE, leadStatusButtonsHtml } from "@/lib/lead-status.server";
 
 const DIGEST_TO = "m0548529277@gmail.com";
 const STATE_KEY = "follow_up_digest_state";
@@ -17,6 +23,8 @@ const SITE = "https://sweetbabyphoto.shop";
 // Written into the notes of an `inquiry_leads` row that the digest itself opened for a person who came from another source
 // (phone message, photography request, funnel, abandoned booking, unpaid deposit) so the stage buttons work for her too.
 const DIGEST_NOTE = "נוצר מהסיכום השעתי";
+/** How far back a lead may be and still be listed (the owner asked for "the last week or two"). */
+export const LEAD_WINDOW_DAYS = 10;
 
 type Reason = { id?: string; weight: number; icon: string; text: string; at: string | null; remind?: boolean; leadId?: string };
 type Person = { key: string; name: string; phone: string; email: string; reasons: Reason[]; sourceKind: string; firstAt: string | null };
@@ -60,12 +68,6 @@ function phoneKey(p: unknown): string {
   const d = digits(p);
   return d.length >= 9 ? d.slice(-9) : "";
 }
-function waLink(p: string): string {
-  const d = digits(p);
-  const intl = d.startsWith("972") ? d : d.startsWith("0") ? `972${d.slice(1)}` : d;
-  return `https://wa.me/${intl}`;
-}
-
 type DigestState = { at: string | null; ids: string[]; threadId: string | null; msgId: string | null; day: string | null };
 
 async function loadState(db: any): Promise<DigestState> {
@@ -81,6 +83,8 @@ async function loadState(db: any): Promise<DigestState> {
 export async function collectFollowUps(db: any): Promise<Person[]> {
   const people = new Map<string, Person>();
   const add = (p: { id: string; name?: string | null; phone?: string | null; email?: string | null }, r: Reason, kind = "other") => {
+    // The owner and her husband try the site's forms and quizzes — never a lead.
+    if (isOwnerTestContact(p)) return;
     const pk = phoneKey(p.phone);
     const ek = String(p.email ?? "").trim().toLowerCase();
     // Merge by phone first, then e-mail; otherwise the source row is its own person.
@@ -104,6 +108,7 @@ export async function collectFollowUps(db: any): Promise<Person[]> {
   const now = Date.now();
   const iso = (ms: number) => new Date(ms).toISOString();
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
+  const leadSince = iso(now - LEAD_WINDOW_DAYS * 86_400_000);
   const safe = async (fn: () => Promise<void>, name: string) => {
     try {
       await fn();
@@ -145,21 +150,28 @@ export async function collectFollowUps(db: any): Promise<Person[]> {
   await safe(async () => {
     const { data } = await db
       .from("inquiry_leads")
-      .select("id, name, email, phone, topic, message, status, first_contact_at, last_contact_at, follow_up_sent_at, source, notes")
+      .select("id, name, email, phone, topic, message, status, first_contact_at, last_contact_at, follow_up_sent_at, source, notes, remind_at")
       .in("status", ["new", "replied", "follow_up"])
-      .gte("first_contact_at", iso(now - 14 * 86_400_000))
-      .limit(200);
+      // 60 days back only so a lead she parked with "תזכירי לי" can still come back; every other stage is cut to the window below.
+      .gte("first_contact_at", iso(now - 60 * 86_400_000))
+      .limit(400);
     for (const l of data ?? []) {
       const first = Date.parse(l.first_contact_at);
       const last = Date.parse(l.last_contact_at ?? l.first_contact_at);
-      // A row the digest opened itself is still "new" while the original reason (phone message, funnel…) is listed: do not list it twice.
-      if (l.status === "new" && String(l.notes ?? "").includes(DIGEST_NOTE)) continue;
+      const remindAt = l.status === "follow_up" && l.remind_at ? Date.parse(l.remind_at) : NaN;
+      // Outside the window only a lead she asked to be reminded about (and whose time came) is still listed.
+      if (first < now - LEAD_WINDOW_DAYS * 86_400_000 && !(isFinite(remindAt) && remindAt <= now)) continue;
+      // A row the digest (or a lead mail) opened itself is still "new" while the original reason (phone message, funnel…) is listed: do not list it twice.
+      if (l.status === "new" && (String(l.notes ?? "").includes(DIGEST_NOTE) || String(l.notes ?? "").includes(BUTTON_ROW_NOTE))) continue;
       const src = esc(l.source === "email" || l.source === "gmail" ? "מייל" : l.source === "phone" ? "טלפון" : l.source || "פנייה");
       if (l.status === "new" && /🔥/.test(String(l.message ?? ""))) {
         // Hot lead from the photographer site's quiz (filed by the e-mail assistant): listed at once, then daily while unanswered.
         add({ id: l.id, name: l.name, phone: l.phone, email: l.email }, { leadId: l.id, weight: 78, remind: true, icon: "🔥", text: `ליד חם משאלון אתר הצלמת: "${clip(String(l.message).replace(/^🔥 ליד חם · /, ""), 120)}"`, at: l.first_contact_at });
       } else if (l.status === "new" && now - first > 60 * 60_000) {
         add({ id: l.id, name: l.name, phone: l.phone, email: l.email }, { leadId: l.id, weight: 70, icon: "✉️", text: `פנייה (${src}) שעוד לא נענתה: "${clip(l.message, 140)}"`, at: l.first_contact_at });
+      } else if (l.status === "follow_up" && isFinite(remindAt)) {
+        // She asked "תזכירי לי": silent until the time comes, then listed once.
+        if (remindAt <= now) add({ id: l.id, name: l.name, phone: l.phone, email: l.email }, { leadId: l.id, weight: 85, icon: "⏰", text: `ביקשת תזכורת לחזור אליה: "${clip(l.message, 120)}"`, at: l.remind_at });
       } else if (l.status === "follow_up") {
         add({ id: l.id, name: l.name, phone: l.phone, email: l.email }, { leadId: l.id, weight: 60, icon: "🔁", text: `סומנה "לחזור אליה": "${clip(l.message, 120)}"`, at: l.last_contact_at ?? l.first_contact_at });
       } else if (l.status === "replied" && !l.follow_up_sent_at && now - last > 3 * 86_400_000) {
@@ -203,6 +215,7 @@ export async function collectFollowUps(db: any): Promise<Person[]> {
       .eq("deposit_status", "pending")
       .neq("status", "cancelled")
       .gte("session_date", today)
+      .gte("created_at", leadSince)
       .lte("created_at", iso(now - 60 * 60_000))
       .limit(60);
     for (const b of data ?? []) {
@@ -240,7 +253,7 @@ export async function collectFollowUps(db: any): Promise<Person[]> {
   await safe(async () => {
     const { data } = await db
       .from("inquiry_leads")
-      .select("id, email, phone, status, updated_at")
+      .select("id, email, phone, status, updated_at, remind_at")
       .gte("created_at", iso(now - 120 * 86_400_000))
       .order("updated_at", { ascending: false })
       .limit(1000);
@@ -259,7 +272,9 @@ export async function collectFollowUps(db: any): Promise<Person[]> {
       p.reasons = p.reasons.filter((r) => {
         if (r.leadId) return true;
         r.leadId = lead.id;
-        if (!SETTLED_STAGES.has(lead.status) || r.icon === "💳" || r.icon === "✏️") return true;
+        // A lead parked with "תזכירי לי" counts as dealt with until (and after) its reminder: older reasons are not listed again.
+        const settled = SETTLED_STAGES.has(lead.status) || (lead.status === "follow_up" && !!lead.remind_at);
+        if (!settled || r.icon === "💳" || r.icon === "✏️") return true;
         return !(r.at && isFinite(stageSet) && stageSet > Date.parse(r.at));
       });
     }
@@ -314,23 +329,9 @@ async function ensureLeadRows(db: any, people: Person[]): Promise<void> {
   }
 }
 
-const BUTTON_STAGES: { key: string; label: string; bg: string; fg: string }[] = [
-  { key: "in_talk", label: "בשיחה", bg: "#ede9fe", fg: "#5b21b6" },
-  { key: "replied", label: "נענתה", bg: "#e0f2fe", fg: "#075985" },
-  { key: "follow_up", label: "מעקב", bg: "#fef3c7", fg: "#92400e" },
-  { key: "booked", label: "סגרה ✓", bg: "#d1fae5", fg: "#065f46" },
-  { key: "not_relevant", label: "לא רלוונטי", bg: "#e7e5e4", fg: "#57534e" },
-];
-
 async function stageButtons(leadIds: string[]): Promise<Record<string, string>> {
-  const { leadStatusUrl } = await import("@/lib/lead-status.server");
   const out: Record<string, string> = {};
-  for (const id of leadIds) {
-    const links = await Promise.all(
-      BUTTON_STAGES.map(async (b) => `<a href="${await leadStatusUrl(id, b.key)}" style="display:inline-block;margin:3px 0 3px 6px;padding:5px 12px;border-radius:999px;background:${b.bg};color:${b.fg};font-size:13px;font-weight:700;text-decoration:none">${b.label}</a>`),
-    );
-    out[id] = `<div style="margin-top:8px;font-size:12px;color:#6b8a63">שלב הליד:<br>${links.join("")}</div>`;
-  }
+  for (const id of leadIds) out[id] = await leadStatusButtonsHtml(id);
   return out;
 }
 
@@ -341,7 +342,7 @@ async function renderHtml(people: Person[], stillWaiting: number): Promise<strin
     .map((p) => {
       const isNew = false;
       const contact = [
-        p.phone ? `<a href="tel:${esc(digits(p.phone))}" style="color:#2d3d2b;font-weight:700" dir="ltr">${esc(p.phone)}</a> · <a href="${waLink(p.phone)}" style="color:#1f7a4d">וואטסאפ</a>` : "",
+        p.phone ? `<a href="tel:${esc(digits(p.phone))}" style="color:#2d3d2b;font-weight:700" dir="ltr">${esc(p.phone)}</a>` : "",
         p.email ? `<a href="mailto:${esc(p.email)}" style="color:#2d3d2b" dir="ltr">${esc(p.email)}</a>` : "",
       ]
         .filter(Boolean)
@@ -362,7 +363,7 @@ async function renderHtml(people: Person[], stillWaiting: number): Promise<strin
     <h2 style="margin-bottom:4px">📋 למי לחזור עכשיו</h2>
     <p style="margin:0 0 8px;color:#6b8a63">${people.length} ${people.length === 1 ? "חדשה" : "חדשות"} מאז הסיכום הקודם. מסודר לפי דחיפות.${stillWaiting ? ` עוד ${stillWaiting} מהסיכומים הקודמים עדיין מחכות — לא חוזר עליהן כאן.` : ""}</p>
     ${rows}
-    <p style="color:#6b8a63;font-size:12px;margin-top:18px">פניות וטלפונים: <a href="${SITE}/admin/leads">${SITE}/admin/leads</a> · התראות: <a href="${SITE}/admin/notifications">${SITE}/admin/notifications</a><br>כשסימנת הודעה כנקראה או שינית סטטוס לליד (גם בכפתורי השלב כאן) — היא יוצאת מהרשימה. הסיכום נשלח פעם בשעה, ורק עם מה שנוסף מאז הסיכום הקודם.</p>
+    <p style="color:#6b8a63;font-size:12px;margin-top:18px">פניות וטלפונים: <a href="${SITE}/admin/leads">${SITE}/admin/leads</a> · התראות: <a href="${SITE}/admin/notifications">${SITE}/admin/notifications</a><br>כשסימנת הודעה כנקראה או שינית סטטוס לליד (בכפתורים "לא רלוונטי" / "שנה סטטוס" כאן) — היא יוצאת מהרשימה. מוצגים רק לידים מ-${LEAD_WINDOW_DAYS} הימים האחרונים. הסיכום נשלח פעם בשעה, ורק עם מה שנוסף מאז הסיכום הקודם.</p>
   </div>`;
 }
 

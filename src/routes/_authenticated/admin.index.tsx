@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { isBookingDone, isPackageDone, isPropsOrderDone } from "@/lib/income-done";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -39,9 +40,11 @@ function Overview() {
         supabase.from("items").select("id", { count: "exact", head: true }),
         supabase.from("orders").select("id", { count: "exact", head: true }),
         supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "pending"),
-        supabase.from("orders").select("total"),
+        supabase.from("orders").select("total,status,scheduled_date,session_date,return_date,return_at"),
       ]);
-      const total = (revenue.data ?? []).reduce((s, o: any) => s + Number(o.total), 0);
+      // Only props orders that were actually done (returned / return date passed) and not cancelled count as income.
+      const now = new Date();
+      const total = (revenue.data ?? []).reduce((s, o: any) => s + (o.status !== "cancelled" && isPropsOrderDone(o, now) ? Number(o.total ?? 0) : 0), 0);
       return {
         items: items.count ?? 0,
         orders: orders.count ?? 0,
@@ -309,6 +312,7 @@ function Overview() {
 // (non-cancelled orders/bookings, by session date), plus newborn-package
 // orders (total_price, by session date) and manual income. The big total is
 // everything; the three small ones are the business lines she asked to see.
+// Since 2026-11-26 only work that was already DONE is counted (see src/lib/income-done.ts).
 type Period = "month" | "year" | "all";
 
 const ils = (n: number) => `₪${Math.round(n).toLocaleString("he-IL")}`;
@@ -330,14 +334,14 @@ function IncomeSummary() {
     queryKey: ["admin-income-summary"],
     queryFn: async () => {
       const [ordersRes, bookingsRes, newbornRes, manualRes, outdoorRes, studioCustomRes] = await Promise.all([
-        supabase.from("orders").select("total,status,created_at,scheduled_date"),
-        supabase.from("bookings").select("price,status,package,session_date,created_at"),
-        (supabase as any).from("newborn_package_orders").select("total_price,session_date,created_at"),
+        supabase.from("orders").select("total,status,created_at,scheduled_date,session_date,return_date,return_at"),
+        supabase.from("bookings").select("price,status,package,session_date,end_time,created_at"),
+        (supabase as any).from("newborn_package_orders").select("total_price,session_date,session_time,shoot_done_at,created_at"),
         supabase.from("manual_income").select("amount,received_on"),
         // Outdoor shoots + custom-studio packages share the clients page with
         // newborn orders, so they count in the same "חבילות צילום" tile.
-        (supabase as any).from("outdoor_package_orders").select("total_price,session_date,created_at"),
-        (supabase as any).from("studio_custom_orders").select("total_price,session_date,created_at"),
+        (supabase as any).from("outdoor_package_orders").select("total_price,session_date,session_time,shoot_done_at,created_at"),
+        (supabase as any).from("studio_custom_orders").select("total_price,session_date,session_time,duration_hours,shoot_done_at,created_at"),
       ]);
       return {
         orders: (ordersRes.data ?? []) as any[],
@@ -356,13 +360,15 @@ function IncomeSummary() {
     studio = 0,
     newborn = 0,
     other = 0;
+  // Only work that was DONE counts (owner, 2026-11-26): props returned, studio hours over, shoot taken.
+  const now = new Date();
   if (d) {
     for (const o of d.orders) {
-      if (o.status === "cancelled") continue;
+      if (o.status === "cancelled" || !isPropsOrderDone(o, now)) continue;
       if (inPeriod(o.scheduled_date ?? o.created_at, period)) props += Number(o.total ?? 0);
     }
     for (const b of d.bookings) {
-      if (b.status === "cancelled") continue;
+      if (b.status === "cancelled" || !isBookingDone(b, now)) continue;
       if (!inPeriod(b.session_date ?? b.created_at, period)) continue;
       // package "newborn" rows are the studio-blocking mirror of a
       // newborn_package_orders row (syncNewbornBookingBlock, price =
@@ -372,6 +378,7 @@ function IncomeSummary() {
       else studio += Number(b.price ?? 0);
     }
     for (const n of [...d.newborn, ...d.outdoor, ...d.studioCustom]) {
+      if (!isPackageDone(n, now)) continue;
       if (inPeriod(n.session_date ?? n.created_at, period)) newborn += Number(n.total_price ?? 0);
     }
     for (const m of d.manual) {

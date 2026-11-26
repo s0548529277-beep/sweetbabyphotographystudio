@@ -10,6 +10,7 @@
  * Everything in this file is best-effort: it must never break the booking / order it is attached to.
  */
 import { getRequestHeader } from "@tanstack/react-start/server";
+import { isOwnerTestContact } from "@/lib/lead-exclusions";
 import { rowMatches, parseIgnoreList, inIgnoreList, last9, lowerEmail } from "@/lib/closed-customer";
 import { buildJourney, emailKey, phoneKey, type VisitorJourney } from "@/lib/visitor-journey";
 
@@ -17,7 +18,8 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const OWNER_EMAIL = "m0548529277@gmail.com";
 /** Details of the owner herself (testing her own site) never trigger an alert. */
 const OWNER_KEYS = new Set(["m0548529277@gmail.com"]);
-const OWNER_PHONES = new Set(["534181051"]); // 053-418-1051, the business phone
+const OWNER_PHONES = new Set(["534181051", "548529277", "583270184"]); // 053-418-1051 (business), 054-852-9277 and 058-327-0184 (owner and husband)
+const why0 = (reason: string, hot: string[]) => (reason === "returned" ? "חזרה לאתר אחרי שהשאירה פרטים" : hot.join(" · ")).slice(0, 200);
 const ALERT_KEY = "visitor_alerts";
 const ALERT_PER_VISITOR_MS = 24 * 3600 * 1000;
 const ALERT_MAX_PER_DAY = 10;
@@ -214,6 +216,7 @@ export async function maybeSendAlert(db: any, visitorId: string, reason: "identi
   const email = identities.find((i) => i.email)?.email ?? null;
   const name = identities.find((i) => i.name)?.name ?? null;
   if ((email && OWNER_KEYS.has(email)) || (phone && OWNER_PHONES.has(phone))) return false;
+  if (isOwnerTestContact({ name, email, phone: phone ? `0${phone}` : null })) return false;
 
   try {
     if (await isClosedCustomer(db, phone, email)) return false;
@@ -230,7 +233,10 @@ export async function maybeSendAlert(db: any, visitorId: string, reason: "identi
   if (state.day.count >= ALERT_MAX_PER_DAY) return false;
 
   const { sendGmail } = await import("@/integrations/google/gmail.server");
-  const wa = phone ? `https://wa.me/972${phone}` : null;
+  // Instead of the WhatsApp link: "לא רלוונטי" / "שנה סטטוס" (needs a lead row; mailed without buttons when none can be opened).
+  const { findOrCreateLeadId, leadStatusButtonsHtml } = await import("@/lib/lead-status.server");
+  const leadId = await findOrCreateLeadId(db, { name, phone: phone ? `0${phone}` : null, email, source: "other", message: why0(reason, journey.hotReasons) });
+  const statusButtons = leadId ? await leadStatusButtonsHtml(leadId) : "";
   const pages = journey.pages
     .slice(0, 6)
     .map((p) => `<li>${esc(p.label)} · ${p.views} צפיות${p.seconds ? ` · ${p.seconds} שנ׳` : ""}</li>`)
@@ -239,10 +245,11 @@ export async function maybeSendAlert(db: any, visitorId: string, reason: "identi
   const html = `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:520px;line-height:1.6;color:#3b2f2a">
     <h2 style="margin:0 0 8px">🔥 ${esc(name || "מבקרת")} ${reason === "returned" ? "חזרה לאתר" : "ליד חם"}</h2>
     <p style="margin:0 0 12px">${esc(why)}</p>
-    <p style="margin:0 0 12px">${phone ? `טלפון: <b dir="ltr">0${esc(phone)}</b>` : ""}${wa ? ` · <a href="${wa}">וואטסאפ</a>` : ""}${email ? `<br>מייל: <span dir="ltr">${esc(email)}</span>` : ""}</p>
+    <p style="margin:0 0 12px">${phone ? `טלפון: <b dir="ltr">0${esc(phone)}</b>` : ""}${email ? `<br>מייל: <span dir="ltr">${esc(email)}</span>` : ""}</p>
     <p style="margin:0 0 4px"><b>${journey.visits}</b> ביקורים · ${journey.totalSeconds} שניות פעילות באתר</p>
     <ul style="margin:6px 0 14px;padding-right:20px">${pages}</ul>
-    <p style="margin:0;font-size:13px;color:#8a7466">פירוט מלא: <a href="${SITE}/admin/leads">${SITE}/admin/leads</a></p>
+    ${statusButtons}
+    <p style="margin:10px 0 0;font-size:13px;color:#8a7466">פירוט מלא: <a href="${SITE}/admin/leads">${SITE}/admin/leads</a></p>
   </div>`;
   const sent = await sendGmail({
     to: OWNER_EMAIL,

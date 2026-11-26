@@ -117,7 +117,7 @@ import {
   StudioHubCard,
   generalServiceLabel,
 } from "@/components/client-hub/HubViews";
-import { OutdoorOrderDialog, StudioOrderDialog } from "@/components/client-hub/HubDialogs";
+import { OutdoorOrderDialog, StudioOrderDialog, type ClientPrefill } from "@/components/client-hub/HubDialogs";
 import { GeneralClientDialog } from "@/components/client-hub/GeneralClientDialog";
 import { OutdoorPackageTypesSection } from "@/components/client-hub/OutdoorPackageTypes";
 
@@ -126,9 +126,14 @@ const FILTER_KEYS = ["all", "newborn", "outdoor", "studio", "general"] as const;
 export const Route = createFileRoute("/_authenticated/admin/newborn-packages")({
   // ?kind=… opens the page already filtered (the old /admin/photo-clients and /admin/outdoor-packages
   // links redirect here). "send" (the old "send photos only" tab) is now part of the general kind.
-  validateSearch: (search: Record<string, unknown>): { kind?: HubFilter } => {
+  // ?fromLead=<inquiry_leads id> (the "כבר לקוחה — פתיחת כרטיס לקוח" button of the lead mails and /admin/leads) opens the
+  // new-client flow with that lead's name / phone / e-mail already filled in.
+  validateSearch: (search: Record<string, unknown>): { kind?: HubFilter; fromLead?: string } => {
     const k = search.kind === "send" ? "general" : search.kind;
-    return FILTER_KEYS.includes(k as any) && k !== "all" ? { kind: k as HubFilter } : {};
+    const out: { kind?: HubFilter; fromLead?: string } = {};
+    if (FILTER_KEYS.includes(k as any) && k !== "all") out.kind = k as HubFilter;
+    if (typeof search.fromLead === "string" && /^[0-9a-f-]{36}$/i.test(search.fromLead)) out.fromLead = search.fromLead;
+    return out;
   },
   component: NewbornPackagesAdmin,
 });
@@ -257,15 +262,17 @@ function NewbornPackagesAdmin() {
   }, [searchKind]);
   const [chooserOpen, setChooserOpen] = useState(false);
   const [chooserDate, setChooserDate] = useState<string | undefined>(undefined);
-  const [outdoorDialog, setOutdoorDialog] = useState<{ open: boolean; initial: any | null; date?: string }>({
+  const [outdoorDialog, setOutdoorDialog] = useState<{ open: boolean; initial: any | null; date?: string; prefill?: ClientPrefill | null }>({
     open: false,
     initial: null,
   });
-  const [studioDialog, setStudioDialog] = useState<{ open: boolean; initial: any | null; date?: string }>({
+  const [studioDialog, setStudioDialog] = useState<{ open: boolean; initial: any | null; date?: string; prefill?: ClientPrefill | null }>({
     open: false,
     initial: null,
   });
-  const [generalDialog, setGeneralDialog] = useState<{ open: boolean; date?: string }>({ open: false });
+  const [generalDialog, setGeneralDialog] = useState<{ open: boolean; date?: string; prefill?: ClientPrefill | null }>({ open: false });
+  // A lead that turned out to be a customer: her details wait here until the kind of card is picked.
+  const [leadPrefill, setLeadPrefill] = useState<ClientPrefill | null>(null);
   const [busyHubStep, setBusyHubStep] = useState<string | null>(null);
   const [sendingContractId, setSendingContractId] = useState<string | null>(null);
   const runToggleOutdoorStep = useServerFn(toggleOutdoorOrderStep);
@@ -545,19 +552,48 @@ function NewbornPackagesAdmin() {
     startCreate(kindFilter, date);
   };
 
-  const startCreate = (kind: HubKind, date?: string) => {
+  const startCreate = (kind: HubKind, date?: string, prefill?: ClientPrefill | null) => {
     setChooserOpen(false);
     if (kind === "newborn") {
-      setCreateForm({ ...emptyCreateForm, session_date: date ?? "" });
+      setCreateForm({ ...emptyCreateForm, session_date: date ?? "", contact_name: prefill?.name ?? "", contact_phone: prefill?.phone ?? "", contact_email: prefill?.email ?? "" });
       setCreateOpen(true);
     } else if (kind === "outdoor") {
-      setOutdoorDialog({ open: true, initial: null, date });
+      setOutdoorDialog({ open: true, initial: null, date, prefill });
     } else if (kind === "general") {
-      setGeneralDialog({ open: true, date });
+      setGeneralDialog({ open: true, date, prefill });
     } else {
-      setStudioDialog({ open: true, initial: null, date });
+      setStudioDialog({ open: true, initial: null, date, prefill });
     }
   };
+
+  // "כבר לקוחה" from a lead mail: load the lead, fill her details in and open the new-client flow.
+  const fromLead = Route.useSearch().fromLead;
+  useEffect(() => {
+    if (!fromLead) return;
+    let alive = true;
+    (async () => {
+      const { data } = await (supabase as any).from("inquiry_leads").select("name, phone, email").eq("id", fromLead).maybeSingle();
+      if (!alive) return;
+      nav({ to: "/admin/newborn-packages", search: (prev: any) => ({ kind: prev.kind }), replace: true } as never);
+      if (!data) {
+        toast.error("הליד לא נמצא");
+        return;
+      }
+      const prefill: ClientPrefill = { name: data.name ?? "", phone: data.phone ?? "", email: data.email ?? "" };
+      toast.success(`פותחת כרטיס לקוח: ${prefill.name || prefill.phone || prefill.email}`);
+      if (kindFilter === "all") {
+        setLeadPrefill(prefill);
+        setChooserDate(undefined);
+        setChooserOpen(true);
+      } else {
+        startCreate(kindFilter, undefined, prefill);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromLead]);
 
   const openEditHub = (r: HubRow) => {
     if (r.kind === "newborn") openEdit(r.raw as OrderRow);
@@ -1000,20 +1036,28 @@ function NewbornPackagesAdmin() {
 
       <HubKindChooser
         open={chooserOpen}
-        onOpenChange={setChooserOpen}
-        onPick={(k) => startCreate(k, chooserDate)}
+        onOpenChange={(o) => {
+          setChooserOpen(o);
+          if (!o) setLeadPrefill(null);
+        }}
+        onPick={(k) => {
+          startCreate(k, chooserDate, leadPrefill);
+          setLeadPrefill(null);
+        }}
       />
       <OutdoorOrderDialog
         open={outdoorDialog.open}
         onOpenChange={(o) => setOutdoorDialog((d) => ({ ...d, open: o }))}
         initial={outdoorDialog.initial}
         defaultDate={outdoorDialog.date}
+        prefill={outdoorDialog.prefill}
         sameDayTimes={sameDayTimes}
       />
       <GeneralClientDialog
         open={generalDialog.open}
         onOpenChange={(o) => setGeneralDialog((d) => ({ ...d, open: o }))}
         defaultDate={generalDialog.date}
+        prefill={generalDialog.prefill}
         sameDayTimes={sameDayTimes}
         onCreated={(workflowId) => {
           qc.invalidateQueries({ queryKey: ["photo-clients"] });
@@ -1025,6 +1069,7 @@ function NewbornPackagesAdmin() {
         onOpenChange={(o) => setStudioDialog((d) => ({ ...d, open: o }))}
         initial={studioDialog.initial}
         defaultDate={studioDialog.date}
+        prefill={studioDialog.prefill}
         sameDayTimes={sameDayTimes}
       />
 

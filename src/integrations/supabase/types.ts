@@ -1111,6 +1111,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           referred_to_shulamit: boolean
+          remind_at: string | null
           source: string
           status: string
           topic: string
@@ -1129,6 +1130,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           referred_to_shulamit?: boolean
+          remind_at?: string | null
           source?: string
           status?: string
           topic?: string
@@ -1147,6 +1149,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           referred_to_shulamit?: boolean
+          remind_at?: string | null
           source?: string
           status?: string
           topic?: string

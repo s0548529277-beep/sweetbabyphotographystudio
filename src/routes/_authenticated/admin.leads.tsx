@@ -1,5 +1,5 @@
 import { isImmediateOrder } from "@/lib/orderSummary";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +13,7 @@ import { VisitorJourneyPanel } from "@/components/VisitorJourneyPanel";
 import type { VisitorJourney } from "@/lib/visitor-journey";
 import { Target, Plus, MessageCircle, Mail, Phone } from "lucide-react";
 import { LEAD_STAGES, LEAD_STATUS_KEYS, OPEN_LEAD_STAGES } from "@/lib/lead-status";
+import { isOwnerTestContact } from "@/lib/lead-exclusions";
 
 // Inquiry leads (table public.inquiry_leads — NOT public.leads, which is the
 // older newsletter sign-up table). Filled automatically every hour by the
@@ -33,6 +34,7 @@ type Lead = {
   message: string | null;
   status: string;
   referred_to_shulamit: boolean;
+  remind_at: string | null;
   first_contact_at: string;
   last_contact_at: string | null;
   follow_up_sent_at: string | null;
@@ -239,7 +241,8 @@ function LeadsAdmin() {
     qc.invalidateQueries({ queryKey: ["admin-booking-drafts"] });
   };
 
-  const all = leads.data ?? [];
+  // The owner and her husband try the site's forms — their rows are not leads (owner request 2026-11-26).
+  const all = useMemo(() => (leads.data ?? []).filter((l) => !isOwnerTestContact(l)), [leads.data]);
 
   // Browsing history (visits, pages, time) of people who left a phone / email, matched through visitor_identities.
   const fetchJourneys = useServerFn(getVisitorJourneys);
@@ -311,7 +314,8 @@ function LeadsAdmin() {
   const update = async (id: string, patch: Partial<Lead>) => {
     const { error } = await supabase
       .from("inquiry_leads" as never)
-      .update({ ...patch, updated_at: new Date().toISOString() } as never)
+      // remind_at ("תזכירי לי מחר") only lives while the lead is parked; any other stage clears it.
+      .update({ ...patch, ...(patch.status && patch.status !== "follow_up" ? { remind_at: null } : {}), updated_at: new Date().toISOString() } as never)
       .eq("id", id);
     if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["admin-inquiry-leads"] });
@@ -668,6 +672,12 @@ function LeadsAdmin() {
                       <option key={k} value={k}>{v.label}</option>
                     ))}
                   </select>
+                  {l.status === "follow_up" && l.remind_at && (
+                    <div className="text-[11px] text-amber-700 mt-1">⏰ תזכורת: {new Date(l.remind_at).toLocaleString("he-IL", { timeZone: "Asia/Jerusalem", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
+                  )}
+                  {l.status === "booked" && (
+                    <Link to="/admin/newborn-packages" search={{ fromLead: l.id } as never} className="text-[11px] text-emerald-700 underline mt-1 inline-block">פתיחת כרטיס לקוח</Link>
+                  )}
                   {l.status === "new" && l.notes?.includes(DRAFT_READY_NOTE) && (
                     <div className="text-[11px] text-amber-700 mt-1">טיוטה מחכה בג׳ימייל – עוד לא נשלחה</div>
                   )}
