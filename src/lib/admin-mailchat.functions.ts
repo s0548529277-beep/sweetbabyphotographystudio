@@ -62,6 +62,40 @@ const MAX_LIST_THREADS = 800;
 /** Thread list entries already read, keyed "account|threadId" -> the processed meta at that historyId. */
 const threadMetaCache = new Map<string, { historyId: string; meta: ThreadMeta | null }>();
 
+
+const SIDE_STUDIO_RE = /סטודיו|השכר|אביזר|שעת צילום|להשכיר|קוד כניסה|חדר משפחה|הזמנה מס|תפוס|פנוי/;
+const SIDE_PHOTO_RE = /ניו ?בורן|תינוק|חלאקה|סמאש|סל לידה|צילומי חוץ|משפחה|בוק|אלבום|חבילת|מיכל סיבוני|צלמת|גלריה/;
+const sideCache = new Map<string, "studio" | "photo">();
+
+/** A customer who wrote straight to the personal mailbox: studio or photography? Keywords first, then one small AI call; default photography. */
+async function sortBusinessSide(m: ThreadMeta): Promise<"studio" | "photo" | null> {
+  const key = `${m.threadId}|${m.lastDate}`;
+  const hit = sideCache.get(key);
+  if (hit) return hit;
+  const text = `${m.subject} ${m.snippet}`;
+  const st = SIDE_STUDIO_RE.test(text);
+  const ph = SIDE_PHOTO_RE.test(text);
+  let side: "studio" | "photo" | null = st && !ph ? "studio" : ph && !st ? "photo" : null;
+  if (!side) {
+    try {
+      const { generateTextResilient } = await import("@/lib/ai-gateway.server");
+      const { text: out } = await generateTextResilient(
+        {
+          system:
+            "את מסווגת מייל של לקוחה לעסק של מיכל סיבוני. 'studio' = השכרת סטודיו הצילום Sweetbaby או השכרת אביזרים. 'photo' = צילום של מיכל עצמה (ניו בורן, חלאקה, משפחה, סל לידה, אלבום). אם לא ברור — photo. ענה במילה אחת בלבד: studio או photo.",
+          prompt: `נושא: ${m.subject}\nתקציר: ${m.snippet}`,
+        },
+        8000,
+      );
+      side = /studio/i.test(out) ? "studio" : "photo";
+    } catch {
+      side = "photo";
+    }
+  }
+  sideCache.set(key, side);
+  return side;
+}
+
 /** The chat list: recent Gmail threads, grouped like WhatsApp (a person = one chat, several people = a group). */
 export const listMailChats = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -131,25 +165,22 @@ export const listMailChats = createServerFn({ method: "POST" })
         if (r.historyId) threadMetaCache.set(key, { historyId: r.historyId, meta });
         return meta;
       });
-      // Groups box = only groups; updates = only automated mail; עסק / אישי = only mail from real people.
+      // Owner, 2026-11-26: no personal mail. Every real customer mail lands in לקוחות סטודיו or לקוחות צילום; the site mails are
+      // decided by their kind, the studio mailbox is the studio, and the rest (customers who write straight to the personal
+      // mailbox) is sorted by a bot (`sortBusinessSide`).
       const studioBox = isOldStudioMailbox(acc.email);
       for (const m of out) {
-        if (!m) continue;
-        // Owner, 2026-11-26: no personal mail at all. Two boxes of business mail only: לקוחות סטודיו / לקוחות צילום.
+        if (!m || m.listId) continue;
         const site = !!m.kinds?.length;
+        if (m.automated && !site) continue;
+        if (search) {
+          metas.push(m);
+          continue;
+        }
         const studioKind = !!m.kinds?.some((k) => k === "studio" || k === "props");
-        const isStudioMail = studioKind || (!site && (studioBox || m.channel === "studio"));
-        const isPhotoMail = site && !studioKind;
-        const keep = m.listId
-          ? false
-          : search
-            ? site || (!m.automated && (studioBox || m.channel === "studio"))
-            : m.automated && !site
-              ? false
-              : box === "studio"
-                ? isStudioMail
-                : isPhotoMail;
-        if (keep) metas.push(m);
+        let side: "studio" | "photo" | null = site ? (studioKind ? "studio" : "photo") : studioBox || m.channel === "studio" ? "studio" : null;
+        if (!side) side = (await sortBusinessSide(m)) ?? "photo";
+        if (side === box) metas.push(m);
       }
     }
     // The studio mailbox forwards to the personal one, so the same mail can exist in both: keep one copy (the primary account's).

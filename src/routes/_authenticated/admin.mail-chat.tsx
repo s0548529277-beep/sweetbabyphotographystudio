@@ -133,7 +133,7 @@ function Avatar({ name, seed, group, size = 44 }: { name: string; seed: string; 
       style={{ width: size, height: size, background: AVATAR_BG[i], color: NAME_COLORS[i], fontSize: size * 0.36 }}
       aria-hidden
     >
-      {group ? <Users style={{ width: size * 0.48, height: size * 0.48 }} /> : initials(name)}
+      {initials(name)}
     </div>
   );
 }
@@ -440,11 +440,8 @@ type Filter = "all" | "unread" | "waiting" | "reminders" | "drafts" | "site" | "
 const BASE_FILTERS: Array<{ id: Filter; label: string }> = [
   { id: "all", label: "הכל" },
   { id: "unread", label: "לא נקראו" },
-  { id: "waiting", label: "ממתינות לתשובה" },
-  { id: "drafts", label: "✍️ טיוטות" },
-  { id: "site", label: "📅 הזמנות ולידים" },
-  { id: "groups", label: "קבוצות" },
-  { id: "whatsapp", label: "🟢 וואטסאפ" },
+  { id: "waiting", label: "ממתינות לי" },
+  { id: "drafts", label: "טיוטות" },
 ];
 
 const EMPTY_PREFS: MailChatPrefs = { pinned: [], labels: {}, archived: {}, quickReplies: [], reminders: {}, notes: {}, waSeen: {} };
@@ -710,6 +707,8 @@ function MailChatAdmin() {
       const archived = isArchived(c);
       if (filter === "archived") return archived;
       if (archived && !serverSearch) return false;
+      // Owner, 2026-11-26: chats I answered more than 14 days ago are hidden from the main list (search still finds them).
+      if (!serverSearch && filter === "all" && c.lastFromMe && now - c.lastDate > 14 * 86_400_000) return false;
       if (filter === "unread" && !c.unread) return false;
       if (filter === "waiting" && c.lastFromMe) return false;
       if (filter === "reminders" && !(prefs.reminders?.[c.key] && prefs.reminders[c.key] <= now)) return false;
@@ -1530,14 +1529,12 @@ function MailChatAdmin() {
                             {c.hasDraft ? (
                               <>
                                 <span className="shrink-0 font-semibold" style={{ color: "#d97706" }}>
-                                  ✍️ טיוטה מוכנה:
+                                  טיוטה מוכנה:
                                 </span>
                                 <span className="truncate">{cleanSnippet(c.snippet)}</span>
                               </>
                             ) : (
                               <>
-                                {c.lastFromMe && <CheckCheck className="h-3.5 w-3.5 shrink-0" style={{ color: "#53bdeb" }} />}
-                                {c.isGroup && !c.lastFromMe && <span className="shrink-0">{c.participants.length} משתתפים ·</span>}
                                 <span className="truncate">{cleanSnippet(c.snippet)}</span>
                               </>
                             )}
@@ -1548,13 +1545,6 @@ function MailChatAdmin() {
                                 {lab.id}
                               </span>
                             )}
-                            {prefs.reminders?.[c.key] && prefs.reminders[c.key] <= now && <AlarmClock className="h-3.5 w-3.5" style={{ color: "#d97706" }} aria-label="לחזור" />}
-                            {prefs.notes?.[c.key] && (
-                              <span title={prefs.notes[c.key]}>
-                                <StickyNote className="h-3.5 w-3.5" style={{ color: "#a16207" }} aria-label="פתק פנימי" />
-                              </span>
-                            )}
-                            {pinned && <Pin className="h-3.5 w-3.5 rotate-45" style={{ color: WA.muted }} aria-label="מוצמד" />}
                             {unread && <span className="h-2.5 w-2.5 rounded-full" style={{ background: WA.unread }} aria-label="לא נקרא" />}
                           </span>
                         </div>

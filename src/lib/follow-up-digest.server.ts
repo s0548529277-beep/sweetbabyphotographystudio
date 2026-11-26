@@ -405,6 +405,15 @@ export async function runHourlyFollowUpDigest(opts: { force?: boolean } = {}): P
     const old = p.reasons.filter((r) => r.at && Date.parse(r.at) <= cutoff);
     if (old.length) people.push({ ...p, reasons: old });
   }
+  // Owner, 2026-11-26: nobody who already paid / ordered is listed.
+  try {
+    const { isClosedCustomer } = await import("@/lib/visitor-tracking.server");
+    for (let i = people.length - 1; i >= 0; i--) {
+      if (await isClosedCustomer(db, people[i].phone || null, people[i].email || null)) people.splice(i, 1);
+    }
+  } catch (e) {
+    console.error("[SWEETBABY] digest closed-customer check failed", e);
+  }
   const drafts = await readyDrafts();
   if (people.length === 0 && drafts.length === 0) {
     await db.from("app_settings").upsert({ key: STATE_KEY, value: JSON.stringify({ ...state, at: new Date().toISOString() }), updated_at: new Date().toISOString() });

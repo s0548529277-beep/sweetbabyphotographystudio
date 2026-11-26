@@ -183,7 +183,7 @@ async function loadAlertState(db: any): Promise<AlertState> {
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 /** True when this phone/email already closed (booking/order/package) or is in app_settings.visitor_alert_ignore. */
-async function isClosedCustomer(db: any, phone: string | null, email: string | null): Promise<boolean> {
+export async function isClosedCustomer(db: any, phone: string | null, email: string | null): Promise<boolean> {
   const p = last9(phone), e = lowerEmail(email);
   if (!p && !e) return false;
   const { data: ign } = await db.from("app_settings").select("value").eq("key", "visitor_alert_ignore").maybeSingle();
