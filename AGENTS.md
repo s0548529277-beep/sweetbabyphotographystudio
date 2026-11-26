@@ -18,6 +18,8 @@
 
 ## Work log
 
+- **2026-11-26 (23:5x Israel) — Claude (chat, same task):** PUBLISHED head 550a456 via the Lovable connector (deploy 6307eb7d-3a90-4083-8221-f25020203c92, status pending when logged; Lovable `latest_commit_sha` matched before the deploy; not checked live).
+
 - **2026-11-26 (23:5x Israel) — Claude (chat, owner: "תעשה הכל ופרסם" + "שיענה מי ששואל אם מגיעה לבית לקוחה: בתוספת תשלום, הכי מומלץ בסטודיו"):** CODE + TEXT, no DB. (1) `email-drafts.server.ts`: draft assistant never makes a draft addressed to the studio's own address (new-thread and follow-up paths, `isOwnStudioAddress`). (2) NEW test `draft-knowledge-consistency.test.ts`: price-card / KNOWLEDGE numbers must equal `newborn-packages.ts` (pampering 1,300 / 12 photos / 3 sets, mini, dreamy; basket text 3 sets 12 photos). (3) Home visits: KNOWLEDGE line + site-bot prompt (`ai.functions.ts`) + skill `photographer-prices-packages`: she comes to the client's home for an extra fee (travel add-on 200 in newborn), strongly recommends the studio (higher level); answered only when asked; the bot gives no amount. Gmail drafts NOT touched. Checks: `bun test` on the new test (3 pass), tsc no errors in changed files. Publish status in the entry above this one if present.
 
 - **2026-11-26 (20:3x Israel) — Claude (chat, owner: "פרסם"):** PUBLISHED head 0470cbd (declutter of `/admin/mail-chat`: no text-edit button, no avatar badge / list tags, short links) via the Lovable connector (deploy a8b426c8-671a-487b-860e-f58e3da6c4f3, status pending when logged; Lovable `latest_commit_sha` matched before the deploy; not checked live).
