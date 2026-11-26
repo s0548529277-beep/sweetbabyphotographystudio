@@ -510,7 +510,7 @@ function MailChatAdmin() {
   const [remindOpen, setRemindOpen] = useState(false);
   const [headerMenu, setHeaderMenu] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
-  const [box, setBox] = useState<"business" | "personal">("business");
+  const [box, setBox] = useState<"studio" | "photo">("studio");
   // Owner 2026-11-26: 10 chats first, then 10 more each time she reaches the end of the list.
   const [shown, setShown] = useState(10);
   // Owner, 2026-11-25: the list loads ONE month; opening a chat loads all of that person's older mail.
@@ -619,7 +619,7 @@ function MailChatAdmin() {
     for (const c of allContacts) if (c.phone && tail9(c.phone).length === 9 && !byTail.has(tail9(c.phone))) byTail.set(tail9(c.phone), c);
     const list: Conv[] = mailConversations.map((c) => ({ ...c }));
     const byKey = new Map(list.map((c) => [c.key, c]));
-    for (const r of (box === "business" ? ((waConvsQ.data ?? []) as any[]) : [])) {
+    for (const r of (box === "studio" ? ((waConvsQ.data ?? []) as any[]) : [])) {
       const contact = byTail.get(tail9(String(r.phone ?? "")));
       const at = Date.parse(r.created_at) || 0;
       const snippet = `🟢 ${r.body || (r.media_type ? `[${r.media_filename || r.media_type}]` : "")}`;
@@ -1416,8 +1416,8 @@ function MailChatAdmin() {
               <div className="grid grid-cols-2 gap-1 rounded-full p-1" style={{ background: WA.panel }}>
                 {(
                   [
-                    { id: "business", label: "💼 עסק" },
-                    { id: "personal", label: "🏠 אישי" },
+                    { id: "studio", label: "🏠 לקוחות סטודיו" },
+                    { id: "photo", label: "📸 לקוחות צילום" },
                   ] as const
                 ).map((b) => (
                   <button
@@ -2031,16 +2031,16 @@ function MailChatAdmin() {
                       )}
                       <div className={`flex ${m.fromMe ? "justify-start" : "justify-end"} ${firstOfRun ? "mt-2" : "mt-0.5"}`}>
                         <div
-                          className="relative min-w-0 max-w-[85%] md:max-w-[70%] rounded-lg px-2.5 pt-1.5 pb-1 shadow-[0_1px_0.5px_rgba(11,20,26,.13)]"
+                          className={`relative min-w-0 ${m.wa ? "max-w-[85%] md:max-w-[70%] rounded-lg px-2.5 pt-1.5 pb-1 shadow-[0_1px_0.5px_rgba(11,20,26,.13)]" : "w-full max-w-[96%] md:max-w-[88%] rounded-xl px-3.5 pt-2.5 pb-1.5 border border-[#e1e4e8] shadow-sm"}`}
                           style={{
-                            background: m.fromMe ? WA.bubbleOut : WA.bubbleIn,
+                            background: m.wa ? (m.fromMe ? WA.bubbleOut : WA.bubbleIn) : m.fromMe ? "#f1f8ee" : "#ffffff",
                             color: WA.ink,
                             opacity: m.pending ? 0.75 : 1,
-                            borderTopRightRadius: firstOfRun && m.fromMe ? 0 : undefined,
-                            borderTopLeftRadius: firstOfRun && !m.fromMe ? 0 : undefined,
+                            borderTopRightRadius: m.wa && firstOfRun && m.fromMe ? 0 : undefined,
+                            borderTopLeftRadius: m.wa && firstOfRun && !m.fromMe ? 0 : undefined,
                           }}
                         >
-                          {firstOfRun && (
+                          {m.wa && firstOfRun && (
                             <span
                               aria-hidden
                               className="absolute top-0 w-2 h-3"
@@ -2054,6 +2054,16 @@ function MailChatAdmin() {
                           {active.isGroup && !m.fromMe && firstOfRun && (
                             <div className="text-[13px] font-semibold mb-0.5" style={{ color: nameColor }}>
                               {m.fromName}
+                            </div>
+                          )}
+                          {!m.wa && (
+                            <div className="mb-2 pb-1.5 border-b border-[#eceff1]" dir="auto">
+                              <div className="flex items-baseline justify-between gap-2">
+                                <span className="text-[13px] font-semibold truncate" style={{ color: m.fromMe ? WA.greenDark : (active.isGroup ? nameColor : WA.ink) }}>
+                                  {m.fromMe ? "אני" : m.fromName}
+                                </span>
+                              </div>
+                              {m.subject && <div className="text-[14px] font-bold mt-0.5 [overflow-wrap:anywhere]">{m.subject}</div>}
                             </div>
                           )}
                           {m.wa && firstOfRun && (
@@ -2099,7 +2109,7 @@ function MailChatAdmin() {
                             </div>
                           )}
                           {m.text && (
-                            <div className="text-[14.2px] leading-[1.45] whitespace-pre-wrap break-words [overflow-wrap:anywhere]" dir="auto">
+                            <div className={`${m.wa ? "text-[14.2px] leading-[1.45]" : "text-[14.5px] leading-[1.65]"} whitespace-pre-wrap break-words [overflow-wrap:anywhere]`} dir="auto">
                               <Linkified text={long ? `${m.text.slice(0, 1400)}…` : m.text} />
                               {m.text.length > 1400 && (
                                 <button

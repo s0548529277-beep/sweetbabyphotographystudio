@@ -7,6 +7,7 @@ import { applyStoredEmailDesign } from "@/lib/email-design.server";
 import { LEAD_SUBJECT_HEADER, encodeLeadSubject, isThreadedLeadSubject, leadThreadSubject, withLeadTitle } from "@/lib/lead-thread";
 import { SITE_MAIL_LABELS, classifySiteMail, type SiteMailKind } from "@/lib/mail-labels";
 
+const LEAD_THREADING_ENABLED = false;
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
 
 function toBase64Url(bytes: Uint8Array): string {
@@ -197,7 +198,8 @@ export async function sendGmailDetailed(message: GmailMessage): Promise<{ ok: bo
 
   let outgoing: GmailMessage = { ...message, html: await applyStoredEmailDesign(message.html, message.subject) };
   // Automatic lead notices to Michal go into one thread per day (the labels below still use the original subject).
-  if (message.to.trim().toLowerCase() === "m0548529277@gmail.com" && isThreadedLeadSubject(message.subject)) {
+  // Owner, 2026-11-26: threading switched OFF — every lead notice is its own mail again.
+  if (LEAD_THREADING_ENABLED && message.to.trim().toLowerCase() === "m0548529277@gmail.com" && isThreadedLeadSubject(message.subject)) {
     const subject = leadThreadSubject();
     outgoing = {
       ...outgoing,

@@ -65,7 +65,7 @@ const threadMetaCache = new Map<string, { historyId: string; meta: ThreadMeta | 
 /** The chat list: recent Gmail threads, grouped like WhatsApp (a person = one chat, several people = a group). */
 export const listMailChats = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ search: z.string().max(800).optional(), box: z.enum(["business", "personal"]).optional(), months: z.number().int().min(1).max(12).optional(), limit: z.number().int().min(10).max(800).optional() }).parse(d ?? {}))
+  .inputValidator((d: unknown) => z.object({ search: z.string().max(800).optional(), box: z.enum(["studio", "photo"]).optional(), months: z.number().int().min(1).max(12).optional(), limit: z.number().int().min(10).max(800).optional() }).parse(d ?? {}))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const accounts = await listGmailAccounts();
@@ -79,13 +79,13 @@ export const listMailChats = createServerFn({ method: "POST" })
     const search = data.search?.trim() ?? "";
     // Two boxes (owner, 2026-11-25): עסק = the Sweet Baby studio mailbox, אישי = everything in the personal mailbox.
     // Never shown in either: promotions, social, forums, spam, trash and groups / mailing lists (they break focus).
-    const box = data.box ?? "business";
+    const box = data.box ?? "studio";
     // קבוצות (owner, 2026-11-25): every kind of group / mailing list from BOTH mailboxes, one continuous chat per group.
     // עדכונים (owner, 2026-11-25): everything NOT from a private person (shops, newsletters, Google, systems), both mailboxes.
     // עסק reads both mailboxes too: every site order / lead / studio mail lands there even when it sits in the personal one.
     // Owner, 2026-11-25: groups and newsletters / automated mail are removed COMPLETELY (no box for them any more).
     // A search looks in BOTH mailboxes at once, whatever box is open.
-    const readAccounts = box === "personal" && !search ? accounts.filter((a) => !isOldStudioMailbox(a.email)) : accounts;
+    const readAccounts = accounts;
     const noGroups = ["-list:googlegroups.com", "-cc:googlegroups.com", "-to:googlegroups.com"];
     const boxQ = ["-category:promotions", "-category:social", "-category:forums", ...noGroups];
     const q = [
@@ -135,15 +135,20 @@ export const listMailChats = createServerFn({ method: "POST" })
       const studioBox = isOldStudioMailbox(acc.email);
       for (const m of out) {
         if (!m) continue;
-        const site = !!m.kinds?.length; // order / lead / any site mail -> always business
-        const studioSide = site || m.channel === "studio";
+        // Owner, 2026-11-26: no personal mail at all. Two boxes of business mail only: לקוחות סטודיו / לקוחות צילום.
+        const site = !!m.kinds?.length;
+        const studioKind = !!m.kinds?.some((k) => k === "studio" || k === "props");
+        const isStudioMail = studioKind || (!site && (studioBox || m.channel === "studio"));
+        const isPhotoMail = site && !studioKind;
         const keep = m.listId
           ? false
           : search
-            ? site || !m.automated
-            : box === "business"
-              ? site || (!m.automated && (studioBox || studioSide))
-              : !m.automated && !studioSide;
+            ? site || (!m.automated && (studioBox || m.channel === "studio"))
+            : m.automated && !site
+              ? false
+              : box === "studio"
+                ? isStudioMail
+                : isPhotoMail;
         if (keep) metas.push(m);
       }
     }

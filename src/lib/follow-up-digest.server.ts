@@ -18,7 +18,9 @@ import { BUTTON_ROW_NOTE, leadStatusButtonsHtml } from "@/lib/lead-status.server
 
 const DIGEST_TO = "m0548529277@gmail.com";
 const STATE_KEY = "follow_up_digest_state";
-const MIN_GAP_MS = 55 * 60_000;
+// Owner, 2026-11-26: ONE summary a day at 20:00 (no hourly mail): people waiting 3+ days for an answer + ready drafts.
+const MIN_GAP_MS = 20 * 3600_000;
+const WAITING_DAYS = 3;
 const SITE = "https://sweetbabyphoto.shop";
 // Written into the notes of an `inquiry_leads` row that the digest itself opened for a person who came from another source
 // (phone message, photography request, funnel, abandoned booking, unpaid deposit) so the stage buttons work for her too.
@@ -48,7 +50,7 @@ function windowOpen(): boolean {
   const { weekday, hour, minute } = israelNow();
   if (weekday === "Sat" || (weekday === "Fri" && hour >= 14)) return false;
   const mins = hour * 60 + minute;
-  return mins >= 7 * 60 + 30 && mins <= 23 * 60 + 30;
+  return mins >= 20 * 60 && mins <= 23 * 60 + 30;
 }
 
 function ageHe(iso: string | null): string {
@@ -361,10 +363,30 @@ async function renderHtml(people: Person[], stillWaiting: number): Promise<strin
     .join("");
   return `<div dir="rtl" style="font-family:Arial,sans-serif;color:#2d3d2b;max-width:620px;margin:auto;line-height:1.6">
     <h2 style="margin-bottom:4px">📋 למי לחזור עכשיו</h2>
-    <p style="margin:0 0 8px;color:#6b8a63">${people.length} ${people.length === 1 ? "חדשה" : "חדשות"} מאז הסיכום הקודם. מסודר לפי דחיפות.${stillWaiting ? ` עוד ${stillWaiting} מהסיכומים הקודמים עדיין מחכות — לא חוזר עליהן כאן.` : ""}</p>
+    <p style="margin:0 0 8px;color:#6b8a63">${people.length} ממתינות לתשובה כבר ${WAITING_DAYS} ימים או יותר. מסודר לפי דחיפות.</p>
     ${rows}
-    <p style="color:#6b8a63;font-size:12px;margin-top:18px">פניות וטלפונים: <a href="${SITE}/admin/leads">${SITE}/admin/leads</a> · התראות: <a href="${SITE}/admin/notifications">${SITE}/admin/notifications</a><br>כשסימנת הודעה כנקראה או שינית סטטוס לליד (בכפתורים "לא רלוונטי" / "שנה סטטוס" כאן) — היא יוצאת מהרשימה. מוצגים רק לידים מ-${LEAD_WINDOW_DAYS} הימים האחרונים. הסיכום נשלח פעם בשעה, ורק עם מה שנוסף מאז הסיכום הקודם.</p>
+    <p style="color:#6b8a63;font-size:12px;margin-top:18px">פניות וטלפונים: <a href="${SITE}/admin/leads">${SITE}/admin/leads</a> · התראות: <a href="${SITE}/admin/notifications">${SITE}/admin/notifications</a><br>כשסימנת הודעה כנקראה או שינית סטטוס לליד (בכפתורים "לא רלוונטי" / "שנה סטטוס" כאן) — היא יוצאת מהרשימה. מוצגים רק לידים מ-${LEAD_WINDOW_DAYS} הימים האחרונים. הסיכום נשלח פעם ביום ב-20:00.</p>
   </div>`;
+}
+
+/** Ready reply drafts waiting in Gmail (prepared by the e-mail assistant, not yet sent). */
+async function readyDrafts(): Promise<Array<{ to: string; subject: string }>> {
+  try {
+    const g = await import("@/integrations/google/gmail.server");
+    const acc = await g.resolveGmailAccount();
+    if (!acc) return [];
+    const list = await g.gmailApi<any>(acc.connKey, "/users/me/drafts?maxResults=40");
+    const out: Array<{ to: string; subject: string }> = [];
+    for (const d of (list?.drafts ?? []).slice(0, 40)) {
+      const m = await g.gmailApi<any>(acc.connKey, `/users/me/drafts/${d.id}?format=metadata&metadataHeaders=To&metadataHeaders=Subject`);
+      const to = g.gmailHeaderValue(m?.message?.payload?.headers, "To");
+      const subject = g.gmailHeaderValue(m?.message?.payload?.headers, "Subject");
+      if (to) out.push({ to, subject: subject || "(ללא נושא)" });
+    }
+    return out;
+  } catch {
+    return [];
+  }
 }
 
 export async function runHourlyFollowUpDigest(opts: { force?: boolean } = {}): Promise<{ sent: boolean; reason?: string; people?: number }> {
@@ -375,63 +397,33 @@ export async function runHourlyFollowUpDigest(opts: { force?: boolean } = {}): P
   const state = await loadState(db);
   if (!opts.force && state.at && Date.now() - Date.parse(state.at) < MIN_GAP_MS) return { sent: false, reason: "too_soon" };
 
+  // Only people whose reason has been waiting WAITING_DAYS or more (nobody answered).
+  const cutoff = Date.now() - WAITING_DAYS * 86_400_000;
   const all = await collectFollowUps(db);
-  if (all.length === 0) return { sent: false, reason: "nothing_waiting", people: 0 };
-
-  // Only what is NEW since the previous digest: reasons whose id was not in the last one.
-  const seen = new Set(state.ids);
-  const news: Person[] = [];
+  const people: Person[] = [];
   for (const p of all) {
-    const fresh = p.reasons.filter((r) => !seen.has(r.id as string));
-    if (fresh.length) news.push({ ...p, reasons: fresh });
+    const old = p.reasons.filter((r) => r.at && Date.parse(r.at) <= cutoff);
+    if (old.length) people.push({ ...p, reasons: old });
   }
-  const allIds = all.flatMap((p) => p.reasons.map((r) => r.id as string));
-  if (news.length === 0) {
-    // Nothing new: stay silent, but forget items that were handled so they can come back if they reappear.
-    await db.from("app_settings").upsert({ key: STATE_KEY, value: JSON.stringify({ ...state, ids: allIds }), updated_at: new Date().toISOString() });
-    return { sent: false, reason: "nothing_new", people: 0 };
+  const drafts = await readyDrafts();
+  if (people.length === 0 && drafts.length === 0) {
+    await db.from("app_settings").upsert({ key: STATE_KEY, value: JSON.stringify({ ...state, at: new Date().toISOString() }), updated_at: new Date().toISOString() });
+    return { sent: false, reason: "nothing_waiting", people: 0 };
   }
-  const stillWaiting = all.length - news.length;
-  // Everyone shown below gets a lead row (if she has contact details) so each line has its stage buttons.
-  await ensureLeadRows(db, news);
-  // One Gmail thread per day: every hourly summary is a reply to the previous one (same subject +
-  // threadId + In-Reply-To), so the inbox shows one conversation instead of a mail per hour.
+  await ensureLeadRows(db, people);
   const { sendGmailDetailed } = await import("@/integrations/google/gmail.server");
-  const day = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
-  const reply = !!state.threadId && !!state.msgId && state.day === day;
-  const msgId = `<digest-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@sweetbabyphoto.shop>`;
   const dayLabel = new Date().toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem", day: "numeric", month: "numeric" });
+  const draftsHtml = drafts.length
+    ? `<h3 style="margin:18px 0 6px">✍️ טיוטות מוכנות לשליחה (${drafts.length})</h3><ul style="padding:0 18px;font-size:14px">${drafts.map((d) => `<li style="margin:3px 0">${esc(d.to)} — ${esc(d.subject)}</li>`).join("")}</ul><p style="font-size:12px;color:#6b8a63"><a href="${SITE}/admin/mail-chat">לפתיחה במסך המיילים</a></p>`
+    : "";
+  const body = people.length ? await renderHtml(people, 0) : `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:620px;margin:auto"></div>`;
   const res = await sendGmailDetailed({
     to: DIGEST_TO,
     subject: `📋 למי לחזור — ${dayLabel}`,
-    html: await renderHtml(news, stillWaiting),
-    fromName: "Sweetbaby · סיכום שעתי",
-    messageId: msgId,
-    ...(reply ? { threadId: state.threadId!, inReplyTo: state.msgId! } : {}),
+    html: body.replace(/<\/div>\s*$/, `${draftsHtml}</div>`),
+    fromName: "Sweetbaby · סיכום יומי",
   });
-  if (!res.ok) return { sent: false, reason: "send_failed", people: news.length };
-  // Gmail replaces the Message-ID we set with its own, so read the REAL threadId + Message-ID of the mail we just
-  // sent; the next hourly mail replies to those (otherwise each one starts a new thread).
-  let realThread: string | null = res.threadId ?? null;
-  let realMsgId: string = msgId;
-  if (res.id) {
-    try {
-      const g = await import("@/integrations/google/gmail.server");
-      const m = await g.gmailApi<any>(
-        process.env.GOOGLE_MAIL_API_KEY ?? "",
-        `/users/me/messages/${res.id}?format=metadata&metadataHeaders=Message-ID&metadataHeaders=Message-Id`,
-      );
-      if (m?.threadId) realThread = m.threadId;
-      const h = g.gmailHeaderValue(m?.payload?.headers, "Message-ID") || g.gmailHeaderValue(m?.payload?.headers, "Message-Id");
-      if (h) realMsgId = h;
-    } catch {
-      // keep the fallback values
-    }
-  }
-  await db.from("app_settings").upsert({
-    key: STATE_KEY,
-    value: JSON.stringify({ at: new Date().toISOString(), ids: allIds, threadId: realThread ?? (reply ? state.threadId : null), msgId: realMsgId, day }),
-    updated_at: new Date().toISOString(),
-  });
-  return { sent: true, people: news.length };
+  if (!res.ok) return { sent: false, reason: "send_failed", people: people.length };
+  await db.from("app_settings").upsert({ key: STATE_KEY, value: JSON.stringify({ at: new Date().toISOString(), ids: [], day: "" }), updated_at: new Date().toISOString() });
+  return { sent: true, people: people.length };
 }
