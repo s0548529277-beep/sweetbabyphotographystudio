@@ -143,10 +143,16 @@ export const submitFunnelLead = createServerFn({ method: "POST" })
       console.error("[SWEETBABY] funnel visitor link failed", e);
     }
 
+    // The owner and her husband try the quiz: the lead is kept but no "new lead" mail is sent for them (owner request 2026-11-26).
+    const { isOwnerTestContact } = await import("@/lib/lead-exclusions");
+    if (isOwnerTestContact({ name: data.name, phone: data.phone, email })) return { ok: true };
+
     try {
       const { sendGmail } = await import("@/integrations/google/gmail.server");
-      const local = digits.startsWith("0") ? "972" + digits.slice(1) : digits.startsWith("972") ? digits : "972" + digits;
-      const wa = `https://wa.me/${local}?text=${encodeURIComponent(`היי ${data.name}, כאן הסטודיו של מיכל סיבוני 🤍 ראיתי שמילאת שאלון באתר, אשמח לעזור!`)}`;
+      // Instead of the WhatsApp button: "לא רלוונטי" / "שנה סטטוס" (the lead gets a row in inquiry_leads so the buttons work).
+      const { findOrCreateLeadId, leadStatusButtonsHtml } = await import("@/lib/lead-status.server");
+      const leadId = await findOrCreateLeadId(supabaseAdmin as any, { name: data.name, phone: data.phone, email, source: "funnel", message: `${result.hot ? "ליד חם · " : ""}${result.headline}` });
+      const statusButtons = leadId ? await leadStatusButtonsHtml(leadId) : "";
       const rows = answerLines(funnel, data.answers, questions)
         .map((r) => `<tr><td style="padding:6px 10px;color:#8a7466">${esc(r.q)}</td><td style="padding:6px 10px">${esc(r.a)}</td></tr>`)
         .join("");
@@ -162,10 +168,11 @@ export const submitFunnelLead = createServerFn({ method: "POST" })
         </table>
         ${journeyHtml}
         <p style="text-align:center;margin:20px 0 6px">${
-          funnel === "photography" && email
+          email
             ? `<a href="mailto:${esc(email)}?subject=${encodeURIComponent("צילומים עם מיכל סיבוני")}" style="background:#4a3221;color:#fff;text-decoration:none;padding:12px 26px;border-radius:999px;font-weight:bold;display:inline-block">מענה במייל אל ${esc(data.name)}</a>`
-            : `<a href="${wa}" style="background:#25d366;color:#fff;text-decoration:none;padding:12px 26px;border-radius:999px;font-weight:bold;display:inline-block">שליחת וואטסאפ אל ${esc(data.name)}</a>`
+            : `<a href="tel:${esc(digits)}" style="background:#4a3221;color:#fff;text-decoration:none;padding:12px 26px;border-radius:999px;font-weight:bold;display:inline-block">התקשרות אל ${esc(data.name)}</a>`
         }</p>
+        <div style="text-align:center">${statusButtons}</div>
         <p style="text-align:center;font-size:12px;color:#8a7466">לא נשלחה שום הודעה אוטומטית ללידה. כל הלידים: ${SITE}/admin/funnel-leads</p>
       </div>`;
       await sendGmail({
