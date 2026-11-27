@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AdminMailPanel } from "@/components/AdminMailPanel";
 import { AdminMorningCard } from "@/components/AdminMorningCard";
 import { DraftsStatusTile } from "@/components/DraftsStatusTile";
+import { SevereIssuesTile } from "@/components/SevereIssuesTile";
 import { SchedulerStatusTile } from "@/components/SchedulerStatusTile";
 import { Package, ShoppingBag, CalendarDays, TrendingUp, Bell, Sun, PackageOpen, PackageCheck, Wallet, Baby, Home } from "lucide-react";
 
@@ -97,6 +98,7 @@ function Overview() {
       <div className="space-y-2 empty:hidden">
         <SchedulerStatusTile />
         <DraftsStatusTile />
+        <SevereIssuesTile />
       </div>
       <IncomeSummary />
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
