@@ -439,10 +439,8 @@ const quickLabel = (t: string) => (t.length > 22 ? `${t.slice(0, 20)}…` : t);
 
 type Filter = "all" | "unread" | "waiting" | "reminders" | "drafts" | "site" | "studio" | "personal" | "groups" | "whatsapp" | "archived" | `label:${string}`;
 const BASE_FILTERS: Array<{ id: Filter; label: string }> = [
-  { id: "all", label: "הכל" },
   { id: "unread", label: "לא נקראו" },
   { id: "waiting", label: "ממתינות לי" },
-  { id: "drafts", label: "טיוטות" },
 ];
 
 const EMPTY_PREFS: MailChatPrefs = { pinned: [], labels: {}, archived: {}, quickReplies: [], reminders: {}, notes: {}, waSeen: {} };
@@ -711,7 +709,7 @@ function MailChatAdmin() {
       // Owner, 2026-11-26: chats I answered more than 14 days ago are hidden from the main list (search still finds them).
       if (!serverSearch && filter === "all" && c.lastFromMe && now - c.lastDate > 14 * 86_400_000) return false;
       if (filter === "unread" && !c.unread) return false;
-      if (filter === "waiting" && c.lastFromMe) return false;
+      if (filter === "waiting" && c.lastFromMe && !c.hasDraft) return false;
       if (filter === "reminders" && !(prefs.reminders?.[c.key] && prefs.reminders[c.key] <= now)) return false;
       if (filter === "drafts" && !c.hasDraft) return false;
       if (filter === "site" && !(c.kinds ?? []).length) return false;
@@ -745,7 +743,7 @@ function MailChatAdmin() {
   const unreadCount = inbox.filter((c) => c.unread).length;
   const draftCount = inbox.filter((c) => c.hasDraft).length;
   const siteCount = inbox.filter((c) => (c.kinds ?? []).length).length;
-  const waitingCount = inbox.filter((c) => !c.lastFromMe).length;
+  const waitingCount = inbox.filter((c) => !c.lastFromMe || c.hasDraft).length;
   const dueReminders = conversations.filter((c) => prefs.reminders?.[c.key] && prefs.reminders[c.key] <= now);
   const archivedCount = conversations.filter(isArchived).length;
   const usedLabels = LABELS.filter((l) => Object.values(prefs.labels).includes(l.id));
@@ -1276,7 +1274,7 @@ function MailChatAdmin() {
 
   const filters: Array<{ id: Filter; label: string; count?: number }> = [
     ...(dueReminders.length ? [{ id: "reminders" as Filter, label: "⏰ לחזור אליהן", count: dueReminders.length }] : []),
-    ...BASE_FILTERS.map((f) => ({ ...f, count: f.id === "unread" ? unreadCount : f.id === "drafts" ? draftCount : f.id === "site" ? siteCount : f.id === "waiting" ? waitingCount : undefined })),
+    ...BASE_FILTERS.map((f) => ({ ...f, count: f.id === "unread" ? unreadCount : f.id === "site" ? siteCount : f.id === "waiting" ? waitingCount : undefined })),
     ...usedLabels.map((l) => ({ id: `label:${l.id}` as Filter, label: `🏷 ${l.id}` })),
     ...(archivedCount ? [{ id: "archived" as Filter, label: "ארכיון", count: archivedCount }] : []),
   ];
@@ -1402,7 +1400,7 @@ function MailChatAdmin() {
                   <button
                     key={f.id}
                     type="button"
-                    onClick={() => setFilter(f.id)}
+                    onClick={() => setFilter(filter === f.id ? "all" : f.id)}
                     className="shrink-0 h-8 px-3 rounded-full text-xs font-medium transition whitespace-nowrap flex items-center gap-1"
                     style={filter === f.id ? { background: "#d9fdd3", color: WA.greenDark } : { background: WA.panel, color: WA.muted }}
                   >
@@ -1624,7 +1622,7 @@ function MailChatAdmin() {
               {draftCount > 0 && (
                 <button
                   type="button"
-                  onClick={() => setFilter("drafts")}
+                  onClick={() => setFilter("waiting")}
                   className="mt-2 h-9 px-4 rounded-full text-sm font-medium"
                   style={{ background: WA.draft, color: WA.draftInk }}
                 >

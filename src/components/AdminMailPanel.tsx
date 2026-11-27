@@ -10,7 +10,7 @@ import type { MailConversation } from "@/lib/mailchat";
 // Two boxes (studio / photo customers), 10 chats at a time, chats answered 14+ days ago are hidden.
 const HIDE_ANSWERED_MS = 14 * 86400000;
 type Box = "studio" | "photo";
-type Filter = "all" | "unread" | "waiting" | "drafts";
+type Filter = "all" | "unread" | "waiting";
 
 function ago(ts: number): string {
   const m = Math.max(0, Math.round((Date.now() - ts) / 60000));
@@ -38,11 +38,10 @@ export function AdminMailPanel() {
     .sort((a, b) => b.lastDate - a.lastDate);
   const counts = {
     unread: all.filter((c) => c.unread).length,
-    waiting: all.filter((c) => !c.lastFromMe).length,
-    drafts: all.filter((c) => c.hasDraft).length,
+    waiting: all.filter((c) => !c.lastFromMe || c.hasDraft).length,
   };
   const list = all.filter((c) =>
-    filter === "unread" ? c.unread : filter === "waiting" ? !c.lastFromMe : filter === "drafts" ? c.hasDraft : true,
+    filter === "unread" ? c.unread : filter === "waiting" ? !c.lastFromMe || c.hasDraft : true,
   );
   const rows = list.slice(0, shown);
   const more = list.length > shown || !!chats.data?.hasMore;
@@ -59,7 +58,7 @@ export function AdminMailPanel() {
   const chip = (f: Filter, label: string, n?: number) => (
     <button
       type="button"
-      onClick={() => { setFilter(f); setShown(10); }}
+      onClick={() => { setFilter(filter === f ? "all" : f); setShown(10); }}
       className={`px-3 py-1 rounded-full text-xs border ${filter === f ? "bg-peach text-primary border-primary/30" : "border-primary/10 text-muted-foreground"}`}
     >
       {label}{n ? ` (${n})` : ""}
@@ -81,10 +80,8 @@ export function AdminMailPanel() {
         </div>
       </div>
       <div className="flex flex-wrap gap-2 mb-3">
-        {chip("all", "הכל")}
         {chip("unread", "לא נקראו", counts.unread)}
         {chip("waiting", "ממתינות לי", counts.waiting)}
-        {chip("drafts", "טיוטות", counts.drafts)}
       </div>
 
       {chats.isLoading ? (
