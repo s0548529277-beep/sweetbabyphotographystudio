@@ -73,15 +73,7 @@ export const spinNewsletterWheel = createServerFn({ method: "POST" })
       .eq("email", email);
     if (updErr) console.error("[SWEETBABY] newsletter wheel save failed", updErr);
 
-    try {
-      await supabaseAdmin.from("admin_notifications").insert({
-        type: "newsletter_wheel_won",
-        title: `🎡 זכייה בגלגל הרשמה · ${email} · ${final.label}`,
-        body: { email, sequence: sequenceIds, coupon_code: couponCode },
-      });
-    } catch (e) {
-      console.error("[SWEETBABY] newsletter wheel win admin_notifications save failed", e);
-    }
+    // Owner 2026-11-27: no admin notification for wheel wins.
 
     return { sequenceIds, couponCode, alreadySpun: false };
   });

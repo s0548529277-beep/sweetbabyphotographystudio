@@ -58,41 +58,19 @@ export function DraftsStatusTile() {
   const s = status.data;
   if (!s) return null;
 
-  const todayKey = new Date(now).toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
-  const isToday = s.today?.date === todayKey;
-  const createdToday = isToday ? s.today?.created ?? 0 : 0;
-  const autoToday = isToday ? s.today?.autoSent ?? 0 : 0;
+  // Owner 2026-11-27: shown only when something is seriously wrong (no Gmail / errors in the last check).
   const hasProblem = !!s.errors?.length || s.reason === "no_gmail";
+  if (!hasProblem) return null;
 
   return (
-    <div
-      className={`rounded-2xl border p-3 text-sm flex flex-wrap items-center gap-x-4 gap-y-1 ${
-        hasProblem ? "border-rose-200 bg-rose-50 text-rose-900" : "border-primary/10 bg-card text-forest/80"
-      }`}
-    >
-      <span className="font-medium">✍️ עוזר הטיוטות</span>
-      <span title={s.at ? new Date(s.at).toLocaleString("he-IL") : undefined}>
-        בדיקה אחרונה: {minutesAgoLabel(s.at, now)}
-      </span>
+    <div className="rounded-2xl border border-rose-200 bg-rose-50 text-rose-900 p-3 text-sm flex flex-wrap items-center gap-x-4 gap-y-1">
+      <span className="font-medium">🚨 תקלה חמורה · עוזר הטיוטות</span>
       {s.reason === "no_gmail" ? (
         <span>אין חשבון ג׳ימייל מחובר לאתר</span>
       ) : (
-        <>
-          <span>הוכנו היום {createdToday} טיוטות</span>
-          {s.lastDraftAt && (
-            <span title={new Date(s.lastDraftAt).toLocaleString("he-IL")}>
-              טיוטה אחרונה: {minutesAgoLabel(s.lastDraftAt, now)}
-            </span>
-          )}
-          {(s.pending ?? 0) > 0 && <span>ממתינות לבדיקה הבאה: {s.pending}</span>}
-          {autoToday > 0 && <span>נשלחו היום {autoToday} מענים אוטומטיים</span>}
-          {s.errors?.length ? (
-            <span title={s.errors.join("\n")}>תקלות בבדיקה האחרונה: {s.errors.length}</span>
-          ) : (
-            <span>בלי תקלות</span>
-          )}
-        </>
+        <span title={s.errors?.join("\n")}>תקלות בבדיקה האחרונה: {s.errors?.length}</span>
       )}
+      <span title={s.at ? new Date(s.at).toLocaleString("he-IL") : undefined}>בדיקה אחרונה: {minutesAgoLabel(s.at, now)}</span>
     </div>
   );
 }

@@ -81,6 +81,7 @@ import { WhatsAppMedia } from "@/components/WhatsAppMedia";
 import type { MailConversation } from "@/lib/mailchat";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { ColorHeart } from "@/components/Heart";
 
 export const Route = createFileRoute("/_authenticated/admin/mail-chat")({
   component: MailChatAdmin,
@@ -1344,29 +1345,6 @@ function MailChatAdmin() {
         {/* ── side panel ── */}
         <aside className={`relative min-h-0 min-w-0 flex-col border-l ${showThread ? "hidden md:flex" : "flex"}`} style={{ borderColor: WA.line }}>
           <div className="shrink-0 px-3 pt-2 md:pt-3 pb-2 space-y-2 bg-white">
-            <div className="hidden md:flex rounded-full p-1" style={{ background: WA.panel }}>
-              {(
-                [
-                  { id: "chats", label: "שיחות", icon: Mail, badge: unreadCount },
-                  { id: "contacts", label: "אנשי קשר", icon: BookUser, badge: 0 },
-                ] as const
-              ).map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setTab(t.id)}
-                  className="flex-1 h-9 rounded-full text-sm font-medium flex items-center justify-center gap-1.5 transition"
-                  style={tab === t.id ? { background: "#fff", color: WA.greenDark, boxShadow: "0 1px 2px rgba(0,0,0,.08)" } : { color: WA.muted }}
-                >
-                  <t.icon className="h-4 w-4" /> {t.label}
-                  {t.badge > 0 && (
-                    <span className="min-w-5 h-5 px-1.5 rounded-full text-[11px] text-white flex items-center justify-center" style={{ background: WA.unread }}>
-                      {t.badge}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
             <div className="flex items-center gap-1.5">
               <a href="/admin" aria-label="חזרה לניהול" title="חזרה לניהול" className="md:hidden h-9 w-9 shrink-0 rounded-full flex items-center justify-center" style={{ background: WA.panel, color: WA.greenDark }}>
                 <ArrowRight className="h-4 w-4" />
@@ -1396,8 +1374,8 @@ function MailChatAdmin() {
               <div className="grid grid-cols-2 gap-1 rounded-full p-1" style={{ background: WA.panel }}>
                 {(
                   [
-                    { id: "studio", label: "🏠 לקוחות סטודיו" },
-                    { id: "photo", label: "📸 לקוחות צילום" },
+                    { id: "studio", label: "לקוחות סטודיו" },
+                    { id: "photo", label: "לקוחות צילום" },
                   ] as const
                 ).map((b) => (
                   <button
@@ -1407,7 +1385,7 @@ function MailChatAdmin() {
                     className="h-9 rounded-full text-[13px] sm:text-sm font-semibold transition whitespace-nowrap"
                     style={box === b.id ? { background: "#fff", color: WA.greenDark, boxShadow: "0 1px 3px rgba(0,0,0,.12)" } : { color: WA.muted }}
                   >
-                    {b.label}
+                    <ColorHeart kind={b.id === "photo" ? "michal" : "bot"} /> {b.label}
                   </button>
                 ))}
               </div>
@@ -1628,27 +1606,6 @@ function MailChatAdmin() {
               <RefreshCw className={`h-3.5 w-3.5 ${chats.isFetching ? "animate-spin" : ""}`} />
             </button>
           </div>
-          {/* Phone: bottom tabs like the WhatsApp app. */}
-          <nav className="md:hidden shrink-0 grid grid-cols-2 border-t bg-white pb-[env(safe-area-inset-bottom)]" style={{ borderColor: WA.line }}>
-            {(
-              [
-                { id: "chats", label: "שיחות", icon: Mail, badge: unreadCount },
-                { id: "contacts", label: "אנשי קשר", icon: BookUser, badge: 0 },
-              ] as const
-            ).map((t) => (
-              <button key={t.id} type="button" onClick={() => setTab(t.id)} className="h-14 flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium" style={{ color: tab === t.id ? WA.greenDark : WA.muted }}>
-                <span className="relative h-7 px-4 rounded-full flex items-center justify-center" style={tab === t.id ? { background: "#d9fdd3" } : undefined}>
-                  <t.icon className="h-5 w-5" />
-                  {t.badge > 0 && (
-                    <span className="absolute -top-1 -left-1 min-w-4 h-4 px-1 rounded-full text-[10px] text-white flex items-center justify-center" style={{ background: WA.unread }}>
-                      {t.badge}
-                    </span>
-                  )}
-                </span>
-                {t.label}
-              </button>
-            ))}
-          </nav>
         </aside>
 
         {/* ── chat pane ── */}

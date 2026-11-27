@@ -102,15 +102,7 @@ export const spinWheel = createServerFn({ method: "POST" })
       couponCode = await mintWheelCoupon(supabaseAdmin, prize.couponPercent, userRes?.user?.email ?? null, b.id);
     }
 
-    try {
-      await supabaseAdmin.from("admin_notifications").insert({
-        type: "wheel_prize_won",
-        title: `🎡 זכייה בגלגל המתנות · ${b.contact_name ?? ""} · ${prize.label}`,
-        body: { booking_id: b.id, prize_id: prize.id, detail: prize.detail, phone: b.contact_phone, coupon_code: couponCode },
-      });
-    } catch (e) {
-      console.error("[SWEETBABY] wheel win admin_notifications save failed", e);
-    }
+    // Owner 2026-11-27: no admin notification for wheel wins.
 
     return { prizeId: prize.id, label: prize.label, detail: prize.detail, couponCode, alreadyWon: false };
   });

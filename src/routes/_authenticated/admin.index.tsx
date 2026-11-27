@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminMailPanel } from "@/components/AdminMailPanel";
+import { AdminMorningCard } from "@/components/AdminMorningCard";
 import { DraftsStatusTile } from "@/components/DraftsStatusTile";
 import { SchedulerStatusTile } from "@/components/SchedulerStatusTile";
 import { Package, ShoppingBag, CalendarDays, TrendingUp, Bell, Sun, PackageOpen, PackageCheck, Wallet, Baby, Home } from "lucide-react";
@@ -92,8 +93,11 @@ function Overview() {
 
   return (
     <div className="space-y-8">
-      <SchedulerStatusTile />
-      <DraftsStatusTile />
+      {/* "תקלות חמורות" — empty (hidden) unless something is wrong */}
+      <div className="space-y-2 empty:hidden">
+        <SchedulerStatusTile />
+        <DraftsStatusTile />
+      </div>
       <IncomeSummary />
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {cards.map((c) => (
@@ -178,6 +182,7 @@ function Overview() {
         )}
       </div>
 
+      <AdminMorningCard />
       <AdminMailPanel />
     </div>
   );

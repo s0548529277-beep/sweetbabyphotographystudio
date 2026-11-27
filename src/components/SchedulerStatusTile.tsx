@@ -48,7 +48,7 @@ export function SchedulerStatusTile() {
     return (
       <div className="rounded-2xl border border-amber-200 bg-amber-50 text-amber-900 p-3 text-sm flex items-center gap-2" dir="rtl">
         <AlertTriangle className="h-4 w-4 shrink-0" />
-        <span>התזמון רץ, אבל משימה אחת נכשלה בריצה האחרונה: {errorNames.join(", ")}. שאר המשימות רצו כרגיל.</span>
+        <span>🚨 תקלה חמורה · התזמון רץ, אבל משימה אחת נכשלה בריצה האחרונה: {errorNames.join(", ")}. שאר המשימות רצו כרגיל.</span>
       </div>
     );
   }
@@ -57,6 +57,7 @@ export function SchedulerStatusTile() {
     <div className="rounded-2xl border border-rose-200 bg-rose-50 text-rose-900 p-3 text-sm flex items-center gap-2" dir="rtl">
       <AlertTriangle className="h-4 w-4 shrink-0" />
       <span>
+        🚨 תקלה חמורה ·{" "}
         {minutes == null
           ? "עוד לא נרשמה ריצה של התזמון האוטומטי — תזכורות, מיילי תודה וטיוטות לא יישלחו עד שהוא ירוץ."
           : `התזמון האוטומטי לא רץ כבר ${minutes} דקות — תזכורות, מיילי תודה וטיוטות מתעכבים. צריך לבדוק את המתזמן החיצוני (קריאה כל 10 דקות ל-/api/send-booking-reminders).`}

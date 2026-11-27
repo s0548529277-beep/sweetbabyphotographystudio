@@ -75,6 +75,7 @@ function isGroup(entry: NavEntry): entry is NavGroup {
 const links: NavEntry[] = [
   { to: "/admin", label: "סקירה", icon: LayoutDashboard, exact: true },
   { to: "/admin/analytics", label: "אנליטיקס", icon: BarChart3 },
+  { to: "/admin/mail-chat", label: "מייל עסקי", icon: Mail },
   { to: "/admin/items", label: "אביזרים", icon: Package },
   { to: "/admin/orders", label: "הזמנות", icon: ShoppingBag },
   { to: "/admin/calendar", label: "יומן", icon: CalendarDays },
@@ -91,7 +92,6 @@ const links: NavEntry[] = [
   },
   { to: "/admin/clients", label: "לקוחות", icon: Users },
   { to: "/admin/whatsapp", label: "וואטסאפ", icon: MessageSquare },
-  { to: "/admin/mail-chat", label: "מיילים כמו וואטסאפ", icon: Mail },
   { to: "/admin/newborn-contract-text", label: "מלל הכנה+חוזה ניו-בורן", icon: FileText },
   { to: "/admin/contract-text", label: "נוסח חוזים — חוץ וצילום כללי", icon: FileText },
   { to: "/admin/outdoor-contract-text", label: "חוזה צילומי חוץ", icon: FileText },
@@ -109,7 +109,6 @@ const links: NavEntry[] = [
       { to: "/admin/subscriptions", label: "מנויים (כרטיסיות)", icon: CreditCard },
       { to: "/admin/newsletter", label: "ניוזלטר", icon: Mail },
       { to: "/admin/waitlist", label: "רשימת המתנה", icon: BellRing },
-      { to: "/admin/prize-wheel", label: "גלגל מתנות", icon: Disc3 },
     ],
   },
   {
