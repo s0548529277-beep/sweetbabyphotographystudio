@@ -320,13 +320,20 @@ export function buildBrandedMailHtml(opts: { title: string; innerHtml: string; t
  * three buttons: site / Waze / mail) around ready-made inner HTML — for the studio's own mails (props orders,
  * studio bookings). The photographer mails keep the thinner Michal look above.
  */
-export function buildStudioMailHtml(opts: { title: string; innerHtml: string }): string {
+export function buildStudioMailHtml(opts: { title: string; innerHtml: string; thin?: boolean }): string {
   const t = THEMES.studio;
   const rtl = "direction:rtl;text-align:right";
   const btn = (href: string, label: string, primary = false) =>
     `<a href="${href}" style="display:inline-block;background:${primary ? t.accent : t.cardBg};color:${primary ? t.cardBg : t.accent};border:1px solid ${t.accent};font-family:Arial,sans-serif;font-size:14px;font-weight:bold;text-decoration:none;padding:9px 22px;border-radius:18px;white-space:nowrap;margin:4px">${label}</a>`;
-  const html = `<div dir="rtl" data-mail="studio" style="background:#e9dcc8;background-image:linear-gradient(160deg,#dfe8d3 0%,#f3d9d2 55%,#e9d3b9 100%);padding:26px 16px;${rtl}">${RB_CSS}
-  <table role="presentation" dir="rtl" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:${t.cardBg};border:1px solid #efddd0;border-radius:22px;overflow:hidden;box-shadow:0 8px 28px rgba(90,70,50,0.16);font-family:${FONT};color:${t.text};${rtl}">
+  // thin = prepared drafts: no colour fill around the card, only a thin border line.
+  const outer = opts.thin
+    ? "background:#ffffff;padding:4px 4px;"
+    : "background:#e9dcc8;background-image:linear-gradient(160deg,#dfe8d3 0%,#f3d9d2 55%,#e9d3b9 100%);padding:26px 16px;";
+  const cardFrame = opts.thin
+    ? "border:1px solid #d8c9b6;border-radius:14px;overflow:hidden;"
+    : "border:1px solid #efddd0;border-radius:22px;overflow:hidden;box-shadow:0 8px 28px rgba(90,70,50,0.16);";
+  const html = `<div dir="rtl" data-mail="studio" style="${outer}${rtl}">${RB_CSS}
+  <table role="presentation" dir="rtl" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:${t.cardBg};${cardFrame}font-family:${FONT};color:${t.text};${rtl}">
     <tr><td align="center" style="padding:28px 28px 6px"><img src="${STUDIO_LOGO_URL}" alt="Sweetbaby" height="52" style="height:52px;width:auto;border:0">
       <div style="font-size:12px;letter-spacing:2px;color:${t.soft};margin-top:8px">סטודיו בוטיק לצילום · בית שמש</div></td></tr>
     <tr><td style="padding:6px 28px 0"><div style="border-top:1px solid ${t.soft}55;text-align:center;line-height:0"><span style="position:relative;top:-1px;background:${t.cardBg};padding:0 10px;font-size:12px;line-height:1">${heartImg("bot", 14)}</span></div></td></tr>
@@ -404,10 +411,10 @@ export function buildDraftHtml(opts: {
   const photos = opts.brand === "photographer" ? photoStrip(opts.photos ?? [], !!opts.bigPhotos) : "";
   // Studio drafts use the same new studio shell as the order / booking mails (thick gradient frame, Sweetbaby
   // logo, animated studio signature + buttons).
-  if (look === "studio") return buildStudioMailHtml({ title: "", innerHtml: `${bodyToHtml(opts.body, t)}${cta}` });
+  if (look === "studio") return buildStudioMailHtml({ title: "", innerHtml: `${bodyToHtml(opts.body, t)}${cta}`, thin: true });
   const branded = true;
-  const html = `<div dir="rtl" data-mail="${look}" style="background:${t.pageBg};${look === "photographer" ? "background-image:linear-gradient(160deg,#f6d8d0 0%,#eccbb4 55%,#d9b898 100%);" : ""}padding:7px 6px;direction:rtl">${RB_CSS}
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:${t.cardBg};border:1px solid ${t.border};border-radius:14px;overflow:hidden;font-family:${FONT};color:${t.text};direction:rtl;text-align:right">
+  const html = `<div dir="rtl" data-mail="${look}" style="background:#ffffff;padding:4px 4px;direction:rtl">${RB_CSS}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:${t.cardBg};border:1px solid #d8c9b6;border-radius:14px;overflow:hidden;font-family:${FONT};color:${t.text};direction:rtl;text-align:right">
     ${header}
     <tr><td style="padding:${opts.brand === "general" ? "30px 34px 10px" : "18px 34px 10px"};font-size:15px;line-height:1.8">
       ${photos}
