@@ -985,7 +985,8 @@ export async function runEmailDraftAssistant(
       result.errors.push(`site inquiries: ${String((e as any)?.message ?? e).slice(0, 100)}`);
     }
     // Notices inside the daily lead thread are separate inquiries: each MESSAGE is its own unit of work.
-    type Unit = { threadId: string; leadMessageId?: string };
+    type MailCtx = { k: string; email: string; readyId?: string; autoLabelId?: string; labels: Map<string, string>; secondary?: boolean };
+    type Unit = { threadId: string; leadMessageId?: string; ctx?: MailCtx };
     const leadUnits: Unit[] = [];
     try {
       const leadList = await g.gmailApi<{ messages?: Array<{ id: string; threadId: string }> }>(
@@ -1013,6 +1014,42 @@ export async function runEmailDraftAssistant(
       ...waiting.filter((t) => !siteThreadIds.has(t)).map((threadId) => ({ threadId })),
     ];
 
+    // ---------- the old studio mailbox (s): customers who still write there also get a prepared draft ----------
+    // Owner request 2026-11-27. The draft is made INSIDE the s mailbox (so it is sent from s). A mail that was forwarded to m
+    // (same Message-ID found in m) is skipped here: m makes that draft.
+    try {
+      const sAcc = await g.resolveGmailAccount("s0548529277@gmail.com");
+      if (sAcc && sAcc.email !== acc.email) {
+        const sLabels = await ensureLabels(g, sAcc.connKey);
+        const sReady = sLabels.get(LABEL_READY);
+        const sDrafts = await listAllDrafts(g, sAcc.connKey);
+        if (sDrafts) {
+          let sLive = sDrafts;
+          if (sReady) {
+            try {
+              const c = await cleanupAnsweredThreads(g, sAcc.connKey, sReady, sLabels.get(LABEL_SENT), sDrafts);
+              sLive = sDrafts.filter((d) => !c.deletedDraftIds.has(d.id));
+            } catch (e: any) {
+              result.errors.push(`s ניקוי: ${String(e?.message ?? e).slice(0, 100)}`);
+            }
+          }
+          const sDraftThreads = new Set(sLive.map((d) => d.message?.threadId).filter(Boolean) as string[]);
+          const sCtx: MailCtx = { k: sAcc.connKey, email: sAcc.email, readyId: sReady, autoLabelId: sLabels.get(LABEL_AUTO), labels: sLabels, secondary: true };
+          const sList = await g.gmailApi<{ messages?: Array<{ id: string; threadId: string }> }>(
+            sAcc.connKey,
+            `/users/me/messages?maxResults=20&q=${encodeURIComponent(q)}`,
+          );
+          const sNewest = new Map<string, string>();
+          for (const m of sList?.messages ?? []) if (!sNewest.has(m.threadId)) sNewest.set(m.threadId, m.id);
+          for (const [t, mid] of sNewest) {
+            if (!seenSet.has(mid) && !sDraftThreads.has(t)) units.push({ threadId: t, ctx: sCtx });
+          }
+        }
+      }
+    } catch (e) {
+      result.errors.push(`s mailbox: ${String((e as any)?.message ?? e).slice(0, 100)}`);
+    }
+
     let made = 0;
     let autoRun = 0;
     let freeDatesP: Promise<string> | null = null; // one calendar lookup per run, shared by every thread
@@ -1028,8 +1065,14 @@ export async function runEmailDraftAssistant(
     // (~25 s), so three at once drain the queue about three times faster. Everything shared (`made`, `autoRun`, the seen
     // list, the claimed e-mails) is only changed between awaits, so no thread can see a half-updated value.
     const queue = [...units];
-    const processThread = async ({ threadId, leadMessageId }: Unit): Promise<void> => {
+    const mainCtx: MailCtx = { k, email: acc.email, readyId, autoLabelId, labels };
+    const processThread = async ({ threadId, leadMessageId, ctx }: Unit): Promise<void> => {
       visited++;
+      const uc = ctx ?? mainCtx;
+      const k = uc.k;
+      const acc = { email: uc.email };
+      const readyId = uc.readyId;
+      const autoLabelId = uc.autoLabelId;
       const th = await g.gmailApi<{ messages?: any[] }>(k, `/users/me/threads/${threadId}?format=full`);
       const msgs = (th?.messages ?? []).filter((m: any) => !leadMessageId || m.id === leadMessageId);
       const last = msgs[msgs.length - 1];
@@ -1043,6 +1086,18 @@ export async function runEmailDraftAssistant(
       // Notices sent from the studio address — m now, the old s address until 17.11 — are the sites' own mail.
       const fromOwnAddress = isOwner(fromAddr) || isOwnStudioAddress(fromAddr);
       const isSiteInquiry = fromOwnAddress && SITE_INQUIRY_SUBJECT.test(subject);
+      if (uc.secondary) {
+        // s mailbox: own mail is never a customer; a forwarded copy that m already holds is m's to answer.
+        let dup = fromOwnAddress;
+        if (!dup) {
+          const rid = (g.gmailHeaderValue(h, "Message-ID") || "").replace(/[<>\s]/g, "");
+          if (rid) dup = (await g.searchGmail(`rfc822msgid:${rid}`, 1, mainCtx.k)).length > 0;
+        }
+        if (dup) {
+          remember(seenId);
+          return;
+        }
+      }
       // The notices the sites mail to the studio inbox get their type label here (the studio site labels its own mail when
       // it sends it; the photographer site's notices only pass through this scan). Best effort, never blocks the draft.
       if (fromOwnAddress) {
